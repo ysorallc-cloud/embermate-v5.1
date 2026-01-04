@@ -1,0 +1,103 @@
+import React from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, FlatList, Dimensions } from 'react-native';
+import { Colors, Spacing } from '../app/_theme/theme-tokens';
+
+interface Photo {
+  id: string;
+  uri: string;
+  type: string;
+  timestamp: number;
+  notes?: string;
+}
+
+interface PhotoGalleryProps {
+  photos: Photo[];
+  onPhotoPress?: (photo: Photo) => void;
+}
+
+const { width } = Dimensions.get('window');
+const PHOTO_SIZE = (width - (Spacing.lg * 2) - (Spacing.md * 2)) / 3;
+
+export default function PhotoGallery({ photos, onPhotoPress }: PhotoGalleryProps) {
+  if (!photos || photos.length === 0) {
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyIcon}>📷</Text>
+        <Text style={styles.emptyText}>No photos yet</Text>
+      </View>
+    );
+  }
+
+  const renderPhoto = ({ item }: { item: Photo }) => (
+    <TouchableOpacity
+      style={styles.photoContainer}
+      onPress={() => onPhotoPress?.(item)}
+      activeOpacity={0.7}
+    >
+      <Image source={{ uri: item.uri }} style={styles.photo} />
+      {item.notes && (
+        <View style={styles.noteBadge}>
+          <Text style={styles.noteIcon}>📝</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+
+  return (
+    <FlatList
+      data={photos}
+      renderItem={renderPhoto}
+      keyExtractor={(item) => item.id}
+      numColumns={3}
+      columnWrapperStyle={styles.row}
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    paddingVertical: Spacing.sm,
+  },
+  row: {
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  photoContainer: {
+    position: 'relative',
+  },
+  photo: {
+    width: PHOTO_SIZE,
+    height: PHOTO_SIZE,
+    borderRadius: 8,
+    backgroundColor: Colors.surface,
+  },
+  noteBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noteIcon: {
+    fontSize: 12,
+  },
+  emptyState: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    opacity: 0.3,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+});

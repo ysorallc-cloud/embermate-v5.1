@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" width="device-width, initial-scale=1.0">
+    <title>Mockup 1: Minimal Sectioned Design</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(to bottom, #2d3b2d, #1a241a);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .phone-frame {
+            max-width: 390px;
+            margin: 0 auto;
+            background: #1a241a;
+            border-radius: 40px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        
+        .screen {
+            background: linear-gradient(to bottom, #2d3b2d, #1a241a);
+            min-height: 844px;
+            overflow-y: auto;
+        }
+        
+        /* Header */
+        .header {
+            background: rgba(45, 59, 45, 0.2);
+            padding: 60px 24px 32px;
+            border-bottom: 1px solid rgba(212, 165, 116, 0.15);
+        }
+        
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        
+        .header-label {
+            font-size: 11px;
+            color: rgba(212, 165, 116, 0.7);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 6px;
+        }
+        
+        .header-date {
+            font-size: 14px;
+            font-weight: 500;
+            color: #8a9b8a;
+        }
+        
+        .header-title {
+            font-size: 34px;
+            font-weight: 300;
+            letter-spacing: -0.5px;
+            color: #d4a574;
+        }
+        
+        .settings-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 22px;
+            background: rgba(45, 59, 45, 0.3);
+            border: none;
+            color: #8a9b8a;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        /* Progress Banner */
+        .progress-banner {
+            background: rgba(34, 197, 94, 0.08);
+            padding: 24px;
+            border-bottom: 1px solid rgba(34, 197, 94, 0.15);
+        }
+        
+        .progress-count {
+            font-size: 28px;
+            font-weight: 700;
+            color: #22C55E;
+            margin-bottom: 4px;
+        }
+        
+        .progress-label {
+            font-size: 15px;
+            color: #8a9b8a;
+            margin-bottom: 12px;
+        }
+        
+        .progress-bar-container {
+            height: 6px;
+            background: rgba(34, 197, 94, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background: #22C55E;
+            width: 75%;
+            border-radius: 3px;
+        }
+        
+        /* Section */
+        .section {
+            padding: 32px 24px 0;
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .section-icon {
+            font-size: 24px;
+        }
+        
+        .section-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #d4a574;
+        }
+        
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: rgba(212, 165, 116, 0.1);
+            margin: 32px 24px;
+        }
+        
+        /* Medication List */
+        .time-slot {
+            margin-bottom: 24px;
+        }
+        
+        .time-slot-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: #8a9b8a;
+            margin-bottom: 12px;
+        }
+        
+        .med-row {
+            display: flex;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(212, 165, 116, 0.08);
+            gap: 16px;
+            cursor: pointer;
+        }
+        
+        .med-row:last-child {
+            border-bottom: none;
+        }
+        
+        .med-check {
+            width: 28px;
+            height: 28px;
+            border-radius: 14px;
+            border: 2px solid #d4a574;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .med-check.done {
+            background: #d4a574;
+            color: white;
+        }
+        
+        .med-info {
+            flex: 1;
+        }
+        
+        .med-name {
+            font-size: 17px;
+            font-weight: 500;
+            color: #d4a574;
+            margin-bottom: 2px;
+        }
+        
+        .med-name.done {
+            color: #6b7b6b;
+            text-decoration: line-through;
+        }
+        
+        .med-dose {
+            font-size: 14px;
+            color: #8a9b8a;
+        }
+        
+        .med-time {
+            font-size: 15px;
+            font-weight: 500;
+            color: #8a9b8a;
+        }
+        
+        /* Action Grid */
+        .action-grid {
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+        }
+        
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            min-width: 80px;
+        }
+        
+        .action-btn-icon {
+            font-size: 32px;
+        }
+        
+        .action-btn-text {
+            font-size: 14px;
+            font-weight: 500;
+            color: #8a9b8a;
+        }
+        
+        /* Appointment */
+        .appt-row {
+            display: flex;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(212, 165, 116, 0.08);
+            gap: 16px;
+            cursor: pointer;
+        }
+        
+        .appt-time {
+            width: 72px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #3B82F6;
+        }
+        
+        .appt-info {
+            flex: 1;
+        }
+        
+        .appt-title {
+            font-size: 17px;
+            font-weight: 500;
+            color: #d4a574;
+            margin-bottom: 2px;
+        }
+        
+        .appt-location {
+            font-size: 14px;
+            color: #8a9b8a;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="screen">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-top">
+                    <div>
+                        <div class="header-label">TODAY</div>
+                        <div class="header-date">Monday, Dec 30</div>
+                    </div>
+                    <button class="settings-btn">⚙️</button>
+                </div>
+                <div class="header-title">Your Daily Care</div>
+            </div>
+            
+            <!-- Progress Banner -->
+            <div class="progress-banner">
+                <div class="progress-count">6 of 8</div>
+                <div class="progress-label">medications taken</div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill"></div>
+                </div>
+            </div>
+            
+            <!-- Medications Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-icon">💊</span>
+                    <span class="section-title">Medications</span>
+                </div>
+                
+                <div class="time-slot">
+                    <div class="time-slot-label">🌅 Morning</div>
+                    <div class="med-row">
+                        <div class="med-check">○</div>
+                        <div class="med-info">
+                            <div class="med-name">Lisinopril</div>
+                            <div class="med-dose">10 mg</div>
+                        </div>
+                        <div class="med-time">8:00 AM</div>
+                    </div>
+                    <div class="med-row">
+                        <div class="med-check done">✓</div>
+                        <div class="med-info">
+                            <div class="med-name done">Metformin</div>
+                            <div class="med-dose">500 mg</div>
+                        </div>
+                        <div class="med-time">8:00 AM</div>
+                    </div>
+                    <div class="med-row">
+                        <div class="med-check done">✓</div>
+                        <div class="med-info">
+                            <div class="med-name done">Aspirin</div>
+                            <div class="med-dose">81 mg</div>
+                        </div>
+                        <div class="med-time">8:00 AM</div>
+                    </div>
+                </div>
+                
+                <div class="time-slot">
+                    <div class="time-slot-label">☀️ Afternoon</div>
+                    <div class="med-row">
+                        <div class="med-check done">✓</div>
+                        <div class="med-info">
+                            <div class="med-name done">Atorvastatin</div>
+                            <div class="med-dose">20 mg</div>
+                        </div>
+                        <div class="med-time">2:00 PM</div>
+                    </div>
+                </div>
+                
+                <div class="time-slot">
+                    <div class="time-slot-label">🌆 Evening</div>
+                    <div class="med-row">
+                        <div class="med-check done">✓</div>
+                        <div class="med-info">
+                            <div class="med-name done">Losartan</div>
+                            <div class="med-dose">50 mg</div>
+                        </div>
+                        <div class="med-time">6:00 PM</div>
+                    </div>
+                    <div class="med-row">
+                        <div class="med-check done">✓</div>
+                        <div class="med-info">
+                            <div class="med-name done">Omeprazole</div>
+                            <div class="med-dose">40 mg</div>
+                        </div>
+                        <div class="med-time">6:00 PM</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Divider -->
+            <div class="divider"></div>
+            
+            <!-- Quick Add Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-icon">➕</span>
+                    <span class="section-title">Quick Add</span>
+                </div>
+                
+                <div class="action-grid">
+                    <button class="action-btn">
+                        <span class="action-btn-icon">💗</span>
+                        <span class="action-btn-text">Vitals</span>
+                    </button>
+                    <button class="action-btn">
+                        <span class="action-btn-icon">🩺</span>
+                        <span class="action-btn-text">Symptoms</span>
+                    </button>
+                    <button class="action-btn">
+                        <span class="action-btn-icon">💊</span>
+                        <span class="action-btn-text">Medication</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Divider -->
+            <div class="divider"></div>
+            
+            <!-- Appointments Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-icon">📅</span>
+                    <span class="section-title">Today's Appointments</span>
+                </div>
+                
+                <div class="appt-row">
+                    <div class="appt-time">10:30 AM</div>
+                    <div class="appt-info">
+                        <div class="appt-title">Cardiology Follow-up</div>
+                        <div class="appt-location">Heart Care Clinic</div>
+                    </div>
+                    <span style="color: #6b7b6b; font-size: 20px;">→</span>
+                </div>
+            </div>
+            
+            <div style="height: 40px;"></div>
+        </div>
+    </div>
+    
+    <div style="text-align: center; color: #8a9b8a; margin-top: 20px; font-size: 14px;">
+        <strong>Mockup 1: Minimal Sectioned Design</strong><br>
+        "Breathe between sections"<br>
+        <em>Best for: Maximum efficiency & scannability</em>
+    </div>
+</body>
+</html>
