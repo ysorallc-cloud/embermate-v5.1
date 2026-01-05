@@ -63,7 +63,7 @@ export default function FamilyTabScreen() {
       >
         {/* Hero Section */}
         <View style={styles.hero}>
-          <Text style={styles.heroIcon}>🤝</Text>
+          <Text style={styles.heroIcon}>🧶</Text>
           <Text style={styles.heroLabel}>YOUR CARE CIRCLE</Text>
           <Text style={styles.heroMessage}>
             Together,{'\n'}caring for Mom.

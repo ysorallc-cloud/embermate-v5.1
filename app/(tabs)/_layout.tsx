@@ -1,10 +1,10 @@
 // ============================================================================
-// TAB LAYOUT - 3 Tabs (Today, Center, Family)
+// TAB LAYOUT - 3 Tabs (Today, Hub, Family)
 // Mindful redesign with focused navigation
 // ============================================================================
 
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Text } from 'react-native';
 import { Colors } from '../_theme/theme-tokens';
 
 export default function TabLayout() {
@@ -32,17 +32,17 @@ export default function TabLayout() {
         name="today"
         options={{
           title: 'TODAY',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="checkmark-circle-outline" size={size} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 24, opacity: focused ? 1 : 0.5 }}>☕</Text>
           ),
         }}
       />
       <Tabs.Screen
         name="brief"
         options={{
-          title: 'CENTER',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="grid-outline" size={size} color={color} />
+          title: 'HUB',
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 24, opacity: focused ? 1 : 0.5 }}>🌱</Text>
           ),
         }}
       />
@@ -50,8 +50,8 @@ export default function TabLayout() {
         name="family-tab"
         options={{
           title: 'FAMILY',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people-outline" size={size} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 24, opacity: focused ? 1 : 0.5 }}>🧶</Text>
           ),
         }}
       />

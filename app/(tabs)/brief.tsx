@@ -68,8 +68,8 @@ export default function CommandCenterScreen() {
       >
         {/* Hero Section */}
         <View style={styles.hero}>
-          <Text style={styles.heroIcon}>🎯</Text>
-          <Text style={styles.heroLabel}>YOUR CARE INTELLIGENCE</Text>
+          <Text style={styles.heroIcon}>🌱</Text>
+          <Text style={styles.heroLabel}>YOUR CARE HUB</Text>
           <Text style={styles.heroMessage}>
             Understanding{'\n'}Mom's patterns.
           </Text>
