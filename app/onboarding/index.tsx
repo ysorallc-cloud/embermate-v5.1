@@ -126,81 +126,119 @@ export default function OnboardingScreen() {
     router.push('/coffee');
   };
 
-  // Web version: Vertical scrolling single-page view
+  // Web version: One slide at a time with navigation
   if (isWeb) {
+    const currentSlide = slides[currentIndex];
+    const isLastSlide = currentIndex === slides.length - 1;
+
     return (
       <View style={styles.container}>
         <LinearGradient
           colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
           style={styles.gradient}
         >
-          <ScrollView
-            style={styles.webScrollView}
-            contentContainerStyle={styles.webScrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={[styles.webContainer, { maxWidth: Math.min(width * 0.9, 500) }]}>
+          <View style={styles.webWrapper}>
+            <View style={[styles.webContainer, { maxWidth: Math.min(width * 0.9, 480) }]}>
               {/* Logo/Title */}
               <View style={styles.webHeader}>
                 <Text style={styles.webAppTitle}>EmberMate</Text>
                 <Text style={styles.webAppSubtitle}>Your personal health companion</Text>
               </View>
 
-              {/* All slides shown vertically */}
-              {slides.map((slide, index) => (
-                <View key={index} style={styles.webSlide}>
-                  <Text style={styles.webIcon}>{slide.icon}</Text>
-                  <Text style={styles.webTitle}>{slide.title}</Text>
-                  <Text style={styles.webSubtitle}>{slide.subtitle}</Text>
-                  <Text style={styles.webDescription}>{slide.description}</Text>
-                  
-                  {/* Coffee Moment Try Button */}
-                  {slide.icon === '☕' && (
+              {/* Current slide */}
+              <View style={styles.webSlide}>
+                <Text style={styles.webIcon}>{currentSlide.icon}</Text>
+                <Text style={styles.webTitle}>{currentSlide.title}</Text>
+                <Text style={styles.webSubtitle}>{currentSlide.subtitle}</Text>
+                <Text style={styles.webDescription}>{currentSlide.description}</Text>
+
+                {/* Coffee Moment Try Button */}
+                {currentSlide.icon === '☕' && (
+                  <TouchableOpacity
+                    style={styles.webTryCoffeeButton}
+                    onPress={handleTryCoffee}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.webTryCoffeeText}>Try Coffee Moment now →</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Pagination dots */}
+              <View style={styles.webPagination}>
+                {slides.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.webDot,
+                      currentIndex === index && styles.webDotActive,
+                    ]}
+                  />
+                ))}
+              </View>
+
+              {/* Navigation or final actions */}
+              {!isLastSlide ? (
+                <View style={styles.webNavigation}>
+                  {currentIndex > 0 && (
                     <TouchableOpacity
-                      style={styles.webTryCoffeeButton}
-                      onPress={handleTryCoffee}
-                      activeOpacity={0.8}
+                      style={styles.webNavButton}
+                      onPress={handlePrevious}
                     >
-                      <Text style={styles.webTryCoffeeText}>Try Coffee Moment now →</Text>
+                      <Text style={styles.webNavButtonText}>← Previous</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={[styles.webNavButton, styles.webNavButtonPrimary]}
+                    onPress={handleNext}
+                  >
+                    <Text style={styles.webNavButtonTextPrimary}>Next →</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.webFinalActions}>
+                  <Text style={styles.webFinalTitle}>Ready to begin?</Text>
+
+                  <TouchableOpacity
+                    style={[styles.webActionButton, styles.webActionButtonPrimary]}
+                    onPress={handleStartWithData}
+                    disabled={isLoading}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.webActionButtonTextPrimary}>
+                      {isLoading ? 'Loading...' : 'Start with sample data'}
+                    </Text>
+                    <Text style={styles.webActionButtonSubtext}>
+                      Explore features with example medications and appointments
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.webActionButton, styles.webActionButtonSecondary]}
+                    onPress={handleStartEmpty}
+                    disabled={isLoading}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.webActionButtonTextSecondary}>
+                      {isLoading ? 'Loading...' : 'Start with my own data'}
+                    </Text>
+                    <Text style={styles.webActionButtonSubtext}>
+                      Begin with a clean slate
+                    </Text>
+                  </TouchableOpacity>
+
+                  {currentIndex > 0 && (
+                    <TouchableOpacity
+                      style={styles.webBackButton}
+                      onPress={handlePrevious}
+                    >
+                      <Text style={styles.webBackButtonText}>← Back</Text>
                     </TouchableOpacity>
                   )}
                 </View>
-              ))}
-
-              {/* Final Actions */}
-              <View style={styles.webFinalActions}>
-                <Text style={styles.webFinalTitle}>Ready to begin?</Text>
-                
-                <TouchableOpacity
-                  style={[styles.webActionButton, styles.webActionButtonPrimary]}
-                  onPress={handleStartWithData}
-                  disabled={isLoading}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.webActionButtonTextPrimary}>
-                    {isLoading ? 'Loading...' : 'Start with sample data'}
-                  </Text>
-                  <Text style={styles.webActionButtonSubtext}>
-                    Explore features with example medications and appointments
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.webActionButton, styles.webActionButtonSecondary]}
-                  onPress={handleStartEmpty}
-                  disabled={isLoading}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.webActionButtonTextSecondary}>
-                    {isLoading ? 'Loading...' : 'Start with my own data'}
-                  </Text>
-                  <Text style={styles.webActionButtonSubtext}>
-                    Begin with a clean slate
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              )}
             </View>
-          </ScrollView>
+          </View>
         </LinearGradient>
       </View>
     );
@@ -516,10 +554,8 @@ const styles = StyleSheet.create({
   },
   webSlide: {
     alignItems: 'center',
-    marginBottom: Spacing.xl * 3,
-    paddingBottom: Spacing.xl * 2,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    marginBottom: Spacing.xl,
+    paddingVertical: Spacing.xl * 2,
   },
   webIcon: {
     fontSize: 100,
@@ -602,5 +638,70 @@ const styles = StyleSheet.create({
   webActionButtonSubtext: {
     fontSize: 14,
     color: Colors.textTertiary,
+  },
+  webWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xl * 2,
+  },
+  webPagination: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    marginVertical: Spacing.xl,
+  },
+  webDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.borderMedium,
+  },
+  webDotActive: {
+    width: 24,
+    backgroundColor: Colors.accent,
+  },
+  webNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+    width: '100%',
+    maxWidth: 400,
+    marginTop: Spacing.xl,
+  },
+  webNavButton: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  webNavButtonPrimary: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  webNavButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  webNavButtonTextPrimary: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.background,
+  },
+  webBackButton: {
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
+  webBackButtonText: {
+    fontSize: 14,
+    color: Colors.textTertiary,
+    fontWeight: '500',
   },
 });
