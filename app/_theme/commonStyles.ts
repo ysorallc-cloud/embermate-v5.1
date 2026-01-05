@@ -1,10 +1,14 @@
 // ============================================================================
 // COMMON COMPONENT STYLES
 // Shared styles to reduce duplication across screens
+// NOTE: Not a route - utility file only
 // ============================================================================
 
 import { StyleSheet } from 'react-native';
 import { Colors, Spacing, BorderRadius } from './theme-tokens';
+
+// Prevent Expo Router warning (this is not a route component)
+export default null;
 
 export const CommonStyles = StyleSheet.create({
   // BACK BUTTON - Used across 20+ screens

@@ -96,9 +96,6 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="settings" />
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="patient" />
         <Stack.Screen name="coffee" options={{ presentation: 'modal' }} />
         <Stack.Screen name="calendar" options={{ presentation: 'modal' }} />
         <Stack.Screen name="medication-schedule" />
@@ -137,10 +134,7 @@ const styles = StyleSheet.create({
   webInner: {
     flex: 1,
     backgroundColor: '#051614',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 30,
+    boxShadow: '0px 0px 30px rgba(0, 0, 0, 0.4)',
     // Add border radius for larger screens
     borderRadius: 0,
   },

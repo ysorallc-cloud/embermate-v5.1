@@ -1,7 +1,11 @@
 // ============================================================================
 // EMBERMATE THEME TOKENS
 // Color Scheme: Dark Teal with Modern Minimalism
+// NOTE: Not a route - utility file only
 // ============================================================================
+
+// Prevent Expo Router warning (this is not a route component)
+export default null;
 
 export const Colors = {
   // Backgrounds - Dark Teal (Almost Black)
