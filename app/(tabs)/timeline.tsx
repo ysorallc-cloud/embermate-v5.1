@@ -102,168 +102,180 @@ export default function InsightsScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
           }
         >
-          {/* Hero Adherence Card */}
-          <View style={styles.adherenceHero}>
-            <View style={styles.adherenceStat}>
-              <Text style={styles.adherenceValue}>{adherencePercent}%</Text>
-              <Text style={styles.adherenceLabel}>medication adherence</Text>
-            </View>
-            
-            {/* Mini Chart */}
-            <View style={styles.chartMini}>
-              {chartData.map((height, index) => (
-                <View 
-                  key={index} 
-                  style={[styles.chartBar, { height: `${height}%` }]} 
-                />
-              ))}
-            </View>
-          </View>
+          {showSampleData ? (
+            <>
+              {/* Hero Adherence Card */}
+              <View style={styles.adherenceHero}>
+                <View style={styles.adherenceStat}>
+                  <Text style={styles.adherenceValue}>{adherencePercent}%</Text>
+                  <Text style={styles.adherenceLabel}>medication adherence</Text>
+                </View>
+                
+                {/* Mini Chart */}
+                <View style={styles.chartMini}>
+                  {chartData.map((height, index) => (
+                    <View 
+                      key={index} 
+                      style={[styles.chartBar, { height: `${height}%` }]} 
+                    />
+                  ))}
+                </View>
+              </View>
 
-          {/* Pattern Detection Banner */}
-          <TouchableOpacity 
-            style={styles.insightBanner}
-            onPress={() => router.push('/correlation-report')}
-          >
-            <View style={styles.insightHeader}>
-              <Text style={styles.insightIcon}>💡</Text>
-              <Text style={styles.insightTitle}>Pattern Detected</Text>
-            </View>
-            <Text style={styles.insightText}>
-              Evening headaches occur 2-3 hours after Metformin. Morning meds have 95% adherence vs 78% evening.
-            </Text>
-          </TouchableOpacity>
+              {/* Pattern Detection Banner */}
+              <TouchableOpacity 
+                style={styles.insightBanner}
+                onPress={() => router.push('/correlation-report')}
+              >
+                <View style={styles.insightHeader}>
+                  <Text style={styles.insightIcon}>💡</Text>
+                  <Text style={styles.insightTitle}>Pattern Detected</Text>
+                </View>
+                <Text style={styles.insightText}>
+                  Evening headaches occur 2-3 hours after Metformin. Morning meds have 95% adherence vs 78% evening.
+                </Text>
+              </TouchableOpacity>
 
-          {/* Vitals History Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Vitals History</Text>
-              <TouchableOpacity onPress={() => router.push('/vitals')}>
-                <Text style={styles.viewAll}>View all →</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.historyCard}>
-              <TouchableOpacity 
-                style={styles.historyRow}
-                onPress={() => router.push('/vitals?type=blood-pressure')}
-              >
-                <View style={styles.historyLeft}>
-                  <Text style={styles.historyIcon}>💗</Text>
-                  <View>
-                    <Text style={styles.historyName}>Blood Pressure</Text>
-                    <Text style={styles.historyDetail}>120/80 - Today at 8:00 AM</Text>
-                  </View>
+              {/* Vitals History Section */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Vitals History</Text>
+                  <TouchableOpacity onPress={() => router.push('/vitals')}>
+                    <Text style={styles.viewAll}>View all →</Text>
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.historyArrow}>→</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.historyRow}
-                onPress={() => router.push('/vitals?type=temperature')}
-              >
-                <View style={styles.historyLeft}>
-                  <Text style={styles.historyIcon}>🌡️</Text>
-                  <View>
-                    <Text style={styles.historyName}>Temperature</Text>
-                    <Text style={styles.historyDetail}>98.6°F - Yesterday</Text>
-                  </View>
+                <View style={styles.historyCard}>
+                  <TouchableOpacity 
+                    style={styles.historyRow}
+                    onPress={() => router.push('/vitals?type=blood-pressure')}
+                  >
+                    <View style={styles.historyLeft}>
+                      <Text style={styles.historyIcon}>💗</Text>
+                      <View>
+                        <Text style={styles.historyName}>Blood Pressure</Text>
+                        <Text style={styles.historyDetail}>120/80 - Today at 8:00 AM</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.historyArrow}>→</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.historyRow}
+                    onPress={() => router.push('/vitals?type=temperature')}
+                  >
+                    <View style={styles.historyLeft}>
+                      <Text style={styles.historyIcon}>🌡️</Text>
+                      <View>
+                        <Text style={styles.historyName}>Temperature</Text>
+                        <Text style={styles.historyDetail}>98.6°F - Yesterday</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.historyArrow}>→</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.historyRow}
+                    onPress={() => router.push('/vitals?type=weight')}
+                  >
+                    <View style={styles.historyLeft}>
+                      <Text style={styles.historyIcon}>⚖️</Text>
+                      <View>
+                        <Text style={styles.historyName}>Weight</Text>
+                        <Text style={styles.historyDetail}>165 lbs - 2 days ago</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.historyArrow}>→</Text>
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.historyArrow}>→</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.historyRow}
-                onPress={() => router.push('/vitals?type=weight')}
-              >
-                <View style={styles.historyLeft}>
-                  <Text style={styles.historyIcon}>⚖️</Text>
-                  <View>
-                    <Text style={styles.historyName}>Weight</Text>
-                    <Text style={styles.historyDetail}>165 lbs - 2 days ago</Text>
-                  </View>
-                </View>
-                <Text style={styles.historyArrow}>→</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+              </View>
 
-          {/* Symptoms Log Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Symptoms Log</Text>
-              <TouchableOpacity onPress={() => router.push('/symptoms')}>
-                <Text style={styles.viewAll}>View all →</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.historyCard}>
-              <TouchableOpacity 
-                style={styles.historyRow}
-                onPress={() => router.push('/symptoms')}
-              >
-                <View style={styles.historyLeft}>
-                  <Text style={styles.historyIcon}>🤕</Text>
-                  <View>
-                    <Text style={styles.historyName}>Headache</Text>
-                    <Text style={styles.historyDetail}>Mild - Yesterday at 3:00 PM</Text>
-                  </View>
+              {/* Symptoms Log Section */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Symptoms Log</Text>
+                  <TouchableOpacity onPress={() => router.push('/symptoms')}>
+                    <Text style={styles.viewAll}>View all →</Text>
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.historyArrow}>→</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.historyRow}
-                onPress={() => router.push('/symptoms')}
-              >
-                <View style={styles.historyLeft}>
-                  <Text style={styles.historyIcon}>😴</Text>
-                  <View>
-                    <Text style={styles.historyName}>Fatigue</Text>
-                    <Text style={styles.historyDetail}>Moderate - 3 days ago</Text>
-                  </View>
+                <View style={styles.historyCard}>
+                  <TouchableOpacity 
+                    style={styles.historyRow}
+                    onPress={() => router.push('/symptoms')}
+                  >
+                    <View style={styles.historyLeft}>
+                      <Text style={styles.historyIcon}>🤕</Text>
+                      <View>
+                        <Text style={styles.historyName}>Headache</Text>
+                        <Text style={styles.historyDetail}>Mild - Yesterday at 3:00 PM</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.historyArrow}>→</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.historyRow}
+                    onPress={() => router.push('/symptoms')}
+                  >
+                    <View style={styles.historyLeft}>
+                      <Text style={styles.historyIcon}>😴</Text>
+                      <View>
+                        <Text style={styles.historyName}>Fatigue</Text>
+                        <Text style={styles.historyDetail}>Moderate - 3 days ago</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.historyArrow}>→</Text>
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.historyArrow}>→</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+              </View>
 
-          {/* Medication Trends Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Medication Trends</Text>
-              <TouchableOpacity onPress={() => router.push('/medications')}>
-                <Text style={styles.viewAll}>View all →</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.historyCard}>
-              <TouchableOpacity 
-                style={styles.historyRow}
-                onPress={() => router.push('/medications')}
-              >
-                <View style={styles.historyLeft}>
-                  <Text style={styles.historyIcon}>💊</Text>
-                  <View>
-                    <Text style={styles.historyName}>Lisinopril</Text>
-                    <Text style={styles.historyDetail}>95% adherence this week</Text>
-                  </View>
+              {/* Medication Trends Section */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Medication Trends</Text>
+                  <TouchableOpacity onPress={() => router.push('/medications')}>
+                    <Text style={styles.viewAll}>View all →</Text>
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.historyArrow}>→</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.historyRow}
-                onPress={() => router.push('/medications')}
-              >
-                <View style={styles.historyLeft}>
-                  <Text style={styles.historyIcon}>💊</Text>
-                  <View>
-                    <Text style={styles.historyName}>Metformin</Text>
-                    <Text style={styles.historyDetail}>78% adherence this week</Text>
-                  </View>
+                <View style={styles.historyCard}>
+                  <TouchableOpacity 
+                    style={styles.historyRow}
+                    onPress={() => router.push('/medications')}
+                  >
+                    <View style={styles.historyLeft}>
+                      <Text style={styles.historyIcon}>💊</Text>
+                      <View>
+                        <Text style={styles.historyName}>Lisinopril</Text>
+                        <Text style={styles.historyDetail}>95% adherence this week</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.historyArrow}>→</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.historyRow}
+                    onPress={() => router.push('/medications')}
+                  >
+                    <View style={styles.historyLeft}>
+                      <Text style={styles.historyIcon}>💊</Text>
+                      <View>
+                        <Text style={styles.historyName}>Metformin</Text>
+                        <Text style={styles.historyDetail}>78% adherence this week</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.historyArrow}>→</Text>
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.historyArrow}>→</Text>
-              </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>🪷</Text>
+              <Text style={styles.emptyTitle}>No Data Yet</Text>
+              <Text style={styles.emptyText}>
+                Start tracking medications, vitals, and symptoms to see insights and patterns here.
+              </Text>
             </View>
-          </View>
+          )}
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
@@ -449,5 +461,32 @@ const styles = StyleSheet.create({
   historyArrow: {
     fontSize: 16,
     color: Colors.textMuted,
+  },
+  
+  // EMPTY STATE
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 20,
+    opacity: 0.5,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 15,
+    color: Colors.textTertiary,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
