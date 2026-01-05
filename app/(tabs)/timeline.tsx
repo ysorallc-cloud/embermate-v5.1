@@ -10,12 +10,12 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing } from '../_theme/theme-tokens';
 import PageHeader from '../../components/PageHeader';
 
@@ -25,9 +25,22 @@ export default function InsightsScreen() {
   const router = useRouter();
   const [timeRange, setTimeRange] = useState<TimeRange>('7days');
   const [refreshing, setRefreshing] = useState(false);
+  const [showSampleData, setShowSampleData] = useState(false);
 
   useFocusEffect(useCallback(() => {
-    // Load data based on time range
+    // Check if user declined sample data
+    const checkSampleDataStatus = async () => {
+      try {
+        const userDeclined = await AsyncStorage.getItem('@embermate_user_declined_sample_data');
+        const hasData = await AsyncStorage.getItem('@embermate_demo_data_seeded');
+        // Only show sample data if user didn't decline AND data was actually seeded
+        setShowSampleData(userDeclined !== 'true' && hasData === 'true');
+      } catch (error) {
+        console.error('Error checking sample data status:', error);
+        setShowSampleData(false);
+      }
+    };
+    checkSampleDataStatus();
   }, [timeRange]));
 
   const onRefresh = useCallback(async () => {
@@ -36,9 +49,9 @@ export default function InsightsScreen() {
     setRefreshing(false);
   }, []);
 
-  // Sample data - would come from storage
-  const adherencePercent = 85;
-  const chartData = [70, 85, 80, 95, 75, 100, 90];
+  // Sample data - only shown if user has sample data enabled
+  const adherencePercent = showSampleData ? 85 : 0;
+  const chartData = showSampleData ? [70, 85, 80, 95, 75, 100, 90] : [];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -320,17 +333,17 @@ const styles = StyleSheet.create({
   },
   adherenceStat: {
     alignItems: 'center',
-    marginBottom: Platform.OS === 'web' ? 32 : 24,
+    marginBottom: 24,
   },
   adherenceValue: {
-    fontSize: Platform.OS === 'web' ? 80 : 56,
+    fontSize: 56,
     fontWeight: '200',
     color: Colors.accent,
-    lineHeight: Platform.OS === 'web' ? 80 : 56,
-    marginBottom: Platform.OS === 'web' ? 12 : 8,
+    lineHeight: 56,
+    marginBottom: 8,
   },
   adherenceLabel: {
-    fontSize: Platform.OS === 'web' ? 20 : 16,
+    fontSize: 16,
     color: Colors.textSecondary,
   },
   
@@ -389,7 +402,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sectionTitle: {
-    fontSize: Platform.OS === 'web' ? 20 : 17,
+    fontSize: 17,
     fontWeight: '600',
     color: Colors.textPrimary,
   },

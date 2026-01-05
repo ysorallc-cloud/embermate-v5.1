@@ -20,29 +20,46 @@ import {
   isBiometricEnabled,
   hasPIN,
 } from '../utils/biometricAuth';
-// Web auth imports - TODO: implement webAuth.ts and platform.ts
-// import {
-//   shouldLockSession as shouldLockWebSession,
-//   hasActiveSession as hasActiveWebSession,
-//   updateLastActivity as updateWebLastActivity,
-//   hasPassword as hasWebPassword,
-// } from '../utils/webAuth';
-// import { isWeb } from '../utils/platform';
+import {
+  shouldLockSession as shouldLockWebSession,
+  hasActiveSession as hasActiveWebSession,
+  updateLastActivity as updateWebLastActivity,
+  hasPassword as hasWebPassword,
+} from '../utils/webAuth';
+import { isWeb } from '../utils/platform';
 import { logLogin } from '../utils/auditLog';
 
-// Temporary platform detection until utils/platform.ts is created
-const isWeb = Platform.OS === 'web';
-
 function WebContainer({ children }: { children: React.ReactNode }) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   
   if (Platform.OS !== 'web') {
     return <>{children}</>;
   }
 
+  // Responsive breakpoints - narrower for better readability
+  const isSmallScreen = width <= 768;
+  const isMediumScreen = width > 768 && width <= 1024;
+  const isLargeScreen = width > 1024;
+
+  // Calculate container width - much narrower for data readability
+  let containerWidth = '100%';
+  if (isSmallScreen) {
+    containerWidth = '100%'; // Full width on mobile
+  } else if (isMediumScreen) {
+    containerWidth = '440px'; // Tablet - phone-like width
+  } else {
+    containerWidth = '480px'; // Desktop - comfortable phone-like width
+  }
+
   return (
     <View style={styles.webOuter}>
-      <View style={[styles.webInner, width > 500 && styles.webInnerConstrained]}>
+      <View style={[
+        styles.webInner,
+        { 
+          width: containerWidth,
+          maxWidth: isSmallScreen ? '100%' : 480,
+        }
+      ]}>
         {children}
       </View>
     </View>
@@ -70,9 +87,20 @@ export default function RootLayout() {
   async function checkSecurityStatus() {
     try {
       if (isWeb) {
-        // TODO: Implement web auth - for now, disable security on web
-        setIsSecurityEnabled(false);
-        setIsLocked(false);
+        // Web platform: check for password-based auth
+        const passwordExists = await hasWebPassword();
+        setIsSecurityEnabled(passwordExists);
+
+        if (passwordExists) {
+          const shouldLock = await shouldLockWebSession();
+          const hasSession = await hasActiveWebSession();
+
+          // Lock if no active session or timeout exceeded
+          setIsLocked(shouldLock || !hasSession);
+        } else {
+          // No password set yet, don't lock (will show setup)
+          setIsLocked(false);
+        }
       } else {
         // Mobile platform: check for biometric/PIN auth
         const biometricEnabled = await isBiometricEnabled();
@@ -135,10 +163,11 @@ export default function RootLayout() {
   // Handle successful unlock
   function handleUnlock() {
     setIsLocked(false);
-    if (!isWeb) {
+    if (isWeb) {
+      updateWebLastActivity();
+    } else {
       updateLastActivity();
     }
-    // TODO: Implement updateWebLastActivity when webAuth.ts is created
   }
 
   async function requestNotificationPermissionsOnStartup() {
@@ -227,18 +256,22 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   webOuter: {
     flex: 1,
-    backgroundColor: '#16162a',
+    backgroundColor: '#0D1F1C', // Match app background
     alignItems: 'center',
+    justifyContent: 'flex-start',
   },
   webInner: {
     flex: 1,
-    width: '100%',
-  },
-  webInnerConstrained: {
-    maxWidth: 430,
+    backgroundColor: '#051614',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
+    shadowOpacity: 0.4,
+    shadowRadius: 30,
+    // Add border radius for larger screens
+    borderRadius: 0,
+  },
+  webInnerConstrained: {
+    // Legacy style - no longer used but kept for compatibility
+    maxWidth: 480,
   },
 });

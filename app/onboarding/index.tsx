@@ -21,7 +21,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, BorderRadius } from '../_theme/theme-tokens';
-import { completeOnboarding, seedSampleData, clearDemoData } from '../../utils/sampleData';
+import { completeOnboarding, seedSampleData } from '../../utils/sampleData';
 
 interface OnboardingSlide {
   icon: string;
@@ -53,20 +53,23 @@ const slides: OnboardingSlide[] = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const dimensions = useWindowDimensions();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const scrollViewRef = useRef<ScrollView>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { width } = useWindowDimensions();
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const slidesRef = useRef<ScrollView>(null);
+
   const isWeb = Platform.OS === 'web';
+  const screenWidth = Dimensions.get('window').width;
 
   const handleNext = () => {
     if (currentIndex < slides.length - 1) {
       const nextIndex = currentIndex + 1;
-      if (!isWeb) {
-        scrollViewRef.current?.scrollTo({ x: nextIndex * dimensions.width, animated: true });
-      }
       setCurrentIndex(nextIndex);
+      slidesRef.current?.scrollTo({
+        x: nextIndex * screenWidth,
+        animated: true,
+      });
     }
   };
 
@@ -74,34 +77,28 @@ export default function OnboardingScreen() {
     if (currentIndex > 0) {
       const prevIndex = currentIndex - 1;
       setCurrentIndex(prevIndex);
+      slidesRef.current?.scrollTo({
+        x: prevIndex * screenWidth,
+        animated: true,
+      });
     }
   };
 
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-    { useNativeDriver: false }
-  );
-
-  const handleMomentumScrollEnd = (event: any) => {
-    const index = Math.round(event.nativeEvent.contentOffset.x / dimensions.width);
-    setCurrentIndex(index);
-  };
-
-  const handleStartWithSample = async () => {
+  const handleStartWithData = async () => {
     console.log('🎯 Start with sample data clicked');
     setIsLoading(true);
     try {
-      console.log('📝 Seeding sample data...');
+      console.log('📦 Seeding sample data...');
       await seedSampleData();
       console.log('✅ Sample data seeded');
       console.log('🔒 Completing onboarding...');
       await completeOnboarding();
-      console.log('✅ Onboarding completed');
+      console.log('✅ Onboarding completed (with data)');
       console.log('🚀 Navigating to today page...');
       router.replace('/(tabs)/today');
       console.log('✅ Navigation called');
     } catch (error) {
-      console.error('❌ Error seeding sample data:', error);
+      console.error('❌ Error in handleStartWithData:', error);
       setIsLoading(false);
     }
   };
@@ -110,17 +107,11 @@ export default function OnboardingScreen() {
     console.log('🎯 Start empty clicked');
     setIsLoading(true);
     try {
-      console.log('🧹 Clearing any existing sample data...');
-      await clearDemoData();
-      console.log('✅ Sample data cleared');
-
-      console.log('🚫 Setting decline flag for sample data...');
+      console.log('🔒 Completing onboarding WITHOUT sample data...');
+      // Mark that user explicitly chose NOT to use sample data
       await AsyncStorage.setItem('@embermate_user_declined_sample_data', 'true');
-      console.log('✅ Decline flag set');
-
-      console.log('🔒 Completing onboarding...');
       await completeOnboarding();
-      console.log('✅ Onboarding completed');
+      console.log('✅ Onboarding completed (empty)');
       console.log('🚀 Navigating to today page...');
       router.replace('/(tabs)/today');
       console.log('✅ Navigation called');
@@ -130,13 +121,13 @@ export default function OnboardingScreen() {
     }
   };
 
-  const isLastSlide = currentIndex === slides.length - 1;
+  const handleTryCoffee = () => {
+    console.log('☕ Try Coffee clicked');
+    router.push('/coffee');
+  };
 
-  // Web version: Vertical stepped layout
+  // Web version: Vertical scrolling single-page view
   if (isWeb) {
-    const currentSlide = slides[currentIndex];
-    const maxWidth = Math.min(dimensions.width - 48, 600);
-
     return (
       <View style={styles.container}>
         <LinearGradient
@@ -144,106 +135,70 @@ export default function OnboardingScreen() {
           style={styles.gradient}
         >
           <ScrollView
-            contentContainerStyle={[styles.webScrollContent, { maxWidth, alignSelf: 'center' }]}
+            style={styles.webScrollView}
+            contentContainerStyle={styles.webScrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Header */}
-            <View style={styles.webHeader}>
-              <Text style={styles.webAppName}>EmberMate</Text>
-            </View>
-
-            {/* Current slide content */}
-            <View style={styles.webSlideContent}>
-              <View style={styles.iconContainer}>
-                <Text style={styles.icon}>{currentSlide.icon}</Text>
+            <View style={[styles.webContainer, { maxWidth: Math.min(width * 0.9, 500) }]}>
+              {/* Logo/Title */}
+              <View style={styles.webHeader}>
+                <Text style={styles.webAppTitle}>EmberMate</Text>
+                <Text style={styles.webAppSubtitle}>Your personal health companion</Text>
               </View>
-              <Text style={styles.title}>{currentSlide.title}</Text>
-              <Text style={styles.subtitle}>{currentSlide.subtitle}</Text>
-              <Text style={styles.description}>{currentSlide.description}</Text>
-            </View>
 
-            {/* Pagination dots */}
-            <View style={styles.pagination}>
-              {slides.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.dot,
-                    {
-                      opacity: index === currentIndex ? 1 : 0.3,
-                      transform: [{ scale: index === currentIndex ? 1.3 : 1 }],
-                    },
-                  ]}
-                />
-              ))}
-            </View>
-
-            {/* Navigation buttons */}
-            <View style={styles.webActions}>
-              {isLastSlide ? (
-                <>
-                  <TouchableOpacity
-                    style={[styles.primaryButton, isLoading && styles.buttonDisabled, { marginBottom: Spacing.md }]}
-                    onPress={handleStartWithSample}
-                    disabled={isLoading}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.primaryButtonText}>
-                      {isLoading ? 'Setting up...' : 'Start with sample data'}
-                    </Text>
-                    <Text style={styles.recommendedBadge}>Recommended</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.secondaryButton, isLoading && styles.buttonDisabled]}
-                    onPress={handleStartEmpty}
-                    disabled={isLoading}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.secondaryButtonText}>Start empty</Text>
-                  </TouchableOpacity>
-
-                  {currentIndex > 0 && (
+              {/* All slides shown vertically */}
+              {slides.map((slide, index) => (
+                <View key={index} style={styles.webSlide}>
+                  <Text style={styles.webIcon}>{slide.icon}</Text>
+                  <Text style={styles.webTitle}>{slide.title}</Text>
+                  <Text style={styles.webSubtitle}>{slide.subtitle}</Text>
+                  <Text style={styles.webDescription}>{slide.description}</Text>
+                  
+                  {/* Coffee Moment Try Button */}
+                  {slide.icon === '☕' && (
                     <TouchableOpacity
-                      style={styles.webBackButton}
-                      onPress={handlePrevious}
-                    >
-                      <Text style={styles.webBackText}>← Back</Text>
-                    </TouchableOpacity>
-                  )}
-                </>
-              ) : (
-                <View style={styles.webNavButtons}>
-                  {currentIndex > 0 && (
-                    <TouchableOpacity
-                      style={[styles.nextButton, styles.webBackButtonNav, { marginRight: Spacing.md }]}
-                      onPress={handlePrevious}
+                      style={styles.webTryCoffeeButton}
+                      onPress={handleTryCoffee}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name="chevron-back" size={20} color={Colors.textPrimary} />
-                      <Text style={styles.nextButtonText}>Back</Text>
-                    </TouchableOpacity>
-                  )}
-
-                  <TouchableOpacity
-                    style={[styles.nextButton, { flex: currentIndex > 0 ? 1 : undefined }]}
-                    onPress={handleNext}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.nextButtonText}>Next</Text>
-                    <Ionicons name="chevron-forward" size={20} color={Colors.textPrimary} />
-                  </TouchableOpacity>
-
-                  {currentIndex === 0 && (
-                    <TouchableOpacity
-                      style={styles.webSkipButton}
-                      onPress={() => setCurrentIndex(slides.length - 1)}
-                    >
-                      <Text style={styles.skipText}>Skip to finish</Text>
+                      <Text style={styles.webTryCoffeeText}>Try Coffee Moment now →</Text>
                     </TouchableOpacity>
                   )}
                 </View>
-              )}
+              ))}
+
+              {/* Final Actions */}
+              <View style={styles.webFinalActions}>
+                <Text style={styles.webFinalTitle}>Ready to begin?</Text>
+                
+                <TouchableOpacity
+                  style={[styles.webActionButton, styles.webActionButtonPrimary]}
+                  onPress={handleStartWithData}
+                  disabled={isLoading}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.webActionButtonTextPrimary}>
+                    {isLoading ? 'Loading...' : 'Start with sample data'}
+                  </Text>
+                  <Text style={styles.webActionButtonSubtext}>
+                    Explore features with example medications and appointments
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.webActionButton, styles.webActionButtonSecondary]}
+                  onPress={handleStartEmpty}
+                  disabled={isLoading}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.webActionButtonTextSecondary}>
+                    {isLoading ? 'Loading...' : 'Start with my own data'}
+                  </Text>
+                  <Text style={styles.webActionButtonSubtext}>
+                    Begin with a clean slate
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </ScrollView>
         </LinearGradient>
@@ -259,111 +214,122 @@ export default function OnboardingScreen() {
         style={styles.gradient}
       >
         {/* Skip button */}
-        {!isLastSlide && (
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={() => {
-              scrollViewRef.current?.scrollTo({ x: (slides.length - 1) * dimensions.width, animated: true });
-              setCurrentIndex(slides.length - 1);
-            }}
-          >
-            <Text style={styles.skipText}>Skip</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.skipContainer}>
+          {currentIndex < slides.length - 1 && (
+            <TouchableOpacity
+              style={styles.skipButton}
+              onPress={() => setCurrentIndex(slides.length - 1)}
+            >
+              <Text style={styles.skipText}>Skip</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Slides */}
         <ScrollView
-          ref={scrollViewRef}
+          ref={slidesRef}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          onScroll={handleScroll}
-          onMomentumScrollEnd={handleMomentumScrollEnd}
-          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: false }
+          )}
+          scrollEventThrottle={32}
+          onMomentumScrollEnd={(e) => {
+            const contentOffsetX = e.nativeEvent.contentOffset.x;
+            const index = Math.round(contentOffsetX / screenWidth);
+            setCurrentIndex(index);
+          }}
           style={styles.scrollView}
         >
           {slides.map((slide, index) => (
-            <View key={index} style={[styles.slide, { width: dimensions.width }]}>
-              <View style={styles.iconContainer}>
+            <View key={index} style={[styles.slide, { width: screenWidth }]}>
+              <View style={styles.slideContent}>
                 <Text style={styles.icon}>{slide.icon}</Text>
+                <Text style={styles.title}>{slide.title}</Text>
+                <Text style={styles.subtitle}>{slide.subtitle}</Text>
+                <Text style={styles.description}>{slide.description}</Text>
+                
+                {/* Coffee Moment Try Button - Mobile */}
+                {slide.icon === '☕' && (
+                  <TouchableOpacity
+                    style={styles.tryCoffeeButton}
+                    onPress={handleTryCoffee}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.tryCoffeeText}>Try Coffee Moment now</Text>
+                    <Ionicons name="arrow-forward" size={18} color={Colors.accent} />
+                  </TouchableOpacity>
+                )}
               </View>
-              <Text style={styles.title}>{slide.title}</Text>
-              <Text style={styles.subtitle}>{slide.subtitle}</Text>
-              <Text style={styles.description}>{slide.description}</Text>
+
+              {/* Show action buttons on last slide */}
+              {index === slides.length - 1 && (
+                <View style={styles.actionsContainer}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.actionButtonPrimary]}
+                    onPress={handleStartWithData}
+                    disabled={isLoading}
+                  >
+                    <Text style={styles.actionButtonText}>
+                      {isLoading ? 'Loading...' : 'Start with sample data'}
+                    </Text>
+                    <Text style={styles.actionSubtext}>
+                      Explore features with examples
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.actionButtonSecondary]}
+                    onPress={handleStartEmpty}
+                    disabled={isLoading}
+                  >
+                    <Text style={[styles.actionButtonText, styles.actionButtonTextSecondary]}>
+                      {isLoading ? 'Loading...' : 'Start with my own data'}
+                    </Text>
+                    <Text style={[styles.actionSubtext, styles.actionSubtextSecondary]}>
+                      Begin with a clean slate
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           ))}
         </ScrollView>
 
         {/* Pagination dots */}
         <View style={styles.pagination}>
-          {slides.map((_, index) => {
-            const inputRange = [
-              (index - 1) * dimensions.width,
-              index * dimensions.width,
-              (index + 1) * dimensions.width,
-            ];
-            const dotOpacity = scrollX.interpolate({
-              inputRange,
-              outputRange: [0.3, 1, 0.3],
-              extrapolate: 'clamp',
-            });
-            const dotScale = scrollX.interpolate({
-              inputRange,
-              outputRange: [1, 1.3, 1],
-              extrapolate: 'clamp',
-            });
-
-            return (
-              <Animated.View
-                key={index}
-                style={[
-                  styles.dot,
-                  {
-                    opacity: dotOpacity,
-                    transform: [{ scale: dotScale }],
-                  },
-                ]}
-              />
-            );
-          })}
+          {slides.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.dot,
+                index === currentIndex && styles.activeDot,
+              ]}
+            />
+          ))}
         </View>
 
-        {/* Bottom actions */}
-        <View style={styles.bottomActions}>
-          {isLastSlide ? (
-            <>
+        {/* Navigation buttons (only on first slides, hidden on last) */}
+        {currentIndex < slides.length - 1 && (
+          <View style={styles.navigation}>
+            {currentIndex > 0 && (
               <TouchableOpacity
-                style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
-                onPress={handleStartWithSample}
-                disabled={isLoading}
-                activeOpacity={0.8}
+                style={[styles.navButton, styles.backButton]}
+                onPress={handlePrevious}
               >
-                <Text style={styles.primaryButtonText}>
-                  {isLoading ? 'Setting up...' : 'Start with sample data'}
-                </Text>
-                <Text style={styles.recommendedBadge}>Recommended</Text>
+                <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.secondaryButton, isLoading && styles.buttonDisabled]}
-                onPress={handleStartEmpty}
-                disabled={isLoading}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.secondaryButtonText}>Start empty</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
+            )}
             <TouchableOpacity
-              style={styles.nextButton}
+              style={[styles.navButton, styles.nextButton]}
               onPress={handleNext}
-              activeOpacity={0.8}
             >
-              <Text style={styles.nextButtonText}>Next</Text>
-              <Ionicons name="chevron-forward" size={20} color={Colors.textPrimary} />
+              <Ionicons name="chevron-forward" size={24} color={Colors.textPrimary} />
             </TouchableOpacity>
-          )}
-        </View>
+          </View>
+        )}
       </LinearGradient>
     </SafeAreaView>
   );
@@ -377,181 +343,264 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
+  
+  // Mobile styles
+  skipContainer: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
+    alignItems: 'flex-end',
+    height: 50,
+  },
   skipButton: {
-    position: 'absolute',
-    top: Platform.OS === 'android' ? 20 : 10,
-    right: Spacing.xl,
-    zIndex: 10,
     padding: Spacing.sm,
   },
   skipText: {
-    fontSize: 15,
-    color: Colors.textSecondary,
+    color: Colors.textTertiary,
+    fontSize: 14,
     fontWeight: '500',
   },
   scrollView: {
     flex: 1,
   },
   slide: {
-    paddingHorizontal: Spacing.xl * 1.5,
-    paddingTop: Platform.OS === 'web' ? 120 : 80,
-    alignItems: 'center',
-  },
-  // Web-specific styles
-  webScrollContent: {
-    flexGrow: 1,
-    width: '100%',
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.xxl,
-    justifyContent: 'center',
-    minHeight: '100%',
-  },
-  webHeader: {
-    alignItems: 'center',
-    marginBottom: Spacing.xxxl,
-  },
-  webLogo: {
-    fontSize: 64,
-    marginBottom: Spacing.md,
-  },
-  webAppName: {
-    fontSize: Platform.OS === 'web' ? 40 : 32,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    letterSpacing: -0.5,
-  },
-  webSlideContent: {
-    alignItems: 'center',
-    marginBottom: Spacing.xxxl,
-  },
-  webActions: {
-    width: '100%',
-  },
-  webNavButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  webBackButtonNav: {
     flex: 1,
+    justifyContent: 'space-between',
+    paddingBottom: 100,
   },
-  webBackButton: {
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    marginTop: Spacing.sm,
-  },
-  webBackText: {
-    fontSize: 15,
-    color: Colors.textSecondary,
-    fontWeight: '500',
-  },
-  webSkipButton: {
-    alignSelf: 'center',
-    paddingVertical: Spacing.md,
-    marginTop: Spacing.md,
-  },
-  iconContainer: {
-    width: Platform.OS === 'web' ? 160 : 120,
-    height: Platform.OS === 'web' ? 160 : 120,
-    borderRadius: Platform.OS === 'web' ? 80 : 60,
-    backgroundColor: Colors.accentLight,
-    borderWidth: 1,
-    borderColor: Colors.accentBorder,
+  slideContent: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Platform.OS === 'web' ? Spacing.xxxl * 1.5 : Spacing.xxxl,
+    paddingHorizontal: Spacing.xl * 2,
   },
   icon: {
-    fontSize: Platform.OS === 'web' ? 80 : 56,
+    fontSize: 80,
+    marginBottom: Spacing.xl,
   },
   title: {
-    fontSize: Platform.OS === 'web' ? 36 : 28,
-    fontWeight: '300',
+    fontSize: 28,
+    fontWeight: '600',
     color: Colors.textPrimary,
     textAlign: 'center',
-    marginBottom: Platform.OS === 'web' ? Spacing.md : Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   subtitle: {
-    fontSize: Platform.OS === 'web' ? 20 : 16,
-    color: Colors.accent,
+    fontSize: 16,
+    color: Colors.textSecondary,
     textAlign: 'center',
-    marginBottom: Platform.OS === 'web' ? Spacing.xxl : Spacing.xl,
+    marginBottom: Spacing.lg,
     fontWeight: '500',
   },
   description: {
-    fontSize: Platform.OS === 'web' ? 18 : 16,
-    color: Colors.textSecondary,
+    fontSize: 15,
+    lineHeight: 24,
+    color: Colors.textTertiary,
     textAlign: 'center',
-    lineHeight: Platform.OS === 'web' ? 28 : 24,
     paddingHorizontal: Spacing.md,
+  },
+  tryCoffeeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.xl,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    backgroundColor: 'rgba(232, 155, 95, 0.15)',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(232, 155, 95, 0.3)',
+  },
+  tryCoffeeText: {
+    fontSize: 15,
+    color: Colors.accent,
+    fontWeight: '600',
+  },
+  actionsContainer: {
+    paddingHorizontal: Spacing.xl * 2,
+    gap: Spacing.md,
+  },
+  actionButton: {
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+  },
+  actionButtonPrimary: {
+    backgroundColor: Colors.accent,
+  },
+  actionButtonSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.background,
+    marginBottom: 4,
+  },
+  actionButtonTextSecondary: {
+    color: Colors.textPrimary,
+  },
+  actionSubtext: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  actionSubtextSecondary: {
+    color: Colors.textTertiary,
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: Spacing.xl,
+    paddingVertical: Spacing.lg,
+    gap: Spacing.sm,
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
+    backgroundColor: Colors.border,
+  },
+  activeDot: {
+    width: 24,
     backgroundColor: Colors.accent,
-    marginHorizontal: 6,
   },
-  bottomActions: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.xxl,
-  },
-  nextButton: {
+  navigation: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xl,
+  },
+  navButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.surface,
-    borderWidth: 1.5,
-    borderColor: Colors.borderMedium,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  nextButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  primaryButton: {
-    backgroundColor: Colors.accentLight,
-    borderWidth: 1,
-    borderColor: Colors.accentBorder,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.lg,
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  recommendedBadge: {
-    fontSize: 11,
-    color: Colors.accent,
-    marginTop: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  secondaryButton: {
-    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.lg,
-    alignItems: 'center',
   },
-  secondaryButtonText: {
+  backButton: {},
+  nextButton: {
+    marginLeft: 'auto',
+  },
+
+  // Web styles
+  webScrollView: {
+    flex: 1,
+  },
+  webScrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingVertical: Spacing.xl * 2,
+  },
+  webContainer: {
+    width: '100%',
+    paddingHorizontal: Spacing.xl * 2,
+  },
+  webHeader: {
+    alignItems: 'center',
+    marginBottom: Spacing.xl * 2,
+  },
+  webAppTitle: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+  },
+  webAppSubtitle: {
     fontSize: 16,
-    fontWeight: '500',
     color: Colors.textSecondary,
   },
-  buttonDisabled: {
-    opacity: 0.6,
+  webSlide: {
+    alignItems: 'center',
+    marginBottom: Spacing.xl * 3,
+    paddingBottom: Spacing.xl * 2,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  webIcon: {
+    fontSize: 100,
+    marginBottom: Spacing.xl,
+  },
+  webTitle: {
+    fontSize: 32,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  webSubtitle: {
+    fontSize: 18,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+    fontWeight: '500',
+  },
+  webDescription: {
+    fontSize: 16,
+    lineHeight: 26,
+    color: Colors.textTertiary,
+    textAlign: 'center',
+    maxWidth: 500,
+  },
+  webTryCoffeeButton: {
+    marginTop: Spacing.xl,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    backgroundColor: 'rgba(232, 155, 95, 0.15)',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(232, 155, 95, 0.3)',
+  },
+  webTryCoffeeText: {
+    fontSize: 16,
+    color: Colors.accent,
+    fontWeight: '600',
+  },
+  webFinalActions: {
+    alignItems: 'center',
+    gap: Spacing.lg,
+    marginTop: Spacing.xl,
+  },
+  webFinalTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
+  },
+  webActionButton: {
+    width: '100%',
+    maxWidth: 400,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+  },
+  webActionButtonPrimary: {
+    backgroundColor: Colors.accent,
+  },
+  webActionButtonSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  webActionButtonTextPrimary: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.background,
+    marginBottom: 4,
+  },
+  webActionButtonTextSecondary: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  webActionButtonSubtext: {
+    fontSize: 14,
+    color: Colors.textTertiary,
   },
 });
