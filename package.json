@@ -2,11 +2,14 @@
   "name": "embermate",
   "version": "5.7.0",
   "main": "expo-router/entry",
+  "homepage": "https://ysorallc-cloud.github.io/embermate-v5.1/",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build:web": "expo export --platform web",
+    "deploy": "npm run build:web && gh-pages -d dist"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
@@ -14,15 +17,18 @@
     "expo": "~52.0.0",
     "expo-asset": "~11.0.1",
     "expo-constants": "~17.0.3",
+    "expo-crypto": "~14.0.2",
     "expo-file-system": "~18.0.7",
     "expo-font": "~13.0.1",
     "expo-haptics": "~14.0.0",
     "expo-image-picker": "~16.0.5",
     "expo-linear-gradient": "~14.0.1",
     "expo-linking": "~7.0.3",
+    "expo-local-authentication": "~15.0.2",
     "expo-notifications": "~0.29.12",
     "expo-print": "~14.0.1",
     "expo-router": "~4.0.11",
+    "expo-secure-store": "~14.0.1",
     "expo-sharing": "~13.0.0",
     "expo-splash-screen": "~0.29.18",
     "expo-status-bar": "~2.0.0",
@@ -44,6 +50,7 @@
     "@babel/core": "^7.25.2",
     "@types/react": "~18.3.12",
     "@types/react-native": "^0.72.8",
+    "gh-pages": "^6.3.0",
     "typescript": "~5.3.3"
   },
   "private": true
