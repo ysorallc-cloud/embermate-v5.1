@@ -32,22 +32,22 @@ interface OnboardingSlide {
 
 const slides: OnboardingSlide[] = [
   {
-    icon: '📋',
-    title: 'Care in one place',
-    subtitle: 'Medications, appointments, and briefs',
-    description: 'Track medications, upcoming appointments, and generate care briefs for doctors — all organized and easy to share.',
+    icon: '🫂',
+    title: 'Caregiving is a lot.',
+    subtitle: 'Medications to track. Appointments to remember. Patterns to notice.',
+    description: 'It's easy to feel overwhelmed. You're not alone in this.',
+  },
+  {
+    icon: '🌱',
+    title: 'Care made simple.\nTogether.',
+    subtitle: 'Track what matters, spot patterns early, and keep your care circle in sync.',
+    description: 'EmberMate brings calm to the chaos.',
   },
   {
     icon: '☕',
-    title: 'Coffee Moment',
-    subtitle: '30 seconds to reset',
-    description: 'Caregiving is hard. Take a mindful pause whenever you need to breathe, reflect, and return refreshed.',
-  },
-  {
-    icon: '🔒',
-    title: 'Privacy first',
-    subtitle: 'Your data stays yours',
-    description: 'All information is stored locally on your device. EmberMate uses AI to help generate insights, but never shares your personal health data.',
+    title: 'Start each day\ngrounded.',
+    subtitle: 'A quick check-in with your morning coffee.',
+    description: 'Not another chore — a moment of calm before the day begins. Takes about 2 minutes.',
   },
 ];
 

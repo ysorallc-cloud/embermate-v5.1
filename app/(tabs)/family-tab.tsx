@@ -24,6 +24,7 @@ import {
   CaregiverProfile,
   CareActivity,
 } from '../../utils/collaborativeCare';
+import CareCircleIcon from '../../components/CareCircleIcon';
 
 export default function FamilyTabScreen() {
   const router = useRouter();
@@ -63,7 +64,9 @@ export default function FamilyTabScreen() {
       >
         {/* Hero Section */}
         <View style={styles.hero}>
-          <Text style={styles.heroIcon}>🧶</Text>
+          <View style={styles.heroIconContainer}>
+            <CareCircleIcon size={Platform.OS === 'web' ? 140 : 100} />
+          </View>
           <Text style={styles.heroLabel}>YOUR CARE CIRCLE</Text>
           <Text style={styles.heroMessage}>
             Together,{'\n'}caring for Mom.
@@ -241,8 +244,7 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'web' ? 45 : 30,
     paddingHorizontal: Platform.OS === 'web' ? 32 : 24,
   },
-  heroIcon: {
-    fontSize: Platform.OS === 'web' ? 140 : 100,
+  heroIconContainer: {
     marginBottom: Platform.OS === 'web' ? 28 : 20,
     opacity: 0.9,
   },
