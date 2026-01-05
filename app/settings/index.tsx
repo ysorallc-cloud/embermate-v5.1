@@ -16,13 +16,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../_theme/theme-tokens';
+import { CommonStyles } from '../_theme/commonStyles';
 import PageHeader from '../../components/PageHeader';
 import { generateSampleData, clearSampleData, hasSampleData } from '../../utils/sampleDataGenerator';
 import { StorageKeys } from '../../utils/storageKeys';
 import { getMedications } from '../../utils/medicationStorage';
-import { getAppointments } from '../../utils/appointmentStorage';
+import { getAppointments, getUpcomingAppointments } from '../../utils/appointmentStorage';
+import { getCaregivers } from '../../utils/collaborativeCare';
+import { exportBackup, clearAllData } from '../../utils/dataBackup';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -30,6 +34,9 @@ export default function SettingsScreen() {
   const [hasSample, setHasSample] = useState(false);
   const [lastModified, setLastModified] = useState<string>('');
   const [use24HourTime, setUse24HourTime] = useState(false);
+  const [medicationCount, setMedicationCount] = useState(0);
+  const [appointmentCount, setAppointmentCount] = useState(0);
+  const [caregiverCount, setCaregiverCount] = useState(0);
 
   useEffect(() => {
     loadPatientName();
@@ -37,6 +44,32 @@ export default function SettingsScreen() {
     loadLastModified();
     loadTimePreference();
   }, []);
+
+  // Reload counts when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadCounts();
+    }, [])
+  );
+
+  const loadCounts = async () => {
+    try {
+      // Load medication count
+      const meds = await getMedications();
+      const activeMeds = meds.filter(m => m.active);
+      setMedicationCount(activeMeds.length);
+
+      // Load appointment count
+      const upcomingAppts = await getUpcomingAppointments();
+      setAppointmentCount(upcomingAppts.length);
+
+      // Load caregiver count
+      const caregivers = await getCaregivers();
+      setCaregiverCount(caregivers.length);
+    } catch (error) {
+      console.error('Error loading counts:', error);
+    }
+  };
 
   const loadLastModified = async () => {
     try {
@@ -111,6 +144,51 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleBackupData = async () => {
+    try {
+      const success = await exportBackup();
+      if (success) {
+        Alert.alert(
+          'Backup Complete',
+          'Your data has been exported successfully. Save this file in a secure location.'
+        );
+      }
+    } catch (error) {
+      console.error('Error backing up data:', error);
+      Alert.alert('Backup Failed', 'Could not create backup. Please try again.');
+    }
+  };
+
+  const handleClearAllData = async () => {
+    Alert.alert(
+      'Clear All Data',
+      'This will permanently delete ALL your data including medications, appointments, and patient information. This cannot be undone.\n\nAre you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear Everything',
+          style: 'destructive',
+          onPress: async () => {
+            const success = await clearAllData();
+            if (success) {
+              Alert.alert('Data Cleared', 'All data has been removed.', [
+                {
+                  text: 'OK',
+                  onPress: () => {
+                    // Reload the app or navigate to onboarding
+                    router.replace('/onboarding');
+                  },
+                },
+              ]);
+            } else {
+              Alert.alert('Error', 'Could not clear data. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleClearSample = async () => {
     Alert.alert(
       'Clear Sample Data',
@@ -160,12 +238,12 @@ export default function SettingsScreen() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
-        <View style={styles.headerWrapper}>
-          <TouchableOpacity 
-            style={styles.backButton}
+        <View style={CommonStyles.headerWrapper}>
+          <TouchableOpacity
+            style={CommonStyles.backButton}
             onPress={() => router.back()}
           >
-            <Text style={styles.backIcon}>←</Text>
+            <Text style={CommonStyles.backIcon}>←</Text>
           </TouchableOpacity>
           
           <PageHeader 
@@ -214,6 +292,23 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* 1. SECURITY */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>1. SECURITY & PRIVACY</Text>
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() => router.push('/settings/security')}
+            >
+              <Text style={styles.settingIcon}>🔒</Text>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingTitle}>Security Settings</Text>
+                <Text style={styles.settingSubtitle}>App lock, encryption, audit logs</Text>
+              </View>
+              <Text style={styles.arrow}>→</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* 2. PREFERENCES */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>2. PREFERENCES</Text>
@@ -253,34 +348,6 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* PREFERENCES Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>PREFERENCES</Text>
-            
-            <TouchableOpacity 
-              style={styles.settingItem}
-              onPress={() => router.push('/notification-settings')}
-            >
-              <Text style={styles.settingIcon}>🔔</Text>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Notifications</Text>
-              </View>
-              <View style={styles.toggle} />
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.settingItem}
-              onPress={() => router.push('/family-sharing')}
-            >
-              <Text style={styles.settingIcon}>👥</Text>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Family</Text>
-                <Text style={styles.settingSubtitle}>3 caregivers</Text>
-              </View>
-              <Text style={styles.arrow}>→</Text>
-            </TouchableOpacity>
-          </View>
-
           {/* PATIENT & CARE Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>PATIENT & CARE</Text>
@@ -304,7 +371,7 @@ export default function SettingsScreen() {
               <Text style={styles.settingIcon}>💊</Text>
               <View style={styles.settingContent}>
                 <Text style={styles.settingTitle}>Medications</Text>
-                <Text style={styles.settingSubtitle}>7 active</Text>
+                <Text style={styles.settingSubtitle}>{medicationCount} active</Text>
               </View>
               <Text style={styles.arrow}>→</Text>
             </TouchableOpacity>
@@ -316,7 +383,7 @@ export default function SettingsScreen() {
               <Text style={styles.settingIcon}>📅</Text>
               <View style={styles.settingContent}>
                 <Text style={styles.settingTitle}>Appointments</Text>
-                <Text style={styles.settingSubtitle}>2 upcoming</Text>
+                <Text style={styles.settingSubtitle}>{appointmentCount} upcoming</Text>
               </View>
               <Text style={styles.arrow}>→</Text>
             </TouchableOpacity>
@@ -325,25 +392,51 @@ export default function SettingsScreen() {
           {/* DATA Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>DATA</Text>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={handleBackupData}
+            >
+              <Text style={styles.settingIcon}>💾</Text>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingTitle}>Backup Data</Text>
+                <Text style={styles.settingSubtitle}>Export all data to file</Text>
+              </View>
+              <Text style={styles.arrow}>→</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={styles.settingItem}
               onPress={() => router.push('/care-summary-export')}
             >
               <Text style={styles.settingIcon}>📤</Text>
               <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Export</Text>
+                <Text style={styles.settingTitle}>Export Summary</Text>
+                <Text style={styles.settingSubtitle}>Create care summary PDF</Text>
               </View>
               <Text style={styles.arrow}>→</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.settingItem}
               onPress={() => router.push('/cloud-sync')}
             >
               <Text style={styles.settingIcon}>☁️</Text>
               <View style={styles.settingContent}>
                 <Text style={styles.settingTitle}>Cloud Sync</Text>
+                <Text style={styles.settingSubtitle}>Coming soon</Text>
+              </View>
+              <Text style={styles.arrow}>→</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.settingItem, styles.dangerItem]}
+              onPress={handleClearAllData}
+            >
+              <Text style={styles.settingIcon}>⚠️</Text>
+              <View style={styles.settingContent}>
+                <Text style={[styles.settingTitle, styles.dangerText]}>Clear All Data</Text>
+                <Text style={styles.settingSubtitle}>Permanent deletion</Text>
               </View>
               <Text style={styles.arrow}>→</Text>
             </TouchableOpacity>
@@ -364,26 +457,11 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
-  headerWrapper: {
-    position: 'relative',
-  },
-  backButton: {
+  backButtonPositioned: {
     position: 'absolute',
     top: 16,
     left: 24,
-    width: 44,
-    height: 44,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 100, // Increased z-index to ensure it's above everything
-  },
-  backIcon: {
-    fontSize: 24,
-    color: Colors.textPrimary,
+    zIndex: 100,
   },
   content: {
     flex: 1,
@@ -510,6 +588,44 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   
+  // SETTING ITEMS
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  settingIcon: {
+    fontSize: 22,
+    marginRight: 14,
+  },
+  settingContent: {
+    flex: 1,
+  },
+  settingTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  settingSubtitle: {
+    fontSize: 13,
+    color: Colors.textTertiary,
+  },
+
+  dangerItem: {
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    backgroundColor: 'rgba(239, 68, 68, 0.05)',
+  },
+
+  dangerText: {
+    color: Colors.error,
+  },
+
   footer: {
     alignItems: 'center',
     paddingVertical: 32,

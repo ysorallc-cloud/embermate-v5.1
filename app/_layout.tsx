@@ -5,12 +5,33 @@
 
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, StyleSheet, Platform, useWindowDimensions } from 'react-native';
-import { useEffect } from 'react';
+import { View, StyleSheet, Platform, useWindowDimensions, AppState } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { resetDailyMedicationStatus } from '../utils/medicationStorage';
 import { requestNotificationPermissions } from '../utils/notificationService';
 import { useNotificationHandler } from '../utils/useNotificationHandler';
+import SecurityLockScreen from '../components/SecurityLockScreen';
+import WebLoginScreen from '../components/WebLoginScreen';
+import {
+  shouldLockSession,
+  hasActiveSession,
+  updateLastActivity,
+  isBiometricEnabled,
+  hasPIN,
+} from '../utils/biometricAuth';
+// Web auth imports - TODO: implement webAuth.ts and platform.ts
+// import {
+//   shouldLockSession as shouldLockWebSession,
+//   hasActiveSession as hasActiveWebSession,
+//   updateLastActivity as updateWebLastActivity,
+//   hasPassword as hasWebPassword,
+// } from '../utils/webAuth';
+// import { isWeb } from '../utils/platform';
+import { logLogin } from '../utils/auditLog';
+
+// Temporary platform detection until utils/platform.ts is created
+const isWeb = Platform.OS === 'web';
 
 function WebContainer({ children }: { children: React.ReactNode }) {
   const { width } = useWindowDimensions();
@@ -31,11 +52,94 @@ function WebContainer({ children }: { children: React.ReactNode }) {
 export default function RootLayout() {
   // Handle notification taps
   useNotificationHandler();
-  
+
+  // Security state
+  const [isLocked, setIsLocked] = useState(true);
+  const [isSecurityEnabled, setIsSecurityEnabled] = useState(false);
+  const [isCheckingLock, setIsCheckingLock] = useState(true);
+  const appState = useRef(AppState.currentState);
+
   useEffect(() => {
     checkAndResetMedicationStatus();
     requestNotificationPermissionsOnStartup();
+    checkSecurityStatus();
+    setupAppStateListener();
   }, []);
+
+  // Check if security is enabled and if session should be locked
+  async function checkSecurityStatus() {
+    try {
+      if (isWeb) {
+        // TODO: Implement web auth - for now, disable security on web
+        setIsSecurityEnabled(false);
+        setIsLocked(false);
+      } else {
+        // Mobile platform: check for biometric/PIN auth
+        const biometricEnabled = await isBiometricEnabled();
+        const pinExists = await hasPIN();
+        const securityEnabled = biometricEnabled || pinExists;
+
+        setIsSecurityEnabled(securityEnabled);
+
+        if (securityEnabled) {
+          const shouldLock = await shouldLockSession();
+          const hasSession = await hasActiveSession();
+
+          // Lock if no active session or timeout exceeded
+          setIsLocked(shouldLock || !hasSession);
+        } else {
+          // No security enabled, don't lock
+          setIsLocked(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking security status:', error);
+      setIsLocked(false);
+    } finally {
+      setIsCheckingLock(false);
+    }
+  }
+
+  // Monitor app state changes for auto-lock
+  function setupAppStateListener() {
+    if (isWeb) {
+      // Web: No AppState on web, handled by auto-lock timer in webAuth
+      return () => {};
+    }
+
+    const subscription = AppState.addEventListener('change', async (nextAppState) => {
+      // App going to background
+      if (appState.current.match(/active/) && nextAppState === 'background') {
+        await updateLastActivity();
+      }
+
+      // App coming to foreground
+      if (appState.current.match(/background/) && nextAppState === 'active') {
+        // Check if we should lock
+        if (isSecurityEnabled) {
+          const shouldLock = await shouldLockSession();
+          if (shouldLock) {
+            setIsLocked(true);
+          }
+        }
+      }
+
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }
+
+  // Handle successful unlock
+  function handleUnlock() {
+    setIsLocked(false);
+    if (!isWeb) {
+      updateLastActivity();
+    }
+    // TODO: Implement updateWebLastActivity when webAuth.ts is created
+  }
 
   async function requestNotificationPermissionsOnStartup() {
     try {
@@ -69,6 +173,20 @@ export default function RootLayout() {
     }
   }
   
+  // Show lock screen if security is enabled and locked
+  if (isLocked && !isCheckingLock) {
+    if (isWeb) {
+      return <WebLoginScreen onUnlock={handleUnlock} />;
+    } else if (isSecurityEnabled) {
+      return <SecurityLockScreen onUnlock={handleUnlock} />;
+    }
+  }
+
+  // Show blank screen while checking lock status
+  if (isCheckingLock) {
+    return <View style={{ flex: 1, backgroundColor: '#051614' }} />;
+  }
+
   return (
     <WebContainer>
       <StatusBar style="light" />
@@ -81,11 +199,26 @@ export default function RootLayout() {
         <Stack.Screen name="coffee" options={{ presentation: 'modal' }} />
         <Stack.Screen name="calendar" options={{ presentation: 'modal' }} />
         <Stack.Screen name="medication-schedule" />
+        <Stack.Screen name="medication-form" />
         <Stack.Screen name="medication-interactions" />
+        <Stack.Screen name="medications" />
+        <Stack.Screen name="appointment-form" />
+        <Stack.Screen name="appointments" />
         <Stack.Screen name="cloud-sync" />
         <Stack.Screen name="photos" />
         <Stack.Screen name="emergency" />
-        <Stack.Screen name="appointments" />
+        <Stack.Screen name="vitals" />
+        <Stack.Screen name="vitals-log" />
+        <Stack.Screen name="symptoms" />
+        <Stack.Screen name="symptoms-log" />
+        <Stack.Screen name="care-brief" />
+        <Stack.Screen name="care-summary-export" />
+        <Stack.Screen name="family-sharing" />
+        <Stack.Screen name="family-activity" />
+        <Stack.Screen name="caregiver-management" />
+        <Stack.Screen name="notification-settings" />
+        <Stack.Screen name="correlation-report" />
+        <Stack.Screen name="correlation-test" />
       </Stack>
     </WebContainer>
   );

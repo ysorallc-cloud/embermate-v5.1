@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from './_theme/theme-tokens';
 import PageHeader from '../components/PageHeader';
+import { MedicationCardSkeleton } from '../components/LoadingSkeleton';
 import { getMedications, deleteMedication, Medication } from '../utils/medicationStorage';
 import { checkInteraction } from '../utils/drugInteractions';
 
@@ -25,6 +26,7 @@ export default function MedicationsScreen() {
   const router = useRouter();
   const [medications, setMedications] = useState<Medication[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [interactions, setInteractions] = useState<any[]>([]);
 
   useFocusEffect(useCallback(() => {
@@ -33,10 +35,11 @@ export default function MedicationsScreen() {
 
   const loadData = async () => {
     try {
+      setLoading(true);
       const meds = await getMedications();
       const activeMeds = meds.filter(m => m.active);
       setMedications(activeMeds);
-      
+
       // Check for interactions between all pairs
       const interactionResults: any[] = [];
       for (let i = 0; i < activeMeds.length; i++) {
@@ -50,6 +53,8 @@ export default function MedicationsScreen() {
       setInteractions(interactionResults);
     } catch (error) {
       console.error('Error loading medications:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -145,14 +150,21 @@ export default function MedicationsScreen() {
           )}
 
           {/* Medications List */}
-          {medications.length === 0 ? (
+          {loading ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>LOADING MEDICATIONS...</Text>
+              <MedicationCardSkeleton />
+              <MedicationCardSkeleton />
+              <MedicationCardSkeleton />
+            </View>
+          ) : medications.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>💊</Text>
               <Text style={styles.emptyTitle}>No medications yet</Text>
               <Text style={styles.emptyText}>
                 Add your first medication to start tracking adherence and managing your care.
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.emptyButton}
                 onPress={handleAddMedication}
               >

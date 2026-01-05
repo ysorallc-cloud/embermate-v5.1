@@ -5,6 +5,8 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { checkMultipleInteractions, DrugInteraction } from './drugInteractions';
+import { safeGetItem, safeSetItem } from './safeStorage';
+import { generateUniqueId } from './idGenerator';
 
 export interface Medication {
   id: string;
@@ -53,14 +55,20 @@ const MEDICATION_LOGS_KEY = '@embermate_medication_logs';
  */
 export async function getMedications(): Promise<Medication[]> {
   try {
-    const data = await AsyncStorage.getItem(MEDICATIONS_KEY);
-    if (!data) {
-      return getDefaultMedications();
+    const medications = await safeGetItem<Medication[]>(MEDICATIONS_KEY, []);
+
+    // If empty, return default medications for first-time users
+    if (medications.length === 0) {
+      const hasSeenOnboarding = await AsyncStorage.getItem('@embermate_onboarding_complete');
+      if (!hasSeenOnboarding) {
+        return getDefaultMedications();
+      }
     }
-    return JSON.parse(data);
+
+    return medications;
   } catch (error) {
     console.error('Error getting medications:', error);
-    return getDefaultMedications();
+    return [];
   }
 }
 
@@ -89,15 +97,25 @@ export async function createMedication(
     if (duplicate) {
       throw new Error(`Similar medication already exists: ${duplicate.name}`);
     }
-    
+
     const medications = await getMedications();
+
+    // Generate unique ID that won't collide
     const newMedication: Medication = {
       ...medication,
-      id: Date.now().toString(),
+      id: generateUniqueId(),
       createdAt: new Date().toISOString(),
     };
+
     medications.push(newMedication);
-    await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(medications));
+
+    // Use safe storage to prevent corruption
+    const success = await safeSetItem(MEDICATIONS_KEY, medications);
+
+    if (!success) {
+      throw new Error('Failed to save medication to storage');
+    }
+
     return newMedication;
   } catch (error) {
     console.error('Error creating medication:', error);
@@ -115,13 +133,21 @@ export async function updateMedication(
   try {
     const medications = await getMedications();
     const index = medications.findIndex(m => m.id === id);
-    
+
     if (index === -1) {
+      console.warn(`Medication with id ${id} not found`);
       return null;
     }
-    
+
     medications[index] = { ...medications[index], ...updates };
-    await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(medications));
+
+    const success = await safeSetItem(MEDICATIONS_KEY, medications);
+
+    if (!success) {
+      console.error('Failed to save updated medication');
+      return null;
+    }
+
     return medications[index];
   } catch (error) {
     console.error('Error updating medication:', error);
@@ -193,11 +219,11 @@ export async function logMedicationEvent(
       notes,
     };
     logs.push(newLog);
-    
+
     // Keep only last 1000 logs to prevent storage overflow
     const trimmedLogs = logs.slice(-1000);
-    
-    await AsyncStorage.setItem(MEDICATION_LOGS_KEY, JSON.stringify(trimmedLogs));
+
+    await safeSetItem(MEDICATION_LOGS_KEY, trimmedLogs);
   } catch (error) {
     console.error('Error logging medication event:', error);
   }
@@ -207,13 +233,7 @@ export async function logMedicationEvent(
  * Get all medication logs
  */
 export async function getMedicationLogs(): Promise<MedicationLog[]> {
-  try {
-    const data = await AsyncStorage.getItem(MEDICATION_LOGS_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch (error) {
-    console.error('Error getting medication logs:', error);
-    return [];
-  }
+  return await safeGetItem<MedicationLog[]>(MEDICATION_LOGS_KEY, []);
 }
 
 /**
@@ -266,7 +286,7 @@ export async function calculateAdherence(
 export async function resetMedications(): Promise<void> {
   try {
     const defaults = getDefaultMedications();
-    await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(defaults));
+    await safeSetItem(MEDICATIONS_KEY, defaults);
   } catch (error) {
     console.error('Error resetting medications:', error);
   }
@@ -280,7 +300,7 @@ export async function resetDailyMedicationStatus(): Promise<void> {
   try {
     const medications = await getMedications();
     const reset = medications.map(med => ({ ...med, taken: false }));
-    await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(reset));
+    await safeSetItem(MEDICATIONS_KEY, reset);
   } catch (error) {
     console.error('Error resetting daily medication status:', error);
   }
@@ -288,12 +308,13 @@ export async function resetDailyMedicationStatus(): Promise<void> {
 
 /**
  * Default medications for initial setup
+ * NOTE: These are demo medications shown on first launch
  */
 function getDefaultMedications(): Medication[] {
   const now = new Date().toISOString();
   return [
     {
-      id: '1',
+      id: generateUniqueId(),
       name: 'Metformin',
       dosage: '500mg',
       time: '08:00',
@@ -306,19 +327,20 @@ function getDefaultMedications(): Medication[] {
       daysSupply: 30,
     },
     {
-      id: '2',
+      id: generateUniqueId(),
       name: 'Lisinopril',
       dosage: '10mg',
       time: '08:00',
       timeSlot: 'morning',
       taken: false,
+      notes: 'Blood pressure medication',
       active: true,
       createdAt: now,
       pillsRemaining: 90,
       daysSupply: 90,
     },
     {
-      id: '3',
+      id: generateUniqueId(),
       name: 'Vitamin D',
       dosage: '1000IU',
       time: '08:00',
@@ -328,7 +350,7 @@ function getDefaultMedications(): Medication[] {
       createdAt: now,
     },
     {
-      id: '4',
+      id: generateUniqueId(),
       name: 'Aspirin',
       dosage: '81mg',
       time: '12:00',
@@ -337,42 +359,34 @@ function getDefaultMedications(): Medication[] {
       notes: 'With lunch',
       active: true,
       createdAt: now,
-      pillsRemaining: 100,
-      daysSupply: 100,
+      pillsRemaining: 5,
+      daysSupply: 5, // Low to demonstrate refill warning
     },
     {
-      id: '5',
+      id: generateUniqueId(),
       name: 'Metformin',
       dosage: '500mg',
       time: '18:00',
       timeSlot: 'evening',
       taken: false,
-      notes: 'With dinner',
+      notes: 'With dinner (evening dose)',
       active: true,
       createdAt: now,
+      pillsRemaining: 60,
+      daysSupply: 30,
     },
     {
-      id: '6',
+      id: generateUniqueId(),
       name: 'Amlodipine',
       dosage: '5mg',
       time: '18:00',
       timeSlot: 'evening',
       taken: false,
+      notes: 'Calcium channel blocker',
       active: true,
       createdAt: now,
       pillsRemaining: 30,
       daysSupply: 30,
-    },
-    {
-      id: '7',
-      name: 'Melatonin',
-      dosage: '3mg',
-      time: '21:00',
-      timeSlot: 'bedtime',
-      taken: false,
-      notes: '30 min before sleep',
-      active: true,
-      createdAt: now,
     },
   ];
 }

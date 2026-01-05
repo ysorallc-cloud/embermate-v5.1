@@ -6,3 +6,16 @@ expo-env.d.ts
 # @end expo-cli
 .vercel
 .env*.local
+
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+
+# OS files
+.DS_Store
+
+# Archives
+*.zip

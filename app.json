@@ -8,6 +8,10 @@
     "scheme": "embermate",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "description": "Secure personal health companion for medication management, appointment tracking, and family care coordination. All your health data stays private on your device.",
+    "primaryColor": "#FF8C94",
+    "backgroundColor": "#051614",
+    "privacy": "unlisted",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -16,10 +20,27 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.embermate.app",
+      "buildNumber": "1",
+      "appStoreUrl": "https://apps.apple.com/app/embermate/idXXXXXXXXX",
+      "config": {
+        "usesNonExemptEncryption": true
+      },
       "infoPlist": {
         "NSCameraUsageDescription": "EmberMate needs camera access to take photos of medications, wounds, and medical documents.",
-        "NSPhotoLibraryUsageDescription": "EmberMate needs photo library access to select images of medications, wounds, and medical documents."
-      }
+        "NSPhotoLibraryUsageDescription": "EmberMate needs photo library access to select images of medications, wounds, and medical documents.",
+        "NSFaceIDUsageDescription": "EmberMate uses Face ID to securely protect your sensitive health information.",
+        "NSHealthShareUsageDescription": "EmberMate can read health data to help track your wellness (optional).",
+        "NSHealthUpdateUsageDescription": "EmberMate can write health data to your Health app (optional).",
+        "NSMicrophoneUsageDescription": "EmberMate uses the microphone for voice notes about symptoms and medications (optional).",
+        "NSLocationWhenInUseUsageDescription": "EmberMate uses your location to find nearby pharmacies and medical facilities (optional).",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": true
+      },
+      "associatedDomains": [
+        "applinks:embermate.com"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -27,11 +48,27 @@
         "backgroundColor": "#243028"
       },
       "package": "com.embermate.app",
+      "versionCode": 1,
+      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.embermate.app",
       "permissions": [
         "CAMERA",
         "READ_MEDIA_IMAGES",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM"
+      ],
+      "blockedPermissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECORD_AUDIO",
+        "READ_CONTACTS",
+        "READ_CALL_LOG",
+        "READ_SMS"
       ]
     },
     "web": {
@@ -55,10 +92,53 @@
           "photosPermission": "EmberMate needs access to your photos to document medications, wounds, and medical records.",
           "cameraPermission": "EmberMate needs camera access to take photos of medications, wounds, and medical documents."
         }
-      ]
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "EmberMate uses Face ID to securely protect your sensitive health information."
+        }
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id-here"
+      },
+      "router": {
+        "origin": false
+      },
+      "privacyPolicyUrl": "https://embermate.com/privacy",
+      "termsOfServiceUrl": "https://embermate.com/terms",
+      "supportUrl": "https://embermate.com/support",
+      "helpUrl": "https://embermate.com/help",
+      "legalUrls": {
+        "privacy": "https://embermate.com/privacy",
+        "terms": "https://embermate.com/terms",
+        "dataRequest": "https://embermate.com/data-request",
+        "dataDeletion": "https://embermate.com/data-deletion"
+      },
+      "security": {
+        "encryption": "AES-256",
+        "localStorage": true,
+        "noExternalServers": true,
+        "hipaaCompliant": true
+      },
+      "features": [
+        "medication-tracking",
+        "appointment-management",
+        "family-care-coordination",
+        "biometric-security",
+        "encrypted-storage",
+        "local-only-data",
+        "medication-reminders",
+        "vitals-tracking",
+        "symptom-logging",
+        "care-summaries"
+      ]
     }
   }
 }

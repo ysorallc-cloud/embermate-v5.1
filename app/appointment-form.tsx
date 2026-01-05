@@ -70,20 +70,79 @@ export default function AppointmentFormScreen() {
   };
 
   const handleSave = async () => {
+    // Validate date
     if (!date.trim()) {
-      Alert.alert('Required', 'Please enter appointment date');
+      Alert.alert('Required Field', 'Please enter an appointment date');
       return;
     }
+
+    // Validate date format (YYYY-MM-DD)
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (!datePattern.test(date.trim())) {
+      Alert.alert('Invalid Date', 'Date must be in YYYY-MM-DD format (e.g., 2025-01-15)');
+      return;
+    }
+
+    // Validate date is valid
+    const appointmentDate = new Date(date.trim());
+    if (isNaN(appointmentDate.getTime())) {
+      Alert.alert('Invalid Date', 'Please enter a valid date');
+      return;
+    }
+
+    // Warn if appointment is in the past (unless editing)
+    if (!isEditing) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (appointmentDate < today) {
+        Alert.alert(
+          'Past Date',
+          'This appointment date is in the past. Do you want to continue?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Continue', onPress: () => proceedWithSave() }
+          ]
+        );
+        return;
+      }
+    }
+
+    await proceedWithSave();
+  };
+
+  const proceedWithSave = async () => {
+    // Validate time
     if (!time.trim()) {
-      Alert.alert('Required', 'Please enter appointment time');
+      Alert.alert('Required Field', 'Please enter appointment time');
       return;
     }
+
+    // Validate time format (HH:MM)
+    const timePattern = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timePattern.test(time.trim())) {
+      Alert.alert('Invalid Time', 'Time must be in HH:MM format (e.g., 09:30, 14:00)');
+      return;
+    }
+
+    // Validate provider name
     if (!provider.trim()) {
-      Alert.alert('Required', 'Please enter provider name');
+      Alert.alert('Required Field', 'Please enter the provider or doctor name');
       return;
     }
+
+    if (provider.trim().length < 2) {
+      Alert.alert('Invalid Provider', 'Provider name must be at least 2 characters');
+      return;
+    }
+
+    // Validate specialty
     if (!specialty.trim()) {
-      Alert.alert('Required', 'Please enter specialty or type');
+      Alert.alert('Required Field', 'Please enter the specialty or appointment type');
+      return;
+    }
+
+    if (specialty.trim().length < 2) {
+      Alert.alert('Invalid Specialty', 'Specialty must be at least 2 characters');
       return;
     }
 

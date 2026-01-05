@@ -182,12 +182,40 @@ export default function MedicationFormScreen() {
   };
 
   const handleSave = async () => {
+    // Validate medication name
     if (!name.trim()) {
-      Alert.alert('Required', 'Please enter medication name');
+      Alert.alert('Required Field', 'Please enter a medication name');
       return;
     }
+
+    if (name.trim().length < 2) {
+      Alert.alert('Invalid Name', 'Medication name must be at least 2 characters');
+      return;
+    }
+
+    // Validate dosage
     if (!dosage.trim()) {
-      Alert.alert('Required', 'Please enter dosage');
+      Alert.alert('Required Field', 'Please enter the dosage (e.g., 10mg, 500mcg)');
+      return;
+    }
+
+    // Validate dosage format - should contain a number
+    const dosagePattern = /\d+/;
+    if (!dosagePattern.test(dosage)) {
+      Alert.alert('Invalid Dosage', 'Dosage must include a number (e.g., 10mg, 500mcg)');
+      return;
+    }
+
+    // Validate days supply
+    const supplyDays = parseInt(daysSupply);
+    if (isNaN(supplyDays) || supplyDays < 1 || supplyDays > 365) {
+      Alert.alert('Invalid Supply', 'Days supply must be between 1 and 365');
+      return;
+    }
+
+    // Validate time format
+    if (!customTime || customTime.length === 0) {
+      Alert.alert('Invalid Time', 'Please select a valid time');
       return;
     }
 

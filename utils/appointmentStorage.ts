@@ -5,6 +5,8 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { scheduleOneTimeNotification } from './notificationService';
+import { safeGetItem, safeSetItem } from './safeStorage';
+import { generateUniqueId } from './idGenerator';
 
 export interface Appointment {
   id: string;
@@ -31,14 +33,20 @@ const APPOINTMENTS_KEY = '@embermate_appointments';
  */
 export async function getAppointments(): Promise<Appointment[]> {
   try {
-    const data = await AsyncStorage.getItem(APPOINTMENTS_KEY);
-    if (!data) {
-      return getDefaultAppointments();
+    const appointments = await safeGetItem<Appointment[]>(APPOINTMENTS_KEY, []);
+
+    // If empty, return default appointments for first-time users
+    if (appointments.length === 0) {
+      const hasSeenOnboarding = await AsyncStorage.getItem('@embermate_onboarding_complete');
+      if (!hasSeenOnboarding) {
+        return getDefaultAppointments();
+      }
     }
-    return JSON.parse(data);
+
+    return appointments;
   } catch (error) {
     console.error('Error getting appointments:', error);
-    return getDefaultAppointments();
+    return [];
   }
 }
 
@@ -101,15 +109,20 @@ export async function createAppointment(
     const appointments = await getAppointments();
     const newAppointment: Appointment = {
       ...appointment,
-      id: Date.now().toString(),
+      id: generateUniqueId(),
       createdAt: new Date().toISOString(),
     };
     appointments.push(newAppointment);
-    await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(appointments));
-    
+
+    const success = await safeSetItem(APPOINTMENTS_KEY, appointments);
+
+    if (!success) {
+      throw new Error('Failed to save appointment to storage');
+    }
+
     // Schedule notifications for the appointment
     await scheduleAppointmentNotifications(newAppointment);
-    
+
     return newAppointment;
   } catch (error) {
     console.error('Error creating appointment:', error);

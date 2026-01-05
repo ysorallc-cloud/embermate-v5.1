@@ -24,6 +24,13 @@ export async function isSampleDataSeeded(): Promise<boolean> {
  * Seed sample data for first-time users
  */
 export async function seedSampleData(): Promise<void> {
+  // Check if user explicitly declined sample data
+  const userDeclined = await AsyncStorage.getItem('@embermate_user_declined_sample_data');
+  if (userDeclined === 'true') {
+    console.log('⏭️  User declined sample data, skipping seed');
+    return;
+  }
+
   const now = new Date();
   const nowISO = now.toISOString();
   
@@ -116,6 +123,7 @@ export async function clearDemoData(): Promise<void> {
     await AsyncStorage.removeItem(StorageKeys.ONBOARDING_COMPLETE);
     await AsyncStorage.removeItem(StorageKeys.COFFEE_LAST_USED);
     await AsyncStorage.removeItem(StorageKeys.LAST_RESET_DATE);
+    await AsyncStorage.removeItem('@embermate_user_declined_sample_data');
     
     console.log('✓ Demo data cleared');
   } catch (error) {
