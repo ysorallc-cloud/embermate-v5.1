@@ -11,6 +11,7 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -221,32 +222,32 @@ const styles = StyleSheet.create({
   // Hero Section
   hero: {
     alignItems: 'center',
-    paddingTop: 50,
-    paddingBottom: 30,
-    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'web' ? 80 : 50,
+    paddingBottom: Platform.OS === 'web' ? 45 : 30,
+    paddingHorizontal: Platform.OS === 'web' ? 32 : 24,
   },
   heroIcon: {
-    fontSize: 100,
-    marginBottom: 20,
+    fontSize: Platform.OS === 'web' ? 140 : 100,
+    marginBottom: Platform.OS === 'web' ? 28 : 20,
     opacity: 0.9,
   },
   heroLabel: {
-    fontSize: 11,
+    fontSize: Platform.OS === 'web' ? 13 : 11,
     letterSpacing: 3,
     color: Colors.accent,
-    marginBottom: 12,
+    marginBottom: Platform.OS === 'web' ? 16 : 12,
     fontWeight: '800',
   },
   heroMessage: {
-    fontSize: 26,
+    fontSize: Platform.OS === 'web' ? 30 : 26,
     fontWeight: '300',
-    lineHeight: 36,
+    lineHeight: Platform.OS === 'web' ? 42 : 36,
     color: Colors.textPrimary,
     textAlign: 'center',
-    marginBottom: 6,
+    marginBottom: Platform.OS === 'web' ? 8 : 6,
   },
   heroDetail: {
-    fontSize: 15,
+    fontSize: Platform.OS === 'web' ? 17 : 15,
     color: Colors.textTertiary,
   },
   
@@ -255,8 +256,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 100,
+    paddingHorizontal: Platform.OS === 'web' ? 32 : 24,
+    paddingBottom: Platform.OS === 'web' ? 120 : 100,
   },
   
   // Section Labels

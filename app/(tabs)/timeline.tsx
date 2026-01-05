@@ -10,6 +10,7 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -47,7 +48,7 @@ export default function InsightsScreen() {
       >
         {/* Header with Minimalist Line Art */}
         <PageHeader 
-          emoji="📈"
+          emoji="🪷"
           label="Patterns & Trends"
           title="Insights"
         />
@@ -319,17 +320,17 @@ const styles = StyleSheet.create({
   },
   adherenceStat: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: Platform.OS === 'web' ? 32 : 24,
   },
   adherenceValue: {
-    fontSize: 56,
+    fontSize: Platform.OS === 'web' ? 80 : 56,
     fontWeight: '200',
     color: Colors.accent,
-    lineHeight: 56,
-    marginBottom: 8,
+    lineHeight: Platform.OS === 'web' ? 80 : 56,
+    marginBottom: Platform.OS === 'web' ? 12 : 8,
   },
   adherenceLabel: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'web' ? 20 : 16,
     color: Colors.textSecondary,
   },
   
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: Platform.OS === 'web' ? 20 : 17,
     fontWeight: '600',
     color: Colors.textPrimary,
   },
