@@ -35,7 +35,7 @@ const slides: OnboardingSlide[] = [
     icon: '🫂',
     title: 'Caregiving is a lot.',
     subtitle: 'Medications to track. Appointments to remember. Patterns to notice.',
-    description: 'It's easy to feel overwhelmed. You're not alone in this.',
+    description: 'It\'s easy to feel overwhelmed. You\'re not alone in this.',
   },
   {
     icon: '🌱',

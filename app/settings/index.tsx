@@ -195,8 +195,8 @@ export default function SettingsScreen() {
       'This removes test data only. Your real data stays intact.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Clear', 
+        {
+          text: 'Clear',
           style: 'destructive',
           onPress: async () => {
             await clearSampleData();
@@ -204,6 +204,41 @@ export default function SettingsScreen() {
             Alert.alert('Done', 'Sample data removed.');
           }
         }
+      ]
+    );
+  };
+
+  const handleResetOnboarding = async () => {
+    Alert.alert(
+      'Reset Onboarding',
+      'This will show the welcome screens again the next time you open the app. Your data will not be affected.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem(StorageKeys.ONBOARDING_COMPLETE);
+              Alert.alert(
+                'Onboarding Reset',
+                'The onboarding screens will appear when you reload the app.',
+                [
+                  {
+                    text: 'Reload Now',
+                    onPress: () => router.replace('/onboarding'),
+                  },
+                  {
+                    text: 'Later',
+                    style: 'cancel',
+                  },
+                ]
+              );
+            } catch (error) {
+              console.error('Error resetting onboarding:', error);
+              Alert.alert('Error', 'Could not reset onboarding. Please try again.');
+            }
+          },
+        },
       ]
     );
   };
@@ -425,6 +460,18 @@ export default function SettingsScreen() {
               <View style={styles.settingContent}>
                 <Text style={styles.settingTitle}>Cloud Sync</Text>
                 <Text style={styles.settingSubtitle}>Coming soon</Text>
+              </View>
+              <Text style={styles.arrow}>→</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={handleResetOnboarding}
+            >
+              <Text style={styles.settingIcon}>🔄</Text>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingTitle}>Reset Onboarding</Text>
+                <Text style={styles.settingSubtitle}>View welcome screens again</Text>
               </View>
               <Text style={styles.arrow}>→</Text>
             </TouchableOpacity>
