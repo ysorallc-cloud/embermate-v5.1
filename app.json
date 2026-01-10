@@ -47,8 +47,6 @@
       },
       "package": "com.embermate.app",
       "versionCode": 2,
-      "compileSdkVersion": 35,
-      "targetSdkVersion": 35,
       "playStoreUrl": "https://play.google.com/store/apps/details?id=com.embermate.app",
       "permissions": [
         "CAMERA",
@@ -98,7 +96,17 @@
           "faceIDPermission": "EmberMate uses Face ID to securely protect your sensitive health information."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
