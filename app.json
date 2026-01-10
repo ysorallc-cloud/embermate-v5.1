@@ -11,7 +11,6 @@
     "description": "Secure personal health companion for medication management, appointment tracking, and family care coordination. All your health data stays private on your device.",
     "primaryColor": "#FF8C94",
     "backgroundColor": "#051614",
-    "privacy": "unlisted",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -21,7 +20,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.embermate.app",
       "buildNumber": "1",
-      "appStoreUrl": "https://apps.apple.com/app/embermate/idXXXXXXXXX",
       "config": {
         "usesNonExemptEncryption": true
       },
