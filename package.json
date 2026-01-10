@@ -5,8 +5,8 @@
   "homepage": "https://ysorallc-cloud.github.io/embermate-v5.1/",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "build:web": "expo export --platform web",
     "deploy": "npm run build:web && gh-pages -d dist"
