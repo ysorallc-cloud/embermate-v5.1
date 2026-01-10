@@ -47,6 +47,8 @@
       },
       "package": "com.embermate.app",
       "versionCode": 2,
+      "compileSdkVersion": 35,
+      "targetSdkVersion": 35,
       "playStoreUrl": "https://play.google.com/store/apps/details?id=com.embermate.app",
       "permissions": [
         "CAMERA",
