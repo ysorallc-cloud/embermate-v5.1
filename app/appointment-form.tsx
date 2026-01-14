@@ -57,12 +57,23 @@ export default function AppointmentFormScreen() {
     if (isEditing) {
       loadAppointment();
     } else {
+      // Check if date parameter is provided
+      if (params.date) {
+        // Parse date in local timezone to avoid UTC conversion issues
+        const dateStr = params.date as string;
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const providedDate = new Date(year, month - 1, day); // month is 0-indexed
+        if (!isNaN(providedDate.getTime())) {
+          setDate(providedDate);
+        }
+      }
+
       // Set default time to 9:00 AM
       const defaultTime = new Date();
       defaultTime.setHours(9, 0, 0, 0);
       setTime(defaultTime);
     }
-  }, [apptId]);
+  }, [apptId, params.date]);
 
   const loadAppointment = async () => {
     if (!apptId) return;

@@ -423,12 +423,13 @@ const styles = StyleSheet.create({
     backButton: {
     width: 44,
     height: 44,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#0d332e',
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 10,
   },
   backIcon: {
     fontSize: 24,
@@ -531,12 +532,18 @@ const styles = StyleSheet.create({
   // SUGGESTION DROPDOWNS
   suggestionsContainer: {
     marginTop: 4,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#0d332e',
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: BorderRadius.md,
     maxHeight: 200,
-    overflow: 'hidden',
+    overflow: 'scroll',
+    zIndex: 1000,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   suggestionItem: {
     padding: Spacing.md,

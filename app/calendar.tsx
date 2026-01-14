@@ -150,6 +150,20 @@ export default function CalendarModal() {
 
   const selectedAppts = selectedDate ? getAppointmentsForDate(selectedDate) : [];
 
+  const handleAddAppointment = (date?: Date) => {
+    const dateParam = date || selectedDate;
+    if (dateParam) {
+      // Format date in local timezone to avoid timezone shift
+      const year = dateParam.getFullYear();
+      const month = String(dateParam.getMonth() + 1).padStart(2, '0');
+      const day = String(dateParam.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      router.push(`/appointment-form?date=${dateString}`);
+    } else {
+      router.push('/appointment-form');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
@@ -229,6 +243,13 @@ export default function CalendarModal() {
               ) : (
                 <View style={styles.noAppointments}>
                   <Text style={styles.noAppointmentsText}>No appointments</Text>
+                  <TouchableOpacity
+                    style={styles.addAppointmentButton}
+                    onPress={() => handleAddAppointment(selectedDate)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.addAppointmentButtonText}>+ Add Appointment</Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -249,6 +270,15 @@ export default function CalendarModal() {
 
           <View style={{ height: 40 }} />
         </ScrollView>
+
+        {/* Floating Action Button */}
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => handleAddAppointment()}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add" size={32} color={Colors.textPrimary} />
+        </TouchableOpacity>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -423,6 +453,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textTertiary,
     fontStyle: 'italic',
+    marginBottom: Spacing.md,
+  },
+  addAppointmentButton: {
+    backgroundColor: Colors.accent,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.xs,
+  },
+  addAppointmentButtonText: {
+    color: Colors.background,
+    fontSize: 14,
+    fontWeight: '600',
   },
 
   // Stats Section
@@ -442,5 +485,23 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '600',
     color: Colors.accent,
+  },
+
+  // Floating Action Button
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

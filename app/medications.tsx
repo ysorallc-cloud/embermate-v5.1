@@ -19,7 +19,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from './_theme/theme-tokens';
 import PageHeader from '../components/PageHeader';
 import { MedicationCardSkeleton } from '../components/LoadingSkeleton';
-import { getMedications, deleteMedication, Medication } from '../utils/medicationStorage';
+import { getMedications, deleteMedication, calculateAdherence, Medication } from '../utils/medicationStorage';
 import { checkInteraction } from '../utils/drugInteractions';
 
 export default function MedicationsScreen() {
@@ -28,6 +28,7 @@ export default function MedicationsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [interactions, setInteractions] = useState<any[]>([]);
+  const [adherenceRates, setAdherenceRates] = useState<{ [key: string]: number }>({});
 
   useFocusEffect(useCallback(() => {
     loadData();
@@ -39,6 +40,14 @@ export default function MedicationsScreen() {
       const meds = await getMedications();
       const activeMeds = meds.filter(m => m.active);
       setMedications(activeMeds);
+
+      // Calculate adherence for each medication
+      const rates: { [key: string]: number } = {};
+      for (const med of activeMeds) {
+        const adherence = await calculateAdherence(med.id, 7);
+        rates[med.id] = adherence;
+      }
+      setAdherenceRates(rates);
 
       // Check for interactions between all pairs
       const interactionResults: any[] = [];
@@ -91,8 +100,8 @@ export default function MedicationsScreen() {
   };
 
   const getAdherencePercent = (medication: Medication) => {
-    // Calculate 7-day adherence
-    return medication.adherenceRate || 95;
+    // Return calculated adherence rate, or null if no data
+    return adherenceRates[medication.id] || null;
   };
 
   return (
@@ -199,15 +208,17 @@ export default function MedicationsScreen() {
                     <View style={styles.adherenceHeader}>
                       <Text style={styles.adherenceLabel}>7-day adherence</Text>
                       <Text style={styles.adherenceValue}>
-                        {getAdherencePercent(medication)}%
+                        {getAdherencePercent(medication) !== null
+                          ? `${getAdherencePercent(medication)}%`
+                          : 'No data'}
                       </Text>
                     </View>
                     <View style={styles.adherenceBar}>
-                      <View 
+                      <View
                         style={[
-                          styles.adherenceBarFill, 
-                          { width: `${getAdherencePercent(medication)}%` }
-                        ]} 
+                          styles.adherenceBarFill,
+                          { width: `${getAdherencePercent(medication) || 0}%` }
+                        ]}
                       />
                     </View>
                   </View>
