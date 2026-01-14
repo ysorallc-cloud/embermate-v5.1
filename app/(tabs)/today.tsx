@@ -199,6 +199,22 @@ export default function TodayScreen() {
               </View>
             )}
           </View>
+
+          {/* Check-in Icons */}
+          <View style={styles.checkInRow}>
+            <TouchableOpacity style={styles.checkInIcon} onPress={() => router.push('/medications')}>
+              <Text style={styles.checkInEmoji}>💊</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.checkInIcon} onPress={() => router.push('/appointments')}>
+              <Text style={styles.checkInEmoji}>📅</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.checkInIcon} onPress={() => router.push('/vitals-log')}>
+              <Text style={styles.checkInEmoji}>❤️</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.checkInIcon} onPress={() => router.push('/care-summary-export')}>
+              <Text style={styles.checkInEmoji}>📊</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
 
         {/* Calendar button at bottom */}
@@ -331,6 +347,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.accent,
     marginTop: 6,
+  },
+
+  // Check-in Icons
+  checkInRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  checkInIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkInEmoji: {
+    fontSize: 22,
   },
 
   // Bottom action
