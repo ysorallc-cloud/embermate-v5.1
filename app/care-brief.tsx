@@ -69,7 +69,7 @@ export default function CareBriefScreen() {
         await AsyncStorage.setItem('@care_brief_viewed', 'true');
       }
     } catch (e) {
-      console.log('Error checking first view:', e);
+      console.error('Error checking first view:', e);
     }
   };
 
@@ -232,7 +232,7 @@ export default function CareBriefScreen() {
       const briefText = `Care Brief for ${patientName}\nSnapshot: ${snapshotTime.toLocaleString()}\n\n${generateClinicalSentence()}`;
       await Share.share({ message: briefText });
     } catch (error) {
-      console.log('Error sharing:', error);
+      console.error('Error sharing:', error);
     }
   };
 

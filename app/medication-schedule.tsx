@@ -67,7 +67,7 @@ export default function MedicationScheduleScreen() {
       const needsRefill = await getMedicationsNeedingRefill(7);
       setRefillMeds(needsRefill);
     } catch (error) {
-      console.log('Error loading medications:', error);
+      console.error('Error loading medications:', error);
     }
   };
 
@@ -95,7 +95,7 @@ export default function MedicationScheduleScreen() {
         setUndoAction(null);
       }, 5000);
     } catch (error) {
-      console.log('Error toggling medication:', error);
+      console.error('Error toggling medication:', error);
       Alert.alert('Error', 'Failed to update medication status');
     }
   };
@@ -112,7 +112,7 @@ export default function MedicationScheduleScreen() {
       setShowUndo(false);
       setUndoAction(null);
     } catch (error) {
-      console.log('Error undoing action:', error);
+      console.error('Error undoing action:', error);
     }
   };
 

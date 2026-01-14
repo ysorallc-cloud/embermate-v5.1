@@ -85,18 +85,11 @@ export default function OnboardingScreen() {
   };
 
   const handleStartWithData = async () => {
-    console.log('🎯 Start with sample data clicked');
     setIsLoading(true);
     try {
-      console.log('📦 Seeding sample data...');
       await seedSampleData();
-      console.log('✅ Sample data seeded');
-      console.log('🔒 Completing onboarding...');
       await completeOnboarding();
-      console.log('✅ Onboarding completed (with data)');
-      console.log('🚀 Navigating to today page...');
       router.replace('/(tabs)/today');
-      console.log('✅ Navigation called');
     } catch (error) {
       console.error('❌ Error in handleStartWithData:', error);
       setIsLoading(false);
@@ -104,17 +97,12 @@ export default function OnboardingScreen() {
   };
 
   const handleStartEmpty = async () => {
-    console.log('🎯 Start empty clicked');
     setIsLoading(true);
     try {
-      console.log('🔒 Completing onboarding WITHOUT sample data...');
       // Mark that user explicitly chose NOT to use sample data
       await AsyncStorage.setItem('@embermate_user_declined_sample_data', 'true');
       await completeOnboarding();
-      console.log('✅ Onboarding completed (empty)');
-      console.log('🚀 Navigating to today page...');
       router.replace('/(tabs)/today');
-      console.log('✅ Navigation called');
     } catch (error) {
       console.error('❌ Error completing onboarding:', error);
       setIsLoading(false);
@@ -122,7 +110,6 @@ export default function OnboardingScreen() {
   };
 
   const handleTryCoffee = () => {
-    console.log('☕ Try Coffee clicked');
     router.push('/coffee');
   };
 
@@ -336,18 +323,20 @@ export default function OnboardingScreen() {
           ))}
         </ScrollView>
 
-        {/* Pagination dots */}
-        <View style={styles.pagination}>
-          {slides.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.dot,
-                index === currentIndex && styles.activeDot,
-              ]}
-            />
-          ))}
-        </View>
+        {/* Pagination dots - hide on last slide */}
+        {currentIndex < slides.length - 1 && (
+          <View style={styles.pagination}>
+            {slides.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  index === currentIndex && styles.activeDot,
+                ]}
+              />
+            ))}
+          </View>
+        )}
 
         {/* Navigation buttons (only on first slides, hidden on last) */}
         {currentIndex < slides.length - 1 && (
@@ -388,9 +377,12 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     alignItems: 'flex-end',
     height: 50,
+    zIndex: 100,
   },
   skipButton: {
     padding: Spacing.sm,
+    minWidth: 60,
+    minHeight: 40,
   },
   skipText: {
     color: Colors.textTertiary,
@@ -398,18 +390,18 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   scrollView: {
-    flex: 1,
+    flexGrow: 1,
   },
   slide: {
-    flex: 1,
+    height: '100%',
     justifyContent: 'space-between',
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   slideContent: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.xl * 2,
+    paddingVertical: Spacing.xl * 2,
   },
   icon: {
     fontSize: 80,
@@ -455,6 +447,7 @@ const styles = StyleSheet.create({
   },
   actionsContainer: {
     paddingHorizontal: Spacing.xl * 2,
+    paddingBottom: Spacing.xl * 2,
     gap: Spacing.md,
   },
   actionButton: {
@@ -462,6 +455,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     borderRadius: BorderRadius.lg,
     alignItems: 'center',
+    minHeight: 70,
+    justifyContent: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   actionButtonPrimary: {
     backgroundColor: Colors.accent,
@@ -488,11 +488,16 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
   },
   pagination: {
+    position: 'absolute',
+    bottom: 80,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: Spacing.lg,
     gap: Spacing.sm,
+    pointerEvents: 'none',
   },
   dot: {
     width: 8,
@@ -505,10 +510,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent,
   },
   navigation: {
+    position: 'absolute',
+    bottom: Spacing.xl,
+    left: Spacing.xl,
+    right: Spacing.xl,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.xl,
   },
   navButton: {
     width: 48,

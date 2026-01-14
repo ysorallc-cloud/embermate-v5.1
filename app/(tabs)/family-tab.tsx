@@ -62,16 +62,15 @@ export default function FamilyTabScreen() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
-        {/* Hero Section */}
-        <View style={styles.hero}>
-          <View style={styles.heroIconContainer}>
-            <CareCircleIcon size={Platform.OS === 'web' ? 140 : 100} />
+        {/* Tinted Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>Care Circle 🧶</Text>
+            <Text style={styles.dateSubtitle}>{activeCount} active members</Text>
           </View>
-          <Text style={styles.heroLabel}>YOUR CARE CIRCLE</Text>
-          <Text style={styles.heroMessage}>
-            Together,{'\n'}caring for Mom.
-          </Text>
-          <Text style={styles.heroDetail}>{activeCount} active members</Text>
+          <TouchableOpacity style={styles.coffeeButton} onPress={() => router.push('/coffee')}>
+            <Text style={styles.coffeeIcon}>☕</Text>
+          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -236,38 +235,43 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
-  
-  // Hero
-  hero: {
-    alignItems: 'center',
-    paddingTop: Platform.OS === 'web' ? 80 : 50,
-    paddingBottom: Platform.OS === 'web' ? 45 : 30,
-    paddingHorizontal: Platform.OS === 'web' ? 32 : 24,
+
+  // Tinted Header
+  header: {
+    backgroundColor: 'rgba(139, 168, 136, 0.03)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(139, 168, 136, 0.15)',
+    paddingTop: 56,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
-  heroIconContainer: {
-    marginBottom: Platform.OS === 'web' ? 28 : 20,
-    opacity: 0.9,
-  },
-  heroLabel: {
-    fontSize: Platform.OS === 'web' ? 13 : 11,
-    letterSpacing: 3,
-    color: Colors.accent,
-    marginBottom: Platform.OS === 'web' ? 16 : 12,
-    fontWeight: '800',
-  },
-  heroMessage: {
-    fontSize: Platform.OS === 'web' ? 30 : 26,
-    fontWeight: '300',
-    lineHeight: Platform.OS === 'web' ? 42 : 36,
+  greeting: {
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontSize: 24,
     color: Colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: Platform.OS === 'web' ? 8 : 6,
   },
-  heroDetail: {
-    fontSize: Platform.OS === 'web' ? 17 : 15,
-    color: Colors.textTertiary,
+  dateSubtitle: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    marginTop: 6,
   },
-  
+  coffeeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(139, 90, 43, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 90, 43, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coffeeIcon: {
+    fontSize: 22,
+  },
+
   // Content
   content: {
     flex: 1,

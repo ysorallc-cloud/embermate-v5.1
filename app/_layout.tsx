@@ -64,7 +64,6 @@ export default function RootLayout() {
       const today = new Date().toISOString().split('T')[0];
       
       if (lastReset !== today) {
-        console.log('🔄 Resetting daily medication status for new day');
         await resetDailyMedicationStatus();
         await AsyncStorage.setItem('@embermate_last_reset_date', today);
       }
@@ -104,7 +103,6 @@ export default function RootLayout() {
         <Stack.Screen name="medications" />
         <Stack.Screen name="appointment-form" />
         <Stack.Screen name="appointments" />
-        <Stack.Screen name="cloud-sync" />
         <Stack.Screen name="photos" />
         <Stack.Screen name="emergency" />
         <Stack.Screen name="vitals" />

@@ -20,33 +20,36 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from './_theme/theme-tokens';
-import { 
-  addMedication, 
-  updateMedication, 
-  getMedications, 
-  Medication 
+import {
+  createMedication,
+  updateMedication,
+  getMedications,
+  Medication
 } from '../utils/medicationStorage';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'bedtime';
 
 // Common medications database for autocomplete
 const COMMON_MEDICATIONS = [
-  { name: 'Lisinopril', commonDosages: ['5mg', '10mg', '20mg', '40mg'] },
-  { name: 'Metformin', commonDosages: ['500mg', '850mg', '1000mg'] },
-  { name: 'Atorvastatin', commonDosages: ['10mg', '20mg', '40mg', '80mg'] },
   { name: 'Amlodipine', commonDosages: ['2.5mg', '5mg', '10mg'] },
-  { name: 'Omeprazole', commonDosages: ['20mg', '40mg'] },
-  { name: 'Levothyroxine', commonDosages: ['25mcg', '50mcg', '75mcg', '100mcg', '125mcg'] },
-  { name: 'Metoprolol', commonDosages: ['25mg', '50mg', '100mg'] },
-  { name: 'Losartan', commonDosages: ['25mg', '50mg', '100mg'] },
+  { name: 'Aspirin', commonDosages: ['81mg', '325mg'] },
+  { name: 'Atorvastatin', commonDosages: ['10mg', '20mg', '40mg', '80mg'] },
+  { name: 'Acetaminophen', commonDosages: ['325mg', '500mg', '650mg'] },
+  { name: 'Clopidogrel', commonDosages: ['75mg'] },
+  { name: 'Furosemide', commonDosages: ['20mg', '40mg', '80mg'] },
   { name: 'Gabapentin', commonDosages: ['100mg', '300mg', '600mg'] },
   { name: 'Hydrochlorothiazide', commonDosages: ['12.5mg', '25mg', '50mg'] },
-  { name: 'Aspirin', commonDosages: ['81mg', '325mg'] },
-  { name: 'Furosemide', commonDosages: ['20mg', '40mg', '80mg'] },
-  { name: 'Warfarin', commonDosages: ['1mg', '2mg', '2.5mg', '5mg', '10mg'] },
-  { name: 'Clopidogrel', commonDosages: ['75mg'] },
+  { name: 'Ibuprofen', commonDosages: ['200mg', '400mg', '600mg', '800mg'] },
   { name: 'Insulin', commonDosages: ['10 units', '15 units', '20 units'] },
-];
+  { name: 'Levothyroxine', commonDosages: ['25mcg', '50mcg', '75mcg', '100mcg', '125mcg'] },
+  { name: 'Lisinopril', commonDosages: ['5mg', '10mg', '20mg', '40mg'] },
+  { name: 'Losartan', commonDosages: ['25mg', '50mg', '100mg'] },
+  { name: 'Metformin', commonDosages: ['500mg', '850mg', '1000mg'] },
+  { name: 'Metoprolol', commonDosages: ['25mg', '50mg', '100mg'] },
+  { name: 'Omeprazole', commonDosages: ['20mg', '40mg'] },
+  { name: 'Prednisone', commonDosages: ['5mg', '10mg', '20mg', '50mg'] },
+  { name: 'Warfarin', commonDosages: ['1mg', '2mg', '2.5mg', '5mg', '10mg'] },
+].sort((a, b) => a.name.localeCompare(b.name));
 
 // Helper function to convert 24-hour to 12-hour format
 const convertTo12Hour = (time24: string): string => {
@@ -224,6 +227,7 @@ export default function MedicationFormScreen() {
         name: name.trim(),
         dosage: dosage.trim(),
         time: customTime,
+        timeSlot: selectedTimeSlot,
         notes: notes.trim(),
         daysSupply: parseInt(daysSupply) || 30,
         active: true,
@@ -233,7 +237,7 @@ export default function MedicationFormScreen() {
       if (isEditing && medId) {
         await updateMedication(medId, medData);
       } else {
-        await addMedication(medData as Omit<Medication, 'id'>);
+        await createMedication(medData);
       }
 
       router.back();

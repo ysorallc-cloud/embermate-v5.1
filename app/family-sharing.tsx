@@ -131,9 +131,21 @@ export default function FamilySharingScreen() {
           {/* Explainer */}
           <View style={styles.explainer}>
             <Text style={styles.explainerText}>
-              Invite family members to help manage {patientName}'s care. They can view schedules, 
+              Invite family members to help manage {patientName}'s care. They can view schedules,
               mark medications, and add notes.
             </Text>
+          </View>
+
+          {/* Beta Notice */}
+          <View style={styles.betaNotice}>
+            <Text style={styles.betaIcon}>ℹ️</Text>
+            <View style={styles.betaContent}>
+              <Text style={styles.betaTitle}>Single-Device Mode</Text>
+              <Text style={styles.betaText}>
+                Family sharing currently stores data locally on this device only.
+                Multi-device sync will be available in a future update.
+              </Text>
+            </View>
           </View>
 
           {/* Active Caregivers */}
@@ -292,6 +304,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     color: Colors.textPrimary,
+  },
+  betaNotice: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  betaIcon: {
+    fontSize: 20,
+  },
+  betaContent: {
+    flex: 1,
+  },
+  betaTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#60A5FA',
+    marginBottom: 4,
+  },
+  betaText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: Colors.textSecondary,
   },
   section: {
     marginBottom: Spacing.xl,

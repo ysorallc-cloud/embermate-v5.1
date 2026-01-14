@@ -24,7 +24,7 @@ export default function EmergencyScreen() {
       const team = await getCareTeam();
       setCareTeam(team);
     } catch (error) {
-      console.log('Error loading care team:', error);
+      console.error('Error loading care team:', error);
     }
   };
 

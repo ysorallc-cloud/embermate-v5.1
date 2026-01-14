@@ -1,6 +1,6 @@
 {
   "name": "embermate",
-  "version": "5.7.0",
+  "version": "5.8.0",
   "main": "expo-router/entry",
   "homepage": "https://ysorallc-cloud.github.io/embermate-v5.1/",
   "scripts": {
@@ -9,11 +9,17 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build:web": "expo export --platform web",
-    "deploy": "npm run build:web && gh-pages -d dist"
+    "deploy": "npm run build:web && gh-pages -d dist",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 50",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@expo/vector-icons": "~14.0.4",
     "@react-native-async-storage/async-storage": "1.23.1",
+    "@react-native-community/datetimepicker": "^8.6.0",
     "@types/crypto-js": "^4.2.2",
     "crypto-js": "^4.2.0",
     "expo": "~52.0.0",
@@ -40,7 +46,6 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.9",
-    "react-native-chart-kit": "^6.12.0",
     "react-native-gesture-handler": "~2.20.2",
     "react-native-reanimated": "~3.16.1",
     "react-native-safe-area-context": "4.12.0",
@@ -52,7 +57,12 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~18.3.12",
+    "eslint": "^9.39.2",
+    "eslint-config-expo": "^10.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
     "gh-pages": "^6.3.0",
+    "prettier": "^3.7.4",
     "typescript": "~5.3.3"
   },
   "private": true

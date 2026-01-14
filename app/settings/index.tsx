@@ -453,15 +453,21 @@ export default function SettingsScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => router.push('/cloud-sync')}
+              style={[styles.settingItem, { opacity: 0.6 }]}
+              onPress={() =>
+                Alert.alert(
+                  'Cloud Sync - Coming Soon',
+                  'Cloud sync will allow you to:\n\n• Sync data across devices\n• End-to-end encryption\n• Multi-device family sharing\n\nThis feature requires a backend service and will be available in a future update.',
+                  [{ text: 'OK' }]
+                )
+              }
             >
               <Text style={styles.settingIcon}>☁️</Text>
               <View style={styles.settingContent}>
                 <Text style={styles.settingTitle}>Cloud Sync</Text>
                 <Text style={styles.settingSubtitle}>Coming soon</Text>
               </View>
-              <Text style={styles.arrow}>→</Text>
+              <Text style={styles.settingIcon}>💡</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

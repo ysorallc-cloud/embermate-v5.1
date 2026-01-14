@@ -1,5 +1,5 @@
 // ============================================================================
-// APPOINTMENT FORM SCREEN
+// APPOINTMENT FORM SCREEN - Single Card Design
 // Add or edit appointments (Step 0: Plan)
 // Accessed from appointments screen
 // ============================================================================
@@ -16,16 +16,25 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from './_theme/theme-tokens';
-import { 
-  addAppointment, 
-  updateAppointment, 
-  getAppointments, 
-  Appointment 
+import {
+  addAppointment,
+  updateAppointment,
+  getAppointments,
+  Appointment
 } from '../utils/appointmentStorage';
+
+type AppointmentType = 'doctor' | 'lab' | 'pharmacy' | 'hospital';
+
+const APPOINTMENT_TYPES = [
+  { id: 'doctor' as AppointmentType, label: 'Doctor', icon: '🩺' },
+  { id: 'lab' as AppointmentType, label: 'Lab', icon: '🧪' },
+  { id: 'pharmacy' as AppointmentType, label: 'Pharmacy', icon: '💊' },
+  { id: 'hospital' as AppointmentType, label: 'Hospital', icon: '🏥' },
+];
 
 export default function AppointmentFormScreen() {
   const router = useRouter();
@@ -33,21 +42,25 @@ export default function AppointmentFormScreen() {
   const apptId = params.id as string | undefined;
   const isEditing = !!apptId;
 
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [date, setDate] = useState(new Date());
+  const [time, setTime] = useState(new Date());
+  const [appointmentType, setAppointmentType] = useState<AppointmentType>('doctor');
   const [provider, setProvider] = useState('');
-  const [specialty, setSpecialty] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
+  const [showNotesInput, setShowNotesInput] = useState(false);
+
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   useEffect(() => {
     if (isEditing) {
       loadAppointment();
     } else {
-      // Set default date to today
-      const today = new Date().toISOString().split('T')[0];
-      setDate(today);
-      setTime('09:00');
+      // Set default time to 9:00 AM
+      const defaultTime = new Date();
+      defaultTime.setHours(9, 0, 0, 0);
+      setTime(defaultTime);
     }
   }, [apptId]);
 
@@ -57,36 +70,85 @@ export default function AppointmentFormScreen() {
       const appts = await getAppointments();
       const appt = appts.find(a => a.id === apptId);
       if (appt) {
-        setDate(appt.date);
-        setTime(appt.time);
+        // Parse date and time
+        const [year, month, day] = appt.date.split('-').map(Number);
+        const appointmentDate = new Date(year, month - 1, day);
+        setDate(appointmentDate);
+
+        const [hours, minutes] = appt.time.split(':').map(Number);
+        const appointmentTime = new Date();
+        appointmentTime.setHours(hours, minutes, 0, 0);
+        setTime(appointmentTime);
+
         setProvider(appt.provider);
-        setSpecialty(appt.specialty);
         setLocation(appt.location);
         setNotes(appt.notes || '');
+
+        // Determine appointment type from specialty
+        const specialtyLower = appt.specialty.toLowerCase();
+        if (specialtyLower.includes('lab')) setAppointmentType('lab');
+        else if (specialtyLower.includes('pharmacy')) setAppointmentType('pharmacy');
+        else if (specialtyLower.includes('hospital')) setAppointmentType('hospital');
+        else setAppointmentType('doctor');
+
+        if (appt.notes) setShowNotesInput(true);
       }
     } catch (error) {
       console.error('Error loading appointment:', error);
     }
   };
 
+  const formatDate = (d: Date): string => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  };
+
+  const formatTime = (t: Date): string => {
+    let hours = t.getHours();
+    const minutes = t.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+    return `${hours}:${minutesStr} ${ampm}`;
+  };
+
+  const formatDateForStorage = (d: Date): string => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatTimeForStorage = (t: Date): string => {
+    const hours = String(t.getHours()).padStart(2, '0');
+    const minutes = String(t.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      setDate(selectedDate);
+    }
+  };
+
+  const handleTimeChange = (event: any, selectedTime?: Date) => {
+    setShowTimePicker(Platform.OS === 'ios');
+    if (selectedTime) {
+      setTime(selectedTime);
+    }
+  };
+
   const handleSave = async () => {
-    // Validate date
-    if (!date.trim()) {
-      Alert.alert('Required Field', 'Please enter an appointment date');
+    // Validate provider name
+    if (!provider.trim()) {
+      Alert.alert('Required Field', 'Please enter the provider or doctor name');
       return;
     }
 
-    // Validate date format (YYYY-MM-DD)
-    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-    if (!datePattern.test(date.trim())) {
-      Alert.alert('Invalid Date', 'Date must be in YYYY-MM-DD format (e.g., 2025-01-15)');
-      return;
-    }
-
-    // Validate date is valid
-    const appointmentDate = new Date(date.trim());
-    if (isNaN(appointmentDate.getTime())) {
-      Alert.alert('Invalid Date', 'Please enter a valid date');
+    if (provider.trim().length < 2) {
+      Alert.alert('Invalid Provider', 'Provider name must be at least 2 characters');
       return;
     }
 
@@ -94,7 +156,9 @@ export default function AppointmentFormScreen() {
     if (!isEditing) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      if (appointmentDate < today) {
+      const apptDate = new Date(date);
+      apptDate.setHours(0, 0, 0, 0);
+      if (apptDate < today) {
         Alert.alert(
           'Past Date',
           'This appointment date is in the past. Do you want to continue?',
@@ -111,47 +175,14 @@ export default function AppointmentFormScreen() {
   };
 
   const proceedWithSave = async () => {
-    // Validate time
-    if (!time.trim()) {
-      Alert.alert('Required Field', 'Please enter appointment time');
-      return;
-    }
-
-    // Validate time format (HH:MM)
-    const timePattern = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timePattern.test(time.trim())) {
-      Alert.alert('Invalid Time', 'Time must be in HH:MM format (e.g., 09:30, 14:00)');
-      return;
-    }
-
-    // Validate provider name
-    if (!provider.trim()) {
-      Alert.alert('Required Field', 'Please enter the provider or doctor name');
-      return;
-    }
-
-    if (provider.trim().length < 2) {
-      Alert.alert('Invalid Provider', 'Provider name must be at least 2 characters');
-      return;
-    }
-
-    // Validate specialty
-    if (!specialty.trim()) {
-      Alert.alert('Required Field', 'Please enter the specialty or appointment type');
-      return;
-    }
-
-    if (specialty.trim().length < 2) {
-      Alert.alert('Invalid Specialty', 'Specialty must be at least 2 characters');
-      return;
-    }
-
     try {
+      const typeLabel = APPOINTMENT_TYPES.find(t => t.id === appointmentType)?.label || 'Doctor';
+
       const apptData: Partial<Appointment> = {
-        date: date.trim(),
-        time: time.trim(),
+        date: formatDateForStorage(date),
+        time: formatTimeForStorage(time),
         provider: provider.trim(),
-        specialty: specialty.trim(),
+        specialty: typeLabel,
         location: location.trim() || 'Not specified',
         notes: notes.trim(),
         completed: false,
@@ -160,11 +191,22 @@ export default function AppointmentFormScreen() {
 
       if (isEditing && apptId) {
         await updateAppointment(apptId, apptData);
+        router.back();
       } else {
         await addAppointment(apptData as Omit<Appointment, 'id'>);
+        // Navigate to confirmation screen with appointment details
+        router.replace({
+          pathname: '/appointment-confirmation' as any,
+          params: {
+            date: formatDate(date),
+            time: formatTime(time),
+            provider: provider.trim(),
+            location: location.trim() || 'Not specified',
+            type: appointmentType,
+            specialty: typeLabel,
+          }
+        });
       }
-
-      router.back();
     } catch (error) {
       console.error('Error saving appointment:', error);
       Alert.alert('Error', 'Failed to save appointment');
@@ -177,7 +219,7 @@ export default function AppointmentFormScreen() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
-        {/* Header */}
+        {/* Header - Keep existing style */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backIcon}>←</Text>
@@ -195,87 +237,136 @@ export default function AppointmentFormScreen() {
             {isEditing ? 'Edit Appointment' : 'Schedule Appointment'}
           </Text>
 
-          {/* Date */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Date *</Text>
-            <TextInput
-              style={styles.input}
-              value={date}
-              onChangeText={setDate}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={Colors.textMuted}
-            />
-            <Text style={styles.helpText}>Format: YYYY-MM-DD (e.g., 2025-01-15)</Text>
+          {/* Single Card Container */}
+          <View style={styles.card}>
+            {/* Date & Time Row */}
+            <View style={styles.dateTimeRow}>
+              <View style={styles.dateTimeField}>
+                <Text style={styles.fieldLabel}>DATE</Text>
+                <TouchableOpacity
+                  style={styles.dateTimeButton}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text style={styles.dateTimeIcon}>📅</Text>
+                  <Text style={styles.dateTimeText}>{formatDate(date)}</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.dateTimeField}>
+                <Text style={styles.fieldLabel}>TIME</Text>
+                <TouchableOpacity
+                  style={styles.dateTimeButton}
+                  onPress={() => setShowTimePicker(true)}
+                >
+                  <Text style={styles.dateTimeIcon}>🕐</Text>
+                  <Text style={styles.dateTimeText}>{formatTime(time)}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* Appointment Type Selector */}
+            <View style={styles.typeSection}>
+              <Text style={styles.fieldLabel}>APPOINTMENT TYPE</Text>
+              <View style={styles.typePills}>
+                {APPOINTMENT_TYPES.map((type) => (
+                  <TouchableOpacity
+                    key={type.id}
+                    style={[
+                      styles.typePill,
+                      appointmentType === type.id && styles.typePillActive
+                    ]}
+                    onPress={() => setAppointmentType(type.id)}
+                  >
+                    <Text style={styles.typePillIcon}>{type.icon}</Text>
+                    <Text
+                      style={[
+                        styles.typePillText,
+                        appointmentType === type.id && styles.typePillTextActive
+                      ]}
+                    >
+                      {type.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* Provider Name */}
+            <View style={styles.inputSection}>
+              <Text style={styles.fieldLabel}>PROVIDER NAME *</Text>
+              <TextInput
+                style={styles.input}
+                value={provider}
+                onChangeText={setProvider}
+                placeholder="e.g., Dr. Sarah Johnson"
+                placeholderTextColor={Colors.textMuted}
+                autoCapitalize="words"
+              />
+            </View>
+
+            {/* Location */}
+            <View style={styles.inputSection}>
+              <Text style={styles.fieldLabel}>LOCATION</Text>
+              <TextInput
+                style={styles.input}
+                value={location}
+                onChangeText={setLocation}
+                placeholder="e.g., Medical Center Downtown"
+                placeholderTextColor={Colors.textMuted}
+                autoCapitalize="words"
+              />
+            </View>
           </View>
 
-          {/* Time */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Time *</Text>
-            <TextInput
-              style={styles.input}
-              value={time}
-              onChangeText={setTime}
-              placeholder="HH:MM"
-              placeholderTextColor={Colors.textMuted}
-            />
-            <Text style={styles.helpText}>24-hour format (e.g., 09:00, 14:30)</Text>
-          </View>
-
-          {/* Provider */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Provider Name *</Text>
-            <TextInput
-              style={styles.input}
-              value={provider}
-              onChangeText={setProvider}
-              placeholder="e.g., Dr. Sarah Johnson"
-              placeholderTextColor={Colors.textMuted}
-              autoCapitalize="words"
-            />
-          </View>
-
-          {/* Specialty */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Specialty / Type *</Text>
-            <TextInput
-              style={styles.input}
-              value={specialty}
-              onChangeText={setSpecialty}
-              placeholder="e.g., Cardiology, Primary Care"
-              placeholderTextColor={Colors.textMuted}
-              autoCapitalize="words"
-            />
-          </View>
-
-          {/* Location */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Location</Text>
-            <TextInput
-              style={styles.input}
-              value={location}
-              onChangeText={setLocation}
-              placeholder="e.g., Medical Center Downtown"
-              placeholderTextColor={Colors.textMuted}
-              autoCapitalize="words"
-            />
-          </View>
-
-          {/* Notes */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Notes (Optional)</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="e.g., Bring medication list, fasting required"
-              placeholderTextColor={Colors.textMuted}
-              multiline
-              numberOfLines={3}
-            />
-          </View>
+          {/* Expandable Notes Section */}
+          {!showNotesInput ? (
+            <TouchableOpacity
+              style={styles.addNotesButton}
+              onPress={() => setShowNotesInput(true)}
+            >
+              <Text style={styles.addNotesText}>+ Add notes or reminders</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.notesCard}>
+              <Text style={styles.fieldLabel}>NOTES</Text>
+              <TextInput
+                style={styles.notesTextArea}
+                value={notes}
+                onChangeText={setNotes}
+                placeholder="e.g., Bring medication list, fasting required"
+                placeholderTextColor={Colors.textMuted}
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+          )}
 
           <View style={{ height: 40 }} />
         </ScrollView>
+
+        {/* Date Picker */}
+        {showDatePicker && (
+          <DateTimePicker
+            value={date}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={handleDateChange}
+          />
+        )}
+
+        {/* Time Picker */}
+        {showTimePicker && (
+          <DateTimePicker
+            value={time}
+            mode="time"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={handleTimeChange}
+          />
+        )}
       </LinearGradient>
     </SafeAreaView>
   );
@@ -297,7 +388,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? 20 : 0,
     paddingBottom: Spacing.md,
   },
-    backButton: {
+  backButton: {
     width: 44,
     height: 44,
     backgroundColor: Colors.surface,
@@ -337,34 +428,142 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xxl,
   },
 
-  // Form
-  formGroup: {
-    marginBottom: Spacing.xl,
+  // Single Card
+  card: {
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
   },
-  label: {
-    fontSize: 13,
+
+  // Date & Time Row
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dateTimeField: {
+    flex: 1,
+  },
+  fieldLabel: {
+    fontSize: 10,
     fontWeight: '600',
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
+    color: Colors.textMuted,
+    marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  dateTimeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+  },
+  dateTimeIcon: {
+    fontSize: 18,
+  },
+  dateTimeText: {
+    fontSize: 15,
+    color: Colors.textPrimary,
+    fontWeight: '500',
+  },
+
+  // Divider
+  divider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: 16,
+  },
+
+  // Appointment Type
+  typeSection: {
+    marginBottom: 4,
+  },
+  typePills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  typePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  typePillActive: {
+    backgroundColor: Colors.accentLight,
+    borderColor: Colors.accent,
+  },
+  typePillIcon: {
+    fontSize: 16,
+  },
+  typePillText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  typePillTextActive: {
+    color: Colors.accent,
+    fontWeight: '600',
+  },
+
+  // Input Sections
+  inputSection: {
+    marginBottom: 16,
   },
   input: {
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
-    fontSize: 16,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 15,
     color: Colors.textPrimary,
   },
-  textArea: {
+
+  // Add Notes Button
+  addNotesButton: {
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderStyle: 'dashed',
+    backgroundColor: 'transparent',
+  },
+  addNotesText: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    fontWeight: '500',
+  },
+
+  // Notes Card (Expanded)
+  notesCard: {
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 16,
+    padding: 20,
+  },
+  notesTextArea: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 15,
+    color: Colors.textPrimary,
     minHeight: 80,
     textAlignVertical: 'top',
-  },
-  helpText: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    marginTop: Spacing.sm,
   },
 });
