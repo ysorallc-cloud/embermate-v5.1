@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Platform,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../_theme/theme-tokens';
 import { getMedications, markMedicationTaken, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
+import { getDailyTracking, saveDailyTracking } from '../../utils/dailyTrackingStorage';
 import { hapticSuccess } from '../../utils/hapticFeedback';
 
 export default function TodayScreen() {
@@ -27,6 +29,8 @@ export default function TodayScreen() {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [currentMood, setCurrentMood] = useState<string | null>(null);
+  const [showMoodPicker, setShowMoodPicker] = useState(false);
 
   useFocusEffect(useCallback(() => {
     loadData();
@@ -44,6 +48,23 @@ export default function TodayScreen() {
       setAppointments(appts);
     } catch (e) {
       console.error('Error loading appointments:', e);
+    }
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const tracking = await getDailyTracking(today);
+      if (tracking?.mood !== null && tracking?.mood !== undefined) {
+        // Map number back to emoji
+        const moodValue = tracking.mood;
+        let emoji = '😊'; // default
+        if (moodValue >= 7) emoji = '😊';
+        else if (moodValue >= 5) emoji = '😐';
+        else if (moodValue >= 3) emoji = '😔';
+        else if (moodValue >= 2) emoji = '🤒';
+        else emoji = '😴';
+        setCurrentMood(emoji);
+      }
+    } catch (e) {
+      console.error('Error loading daily tracking:', e);
     }
   };
 
@@ -203,6 +224,35 @@ export default function TodayScreen() {
     return "You've taken great care today. Rest well.";
   };
 
+  const handleMoodPress = () => {
+    setShowMoodPicker(true);
+  };
+
+  const handleMoodSelect = async (mood: string) => {
+    setCurrentMood(mood);
+    setShowMoodPicker(false);
+
+    // Save to storage - map emoji to number scale
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const moodMap: { [key: string]: number } = {
+        '😊': 8, // happy
+        '😐': 5, // neutral
+        '😔': 3, // sad
+        '😴': 4, // tired
+        '🤒': 2, // sick
+      };
+      const moodValue = moodMap[mood] || 5;
+
+      await saveDailyTracking(today, {
+        mood: moodValue,
+      });
+      hapticSuccess();
+    } catch (e) {
+      console.error('Error saving mood:', e);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <LinearGradient
@@ -213,7 +263,7 @@ export default function TodayScreen() {
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View>
-              <Text style={styles.greeting}>{getGreeting()} ☀️</Text>
+              <Text style={styles.greeting}>{getGreeting()}</Text>
               <Text style={styles.dateText}>{formatDate()}</Text>
               <Text style={styles.taskCount}>
                 {getTasksRemaining()} task{getTasksRemaining() !== 1 ? 's' : ''} remaining
@@ -338,29 +388,72 @@ export default function TodayScreen() {
           )}
         </ScrollView>
 
-        {/* Calendar + Quick Access */}
-        <View style={styles.bottomSection}>
+        {/* Floating Icons */}
+        <View style={styles.floatingIcons}>
           <TouchableOpacity
-            style={styles.calendarCard}
+            style={styles.floatingIconButton}
             onPress={() => router.push('/calendar')}
           >
-            <View style={styles.calendarLeft}>
-              <Text style={styles.calendarIcon}>📅</Text>
-              <Text style={styles.calendarText}>Calendar</Text>
-            </View>
-            <View style={styles.quickAccessRow}>
-              <TouchableOpacity onPress={() => router.push('/medications')}>
-                <Text style={styles.quickAccessIcon}>💊</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => router.push('/vitals-log')}>
-                <Text style={styles.quickAccessIcon}>❤️</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => router.push('/care-summary-export')}>
-                <Text style={styles.quickAccessIcon}>📊</Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.floatingIconEmoji}>📅</Text>
+            <Text style={styles.floatingIconLabel}>Calendar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.floatingIconButton}
+            onPress={() => router.push('/medications')}
+          >
+            <Text style={styles.floatingIconEmoji}>💊</Text>
+            <Text style={styles.floatingIconLabel}>Meds</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.floatingIconButton}
+            onPress={() => router.push('/vitals-log')}
+          >
+            <Text style={styles.floatingIconEmoji}>❤️</Text>
+            <Text style={styles.floatingIconLabel}>Vitals</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.floatingIconButton}
+            onPress={handleMoodPress}
+          >
+            <Text style={styles.floatingIconEmoji}>{currentMood || '😊'}</Text>
+            <Text style={styles.floatingIconLabel}>Mood</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Mood Picker Modal */}
+        <Modal
+          visible={showMoodPicker}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowMoodPicker(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowMoodPicker(false)}
+          >
+            <View style={styles.moodPickerCard}>
+              <Text style={styles.moodPickerTitle}>How is Mom feeling?</Text>
+              <View style={styles.moodOptions}>
+                {['😊', '😐', '😔', '😴', '🤒'].map(emoji => (
+                  <TouchableOpacity
+                    key={emoji}
+                    style={[
+                      styles.moodOption,
+                      currentMood === emoji && styles.moodOptionSelected
+                    ]}
+                    onPress={() => handleMoodSelect(emoji)}
+                  >
+                    <Text style={styles.moodEmoji}>{emoji}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -501,42 +594,73 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // Bottom section
-  bottomSection: {
-    padding: 16,
+  // Floating Icons
+  floatingIcons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 24,
+    paddingVertical: 20,
     paddingHorizontal: 20,
   },
-  calendarCard: {
-    flexDirection: 'row',
+  floatingIconButton: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 14,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    backgroundColor: Colors.surface,
+    gap: 4,
+  },
+  floatingIconEmoji: {
+    fontSize: 24,
+  },
+  floatingIconLabel: {
+    fontSize: 10,
+    color: Colors.textTertiary,
+  },
+
+  // Mood Picker Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  moodPickerCard: {
+    backgroundColor: '#0d332e',
+    borderRadius: 20,
+    padding: 24,
+    width: '80%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.borderMedium,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  moodPickerTitle: {
+    fontSize: 16,
+    color: Colors.textPrimary,
+    marginBottom: 20,
+  },
+  moodOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  moodOption: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.background,
     borderWidth: 1,
     borderColor: Colors.border,
-  },
-  calendarLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'center',
   },
-  calendarIcon: {
-    fontSize: 20,
+  moodOptionSelected: {
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    borderColor: Colors.success,
+    borderWidth: 2,
   },
-  calendarText: {
-    fontSize: 15,
-    color: Colors.textPrimary,
-  },
-  quickAccessRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  quickAccessIcon: {
-    fontSize: 20,
-    opacity: 0.8,
+  moodEmoji: {
+    fontSize: 24,
   },
 
   // Encouragement Card
