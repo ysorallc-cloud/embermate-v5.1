@@ -68,9 +68,6 @@ export default function FamilyTabScreen() {
             <Text style={styles.greeting}>Care Circle 🧶</Text>
             <Text style={styles.dateSubtitle}>{activeCount} active members</Text>
           </View>
-          <TouchableOpacity style={styles.coffeeButton} onPress={() => router.push('/coffee')}>
-            <Text style={styles.coffeeIcon}>☕</Text>
-          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -244,9 +241,6 @@ const styles = StyleSheet.create({
     paddingTop: 56,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
   },
   greeting: {
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
@@ -257,19 +251,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textMuted,
     marginTop: 6,
-  },
-  coffeeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(139, 90, 43, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 90, 43, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  coffeeIcon: {
-    fontSize: 22,
   },
 
   // Content

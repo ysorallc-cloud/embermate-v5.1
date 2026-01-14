@@ -1,6 +1,6 @@
 // ============================================================================
-// CARE HUB - Simplified Overview
-// Quick access to key metrics and navigation
+// CARE HUB - Action-focused care summary
+// Shows action items, care brief, and insights
 // ============================================================================
 
 import React, { useState, useCallback } from 'react';
@@ -11,6 +11,7 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,11 +19,17 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing } from '../_theme/theme-tokens';
 import { Platform } from 'react-native';
-import { getMedications } from '../../utils/medicationStorage';
+import { getMedications, Medication, getMedicationLogs } from '../../utils/medicationStorage';
+import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
+import { getAllInsights, Insight } from '../../utils/insights';
+import { getDailyTracking } from '../../utils/dailyTrackingStorage';
 
 export default function CareHubScreen() {
   const router = useRouter();
-  const [medications, setMedications] = useState<any[]>([]);
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [insights, setInsights] = useState<Insight[]>([]);
+  const [dailyTracking, setDailyTracking] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(useCallback(() => {
@@ -33,6 +40,16 @@ export default function CareHubScreen() {
     try {
       const meds = await getMedications();
       setMedications(meds.filter(m => m.active));
+
+      const appts = await getUpcomingAppointments();
+      setAppointments(appts);
+
+      const allInsights = await getAllInsights(meds);
+      setInsights(allInsights);
+
+      const today = new Date().toISOString().split('T')[0];
+      const tracking = await getDailyTracking(today);
+      setDailyTracking(tracking);
     } catch (e) {
       console.error('Error loading data:', e);
     }
@@ -44,9 +61,117 @@ export default function CareHubScreen() {
     setRefreshing(false);
   }, []);
 
+  // Derived values
   const completedCount = medications.filter(m => m?.taken).length;
   const totalCount = medications.length;
-  const adherencePercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 100;
+  const adherencePercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  // These should eventually come from actual tracking data
+  const streakDays = 7; // TODO: Calculate from getMedicationLogs()
+  const trendPercent = 23; // TODO: Calculate this week vs last week
+  const latestBP = '120/78'; // TODO: Get from vitals storage
+  const currentMood = dailyTracking?.mood || '😊';
+
+  const getActionItems = () => {
+    const items = [];
+
+    // Check for refills needed (daysSupply <= 7)
+    const refillsNeeded = medications.filter(m =>
+      m.active && m.daysSupply !== undefined && m.daysSupply <= 7
+    );
+
+    if (refillsNeeded.length > 0) {
+      const med = refillsNeeded[0];
+      items.push({
+        icon: '💊',
+        title: `${med.name} refill`,
+        subtitle: `${med.daysSupply} days remaining`,
+        actionLabel: 'Refill',
+        onPress: () => router.push('/medications'),
+        onAction: () => {
+          router.push('/medications');
+        },
+      });
+    }
+
+    // Check for pattern-based suggestions (from insights)
+    const missedPattern = insights.find(i => i.type === 'missed_window');
+    if (missedPattern) {
+      items.push({
+        icon: '⏰',
+        title: 'Saturday reminder',
+        subtitle: 'Mornings often missed',
+        actionLabel: 'Add',
+        onPress: () => {},
+        onAction: () => {
+          Alert.alert('Reminder', 'Saturday 9am reminder added');
+        },
+      });
+    }
+
+    // Check for upcoming appointments needing prep (within 48 hours)
+    const upcomingAppt = appointments.find(appt => {
+      if (!appt?.date) return false;
+      const apptDate = new Date(appt.date);
+      const now = new Date();
+      const hoursUntil = (apptDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+      return hoursUntil > 0 && hoursUntil <= 48;
+    });
+
+    if (upcomingAppt) {
+      items.push({
+        icon: '🩺',
+        title: `${upcomingAppt.provider} prep`,
+        subtitle: `${upcomingAppt.specialty} — bring BP readings`,
+        actionLabel: 'View',
+        onPress: () => router.push('/appointments'),
+        onAction: () => router.push('/appointments'),
+      });
+    }
+
+    return items;
+  };
+
+  const getCareBriefText = () => {
+    const takenCount = medications.filter(m => m.active && m.taken).length;
+    const totalCount = medications.filter(m => m.active).length;
+
+    let text = '';
+
+    // Medication status
+    if (takenCount === totalCount && totalCount > 0) {
+      text += 'All meds taken today. ';
+    } else if (takenCount > 0) {
+      text += `${takenCount} of ${totalCount} meds taken. `;
+    }
+
+    // Appointment status
+    const todayAppt = appointments.find(appt => {
+      if (!appt?.date) return false;
+      return new Date(appt.date).toDateString() === new Date().toDateString();
+    });
+
+    if (todayAppt) {
+      text += `${todayAppt.provider} at ${todayAppt.time || '—'}. `;
+    }
+
+    // Mood if available
+    if (currentMood) {
+      text += "Mom's mood is good.";
+    }
+
+    return text.trim() || 'No updates today.';
+  };
+
+  const handleShareCareBrief = async () => {
+    try {
+      router.push('/care-summary-export');
+    } catch (e) {
+      console.error('Error sharing care brief:', e);
+    }
+  };
+
+  const actionItems = getActionItems();
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -60,8 +185,8 @@ export default function CareHubScreen() {
             <Text style={styles.greeting}>Care Hub 🌱</Text>
             <Text style={styles.dateSubtitle}>This Week • {adherencePercent}% adherence</Text>
           </View>
-          <TouchableOpacity style={styles.coffeeButton} onPress={() => router.push('/coffee')}>
-            <Text style={styles.coffeeIcon}>☕</Text>
+          <TouchableOpacity style={styles.settingsButton} onPress={() => router.push('/settings')}>
+            <Text style={styles.settingsIcon}>⚙️</Text>
           </TouchableOpacity>
         </View>
 
@@ -75,77 +200,100 @@ export default function CareHubScreen() {
             />
           }
         >
+          {/* ACTION NEEDED Section */}
+          {actionItems.length > 0 ? (
+            <View style={styles.actionSection}>
+              <Text style={styles.actionLabel}>ACTION NEEDED</Text>
 
-          {/* Summary Card */}
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryValue}>{adherencePercent}%</Text>
-            <Text style={styles.summaryLabel}>medication adherence</Text>
+              {actionItems.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.actionCard}
+                  onPress={item.onPress}
+                >
+                  <Text style={styles.actionIcon}>{item.icon}</Text>
+                  <View style={styles.actionContent}>
+                    <Text style={styles.actionTitle}>{item.title}</Text>
+                    <Text style={styles.actionSubtitle}>{item.subtitle}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={item.onAction}
+                  >
+                    <Text style={styles.actionButtonText}>{item.actionLabel}</Text>
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.noActionsCard}>
+              <Text style={styles.noActionsIcon}>✓</Text>
+              <Text style={styles.noActionsText}>No actions needed right now</Text>
+            </View>
+          )}
 
-            <View style={styles.summaryStats}>
-              <View style={styles.summaryStatItem}>
-                <Text style={styles.summaryStatValue}>7</Text>
-                <Text style={styles.summaryStatLabel}>streak</Text>
+          {/* CARE BRIEF Section */}
+          <View style={styles.careBriefSection}>
+            <Text style={styles.sectionLabel}>CARE BRIEF</Text>
+
+            <View style={styles.careBriefCard}>
+              {/* Header with stats and share */}
+              <View style={styles.careBriefHeader}>
+                <View style={styles.careBriefStats}>
+                  <Text style={styles.careBriefPercent}>{adherencePercent}%</Text>
+                  <View>
+                    <Text style={styles.careBriefStatLabel}>adherence</Text>
+                    <Text style={styles.careBriefStreak}>{streakDays} day streak</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.shareButton}
+                  onPress={handleShareCareBrief}
+                >
+                  <Text style={styles.shareButtonText}>Share</Text>
+                </TouchableOpacity>
               </View>
 
-              <View style={styles.summaryStatDivider} />
+              {/* Today summary */}
+              <Text style={styles.careBriefText}>
+                {getCareBriefText()}
+              </Text>
 
-              <View style={styles.summaryStatItem}>
-                <Text style={styles.summaryStatValue}>↑23%</Text>
-                <Text style={styles.summaryStatLabel}>trend</Text>
-              </View>
-
-              <View style={styles.summaryStatDivider} />
-
-              <View style={styles.summaryStatItem}>
-                <Text style={styles.summaryStatValue}>😊</Text>
-                <Text style={styles.summaryStatLabel}>mood</Text>
+              {/* Quick stats row */}
+              <View style={styles.careBriefStatsRow}>
+                <Text style={styles.careBriefStat}>
+                  <Text style={styles.statLabel}>BP: </Text>
+                  <Text style={styles.statValue}>{latestBP || '—'}</Text>
+                </Text>
+                <Text style={styles.careBriefStat}>
+                  <Text style={styles.statLabel}>Mood: </Text>
+                  <Text style={styles.statValue}>{currentMood || '😊'}</Text>
+                </Text>
+                <Text style={styles.careBriefStat}>
+                  <Text style={styles.statLabel}>Trend: </Text>
+                  <Text style={[styles.statValue, styles.statValuePositive]}>↑{trendPercent}%</Text>
+                </Text>
               </View>
             </View>
           </View>
 
-          {/* Single Insight Card */}
-          <TouchableOpacity style={styles.insightCard}>
-            <Text style={styles.insightIcon}>💡</Text>
-            <Text style={styles.insightText}>Saturday mornings often missed — add a 9am reminder?</Text>
-            <TouchableOpacity style={styles.insightButton}>
-              <Text style={styles.insightButtonText}>Add</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
+          {/* INSIGHTS Section */}
+          {insights.length > 0 && (
+            <View style={styles.insightsSection}>
+              <Text style={styles.sectionLabel}>INSIGHTS</Text>
 
-          {/* Quick Links Grid */}
-          <View style={styles.quickLinks}>
-            <TouchableOpacity
-              style={styles.quickLinkButton}
-              onPress={() => router.push('/medications')}
-            >
-              <Text style={styles.quickLinkIcon}>💊</Text>
-              <Text style={styles.quickLinkText}>Meds</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickLinkButton}
-              onPress={() => router.push('/appointments')}
-            >
-              <Text style={styles.quickLinkIcon}>📅</Text>
-              <Text style={styles.quickLinkText}>Appts</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickLinkButton}
-              onPress={() => router.push('/vitals-log')}
-            >
-              <Text style={styles.quickLinkIcon}>❤️</Text>
-              <Text style={styles.quickLinkText}>Vitals</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickLinkButton}
-              onPress={() => router.push('/care-summary-export')}
-            >
-              <Text style={styles.quickLinkIcon}>📊</Text>
-              <Text style={styles.quickLinkText}>Report</Text>
-            </TouchableOpacity>
-          </View>
+              {insights
+                .filter(i => i.type !== 'missed_window') // Already shown in actions
+                .slice(0, 2) // Limit to 2
+                .map((insight, index) => (
+                  <View key={index} style={styles.insightCard}>
+                    <Text style={styles.insightIcon}>{insight.icon}</Text>
+                    <Text style={styles.insightText}>{insight.description}</Text>
+                  </View>
+                ))
+              }
+            </View>
+          )}
 
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -190,120 +338,197 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     marginTop: 6,
   },
-  coffeeButton: {
+  settingsButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(139, 90, 43, 0.15)',
+    backgroundColor: 'rgba(139, 168, 136, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(139, 90, 43, 0.3)',
+    borderColor: 'rgba(139, 168, 136, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  coffeeIcon: {
+  settingsIcon: {
     fontSize: 22,
   },
 
-  // Summary Card
-  summaryCard: {
-    backgroundColor: '#0f1f1a',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 168, 136, 0.2)',
-    borderRadius: 20,
-    padding: 20,
+  // ACTION NEEDED Section
+  actionSection: {
     marginBottom: 20,
-    alignItems: 'center',
   },
-  summaryValue: {
-    fontSize: 48,
-    fontWeight: '600',
-    color: '#34d399',
-    marginBottom: 8,
+  actionLabel: {
+    fontSize: 10,
+    letterSpacing: 1,
+    color: '#fbbf24',
+    marginBottom: 12,
+    fontWeight: '700',
   },
-  summaryLabel: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginBottom: 24,
-  },
-  summaryStats: {
+  actionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 24,
-  },
-  summaryStatItem: {
-    alignItems: 'center',
-  },
-  summaryStatValue: {
-    fontSize: 20,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  summaryStatLabel: {
-    fontSize: 11,
-    color: Colors.textTertiary,
-  },
-  summaryStatDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: 'rgba(139, 168, 136, 0.15)',
-  },
-
-  // Insight Card
-  insightCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
     padding: 14,
     paddingHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 14,
-    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(251, 191, 36, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.3)',
+    borderColor: 'rgba(251, 191, 36, 0.2)',
+    borderLeftWidth: 3,
+    borderLeftColor: '#fbbf24',
+    marginBottom: 10,
+    gap: 12,
   },
-  insightIcon: {
+  actionIcon: {
     fontSize: 20,
   },
-  insightText: {
+  actionContent: {
     flex: 1,
-    fontSize: 13,
-    color: '#e8f0e8',
-    lineHeight: 18,
   },
-  insightButton: {
+  actionTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  actionSubtitle: {
+    fontSize: 12,
+    color: Colors.textTertiary,
+  },
+  actionButton: {
     paddingVertical: 6,
     paddingHorizontal: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: '#fbbf24',
   },
-  insightButtonText: {
+  actionButtonText: {
     fontSize: 12,
     fontWeight: '600',
     color: '#000',
   },
 
-  // Quick Links Grid
-  quickLinks: {
+  // No Actions Card
+  noActionsCard: {
     flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: 'rgba(52, 211, 153, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.15)',
+    marginBottom: 20,
+    gap: 12,
+  },
+  noActionsIcon: {
+    fontSize: 18,
+    color: Colors.success,
+  },
+  noActionsText: {
+    fontSize: 14,
+    color: Colors.success,
+  },
+
+  // CARE BRIEF Section
+  careBriefSection: {
+    marginBottom: 20,
+  },
+  sectionLabel: {
+    fontSize: 10,
+    letterSpacing: 1,
+    color: Colors.accent,
+    marginBottom: 12,
+    fontWeight: '700',
+  },
+  careBriefCard: {
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  careBriefHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  careBriefStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  careBriefPercent: {
+    fontSize: 32,
+    fontWeight: '600',
+    color: Colors.success,
+  },
+  careBriefStatLabel: {
+    fontSize: 12,
+    color: Colors.textPrimary,
+  },
+  careBriefStreak: {
+    fontSize: 11,
+    color: Colors.success,
+  },
+  shareButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: 'rgba(139, 168, 136, 0.1)',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  shareButtonText: {
+    fontSize: 12,
+    color: Colors.accent,
+  },
+  careBriefText: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: Colors.textPrimary,
+    marginBottom: 14,
+  },
+  careBriefStatsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  careBriefStat: {
+    fontSize: 12,
+  },
+  statLabel: {
+    color: Colors.textTertiary,
+  },
+  statValue: {
+    color: Colors.textPrimary,
+  },
+  statValuePositive: {
+    color: Colors.success,
+  },
+
+  // INSIGHTS Section
+  insightsSection: {
+    marginBottom: 20,
+  },
+  insightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: 'rgba(139, 168, 136, 0.08)',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 8,
     gap: 10,
   },
-  quickLinkButton: {
+  insightIcon: {
+    fontSize: 14,
+  },
+  insightText: {
     flex: 1,
-    backgroundColor: '#0f1f1a',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 168, 136, 0.2)',
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    gap: 6,
-  },
-  quickLinkIcon: {
-    fontSize: 24,
-  },
-  quickLinkText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    color: Colors.textPrimary,
   },
 });
