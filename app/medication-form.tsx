@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Picker } from '@react-native-picker/picker';
 import { Colors, Spacing, BorderRadius } from './_theme/theme-tokens';
 import {
   createMedication,
@@ -74,11 +75,11 @@ const convertTo24Hour = (time12: string): string => {
   return `${hour.toString().padStart(2, '0')}:${minutes}`;
 };
 
-const TIME_SLOTS: { key: TimeSlot; label: string; defaultTime: string; displayTime: string }[] = [
-  { key: 'morning', label: 'Morning', defaultTime: '08:00', displayTime: '8:00 AM' },
-  { key: 'afternoon', label: 'Afternoon', defaultTime: '13:00', displayTime: '1:00 PM' },
-  { key: 'evening', label: 'Evening', defaultTime: '18:00', displayTime: '6:00 PM' },
-  { key: 'bedtime', label: 'Bedtime', defaultTime: '22:00', displayTime: '10:00 PM' },
+const TIME_SLOTS: { key: TimeSlot; label: string; icon: string; time: string; defaultTime: string; displayTime: string }[] = [
+  { key: 'morning', label: 'AM', icon: '🌅', time: '8:00', defaultTime: '08:00', displayTime: '8:00 AM' },
+  { key: 'afternoon', label: 'PM', icon: '☀️', time: '1:00', defaultTime: '13:00', displayTime: '1:00 PM' },
+  { key: 'evening', label: 'PM', icon: '🌆', time: '6:00', defaultTime: '18:00', displayTime: '6:00 PM' },
+  { key: 'bedtime', label: 'PM', icon: '🌙', time: '10:00', defaultTime: '22:00', displayTime: '10:00 PM' },
 ];
 
 export default function MedicationFormScreen() {
@@ -96,6 +97,7 @@ export default function MedicationFormScreen() {
   const [daysSupply, setDaysSupply] = useState('30');
   const [reminderEnabled, setReminderEnabled] = useState(true);
   const [reminderMinutesBefore, setReminderMinutesBefore] = useState(0);
+  const [repeatOption, setRepeatOption] = useState('daily');
   const [showMedSuggestions, setShowMedSuggestions] = useState(false);
   const [showDosageSuggestions, setShowDosageSuggestions] = useState(false);
   const [medSuggestions, setMedSuggestions] = useState<typeof COMMON_MEDICATIONS>([]);
@@ -353,31 +355,32 @@ export default function MedicationFormScreen() {
             )}
           </View>
 
-          {/* Time Slot Selection */}
+          {/* Time Slot Selection - Horizontal Icon Row */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>Time of Day *</Text>
-            <View style={styles.timeSlotContainer}>
+            <View style={styles.timeSlotRow}>
               {TIME_SLOTS.map(slot => (
                 <TouchableOpacity
                   key={slot.key}
                   style={[
-                    styles.timeSlot,
-                    selectedTimeSlot === slot.key && styles.timeSlotSelected
+                    styles.timeSlotButton,
+                    selectedTimeSlot === slot.key && styles.timeSlotButtonActive
                   ]}
                   onPress={() => handleTimeSlotSelect(slot.key)}
                   activeOpacity={0.7}
                 >
+                  <Text style={styles.timeSlotIcon}>{slot.icon}</Text>
                   <Text style={[
-                    styles.timeSlotText,
-                    selectedTimeSlot === slot.key && styles.timeSlotTextSelected
+                    styles.timeSlotTimeText,
+                    selectedTimeSlot === slot.key && styles.timeSlotTimeTextActive
                   ]}>
-                    {slot.label}
+                    {slot.time}
                   </Text>
                   <Text style={[
-                    styles.timeSlotTime,
-                    selectedTimeSlot === slot.key && styles.timeSlotTimeSelected
+                    styles.timeSlotLabelText,
+                    selectedTimeSlot === slot.key && styles.timeSlotLabelTextActive
                   ]}>
-                    {slot.displayTime}
+                    {slot.label}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -442,36 +445,43 @@ export default function MedicationFormScreen() {
               />
             </TouchableOpacity>
 
-            {/* Expandable Time Picker */}
+            {/* Picker Dropdowns - NOTIFY ME and REPEAT */}
             {reminderEnabled && (
-              <View style={styles.reminderExpandedSection}>
-                <Text style={styles.reminderExpandedLabel}>NOTIFY ME</Text>
-                <View style={styles.reminderTimeOptions}>
-                  {[
-                    { label: 'At scheduled time', value: 0 },
-                    { label: '5 min before', value: 5 },
-                    { label: '10 min before', value: 10 },
-                    { label: '15 min before', value: 15 },
-                  ].map((option) => (
-                    <TouchableOpacity
-                      key={option.value}
-                      style={[
-                        styles.reminderTimeOption,
-                        reminderMinutesBefore === option.value && styles.reminderTimeOptionSelected
-                      ]}
-                      onPress={() => setReminderMinutesBefore(option.value)}
+              <View style={styles.reminderDropdownsRow}>
+                {/* NOTIFY ME Dropdown */}
+                <View style={styles.reminderDropdownContainer}>
+                  <Text style={styles.reminderDropdownLabel}>NOTIFY ME</Text>
+                  <View style={styles.reminderPickerWrapper}>
+                    <Picker
+                      selectedValue={reminderMinutesBefore}
+                      onValueChange={(value) => setReminderMinutesBefore(value as number)}
+                      style={styles.reminderPicker}
+                      dropdownIconColor="#FBBF24"
                     >
-                      <Text style={[
-                        styles.reminderTimeOptionText,
-                        reminderMinutesBefore === option.value && styles.reminderTimeOptionTextSelected
-                      ]}>
-                        {option.label}
-                      </Text>
-                      {reminderMinutesBefore === option.value && (
-                        <Ionicons name="checkmark-circle" size={18} color="#F59E0B" />
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                      <Picker.Item label="At scheduled time" value={0} color={Colors.textPrimary} />
+                      <Picker.Item label="5 min before" value={5} color={Colors.textPrimary} />
+                      <Picker.Item label="10 min before" value={10} color={Colors.textPrimary} />
+                      <Picker.Item label="15 min before" value={15} color={Colors.textPrimary} />
+                    </Picker>
+                  </View>
+                </View>
+
+                {/* REPEAT Dropdown */}
+                <View style={styles.reminderDropdownContainer}>
+                  <Text style={styles.reminderDropdownLabel}>REPEAT</Text>
+                  <View style={styles.reminderPickerWrapper}>
+                    <Picker
+                      selectedValue={repeatOption}
+                      onValueChange={(value) => setRepeatOption(value as string)}
+                      style={styles.reminderPicker}
+                      dropdownIconColor="#FBBF24"
+                    >
+                      <Picker.Item label="Daily" value="daily" color={Colors.textPrimary} />
+                      <Picker.Item label="Weekdays" value="weekdays" color={Colors.textPrimary} />
+                      <Picker.Item label="Weekly" value="weekly" color={Colors.textPrimary} />
+                      <Picker.Item label="Custom..." value="custom" color={Colors.textPrimary} />
+                    </Picker>
+                  </View>
                 </View>
               </View>
             )}
@@ -589,39 +599,47 @@ const styles = StyleSheet.create({
   },
 
   // Time Slots
-  timeSlotContainer: {
+  // Horizontal Icon Row for Time Slots
+  timeSlotRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  timeSlot: {
-    flex: 1,
-    minWidth: '45%',
+    gap: 8,
     backgroundColor: Colors.surface,
-    borderWidth: 1.5,
+    padding: 6,
+    borderRadius: 14,
+    borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    alignItems: 'center',
   },
-  timeSlotSelected: {
+  timeSlotButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  timeSlotButtonActive: {
     backgroundColor: Colors.accentLight,
     borderColor: Colors.accent,
   },
-  timeSlotText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textSecondary,
+  timeSlotIcon: {
+    fontSize: 20,
     marginBottom: 2,
   },
-  timeSlotTextSelected: {
-    color: Colors.accent,
-  },
-  timeSlotTime: {
-    fontSize: 12,
+  timeSlotTimeText: {
+    fontSize: 11,
+    fontWeight: '600',
     color: Colors.textMuted,
   },
-  timeSlotTimeSelected: {
+  timeSlotTimeTextActive: {
+    color: Colors.accent,
+  },
+  timeSlotLabelText: {
+    fontSize: 9,
+    color: Colors.textMuted,
+    opacity: 0.7,
+  },
+  timeSlotLabelTextActive: {
     color: Colors.accent,
   },
   
@@ -701,42 +719,35 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textMuted,
   },
-  reminderExpandedSection: {
+  reminderDropdownsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+    paddingTop: 14,
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(245, 158, 11, 0.2)',
+    borderTopColor: 'rgba(245, 158, 11, 0.35)',
   },
-  reminderExpandedLabel: {
+  reminderDropdownContainer: {
+    flex: 1,
+  },
+  reminderDropdownLabel: {
     fontSize: 10,
-    color: '#F59E0B',
     fontWeight: '600',
-    letterSpacing: 0.8,
-    marginBottom: Spacing.sm,
+    color: '#FBBF24',
+    marginBottom: 6,
+    letterSpacing: 0.5,
   },
-  reminderTimeOptions: {
-    gap: Spacing.xs,
-  },
-  reminderTimeOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.surface,
+  reminderPickerWrapper: {
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    borderRadius: 8,
+    overflow: 'hidden',
   },
-  reminderTimeOptionSelected: {
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    borderColor: '#F59E0B',
-  },
-  reminderTimeOptionText: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
-  reminderTimeOptionTextSelected: {
+  reminderPicker: {
     color: Colors.textPrimary,
-    fontWeight: '500',
+    height: 40,
   },
 });
