@@ -48,6 +48,23 @@ export const Colors = {
   warningLight: 'rgba(245, 158, 11, 0.12)',
   warningBorder: 'rgba(245, 158, 11, 0.3)',
   error: '#EF4444',
+
+  // Alert colors
+  red: '#EF4444',
+  redLight: 'rgba(239, 68, 68, 0.12)',
+  redBorder: 'rgba(239, 68, 68, 0.3)',
+
+  green: '#10B981',
+  greenLight: 'rgba(16, 185, 129, 0.12)',
+  greenBorder: 'rgba(16, 185, 129, 0.3)',
+
+  blue: '#3B82F6',
+  blueLight: 'rgba(59, 130, 246, 0.12)',
+  blueBorder: 'rgba(59, 130, 246, 0.25)',
+
+  gold: '#F59E0B',
+  goldLight: 'rgba(245, 158, 11, 0.12)',
+  goldBorder: 'rgba(245, 158, 11, 0.3)',
   
   // Tab Bar
   tabBarBackground: '#051614',
