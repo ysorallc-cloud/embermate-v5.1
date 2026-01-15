@@ -210,11 +210,19 @@ export default function CareBriefScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerLabel}>CARE BRIEF</Text>
-          <Text style={styles.title}>Mom's Story</Text>
-          <Text style={styles.timestamp}>
-            Updated today at {lastUpdated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-          </Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerLabel}>CARE BRIEF</Text>
+            <Text style={styles.title}>Mom's Story</Text>
+            <Text style={styles.timestamp}>
+              Updated today at {lastUpdated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={() => router.push('/settings')}
+          >
+            <Text style={styles.settingsIcon}>⚙️</Text>
+          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -461,10 +469,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     padding: 20,
     paddingTop: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(20, 184, 166, 0.15)',
+  },
+  headerLeft: {
+    flex: 1,
   },
   headerLabel: {
     fontSize: 11,
@@ -482,6 +496,19 @@ const styles = StyleSheet.create({
   timestamp: {
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.35)',
+  },
+  settingsButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsIcon: {
+    fontSize: 20,
   },
   content: {
     flex: 1,

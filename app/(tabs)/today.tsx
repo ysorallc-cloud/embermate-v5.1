@@ -20,6 +20,7 @@ import { Colors } from '../_theme/theme-tokens';
 import { getMedications, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
 import { getDailyTracking } from '../../utils/dailyTrackingStorage';
+import { CoffeeMomentModal } from '../../components/CoffeeMomentModal';
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -27,6 +28,8 @@ export default function TodayScreen() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [dailyTracking, setDailyTracking] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [coffeeMomentVisible, setCoffeeMomentVisible] = useState(false);
+  const [hasPausedToday, setHasPausedToday] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -201,12 +204,26 @@ export default function TodayScreen() {
               <Text style={styles.greeting}>{getGreeting()}</Text>
               <Text style={styles.date}>{formatDate()}</Text>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: `${status.color}33` }]}>
-              <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
-            </View>
+            <TouchableOpacity
+              style={styles.coffeeButton}
+              onPress={() => setCoffeeMomentVisible(true)}
+            >
+              <Text style={styles.coffeeIcon}>☕</Text>
+              <Text style={styles.coffeeLabel}>Pause</Text>
+              {!hasPausedToday && <View style={styles.reminderDot} />}
+            </TouchableOpacity>
           </View>
           <Text style={styles.summary}>{getSummaryLine()}</Text>
         </View>
+
+        {/* Coffee Moment Modal */}
+        <CoffeeMomentModal
+          visible={coffeeMomentVisible}
+          onClose={() => {
+            setCoffeeMomentVisible(false);
+            setHasPausedToday(true);
+          }}
+        />
 
         <ScrollView
           style={styles.content}
@@ -557,5 +574,36 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.5)',
     textAlign: 'center',
+  },
+
+  // Coffee Moment Button
+  coffeeButton: {
+    backgroundColor: Colors.purpleLight,
+    borderWidth: 1,
+    borderColor: Colors.purpleBorder,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    position: 'relative',
+  },
+  coffeeIcon: {
+    fontSize: 16,
+  },
+  coffeeLabel: {
+    fontSize: 12,
+    color: Colors.purple,
+    fontWeight: '500',
+  },
+  reminderDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.purple,
   },
 });
