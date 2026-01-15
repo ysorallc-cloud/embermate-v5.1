@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   Animated,
   StyleSheet,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../app/_theme/theme-tokens';
@@ -37,6 +38,24 @@ const AFFIRMATIONS = [
   "It's okay to not be okay sometimes.",
   "You matter too.",
   "Small pauses make big differences.",
+];
+
+const HELPFUL_RESOURCES = [
+  {
+    icon: '📚',
+    title: 'Understanding Caregiver Burnout',
+    description: 'Recognizing the signs and taking action',
+  },
+  {
+    icon: '💬',
+    title: 'Finding Support Groups',
+    description: 'Connect with others who understand',
+  },
+  {
+    icon: '🧘',
+    title: 'Quick Self-Care Practices',
+    description: '5-minute exercises for busy caregivers',
+  },
 ];
 
 export const CoffeeMomentModal: React.FC<CoffeeMomentModalProps> = ({
@@ -123,52 +142,76 @@ export const CoffeeMomentModal: React.FC<CoffeeMomentModalProps> = ({
       onRequestClose={handleClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.modal}>
-          {/* Header */}
-          <Text style={styles.icon}>☕</Text>
-          <Text style={styles.title}>Take a moment</Text>
-          <Text style={styles.subtitle}>
-            You're doing important work.{'\n'}
-            Caring for others starts with caring for yourself.
-          </Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.modal}>
+            {/* Header */}
+            <Text style={styles.icon}>☕</Text>
+            <Text style={styles.title}>Take a moment</Text>
+            <Text style={styles.subtitle}>
+              You're doing important work.{'\n'}
+              Caring for others starts with caring for yourself.
+            </Text>
 
-          {/* Breathing Exercise */}
-          <View style={styles.breathingContainer}>
-            <TouchableOpacity
-              onPress={handleStart}
-              disabled={isBreathing}
-              activeOpacity={0.8}
-            >
-              <Animated.View
-                style={[
-                  styles.breathCircle,
-                  { transform: [{ scale: scaleAnim }] },
-                ]}
+            {/* Breathing Exercise */}
+            <View style={styles.breathingContainer}>
+              <TouchableOpacity
+                onPress={handleStart}
+                disabled={isBreathing}
+                activeOpacity={0.8}
               >
-                <Text style={styles.breathText}>{getPhaseText()}</Text>
-              </Animated.View>
+                <Animated.View
+                  style={[
+                    styles.breathCircle,
+                    { transform: [{ scale: scaleAnim }] },
+                  ]}
+                >
+                  <Text style={styles.breathText}>{getPhaseText()}</Text>
+                </Animated.View>
+              </TouchableOpacity>
+
+              <Text style={styles.breathInstructions}>
+                Inhale 4s · Hold 4s · Exhale 4s
+              </Text>
+            </View>
+
+            {/* Affirmation */}
+            <Text style={styles.affirmation}>✨ "{affirmation}"</Text>
+
+            {/* Actions */}
+            <TouchableOpacity style={styles.primaryButton} onPress={handleClose}>
+              <Text style={styles.primaryButtonText}>I'm ready to continue</Text>
             </TouchableOpacity>
 
-            <Text style={styles.breathInstructions}>
-              Inhale 4s · Hold 4s · Exhale 4s
-            </Text>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handleSetReminder}
+            >
+              <Text style={styles.secondaryButtonText}>Set a break reminder</Text>
+            </TouchableOpacity>
+
+            {/* Helpful Resources */}
+            <View style={styles.resourcesSection}>
+              <Text style={styles.resourcesTitle}>Helpful Resources</Text>
+              {HELPFUL_RESOURCES.map((resource, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.resourceCard}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.resourceIcon}>{resource.icon}</Text>
+                  <View style={styles.resourceContent}>
+                    <Text style={styles.resourceTitle}>{resource.title}</Text>
+                    <Text style={styles.resourceDescription}>{resource.description}</Text>
+                  </View>
+                  <Text style={styles.resourceArrow}>→</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-
-          {/* Affirmation */}
-          <Text style={styles.affirmation}>✨ "{affirmation}"</Text>
-
-          {/* Actions */}
-          <TouchableOpacity style={styles.primaryButton} onPress={handleClose}>
-            <Text style={styles.primaryButtonText}>I'm ready to continue</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={handleSetReminder}
-          >
-            <Text style={styles.secondaryButtonText}>Set a break reminder</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -180,14 +223,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  scrollContent: {
     padding: 24,
+    minHeight: '100%',
+    justifyContent: 'center',
   },
   modal: {
     backgroundColor: Colors.background,
     borderRadius: 24,
     padding: 32,
     width: '100%',
-    maxWidth: 340,
+    maxWidth: 380,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.purpleBorder,
@@ -207,30 +254,30 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 24,
+    marginBottom: 28,
   },
   breathingContainer: {
     alignItems: 'center',
     marginBottom: 24,
   },
   breathCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
     backgroundColor: Colors.purpleLight,
-    borderWidth: 3,
+    borderWidth: 4,
     borderColor: Colors.purple,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   breathText: {
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.purple,
     fontWeight: '500',
   },
   breathInstructions: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.purple,
   },
   affirmation: {
@@ -256,9 +303,54 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     paddingVertical: 8,
+    marginBottom: 32,
   },
   secondaryButtonText: {
     color: Colors.textMuted,
     fontSize: 13,
+  },
+  resourcesSection: {
+    width: '100%',
+    borderTopWidth: 1,
+    borderTopColor: Colors.purpleBorder,
+    paddingTop: 24,
+  },
+  resourcesTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 16,
+  },
+  resourceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.purpleLight,
+    borderWidth: 1,
+    borderColor: Colors.purpleBorder,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+  },
+  resourceIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  resourceContent: {
+    flex: 1,
+  },
+  resourceTitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  resourceDescription: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  resourceArrow: {
+    fontSize: 18,
+    color: Colors.purple,
+    marginLeft: 8,
   },
 });
