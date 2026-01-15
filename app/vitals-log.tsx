@@ -167,143 +167,127 @@ export default function VitalsLogScreen() {
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <Text style={styles.title}>Log Vital Signs</Text>
-          <Text style={styles.subtitle}>Enter current readings (skip any not taken)</Text>
-
-          {/* Blood Pressure */}
-          <View style={styles.vitalCard}>
-            <View style={styles.vitalHeader}>
-              <Ionicons name="heart" size={20} color={Colors.error} />
-              <Text style={styles.vitalLabel}>Blood Pressure</Text>
-            </View>
-            <View style={styles.bpInputRow}>
-              <View style={styles.bpInput}>
-                <TextInput
-                  style={styles.input}
-                  value={bpSystolic}
-                  onChangeText={setBpSystolic}
-                  placeholder="120"
-                  placeholderTextColor={Colors.textMuted}
-                  keyboardType="numeric"
-                  maxLength={3}
-                />
-                <Text style={styles.inputLabel}>Systolic</Text>
-              </View>
-              <Text style={styles.bpSlash}>/</Text>
-              <View style={styles.bpInput}>
-                <TextInput
-                  style={styles.input}
-                  value={bpDiastolic}
-                  onChangeText={setBpDiastolic}
-                  placeholder="80"
-                  placeholderTextColor={Colors.textMuted}
-                  keyboardType="numeric"
-                  maxLength={3}
-                />
-                <Text style={styles.inputLabel}>Diastolic</Text>
-              </View>
-            </View>
-            <Text style={styles.helpText}>mmHg</Text>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Log Vital Signs</Text>
+            <Text style={styles.subtitle}>Enter current readings (skip any not taken)</Text>
           </View>
 
-          {/* Heart Rate */}
-          <View style={styles.vitalCard}>
-            <View style={styles.vitalHeader}>
-              <Ionicons name="pulse" size={20} color={Colors.error} />
-              <Text style={styles.vitalLabel}>Heart Rate</Text>
+          {/* Blood Pressure Row */}
+          <View style={styles.vitalRow}>
+            <Text style={styles.vitalIcon}>❤️</Text>
+            <Text style={styles.vitalRowLabel}>Blood Pressure</Text>
+            <View style={styles.bpInputContainer}>
+              <TextInput
+                style={styles.bpInputField}
+                value={bpSystolic}
+                onChangeText={setBpSystolic}
+                placeholder="120"
+                placeholderTextColor={Colors.textMuted}
+                keyboardType="numeric"
+                maxLength={3}
+              />
+              <Text style={styles.bpSlash}>/</Text>
+              <TextInput
+                style={styles.bpInputField}
+                value={bpDiastolic}
+                onChangeText={setBpDiastolic}
+                placeholder="80"
+                placeholderTextColor={Colors.textMuted}
+                keyboardType="numeric"
+                maxLength={3}
+              />
             </View>
+            <Text style={styles.vitalUnit}>mmHg</Text>
+          </View>
+
+          {/* Heart Rate Row */}
+          <View style={styles.vitalRow}>
+            <Text style={styles.vitalIcon}>💓</Text>
+            <Text style={styles.vitalRowLabel}>Heart Rate</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.vitalInput, { width: 70 }]}
               value={heartRate}
               onChangeText={setHeartRate}
-              placeholder="72"
+              placeholder="—"
               placeholderTextColor={Colors.textMuted}
               keyboardType="numeric"
               maxLength={3}
             />
-            <Text style={styles.helpText}>bpm</Text>
+            <Text style={styles.vitalUnit}>bpm</Text>
           </View>
 
-          {/* Oxygen Saturation */}
-          <View style={styles.vitalCard}>
-            <View style={styles.vitalHeader}>
-              <Ionicons name="fitness" size={20} color={Colors.accent} />
-              <Text style={styles.vitalLabel}>Oxygen Saturation (SpO2)</Text>
-            </View>
+          {/* Oxygen Saturation Row */}
+          <View style={styles.vitalRow}>
+            <Text style={styles.vitalIcon}>🫁</Text>
+            <Text style={styles.vitalRowLabel}>SpO2</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.vitalInput, { width: 60 }]}
               value={o2Sat}
               onChangeText={setO2Sat}
-              placeholder="98"
+              placeholder="—"
               placeholderTextColor={Colors.textMuted}
               keyboardType="numeric"
               maxLength={3}
             />
-            <Text style={styles.helpText}>%</Text>
+            <Text style={styles.vitalUnit}>%</Text>
           </View>
 
-          {/* Glucose */}
-          <View style={styles.vitalCard}>
-            <View style={styles.vitalHeader}>
-              <Ionicons name="water" size={20} color={Colors.warning} />
-              <Text style={styles.vitalLabel}>Blood Glucose</Text>
-            </View>
+          {/* Blood Glucose Row */}
+          <View style={styles.vitalRow}>
+            <Text style={styles.vitalIcon}>🩸</Text>
+            <Text style={styles.vitalRowLabel}>Blood Glucose</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.vitalInput, { width: 70 }]}
               value={glucose}
               onChangeText={setGlucose}
-              placeholder="100"
+              placeholder="—"
               placeholderTextColor={Colors.textMuted}
               keyboardType="numeric"
               maxLength={3}
             />
-            <Text style={styles.helpText}>mg/dL</Text>
+            <Text style={styles.vitalUnit}>mg/dL</Text>
           </View>
 
-          {/* Temperature */}
-          <View style={styles.vitalCard}>
-            <View style={styles.vitalHeader}>
-              <Ionicons name="thermometer" size={20} color={Colors.error} />
-              <Text style={styles.vitalLabel}>Temperature</Text>
-            </View>
+          {/* Temperature Row */}
+          <View style={styles.vitalRow}>
+            <Text style={styles.vitalIcon}>🌡️</Text>
+            <Text style={styles.vitalRowLabel}>Temperature</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.vitalInput, { width: 70 }]}
               value={temperature}
               onChangeText={setTemperature}
-              placeholder="98.6"
+              placeholder="—"
               placeholderTextColor={Colors.textMuted}
               keyboardType="decimal-pad"
               maxLength={5}
             />
-            <Text style={styles.helpText}>°F</Text>
+            <Text style={styles.vitalUnit}>°F</Text>
           </View>
 
-          {/* Weight */}
-          <View style={styles.vitalCard}>
-            <View style={styles.vitalHeader}>
-              <Ionicons name="scale" size={20} color={Colors.textSecondary} />
-              <Text style={styles.vitalLabel}>Weight</Text>
-            </View>
+          {/* Weight Row */}
+          <View style={styles.vitalRow}>
+            <Text style={styles.vitalIcon}>⚖️</Text>
+            <Text style={styles.vitalRowLabel}>Weight</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.vitalInput, { width: 70 }]}
               value={weight}
               onChangeText={setWeight}
-              placeholder="150.5"
+              placeholder="—"
               placeholderTextColor={Colors.textMuted}
               keyboardType="decimal-pad"
               maxLength={6}
             />
-            <Text style={styles.helpText}>lbs</Text>
+            <Text style={styles.vitalUnit}>lbs</Text>
           </View>
 
-          {/* Notes */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Notes (Optional)</Text>
+          {/* Notes Section */}
+          <View style={styles.notesSection}>
+            <Text style={styles.notesLabel}>NOTES (OPTIONAL)</Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={styles.notesInput}
               value={notes}
               onChangeText={setNotes}
-              placeholder="Any observations..."
+              placeholder="Any additional notes..."
               placeholderTextColor={Colors.textMuted}
               multiline
               numberOfLines={2}
@@ -435,87 +419,96 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: Spacing.xl,
   },
+  titleContainer: {
+    marginBottom: 20,
+  },
   title: {
     fontSize: 28,
     fontWeight: '300',
     color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xxl,
+    fontSize: 13,
+    color: Colors.textMuted,
   },
 
-  // Vital Cards
-  vitalCard: {
+  // Minimal Vital Rows
+  vitalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  vitalIcon: {
+    fontSize: 20,
+    width: 32,
+  },
+  vitalRowLabel: {
+    flex: 1,
+    fontSize: 15,
+    color: Colors.textPrimary,
+  },
+  vitalInput: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    backgroundColor: 'transparent',
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.border,
+    color: Colors.textPrimary,
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  vitalUnit: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    width: 50,
+    textAlign: 'right',
+  },
+
+  // Blood Pressure Specific
+  bpInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bpInputField: {
+    width: 50,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    backgroundColor: 'transparent',
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.border,
+    color: Colors.textPrimary,
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  bpSlash: {
+    fontSize: 18,
+    color: Colors.textMuted,
+    marginHorizontal: 6,
+  },
+
+  // Notes
+  notesSection: {
+    marginTop: 20,
+    marginBottom: 16,
+  },
+  notesLabel: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    letterSpacing: 1,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  notesInput: {
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  vitalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  vitalLabel: {
+    color: Colors.textPrimary,
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  input: {
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    fontSize: 18,
-    color: Colors.textPrimary,
-    fontWeight: '500',
-  },
-  helpText: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    marginTop: Spacing.sm,
-  },
-
-  // Blood Pressure
-  bpInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  bpInput: {
-    flex: 1,
-  },
-  bpSlash: {
-    fontSize: 24,
-    color: Colors.textMuted,
-    fontWeight: '300',
-  },
-  inputLabel: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    marginTop: Spacing.xs,
-  },
-
-  // Form
-  formGroup: {
-    marginBottom: Spacing.xl,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  textArea: {
     minHeight: 60,
     textAlignVertical: 'top',
   },
