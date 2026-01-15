@@ -1,107 +1,52 @@
 // ============================================================================
-// SYMPTOM STORAGE UTILITY
-// Local AsyncStorage only - no database, no cloud
-// Tracks daily symptom logs for correlation detection
+// SYMPTOM STORAGE UTILITIES
+// AsyncStorage operations for symptom logging
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface SymptomLog {
-  date: string; // ISO format YYYY-MM-DD
-  pain: number | null; // 0-10 scale
-  fatigue: number | null; // 0-10 scale
-  nausea: number | null; // 0-10 scale
-  dizziness: number | null; // 0-10 scale
-  other: string | null; // Free text
+  id: string;
+  symptom: string;
+  severity: number; // 1-10 scale
+  description?: string;
+  timestamp: string; // ISO datetime
+  date: string; // ISO date (YYYY-MM-DD)
 }
 
-const STORAGE_KEY_PREFIX = '@symptom_logs_';
+const STORAGE_KEY = '@embermate_symptoms';
 
-/**
- * Save symptom log for a specific date
- */
-export async function saveSymptomLog(
-  date: string,
-  symptomData: Partial<SymptomLog>
-): Promise<void> {
+export async function saveSymptom(symptom: Omit<SymptomLog, 'id'>): Promise<void> {
   try {
-    const key = `${STORAGE_KEY_PREFIX}${date}`;
-    const existing = await getSymptomLog(date);
-    const updated = { ...existing, date, ...symptomData };
-    await AsyncStorage.setItem(key, JSON.stringify(updated));
+    const symptoms = await getSymptoms();
+    const newSymptom: SymptomLog = {
+      ...symptom,
+      id: Date.now().toString(),
+    };
+    symptoms.push(newSymptom);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(symptoms));
   } catch (error) {
-    console.error('Error saving symptom log:', error);
+    console.error('Error saving symptom:', error);
     throw error;
   }
 }
 
-/**
- * Get symptom log for a specific date
- */
-export async function getSymptomLog(date: string): Promise<SymptomLog | null> {
+export async function getSymptoms(): Promise<SymptomLog[]> {
   try {
-    const key = `${STORAGE_KEY_PREFIX}${date}`;
-    const data = await AsyncStorage.getItem(key);
-    return data ? JSON.parse(data) : null;
+    const data = await AsyncStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error loading symptom log:', error);
-    return null;
-  }
-}
-
-/**
- * Get symptom logs for a date range
- */
-export async function getSymptomLogs(
-  startDate: string,
-  endDate: string
-): Promise<SymptomLog[]> {
-  try {
-    const logs: SymptomLog[] = [];
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
-      const log = await getSymptomLog(dateStr);
-      if (log) {
-        logs.push(log);
-      }
-    }
-    
-    return logs;
-  } catch (error) {
-    console.error('Error loading symptom logs:', error);
+    console.error('Error loading symptoms:', error);
     return [];
   }
 }
 
-/**
- * Delete symptom log for a specific date
- */
-export async function deleteSymptomLog(date: string): Promise<void> {
+export async function getSymptomsByDate(date: string): Promise<SymptomLog[]> {
   try {
-    const key = `${STORAGE_KEY_PREFIX}${date}`;
-    await AsyncStorage.removeItem(key);
+    const symptoms = await getSymptoms();
+    return symptoms.filter(s => s.date === date);
   } catch (error) {
-    console.error('Error deleting symptom log:', error);
-    throw error;
-  }
-}
-
-/**
- * Get all symptom log dates (for listing)
- */
-export async function getAllSymptomLogDates(): Promise<string[]> {
-  try {
-    const allKeys = await AsyncStorage.getAllKeys();
-    const symptomKeys = allKeys.filter(key => key.startsWith(STORAGE_KEY_PREFIX));
-    return symptomKeys
-      .map(key => key.replace(STORAGE_KEY_PREFIX, ''))
-      .sort()
-      .reverse(); // Most recent first
-  } catch (error) {
-    console.error('Error loading symptom log dates:', error);
+    console.error('Error getting symptoms by date:', error);
     return [];
   }
 }

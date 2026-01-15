@@ -43,6 +43,14 @@ export const CORE_OPTIONS: QuickLogOption[] = [
 // Custom options - user can add/remove these
 export const CUSTOM_OPTIONS: QuickLogOption[] = [
   {
+    id: 'appointment',
+    icon: '📅',
+    label: 'Appointment',
+    description: 'Schedule doctor visit',
+    screen: '/log-appointment',
+    isCore: false,
+  },
+  {
     id: 'prn',
     icon: '💊',
     label: 'PRN Medication',
