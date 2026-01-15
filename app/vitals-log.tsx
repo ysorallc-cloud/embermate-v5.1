@@ -39,6 +39,7 @@ interface VitalLog {
 
 const VITALS_KEY = '@EmberMate:vitals';
 const VITALS_REMINDER_KEY = '@EmberMate:vitals_reminder_enabled';
+const VITALS_REMINDER_TIME_KEY = '@EmberMate:vitals_reminder_time';
 
 export default function VitalsLogScreen() {
   const router = useRouter();
@@ -52,6 +53,7 @@ export default function VitalsLogScreen() {
   const [weight, setWeight] = useState('');
   const [notes, setNotes] = useState('');
   const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderTime, setReminderTime] = useState('09:00');
 
   useEffect(() => {
     loadReminderSetting();
@@ -59,9 +61,14 @@ export default function VitalsLogScreen() {
 
   const loadReminderSetting = async () => {
     try {
-      const saved = await AsyncStorage.getItem(VITALS_REMINDER_KEY);
-      if (saved !== null) {
-        setReminderEnabled(JSON.parse(saved));
+      const savedEnabled = await AsyncStorage.getItem(VITALS_REMINDER_KEY);
+      const savedTime = await AsyncStorage.getItem(VITALS_REMINDER_TIME_KEY);
+
+      if (savedEnabled !== null) {
+        setReminderEnabled(JSON.parse(savedEnabled));
+      }
+      if (savedTime !== null) {
+        setReminderTime(savedTime);
       }
     } catch (error) {
       console.error('Error loading reminder setting:', error);
@@ -74,6 +81,15 @@ export default function VitalsLogScreen() {
       await AsyncStorage.setItem(VITALS_REMINDER_KEY, JSON.stringify(value));
     } catch (error) {
       console.error('Error saving reminder setting:', error);
+    }
+  };
+
+  const handleReminderTimeChange = async (time: string) => {
+    try {
+      setReminderTime(time);
+      await AsyncStorage.setItem(VITALS_REMINDER_TIME_KEY, time);
+    } catch (error) {
+      console.error('Error saving reminder time:', error);
     }
   };
 
@@ -294,22 +310,68 @@ export default function VitalsLogScreen() {
             />
           </View>
 
-          {/* Daily Reminder Toggle */}
-          <View style={styles.formGroup}>
-            <View style={styles.reminderRow}>
-              <View style={styles.reminderInfo}>
-                <Text style={styles.label}>Daily Vitals Reminder</Text>
-                <Text style={styles.helpText}>
-                  Remind me to log vitals each morning at 9:00 AM
-                </Text>
+          {/* Expandable Reminder Controls */}
+          <View style={[
+            styles.reminderContainer,
+            reminderEnabled && styles.reminderContainerActive
+          ]}>
+            {/* Toggle Row */}
+            <TouchableOpacity
+              style={styles.reminderToggleRow}
+              onPress={() => handleReminderToggle(!reminderEnabled)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.reminderToggleLeft}>
+                <Text style={styles.reminderIcon}>🔔</Text>
+                <View style={styles.reminderToggleInfo}>
+                  <Text style={styles.reminderToggleLabel}>Regular Reminder</Text>
+                  <Text style={styles.reminderToggleDesc}>
+                    {reminderEnabled ? 'Track vitals consistently' : 'Set up recurring checks'}
+                  </Text>
+                </View>
               </View>
               <Switch
                 value={reminderEnabled}
                 onValueChange={handleReminderToggle}
-                trackColor={{ false: Colors.textMuted, true: Colors.accent }}
+                trackColor={{ false: Colors.textMuted, true: '#F59E0B' }}
                 thumbColor={Colors.surface}
+                ios_backgroundColor={Colors.textMuted}
               />
-            </View>
+            </TouchableOpacity>
+
+            {/* Expandable Time Picker */}
+            {reminderEnabled && (
+              <View style={styles.reminderExpandedSection}>
+                <Text style={styles.reminderExpandedLabel}>DAILY REMINDER TIME</Text>
+                <View style={styles.reminderTimeOptions}>
+                  {[
+                    { label: 'Morning (9:00 AM)', value: '09:00' },
+                    { label: 'Afternoon (2:00 PM)', value: '14:00' },
+                    { label: 'Evening (6:00 PM)', value: '18:00' },
+                    { label: 'Night (9:00 PM)', value: '21:00' },
+                  ].map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.reminderTimeOption,
+                        reminderTime === option.value && styles.reminderTimeOptionSelected
+                      ]}
+                      onPress={() => handleReminderTimeChange(option.value)}
+                    >
+                      <Text style={[
+                        styles.reminderTimeOptionText,
+                        reminderTime === option.value && styles.reminderTimeOptionTextSelected
+                      ]}>
+                        {option.label}
+                      </Text>
+                      {reminderTime === option.value && (
+                        <Ionicons name="checkmark-circle" size={18} color="#F59E0B" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Clear Button */}
@@ -474,8 +536,64 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // Reminder Toggle
-  reminderRow: {
+  // Expandable Reminder Controls
+  reminderContainer: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.xl,
+    overflow: 'hidden',
+  },
+  reminderContainerActive: {
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  reminderToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
+  },
+  reminderToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    flex: 1,
+  },
+  reminderIcon: {
+    fontSize: 20,
+  },
+  reminderToggleInfo: {
+    flex: 1,
+  },
+  reminderToggleLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  reminderToggleDesc: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  reminderExpandedSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  reminderExpandedLabel: {
+    fontSize: 10,
+    color: '#F59E0B',
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    marginBottom: Spacing.sm,
+  },
+  reminderTimeOptions: {
+    gap: Spacing.xs,
+  },
+  reminderTimeOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -483,10 +601,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
+    padding: Spacing.md,
   },
-  reminderInfo: {
-    flex: 1,
-    marginRight: Spacing.md,
+  reminderTimeOptionSelected: {
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderColor: '#F59E0B',
+  },
+  reminderTimeOptionText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  reminderTimeOptionTextSelected: {
+    color: Colors.textPrimary,
+    fontWeight: '500',
   },
 });

@@ -30,6 +30,7 @@ export interface Medication {
 
   // Reminder settings
   reminderEnabled?: boolean;
+  reminderMinutesBefore?: number; // Minutes before scheduled time to send reminder (0 = at scheduled time)
 }
 
 export interface InteractionWarning {

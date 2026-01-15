@@ -95,6 +95,7 @@ export default function MedicationFormScreen() {
   const [notes, setNotes] = useState('');
   const [daysSupply, setDaysSupply] = useState('30');
   const [reminderEnabled, setReminderEnabled] = useState(true);
+  const [reminderMinutesBefore, setReminderMinutesBefore] = useState(0);
   const [showMedSuggestions, setShowMedSuggestions] = useState(false);
   const [showDosageSuggestions, setShowDosageSuggestions] = useState(false);
   const [medSuggestions, setMedSuggestions] = useState<typeof COMMON_MEDICATIONS>([]);
@@ -120,6 +121,7 @@ export default function MedicationFormScreen() {
         setNotes(med.notes || '');
         setDaysSupply(med.daysSupply?.toString() || '30');
         setReminderEnabled(med.reminderEnabled !== false); // Default to true
+        setReminderMinutesBefore(med.reminderMinutesBefore || 0);
 
         // Determine time slot from time
         const timeSlot = TIME_SLOTS.find(slot => slot.defaultTime === med.time);
@@ -235,6 +237,7 @@ export default function MedicationFormScreen() {
         notes: notes.trim(),
         daysSupply: parseInt(daysSupply) || 30,
         reminderEnabled: reminderEnabled,
+        reminderMinutesBefore: reminderEnabled ? reminderMinutesBefore : undefined,
         active: true,
         taken: false,
       };
@@ -410,22 +413,68 @@ export default function MedicationFormScreen() {
             </Text>
           </View>
 
-          {/* Reminder Toggle */}
-          <View style={styles.formGroup}>
-            <View style={styles.reminderRow}>
-              <View style={styles.reminderInfo}>
-                <Text style={styles.label}>Daily Reminder</Text>
-                <Text style={styles.helpText}>
-                  Send notification at scheduled time
-                </Text>
+          {/* Expandable Reminder Controls */}
+          <View style={[
+            styles.reminderContainer,
+            reminderEnabled && styles.reminderContainerActive
+          ]}>
+            {/* Toggle Row */}
+            <TouchableOpacity
+              style={styles.reminderToggleRow}
+              onPress={() => setReminderEnabled(!reminderEnabled)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.reminderToggleLeft}>
+                <Text style={styles.reminderIcon}>🔔</Text>
+                <View style={styles.reminderToggleInfo}>
+                  <Text style={styles.reminderToggleLabel}>Reminder</Text>
+                  <Text style={styles.reminderToggleDesc}>
+                    {reminderEnabled ? 'Notifications enabled' : 'Get notified when due'}
+                  </Text>
+                </View>
               </View>
               <Switch
                 value={reminderEnabled}
                 onValueChange={setReminderEnabled}
-                trackColor={{ false: Colors.textMuted, true: Colors.accent }}
+                trackColor={{ false: Colors.textMuted, true: '#F59E0B' }}
                 thumbColor={Colors.surface}
+                ios_backgroundColor={Colors.textMuted}
               />
-            </View>
+            </TouchableOpacity>
+
+            {/* Expandable Time Picker */}
+            {reminderEnabled && (
+              <View style={styles.reminderExpandedSection}>
+                <Text style={styles.reminderExpandedLabel}>NOTIFY ME</Text>
+                <View style={styles.reminderTimeOptions}>
+                  {[
+                    { label: 'At scheduled time', value: 0 },
+                    { label: '5 min before', value: 5 },
+                    { label: '10 min before', value: 10 },
+                    { label: '15 min before', value: 15 },
+                  ].map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.reminderTimeOption,
+                        reminderMinutesBefore === option.value && styles.reminderTimeOptionSelected
+                      ]}
+                      onPress={() => setReminderMinutesBefore(option.value)}
+                    >
+                      <Text style={[
+                        styles.reminderTimeOptionText,
+                        reminderMinutesBefore === option.value && styles.reminderTimeOptionTextSelected
+                      ]}>
+                        {option.label}
+                      </Text>
+                      {reminderMinutesBefore === option.value && (
+                        <Ionicons name="checkmark-circle" size={18} color="#F59E0B" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Notes */}
@@ -611,8 +660,64 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Reminder Toggle
-  reminderRow: {
+  // Expandable Reminder Controls
+  reminderContainer: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.xl,
+    overflow: 'hidden',
+  },
+  reminderContainerActive: {
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  reminderToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
+  },
+  reminderToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    flex: 1,
+  },
+  reminderIcon: {
+    fontSize: 20,
+  },
+  reminderToggleInfo: {
+    flex: 1,
+  },
+  reminderToggleLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  reminderToggleDesc: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  reminderExpandedSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  reminderExpandedLabel: {
+    fontSize: 10,
+    color: '#F59E0B',
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    marginBottom: Spacing.sm,
+  },
+  reminderTimeOptions: {
+    gap: Spacing.xs,
+  },
+  reminderTimeOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -620,10 +725,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
+    padding: Spacing.md,
   },
-  reminderInfo: {
-    flex: 1,
-    marginRight: Spacing.md,
+  reminderTimeOptionSelected: {
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderColor: '#F59E0B',
+  },
+  reminderTimeOptionText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  reminderTimeOptionTextSelected: {
+    color: Colors.textPrimary,
+    fontWeight: '500',
   },
 });

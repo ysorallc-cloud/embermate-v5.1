@@ -71,6 +71,17 @@ export default function FamilyTabScreen() {
             <Text style={styles.greeting}>Care Circle 🧶</Text>
             <Text style={styles.dateSubtitle}>{activeCount} active member{activeCount !== 1 ? 's' : ''}</Text>
           </View>
+
+          {/* Gold Bell Icon - Opens Reminders Hub */}
+          <TouchableOpacity
+            style={styles.bellButton}
+            onPress={() => router.push('/notification-settings')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.bellIcon}>🔔</Text>
+            {/* Notification indicator dot - could be conditionally shown based on active reminders */}
+            <View style={styles.notificationDot} />
+          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -244,6 +255,9 @@ const styles = StyleSheet.create({
 
   // Tinted Header
   header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     backgroundColor: 'rgba(139, 168, 136, 0.03)',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(139, 168, 136, 0.15)',
@@ -260,6 +274,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textMuted,
     marginTop: 6,
+  },
+  bellButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  bellIcon: {
+    fontSize: 20,
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    backgroundColor: '#F59E0B',
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: Colors.background,
   },
 
   // Content

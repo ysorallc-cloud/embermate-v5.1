@@ -375,22 +375,51 @@ export default function AppointmentFormScreen() {
               />
             </View>
 
-            {/* Reminder Toggle */}
-            <View style={styles.inputSection}>
-              <View style={styles.reminderRow}>
-                <View style={styles.reminderInfo}>
-                  <Text style={styles.fieldLabel}>APPOINTMENT REMINDER</Text>
-                  <Text style={styles.reminderHelpText}>
-                    Notify 1 day before and 1 hour before
-                  </Text>
+            {/* Expandable Reminder Controls */}
+            <View style={[
+              styles.reminderContainer,
+              reminderEnabled && styles.reminderContainerActive
+            ]}>
+              {/* Toggle Row */}
+              <TouchableOpacity
+                style={styles.reminderToggleRow}
+                onPress={() => setReminderEnabled(!reminderEnabled)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.reminderToggleLeft}>
+                  <Text style={styles.reminderIcon}>🔔</Text>
+                  <View style={styles.reminderToggleInfo}>
+                    <Text style={styles.reminderToggleLabel}>Reminder</Text>
+                    <Text style={styles.reminderToggleDesc}>
+                      {reminderEnabled ? 'Notifications enabled' : 'Get notified before appointment'}
+                    </Text>
+                  </View>
                 </View>
                 <Switch
                   value={reminderEnabled}
                   onValueChange={setReminderEnabled}
-                  trackColor={{ false: Colors.textMuted, true: Colors.accent }}
+                  trackColor={{ false: Colors.textMuted, true: '#F59E0B' }}
                   thumbColor={Colors.surface}
+                  ios_backgroundColor={Colors.textMuted}
                 />
-              </View>
+              </TouchableOpacity>
+
+              {/* Expandable Reminder Schedule */}
+              {reminderEnabled && (
+                <View style={styles.reminderExpandedSection}>
+                  <Text style={styles.reminderExpandedLabel}>NOTIFICATION SCHEDULE</Text>
+                  <View style={styles.reminderScheduleInfo}>
+                    <View style={styles.reminderScheduleRow}>
+                      <Ionicons name="calendar-outline" size={16} color="#F59E0B" />
+                      <Text style={styles.reminderScheduleText}>1 day before at 9:00 AM</Text>
+                    </View>
+                    <View style={styles.reminderScheduleRow}>
+                      <Ionicons name="time-outline" size={16} color="#F59E0B" />
+                      <Text style={styles.reminderScheduleText}>1 hour before appointment</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
             </View>
           </View>
 
@@ -643,24 +672,69 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
 
-  // Reminder Toggle
-  reminderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  // Expandable Reminder Controls
+  reminderContainer: {
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 12,
+    overflow: 'hidden',
+  },
+  reminderContainerActive: {
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  reminderToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 16,
   },
-  reminderInfo: {
+  reminderToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     flex: 1,
-    marginRight: 12,
   },
-  reminderHelpText: {
-    fontSize: 12,
+  reminderIcon: {
+    fontSize: 20,
+  },
+  reminderToggleInfo: {
+    flex: 1,
+  },
+  reminderToggleLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  reminderToggleDesc: {
+    fontSize: 11,
     color: Colors.textTertiary,
-    marginTop: 4,
+  },
+  reminderExpandedSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  reminderExpandedLabel: {
+    fontSize: 10,
+    color: '#F59E0B',
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    marginBottom: 12,
+  },
+  reminderScheduleInfo: {
+    gap: 10,
+  },
+  reminderScheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  reminderScheduleText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
   },
 });
