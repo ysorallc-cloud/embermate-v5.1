@@ -21,6 +21,7 @@ import { getMedications, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
 import { getDailyTracking } from '../../utils/dailyTrackingStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 
 const VITALS_KEY = '@EmberMate:vitals';
 
@@ -209,21 +210,17 @@ export default function CareBriefScreen() {
         style={styles.gradient}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.headerLabel}>CARE BRIEF</Text>
-            <Text style={styles.title}>Mom's Story</Text>
-            <Text style={styles.timestamp}>
-              Updated today at {lastUpdated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => router.push('/settings')}
-          >
-            <Text style={styles.settingsIcon}>⚙️</Text>
-          </TouchableOpacity>
-        </View>
+        <ScreenHeader
+          label="CARE BRIEF"
+          title="Mom's Story"
+          subtitle={`Updated today at ${lastUpdated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
+          rightAction={{
+            type: 'icon',
+            icon: '⚙️',
+            onPress: () => router.push('/settings'),
+          }}
+        />
+        <View style={styles.divider} />
 
         <ScrollView
           style={styles.content}
@@ -468,47 +465,10 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: 20,
-    paddingTop: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(20, 184, 166, 0.15)',
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  headerLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 1.5,
-    color: '#14B8A6',
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '300',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  timestamp: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.35)',
-  },
-  settingsButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  settingsIcon: {
-    fontSize: 20,
+  divider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginHorizontal: 20,
   },
   content: {
     flex: 1,

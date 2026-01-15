@@ -21,6 +21,8 @@ import { getMedications, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
 import { getDailyTracking } from '../../utils/dailyTrackingStorage';
 import { CoffeeMomentModal } from '../../components/CoffeeMomentModal';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
+import { QuickLogCard } from '../../components/today/QuickLogCard';
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -67,12 +69,12 @@ export default function TodayScreen() {
     return 'Good evening';
   };
 
-  const formatDate = () => {
+  const getDateLabel = () => {
     return new Date().toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'short',
       day: 'numeric',
-    });
+    }).toUpperCase();
   };
 
   const getStatus = () => {
@@ -198,23 +200,19 @@ export default function TodayScreen() {
         style={styles.gradient}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerTop}>
-            <View>
-              <Text style={styles.greeting}>{getGreeting()}</Text>
-              <Text style={styles.date}>{formatDate()}</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.coffeeButton}
-              onPress={() => setCoffeeMomentVisible(true)}
-            >
-              <Text style={styles.coffeeIcon}>☕</Text>
-              <Text style={styles.coffeeLabel}>Pause</Text>
-              {!hasPausedToday && <View style={styles.reminderDot} />}
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.summary}>{getSummaryLine()}</Text>
-        </View>
+        <ScreenHeader
+          label={getDateLabel()}
+          title={getGreeting()}
+          subtitle={getSummaryLine()}
+          rightAction={{
+            type: 'button',
+            icon: '☕',
+            label: 'Pause',
+            variant: 'purple',
+            onPress: () => setCoffeeMomentVisible(true),
+          }}
+        />
+        <View style={styles.divider} />
 
         {/* Coffee Moment Modal */}
         <CoffeeMomentModal
@@ -286,30 +284,7 @@ export default function TodayScreen() {
 
           {/* Quick Log */}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>QUICK LOG</Text>
-            <View style={styles.quickLogRow}>
-              <TouchableOpacity
-                style={styles.quickLogButton}
-                onPress={() => router.push('/symptom-log')}
-              >
-                <Text style={styles.quickLogIcon}>🩹</Text>
-                <Text style={styles.quickLogLabel}>Symptom</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickLogButton}
-                onPress={() => router.push('/vitals-log')}
-              >
-                <Text style={styles.quickLogIcon}>❤️</Text>
-                <Text style={styles.quickLogLabel}>Vitals</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickLogButton}
-                onPress={() => router.push('/quick-note')}
-              >
-                <Text style={styles.quickLogIcon}>📝</Text>
-                <Text style={styles.quickLogLabel}>Note</Text>
-              </TouchableOpacity>
-            </View>
+            <QuickLogCard />
           </View>
 
           {/* Evening Check-in Prompt */}
@@ -350,42 +325,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Header
-  header: {
-    padding: 20,
-    paddingTop: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(20, 184, 166, 0.15)',
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  greeting: {
-    fontSize: 24,
-    fontWeight: '300',
-    color: Colors.textPrimary,
-  },
-  date: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
-    marginTop: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  summary: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 20,
+  // Divider
+  divider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginHorizontal: 20,
   },
 
   // Content
@@ -509,29 +453,6 @@ const styles = StyleSheet.create({
     color: Colors.gold,
   },
 
-  // Quick Log
-  quickLogRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  quickLogButton: {
-    flex: 1,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    gap: 6,
-  },
-  quickLogIcon: {
-    fontSize: 20,
-  },
-  quickLogLabel: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-
   // Evening Check-in Card
   checkInCard: {
     flexDirection: 'row',
@@ -574,36 +495,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.5)',
     textAlign: 'center',
-  },
-
-  // Coffee Moment Button
-  coffeeButton: {
-    backgroundColor: Colors.purpleLight,
-    borderWidth: 1,
-    borderColor: Colors.purpleBorder,
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    position: 'relative',
-  },
-  coffeeIcon: {
-    fontSize: 16,
-  },
-  coffeeLabel: {
-    fontSize: 12,
-    color: Colors.purple,
-    fontWeight: '500',
-  },
-  reminderDot: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.purple,
   },
 });
