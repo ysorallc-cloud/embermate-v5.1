@@ -228,7 +228,44 @@ export default function CareBriefScreen() {
             <Text style={styles.narrativeText}>{generateNarrative()}</Text>
           </View>
 
-          {/* 2. Pattern Alert (Conditional) */}
+          {/* 2. Appointment Prep Card (HERO FEATURE) */}
+          {upcomingAppts.length > 0 && (() => {
+            const nextAppt = upcomingAppts[0];
+            const apptDate = new Date(nextAppt.date);
+            const hoursUntil = (apptDate.getTime() - Date.now()) / (1000 * 60 * 60);
+
+            // Show prominent prep card if appointment is within 48 hours
+            if (hoursUntil <= 48 && hoursUntil > 0) {
+              const isToday = apptDate.toDateString() === new Date().toDateString();
+              const isTomorrow = apptDate.toDateString() === new Date(Date.now() + 86400000).toDateString();
+              let dateLabel = apptDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+              if (isToday) dateLabel = 'Today';
+              if (isTomorrow) dateLabel = 'Tomorrow';
+
+              return (
+                <TouchableOpacity
+                  style={styles.appointmentPrepCard}
+                  onPress={() => router.push('/visit-prep')}
+                >
+                  <Text style={styles.prepCardIcon}>📋</Text>
+                  <View style={styles.prepCardContent}>
+                    <Text style={styles.prepCardTitle}>
+                      {nextAppt.provider || 'Upcoming Appointment'} — {dateLabel} {nextAppt.time}
+                    </Text>
+                    <Text style={styles.prepCardDescription}>
+                      2-week report ready with vitals, meds, and symptoms.
+                    </Text>
+                  </View>
+                  <TouchableOpacity style={styles.prepCardButton}>
+                    <Text style={styles.prepCardButtonText}>Prepare Visit Report →</Text>
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              );
+            }
+            return null;
+          })()}
+
+          {/* 3. Pattern Alert (Conditional) */}
           {pattern.detected && (
             <View style={styles.patternAlert}>
               <Text style={styles.patternIcon}>⚠️</Text>
@@ -239,7 +276,34 @@ export default function CareBriefScreen() {
             </View>
           )}
 
-          {/* 3. Suggested Approach */}
+          {/* 4. Quick Stats Row */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>QUICK STATS</Text>
+            <View style={styles.statsRow}>
+              <View style={styles.statCard}>
+                <Text style={[styles.statValue, { color: Colors.green }]}>
+                  {Math.round((medications.filter(m => m.taken).length / Math.max(medications.length, 1)) * 100)}%
+                </Text>
+                <Text style={styles.statLabel}>Meds</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={[styles.statValue, { color: latestVitals?.bloodPressureSystolic && latestVitals.bloodPressureSystolic > 140 ? Colors.gold : Colors.green }]}>
+                  {latestVitals?.bloodPressureSystolic && latestVitals?.bloodPressureDiastolic
+                    ? `${latestVitals.bloodPressureSystolic}/${latestVitals.bloodPressureDiastolic}`
+                    : '--'}
+                </Text>
+                <Text style={styles.statLabel}>BP</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={[styles.statValue, { color: dailyTracking?.mood >= 7 ? Colors.green : dailyTracking?.mood >= 4 ? Colors.gold : Colors.red }]}>
+                  {dailyTracking?.mood >= 7 ? 'Good' : dailyTracking?.mood >= 4 ? 'Steady' : 'Low'}
+                </Text>
+                <Text style={styles.statLabel}>Mood</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* 5. Suggested Approach */}
           <View style={styles.approachSection}>
             <Text style={styles.sectionLabel}>SUGGESTED APPROACH</Text>
             <View style={styles.approachContent}>
@@ -299,7 +363,61 @@ export default function CareBriefScreen() {
             </View>
           </View>
 
-          {/* 6. Quick Reference */}
+          {/* 7. Reports Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>REPORTS</Text>
+            <View style={styles.reportsList}>
+              <TouchableOpacity
+                style={styles.reportItem}
+                onPress={() => router.push('/medication-report')}
+              >
+                <Text style={styles.reportIcon}>💊</Text>
+                <View style={styles.reportContent}>
+                  <Text style={styles.reportTitle}>Medication Adherence</Text>
+                  <Text style={styles.reportSubtitle}>7 & 30 day view</Text>
+                </View>
+                <Text style={styles.reportChevron}>›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.reportItem}
+                onPress={() => router.push('/vitals-report')}
+              >
+                <Text style={styles.reportIcon}>❤️</Text>
+                <View style={styles.reportContent}>
+                  <Text style={styles.reportTitle}>Vitals Trends</Text>
+                  <Text style={styles.reportSubtitle}>BP, glucose, weight</Text>
+                </View>
+                <Text style={styles.reportChevron}>›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.reportItem}
+                onPress={() => router.push('/symptom-report')}
+              >
+                <Text style={styles.reportIcon}>🩹</Text>
+                <View style={styles.reportContent}>
+                  <Text style={styles.reportTitle}>Symptom Timeline</Text>
+                  <Text style={styles.reportSubtitle}>Patterns & triggers</Text>
+                </View>
+                <Text style={styles.reportChevron}>›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.reportItem}
+                onPress={() => router.push('/insights')}
+              >
+                <Text style={styles.reportIcon}>📊</Text>
+                <View style={styles.reportContent}>
+                  <Text style={styles.reportTitle}>Insights & Correlations</Text>
+                  <Text style={styles.reportSubtitle}>AI-detected patterns</Text>
+                </View>
+                <Text style={styles.reportChevron}>›</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* 8. Quick Reference */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>QUICK REFERENCE</Text>
             <View style={styles.quickRefRow}>
@@ -543,5 +661,108 @@ const styles = StyleSheet.create({
   quickRefLabel: {
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.7)',
+  },
+
+  // Appointment Prep Card (HERO)
+  appointmentPrepCard: {
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 18,
+    gap: 12,
+  },
+  prepCardIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  prepCardContent: {
+    marginBottom: 12,
+  },
+  prepCardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  prepCardDescription: {
+    fontSize: 13,
+    lineHeight: 19.5,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  prepCardButton: {
+    backgroundColor: 'rgba(59, 130, 246, 0.25)',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  prepCardButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#60A5FA',
+  },
+
+  // Quick Stats Row
+  statsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 6,
+  },
+  statValue: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  statLabel: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.4)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  // Reports Section
+  reportsList: {
+    gap: 8,
+  },
+  reportItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderRadius: 12,
+    padding: 14,
+    gap: 12,
+  },
+  reportIcon: {
+    fontSize: 20,
+  },
+  reportContent: {
+    flex: 1,
+  },
+  reportTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  reportSubtitle: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+  reportChevron: {
+    fontSize: 20,
+    color: 'rgba(255, 255, 255, 0.3)',
   },
 });

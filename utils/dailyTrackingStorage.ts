@@ -8,9 +8,32 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface DailyTrackingLog {
   date: string; // ISO format YYYY-MM-DD
-  hydration: number | null; // Cups of water (0-20)
-  mood: number | null; // 0-10 scale (0=terrible, 10=excellent)
+
+  // Check-in data
+  mood: number | null; // 1-10 scale (1=struggling, 10=great)
+  energy: number | null; // 1-5 scale (1=exhausted, 5=energetic)
+
+  // Sleep
   sleep: number | null; // Hours of sleep (0-24)
+  sleepQuality: number | null; // 1-5 scale (1=very poor, 5=excellent)
+
+  // Nutrition
+  meals: {
+    breakfast: boolean;
+    lunch: boolean;
+    dinner: boolean;
+  } | null;
+  hydration: number | null; // Cups of water (0-20)
+
+  // Symptoms
+  symptoms: string[]; // Array of symptom names
+
+  // Notes
+  notes: string | null;
+  tags: string[]; // ['good_day', 'concern_for_dr', etc.]
+
+  // Vitals summary (optional, for correlation)
+  pain: number | null; // 0-10 scale
 }
 
 const STORAGE_KEY_PREFIX = '@daily_tracking_';
