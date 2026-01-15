@@ -65,7 +65,11 @@ export const Colors = {
   gold: '#F59E0B',
   goldLight: 'rgba(245, 158, 11, 0.12)',
   goldBorder: 'rgba(245, 158, 11, 0.3)',
-  
+
+  purple: '#8B5CF6',
+  purpleLight: 'rgba(139, 92, 246, 0.12)',
+  purpleBorder: 'rgba(139, 92, 246, 0.3)',
+
   // Tab Bar
   tabBarBackground: '#051614',
   tabBarBorder: 'rgba(20, 184, 166, 0.15)',

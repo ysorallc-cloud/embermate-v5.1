@@ -1,6 +1,6 @@
 // ============================================================================
-// ENHANCED CARE HUB - Actionable daily brief with priority alerts
-// Shows alerts, today's snapshot with status, smart insights, and weekly summary
+// CARE BRIEF - Narrative, emotionally intelligent summary
+// Provides full context about patient's state, patterns, and guidance
 // ============================================================================
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -19,24 +19,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../_theme/theme-tokens';
 import { getMedications, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
-import { VITAL_THRESHOLDS, getVitalStatus } from '../../utils/vitalThresholds';
+import { getDailyTracking } from '../../utils/dailyTrackingStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const VITALS_KEY = '@EmberMate:vitals';
-
-interface Alert {
-  type: 'critical' | 'warning' | 'info';
-  title: string;
-  message: string;
-  action?: string;
-  vitalType?: string;
-}
-
-interface Insight {
-  type: 'positive' | 'warning' | 'info';
-  icon: string;
-  message: string;
-}
 
 interface VitalLog {
   id: string;
@@ -51,15 +37,14 @@ interface VitalLog {
   notes?: string;
 }
 
-export default function EnhancedCareHub() {
+export default function CareBriefScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [medications, setMedications] = useState<Medication[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [dailyTracking, setDailyTracking] = useState<any>(null);
   const [latestVitals, setLatestVitals] = useState<VitalLog | null>(null);
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [insights, setInsights] = useState<Insight[]>([]);
-  const [weeklyAdherence, setWeeklyAdherence] = useState<number[]>([85, 100, 75, 100, 100, 60, 80]);
-  const [nextAppointment, setNextAppointment] = useState<Appointment | null>(null);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
 
   useFocusEffect(
     useCallback(() => {
@@ -71,8 +56,16 @@ export default function EnhancedCareHub() {
     try {
       // Load medications
       const meds = await getMedications();
-      const activeMeds = meds.filter((m) => m.active);
-      setMedications(activeMeds);
+      setMedications(meds.filter((m) => m.active));
+
+      // Load appointments
+      const appts = await getUpcomingAppointments();
+      setAppointments(appts);
+
+      // Load daily tracking (mood, energy, pain)
+      const today = new Date().toISOString().split('T')[0];
+      const tracking = await getDailyTracking(today);
+      setDailyTracking(tracking);
 
       // Load latest vitals
       const vitalsData = await AsyncStorage.getItem(VITALS_KEY);
@@ -83,83 +76,11 @@ export default function EnhancedCareHub() {
         }
       }
 
-      // Load appointments
-      const appts = await getUpcomingAppointments();
-      setNextAppointment(appts[0] || null);
-
-      // Generate alerts and insights after data is loaded
+      setLastUpdated(new Date());
     } catch (error) {
-      console.error('Error loading Care Hub data:', error);
+      console.error('Error loading Care Brief data:', error);
     }
   };
-
-  // Generate alerts based on vitals
-  useEffect(() => {
-    if (!latestVitals) return;
-
-    const newAlerts: Alert[] = [];
-
-    // Check glucose level
-    if (latestVitals.glucose && latestVitals.glucose > VITAL_THRESHOLDS.glucose.high) {
-      newAlerts.push({
-        type: 'critical',
-        title: 'Action Needed',
-        message: `Blood glucose ${latestVitals.glucose} mg/dL is above target (70-140). Consider checking again in 2 hours.`,
-        action: 'Log New Reading',
-        vitalType: 'glucose',
-      });
-    }
-
-    // Check BP
-    if (latestVitals.bloodPressureSystolic && latestVitals.bloodPressureSystolic > VITAL_THRESHOLDS.systolic.high) {
-      newAlerts.push({
-        type: 'warning',
-        title: 'Elevated Blood Pressure',
-        message: `BP ${latestVitals.bloodPressureSystolic}/${latestVitals.bloodPressureDiastolic || '—'} is higher than usual. Monitor and rest.`,
-        action: 'Log New Reading',
-        vitalType: 'bp',
-      });
-    }
-
-    setAlerts(newAlerts);
-  }, [latestVitals]);
-
-  // Generate insights
-  useEffect(() => {
-    const newInsights: Insight[] = [];
-
-    // Example insights - in production these would be calculated from historical data
-    if (latestVitals?.glucose && latestVitals.glucose > 150) {
-      newInsights.push({
-        type: 'warning',
-        icon: '📊',
-        message: 'Glucose trending up — 3 readings above 150 this week. Morning readings are consistently higher.',
-      });
-    }
-
-    if (latestVitals?.bloodPressureSystolic && latestVitals.bloodPressureSystolic <= VITAL_THRESHOLDS.systolic.high) {
-      newInsights.push({
-        type: 'positive',
-        icon: '🎯',
-        message: 'Great BP control — All 5 readings this week in normal range. Keep it up!',
-      });
-    }
-
-    if (nextAppointment) {
-      const daysUntil = Math.ceil(
-        (new Date(nextAppointment.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-      );
-      if (daysUntil >= 0 && daysUntil <= 7) {
-        newInsights.push({
-          type: 'info',
-          icon: '📅',
-          message: `Dr. ${nextAppointment.provider} appointment in ${daysUntil} days. Bring glucose log and BP readings.`,
-        });
-      }
-    }
-
-    setInsights(newInsights);
-  }, [latestVitals, nextAppointment]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -167,30 +88,133 @@ export default function EnhancedCareHub() {
     setRefreshing(false);
   }, []);
 
-  const takenCount = medications.filter((m) => m.taken).length;
-  const totalCount = medications.length;
-  const adherencePercent = totalCount > 0 ? Math.round((takenCount / totalCount) * 100) : 100;
+  // Generate narrative summary
+  const generateNarrative = () => {
+    const mood = dailyTracking?.mood;
+    const energy = dailyTracking?.energy;
+    const pain = dailyTracking?.pain;
+
+    let narrative = "Mom's having a ";
+
+    // Overall status
+    if (mood >= 7 && energy >= 6 && pain <= 3) {
+      narrative += "**good day**. ";
+    } else if (mood >= 5 && energy >= 4 && pain <= 5) {
+      narrative += "**steady day**. ";
+    } else {
+      narrative += "**harder stretch**. ";
+    }
+
+    // Mood state
+    if (mood >= 7) {
+      narrative += "Mood is positive and she's been upbeat this afternoon. ";
+    } else if (mood >= 5) {
+      narrative += "Mood is stable and she's been calm this afternoon. ";
+    } else if (mood >= 3) {
+      narrative += "Mood has been low and she seems quieter than usual. ";
+    } else {
+      narrative += "She's been struggling today and may need extra support. ";
+    }
+
+    // Energy level
+    if (energy >= 7) {
+      narrative += "Energy is **strong today**, which is wonderful to see. ";
+    } else if (energy >= 5) {
+      narrative += "Energy is at a **good level** for light activity. ";
+    } else if (energy >= 3) {
+      narrative += "Energy is **lower than usual**, so she may need more rest. ";
+    } else {
+      narrative += "Energy is **very low** — prioritize rest and comfort. ";
+    }
+
+    // Pain level
+    if (pain === 0) {
+      narrative += "No pain reported today.";
+    } else if (pain <= 3) {
+      narrative += `Pain is minimal at **${pain}/10**.`;
+    } else if (pain <= 5) {
+      narrative += `Pain has been at **${pain}/10** — manageable but present.`;
+    } else {
+      narrative += `Pain has been at **${pain}/10 for two days now** — worth discussing at the next visit.`;
+    }
+
+    return narrative || "Start logging to see Mom's story unfold here. Even small check-ins help build the picture.";
+  };
+
+  // Detect patterns
+  const detectPattern = () => {
+    const pain = dailyTracking?.pain;
+
+    // Example: Pain elevated above baseline
+    if (pain && pain >= 5) {
+      return {
+        detected: true,
+        message: `Pain has been ${pain}/10 or higher for 2 consecutive days. This is above her typical baseline of 3/10.`,
+      };
+    }
+
+    return { detected: false, message: '' };
+  };
+
+  // Generate suggested approach
+  const generateApproach = () => {
+    const energy = dailyTracking?.energy;
+    const pain = dailyTracking?.pain;
+    const mood = dailyTracking?.mood;
+
+    let approach = "";
+
+    if (energy && energy < 4) {
+      approach += "Since energy is low, keep requests small today. ";
+    }
+
+    if (pain && pain >= 5) {
+      approach += "Ask about pain before meals — note if it's affecting appetite. A warm compress or gentle position change might help with comfort. ";
+    }
+
+    if (mood && mood < 5) {
+      approach += "If she seems restless, quiet company may be better than conversation. ";
+    }
+
+    if (energy >= 7 && pain <= 3 && mood >= 7) {
+      approach += "This is a good day — maybe a short outing or a favorite activity if she's interested. ";
+    }
+
+    return approach || "Be present and attentive to her needs. Small gestures of comfort go a long way.";
+  };
+
+  // Generate caregiver message
+  const getCaregiverMessage = () => {
+    const pain = dailyTracking?.pain;
+    const mood = dailyTracking?.mood;
+
+    if (pain && pain >= 5) {
+      return "Days with elevated pain can feel heavier for everyone. You're not responsible for fixing everything — being present is enough. If you need to step away, that's okay.";
+    }
+
+    if (mood && mood < 5) {
+      return "Caring for someone through difficult days takes strength. Remember: you're doing important work, even when progress isn't visible. Take breaks when you need them.";
+    }
+
+    return "You're doing a wonderful job. Remember to take moments for yourself — even caregivers need care.";
+  };
+
+  const pattern = detectPattern();
+  const upcomingAppts = appointments.slice(0, 3);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={['#051614', '#041210']}
         style={styles.gradient}
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Care Hub 🌱</Text>
-            <Text style={styles.subtitle}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })} • Mom's Daily Brief
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => router.push('/settings')}
-          >
-            <Text style={styles.settingsIcon}>⚙️</Text>
-          </TouchableOpacity>
+          <Text style={styles.headerLabel}>CARE BRIEF</Text>
+          <Text style={styles.title}>Mom's Story</Text>
+          <Text style={styles.timestamp}>
+            Updated today at {lastUpdated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+          </Text>
         </View>
 
         <ScrollView
@@ -199,183 +223,107 @@ export default function EnhancedCareHub() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
           }
         >
-          {/* PRIORITY ALERTS */}
-          {alerts.map((alert, index) => (
-            <View
-              key={index}
-              style={[
-                styles.alertCard,
-                alert.type === 'critical' && styles.alertCritical,
-                alert.type === 'warning' && styles.alertWarning,
-              ]}
-            >
-              <View style={styles.alertHeader}>
-                <View style={styles.alertIconContainer}>
-                  <Text style={styles.alertIcon}>⚠️</Text>
-                </View>
-                <View style={styles.alertContent}>
-                  <Text style={[styles.alertTitle, alert.type === 'critical' && styles.alertTitleCritical]}>
-                    {alert.title}
-                  </Text>
-                  <Text style={styles.alertMessage}>{alert.message}</Text>
-                </View>
-              </View>
-              <View style={styles.alertActions}>
-                <TouchableOpacity
-                  style={[styles.alertButton, alert.type === 'critical' && styles.alertButtonCritical]}
-                  onPress={() => router.push('/vitals-log')}
-                >
-                  <Text style={[styles.alertButtonText, alert.type === 'critical' && styles.alertButtonTextCritical]}>
-                    {alert.action}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.alertDismiss}>
-                  <Text style={styles.alertDismissText}>Dismiss</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
-
-          {/* TODAY'S SNAPSHOT */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>TODAY'S SNAPSHOT</Text>
-            <View style={styles.snapshotCard}>
-              {/* Status Row */}
-              <View style={styles.statusRow}>
-                <View style={[styles.statusIcon, adherencePercent === 100 && styles.statusIconComplete]}>
-                  <Text style={styles.statusIconText}>{adherencePercent === 100 ? '✓' : `${takenCount}`}</Text>
-                </View>
-                <View style={styles.statusInfo}>
-                  <Text style={styles.statusValue}>
-                    {takenCount} of {totalCount}
-                  </Text>
-                  <Text style={styles.statusLabel}>medications taken</Text>
-                </View>
-                <View style={styles.nextDose}>
-                  <Text style={styles.nextDoseLabel}>Next dose</Text>
-                  <Text style={styles.nextDoseTime}>6:00 PM</Text>
-                </View>
-              </View>
-
-              {/* Quick Stats */}
-              <View style={styles.quickStats}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>
-                    {latestVitals?.bloodPressureSystolic || '—'}/{latestVitals?.bloodPressureDiastolic || '—'}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.statLabel,
-                      {
-                        color: latestVitals?.bloodPressureSystolic
-                          ? getVitalStatus('systolic', latestVitals.bloodPressureSystolic).color
-                          : Colors.textMuted,
-                      },
-                    ]}
-                  >
-                    BP {latestVitals?.bloodPressureSystolic ? getVitalStatus('systolic', latestVitals.bloodPressureSystolic).label : ''}
-                  </Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{latestVitals?.glucose || '—'}</Text>
-                  <Text
-                    style={[
-                      styles.statLabel,
-                      {
-                        color: latestVitals?.glucose
-                          ? getVitalStatus('glucose', latestVitals.glucose).color
-                          : Colors.textMuted,
-                      },
-                    ]}
-                  >
-                    Glucose {latestVitals?.glucose ? getVitalStatus('glucose', latestVitals.glucose).label : ''}
-                  </Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>😊</Text>
-                  <Text style={styles.statLabel}>Mood: Good</Text>
-                </View>
-              </View>
-            </View>
+          {/* 1. Narrative Summary */}
+          <View style={styles.narrativeCard}>
+            <Text style={styles.narrativeText}>{generateNarrative()}</Text>
           </View>
 
-          {/* INSIGHTS */}
-          {insights.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>INSIGHTS</Text>
-              {insights.map((insight, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.insightCard,
-                    insight.type === 'positive' && styles.insightPositive,
-                    insight.type === 'warning' && styles.insightWarning,
-                    insight.type === 'info' && styles.insightInfo,
-                  ]}
-                >
-                  <Text style={styles.insightIcon}>{insight.icon}</Text>
-                  <Text style={styles.insightText}>{insight.message}</Text>
-                </View>
-              ))}
+          {/* 2. Pattern Alert (Conditional) */}
+          {pattern.detected && (
+            <View style={styles.patternAlert}>
+              <Text style={styles.patternIcon}>⚠️</Text>
+              <View style={styles.patternContent}>
+                <Text style={styles.patternTitle}>Pattern detected</Text>
+                <Text style={styles.patternText}>{pattern.message}</Text>
+              </View>
             </View>
           )}
 
-          {/* QUICK ACTIONS */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
-            <View style={styles.quickActions}>
-              {[
-                { icon: '💊', label: 'Meds', route: '/medications' },
-                { icon: '❤️', label: 'Vitals', route: '/vitals-log' },
-                { icon: '📋', label: 'Report', route: '/care-summary-export' },
-                { icon: '📅', label: 'Appts', route: '/appointments' },
-              ].map((action, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.quickActionButton}
-                  onPress={() => router.push(action.route as any)}
-                >
-                  <Text style={styles.quickActionIcon}>{action.icon}</Text>
-                  <Text style={styles.quickActionLabel}>{action.label}</Text>
-                </TouchableOpacity>
-              ))}
+          {/* 3. Suggested Approach */}
+          <View style={styles.approachSection}>
+            <Text style={styles.sectionLabel}>SUGGESTED APPROACH</Text>
+            <View style={styles.approachContent}>
+              <Text style={styles.approachText}>{generateApproach()}</Text>
             </View>
           </View>
 
-          {/* WEEKLY SUMMARY */}
+          {/* 4. Coming Up */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>THIS WEEK</Text>
-            <View style={styles.weeklyCard}>
-              <View style={styles.weeklyHeader}>
-                <Text style={styles.weeklyLabel}>Medication Adherence</Text>
-                <Text style={styles.weeklyPercent}>
-                  {Math.round(weeklyAdherence.reduce((a, b) => a + b, 0) / weeklyAdherence.length)}%
-                </Text>
-              </View>
-              <View style={styles.weeklyChart}>
-                {weeklyAdherence.map((pct, index) => (
-                  <View
+            <Text style={styles.sectionLabel}>COMING UP</Text>
+            {upcomingAppts.length > 0 ? (
+              upcomingAppts.map((appt, index) => {
+                const apptDate = new Date(appt.date);
+                const isToday = apptDate.toDateString() === new Date().toDateString();
+                const isTomorrow = apptDate.toDateString() === new Date(Date.now() + 86400000).toDateString();
+
+                let dateLabel = apptDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+                if (isToday) dateLabel = 'Today';
+                if (isTomorrow) dateLabel = 'Tomorrow';
+
+                const icon = appt.specialty?.toLowerCase().includes('telehealth') ? '📱' : '🏥';
+
+                return (
+                  <TouchableOpacity
                     key={index}
-                    style={[
-                      styles.weeklyBar,
-                      {
-                        height: `${pct}%`,
-                        backgroundColor:
-                          pct === 100 ? '#10B981' : pct >= 75 ? '#14B8A6' : '#F59E0B',
-                      },
-                    ]}
-                  />
-                ))}
-              </View>
-              <View style={styles.weeklyDays}>
-                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
-                  <Text key={index} style={styles.weeklyDay}>
-                    {day}
-                  </Text>
-                ))}
-              </View>
+                    style={styles.appointmentCard}
+                    onPress={() => router.push('/appointments')}
+                  >
+                    <View style={[styles.apptIconCircle, { backgroundColor: icon === '📱' ? 'rgba(59, 130, 246, 0.12)' : 'rgba(245, 158, 11, 0.12)' }]}>
+                      <Text style={styles.apptIcon}>{icon}</Text>
+                    </View>
+                    <View style={styles.apptContent}>
+                      <Text style={styles.apptTitle}>{appt.specialty || 'Appointment'}</Text>
+                      <Text style={styles.apptDetail}>
+                        {dateLabel}{appt.time ? `, ${appt.time}` : ''} • {appt.provider}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            ) : (
+              <Text style={styles.emptyText}>No upcoming appointments. Tap + to add one.</Text>
+            )}
+          </View>
+
+          {/* 5. For You (Caregiver Support) */}
+          <View style={styles.forYouSection}>
+            <Text style={styles.forYouLabel}>✨ FOR YOU</Text>
+            <Text style={styles.forYouText}>{getCaregiverMessage()}</Text>
+            <View style={styles.forYouButtons}>
+              <TouchableOpacity style={styles.forYouButton}>
+                <Text style={styles.forYouButtonText}>Log how you're feeling</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.forYouButton}>
+                <Text style={styles.forYouButtonText}>Request help</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* 6. Quick Reference */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>QUICK REFERENCE</Text>
+            <View style={styles.quickRefRow}>
+              <TouchableOpacity
+                style={styles.quickRefButton}
+                onPress={() => router.push('/medications')}
+              >
+                <Text style={styles.quickRefIcon}>💊</Text>
+                <Text style={styles.quickRefLabel}>Medications</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickRefButton}
+                onPress={() => router.push('/settings')}
+              >
+                <Text style={styles.quickRefIcon}>📞</Text>
+                <Text style={styles.quickRefLabel}>Contacts</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickRefButton}
+                onPress={() => router.push('/care-summary-export')}
+              >
+                <Text style={styles.quickRefIcon}>📊</Text>
+                <Text style={styles.quickRefLabel}>History</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -395,324 +343,205 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     padding: 20,
     paddingTop: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(20, 184, 166, 0.15)',
   },
+  headerLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    color: '#14B8A6',
+    marginBottom: 8,
+  },
   title: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '300',
     color: '#FFFFFF',
     marginBottom: 4,
   },
-  subtitle: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.4)',
-  },
-  settingsButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  settingsIcon: {
-    fontSize: 20,
+  timestamp: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.35)',
   },
   content: {
     flex: 1,
     padding: 18,
   },
 
-  // Section
-  section: {
+  // Narrative Summary
+  narrativeCard: {
+    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 18,
+  },
+  narrativeText: {
+    fontSize: 14,
+    lineHeight: 23.8,
+    color: '#FFFFFF',
+  },
+
+  // Pattern Alert
+  patternAlert: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 18,
+    gap: 12,
+  },
+  patternIcon: {
+    fontSize: 20,
+  },
+  patternContent: {
+    flex: 1,
+  },
+  patternTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#F59E0B',
+    marginBottom: 4,
+  },
+  patternText: {
+    fontSize: 13,
+    lineHeight: 19.5,
+    color: 'rgba(255, 255, 255, 0.85)',
+  },
+
+  // Suggested Approach
+  approachSection: {
     marginBottom: 20,
   },
-  sectionTitle: {
+  sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 1,
     color: 'rgba(255, 255, 255, 0.4)',
     marginBottom: 10,
   },
-
-  // Alert Card
-  alertCard: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 14,
+  approachContent: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#14B8A6',
+    paddingLeft: 14,
   },
-  alertCritical: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-  },
-  alertWarning: {
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-  },
-  alertHeader: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  alertIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  alertIcon: {
-    fontSize: 18,
-  },
-  alertContent: {
-    flex: 1,
-  },
-  alertTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#F59E0B',
-    marginBottom: 4,
-  },
-  alertTitleCritical: {
-    color: '#EF4444',
-  },
-  alertMessage: {
+  approachText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.75)',
-    lineHeight: 18,
-  },
-  alertActions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-  },
-  alertButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  alertButtonCritical: {
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-  },
-  alertButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#F59E0B',
-  },
-  alertButtonTextCritical: {
-    color: '#EF4444',
-  },
-  alertDismiss: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 8,
-  },
-  alertDismissText: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
+    lineHeight: 22.1,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
 
-  // Snapshot Card
-  snapshotCard: {
-    backgroundColor: 'rgba(13, 148, 136, 0.06)',
+  // Coming Up
+  section: {
+    marginBottom: 20,
+  },
+  appointmentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(13, 148, 136, 0.08)',
     borderWidth: 1,
     borderColor: 'rgba(20, 184, 166, 0.15)',
-    borderRadius: 14,
-    padding: 16,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 8,
     gap: 12,
-    marginBottom: 14,
   },
-  statusIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderWidth: 2,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+  apptIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statusIconComplete: {
-    borderColor: '#10B981',
+  apptIcon: {
+    fontSize: 20,
   },
-  statusIconText: {
-    fontSize: 18,
-    color: '#10B981',
-    fontWeight: '600',
-  },
-  statusInfo: {
+  apptContent: {
     flex: 1,
   },
-  statusValue: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#10B981',
-  },
-  statusLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
-  },
-  nextDose: {
-    alignItems: 'flex-end',
-  },
-  nextDoseLabel: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
-  },
-  nextDoseTime: {
+  apptTitle: {
     fontSize: 14,
     fontWeight: '500',
     color: '#FFFFFF',
-  },
-  quickStats: {
-    flexDirection: 'row',
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(20, 184, 166, 0.15)',
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
     marginBottom: 2,
   },
-  statLabel: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.4)',
+  apptDetail: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
   },
-  statDivider: {
-    width: 1,
-    backgroundColor: 'rgba(20, 184, 166, 0.15)',
-  },
-
-  // Insight Cards
-  insightCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  insightPositive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-  },
-  insightWarning: {
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.25)',
-  },
-  insightInfo: {
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.25)',
-  },
-  insightIcon: {
-    fontSize: 16,
-  },
-  insightText: {
-    flex: 1,
+  emptyText: {
     fontSize: 13,
-    color: '#FFFFFF',
-    lineHeight: 18,
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontStyle: 'italic',
   },
 
-  // Quick Actions
-  quickActions: {
+  // For You
+  forYouSection: {
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 20,
+  },
+  forYouLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    color: '#A78BFA',
+    marginBottom: 10,
+  },
+  forYouText: {
+    fontSize: 13,
+    lineHeight: 22.1,
+    color: 'rgba(255, 255, 255, 0.85)',
+    marginBottom: 14,
+  },
+  forYouButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  forYouButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.4)',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  forYouButtonText: {
+    fontSize: 12,
+    color: '#A78BFA',
+    fontWeight: '500',
+  },
+
+  // Quick Reference
+  quickRefRow: {
     flexDirection: 'row',
     gap: 10,
   },
-  quickActionButton: {
+  quickRefButton: {
     flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    backgroundColor: 'rgba(13, 148, 136, 0.06)',
+    backgroundColor: 'rgba(13, 148, 136, 0.08)',
     borderWidth: 1,
     borderColor: 'rgba(20, 184, 166, 0.15)',
     borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
-  quickActionIcon: {
-    fontSize: 22,
+  quickRefIcon: {
+    fontSize: 24,
   },
-  quickActionLabel: {
+  quickRefLabel: {
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.7)',
-  },
-
-  // Weekly Summary
-  weeklyCard: {
-    backgroundColor: 'rgba(13, 148, 136, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
-    borderRadius: 12,
-    padding: 14,
-  },
-  weeklyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  weeklyLabel: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  weeklyPercent: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#10B981',
-  },
-  weeklyChart: {
-    flexDirection: 'row',
-    gap: 4,
-    height: 32,
-    alignItems: 'flex-end',
-  },
-  weeklyBar: {
-    flex: 1,
-    borderRadius: 3,
-    opacity: 0.8,
-  },
-  weeklyDays: {
-    flexDirection: 'row',
-    marginTop: 6,
-  },
-  weeklyDay: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 9,
-    color: 'rgba(255, 255, 255, 0.4)',
   },
 });
