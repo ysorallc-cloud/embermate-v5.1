@@ -21,6 +21,7 @@ export interface Appointment {
   completed: boolean;
   cancelled: boolean;
   createdAt: string;
+  reminderEnabled?: boolean;
 }
 
 const APPOINTMENTS_KEY = '@embermate_appointments';

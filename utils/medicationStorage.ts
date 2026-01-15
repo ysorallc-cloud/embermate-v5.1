@@ -19,7 +19,7 @@ export interface Medication {
   active: boolean;
   createdAt: string;
   lastTaken?: string;
-  
+
   // Refill tracking
   pillsRemaining?: number;
   daysSupply?: number;
@@ -27,6 +27,9 @@ export interface Medication {
   autoRefill?: boolean;
   pharmacyName?: string;
   prescriptionNumber?: string;
+
+  // Reminder settings
+  reminderEnabled?: boolean;
 }
 
 export interface InteractionWarning {

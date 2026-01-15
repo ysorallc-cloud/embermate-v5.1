@@ -4,7 +4,7 @@
 // BP, HR, O2, glucose, temp, weight
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   TextInput,
   Platform,
   Alert,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,6 +38,7 @@ interface VitalLog {
 }
 
 const VITALS_KEY = '@EmberMate:vitals';
+const VITALS_REMINDER_KEY = '@EmberMate:vitals_reminder_enabled';
 
 export default function VitalsLogScreen() {
   const router = useRouter();
@@ -49,6 +51,31 @@ export default function VitalsLogScreen() {
   const [temperature, setTemperature] = useState('');
   const [weight, setWeight] = useState('');
   const [notes, setNotes] = useState('');
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+
+  useEffect(() => {
+    loadReminderSetting();
+  }, []);
+
+  const loadReminderSetting = async () => {
+    try {
+      const saved = await AsyncStorage.getItem(VITALS_REMINDER_KEY);
+      if (saved !== null) {
+        setReminderEnabled(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Error loading reminder setting:', error);
+    }
+  };
+
+  const handleReminderToggle = async (value: boolean) => {
+    try {
+      setReminderEnabled(value);
+      await AsyncStorage.setItem(VITALS_REMINDER_KEY, JSON.stringify(value));
+    } catch (error) {
+      console.error('Error saving reminder setting:', error);
+    }
+  };
 
   const handleSave = async () => {
     // Check if at least one vital is entered
@@ -267,6 +294,24 @@ export default function VitalsLogScreen() {
             />
           </View>
 
+          {/* Daily Reminder Toggle */}
+          <View style={styles.formGroup}>
+            <View style={styles.reminderRow}>
+              <View style={styles.reminderInfo}>
+                <Text style={styles.label}>Daily Vitals Reminder</Text>
+                <Text style={styles.helpText}>
+                  Remind me to log vitals each morning at 9:00 AM
+                </Text>
+              </View>
+              <Switch
+                value={reminderEnabled}
+                onValueChange={handleReminderToggle}
+                trackColor={{ false: Colors.textMuted, true: Colors.accent }}
+                thumbColor={Colors.surface}
+              />
+            </View>
+          </View>
+
           {/* Clear Button */}
           <TouchableOpacity style={styles.clearButton} onPress={handleClear}>
             <Text style={styles.clearButtonText}>Clear All</Text>
@@ -427,5 +472,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textSecondary,
     fontWeight: '500',
+  },
+
+  // Reminder Toggle
+  reminderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
+  },
+  reminderInfo: {
+    flex: 1,
+    marginRight: Spacing.md,
   },
 });

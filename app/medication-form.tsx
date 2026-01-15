@@ -14,6 +14,7 @@ import {
   TextInput,
   Platform,
   Alert,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -93,6 +94,7 @@ export default function MedicationFormScreen() {
   const [customTimeDisplay, setCustomTimeDisplay] = useState('8:00 AM');
   const [notes, setNotes] = useState('');
   const [daysSupply, setDaysSupply] = useState('30');
+  const [reminderEnabled, setReminderEnabled] = useState(true);
   const [showMedSuggestions, setShowMedSuggestions] = useState(false);
   const [showDosageSuggestions, setShowDosageSuggestions] = useState(false);
   const [medSuggestions, setMedSuggestions] = useState<typeof COMMON_MEDICATIONS>([]);
@@ -117,7 +119,8 @@ export default function MedicationFormScreen() {
         setCustomTimeDisplay(displayTime);
         setNotes(med.notes || '');
         setDaysSupply(med.daysSupply?.toString() || '30');
-        
+        setReminderEnabled(med.reminderEnabled !== false); // Default to true
+
         // Determine time slot from time
         const timeSlot = TIME_SLOTS.find(slot => slot.defaultTime === med.time);
         if (timeSlot) {
@@ -224,19 +227,20 @@ export default function MedicationFormScreen() {
     }
 
     try {
-      const medData: Partial<Medication> = {
+      const medData: Omit<Medication, 'id' | 'createdAt'> = {
         name: name.trim(),
         dosage: dosage.trim(),
         time: customTime,
         timeSlot: selectedTimeSlot,
         notes: notes.trim(),
         daysSupply: parseInt(daysSupply) || 30,
+        reminderEnabled: reminderEnabled,
         active: true,
         taken: false,
       };
 
       if (isEditing && medId) {
-        await updateMedication(medId, medData);
+        await updateMedication(medId, medData as Partial<Medication>);
       } else {
         await createMedication(medData);
       }
@@ -404,6 +408,24 @@ export default function MedicationFormScreen() {
             <Text style={styles.helpText}>
               Alerts when supply drops below 7 days
             </Text>
+          </View>
+
+          {/* Reminder Toggle */}
+          <View style={styles.formGroup}>
+            <View style={styles.reminderRow}>
+              <View style={styles.reminderInfo}>
+                <Text style={styles.label}>Daily Reminder</Text>
+                <Text style={styles.helpText}>
+                  Send notification at scheduled time
+                </Text>
+              </View>
+              <Switch
+                value={reminderEnabled}
+                onValueChange={setReminderEnabled}
+                trackColor={{ false: Colors.textMuted, true: Colors.accent }}
+                thumbColor={Colors.surface}
+              />
+            </View>
           </View>
 
           {/* Notes */}
@@ -587,5 +609,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textMuted,
     marginTop: 2,
+  },
+
+  // Reminder Toggle
+  reminderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
+  },
+  reminderInfo: {
+    flex: 1,
+    marginRight: Spacing.md,
   },
 });

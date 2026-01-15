@@ -14,6 +14,7 @@ import {
   TextInput,
   Platform,
   Alert,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -50,6 +51,7 @@ export default function AppointmentFormScreen() {
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [showNotesInput, setShowNotesInput] = useState(false);
+  const [reminderEnabled, setReminderEnabled] = useState(true);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -96,6 +98,7 @@ export default function AppointmentFormScreen() {
         setProvider(appt.provider);
         setLocation(appt.location);
         setNotes(appt.notes || '');
+        setReminderEnabled(appt.reminderEnabled !== false); // Default to true
 
         // Determine appointment type from specialty
         const specialtyLower = appt.specialty.toLowerCase();
@@ -200,6 +203,7 @@ export default function AppointmentFormScreen() {
           specialty: typeLabel,
           location: location.trim() || 'Not specified',
           notes: notes.trim(),
+          reminderEnabled: reminderEnabled,
           completed: false,
           cancelled: false,
         };
@@ -215,6 +219,7 @@ export default function AppointmentFormScreen() {
           specialty: typeLabel,
           location: location.trim() || 'Not specified',
           notes: notes.trim(),
+          reminderEnabled: reminderEnabled,
           hasBrief: false,
           completed: false,
           cancelled: false,
@@ -368,6 +373,24 @@ export default function AppointmentFormScreen() {
                 spellCheck={false}
                 textContentType="none"
               />
+            </View>
+
+            {/* Reminder Toggle */}
+            <View style={styles.inputSection}>
+              <View style={styles.reminderRow}>
+                <View style={styles.reminderInfo}>
+                  <Text style={styles.fieldLabel}>APPOINTMENT REMINDER</Text>
+                  <Text style={styles.reminderHelpText}>
+                    Notify 1 day before and 1 hour before
+                  </Text>
+                </View>
+                <Switch
+                  value={reminderEnabled}
+                  onValueChange={setReminderEnabled}
+                  trackColor={{ false: Colors.textMuted, true: Colors.accent }}
+                  thumbColor={Colors.surface}
+                />
+              </View>
             </View>
           </View>
 
@@ -618,5 +641,26 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     minHeight: 80,
     textAlignVertical: 'top',
+  },
+
+  // Reminder Toggle
+  reminderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: 16,
+  },
+  reminderInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  reminderHelpText: {
+    fontSize: 12,
+    color: Colors.textTertiary,
+    marginTop: 4,
   },
 });

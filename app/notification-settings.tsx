@@ -185,6 +185,8 @@ export default function NotificationSettingsScreen() {
 
           {/* Main Toggle */}
           <View style={styles.section}>
+            <Text style={styles.sectionLabel}>REMINDER TYPES</Text>
+
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>Medication Reminders</Text>
@@ -199,6 +201,48 @@ export default function NotificationSettingsScreen() {
                 trackColor={{ false: Colors.textMuted, true: Colors.accent }}
                 thumbColor={Colors.surface}
               />
+            </View>
+
+            <View style={styles.infoNote}>
+              <Text style={styles.infoNoteText}>
+                💊 Configure individual medication reminders in the medication form
+              </Text>
+            </View>
+          </View>
+
+          {/* Appointment Reminders */}
+          <View style={styles.section}>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingLabel}>Appointment Reminders</Text>
+                <Text style={styles.settingDescription}>
+                  Notifications 1 day before and 1 hour before appointments
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.infoNote}>
+              <Text style={styles.infoNoteText}>
+                📅 Configure individual appointment reminders in the appointment form
+              </Text>
+            </View>
+          </View>
+
+          {/* Vitals Reminders */}
+          <View style={styles.section}>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingLabel}>Vitals Reminders</Text>
+                <Text style={styles.settingDescription}>
+                  Daily reminder to log vitals at 9:00 AM
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.infoNote}>
+              <Text style={styles.infoNoteText}>
+                ❤️ Configure vitals reminders in the vitals log screen
+              </Text>
             </View>
           </View>
 
@@ -299,10 +343,6 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   headerLabel: { fontSize: 11, color: Colors.textMuted, letterSpacing: 1, fontWeight: '600' },
-  backIcon: {
-    fontSize: 24,
-    color: Colors.textPrimary,
-  },
   placeholder: { width: 40 },
   title: { fontSize: 28, fontWeight: '300', color: Colors.textPrimary, marginBottom: Spacing.xl },
   warningCard: {
@@ -365,4 +405,16 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   infoText: { flex: 1, fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
+  infoNote: {
+    backgroundColor: 'rgba(139, 168, 136, 0.08)',
+    borderRadius: BorderRadius.sm,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  infoNoteText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
 });
