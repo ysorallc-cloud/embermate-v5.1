@@ -64,13 +64,120 @@ export default function CareHubScreen() {
   // Derived values
   const completedCount = medications.filter(m => m?.taken).length;
   const totalCount = medications.length;
-  const adherencePercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const adherencePercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 100;
 
-  // These should eventually come from actual tracking data
-  const streakDays = 7; // TODO: Calculate from getMedicationLogs()
-  const trendPercent = 23; // TODO: Calculate this week vs last week
-  const latestBP = '120/78'; // TODO: Get from vitals storage
-  const currentMood = dailyTracking?.mood || '😊';
+  // Convert mood number to emoji
+  const getMoodEmoji = (moodValue: number | null | undefined): string => {
+    if (moodValue === null || moodValue === undefined) return '—';
+    if (moodValue >= 7) return '😊';
+    if (moodValue >= 5) return '😐';
+    if (moodValue >= 3) return '😔';
+    if (moodValue >= 2) return '🤒';
+    return '😴';
+  };
+
+  const currentMood = getMoodEmoji(dailyTracking?.mood);
+
+  // Calculate streak from medication logs
+  const calculateStreak = async () => {
+    try {
+      const logs = await getMedicationLogs();
+
+      if (!logs || logs.length === 0) return 0;
+
+      // Sort logs by date descending
+      const sortedLogs = logs.sort((a, b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
+      let streak = 0;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      for (let i = 0; i < 30; i++) { // Check last 30 days max
+        const checkDate = new Date(today);
+        checkDate.setDate(checkDate.getDate() - i);
+        const dateStr = checkDate.toISOString().split('T')[0];
+
+        // Find logs for this date
+        const dayLogs = sortedLogs.filter(log =>
+          log.date && log.date.startsWith(dateStr)
+        );
+
+        // Check if all meds were taken that day
+        const medsForDay = medications.filter(m => m.active);
+        const allTaken = medsForDay.every(med =>
+          dayLogs.some(log => log.medicationId === med.id && log.taken)
+        );
+
+        if (allTaken && medsForDay.length > 0) {
+          streak++;
+        } else if (i > 0) { // Don't break on today if incomplete
+          break;
+        }
+      }
+
+      return streak;
+    } catch (e) {
+      console.error('Error calculating streak:', e);
+      return 0;
+    }
+  };
+
+  // Calculate weekly adherence (last 7 days)
+  const calculateWeeklyAdherence = async () => {
+    try {
+      const logs = await getMedicationLogs();
+
+      if (!logs || logs.length === 0 || medications.length === 0) return 100;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let totalExpected = 0;
+      let totalTaken = 0;
+
+      for (let i = 0; i < 7; i++) {
+        const checkDate = new Date(today);
+        checkDate.setDate(checkDate.getDate() - i);
+        const dateStr = checkDate.toISOString().split('T')[0];
+
+        // Find logs for this date
+        const dayLogs = logs.filter(log => log.date && log.date.startsWith(dateStr));
+
+        // Count expected and taken for active medications
+        const activeMeds = medications.filter(m => m.active);
+        totalExpected += activeMeds.length;
+        totalTaken += activeMeds.filter(med =>
+          dayLogs.some(log => log.medicationId === med.id && log.taken)
+        ).length;
+      }
+
+      return totalExpected > 0 ? Math.round((totalTaken / totalExpected) * 100) : 100;
+    } catch (e) {
+      console.error('Error calculating weekly adherence:', e);
+      return 100;
+    }
+  };
+
+  // State for calculated values
+  const [streakDays, setStreakDays] = React.useState(0);
+  const [trendPercent, setTrendPercent] = React.useState(adherencePercent);
+  const latestBP = '—'; // TODO: Get from vitals storage
+
+  // Calculate streak and trend on data load
+  React.useEffect(() => {
+    const calculateValues = async () => {
+      const streak = await calculateStreak();
+      const weeklyAdherence = await calculateWeeklyAdherence();
+      setStreakDays(streak);
+      setTrendPercent(weeklyAdherence);
+    };
+
+    if (medications.length > 0) {
+      calculateValues();
+    }
+  }, [medications]);
 
   const getActionItems = () => {
     const items = [];
@@ -143,6 +250,8 @@ export default function CareHubScreen() {
       text += 'All meds taken today. ';
     } else if (takenCount > 0) {
       text += `${takenCount} of ${totalCount} meds taken. `;
+    } else if (totalCount > 0) {
+      text += `No meds taken yet (${totalCount} pending). `;
     }
 
     // Appointment status
@@ -153,11 +262,30 @@ export default function CareHubScreen() {
 
     if (todayAppt) {
       text += `${todayAppt.provider} at ${todayAppt.time || '—'}. `;
+    } else {
+      const upcomingAppt = appointments[0]; // Already sorted by date
+      if (upcomingAppt?.date) {
+        const apptDate = new Date(upcomingAppt.date);
+        const daysUntil = Math.ceil((apptDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        if (daysUntil >= 0 && daysUntil <= 7) {
+          text += `Next: ${upcomingAppt.provider} in ${daysUntil} day${daysUntil === 1 ? '' : 's'}. `;
+        }
+      }
     }
 
     // Mood if available
-    if (currentMood) {
-      text += "Mom's mood is good.";
+    if (currentMood && currentMood !== '—') {
+      const moodText = currentMood === '😊' ? 'good' :
+                       currentMood === '😐' ? 'okay' :
+                       currentMood === '😔' ? 'low' :
+                       currentMood === '🤒' ? 'unwell' :
+                       currentMood === '😴' ? 'tired' : 'recorded';
+      text += `Mood today: ${moodText}. `;
+    }
+
+    // Streak mention if significant
+    if (streakDays >= 3) {
+      text += `${streakDays} day adherence streak! `;
     }
 
     return text.trim() || 'No updates today.';
@@ -183,7 +311,7 @@ export default function CareHubScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Care Hub 🌱</Text>
-            <Text style={styles.dateSubtitle}>This Week • {adherencePercent}% adherence</Text>
+            <Text style={styles.dateSubtitle}>This Week • {trendPercent}% adherence</Text>
           </View>
           <TouchableOpacity style={styles.settingsButton} onPress={() => router.push('/settings')}>
             <Text style={styles.settingsIcon}>⚙️</Text>

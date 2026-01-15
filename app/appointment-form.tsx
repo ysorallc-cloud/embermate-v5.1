@@ -21,7 +21,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from './_theme/theme-tokens';
 import {
-  addAppointment,
+  createAppointment,
   updateAppointment,
   getAppointments,
   Appointment
@@ -45,6 +45,7 @@ export default function AppointmentFormScreen() {
   const [date, setDate] = useState(new Date());
   const [time, setTime] = useState(new Date());
   const [appointmentType, setAppointmentType] = useState<AppointmentType>('doctor');
+  const [title, setTitle] = useState('');
   const [provider, setProvider] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
@@ -91,6 +92,7 @@ export default function AppointmentFormScreen() {
         appointmentTime.setHours(hours, minutes, 0, 0);
         setTime(appointmentTime);
 
+        setTitle(appt.title || '');
         setProvider(appt.provider);
         setLocation(appt.location);
         setNotes(appt.notes || '');
@@ -189,22 +191,36 @@ export default function AppointmentFormScreen() {
     try {
       const typeLabel = APPOINTMENT_TYPES.find(t => t.id === appointmentType)?.label || 'Doctor';
 
-      const apptData: Partial<Appointment> = {
-        date: formatDateForStorage(date),
-        time: formatTimeForStorage(time),
-        provider: provider.trim(),
-        specialty: typeLabel,
-        location: location.trim() || 'Not specified',
-        notes: notes.trim(),
-        completed: false,
-        cancelled: false,
-      };
-
       if (isEditing && apptId) {
+        const apptData: Partial<Appointment> = {
+          title: title.trim() || undefined,
+          date: formatDateForStorage(date),
+          time: formatTimeForStorage(time),
+          provider: provider.trim(),
+          specialty: typeLabel,
+          location: location.trim() || 'Not specified',
+          notes: notes.trim(),
+          completed: false,
+          cancelled: false,
+        };
+
         await updateAppointment(apptId, apptData);
         router.back();
       } else {
-        await addAppointment(apptData as Omit<Appointment, 'id'>);
+        const apptData: Omit<Appointment, 'id' | 'createdAt'> = {
+          title: title.trim() || undefined,
+          date: formatDateForStorage(date),
+          time: formatTimeForStorage(time),
+          provider: provider.trim(),
+          specialty: typeLabel,
+          location: location.trim() || 'Not specified',
+          notes: notes.trim(),
+          hasBrief: false,
+          completed: false,
+          cancelled: false,
+        };
+
+        await createAppointment(apptData);
         // Navigate to confirmation screen with appointment details
         router.replace({
           pathname: '/appointment-confirmation' as any,
@@ -220,7 +236,7 @@ export default function AppointmentFormScreen() {
       }
     } catch (error) {
       console.error('Error saving appointment:', error);
-      Alert.alert('Error', 'Failed to save appointment');
+      Alert.alert('Error', 'Failed to save appointment. Please try again.');
     }
   };
 
@@ -306,6 +322,22 @@ export default function AppointmentFormScreen() {
 
             <View style={styles.divider} />
 
+            {/* Title (Optional) */}
+            <View style={styles.inputSection}>
+              <Text style={styles.fieldLabel}>TITLE (OPTIONAL)</Text>
+              <TextInput
+                style={styles.input}
+                value={title}
+                onChangeText={setTitle}
+                placeholder="e.g., Annual Checkup, Follow-up Visit"
+                placeholderTextColor={Colors.textMuted}
+                autoCapitalize="words"
+                autoCorrect={false}
+                spellCheck={false}
+                textContentType="none"
+              />
+            </View>
+
             {/* Provider Name */}
             <View style={styles.inputSection}>
               <Text style={styles.fieldLabel}>PROVIDER NAME *</Text>
@@ -316,6 +348,9 @@ export default function AppointmentFormScreen() {
                 placeholder="e.g., Dr. Sarah Johnson"
                 placeholderTextColor={Colors.textMuted}
                 autoCapitalize="words"
+                autoCorrect={false}
+                spellCheck={false}
+                textContentType="none"
               />
             </View>
 
@@ -329,6 +364,9 @@ export default function AppointmentFormScreen() {
                 placeholder="e.g., Medical Center Downtown"
                 placeholderTextColor={Colors.textMuted}
                 autoCapitalize="words"
+                autoCorrect={false}
+                spellCheck={false}
+                textContentType="none"
               />
             </View>
           </View>
@@ -352,6 +390,10 @@ export default function AppointmentFormScreen() {
                 placeholderTextColor={Colors.textMuted}
                 multiline
                 numberOfLines={3}
+                autoCorrect={false}
+                spellCheck={false}
+                textContentType="none"
+                textAlignVertical="top"
               />
             </View>
           )}

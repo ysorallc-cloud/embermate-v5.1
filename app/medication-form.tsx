@@ -131,10 +131,11 @@ export default function MedicationFormScreen() {
 
   const handleMedicationNameChange = (text: string) => {
     setName(text);
-    
-    if (text.length > 1) {
-      const matches = COMMON_MEDICATIONS.filter(med => 
-        med.name.toLowerCase().startsWith(text.toLowerCase())
+
+    if (text.length >= 1) {
+      // Show medications that start with the text OR contain the text
+      const matches = COMMON_MEDICATIONS.filter(med =>
+        med.name.toLowerCase().includes(text.toLowerCase())
       );
       setMedSuggestions(matches);
       setShowMedSuggestions(matches.length > 0);
@@ -276,17 +277,33 @@ export default function MedicationFormScreen() {
               style={styles.input}
               value={name}
               onChangeText={handleMedicationNameChange}
+              onFocus={() => {
+                // Show suggestions if there's already text
+                if (name.length >= 1) {
+                  const matches = COMMON_MEDICATIONS.filter(med =>
+                    med.name.toLowerCase().includes(name.toLowerCase())
+                  );
+                  setMedSuggestions(matches);
+                  setShowMedSuggestions(matches.length > 0);
+                }
+              }}
               placeholder="e.g., Lisinopril"
               placeholderTextColor={Colors.textMuted}
               autoCapitalize="words"
+              autoCorrect={false}
             />
-            {showMedSuggestions && (
-              <View style={styles.suggestionsContainer}>
-                {medSuggestions.map((med, idx) => (
+            {showMedSuggestions && medSuggestions.length > 0 && (
+              <ScrollView
+                style={styles.suggestionsContainer}
+                nestedScrollEnabled={true}
+                keyboardShouldPersistTaps="handled"
+              >
+                {medSuggestions.slice(0, 8).map((med, idx) => (
                   <TouchableOpacity
                     key={idx}
                     style={styles.suggestionItem}
                     onPress={() => handleSelectMedication(med)}
+                    activeOpacity={0.7}
                   >
                     <Text style={styles.suggestionText}>{med.name}</Text>
                     <Text style={styles.suggestionSubtext}>
@@ -294,7 +311,7 @@ export default function MedicationFormScreen() {
                     </Text>
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
             )}
           </View>
 
@@ -307,19 +324,25 @@ export default function MedicationFormScreen() {
               onChangeText={handleDosageChange}
               placeholder="e.g., 10mg"
               placeholderTextColor={Colors.textMuted}
+              autoCorrect={false}
             />
             {showDosageSuggestions && dosageSuggestions.length > 0 && (
-              <View style={styles.suggestionsContainer}>
+              <ScrollView
+                style={styles.suggestionsContainer}
+                nestedScrollEnabled={true}
+                keyboardShouldPersistTaps="handled"
+              >
                 {dosageSuggestions.map((dose, idx) => (
                   <TouchableOpacity
                     key={idx}
                     style={styles.suggestionItem}
                     onPress={() => handleSelectDosage(dose)}
+                    activeOpacity={0.7}
                   >
                     <Text style={styles.suggestionText}>{dose}</Text>
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
             )}
           </View>
 
@@ -464,6 +487,8 @@ const styles = StyleSheet.create({
   // Form
   formGroup: {
     marginBottom: Spacing.xl,
+    position: 'relative',
+    zIndex: 1,
   },
   label: {
     fontSize: 13,
@@ -531,19 +556,22 @@ const styles = StyleSheet.create({
   
   // SUGGESTION DROPDOWNS
   suggestionsContainer: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
     marginTop: 4,
     backgroundColor: '#0d332e',
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: BorderRadius.md,
     maxHeight: 200,
-    overflow: 'scroll',
     zIndex: 1000,
-    elevation: 5,
+    elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   suggestionItem: {
     padding: Spacing.md,

@@ -10,6 +10,7 @@ import { generateUniqueId } from './idGenerator';
 
 export interface Appointment {
   id: string;
+  title?: string;
   provider: string;
   specialty: string;
   date: string; // ISO date string

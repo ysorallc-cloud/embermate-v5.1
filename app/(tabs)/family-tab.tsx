@@ -52,9 +52,12 @@ export default function FamilyTabScreen() {
     setRefreshing(false);
   };
 
-  const activeCount = caregivers.filter(c => 
+  const activeCount = caregivers.filter(c =>
     c.lastActive && new Date(c.lastActive).getTime() > Date.now() - 24 * 60 * 60 * 1000
   ).length + 1; // +1 for current user
+
+  // Simplify UI when no other caregivers
+  const hasOtherCaregivers = caregivers.length > 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -66,7 +69,7 @@ export default function FamilyTabScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Care Circle 🧶</Text>
-            <Text style={styles.dateSubtitle}>{activeCount} active members</Text>
+            <Text style={styles.dateSubtitle}>{activeCount} active member{activeCount !== 1 ? 's' : ''}</Text>
           </View>
         </View>
 
@@ -81,29 +84,35 @@ export default function FamilyTabScreen() {
             />
           }
         >
-          {/* Support Message */}
-          <View style={styles.supportMessage}>
-            <Text style={styles.supportText}>
-              Caregiving is a shared journey. Your team is here with you.
-            </Text>
-          </View>
+          {/* Support Message - only show if there are other caregivers */}
+          {hasOtherCaregivers && (
+            <View style={styles.supportMessage}>
+              <Text style={styles.supportText}>
+                Caregiving is a shared journey. Your team is here with you.
+              </Text>
+            </View>
+          )}
 
-          {/* Primary Caregiver */}
-          <Text style={styles.sectionLabel}>PRIMARY CAREGIVER</Text>
-          <TouchableOpacity 
-            style={[styles.memberCard, styles.memberCardPrimary]}
-            onPress={() => router.push('/settings')}
-          >
-            <View style={[styles.memberAvatar, styles.avatarPrimary]}>
-              <Text style={styles.avatarIcon}>👤</Text>
-            </View>
-            <View style={styles.memberInfo}>
-              <Text style={styles.memberName}>You (Amber)</Text>
-              <Text style={styles.memberRole}>Primary Caregiver</Text>
-              <Text style={styles.memberStatus}>Active now</Text>
-            </View>
-            <Text style={styles.memberBadge}>⭐</Text>
-          </TouchableOpacity>
+          {/* Primary Caregiver - only show if there are other caregivers */}
+          {hasOtherCaregivers && (
+            <>
+              <Text style={styles.sectionLabel}>PRIMARY CAREGIVER</Text>
+              <TouchableOpacity
+                style={[styles.memberCard, styles.memberCardPrimary]}
+                onPress={() => router.push('/settings')}
+              >
+                <View style={[styles.memberAvatar, styles.avatarPrimary]}>
+                  <Text style={styles.avatarIcon}>👤</Text>
+                </View>
+                <View style={styles.memberInfo}>
+                  <Text style={styles.memberName}>You (Amber)</Text>
+                  <Text style={styles.memberRole}>Primary Caregiver</Text>
+                  <Text style={styles.memberStatus}>Active now</Text>
+                </View>
+                <Text style={styles.memberBadge}>⭐</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
           {/* Quick Actions */}
           <Text style={styles.sectionLabel}>QUICK ACTIONS</Text>
@@ -178,9 +187,9 @@ export default function FamilyTabScreen() {
             <Text style={styles.inviteText}>
               Invite family members or healthcare providers to help coordinate Mom's care.
             </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.inviteButton}
-              onPress={() => router.push('/caregiver-management')}
+              onPress={() => router.push('/family-sharing')}
             >
               <Text style={styles.inviteButtonText}>+ Invite Member</Text>
             </TouchableOpacity>
