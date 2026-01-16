@@ -1,12 +1,38 @@
 // ============================================================================
-// TAB LAYOUT - 3 Tabs (Today, Hub, Family)
-// Aurora redesign with glassmorphic tab bar
+// TAB LAYOUT - 4 Tabs (Today, Log, Hub, Care Team)
+// V3 with expanded navigation
 // ============================================================================
 
 import { Tabs } from 'expo-router';
-import { Text, Platform } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Colors } from '../_theme/theme-tokens';
+
+const TabIcon = ({ icon, focused }: { icon: string; focused: boolean }) => (
+  <View style={{ alignItems: 'center' }}>
+    <Text style={{
+      fontSize: 24,
+      opacity: focused ? 1 : 0.5,
+      transform: [{ scale: focused ? 1.1 : 1 }],
+      ...(focused && Platform.OS === 'ios' && {
+        textShadowColor: Colors.accentGlow,
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 12,
+      }),
+    }}>
+      {icon}
+    </Text>
+    {focused && (
+      <View style={{
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: Colors.accent,
+        marginTop: 4,
+      }} />
+    )}
+  </View>
+);
 
 export default function TabLayout() {
   return (
@@ -14,12 +40,12 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Platform.OS === 'ios' ? 'transparent' : Colors.tabBarBackground,
-          borderTopColor: Colors.borderLight,
+          backgroundColor: Platform.OS === 'ios' ? 'transparent' : 'rgba(4, 15, 14, 0.95)',
+          borderTopColor: Colors.glassBorder,
           borderTopWidth: 1,
-          height: 88,
-          paddingBottom: 34,
           paddingTop: 8,
+          paddingBottom: 28,
+          height: 80,
           position: 'absolute',
         },
         tabBarBackground: () => (
@@ -31,69 +57,52 @@ export default function TabLayout() {
             />
           ) : null
         ),
-        tabBarActiveTintColor: Colors.tabBarActive,
-        tabBarInactiveTintColor: Colors.tabBarInactive,
+        tabBarActiveTintColor: Colors.accent,
+        tabBarInactiveTintColor: Colors.textMuted,
         tabBarLabelStyle: {
           fontSize: 10,
-          fontWeight: '600',
+          fontWeight: '500',
         },
       }}
     >
       <Tabs.Screen
         name="today"
         options={{
-          title: 'TODAY',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{
-              fontSize: 24,
-              opacity: focused ? 1 : 0.5,
-              ...(focused && {
-                textShadowColor: Colors.accentGlow,
-                textShadowOffset: { width: 0, height: 0 },
-                textShadowRadius: 12,
-              }),
-            }}>☕</Text>
-          ),
+          title: 'Today',
+          tabBarIcon: ({ focused }) => <TabIcon icon="☀️" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="log"
+        options={{
+          title: 'Log',
+          tabBarIcon: ({ focused }) => <TabIcon icon="✏️" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="brief"
         options={{
-          title: 'HUB',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{
-              fontSize: 24,
-              opacity: focused ? 1 : 0.5,
-              ...(focused && {
-                textShadowColor: Colors.accentGlow,
-                textShadowOffset: { width: 0, height: 0 },
-                textShadowRadius: 12,
-              }),
-            }}>🌱</Text>
-          ),
+          title: 'Hub',
+          tabBarIcon: ({ focused }) => <TabIcon icon="📊" focused={focused} />,
         }}
       />
       <Tabs.Screen
-        name="family-tab"
+        name="care"
         options={{
-          title: 'FAMILY',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{
-              fontSize: 24,
-              opacity: focused ? 1 : 0.5,
-              ...(focused && {
-                textShadowColor: Colors.accentGlow,
-                textShadowOffset: { width: 0, height: 0 },
-                textShadowRadius: 12,
-              }),
-            }}>🧶</Text>
-          ),
+          title: 'Care Team',
+          tabBarIcon: ({ focused }) => <TabIcon icon="👥" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="timeline"
         options={{
-          href: null, // Hide from tab bar but keep route accessible
+          href: null, // Hidden route
+        }}
+      />
+      <Tabs.Screen
+        name="family-tab"
+        options={{
+          href: null, // Redirect old route to care
         }}
       />
     </Tabs>
