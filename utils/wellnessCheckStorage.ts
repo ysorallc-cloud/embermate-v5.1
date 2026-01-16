@@ -5,6 +5,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MorningWellnessData, EveningWellnessData } from '../types/timeline';
+import { updateStreak } from './streakStorage';
 
 const MORNING_WELLNESS_KEY = '@embermate_morning_wellness';
 const EVENING_WELLNESS_KEY = '@embermate_evening_wellness';
@@ -38,6 +39,9 @@ export const saveMorningWellness = async (
     const updated = [...filtered, record];
 
     await AsyncStorage.setItem(MORNING_WELLNESS_KEY, JSON.stringify(updated));
+
+    // Update wellness check streak
+    await updateStreak('wellnessCheck');
   } catch (error) {
     console.error('Error saving morning wellness:', error);
     throw error;
@@ -136,6 +140,9 @@ export const saveEveningWellness = async (
     const updated = [...filtered, record];
 
     await AsyncStorage.setItem(EVENING_WELLNESS_KEY, JSON.stringify(updated));
+
+    // Update wellness check streak
+    await updateStreak('wellnessCheck');
   } catch (error) {
     console.error('Error saving evening wellness:', error);
     throw error;

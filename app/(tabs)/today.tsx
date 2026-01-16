@@ -399,7 +399,7 @@ export default function TodayScreen() {
 
           {/* Timeline */}
           <View style={styles.section}>
-            <Timeline items={timelineItemsNew} tomorrowCount={tomorrowItemCount} />
+            <Timeline items={timelineItemsNew} tomorrowCount={tomorrowItemCount} onRefresh={loadData} />
           </View>
 
           {/* Quick Log */}
