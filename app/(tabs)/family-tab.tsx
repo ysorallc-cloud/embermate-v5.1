@@ -1,5 +1,5 @@
 // ============================================================================
-// FAMILY TAB - Mindful Redesign
+// FAMILY PAGE - Aurora Redesign
 // Care circle collaboration view
 // ============================================================================
 
@@ -11,23 +11,24 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Colors, Spacing, BorderRadius } from '../_theme/theme-tokens';
+import { Colors, Spacing, Typography, BorderRadius } from '../_theme/theme-tokens';
 import {
   getCaregivers,
   getCareActivities,
   CaregiverProfile,
   CareActivity,
 } from '../../utils/collaborativeCare';
-import CareCircleIcon from '../../components/CareCircleIcon';
-import { ScreenHeader } from '../../components/common/ScreenHeader';
 
-export default function FamilyTabScreen() {
+// Aurora Components
+import { AuroraBackground } from '../../components/aurora/AuroraBackground';
+import { GlassCard } from '../../components/aurora/GlassCard';
+import { SectionHeader } from '../../components/aurora/SectionHeader';
+
+export default function FamilyScreen() {
   const router = useRouter();
   const [caregivers, setCaregivers] = useState<CaregiverProfile[]>([]);
   const [activities, setActivities] = useState<CareActivity[]>([]);
@@ -42,187 +43,288 @@ export default function FamilyTabScreen() {
   const loadData = async () => {
     const team = await getCaregivers();
     setCaregivers(team);
-    
+
     const acts = await getCareActivities(100);
     setActivities(acts);
   };
 
-  const handleRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
-  };
+  }, []);
 
   const activeCount = caregivers.filter(c =>
     c.lastActive && new Date(c.lastActive).getTime() > Date.now() - 24 * 60 * 60 * 1000
   ).length + 1; // +1 for current user
 
-  // Simplify UI when no other caregivers
   const hasOtherCaregivers = caregivers.length > 0;
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
-        style={styles.gradient}
-      >
-        {/* Header */}
-        <ScreenHeader
-          label="CARE CIRCLE"
-          title="Family & Team"
-          subtitle={`${activeCount} active member${activeCount !== 1 ? 's' : ''}`}
-          rightAction={{
-            type: 'icon',
-            icon: '🔔',
-            onPress: () => router.push('/notification-settings'),
-          }}
-        />
-        <View style={styles.divider} />
+  // Quick share actions
+  const quickShareActions = [
+    {
+      icon: '✉️',
+      label: 'Send Update',
+      onPress: () => router.push('/family-sharing'),
+    },
+    {
+      icon: '📋',
+      label: 'Share Report',
+      onPress: () => router.push('/care-summary-export'),
+    },
+    {
+      icon: '📞',
+      label: 'Request Help',
+      onPress: () => router.push('/emergency'),
+    },
+  ];
 
+  return (
+    <View style={styles.container}>
+      <AuroraBackground variant="family" />
+
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView
-          style={styles.content}
-          contentContainerStyle={styles.contentContainer}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={handleRefresh}
+              onRefresh={onRefresh}
               tintColor={Colors.accent}
             />
           }
         >
-          {/* Support Message - only show if there are other caregivers */}
+          {/* Header */}
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.headerLabel}>CARE CIRCLE</Text>
+              <Text style={styles.headerTitle}>Caring together</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.notifButton}
+              onPress={() => router.push('/notification-settings')}
+            >
+              <Text style={styles.notifIcon}>🔔</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Support Message */}
           {hasOtherCaregivers && (
-            <View style={styles.supportMessage}>
+            <GlassCard style={styles.supportCard}>
               <Text style={styles.supportText}>
                 Caregiving is a shared journey. Your team is here with you.
               </Text>
+            </GlassCard>
+          )}
+
+          {/* Care Circle Visual - Simplified connection */}
+          <View style={styles.circleContainer}>
+            {/* Center - Care Recipient */}
+            <View style={styles.centerAvatar}>
+              <Text style={styles.centerAvatarText}>👵</Text>
+              <Text style={styles.centerAvatarLabel}>Mom</Text>
             </View>
-          )}
 
-          {/* Primary Caregiver - only show if there are other caregivers */}
-          {hasOtherCaregivers && (
-            <>
-              <Text style={styles.sectionLabel}>PRIMARY CAREGIVER</Text>
-              <TouchableOpacity
-                style={[styles.memberCard, styles.memberCardPrimary]}
-                onPress={() => router.push('/settings')}
-              >
-                <View style={[styles.memberAvatar, styles.avatarPrimary]}>
-                  <Text style={styles.avatarIcon}>👤</Text>
-                </View>
-                <View style={styles.memberInfo}>
-                  <Text style={styles.memberName}>You (Amber)</Text>
-                  <Text style={styles.memberRole}>Primary Caregiver</Text>
-                  <Text style={styles.memberStatus}>Active now</Text>
-                </View>
-                <Text style={styles.memberBadge}>⭐</Text>
-              </TouchableOpacity>
-            </>
-          )}
+            {/* Orbiting avatars - just visual representation */}
+            {[
+              { icon: '👤', color: Colors.accent, angle: 0 },
+              { icon: '👤', color: Colors.purple, angle: 120 },
+              { icon: '👤', color: Colors.rose, angle: 240 },
+            ].slice(0, Math.min(3, caregivers.length + 1)).map((member, i) => {
+              const angle = ((member.angle - 90) * Math.PI) / 180;
+              const radius = 60;
+              const x = Math.cos(angle) * radius;
+              const y = Math.sin(angle) * radius;
 
-          {/* Quick Actions */}
-          <Text style={styles.sectionLabel}>QUICK ACTIONS</Text>
-          <View style={styles.quickActions}>
-            <TouchableOpacity 
-              style={styles.quickAction}
-              onPress={() => router.push('/family-sharing')}
-            >
-              <Text style={styles.quickActionIcon}>✉️</Text>
-              <Text style={styles.quickActionLabel}>Send Update</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickAction}
-              onPress={() => router.push('/care-summary-export')}
-            >
-              <Text style={styles.quickActionIcon}>📋</Text>
-              <Text style={styles.quickActionLabel}>Share Report</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickAction}
-              onPress={() => router.push('/emergency')}
-            >
-              <Text style={styles.quickActionIcon}>📞</Text>
-              <Text style={styles.quickActionLabel}>Request Help</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickAction}
-              onPress={() => router.push('/appointments')}
-            >
-              <Text style={styles.quickActionIcon}>📅</Text>
-              <Text style={styles.quickActionLabel}>Schedule Visit</Text>
-            </TouchableOpacity>
+              return (
+                <View
+                  key={i}
+                  style={[
+                    styles.orbitAvatar,
+                    {
+                      left: `${50 + (x / 80) * 30}%`,
+                      top: `${50 + (y / 80) * 30}%`,
+                      backgroundColor: `${member.color}20`,
+                      borderColor: `${member.color}50`,
+                    },
+                  ]}
+                >
+                  <Text style={styles.orbitAvatarText}>{member.icon}</Text>
+                </View>
+              );
+            })}
           </View>
 
           {/* Care Team */}
-          {caregivers.length > 0 && (
-            <>
-              <Text style={styles.sectionLabel}>CARE TEAM</Text>
-              {caregivers.slice(0, 3).map((caregiver) => (
-                <TouchableOpacity 
-                  key={caregiver.id}
-                  style={styles.memberCard}
-                  onPress={() => router.push('/caregiver-management')}
-                >
-                  <View style={[styles.memberAvatar, { backgroundColor: caregiver.avatarColor || 'rgba(187, 134, 252, 0.2)' }]}>
-                    <Text style={styles.avatarIcon}>👤</Text>
+          <View style={styles.section}>
+            <SectionHeader
+              title="Care Team"
+              action={{
+                label: '+ Invite',
+                onPress: () => router.push('/family-sharing'),
+              }}
+            />
+
+            <GlassCard noPadding>
+              {/* Primary Caregiver */}
+              <TouchableOpacity
+                style={[styles.memberRow, styles.memberRowBorder]}
+                onPress={() => router.push('/settings')}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.memberAvatar,
+                  {
+                    backgroundColor: `${Colors.accent}20`,
+                    borderColor: `${Colors.accent}50`,
+                  },
+                ]}>
+                  <Text style={styles.memberAvatarText}>👤</Text>
+                </View>
+                <View style={styles.memberContent}>
+                  <View style={styles.memberNameRow}>
+                    <Text style={styles.memberName}>You (Amber)</Text>
+                    <Text style={styles.memberRole}>Primary</Text>
                   </View>
-                  <View style={styles.memberInfo}>
-                    <Text style={styles.memberName}>{caregiver.name}</Text>
-                    <Text style={styles.memberRole}>
-                      {caregiver.role === 'family' ? 'Family Member' : 
-                       caregiver.role === 'healthcare' ? 'Healthcare Provider' : 
-                       'Care Team Member'}
-                    </Text>
+                  <Text style={styles.memberStatus}>Active now ⭐</Text>
+                </View>
+                <View style={[
+                  styles.memberIndicator,
+                  { backgroundColor: Colors.green },
+                ]} />
+              </TouchableOpacity>
+
+              {/* Other Caregivers */}
+              {caregivers.slice(0, 3).map((caregiver, i) => (
+                <TouchableOpacity
+                  key={caregiver.id}
+                  style={[
+                    styles.memberRow,
+                    i < Math.min(2, caregivers.length - 1) && styles.memberRowBorder,
+                  ]}
+                  onPress={() => router.push('/caregiver-management')}
+                  activeOpacity={0.7}
+                >
+                  <View style={[
+                    styles.memberAvatar,
+                    {
+                      backgroundColor: caregiver.avatarColor || Colors.purpleLight,
+                      borderColor: `${caregiver.avatarColor || Colors.purple}50`,
+                    },
+                  ]}>
+                    <Text style={styles.memberAvatarText}>👤</Text>
+                  </View>
+                  <View style={styles.memberContent}>
+                    <View style={styles.memberNameRow}>
+                      <Text style={styles.memberName}>{caregiver.name}</Text>
+                      <Text style={styles.memberRole}>
+                        {caregiver.role === 'family' ? 'Family' :
+                         caregiver.role === 'healthcare' ? 'Healthcare' :
+                         'Team'}
+                      </Text>
+                    </View>
                     <Text style={styles.memberStatus}>
-                      {caregiver.lastActive ? 
-                        `Last active: ${getRelativeTime(caregiver.lastActive)}` : 
+                      {caregiver.lastActive ?
+                        `Last active: ${getRelativeTime(caregiver.lastActive)}` :
                         'Invited'}
                     </Text>
                   </View>
+                  <View style={[
+                    styles.memberIndicator,
+                    {
+                      backgroundColor: caregiver.lastActive &&
+                        new Date(caregiver.lastActive).getTime() > Date.now() - 24 * 60 * 60 * 1000
+                        ? Colors.green : Colors.textMuted
+                    },
+                  ]} />
                 </TouchableOpacity>
               ))}
-            </>
-          )}
-
-          {/* Invite Section */}
-          <View style={styles.inviteCard}>
-            <Text style={styles.inviteLabel}>GROW YOUR CIRCLE</Text>
-            <Text style={styles.inviteText}>
-              Invite family members or healthcare providers to help coordinate Mom's care.
-            </Text>
-            <TouchableOpacity
-              style={styles.inviteButton}
-              onPress={() => router.push('/family-sharing')}
-            >
-              <Text style={styles.inviteButtonText}>+ Invite Member</Text>
-            </TouchableOpacity>
+            </GlassCard>
           </View>
 
-          {/* Activity */}
+          {/* Recent Activity */}
           {activities.length > 0 && (
-            <>
-              <Text style={styles.sectionLabel}>RECENT ACTIVITY</Text>
-              <TouchableOpacity 
-                style={styles.activityToggle}
-                onPress={() => router.push('/family-activity')}
-              >
-                <Text style={styles.activityIcon}>📊</Text>
-                <View style={styles.activityInfo}>
-                  <Text style={styles.activityTitle}>Team Activity</Text>
-                  <Text style={styles.activityCount}>{activities.length} updates this week</Text>
-                </View>
-                <Text style={styles.activityChevron}>›</Text>
-              </TouchableOpacity>
-            </>
+            <View style={styles.section}>
+              <SectionHeader title="Recent Activity" />
+
+              <GlassCard>
+                {activities.slice(0, 3).map((activity, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.activityRow,
+                      i < Math.min(2, activities.length - 1) && styles.activityRowBorder,
+                    ]}
+                  >
+                    <Text style={styles.activityIcon}>
+                      {activity.type === 'log' ? '📝' :
+                       activity.type === 'update' ? '✉️' :
+                       activity.type === 'checkin' ? '✓' : '📊'}
+                    </Text>
+                    <View style={styles.activityContent}>
+                      <Text style={styles.activityText}>
+                        <Text style={styles.activityWho}>{activity.caregiverName || 'Someone'}</Text>
+                        {' '}{activity.description || 'updated'}
+                      </Text>
+                      <Text style={styles.activityTime}>
+                        {activity.timestamp ? getRelativeTime(activity.timestamp) : 'Recently'}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+
+                <TouchableOpacity
+                  style={styles.viewAllButton}
+                  onPress={() => router.push('/family-activity')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.viewAllText}>View all activity →</Text>
+                </TouchableOpacity>
+              </GlassCard>
+            </View>
           )}
 
-          <View style={{ height: 40 }} />
+          {/* Quick Share */}
+          <View style={styles.section}>
+            <SectionHeader title="Quick Share" />
+
+            <View style={styles.quickShareRow}>
+              {quickShareActions.map((action, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={styles.quickShareButton}
+                  onPress={action.onPress}
+                  activeOpacity={0.7}
+                >
+                  <GlassCard style={styles.quickShareCard} padding={16}>
+                    <Text style={styles.quickShareIcon}>{action.icon}</Text>
+                    <Text style={styles.quickShareLabel}>{action.label}</Text>
+                  </GlassCard>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Privacy Notice */}
+          <GlassCard style={styles.privacyCard}>
+            <View style={styles.privacyContent}>
+              <Text style={styles.privacyIcon}>🔒</Text>
+              <View style={styles.privacyText}>
+                <Text style={styles.privacyTitle}>Privacy Protected</Text>
+                <Text style={styles.privacyDescription}>
+                  All data stays on device. You control what's shared.
+                </Text>
+              </View>
+            </View>
+          </GlassCard>
+
+          {/* Bottom spacing */}
+          <View style={{ height: 100 }} />
         </ScrollView>
-      </LinearGradient>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -232,10 +334,10 @@ function getRelativeTime(timestamp: string): string {
   const diffMs = now.getTime() - time.getTime();
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffHours / 24);
-  
+
   if (diffHours < 1) return 'Just now';
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
   return time.toLocaleDateString();
 }
 
@@ -244,199 +346,236 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  gradient: {
+  safeArea: {
     flex: 1,
   },
-
-  // Divider
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginHorizontal: 20,
-  },
-
-  // Content
-  content: {
+  scrollView: {
     flex: 1,
   },
-  contentContainer: {
-    paddingHorizontal: Platform.OS === 'web' ? 32 : 24,
-    paddingBottom: Platform.OS === 'web' ? 120 : 100,
+  scrollContent: {
+    padding: Spacing.xl,
   },
-  
-  // Section Labels
-  sectionLabel: {
-    fontSize: 10,
-    letterSpacing: 2,
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.xxl,
+  },
+  headerLabel: {
+    ...Typography.caption,
     color: Colors.textMuted,
-    marginBottom: 12,
-    marginTop: 4,
-    fontWeight: '800',
+    marginBottom: Spacing.xs,
   },
-  
+  headerTitle: {
+    ...Typography.displayMedium,
+    color: Colors.textPrimary,
+  },
+  notifButton: {
+    padding: Spacing.sm,
+  },
+  notifIcon: {
+    fontSize: 20,
+  },
+
   // Support Message
-  supportMessage: {
-    backgroundColor: 'rgba(79, 209, 197, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(79, 209, 197, 0.2)',
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 24,
-    alignItems: 'center',
+  supportCard: {
+    backgroundColor: `${Colors.accent}08`,
+    borderColor: `${Colors.accent}20`,
+    marginBottom: Spacing.xxl,
   },
   supportText: {
-    fontSize: 15,
-    lineHeight: 24,
+    ...Typography.body,
     color: Colors.textSecondary,
-    fontStyle: 'italic',
     textAlign: 'center',
+    fontStyle: 'italic',
   },
-  
-  // Member Cards
-  memberCard: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
+
+  // Circle Visualization
+  circleContainer: {
     alignItems: 'center',
-    gap: 14,
+    marginBottom: Spacing.xxl,
+    height: 180,
+    position: 'relative',
   },
-  memberCardPrimary: {
-    backgroundColor: 'rgba(79, 209, 197, 0.12)',
-    borderColor: 'rgba(79, 209, 197, 0.25)',
-  },
-  memberAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  centerAvatar: {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    transform: [{ translateX: -35 }, { translateY: -40 }],
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: `${Colors.accent}20`,
+    borderWidth: 2,
+    borderColor: Colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarPrimary: {
-    backgroundColor: 'rgba(90, 154, 154, 0.3)',
+  centerAvatarText: {
+    fontSize: 28,
   },
-  avatarIcon: {
+  centerAvatarLabel: {
+    ...Typography.captionSmall,
+    color: Colors.textSecondary,
+    position: 'absolute',
+    bottom: -20,
+  },
+  orbitAvatar: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ translateX: -22 }, { translateY: -22 }],
+  },
+  orbitAvatarText: {
+    fontSize: 20,
+  },
+
+  // Sections
+  section: {
+    marginBottom: Spacing.xxl,
+  },
+
+  // Members
+  memberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.lg,
+    gap: Spacing.lg,
+  },
+  memberRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+  },
+  memberAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  memberAvatarText: {
     fontSize: 24,
   },
-  memberInfo: {
+  memberContent: {
     flex: 1,
   },
-  memberName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-    marginBottom: 3,
-  },
-  memberRole: {
-    fontSize: 12,
-    color: Colors.textMuted,
+  memberNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
     marginBottom: 2,
   },
+  memberName: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+  },
+  memberRole: {
+    ...Typography.labelSmall,
+    color: Colors.textMuted,
+  },
   memberStatus: {
-    fontSize: 11,
+    ...Typography.labelSmall,
+    color: Colors.textMuted,
+  },
+  memberIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 4,
+  },
+
+  // Activity
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
+  },
+  activityRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+  },
+  activityIcon: {
+    fontSize: 16,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityText: {
+    ...Typography.bodySmall,
+    color: Colors.textPrimary,
+  },
+  activityWho: {
     color: Colors.accent,
   },
-  memberBadge: {
-    fontSize: 18,
+  activityTime: {
+    ...Typography.captionSmall,
+    color: Colors.textMuted,
+    marginTop: 2,
   },
-  
-  // Quick Actions
-  quickActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24,
-  },
-  quickAction: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 14,
-    padding: 18,
-    width: '48%',
+  viewAllButton: {
+    paddingVertical: Spacing.md,
     alignItems: 'center',
-    gap: 10,
+    marginTop: Spacing.sm,
   },
-  quickActionIcon: {
-    fontSize: 32,
+  viewAllText: {
+    ...Typography.labelSmall,
+    color: Colors.accent,
   },
-  quickActionLabel: {
-    fontSize: 13,
+
+  // Quick Share
+  quickShareRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  quickShareButton: {
+    flex: 1,
+  },
+  quickShareCard: {
+    alignItems: 'center',
+  },
+  quickShareIcon: {
+    fontSize: 24,
+    marginBottom: Spacing.sm,
+  },
+  quickShareLabel: {
+    ...Typography.captionSmall,
     color: Colors.textSecondary,
     textAlign: 'center',
   },
-  
-  // Invite Card
-  inviteCard: {
-    backgroundColor: 'rgba(232, 155, 95, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(232, 155, 95, 0.15)',
-    borderRadius: 14,
-    padding: 18,
-    marginBottom: 20,
+
+  // Privacy
+  privacyCard: {
+    backgroundColor: `${Colors.accent}05`,
+    borderColor: `${Colors.accent}15`,
   },
-  inviteLabel: {
-    fontSize: 10,
-    letterSpacing: 2,
-    color: 'rgba(232, 155, 95, 0.8)',
-    marginBottom: 10,
-    fontWeight: '800',
-  },
-  inviteText: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: Colors.textSecondary,
-    marginBottom: 12,
-  },
-  inviteButton: {
-    backgroundColor: 'rgba(232, 155, 95, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(232, 155, 95, 0.3)',
-    padding: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  inviteButtonText: {
-    fontSize: 13,
-    color: '#e89b5f',
-    fontWeight: '500',
-  },
-  
-  // Activity
-  activityToggle: {
-    backgroundColor: Colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    padding: 14,
-    paddingHorizontal: 16,
+  privacyContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
+    gap: Spacing.md,
   },
-  activityIcon: {
+  privacyIcon: {
     fontSize: 20,
   },
-  activityInfo: {
+  privacyText: {
     flex: 1,
   },
-  activityTitle: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: Colors.textSecondary,
+  privacyTitle: {
+    ...Typography.bodySmall,
+    color: Colors.textPrimary,
     marginBottom: 2,
   },
-  activityCount: {
-    fontSize: 12,
-    color: Colors.textMuted,
-  },
-  activityChevron: {
-    fontSize: 16,
+  privacyDescription: {
+    ...Typography.captionSmall,
     color: Colors.textMuted,
   },
 });

@@ -1,5 +1,5 @@
 // ============================================================================
-// TODAY PAGE - Quick glance dashboard
+// TODAY PAGE - Aurora Redesign
 // "What do I do now?" — Show next action, complete tasks
 // ============================================================================
 
@@ -13,23 +13,30 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Colors } from '../_theme/theme-tokens';
+import { Colors, Spacing, Typography } from '../_theme/theme-tokens';
 import { getMedications, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
 import { getDailyTracking } from '../../utils/dailyTrackingStorage';
 import { getSymptoms, SymptomLog } from '../../utils/symptomStorage';
 import { getNotes, NoteLog } from '../../utils/noteStorage';
 import { getVitals, VitalReading } from '../../utils/vitalsStorage';
+
+// Aurora Components
+import { AuroraBackground } from '../../components/aurora/AuroraBackground';
+import { GlassCard } from '../../components/aurora/GlassCard';
+import { StatusOrb } from '../../components/aurora/StatusOrb';
+import { SectionHeader } from '../../components/aurora/SectionHeader';
+import { QuickActionGrid } from '../../components/aurora/QuickActionGrid';
+
+// Existing Components (keep functionality)
 import { CoffeeMomentModal } from '../../components/CoffeeMomentModal';
-import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { QuickLogCard } from '../../components/today/QuickLogCard';
 import { InsightCard } from '../../components/today/InsightCard';
 import { Timeline } from '../../components/today/Timeline';
 import { useTimeline } from '../../hooks/useTimeline';
-import { addDays, format } from 'date-fns';
+import { addDays } from 'date-fns';
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -41,7 +48,6 @@ export default function TodayScreen() {
   const [vitals, setVitals] = useState<VitalReading[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [coffeeMomentVisible, setCoffeeMomentVisible] = useState(false);
-  const [hasPausedToday, setHasPausedToday] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -61,17 +67,16 @@ export default function TodayScreen() {
       const tracking = await getDailyTracking(today);
       setDailyTracking(tracking);
 
-      // Load today's logged data
       const allSymptoms = await getSymptoms();
-      const todaySymptoms = allSymptoms.filter(s => s.date === today);
+      const todaySymptoms = allSymptoms.filter((s) => s.date === today);
       setSymptoms(todaySymptoms);
 
       const allNotes = await getNotes();
-      const todayNotes = allNotes.filter(n => n.date === today);
+      const todayNotes = allNotes.filter((n) => n.date === today);
       setNotes(todayNotes);
 
       const allVitals = await getVitals();
-      const todayVitals = allVitals.filter(v => {
+      const todayVitals = allVitals.filter((v) => {
         const vitalDate = new Date(v.timestamp).toISOString().split('T')[0];
         return vitalDate === today;
       });
@@ -87,17 +92,9 @@ export default function TodayScreen() {
     setRefreshing(false);
   }, []);
 
-  // Helper functions
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
-
   const getDateLabel = () => {
     return new Date().toLocaleDateString('en-US', {
-      weekday: 'long',
+      weekday: 'short',
       month: 'short',
       day: 'numeric',
     }).toUpperCase();
@@ -112,182 +109,23 @@ export default function TodayScreen() {
     return { label: 'Difficult', color: Colors.red };
   };
 
-  const getSummaryLine = () => {
-    const tasksLeft = getTasksRemaining();
-    const status = getStatus();
-
-    if (tasksLeft === 0) {
-      return `Mom's having a ${status.label.toLowerCase()} day. All tasks complete.`;
-    }
-    return `Mom's having a ${status.label.toLowerCase()} day. ${tasksLeft} task${tasksLeft !== 1 ? 's' : ''} left.`;
-  };
-
-  const getTasksRemaining = () => {
-    return medications.filter((m) => !m.taken).length;
-  };
-
-  const getNextAction = () => {
+  const getHeroWord = () => {
+    const tasksLeft = medications.filter((m) => !m.taken).length;
     const hour = new Date().getHours();
     const morningMeds = medications.filter((m) => m.timeSlot === 'morning' && !m.taken);
-    const eveningMeds = medications.filter((m) => m.timeSlot === 'evening' && !m.taken);
+    const isOverdue = hour > 12 && morningMeds.length > 0;
 
-    if (hour < 12 && morningMeds.length > 0) {
-      return {
-        icon: '💊',
-        title: 'Morning medications',
-        subtitle: `${morningMeds.length} med${morningMeds.length !== 1 ? 's' : ''} due at 8:00 AM`,
-        action: () => router.push('/medication-confirm'),
-      };
-    }
-
-    if (hour >= 17 && eveningMeds.length > 0) {
-      return {
-        icon: '💊',
-        title: 'Evening medications',
-        subtitle: `${eveningMeds.length} med${eveningMeds.length !== 1 ? 's' : ''} due at 6:00 PM`,
-        action: () => router.push('/medication-confirm'),
-      };
-    }
-
-    return null;
+    if (isOverdue) return 'Attention';
+    if (tasksLeft === 0) return 'Peaceful';
+    if (tasksLeft <= 2) return 'Flowing';
+    return 'Active';
   };
 
-  const getTimelineItems = (): Array<{
-    time: string;
-    title: string;
-    status: string;
-    completed: boolean;
-    isPending: boolean;
-    timestamp: number;
-    isAppointment?: boolean;
-    isSymptom?: boolean;
-    isVital?: boolean;
-    isNote?: boolean;
-  }> => {
-    const items = [];
-    const hour = new Date().getHours();
-
-    // Morning meds
-    const morningMeds = medications.filter((m) => m.timeSlot === 'morning');
-    if (morningMeds.length > 0) {
-      const allTaken = morningMeds.every((m) => m.taken);
-      items.push({
-        time: '8:00 AM',
-        title: 'Morning medications',
-        status: allTaken ? `${morningMeds.length} taken` : `${morningMeds.filter(m => !m.taken).length} to take`,
-        completed: allTaken,
-        isPending: hour < 12 && !allTaken,
-        timestamp: new Date().setHours(8, 0, 0, 0),
-      });
-    }
-
-    // Evening meds
-    const eveningMeds = medications.filter((m) => m.timeSlot === 'evening');
-    if (eveningMeds.length > 0) {
-      const allTaken = eveningMeds.every((m) => m.taken);
-      items.push({
-        time: '6:00 PM',
-        title: 'Evening medications',
-        status: allTaken ? `${eveningMeds.length} taken` : `${eveningMeds.filter(m => !m.taken).length} to take`,
-        completed: allTaken,
-        isPending: hour >= 17 && !allTaken,
-        timestamp: new Date().setHours(18, 0, 0, 0),
-      });
-    }
-
-    // Today's appointments
-    const todayAppts = appointments.filter((appt) => {
-      const apptDate = new Date(appt.date);
-      const today = new Date();
-      return (
-        apptDate.getDate() === today.getDate() &&
-        apptDate.getMonth() === today.getMonth() &&
-        apptDate.getFullYear() === today.getFullYear()
-      );
-    });
-
-    todayAppts.forEach((appt) => {
-      const [hours, minutes] = (appt.time || '12:00').split(':').map(Number);
-      items.push({
-        time: formatTime(appt.time || '12:00'),
-        title: `${appt.provider} — ${appt.specialty}`,
-        status: 'Upcoming',
-        completed: false,
-        isPending: false,
-        isAppointment: true,
-        timestamp: new Date().setHours(hours, minutes, 0, 0),
-      });
-    });
-
-    // Symptoms
-    symptoms.forEach((symptom) => {
-      const date = new Date(symptom.timestamp);
-      items.push({
-        time: date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        title: `Symptom: ${symptom.symptom}`,
-        status: `Severity ${symptom.severity}/10`,
-        completed: true,
-        isPending: false,
-        isSymptom: true,
-        timestamp: date.getTime(),
-      });
-    });
-
-    // Vitals
-    const groupedVitals = vitals.reduce((acc, vital) => {
-      const date = new Date(vital.timestamp);
-      const key = `${date.getHours()}:${date.getMinutes()}`;
-      if (!acc[key]) {
-        acc[key] = { timestamp: date.getTime(), vitals: [] };
-      }
-      acc[key].vitals.push(vital);
-      return acc;
-    }, {} as Record<string, { timestamp: number; vitals: VitalReading[] }>);
-
-    Object.values(groupedVitals).forEach(({ timestamp, vitals: vitalGroup }) => {
-      const date = new Date(timestamp);
-      const vitalTypes = vitalGroup.map(v => {
-        if (v.type === 'systolic' || v.type === 'diastolic') return 'BP';
-        if (v.type === 'glucose') return 'Glucose';
-        if (v.type === 'weight') return 'Weight';
-        return v.type;
-      }).filter((v, i, a) => a.indexOf(v) === i).join(', ');
-
-      items.push({
-        time: date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        title: `Vitals: ${vitalTypes}`,
-        status: 'Logged',
-        completed: true,
-        isPending: false,
-        isVital: true,
-        timestamp,
-      });
-    });
-
-    // Notes
-    notes.forEach((note) => {
-      const date = new Date(note.timestamp);
-      const preview = note.content.length > 30 ? note.content.substring(0, 30) + '...' : note.content;
-      items.push({
-        time: date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        title: `Note: ${preview}`,
-        status: 'Logged',
-        completed: true,
-        isPending: false,
-        isNote: true,
-        timestamp: date.getTime(),
-      });
-    });
-
-    // Sort by timestamp
-    return items.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-  };
-
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':').map(Number);
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const displayHour = hours % 12 || 12;
-    return `${displayHour}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+  const getStatusMessage = () => {
+    const tasksLeft = medications.filter((m) => !m.taken).length;
+    if (tasksLeft === 0) return 'All care flows smoothly today';
+    if (tasksLeft === 1) return 'One task remaining';
+    return `${tasksLeft} tasks to complete`;
   };
 
   const isEvening = () => {
@@ -298,16 +136,10 @@ export default function TodayScreen() {
     return dailyTracking?.mood !== null && dailyTracking?.mood !== undefined;
   };
 
-  const nextAction = getNextAction();
-  const status = getStatus();
-  const timelineItems = getTimelineItems();
-
-  // Calculate tomorrow's item count for timeline row
   const getTomorrowItemCount = (): number => {
     const tomorrow = addDays(new Date(), 1);
     let count = 2; // Always has morning + evening wellness checks
 
-    // Check for tomorrow's appointments
     const tomorrowAppts = appointments.filter((appt) => {
       const apptDate = new Date(appt.date);
       return (
@@ -318,16 +150,15 @@ export default function TodayScreen() {
     });
     count += tomorrowAppts.length;
 
-    // Add medication items if any active meds
-    const morningMeds = medications.filter(m => m.timeSlot === 'morning');
-    const eveningMeds = medications.filter(m => m.timeSlot === 'evening');
+    const morningMeds = medications.filter((m) => m.timeSlot === 'morning');
+    const eveningMeds = medications.filter((m) => m.timeSlot === 'evening');
     if (morningMeds.length > 0) count++;
     if (eveningMeds.length > 0) count++;
 
     return count;
   };
 
-  // Transform data for new timeline
+  // Transform data for timeline
   const timelineMedications = medications.map((med) => ({
     id: med.id,
     name: med.name,
@@ -347,7 +178,7 @@ export default function TodayScreen() {
     location: apt.location,
   }));
 
-  const { items: timelineItemsNew, overdueCount } = useTimeline({
+  const { items: timelineItems, overdueCount } = useTimeline({
     medications: timelineMedications,
     appointments: timelineAppointments,
     today: new Date(),
@@ -355,71 +186,130 @@ export default function TodayScreen() {
 
   const tomorrowItemCount = getTomorrowItemCount();
 
+  // Calculate wellness status (morning/evening checkins)
+  const wellnessComplete = dailyTracking?.mood ? 1 : 0;
+  const totalWellness = isEvening() ? 2 : 1; // Morning check always required, evening after 5pm
+
+  // Calculate med adherence
+  const totalMeds = medications.length;
+  const takenMeds = medications.filter((m) => m.taken).length;
+  const adherencePercent = totalMeds > 0 ? Math.round((takenMeds / totalMeds) * 100) : 100;
+
+  // Get mood display
+  const todayMood = dailyTracking?.mood ? `${dailyTracking.mood}/10` : '—';
+
+  // Quick actions - preserve existing navigation
+  const quickActions = [
+    {
+      icon: '💊',
+      label: 'Meds',
+      onPress: () => router.push('/medication-confirm'),
+    },
+    {
+      icon: '😊',
+      label: 'Mood',
+      onPress: () => router.push('/log-mood'),
+    },
+    {
+      icon: '❤️',
+      label: 'Vitals',
+      onPress: () => router.push('/log-vitals'),
+    },
+    {
+      icon: '📝',
+      label: 'Note',
+      onPress: () => router.push('/log-note'),
+    },
+  ];
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
-        style={styles.gradient}
-      >
-        {/* Header */}
-        <ScreenHeader
-          label={getDateLabel()}
-          title={getGreeting()}
-          subtitle={getSummaryLine()}
-          rightAction={{
-            type: 'button',
-            icon: '☕',
-            label: 'Pause',
-            variant: 'purple',
-            onPress: () => setCoffeeMomentVisible(true),
-          }}
-        />
-        <View style={styles.divider} />
+    <View style={styles.container}>
+      <AuroraBackground variant="today" />
 
-        {/* Coffee Moment Modal */}
-        <CoffeeMomentModal
-          visible={coffeeMomentVisible}
-          onClose={() => {
-            setCoffeeMomentVisible(false);
-            setHasPausedToday(true);
-          }}
-        />
-
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView
-          style={styles.content}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={Colors.accent}
+            />
           }
         >
-          {/* AI Insights Card */}
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.date}>{getDateLabel()}</Text>
+            <TouchableOpacity
+              style={styles.pauseButton}
+              onPress={() => setCoffeeMomentVisible(true)}
+            >
+              <Text style={styles.pauseIcon}>☕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Hero Section */}
+          <View style={styles.hero}>
+            <Text style={styles.heroWord}>{getHeroWord()}</Text>
+            <Text style={styles.heroSubtext}>{getStatusMessage()}</Text>
+          </View>
+
+          {/* Status Orbs */}
+          <View style={styles.orbsContainer}>
+            <StatusOrb
+              label="Wellness"
+              value={`${wellnessComplete}/${totalWellness}`}
+              color={Colors.accent}
+            />
+            <StatusOrb
+              label="Meds"
+              value={`${adherencePercent}%`}
+              color={Colors.green}
+            />
+            <StatusOrb
+              label="Mood"
+              value={todayMood}
+              color={Colors.purple}
+            />
+          </View>
+
+          {/* AI Insights */}
           <View style={styles.section}>
             <InsightCard medications={medications} />
           </View>
 
           {/* Timeline */}
           <View style={styles.section}>
-            <Timeline items={timelineItemsNew} tomorrowCount={tomorrowItemCount} onRefresh={loadData} />
+            <Timeline items={timelineItems} tomorrowCount={tomorrowItemCount} onRefresh={loadData} />
           </View>
 
-          {/* Quick Log */}
-          <View style={styles.section}>
-            <QuickLogCard />
+          {/* Quick Actions */}
+          <View style={styles.quickActionsSection}>
+            <SectionHeader title="Quick Log" />
+            <QuickActionGrid actions={quickActions} />
           </View>
 
           {/* Evening Check-in Prompt */}
           {isEvening() && !isCheckInComplete() && (
-            <TouchableOpacity
+            <GlassCard
               style={styles.checkInCard}
-              onPress={() => router.push('/daily-checkin')}
+              glow={Colors.purpleGlow}
             >
-              <Text style={styles.checkInIcon}>🌙</Text>
-              <View style={styles.checkInContent}>
-                <Text style={styles.checkInTitle}>Evening check-in</Text>
-                <Text style={styles.checkInSubtitle}>Log mood, energy, meals (~60s)</Text>
-              </View>
-              <Text style={styles.checkInArrow}>→</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.checkInButton}
+                onPress={() => router.push('/daily-checkin')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.checkInIcon}>🌙</Text>
+                <View style={styles.checkInContent}>
+                  <Text style={styles.checkInTitle}>Evening check-in</Text>
+                  <Text style={styles.checkInSubtitle}>Log mood, energy, meals</Text>
+                </View>
+                <Text style={styles.checkInArrow}>→</Text>
+              </TouchableOpacity>
+            </GlassCard>
           )}
 
           {/* Encouragement Footer */}
@@ -429,10 +319,17 @@ export default function TodayScreen() {
             </Text>
           </View>
 
-          <View style={{ height: 40 }} />
+          {/* Bottom spacing for tab bar */}
+          <View style={{ height: 100 }} />
         </ScrollView>
-      </LinearGradient>
-    </SafeAreaView>
+      </SafeAreaView>
+
+      {/* Coffee Moment Modal - UNCHANGED */}
+      <CoffeeMomentModal
+        visible={coffeeMomentVisible}
+        onClose={() => setCoffeeMomentVisible(false)}
+      />
+    </View>
   );
 }
 
@@ -441,161 +338,77 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  gradient: {
+  safeArea: {
     flex: 1,
   },
-
-  // Divider
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginHorizontal: 20,
-  },
-
-  // Content
-  content: {
+  scrollView: {
     flex: 1,
-    padding: 20,
+  },
+  scrollContent: {
+    padding: Spacing.xl,
   },
 
-  // Section
-  section: {
-    marginBottom: 20,
-  },
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 1.5,
-    color: 'rgba(255, 255, 255, 0.4)',
-    marginBottom: 10,
-  },
-
-  // Next Action Card
-  nextActionCard: {
+  // Header
+  header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: Colors.goldLight,
-    borderWidth: 1,
-    borderColor: Colors.goldBorder,
-    borderRadius: 16,
-    padding: 18,
-    gap: 14,
+    marginBottom: Spacing.huge,
   },
-  nextActionIcon: {
-    fontSize: 32,
+  date: {
+    ...Typography.labelSmall,
+    color: Colors.textMuted,
   },
-  nextActionContent: {
-    flex: 1,
+  pauseButton: {
+    padding: Spacing.sm,
   },
-  nextActionTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  nextActionSubtitle: {
-    fontSize: 13,
-    color: Colors.gold,
-  },
-  nextActionArrow: {
-    fontSize: 24,
-    color: Colors.gold,
+  pauseIcon: {
+    fontSize: 20,
   },
 
-  // Timeline
-  timeline: {
-    position: 'relative',
-    paddingLeft: 32,
-  },
-  timelineLine: {
-    position: 'absolute',
-    left: 11,
-    top: 12,
-    bottom: 12,
-    width: 2,
-    backgroundColor: 'rgba(20, 184, 166, 0.2)',
-  },
-  timelineItem: {
-    position: 'relative',
-    marginBottom: 24,
-  },
-  timelineDot: {
-    position: 'absolute',
-    left: -30,
-    top: 4,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(20, 184, 166, 0.3)',
-    backgroundColor: 'transparent',
+  // Hero
+  hero: {
     alignItems: 'center',
+    marginBottom: Spacing.xxxl,
+  },
+  heroWord: {
+    ...Typography.displayLarge,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+  },
+  heroSubtext: {
+    ...Typography.bodyLarge,
+    color: Colors.textSecondary,
+  },
+
+  // Orbs
+  orbsContainer: {
+    flexDirection: 'row',
     justifyContent: 'center',
-  },
-  timelineDotComplete: {
-    backgroundColor: Colors.green,
-    borderColor: Colors.green,
-  },
-  timelineDotPending: {
-    borderColor: Colors.gold,
-    backgroundColor: Colors.goldLight,
-  },
-  timelineDotAppointment: {
-    borderColor: Colors.blue,
-    backgroundColor: Colors.blueLight,
-  },
-  timelineDotSymptom: {
-    borderColor: '#F87171',
-    backgroundColor: 'rgba(248, 113, 113, 0.2)',
-  },
-  timelineDotVital: {
-    borderColor: '#818CF8',
-    backgroundColor: 'rgba(129, 140, 248, 0.2)',
-  },
-  timelineDotNote: {
-    borderColor: '#FCD34D',
-    backgroundColor: 'rgba(252, 211, 77, 0.2)',
-  },
-  timelineDotCheck: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
-  timelineContent: {
-    paddingLeft: 8,
-  },
-  timelineTime: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
-    marginBottom: 2,
-  },
-  timelineTitle: {
-    fontSize: 14,
-    color: Colors.textPrimary,
-    marginBottom: 2,
-  },
-  timelineStatus: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
-  timelineStatusComplete: {
-    color: Colors.green,
-  },
-  timelineStatusPending: {
-    color: Colors.gold,
+    gap: Spacing.xl,
+    marginBottom: Spacing.xxxl,
   },
 
-  // Evening Check-in Card
+  // Sections
+  section: {
+    marginBottom: Spacing.xxl,
+  },
+
+  // Quick Actions
+  quickActionsSection: {
+    marginBottom: Spacing.xxl,
+  },
+
+  // Evening Check-in
   checkInCard: {
+    backgroundColor: `${Colors.purple}08`,
+    borderColor: Colors.purpleBorder,
+    marginBottom: Spacing.xxl,
+  },
+  checkInButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.purpleLight,
-    borderWidth: 1,
-    borderColor: Colors.purpleBorder,
-    borderRadius: 14,
-    padding: 16,
-    gap: 12,
-    marginBottom: 20,
+    gap: Spacing.md,
   },
   checkInIcon: {
     fontSize: 24,
@@ -604,28 +417,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   checkInTitle: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.body,
     color: Colors.textPrimary,
     marginBottom: 2,
   },
   checkInSubtitle: {
-    fontSize: 12,
-    color: '#A78BFA',
+    ...Typography.bodySmall,
+    color: Colors.purple,
   },
   checkInArrow: {
     fontSize: 20,
-    color: '#A78BFA',
+    color: Colors.purple,
   },
 
   // Encouragement
   encouragement: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: Spacing.xl,
   },
   encouragementText: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
+    ...Typography.bodySmall,
+    color: Colors.textMuted,
     textAlign: 'center',
   },
 });
