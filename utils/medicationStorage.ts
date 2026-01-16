@@ -49,6 +49,7 @@ export interface MedicationLog {
 
 const MEDICATIONS_KEY = '@embermate_medications';
 const MEDICATION_LOGS_KEY = '@embermate_medication_logs';
+const LAST_RESET_DATE_KEY = '@embermate_last_med_reset';
 
 // ============================================================================
 // CRUD OPERATIONS
@@ -56,9 +57,13 @@ const MEDICATION_LOGS_KEY = '@embermate_medication_logs';
 
 /**
  * Get all medications
+ * Automatically resets daily "taken" status if it's a new day
  */
 export async function getMedications(): Promise<Medication[]> {
   try {
+    // Check if we need to reset daily status
+    await checkAndResetDaily();
+
     const medications = await safeGetItem<Medication[]>(MEDICATIONS_KEY, []);
 
     // If empty, return default medications for first-time users
@@ -73,6 +78,24 @@ export async function getMedications(): Promise<Medication[]> {
   } catch (error) {
     console.error('Error getting medications:', error);
     return [];
+  }
+}
+
+/**
+ * Check if it's a new day and reset medication status if needed
+ */
+async function checkAndResetDaily(): Promise<void> {
+  try {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const lastResetDate = await AsyncStorage.getItem(LAST_RESET_DATE_KEY);
+
+    if (lastResetDate !== today) {
+      // It's a new day, reset all medication taken status
+      await resetDailyMedicationStatus();
+      await AsyncStorage.setItem(LAST_RESET_DATE_KEY, today);
+    }
+  } catch (error) {
+    console.error('Error checking daily reset:', error);
   }
 }
 
@@ -255,27 +278,74 @@ export async function getMedicationLogsById(medicationId: string): Promise<Medic
 
 /**
  * Calculate adherence rate for a medication
+ * Automatically detects how many times per day the medication is scheduled
  */
 export async function calculateAdherence(
   medicationId: string,
   days: number = 7
 ): Promise<number> {
   try {
+    const medication = await getMedication(medicationId);
+    if (!medication) return 0;
+
     const logs = await getMedicationLogsById(medicationId);
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
-    
+
     const recentLogs = logs.filter(
       log => new Date(log.timestamp) >= cutoffDate && log.taken
     );
-    
-    // Assuming once daily medication
-    const expectedDoses = days;
+
+    // Count how many times this medication name is scheduled per day
+    const allMedications = await getMedications();
+    const dosesPerDay = allMedications.filter(
+      med => med.name.toLowerCase() === medication.name.toLowerCase() && med.active
+    ).length;
+
+    const expectedDoses = days * dosesPerDay;
     const takenDoses = recentLogs.length;
-    
+
     return Math.round((takenDoses / expectedDoses) * 100);
   } catch (error) {
     console.error('Error calculating adherence:', error);
+    return 0;
+  }
+}
+
+/**
+ * Calculate adherence rate by medication name (across all doses)
+ */
+export async function calculateAdherenceByName(
+  medicationName: string,
+  days: number = 7
+): Promise<number> {
+  try {
+    const allMedications = await getMedications();
+    const matchingMeds = allMedications.filter(
+      med => med.name.toLowerCase() === medicationName.toLowerCase() && med.active
+    );
+
+    if (matchingMeds.length === 0) return 0;
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+
+    // Get logs for all matching medication IDs
+    const allLogs = await getMedicationLogs();
+    const recentLogs = allLogs.filter(
+      log =>
+        matchingMeds.some(med => med.id === log.medicationId) &&
+        new Date(log.timestamp) >= cutoffDate &&
+        log.taken
+    );
+
+    const dosesPerDay = matchingMeds.length;
+    const expectedDoses = days * dosesPerDay;
+    const takenDoses = recentLogs.length;
+
+    return Math.round((takenDoses / expectedDoses) * 100);
+  } catch (error) {
+    console.error('Error calculating adherence by name:', error);
     return 0;
   }
 }

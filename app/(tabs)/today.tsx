@@ -20,15 +20,25 @@ import { Colors } from '../_theme/theme-tokens';
 import { getMedications, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
 import { getDailyTracking } from '../../utils/dailyTrackingStorage';
+import { getSymptoms, SymptomLog } from '../../utils/symptomStorage';
+import { getNotes, NoteLog } from '../../utils/noteStorage';
+import { getVitals, VitalReading } from '../../utils/vitalsStorage';
 import { CoffeeMomentModal } from '../../components/CoffeeMomentModal';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { QuickLogCard } from '../../components/today/QuickLogCard';
+import { InsightCard } from '../../components/today/InsightCard';
+import { Timeline } from '../../components/today/Timeline';
+import { useTimeline } from '../../hooks/useTimeline';
+import { addDays, format } from 'date-fns';
 
 export default function TodayScreen() {
   const router = useRouter();
   const [medications, setMedications] = useState<Medication[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [dailyTracking, setDailyTracking] = useState<any>(null);
+  const [symptoms, setSymptoms] = useState<SymptomLog[]>([]);
+  const [notes, setNotes] = useState<NoteLog[]>([]);
+  const [vitals, setVitals] = useState<VitalReading[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [coffeeMomentVisible, setCoffeeMomentVisible] = useState(false);
   const [hasPausedToday, setHasPausedToday] = useState(false);
@@ -50,6 +60,22 @@ export default function TodayScreen() {
       const today = new Date().toISOString().split('T')[0];
       const tracking = await getDailyTracking(today);
       setDailyTracking(tracking);
+
+      // Load today's logged data
+      const allSymptoms = await getSymptoms();
+      const todaySymptoms = allSymptoms.filter(s => s.date === today);
+      setSymptoms(todaySymptoms);
+
+      const allNotes = await getNotes();
+      const todayNotes = allNotes.filter(n => n.date === today);
+      setNotes(todayNotes);
+
+      const allVitals = await getVitals();
+      const todayVitals = allVitals.filter(v => {
+        const vitalDate = new Date(v.timestamp).toISOString().split('T')[0];
+        return vitalDate === today;
+      });
+      setVitals(todayVitals);
     } catch (error) {
       console.error('Error loading TODAY data:', error);
     }
@@ -126,7 +152,18 @@ export default function TodayScreen() {
     return null;
   };
 
-  const getTimelineItems = () => {
+  const getTimelineItems = (): Array<{
+    time: string;
+    title: string;
+    status: string;
+    completed: boolean;
+    isPending: boolean;
+    timestamp: number;
+    isAppointment?: boolean;
+    isSymptom?: boolean;
+    isVital?: boolean;
+    isNote?: boolean;
+  }> => {
     const items = [];
     const hour = new Date().getHours();
 
@@ -140,6 +177,7 @@ export default function TodayScreen() {
         status: allTaken ? `${morningMeds.length} taken` : `${morningMeds.filter(m => !m.taken).length} to take`,
         completed: allTaken,
         isPending: hour < 12 && !allTaken,
+        timestamp: new Date().setHours(8, 0, 0, 0),
       });
     }
 
@@ -153,6 +191,7 @@ export default function TodayScreen() {
         status: allTaken ? `${eveningMeds.length} taken` : `${eveningMeds.filter(m => !m.taken).length} to take`,
         completed: allTaken,
         isPending: hour >= 17 && !allTaken,
+        timestamp: new Date().setHours(18, 0, 0, 0),
       });
     }
 
@@ -168,17 +207,87 @@ export default function TodayScreen() {
     });
 
     todayAppts.forEach((appt) => {
+      const [hours, minutes] = (appt.time || '12:00').split(':').map(Number);
       items.push({
-        time: appt.time || '—',
+        time: formatTime(appt.time || '12:00'),
         title: `${appt.provider} — ${appt.specialty}`,
         status: 'Upcoming',
         completed: false,
         isPending: false,
         isAppointment: true,
+        timestamp: new Date().setHours(hours, minutes, 0, 0),
       });
     });
 
-    return items;
+    // Symptoms
+    symptoms.forEach((symptom) => {
+      const date = new Date(symptom.timestamp);
+      items.push({
+        time: date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        title: `Symptom: ${symptom.symptom}`,
+        status: `Severity ${symptom.severity}/10`,
+        completed: true,
+        isPending: false,
+        isSymptom: true,
+        timestamp: date.getTime(),
+      });
+    });
+
+    // Vitals
+    const groupedVitals = vitals.reduce((acc, vital) => {
+      const date = new Date(vital.timestamp);
+      const key = `${date.getHours()}:${date.getMinutes()}`;
+      if (!acc[key]) {
+        acc[key] = { timestamp: date.getTime(), vitals: [] };
+      }
+      acc[key].vitals.push(vital);
+      return acc;
+    }, {} as Record<string, { timestamp: number; vitals: VitalReading[] }>);
+
+    Object.values(groupedVitals).forEach(({ timestamp, vitals: vitalGroup }) => {
+      const date = new Date(timestamp);
+      const vitalTypes = vitalGroup.map(v => {
+        if (v.type === 'systolic' || v.type === 'diastolic') return 'BP';
+        if (v.type === 'glucose') return 'Glucose';
+        if (v.type === 'weight') return 'Weight';
+        return v.type;
+      }).filter((v, i, a) => a.indexOf(v) === i).join(', ');
+
+      items.push({
+        time: date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        title: `Vitals: ${vitalTypes}`,
+        status: 'Logged',
+        completed: true,
+        isPending: false,
+        isVital: true,
+        timestamp,
+      });
+    });
+
+    // Notes
+    notes.forEach((note) => {
+      const date = new Date(note.timestamp);
+      const preview = note.content.length > 30 ? note.content.substring(0, 30) + '...' : note.content;
+      items.push({
+        time: date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        title: `Note: ${preview}`,
+        status: 'Logged',
+        completed: true,
+        isPending: false,
+        isNote: true,
+        timestamp: date.getTime(),
+      });
+    });
+
+    // Sort by timestamp
+    return items.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  };
+
+  const formatTime = (time: string) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHour = hours % 12 || 12;
+    return `${displayHour}:${minutes.toString().padStart(2, '0')} ${ampm}`;
   };
 
   const isEvening = () => {
@@ -192,6 +301,59 @@ export default function TodayScreen() {
   const nextAction = getNextAction();
   const status = getStatus();
   const timelineItems = getTimelineItems();
+
+  // Calculate tomorrow's item count for timeline row
+  const getTomorrowItemCount = (): number => {
+    const tomorrow = addDays(new Date(), 1);
+    let count = 2; // Always has morning + evening wellness checks
+
+    // Check for tomorrow's appointments
+    const tomorrowAppts = appointments.filter((appt) => {
+      const apptDate = new Date(appt.date);
+      return (
+        apptDate.getDate() === tomorrow.getDate() &&
+        apptDate.getMonth() === tomorrow.getMonth() &&
+        apptDate.getFullYear() === tomorrow.getFullYear()
+      );
+    });
+    count += tomorrowAppts.length;
+
+    // Add medication items if any active meds
+    const morningMeds = medications.filter(m => m.timeSlot === 'morning');
+    const eveningMeds = medications.filter(m => m.timeSlot === 'evening');
+    if (morningMeds.length > 0) count++;
+    if (eveningMeds.length > 0) count++;
+
+    return count;
+  };
+
+  // Transform data for new timeline
+  const timelineMedications = medications.map((med) => ({
+    id: med.id,
+    name: med.name,
+    timeSlot: med.timeSlot as 'morning' | 'evening' | 'afternoon' | 'bedtime',
+    scheduledHour: med.timeSlot === 'morning' ? 8 : 18,
+    scheduledMinute: 0,
+    taken: med.taken || false,
+    takenTime: med.lastTaken ? new Date(med.lastTaken) : undefined,
+  }));
+
+  const timelineAppointments = appointments.map((apt) => ({
+    id: apt.id,
+    provider: apt.provider,
+    specialty: apt.specialty,
+    date: apt.date,
+    time: apt.time || '12:00',
+    location: apt.location,
+  }));
+
+  const { items: timelineItemsNew, overdueCount } = useTimeline({
+    medications: timelineMedications,
+    appointments: timelineAppointments,
+    today: new Date(),
+  });
+
+  const tomorrowItemCount = getTomorrowItemCount();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -230,57 +392,15 @@ export default function TodayScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
           }
         >
-          {/* UP NEXT Card */}
-          {nextAction && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>UP NEXT</Text>
-              <TouchableOpacity style={styles.nextActionCard} onPress={nextAction.action}>
-                <Text style={styles.nextActionIcon}>{nextAction.icon}</Text>
-                <View style={styles.nextActionContent}>
-                  <Text style={styles.nextActionTitle}>{nextAction.title}</Text>
-                  <Text style={styles.nextActionSubtitle}>{nextAction.subtitle}</Text>
-                </View>
-                <Text style={styles.nextActionArrow}>→</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          {/* AI Insights Card */}
+          <View style={styles.section}>
+            <InsightCard medications={medications} />
+          </View>
 
           {/* Timeline */}
-          {timelineItems.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>TODAY</Text>
-              <View style={styles.timeline}>
-                <View style={styles.timelineLine} />
-                {timelineItems.map((item, index) => (
-                  <View key={index} style={styles.timelineItem}>
-                    <View
-                      style={[
-                        styles.timelineDot,
-                        item.completed && styles.timelineDotComplete,
-                        item.isPending && styles.timelineDotPending,
-                        item.isAppointment && styles.timelineDotAppointment,
-                      ]}
-                    >
-                      {item.completed && <Text style={styles.timelineDotCheck}>✓</Text>}
-                    </View>
-                    <View style={styles.timelineContent}>
-                      <Text style={styles.timelineTime}>{item.time}</Text>
-                      <Text style={styles.timelineTitle}>{item.title}</Text>
-                      <Text
-                        style={[
-                          styles.timelineStatus,
-                          item.completed && styles.timelineStatusComplete,
-                          item.isPending && styles.timelineStatusPending,
-                        ]}
-                      >
-                        {item.status}
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
+          <View style={styles.section}>
+            <Timeline items={timelineItemsNew} tomorrowCount={tomorrowItemCount} />
+          </View>
 
           {/* Quick Log */}
           <View style={styles.section}>
@@ -423,6 +543,18 @@ const styles = StyleSheet.create({
   timelineDotAppointment: {
     borderColor: Colors.blue,
     backgroundColor: Colors.blueLight,
+  },
+  timelineDotSymptom: {
+    borderColor: '#F87171',
+    backgroundColor: 'rgba(248, 113, 113, 0.2)',
+  },
+  timelineDotVital: {
+    borderColor: '#818CF8',
+    backgroundColor: 'rgba(129, 140, 248, 0.2)',
+  },
+  timelineDotNote: {
+    borderColor: '#FCD34D',
+    backgroundColor: 'rgba(252, 211, 77, 0.2)',
   },
   timelineDotCheck: {
     fontSize: 12,

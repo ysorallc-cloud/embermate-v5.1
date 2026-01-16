@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from './_theme/theme-tokens';
 import { getMedications, markMedicationTaken, Medication } from '../utils/medicationStorage';
@@ -30,25 +30,36 @@ const SIDE_EFFECTS = [
 
 export default function MedicationConfirmScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [medications, setMedications] = useState<Medication[]>([]);
   const [checkedMeds, setCheckedMeds] = useState<Set<string>>(new Set());
   const [sideEffect, setSideEffect] = useState('none');
+  const [timeSlot, setTimeSlot] = useState<'morning' | 'evening'>('morning');
 
   useFocusEffect(
     useCallback(() => {
       loadMedications();
-    }, [])
+    }, [params.ids])
   );
 
   const loadMedications = async () => {
     try {
       const allMeds = await getMedications();
-      const hour = new Date().getHours();
-      const timeSlot = hour < 12 ? 'morning' : 'evening';
 
+      // Get medication IDs from params
+      const medIds = params.ids
+        ? (params.ids as string).split(',').filter(id => id.length > 0)
+        : [];
+
+      // Load specific medications by ID
       const relevantMeds = allMeds.filter(
-        (m) => m.active && m.timeSlot === timeSlot && !m.taken
+        (m) => m.active && medIds.includes(m.id)
       );
+
+      // Determine time slot from the medications
+      if (relevantMeds.length > 0) {
+        setTimeSlot(relevantMeds[0].timeSlot as 'morning' | 'evening');
+      }
 
       setMedications(relevantMeds);
     } catch (error) {
@@ -100,15 +111,15 @@ export default function MedicationConfirmScreen() {
   };
 
   const getTimeLabel = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Morning';
-    return 'Evening';
+    return timeSlot.charAt(0).toUpperCase() + timeSlot.slice(1);
   };
 
   const getTimeString = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return '8:00 AM';
-    return '6:00 PM';
+    // Get the time from the first medication's scheduled time
+    if (medications.length > 0) {
+      return medications[0].time;
+    }
+    return timeSlot === 'morning' ? '8:00 AM' : '6:00 PM';
   };
 
   return (

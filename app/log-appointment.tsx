@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors } from './_theme/theme-tokens';
-import { saveAppointment } from '../utils/appointmentStorage';
+import { createAppointment } from '../utils/appointmentStorage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function LogAppointmentScreen() {
@@ -39,7 +39,7 @@ export default function LogAppointmentScreen() {
 
     setSaving(true);
     try {
-      await saveAppointment({
+      await createAppointment({
         provider: provider.trim(),
         specialty: specialty.trim() || 'General',
         date: date.toISOString(),

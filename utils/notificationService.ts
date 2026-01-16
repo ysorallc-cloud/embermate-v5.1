@@ -216,17 +216,30 @@ async function scheduleMedicationNotification(
 ): Promise<void> {
   try {
     const [hours, minutes] = medication.time.split(':').map(Number);
-    
+
     // Calculate trigger time (adjust for reminder minutes before)
     let triggerHour = hours;
     let triggerMinute = minutes - settings.reminderMinutesBefore;
-    
+
     if (triggerMinute < 0) {
       triggerMinute += 60;
       triggerHour -= 1;
     }
     if (triggerHour < 0) {
       triggerHour += 24;
+    }
+
+    // Create a date for the trigger time
+    const now = new Date();
+    const scheduleDate = new Date();
+    scheduleDate.setHours(triggerHour);
+    scheduleDate.setMinutes(triggerMinute);
+    scheduleDate.setSeconds(0);
+    scheduleDate.setMilliseconds(0);
+
+    // If the time has already passed today, schedule for tomorrow
+    if (scheduleDate <= now) {
+      scheduleDate.setDate(scheduleDate.getDate() + 1);
     }
 
     const notificationBody = `Time to take ${medication.name} (${medication.dosage})`;
@@ -256,6 +269,12 @@ async function scheduleMedicationNotification(
         channelId: Platform.OS === 'android' ? 'medication-reminders' : undefined,
       },
     });
+
+    // Log for debugging
+    const nextTrigger = scheduleDate <= now
+      ? new Date(now.getTime() + 24 * 60 * 60 * 1000)
+      : scheduleDate;
+    console.log(`✓ Scheduled ${medication.name} for ${nextTrigger.toLocaleString()}`);
   } catch (error) {
     console.error(`Error scheduling notification for ${medication.name}:`, error);
   }

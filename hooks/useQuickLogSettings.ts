@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CUSTOM_OPTIONS, QuickLogOption } from '../constants/quickLogOptions';
+import { MORE_OPTIONS, QuickLogOption } from '../constants/quickLogOptions';
 
 const STORAGE_KEY = '@embermate_quick_log_settings';
 
@@ -65,7 +65,7 @@ export const useQuickLogSettings = (): UseQuickLogSettingsReturn => {
 
   // Convert IDs back to full option objects
   const userOptions = userOptionIds
-    .map(id => CUSTOM_OPTIONS.find(opt => opt.id === id))
+    .map((id) => MORE_OPTIONS.find((opt) => opt.id === id))
     .filter((opt): opt is QuickLogOption => opt !== undefined);
 
   return {

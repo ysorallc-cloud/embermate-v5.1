@@ -96,6 +96,34 @@ export async function getVitalsInRange(
 }
 
 /**
+ * Check if vitals were logged for a specific date
+ * Returns the most recent timestamp if vitals exist for that date
+ */
+export async function getVitalsCompletionForDate(date: string): Promise<Date | null> {
+  try {
+    const vitals = await getVitals();
+
+    // Filter vitals for the specific date
+    const dateVitals = vitals.filter((v) => {
+      const vitalDate = new Date(v.timestamp).toISOString().split('T')[0];
+      return vitalDate === date;
+    });
+
+    if (dateVitals.length === 0) return null;
+
+    // Return the most recent timestamp as completion time
+    const mostRecent = dateVitals.reduce((latest, current) => {
+      return new Date(current.timestamp) > new Date(latest.timestamp) ? current : latest;
+    });
+
+    return new Date(mostRecent.timestamp);
+  } catch (error) {
+    console.error('Error checking vitals completion:', error);
+    return null;
+  }
+}
+
+/**
  * Delete a vital reading
  */
 export async function deleteVital(id: string): Promise<void> {

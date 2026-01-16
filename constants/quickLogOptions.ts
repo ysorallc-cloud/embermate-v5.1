@@ -1,6 +1,6 @@
 // ============================================================================
 // QUICK LOG OPTIONS
-// Defines core (permanent) and custom (user-addable) quick log types
+// Defines all quick log types with core (3 always visible) and more options
 // ============================================================================
 
 export interface QuickLogOption {
@@ -8,27 +8,50 @@ export interface QuickLogOption {
   icon: string;
   label: string;
   description: string;
-  screen: string; // Navigation target for logging
-  isCore: boolean; // True = cannot be removed
+  screen: string; // Navigation target
+  isCore: boolean; // Shows on TODAY screen
+  category: 'core' | 'health' | 'daily' | 'care';
 }
 
-// Core options - always visible, cannot be removed
-export const CORE_OPTIONS: QuickLogOption[] = [
+export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
+  // CORE (shown on TODAY screen)
+  {
+    id: 'meds',
+    icon: '💊',
+    label: 'Meds',
+    description: 'Log medication taken or skipped',
+    screen: '/medication-confirm',
+    isCore: true,
+    category: 'core',
+  },
+  {
+    id: 'mood',
+    icon: '😊',
+    label: 'Mood',
+    description: 'How are they feeling?',
+    screen: '/log-mood',
+    isCore: true,
+    category: 'core',
+  },
+  {
+    id: 'vitals',
+    icon: '❤️',
+    label: 'Vitals',
+    description: 'BP, glucose, weight, O2, temp',
+    screen: '/log-vitals',
+    isCore: true,
+    category: 'core',
+  },
+
+  // MORE OPTIONS
   {
     id: 'symptom',
     icon: '🩹',
     label: 'Symptom',
     description: 'Pain, nausea, dizziness...',
     screen: '/log-symptom',
-    isCore: true,
-  },
-  {
-    id: 'vitals',
-    icon: '❤️',
-    label: 'Vitals',
-    description: 'BP, glucose, weight, O2',
-    screen: '/log-vitals',
-    isCore: true,
+    isCore: false,
+    category: 'health',
   },
   {
     id: 'note',
@@ -36,76 +59,67 @@ export const CORE_OPTIONS: QuickLogOption[] = [
     label: 'Note',
     description: 'Observation or reminder',
     screen: '/log-note',
-    isCore: true,
-  },
-];
-
-// Custom options - user can add/remove these
-export const CUSTOM_OPTIONS: QuickLogOption[] = [
-  {
-    id: 'appointment',
-    icon: '📅',
-    label: 'Appointment',
-    description: 'Schedule doctor visit',
-    screen: '/log-appointment',
     isCore: false,
+    category: 'care',
   },
   {
-    id: 'prn',
-    icon: '💊',
-    label: 'PRN Medication',
-    description: 'As-needed meds taken',
-    screen: '/log-prn',
-    isCore: false,
-  },
-  {
-    id: 'meal',
+    id: 'meals',
     icon: '🍽️',
-    label: 'Meal',
-    description: 'Food and fluid intake',
+    label: 'Meals',
+    description: 'Breakfast, lunch, dinner, snacks',
     screen: '/log-meal',
     isCore: false,
-  },
-  {
-    id: 'sleep',
-    icon: '😴',
-    label: 'Sleep',
-    description: 'Nap or rest period',
-    screen: '/log-sleep',
-    isCore: false,
-  },
-  {
-    id: 'activity',
-    icon: '🚶',
-    label: 'Activity',
-    description: 'Walking, exercise, PT',
-    screen: '/log-activity',
-    isCore: false,
-  },
-  {
-    id: 'mood',
-    icon: '🧠',
-    label: 'Mood/Behavior',
-    description: 'Mental state changes',
-    screen: '/log-mood',
-    isCore: false,
+    category: 'daily',
   },
   {
     id: 'hydration',
     icon: '💧',
     label: 'Hydration',
-    description: 'Fluid intake tracking',
+    description: 'Water and fluid intake',
     screen: '/log-hydration',
     isCore: false,
+    category: 'daily',
+  },
+  {
+    id: 'sleep',
+    icon: '💤',
+    label: 'Sleep',
+    description: 'Hours slept, quality',
+    screen: '/log-sleep',
+    isCore: false,
+    category: 'daily',
+  },
+  {
+    id: 'activity',
+    icon: '🚶',
+    label: 'Activity',
+    description: 'Exercise, steps, movement',
+    screen: '/log-activity',
+    isCore: false,
+    category: 'daily',
   },
   {
     id: 'bathroom',
     icon: '🚽',
     label: 'Bathroom',
-    description: 'Output tracking',
+    description: 'Bowel movements, urination',
     screen: '/log-bathroom',
     isCore: false,
+    category: 'health',
+  },
+  {
+    id: 'appointment',
+    icon: '📅',
+    label: 'Appointment',
+    description: 'Schedule or log a visit',
+    screen: '/appointments',
+    isCore: false,
+    category: 'care',
   },
 ];
 
-export const ALL_OPTIONS = [...CORE_OPTIONS, ...CUSTOM_OPTIONS];
+// Helper to get core options
+export const CORE_OPTIONS = QUICK_LOG_OPTIONS.filter((o) => o.isCore);
+
+// Helper to get more options
+export const MORE_OPTIONS = QUICK_LOG_OPTIONS.filter((o) => !o.isCore);
