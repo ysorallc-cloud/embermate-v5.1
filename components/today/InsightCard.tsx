@@ -161,6 +161,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
     marginBottom: 4,
+    color: Colors.accent, // Default color for visibility
   },
   title: {
     fontSize: 15,

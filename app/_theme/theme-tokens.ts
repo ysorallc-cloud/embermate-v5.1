@@ -27,7 +27,7 @@ export const Colors = {
   textPrimary: '#FFFFFF',
   textSecondary: 'rgba(255, 255, 255, 0.85)',
   textTertiary: 'rgba(255, 255, 255, 0.6)',
-  textMuted: 'rgba(94, 234, 212, 0.5)',
+  textMuted: 'rgba(94, 234, 212, 0.7)', // Increased from 0.5 for better contrast
   
   // Accents - Teal gradient
   accent: '#14B8A6',
@@ -74,7 +74,7 @@ export const Colors = {
   tabBarBackground: '#051614',
   tabBarBorder: 'rgba(20, 184, 166, 0.15)',
   tabBarActive: '#14B8A6',
-  tabBarInactive: 'rgba(255, 255, 255, 0.4)',
+  tabBarInactive: 'rgba(255, 255, 255, 0.6)', // Increased from 0.4 for better contrast
   
   // Overlay & Menu
   overlay: 'rgba(0, 0, 0, 0.85)',
