@@ -287,6 +287,26 @@ export default function HubScreen() {
             ))}
           </View>
 
+          {/* V3: Reports Hub Link */}
+          <TouchableOpacity
+            style={styles.reportsHubButton}
+            onPress={() => router.push('/hub/reports')}
+            activeOpacity={0.7}
+          >
+            <GlassCard style={styles.reportsHubCard}>
+              <View style={styles.reportsHubContent}>
+                <View style={styles.reportsHubIcon}>
+                  <Text style={styles.reportsHubIconText}>📊</Text>
+                </View>
+                <View style={styles.reportsHubText}>
+                  <Text style={styles.reportsHubTitle}>Reports & Insights</Text>
+                  <Text style={styles.reportsHubSubtitle}>8 reports · 6 patterns discovered</Text>
+                </View>
+                <Text style={styles.reportsHubArrow}>›</Text>
+              </View>
+            </GlassCard>
+          </TouchableOpacity>
+
           {/* Suggested Approach */}
           <View style={styles.section}>
             <SectionHeader title="Suggested Approach" />
@@ -488,6 +508,48 @@ const styles = StyleSheet.create({
   // Sections
   section: {
     marginBottom: Spacing.xxl,
+  },
+
+  // V3: Reports Hub
+  reportsHubButton: {
+    marginBottom: Spacing.xxl,
+  },
+  reportsHubCard: {
+    backgroundColor: `${Colors.purple}10`,
+    borderColor: `${Colors.purple}30`,
+  },
+  reportsHubContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.lg,
+  },
+  reportsHubIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.purple,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportsHubIconText: {
+    fontSize: 28,
+  },
+  reportsHubText: {
+    flex: 1,
+  },
+  reportsHubTitle: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  reportsHubSubtitle: {
+    ...Typography.bodySmall,
+    color: Colors.purple,
+  },
+  reportsHubArrow: {
+    fontSize: 20,
+    color: Colors.purple,
   },
 
   // Approach

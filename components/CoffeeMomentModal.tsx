@@ -1,6 +1,6 @@
 // ============================================================================
-// COFFEE MOMENT MODAL
-// Self-care pause for stressed caregivers with breathing exercise
+// COFFEE MOMENT MODAL - V3 Enhanced
+// Self-care pause with AI-personalized encouragement
 // ============================================================================
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../app/_theme/theme-tokens';
+import { getPersonalizedEncouragement, getSampleCaregiverInsights, Encouragement } from '../utils/coffee-moment';
 
 interface CoffeeMomentModalProps {
   visible: boolean;
@@ -28,17 +29,6 @@ const BREATH_CYCLE = {
   hold: 4000,
   exhale: 4000,
 };
-
-const AFFIRMATIONS = [
-  "You can't pour from an empty cup.",
-  "Rest is not a reward. It's a necessity.",
-  "You're doing more than you realize.",
-  "One moment at a time. That's all it takes.",
-  "Your presence is a gift to those you care for.",
-  "It's okay to not be okay sometimes.",
-  "You matter too.",
-  "Small pauses make big differences.",
-];
 
 const HELPFUL_RESOURCES = [
   {
@@ -66,9 +56,18 @@ export const CoffeeMomentModal: React.FC<CoffeeMomentModalProps> = ({
   const [breathPhase, setBreathPhase] = useState<BreathPhase>('ready');
   const [isBreathing, setIsBreathing] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const [affirmation] = useState(
-    AFFIRMATIONS[Math.floor(Math.random() * AFFIRMATIONS.length)]
-  );
+
+  // V3: AI-personalized encouragement
+  const [encouragement, setEncouragement] = useState<Encouragement | null>(null);
+
+  useEffect(() => {
+    if (visible && !encouragement) {
+      // Get personalized message based on caregiver data
+      const insights = getSampleCaregiverInsights(); // In production, fetch real data
+      const message = getPersonalizedEncouragement(insights);
+      setEncouragement(message);
+    }
+  }, [visible]);
 
   // Breathing animation
   useEffect(() => {
@@ -177,8 +176,23 @@ export const CoffeeMomentModal: React.FC<CoffeeMomentModalProps> = ({
               </Text>
             </View>
 
-            {/* Affirmation */}
-            <Text style={styles.affirmation}>✨ "{affirmation}"</Text>
+            {/* V3: AI-Personalized Encouragement */}
+            {encouragement && (
+              <View style={styles.encouragementCard}>
+                {encouragement.type !== 'default' && (
+                  <View style={styles.encouragementBadge}>
+                    <Text style={styles.encouragementBadgeText}>
+                      {encouragement.type === 'celebration' && '🎉 Milestone'}
+                      {encouragement.type === 'empathy' && '💜 We see you'}
+                      {encouragement.type === 'preparation' && '📋 Coming up'}
+                      {encouragement.type === 'progress' && '📈 Progress'}
+                    </Text>
+                  </View>
+                )}
+                <Text style={styles.encouragementMain}>{encouragement.main}</Text>
+                <Text style={styles.encouragementSub}>{encouragement.sub}</Text>
+              </View>
+            )}
 
             {/* Actions */}
             <TouchableOpacity style={styles.primaryButton} onPress={handleClose}>
@@ -286,6 +300,40 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     marginBottom: 24,
+  },
+  // V3: Encouragement Card
+  encouragementCard: {
+    backgroundColor: Colors.purpleLight,
+    borderWidth: 1,
+    borderColor: Colors.purpleBorder,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    width: '100%',
+  },
+  encouragementBadge: {
+    backgroundColor: Colors.purple,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  encouragementBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  encouragementMain: {
+    fontSize: 18,
+    fontWeight: '400',
+    color: Colors.textPrimary,
+    marginBottom: 8,
+  },
+  encouragementSub: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 21,
   },
   primaryButton: {
     backgroundColor: Colors.purple,
