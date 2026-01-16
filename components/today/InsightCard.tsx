@@ -53,7 +53,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ medications }) => {
         <View style={styles.content}>
           <Text style={styles.label}>AI INSIGHTS</Text>
           <Text style={styles.title}>Everything looks good</Text>
-          <Text style={styles.subtitle}>
+          <Text style={styles.description}>
             Medications on track, no patterns detected
           </Text>
         </View>
