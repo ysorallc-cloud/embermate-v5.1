@@ -7,6 +7,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { addMedication, Medication } from './medicationStorage';
 import { addAppointment, Appointment } from './appointmentStorage';
+import { saveVital } from './vitalsStorage';
 import { Alert } from 'react-native';
 
 interface ImportResult {
@@ -20,7 +21,6 @@ interface ImportResult {
   errors: string[];
 }
 
-const VITALS_KEY = '@EmberMate:vitals';
 const SYMPTOMS_KEY = '@EmberMate:symptoms';
 
 // Import from JSON
@@ -78,26 +78,83 @@ export async function importFromJSON(jsonString: string): Promise<ImportResult> 
     // Import vitals
     if (data.vitals && Array.isArray(data.vitals)) {
       try {
-        const existingData = await AsyncStorage.getItem(VITALS_KEY);
-        const vitals = existingData ? JSON.parse(existingData) : [];
-        
         for (const vital of data.vitals) {
-          vitals.unshift({
-            id: Date.now().toString() + Math.random(),
-            timestamp: vital.timestamp || new Date().toISOString(),
-            bloodPressureSystolic: vital.bloodPressureSystolic,
-            bloodPressureDiastolic: vital.bloodPressureDiastolic,
-            heartRate: vital.heartRate,
-            oxygenSaturation: vital.oxygenSaturation,
-            glucose: vital.glucose,
-            temperature: vital.temperature,
-            weight: vital.weight,
-            notes: vital.notes,
-          });
+          const timestamp = vital.timestamp || new Date().toISOString();
+          const notes = vital.notes;
+
+          // Import each vital type separately using the vitalsStorage utility
+          if (vital.bloodPressureSystolic) {
+            await saveVital({
+              type: 'systolic',
+              value: vital.bloodPressureSystolic,
+              timestamp,
+              unit: 'mmHg',
+              notes,
+            });
+          }
+
+          if (vital.bloodPressureDiastolic) {
+            await saveVital({
+              type: 'diastolic',
+              value: vital.bloodPressureDiastolic,
+              timestamp,
+              unit: 'mmHg',
+              notes,
+            });
+          }
+
+          if (vital.heartRate) {
+            await saveVital({
+              type: 'heartRate',
+              value: vital.heartRate,
+              timestamp,
+              unit: 'bpm',
+              notes,
+            });
+          }
+
+          if (vital.oxygenSaturation) {
+            await saveVital({
+              type: 'oxygen',
+              value: vital.oxygenSaturation,
+              timestamp,
+              unit: '%',
+              notes,
+            });
+          }
+
+          if (vital.glucose) {
+            await saveVital({
+              type: 'glucose',
+              value: vital.glucose,
+              timestamp,
+              unit: 'mg/dL',
+              notes,
+            });
+          }
+
+          if (vital.temperature) {
+            await saveVital({
+              type: 'temperature',
+              value: vital.temperature,
+              timestamp,
+              unit: '°F',
+              notes,
+            });
+          }
+
+          if (vital.weight) {
+            await saveVital({
+              type: 'weight',
+              value: vital.weight,
+              timestamp,
+              unit: 'lbs',
+              notes,
+            });
+          }
+
           result.imported.vitals++;
         }
-        
-        await AsyncStorage.setItem(VITALS_KEY, JSON.stringify(vitals.slice(0, 100)));
       } catch (e) {
         result.errors.push('Vitals import failed');
       }

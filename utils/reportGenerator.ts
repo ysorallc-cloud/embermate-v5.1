@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMedications, getMedicationLogs } from './medicationStorage';
 import { getAppointments } from './appointmentStorage';
+import { getVitals, VitalReading } from './vitalsStorage';
 
 interface VitalLog {
   id: string;
@@ -27,8 +28,64 @@ interface SymptomLog {
   notes?: string;
 }
 
-const VITALS_KEY = '@EmberMate:vitals';
 const SYMPTOMS_KEY = '@EmberMate:symptoms';
+
+/**
+ * Convert VitalReading[] to VitalLog[] format for report generation
+ * Groups readings by timestamp (within 1 hour) to create consolidated logs
+ */
+function convertVitalsToLogs(readings: VitalReading[]): VitalLog[] {
+  // Sort by timestamp (most recent first)
+  const sorted = [...readings].sort((a, b) =>
+    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+
+  // Group readings by timestamp (within 1 hour window)
+  const groups = new Map<string, VitalLog>();
+
+  for (const reading of sorted) {
+    const timestamp = reading.timestamp;
+    const hour = new Date(timestamp).setMinutes(0, 0, 0);
+    const key = hour.toString();
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        id: reading.id,
+        timestamp,
+        notes: reading.notes,
+      });
+    }
+
+    const log = groups.get(key)!;
+
+    // Map reading types to VitalLog properties
+    switch (reading.type) {
+      case 'systolic':
+        log.bloodPressureSystolic = reading.value;
+        break;
+      case 'diastolic':
+        log.bloodPressureDiastolic = reading.value;
+        break;
+      case 'heartRate':
+        log.heartRate = reading.value;
+        break;
+      case 'oxygen':
+        log.oxygenSaturation = reading.value;
+        break;
+      case 'glucose':
+        log.glucose = reading.value;
+        break;
+      case 'temperature':
+        log.temperature = reading.value;
+        break;
+      case 'weight':
+        log.weight = reading.value;
+        break;
+    }
+  }
+
+  return Array.from(groups.values());
+}
 
 export interface ComprehensiveReport {
   generatedAt: Date;
@@ -102,12 +159,14 @@ export async function generateComprehensiveReport(): Promise<ComprehensiveReport
   const medLogs = await getMedicationLogs();
   const appointments = await getAppointments();
   
-  // Load vitals
+  // Load vitals and convert to VitalLog format
   let vitals: VitalLog[] = [];
   try {
-    const vitalsData = await AsyncStorage.getItem(VITALS_KEY);
-    if (vitalsData) vitals = JSON.parse(vitalsData);
-  } catch (e) {}
+    const vitalReadings = await getVitals();
+    vitals = convertVitalsToLogs(vitalReadings);
+  } catch (e) {
+    console.error('Error loading vitals for report:', e);
+  }
   
   // Load symptoms
   let symptoms: SymptomLog[] = [];

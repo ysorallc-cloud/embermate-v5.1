@@ -22,21 +22,8 @@ import { Colors, Spacing, BorderRadius } from './_theme/theme-tokens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { SimplifiedReminderCard } from '../components/SimplifiedReminderCard';
+import { saveVital } from '../utils/vitalsStorage';
 
-interface VitalLog {
-  id: string;
-  timestamp: string;
-  bloodPressureSystolic?: number;
-  bloodPressureDiastolic?: number;
-  heartRate?: number;
-  oxygenSaturation?: number;
-  glucose?: number;
-  temperature?: number;
-  weight?: number;
-  notes?: string;
-}
-
-const VITALS_KEY = '@EmberMate:vitals';
 const VITALS_REMINDER_KEY = '@EmberMate:vitals_reminder_enabled';
 const VITALS_REMINDER_TIME_KEY = '@EmberMate:vitals_reminder_time';
 
@@ -95,37 +82,89 @@ export default function VitalsLogScreen() {
   const handleSave = async () => {
     // Check if at least one vital is entered
     const hasData = bpSystolic || bpDiastolic || heartRate || o2Sat || glucose || temperature || weight;
-    
+
     if (!hasData) {
       Alert.alert('No Data', 'Please enter at least one vital sign');
       return;
     }
 
     try {
-      const vitalLog: VitalLog = {
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-        bloodPressureSystolic: bpSystolic ? parseInt(bpSystolic) : undefined,
-        bloodPressureDiastolic: bpDiastolic ? parseInt(bpDiastolic) : undefined,
-        heartRate: heartRate ? parseInt(heartRate) : undefined,
-        oxygenSaturation: o2Sat ? parseInt(o2Sat) : undefined,
-        glucose: glucose ? parseInt(glucose) : undefined,
-        temperature: temperature ? parseFloat(temperature) : undefined,
-        weight: weight ? parseFloat(weight) : undefined,
-        notes: notes.trim() || undefined,
-      };
+      const timestamp = new Date().toISOString();
+      const vitalNotes = notes.trim() || undefined;
 
-      // Save to storage
-      const existingData = await AsyncStorage.getItem(VITALS_KEY);
-      const vitals: VitalLog[] = existingData ? JSON.parse(existingData) : [];
-      vitals.unshift(vitalLog);
-      
-      // Keep last 100 entries
-      const trimmedVitals = vitals.slice(0, 100);
-      await AsyncStorage.setItem(VITALS_KEY, JSON.stringify(trimmedVitals));
+      // Save each vital reading individually using the vitalsStorage utility
+      if (bpSystolic) {
+        await saveVital({
+          type: 'systolic',
+          value: parseInt(bpSystolic),
+          timestamp,
+          unit: 'mmHg',
+          notes: vitalNotes,
+        });
+      }
+
+      if (bpDiastolic) {
+        await saveVital({
+          type: 'diastolic',
+          value: parseInt(bpDiastolic),
+          timestamp,
+          unit: 'mmHg',
+          notes: vitalNotes,
+        });
+      }
+
+      if (heartRate) {
+        await saveVital({
+          type: 'heartRate',
+          value: parseInt(heartRate),
+          timestamp,
+          unit: 'bpm',
+          notes: vitalNotes,
+        });
+      }
+
+      if (o2Sat) {
+        await saveVital({
+          type: 'oxygen',
+          value: parseInt(o2Sat),
+          timestamp,
+          unit: '%',
+          notes: vitalNotes,
+        });
+      }
+
+      if (glucose) {
+        await saveVital({
+          type: 'glucose',
+          value: parseInt(glucose),
+          timestamp,
+          unit: 'mg/dL',
+          notes: vitalNotes,
+        });
+      }
+
+      if (temperature) {
+        await saveVital({
+          type: 'temperature',
+          value: parseFloat(temperature),
+          timestamp,
+          unit: '°F',
+          notes: vitalNotes,
+        });
+      }
+
+      if (weight) {
+        await saveVital({
+          type: 'weight',
+          value: parseFloat(weight),
+          timestamp,
+          unit: 'lbs',
+          notes: vitalNotes,
+        });
+      }
 
       await hapticSuccess();
-      
+
       Alert.alert(
         'Vitals Logged',
         'Vital signs have been recorded',

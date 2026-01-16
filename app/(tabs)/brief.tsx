@@ -20,23 +20,10 @@ import { Colors } from '../_theme/theme-tokens';
 import { getMedications, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
 import { getDailyTracking } from '../../utils/dailyTrackingStorage';
+import { getVitalsByType, VitalReading } from '../../utils/vitalsStorage';
+import { getMorningWellness, StoredMorningWellness } from '../../utils/wellnessCheckStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
-
-const VITALS_KEY = '@EmberMate:vitals';
-
-interface VitalLog {
-  id: string;
-  timestamp: string;
-  bloodPressureSystolic?: number;
-  bloodPressureDiastolic?: number;
-  heartRate?: number;
-  oxygenSaturation?: number;
-  glucose?: number;
-  temperature?: number;
-  weight?: number;
-  notes?: string;
-}
 
 export default function CareBriefScreen() {
   const router = useRouter();
@@ -44,7 +31,9 @@ export default function CareBriefScreen() {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [dailyTracking, setDailyTracking] = useState<any>(null);
-  const [latestVitals, setLatestVitals] = useState<VitalLog | null>(null);
+  const [wellnessCheck, setWellnessCheck] = useState<StoredMorningWellness | null>(null);
+  const [latestSystolic, setLatestSystolic] = useState<number | null>(null);
+  const [latestDiastolic, setLatestDiastolic] = useState<number | null>(null);
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
   useFocusEffect(
@@ -63,18 +52,29 @@ export default function CareBriefScreen() {
       const appts = await getUpcomingAppointments();
       setAppointments(appts);
 
-      // Load daily tracking (mood, energy, pain)
+      // Load daily tracking (pain)
       const today = new Date().toISOString().split('T')[0];
       const tracking = await getDailyTracking(today);
       setDailyTracking(tracking);
 
-      // Load latest vitals
-      const vitalsData = await AsyncStorage.getItem(VITALS_KEY);
-      if (vitalsData) {
-        const vitals: VitalLog[] = JSON.parse(vitalsData);
-        if (vitals.length > 0) {
-          setLatestVitals(vitals[0]);
-        }
+      // Load wellness check (mood, energy)
+      const wellness = await getMorningWellness(today);
+      setWellnessCheck(wellness);
+
+      // Load latest vitals (blood pressure)
+      const systolicReadings = await getVitalsByType('systolic');
+      const diastolicReadings = await getVitalsByType('diastolic');
+
+      if (systolicReadings.length > 0) {
+        setLatestSystolic(systolicReadings[0].value);
+      } else {
+        setLatestSystolic(null);
+      }
+
+      if (diastolicReadings.length > 0) {
+        setLatestDiastolic(diastolicReadings[0].value);
+      } else {
+        setLatestDiastolic(null);
       }
 
       setLastUpdated(new Date());
@@ -91,55 +91,72 @@ export default function CareBriefScreen() {
 
   // Generate narrative summary
   const generateNarrative = () => {
-    const mood = dailyTracking?.mood;
-    const energy = dailyTracking?.energy;
+    // Convert wellness check mood to numeric scale
+    const moodMap = { 'struggling': 2, 'difficult': 4, 'managing': 5, 'good': 7, 'great': 9 };
+    const mood = wellnessCheck?.mood ? moodMap[wellnessCheck.mood] : null;
+    const energy = wellnessCheck?.energyLevel || null;
     const pain = dailyTracking?.pain;
+
+    // If no data, show default message
+    if (!mood && !energy && !pain) {
+      return "Start logging to see Mom's story unfold here. Even small check-ins help build the picture.";
+    }
 
     let narrative = "Mom's having a ";
 
     // Overall status
-    if (mood >= 7 && energy >= 6 && pain <= 3) {
-      narrative += "**good day**. ";
-    } else if (mood >= 5 && energy >= 4 && pain <= 5) {
-      narrative += "**steady day**. ";
+    if (mood && energy && pain !== null) {
+      if (mood >= 7 && energy >= 4 && pain <= 3) {
+        narrative += "**good day**. ";
+      } else if (mood >= 5 && energy >= 3 && pain <= 5) {
+        narrative += "**steady day**. ";
+      } else {
+        narrative += "**harder stretch**. ";
+      }
     } else {
-      narrative += "**harder stretch**. ";
+      narrative += "**steady day**. ";
     }
 
     // Mood state
-    if (mood >= 7) {
-      narrative += "Mood is positive and she's been upbeat this afternoon. ";
-    } else if (mood >= 5) {
-      narrative += "Mood is stable and she's been calm this afternoon. ";
-    } else if (mood >= 3) {
-      narrative += "Mood has been low and she seems quieter than usual. ";
-    } else {
-      narrative += "She's been struggling today and may need extra support. ";
+    if (mood) {
+      if (mood >= 7) {
+        narrative += "Mood is positive and she's been upbeat this afternoon. ";
+      } else if (mood >= 5) {
+        narrative += "Mood is stable and she's been calm this afternoon. ";
+      } else if (mood >= 3) {
+        narrative += "Mood has been low and she seems quieter than usual. ";
+      } else {
+        narrative += "She's been struggling today and may need extra support. ";
+      }
     }
 
     // Energy level
-    if (energy >= 7) {
-      narrative += "Energy is **strong today**, which is wonderful to see. ";
-    } else if (energy >= 5) {
-      narrative += "Energy is at a **good level** for light activity. ";
-    } else if (energy >= 3) {
-      narrative += "Energy is **lower than usual**, so she may need more rest. ";
-    } else {
-      narrative += "Energy is **very low** — prioritize rest and comfort. ";
+    if (energy) {
+      if (energy >= 4) {
+        narrative += "Energy is **strong today**, which is wonderful to see. ";
+      } else if (energy >= 3) {
+        narrative += "Energy is at a **good level** for light activity. ";
+      } else if (energy >= 2) {
+        narrative += "Energy is **lower than usual**, so she may need more rest. ";
+      } else {
+        narrative += "Energy is **very low** — prioritize rest and comfort. ";
+      }
     }
 
     // Pain level
-    if (pain === 0) {
-      narrative += "No pain reported today.";
-    } else if (pain <= 3) {
-      narrative += `Pain is minimal at **${pain}/10**.`;
-    } else if (pain <= 5) {
-      narrative += `Pain has been at **${pain}/10** — manageable but present.`;
-    } else {
-      narrative += `Pain has been at **${pain}/10 for two days now** — worth discussing at the next visit.`;
+    if (pain !== null && pain !== undefined) {
+      if (pain === 0) {
+        narrative += "No pain reported today.";
+      } else if (pain <= 3) {
+        narrative += `Pain is minimal at **${pain}/10**.`;
+      } else if (pain <= 5) {
+        narrative += `Pain has been at **${pain}/10** — manageable but present.`;
+      } else {
+        narrative += `Pain has been at **${pain}/10** — worth discussing at the next visit.`;
+      }
     }
 
-    return narrative || "Start logging to see Mom's story unfold here. Even small check-ins help build the picture.";
+    return narrative;
   };
 
   // Detect patterns
@@ -147,7 +164,7 @@ export default function CareBriefScreen() {
     const pain = dailyTracking?.pain;
 
     // Example: Pain elevated above baseline
-    if (pain && pain >= 5) {
+    if (pain !== null && pain !== undefined && pain >= 5) {
       return {
         detected: true,
         message: `Pain has been ${pain}/10 or higher for 2 consecutive days. This is above her typical baseline of 3/10.`,
@@ -159,25 +176,26 @@ export default function CareBriefScreen() {
 
   // Generate suggested approach
   const generateApproach = () => {
-    const energy = dailyTracking?.energy;
+    const moodMap = { 'struggling': 2, 'difficult': 4, 'managing': 5, 'good': 7, 'great': 9 };
+    const mood = wellnessCheck?.mood ? moodMap[wellnessCheck.mood] : null;
+    const energy = wellnessCheck?.energyLevel || null;
     const pain = dailyTracking?.pain;
-    const mood = dailyTracking?.mood;
 
     let approach = "";
 
-    if (energy && energy < 4) {
+    if (energy !== null && energy < 3) {
       approach += "Since energy is low, keep requests small today. ";
     }
 
-    if (pain && pain >= 5) {
+    if (pain !== null && pain >= 5) {
       approach += "Ask about pain before meals — note if it's affecting appetite. A warm compress or gentle position change might help with comfort. ";
     }
 
-    if (mood && mood < 5) {
+    if (mood !== null && mood < 5) {
       approach += "If she seems restless, quiet company may be better than conversation. ";
     }
 
-    if (energy >= 7 && pain <= 3 && mood >= 7) {
+    if (energy !== null && pain !== null && mood !== null && energy >= 4 && pain <= 3 && mood >= 7) {
       approach += "This is a good day — maybe a short outing or a favorite activity if she's interested. ";
     }
 
@@ -186,14 +204,15 @@ export default function CareBriefScreen() {
 
   // Generate caregiver message
   const getCaregiverMessage = () => {
+    const moodMap = { 'struggling': 2, 'difficult': 4, 'managing': 5, 'good': 7, 'great': 9 };
+    const mood = wellnessCheck?.mood ? moodMap[wellnessCheck.mood] : null;
     const pain = dailyTracking?.pain;
-    const mood = dailyTracking?.mood;
 
-    if (pain && pain >= 5) {
+    if (pain !== null && pain >= 5) {
       return "Days with elevated pain can feel heavier for everyone. You're not responsible for fixing everything — being present is enough. If you need to step away, that's okay.";
     }
 
-    if (mood && mood < 5) {
+    if (mood !== null && mood < 5) {
       return "Caring for someone through difficult days takes strength. Remember: you're doing important work, even when progress isn't visible. Take breaks when you need them.";
     }
 
@@ -286,22 +305,30 @@ export default function CareBriefScreen() {
             <Text style={styles.sectionLabel}>QUICK STATS</Text>
             <View style={styles.statsRow}>
               <View style={styles.statCard}>
-                <Text style={[styles.statValue, { color: Colors.green }]}>
-                  {Math.round((medications.filter(m => m.taken).length / Math.max(medications.length, 1)) * 100)}%
+                <Text style={[styles.statValue, { color: medications.length === 0 ? Colors.gold : (medications.filter(m => m.taken).length / medications.length) >= 0.8 ? Colors.green : (medications.filter(m => m.taken).length / medications.length) >= 0.5 ? Colors.gold : Colors.red }]}>
+                  {medications.length === 0 ? '--' : Math.round((medications.filter(m => m.taken).length / medications.length) * 100) + '%'}
                 </Text>
                 <Text style={styles.statLabel}>Meds</Text>
               </View>
               <View style={styles.statCard}>
-                <Text style={[styles.statValue, { color: latestVitals?.bloodPressureSystolic && latestVitals.bloodPressureSystolic > 140 ? Colors.gold : Colors.green }]}>
-                  {latestVitals?.bloodPressureSystolic && latestVitals?.bloodPressureDiastolic
-                    ? `${latestVitals.bloodPressureSystolic}/${latestVitals.bloodPressureDiastolic}`
+                <Text style={[styles.statValue, { color: latestSystolic && latestSystolic > 140 ? Colors.gold : Colors.green }]}>
+                  {latestSystolic && latestDiastolic
+                    ? `${latestSystolic}/${latestDiastolic}`
                     : '--'}
                 </Text>
                 <Text style={styles.statLabel}>BP</Text>
               </View>
               <View style={styles.statCard}>
-                <Text style={[styles.statValue, { color: dailyTracking?.mood >= 7 ? Colors.green : dailyTracking?.mood >= 4 ? Colors.gold : Colors.red }]}>
-                  {dailyTracking?.mood >= 7 ? 'Good' : dailyTracking?.mood >= 4 ? 'Steady' : 'Low'}
+                <Text style={[styles.statValue, { color: (() => {
+                  if (!wellnessCheck?.mood) return Colors.gold;
+                  const moodMap = { 'struggling': Colors.red, 'difficult': Colors.gold, 'managing': Colors.gold, 'good': Colors.green, 'great': Colors.green };
+                  return moodMap[wellnessCheck.mood];
+                })() }]}>
+                  {(() => {
+                    if (!wellnessCheck?.mood) return '--';
+                    const displayMap = { 'struggling': 'Low', 'difficult': 'Low', 'managing': 'Steady', 'good': 'Good', 'great': 'Great' };
+                    return displayMap[wellnessCheck.mood];
+                  })()}
                 </Text>
                 <Text style={styles.statLabel}>Mood</Text>
               </View>
