@@ -28,11 +28,19 @@ import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { GlassCard } from '../../components/aurora/GlassCard';
 import { SectionHeader } from '../../components/aurora/SectionHeader';
 
+interface RecentShare {
+  id: string;
+  reportName: string;
+  sharedWith: string;
+  date: string;
+}
+
 export default function FamilyScreen() {
   const router = useRouter();
   const [caregivers, setCaregivers] = useState<CaregiverProfile[]>([]);
   const [activities, setActivities] = useState<CareActivity[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [recentShares, setRecentShares] = useState<RecentShare[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -41,11 +49,56 @@ export default function FamilyScreen() {
   );
 
   const loadData = async () => {
-    const team = await getCaregivers();
+    let team = await getCaregivers();
+
+    // Add sample caregivers if the team is empty (for demo)
+    if (team.length === 0) {
+      team = [
+        {
+          id: 'sarah-1',
+          name: 'Sarah',
+          role: 'family' as const,
+          email: 'sarah@example.com',
+          permissions: ['view', 'edit'],
+          invitedAt: new Date().toISOString(),
+          avatarColor: Colors.roseLight,
+          lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+        },
+        {
+          id: 'dr-chen-1',
+          name: 'Dr. Chen',
+          role: 'healthcare' as const,
+          email: 'dr.chen@example.com',
+          permissions: ['view'],
+          invitedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
+          avatarColor: Colors.purpleLight,
+          lastActive: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+        },
+      ];
+    }
+
     setCaregivers(team);
 
     const acts = await getCareActivities(100);
     setActivities(acts);
+
+    // Add sample recent shares if caregivers exist
+    if (team.length > 0) {
+      setRecentShares([
+        {
+          id: '1',
+          reportName: 'Weekly Health Summary',
+          sharedWith: 'Sarah',
+          date: '2 days ago',
+        },
+        {
+          id: '2',
+          reportName: 'Medication Report',
+          sharedWith: 'Dr. Chen',
+          date: '1 week ago',
+        },
+      ]);
+    }
   };
 
   const onRefresh = useCallback(async () => {
@@ -307,6 +360,38 @@ export default function FamilyScreen() {
             </View>
           </View>
 
+          {/* Recently Shared */}
+          {recentShares.length > 0 && (
+            <View style={styles.section}>
+              <SectionHeader title="Recently Shared" />
+
+              <GlassCard noPadding>
+                {recentShares.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyText}>No reports shared yet</Text>
+                  </View>
+                ) : (
+                  recentShares.map((share, index) => (
+                    <View
+                      key={share.id}
+                      style={[
+                        styles.shareRow,
+                        index < recentShares.length - 1 && styles.shareRowBorder,
+                      ]}
+                    >
+                      <Text style={styles.shareIcon}>📄</Text>
+                      <View style={styles.shareContent}>
+                        <Text style={styles.shareName}>{share.reportName}</Text>
+                        <Text style={styles.shareWith}>Shared with {share.sharedWith}</Text>
+                      </View>
+                      <Text style={styles.shareDate}>{share.date}</Text>
+                    </View>
+                  ))
+                )}
+              </GlassCard>
+            </View>
+          )}
+
           {/* Privacy Notice */}
           <GlassCard style={styles.privacyCard}>
             <View style={styles.privacyContent}>
@@ -394,16 +479,19 @@ const styles = StyleSheet.create({
 
   // Circle Visualization
   circleContainer: {
-    alignItems: 'center',
+    alignItems: 'center',      // Center horizontally
+    justifyContent: 'center',  // Center vertically
     marginBottom: Spacing.xxl,
-    height: 180,
+    height: 200,
     position: 'relative',
+    width: '100%',             // Take full width so centering works
+    alignSelf: 'center',       // Center the whole component horizontally
   },
   centerAvatar: {
     position: 'absolute',
     left: '50%',
     top: '50%',
-    transform: [{ translateX: -35 }, { translateY: -40 }],
+    transform: [{ translateX: -35 }, { translateY: -35 }],  // Proper centering
     width: 70,
     height: 70,
     borderRadius: 35,
@@ -461,7 +549,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   memberAvatarText: {
-    fontSize: 24,
+    fontSize: 20,
+    textAlign: 'center',
+    includeFontPadding: false,  // Android: removes extra font padding
   },
   memberContent: {
     flex: 1,
@@ -551,6 +641,45 @@ const styles = StyleSheet.create({
     ...Typography.captionSmall,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+
+  // Recently Shared
+  shareRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    gap: Spacing.md,
+  },
+  shareRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.glassBorder,
+  },
+  shareIcon: {
+    fontSize: 20,
+  },
+  shareContent: {
+    flex: 1,
+  },
+  shareName: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+  },
+  shareWith: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  shareDate: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  emptyState: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 13,
+    color: Colors.textMuted,
   },
 
   // Privacy

@@ -62,7 +62,7 @@ export default function Index() {
     return <Redirect href="/(tabs)/today" />;
   }
 
-  return <Redirect href="/onboarding" />;
+  return <Redirect href="/(onboarding)" />;
 }
 
 const styles = StyleSheet.create({

@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -180,6 +181,100 @@ export default function HubScreen() {
 
   const upcomingAppts = appointments.slice(0, 3);
 
+  // Calculate health score (0-100)
+  const calculateHealthScore = () => {
+    let score = 0;
+    let factors = 0;
+
+    // Medication adherence (30%)
+    score += adherencePercent * 0.3;
+    factors++;
+
+    // Mood score (30%)
+    const moodMap: { [key: string]: number } = { 'struggling': 20, 'difficult': 40, 'managing': 60, 'good': 80, 'great': 100 };
+    if (wellnessCheck?.mood) {
+      score += moodMap[wellnessCheck.mood] * 0.3;
+      factors++;
+    }
+
+    // BP (20%) - normal range is ~120/80
+    if (latestSystolic && latestDiastolic) {
+      const bpScore = Math.max(0, 100 - Math.abs(120 - latestSystolic) - Math.abs(80 - latestDiastolic));
+      score += bpScore * 0.2;
+      factors++;
+    }
+
+    // Energy level (20%)
+    if (wellnessCheck?.energyLevel) {
+      score += (wellnessCheck.energyLevel / 5) * 100 * 0.2;
+      factors++;
+    }
+
+    return factors > 0 ? Math.round(score) : 75; // Default to 75 if no data
+  };
+
+  const healthScore = calculateHealthScore();
+
+  // Hub sections
+  const HUB_SECTIONS = [
+    {
+      id: 'reports',
+      icon: '📋',
+      title: 'Reports',
+      subtitle: '8 report types',
+      badge: appointments.length > 0 ? `${appointments.length} upcoming` : undefined,
+      badgeColor: Colors.red,
+      primary: true,
+      route: '/hub/reports',
+    },
+    {
+      id: 'insights',
+      icon: '🧠',
+      title: 'Insights & Correlations',
+      subtitle: '6 patterns discovered',
+      badge: 'New',
+      badgeColor: Colors.purple,
+      route: '/correlation-report',
+    },
+    {
+      id: 'trends',
+      icon: '📈',
+      title: 'Trends',
+      subtitle: '30-day overview',
+      route: '/vitals',
+    },
+    {
+      id: 'medications',
+      icon: '💊',
+      title: 'Medications',
+      subtitle: `${totalMeds} active medications`,
+      route: '/medications',
+    },
+    {
+      id: 'appointments',
+      icon: '📅',
+      title: 'Appointments',
+      subtitle: 'Upcoming & past visits',
+      badge: upcomingAppts.length > 0 ? upcomingAppts[0].date : undefined,
+      badgeColor: Colors.accent,
+      route: '/appointments',
+    },
+    {
+      id: 'contacts',
+      icon: '📞',
+      title: 'Emergency Contacts',
+      subtitle: 'Quick dial',
+      route: '/emergency',
+    },
+    {
+      id: 'settings',
+      icon: '⚙️',
+      title: 'Settings',
+      subtitle: 'Reminders & preferences',
+      route: '/settings',
+    },
+  ];
+
   // Health tracking categories
   const healthCategories = [
     {
@@ -256,8 +351,8 @@ export default function HubScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.headerLabel}>CARE HUB</Text>
-              <Text style={styles.headerTitle}>Mom's Story</Text>
+              <Text style={styles.headerLabel}>EMBERMATE</Text>
+              <Text style={styles.headerTitle}>Hub</Text>
             </View>
             <TouchableOpacity
               style={styles.settingsButton}
@@ -267,58 +362,97 @@ export default function HubScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Narrative Summary */}
-          <GlassCard style={styles.narrativeCard}>
-            <Text style={styles.narrativeText}>{generateNarrative()}</Text>
+          {/* Health Score Card */}
+          <GlassCard style={styles.healthScoreCard}>
+            <View style={styles.healthScoreContent}>
+              <View style={styles.scoreRing}>
+                <Svg width={80} height={80}>
+                  {/* Background circle */}
+                  <Circle
+                    cx={40}
+                    cy={40}
+                    r={34}
+                    stroke="rgba(255, 255, 255, 0.1)"
+                    strokeWidth={6}
+                    fill="none"
+                  />
+                  {/* Progress circle */}
+                  <Circle
+                    cx={40}
+                    cy={40}
+                    r={34}
+                    stroke={Colors.accent}
+                    strokeWidth={6}
+                    fill="none"
+                    strokeDasharray={2 * Math.PI * 34}
+                    strokeDashoffset={2 * Math.PI * 34 * (1 - healthScore / 100)}
+                    strokeLinecap="round"
+                    transform={`rotate(-90 40 40)`}
+                  />
+                </Svg>
+                <View style={styles.scoreValue}>
+                  <Text style={styles.scoreNumber}>{healthScore}</Text>
+                </View>
+              </View>
+              <View style={styles.scoreText}>
+                <Text style={styles.scoreTitle}>Health Score</Text>
+                <Text style={styles.scoreTrend}>↑ +5 this month</Text>
+                <Text style={styles.scoreDescription}>Based on all health metrics</Text>
+              </View>
+            </View>
           </GlassCard>
 
-          {/* Quick Stats */}
-          <View style={styles.statsRow}>
-            {[
-              { label: 'Adherence', value: `${adherencePercent}%`, icon: '💊', color: Colors.green },
-              { label: 'BP', value: latestSystolic ? `${latestSystolic}/${latestDiastolic}` : '--', icon: '❤️', color: Colors.rose },
-              { label: 'Mood', value: wellnessCheck?.mood ? wellnessCheck.mood.charAt(0).toUpperCase() + wellnessCheck.mood.slice(1, 4) : '--', icon: '😊', color: Colors.purple },
-            ].map((stat, i) => (
-              <GlassCard key={i} style={styles.statCard} padding={16}>
-                <Text style={styles.statIcon}>{stat.icon}</Text>
-                <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-              </GlassCard>
+          {/* Hub Sections */}
+          <View style={styles.hubSections}>
+            {HUB_SECTIONS.map((section) => (
+              <TouchableOpacity
+                key={section.id}
+                onPress={() => router.push(section.route as any)}
+                activeOpacity={0.7}
+              >
+                <GlassCard
+                  style={[
+                    styles.hubSectionCard,
+                    section.primary && styles.hubSectionPrimary,
+                  ]}
+                >
+                  <View style={styles.hubSectionContent}>
+                    <View
+                      style={[
+                        styles.hubSectionIcon,
+                        section.primary && styles.hubSectionIconPrimary,
+                      ]}
+                    >
+                      <Text style={styles.hubSectionIconText}>{section.icon}</Text>
+                    </View>
+                    <View style={styles.hubSectionText}>
+                      <Text style={styles.hubSectionTitle}>{section.title}</Text>
+                      <Text style={styles.hubSectionSubtitle}>{section.subtitle}</Text>
+                    </View>
+                    {section.badge && (
+                      <View
+                        style={[
+                          styles.hubBadge,
+                          { backgroundColor: `${section.badgeColor}20` },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.hubBadgeText, { color: section.badgeColor }]}
+                        >
+                          {section.badge}
+                        </Text>
+                      </View>
+                    )}
+                    <Text style={styles.hubChevron}>›</Text>
+                  </View>
+                </GlassCard>
+              </TouchableOpacity>
             ))}
           </View>
 
-          {/* V3: Reports Hub Link */}
-          <TouchableOpacity
-            style={styles.reportsHubButton}
-            onPress={() => router.push('/hub/reports')}
-            activeOpacity={0.7}
-          >
-            <GlassCard style={styles.reportsHubCard}>
-              <View style={styles.reportsHubContent}>
-                <View style={styles.reportsHubIcon}>
-                  <Text style={styles.reportsHubIconText}>📊</Text>
-                </View>
-                <View style={styles.reportsHubText}>
-                  <Text style={styles.reportsHubTitle}>Reports & Insights</Text>
-                  <Text style={styles.reportsHubSubtitle}>8 reports · 6 patterns discovered</Text>
-                </View>
-                <Text style={styles.reportsHubArrow}>›</Text>
-              </View>
-            </GlassCard>
-          </TouchableOpacity>
-
-          {/* Suggested Approach */}
-          <View style={styles.section}>
-            <SectionHeader title="Suggested Approach" />
-            <GlassCard>
-              <View style={styles.approachContent}>
-                <Text style={styles.approachText}>{generateApproach()}</Text>
-              </View>
-            </GlassCard>
-          </View>
-
-          {/* Upcoming Appointments */}
-          {upcomingAppts.length > 0 && (
+          {/* Legacy sections - now integrated into Hub Sections above */}
+          {/* Upcoming Appointments - hidden, now in Hub Sections */}
+          {false && upcomingAppts.length > 0 && (
             <View style={styles.section}>
               <SectionHeader
                 title="Coming Up"
@@ -369,8 +503,8 @@ export default function HubScreen() {
             </View>
           )}
 
-          {/* Health Categories */}
-          {healthCategories.map((category, ci) => (
+          {/* Health Categories - hidden, now in Hub Sections */}
+          {false && healthCategories.map((category, ci) => (
             <View key={ci} style={styles.section}>
               <SectionHeader title={category.title} />
 
@@ -472,7 +606,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
 
-  // Narrative
+  // Narrative (legacy)
   narrativeCard: {
     marginBottom: Spacing.xxl,
   },
@@ -482,7 +616,118 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
 
-  // Stats
+  // Health Score Card
+  healthScoreCard: {
+    marginBottom: Spacing.xl,
+    backgroundColor: `${Colors.accent}10`,
+    borderColor: `${Colors.accent}30`,
+  },
+  healthScoreContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xl,
+  },
+  scoreRing: {
+    position: 'relative',
+    width: 80,
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreValue: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreNumber: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  scoreText: {
+    flex: 1,
+  },
+  scoreTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+  },
+  scoreTrend: {
+    fontSize: 13,
+    color: Colors.green,
+    marginTop: 4,
+  },
+  scoreDescription: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginTop: 4,
+  },
+
+  // Hub Sections
+  hubSections: {
+    gap: 10,
+    marginBottom: Spacing.xxl,
+  },
+  hubSectionCard: {
+    padding: Spacing.lg,
+  },
+  hubSectionPrimary: {
+    backgroundColor: `${Colors.accent}10`,
+    borderColor: `${Colors.accent}30`,
+  },
+  hubSectionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',  // Vertical center all children
+    gap: 14,
+  },
+  hubSectionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: Colors.glass,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hubSectionIconPrimary: {
+    backgroundColor: `${Colors.accent}20`,
+  },
+  hubSectionIconText: {
+    fontSize: 22,
+    textAlign: 'center',
+    includeFontPadding: false,  // Android fix
+  },
+  hubSectionText: {
+    flex: 1,
+    justifyContent: 'center',  // Vertical center the text block
+  },
+  hubSectionTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+  },
+  hubSectionSubtitle: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  hubBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  hubBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  hubChevron: {
+    fontSize: 16,
+    color: Colors.textMuted,
+  },
+
+  // Stats (legacy)
   statsRow: {
     flexDirection: 'row',
     gap: Spacing.md,

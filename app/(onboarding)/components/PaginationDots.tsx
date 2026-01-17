@@ -1,0 +1,72 @@
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  interpolate,
+  Extrapolation,
+} from 'react-native-reanimated';
+
+interface Props {
+  count: number;
+  scrollX: Animated.SharedValue<number>;
+  width: number;
+}
+
+export const PaginationDots: React.FC<Props> = ({ count, scrollX, width }) => {
+  return (
+    <View style={styles.container}>
+      {Array.from({ length: count }).map((_, index) => {
+        const animatedStyle = useAnimatedStyle(() => {
+          const inputRange = [
+            (index - 1) * width,
+            index * width,
+            (index + 1) * width,
+          ];
+
+          const dotWidth = interpolate(
+            scrollX.value,
+            inputRange,
+            [8, 24, 8],
+            Extrapolation.CLAMP
+          );
+
+          const opacity = interpolate(
+            scrollX.value,
+            inputRange,
+            [0.3, 1, 0.3],
+            Extrapolation.CLAMP
+          );
+
+          return {
+            width: dotWidth,
+            opacity,
+          };
+        });
+
+        return (
+          <Animated.View
+            key={index}
+            style={[styles.dot, animatedStyle]}
+          />
+        );
+      })}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 20,
+  },
+  dot: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#fff',
+  },
+});
+
+export default PaginationDots;

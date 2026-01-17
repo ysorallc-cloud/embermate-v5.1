@@ -2,139 +2,47 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- App Privacy Configuration for App Store Privacy Nutrition Label -->
-
-    <!-- NSPrivacyTracking: Whether app or third-party SDKs track users -->
-    <key>NSPrivacyTracking</key>
-    <false/>
-
-    <!-- NSPrivacyTrackingDomains: Domains used for tracking (empty - no tracking) -->
-    <key>NSPrivacyTrackingDomains</key>
-    <array/>
-
-    <!-- NSPrivacyCollectedDataTypes: Data types collected by the app -->
-    <key>NSPrivacyCollectedDataTypes</key>
-    <array>
-
-        <!-- Health & Fitness Data -->
-        <dict>
-            <key>NSPrivacyCollectedDataType</key>
-            <string>NSPrivacyCollectedDataTypeHealthAndFitness</string>
-
-            <key>NSPrivacyCollectedDataTypeLinked</key>
-            <false/> <!-- Not linked to user identity -->
-
-            <key>NSPrivacyCollectedDataTypeTracking</key>
-            <false/> <!-- Not used for tracking -->
-
-            <key>NSPrivacyCollectedDataTypePurposes</key>
-            <array>
-                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-            </array>
-        </dict>
-
-        <!-- Photos/Videos (Medication Documentation) -->
-        <dict>
-            <key>NSPrivacyCollectedDataType</key>
-            <string>NSPrivacyCollectedDataTypePhotosAndVideos</string>
-
-            <key>NSPrivacyCollectedDataTypeLinked</key>
-            <false/>
-
-            <key>NSPrivacyCollectedDataTypeTracking</key>
-            <false/>
-
-            <key>NSPrivacyCollectedDataTypePurposes</key>
-            <array>
-                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-            </array>
-        </dict>
-
-        <!-- Contact Info (Emergency Contacts, Caregiver Names) -->
-        <dict>
-            <key>NSPrivacyCollectedDataType</key>
-            <string>NSPrivacyCollectedDataTypeContactInfo</string>
-
-            <key>NSPrivacyCollectedDataTypeLinked</key>
-            <false/>
-
-            <key>NSPrivacyCollectedDataTypeTracking</key>
-            <false/>
-
-            <key>NSPrivacyCollectedDataTypePurposes</key>
-            <array>
-                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-            </array>
-        </dict>
-
-        <!-- User Content (Notes, Symptom Descriptions) -->
-        <dict>
-            <key>NSPrivacyCollectedDataType</key>
-            <string>NSPrivacyCollectedDataTypeOtherUserContent</string>
-
-            <key>NSPrivacyCollectedDataTypeLinked</key>
-            <false/>
-
-            <key>NSPrivacyCollectedDataTypeTracking</key>
-            <false/>
-
-            <key>NSPrivacyCollectedDataTypePurposes</key>
-            <array>
-                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-            </array>
-        </dict>
-
-    </array>
-
-    <!-- NSPrivacyAccessedAPITypes: Required Reason APIs Used -->
-    <key>NSPrivacyAccessedAPITypes</key>
-    <array>
-
-        <!-- File Timestamp API -->
-        <dict>
-            <key>NSPrivacyAccessedAPIType</key>
-            <string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
-
-            <key>NSPrivacyAccessedAPITypeReasons</key>
-            <array>
-                <string>C617.1</string> <!-- Access info about files to display to user -->
-            </array>
-        </dict>
-
-        <!-- System Boot Time API -->
-        <dict>
-            <key>NSPrivacyAccessedAPIType</key>
-            <string>NSPrivacyAccessedAPICategorySystemBootTime</string>
-
-            <key>NSPrivacyAccessedAPITypeReasons</key>
-            <array>
-                <string>35F9.1</string> <!-- Measure time between events within app -->
-            </array>
-        </dict>
-
-        <!-- Disk Space API -->
-        <dict>
-            <key>NSPrivacyAccessedAPIType</key>
-            <string>NSPrivacyAccessedAPICategoryDiskSpace</string>
-
-            <key>NSPrivacyAccessedAPITypeReasons</key>
-            <array>
-                <string>E174.1</string> <!-- Display disk space to user -->
-            </array>
-        </dict>
-
-        <!-- UserDefaults API -->
-        <dict>
-            <key>NSPrivacyAccessedAPIType</key>
-            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
-
-            <key>NSPrivacyAccessedAPITypeReasons</key>
-            <array>
-                <string>CA92.1</string> <!-- Access user defaults within same app group -->
-            </array>
-        </dict>
-
-    </array>
-
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+				<string>0A2A.1</string>
+				<string>3B52.1</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>E174.1</string>
+				<string>85F4.1</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>35F9.1</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyTracking</key>
+	<false/>
 </dict>
 </plist>

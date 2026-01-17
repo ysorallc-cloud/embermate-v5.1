@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -7,74 +8,139 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { AURORA_CONFIGS, AuroraVariant } from '../../app/_theme/aurora-config';
-import { Animation } from '../../app/_theme/theme-tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+export type AuroraVariant = 'today' | 'hub' | 'log' | 'care' | 'reports' | 'settings';
+
 interface Props {
-  variant: AuroraVariant;
+  variant?: AuroraVariant;
 }
 
-export const AuroraBackground: React.FC<Props> = ({ variant }) => {
-  const hueOffset = useSharedValue(0);
+const AURORA_CONFIGS: Record<AuroraVariant, {
+  colors: [string, string, string];
+}> = {
+  today: {
+    colors: [
+      'rgba(20, 120, 100, 0.5)',   // Teal
+      'rgba(40, 80, 100, 0.25)',   // Blue-teal
+      'transparent',
+    ],
+  },
+  hub: {
+    colors: [
+      'rgba(60, 60, 140, 0.45)',   // Purple-blue
+      'rgba(40, 80, 100, 0.2)',    // Teal-blue
+      'transparent',
+    ],
+  },
+  log: {
+    colors: [
+      'rgba(100, 80, 30, 0.4)',    // Amber/orange
+      'rgba(40, 80, 60, 0.2)',     // Green-teal
+      'transparent',
+    ],
+  },
+  care: {
+    colors: [
+      'rgba(100, 60, 100, 0.4)',   // Rose/purple
+      'rgba(60, 60, 100, 0.25)',   // Purple
+      'transparent',
+    ],
+  },
+  reports: {
+    colors: [
+      'rgba(80, 60, 140, 0.45)',   // Purple
+      'rgba(40, 80, 120, 0.2)',    // Blue
+      'transparent',
+    ],
+  },
+  settings: {
+    colors: [
+      'rgba(50, 60, 80, 0.3)',     // Blue-gray
+      'rgba(40, 50, 70, 0.15)',    // Darker blue-gray
+      'transparent',
+    ],
+  },
+};
+
+export const AuroraBackground: React.FC<Props> = ({ variant = 'today' }) => {
   const config = AURORA_CONFIGS[variant];
 
+  // Subtle animation
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+
   useEffect(() => {
-    hueOffset.value = withRepeat(
-      withTiming(Animation.aurora.hueShiftRange, {
-        duration: Animation.aurora.duration,
-        easing: Easing.inOut(Easing.ease),
-      }),
-      -1,  // Infinite
-      true // Reverse
+    translateX.value = withRepeat(
+      withTiming(20, { duration: 8000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+    translateY.value = withRepeat(
+      withTiming(-15, { duration: 10000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
     );
   }, []);
 
-  const layer1Style = useAnimatedStyle(() => {
-    const hue = config.baseHue1 + hueOffset.value * 0.1;
-    return {
-      backgroundColor: `hsla(${hue}, ${config.saturation1}%, ${config.lightness1}%, ${config.opacity1})`,
-    };
-  });
-
-  const layer2Style = useAnimatedStyle(() => {
-    const hue = config.baseHue2 + hueOffset.value * 0.1;
-    return {
-      backgroundColor: `hsla(${hue}, ${config.saturation2}%, ${config.lightness2}%, ${config.opacity2})`,
-    };
-  });
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+    ],
+  }));
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Animated.View
-        style={[
-          {
-            position: 'absolute',
-            top: -50,
-            left: -SCREEN_WIDTH * 0.25,
-            width: SCREEN_WIDTH * 1.5,
-            height: 400,
-            borderRadius: 200,
-          },
-          layer1Style,
-        ]}
-      />
-      <Animated.View
-        style={[
-          {
-            position: 'absolute',
-            top: 30,
-            left: SCREEN_WIDTH * 0.1,
-            width: SCREEN_WIDTH * 0.8,
-            height: 250,
-            borderRadius: 125,
-          },
-          layer2Style,
-        ]}
-      />
+      {/* Primary gradient - top glow */}
+      <Animated.View style={[styles.primaryLayer, animatedStyle]}>
+        <LinearGradient
+          colors={config.colors}
+          locations={[0, 0.4, 0.8]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.primaryGradient}
+        />
+      </Animated.View>
+
+      {/* Secondary gradient - side accent */}
+      <View style={styles.secondaryLayer}>
+        <LinearGradient
+          colors={[config.colors[1], 'transparent']}
+          start={{ x: 0, y: 0.3 }}
+          end={{ x: 1, y: 0.7 }}
+          style={styles.secondaryGradient}
+        />
+      </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  primaryLayer: {
+    position: 'absolute',
+    top: -50,
+    left: '-15%',
+    right: '-15%',
+    height: 450,
+  },
+  primaryGradient: {
+    flex: 1,
+    borderBottomLeftRadius: 200,
+    borderBottomRightRadius: 200,
+  },
+  secondaryLayer: {
+    position: 'absolute',
+    top: 100,
+    left: 0,
+    right: 0,
+    height: 300,
+  },
+  secondaryGradient: {
+    flex: 1,
+    opacity: 0.6,
+  },
+});
 
 export default AuroraBackground;

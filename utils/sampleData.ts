@@ -1,157 +1,237 @@
-// ============================================================================
-// SAMPLE DATA SEEDING
-// Seeds demo data for first-time users (P1.2)
-// ============================================================================
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { StorageKeys } from './storageKeys';
-import { Medication } from './medicationStorage';
-import { Appointment } from './appointmentStorage';
 
-/**
- * Check if sample data has been seeded
- */
-export async function isSampleDataSeeded(): Promise<boolean> {
-  try {
-    const seeded = await AsyncStorage.getItem(StorageKeys.DEMO_DATA_SEEDED);
-    return seeded === 'true';
-  } catch {
-    return false;
-  }
+export interface SampleDataOptions {
+  includeMeals?: boolean;
+  includeSleep?: boolean;
+  includeBathroom?: boolean;
+  includeActivity?: boolean;
+  includeHydration?: boolean;
+  daysOfData?: number;
 }
 
-/**
- * Seed sample data for first-time users
- */
-export async function seedSampleData(): Promise<void> {
-  // Check if user explicitly declined sample data
-  const userDeclined = await AsyncStorage.getItem('@embermate_user_declined_sample_data');
-  if (userDeclined === 'true') {
-    console.log('⏭️  User declined sample data, skipping seed');
-    return;
+const generateTimestamp = (daysAgo: number, hour: number, minute: number = 0): string => {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  date.setHours(hour, minute, 0, 0);
+  return date.toISOString();
+};
+
+const generateSampleMeals = (days: number) => {
+  const meals = [];
+  const types = ['bottle', 'breast', 'solids'];
+  const amounts = [4, 5, 6, 7, 8];
+
+  for (let day = 0; day < days; day++) {
+    // Morning
+    meals.push({
+      id: `meal-${day}-1`,
+      type: types[Math.floor(Math.random() * types.length)],
+      amount: amounts[Math.floor(Math.random() * amounts.length)],
+      timestamp: generateTimestamp(day, 7, 30),
+      notes: day === 0 ? 'Good appetite this morning' : undefined,
+    });
+
+    // Noon
+    meals.push({
+      id: `meal-${day}-2`,
+      type: types[Math.floor(Math.random() * types.length)],
+      amount: amounts[Math.floor(Math.random() * amounts.length)],
+      timestamp: generateTimestamp(day, 12, 0),
+    });
+
+    // Evening
+    meals.push({
+      id: `meal-${day}-3`,
+      type: types[Math.floor(Math.random() * types.length)],
+      amount: amounts[Math.floor(Math.random() * amounts.length)],
+      timestamp: generateTimestamp(day, 18, 30),
+    });
   }
 
-  const now = new Date();
-  const nowISO = now.toISOString();
-  
-  // Sample medications
-  const sampleMedications: Medication[] = [
-    {
-      id: 'sample_1',
-      name: 'Metformin',
-      dosage: '500mg',
-      time: '08:00',
-      timeSlot: 'morning',
-      taken: false,
-      notes: 'With breakfast',
-      active: true,
-      createdAt: nowISO,
-      pillsRemaining: 60,
-      daysSupply: 30,
-    },
-    {
-      id: 'sample_2',
-      name: 'Lisinopril',
-      dosage: '10mg',
-      time: '08:00',
-      timeSlot: 'morning',
-      taken: false,
-      notes: 'Blood pressure',
-      active: true,
-      createdAt: nowISO,
-      pillsRemaining: 90,
-      daysSupply: 90,
-    },
-    {
-      id: 'sample_3',
-      name: 'Aspirin',
-      dosage: '81mg',
-      time: '18:00',
-      timeSlot: 'evening',
-      taken: false,
-      notes: 'With dinner',
-      active: true,
-      createdAt: nowISO,
-      pillsRemaining: 5,
-      daysSupply: 5, // Low supply to show refill warning
-    },
-  ];
-  
-  // Sample appointment (3 days from now)
-  const appointmentDate = new Date(now);
-  appointmentDate.setDate(now.getDate() + 3);
-  
-  const sampleAppointments: Appointment[] = [
-    {
-      id: 'sample_appt_1',
-      provider: 'Dr. Chen',
-      specialty: 'Cardiology',
-      date: appointmentDate.toISOString(),
-      time: '14:00',
-      location: 'Valley Medical Center',
-      notes: 'Follow-up for blood pressure management',
-      hasBrief: true,
-      completed: false,
-      cancelled: false,
-      createdAt: nowISO,
-    },
-  ];
-  
+  return meals;
+};
+
+const generateSampleSleep = (days: number) => {
+  const sleepSessions = [];
+
+  for (let day = 0; day < days; day++) {
+    // Night sleep
+    sleepSessions.push({
+      id: `sleep-${day}-1`,
+      startTime: generateTimestamp(day, 20, 0),
+      endTime: generateTimestamp(day, 6, 30),
+      duration: 630, // minutes
+      quality: Math.random() > 0.5 ? 'good' : 'fair',
+      notes: day === 0 ? 'Slept through the night!' : undefined,
+    });
+
+    // Morning nap
+    sleepSessions.push({
+      id: `sleep-${day}-2`,
+      startTime: generateTimestamp(day, 10, 0),
+      endTime: generateTimestamp(day, 11, 30),
+      duration: 90,
+      quality: 'good',
+    });
+
+    // Afternoon nap
+    sleepSessions.push({
+      id: `sleep-${day}-3`,
+      startTime: generateTimestamp(day, 14, 0),
+      endTime: generateTimestamp(day, 15, 0),
+      duration: 60,
+      quality: 'fair',
+    });
+  }
+
+  return sleepSessions;
+};
+
+const generateSampleBathroom = (days: number) => {
+  const bathroom = [];
+  const types = ['wet', 'dirty', 'both'];
+
+  for (let day = 0; day < days; day++) {
+    // Generate 6-8 diaper changes per day
+    const changesPerDay = 6 + Math.floor(Math.random() * 3);
+
+    for (let i = 0; i < changesPerDay; i++) {
+      const hour = 6 + Math.floor((18 * i) / changesPerDay);
+      bathroom.push({
+        id: `bathroom-${day}-${i}`,
+        type: types[Math.floor(Math.random() * types.length)],
+        timestamp: generateTimestamp(day, hour, Math.floor(Math.random() * 60)),
+      });
+    }
+  }
+
+  return bathroom;
+};
+
+const generateSampleActivity = (days: number) => {
+  const activities = [];
+  const types = ['tummy_time', 'play', 'walk', 'bath'];
+  const durations = [10, 15, 20, 30];
+
+  for (let day = 0; day < days; day++) {
+    // 2-3 activities per day
+    const activitiesPerDay = 2 + Math.floor(Math.random() * 2);
+
+    for (let i = 0; i < activitiesPerDay; i++) {
+      const hour = 9 + Math.floor((8 * i) / activitiesPerDay);
+      activities.push({
+        id: `activity-${day}-${i}`,
+        type: types[Math.floor(Math.random() * types.length)],
+        duration: durations[Math.floor(Math.random() * durations.length)],
+        timestamp: generateTimestamp(day, hour, 0),
+        notes: i === 0 && day === 0 ? 'Really enjoyed this!' : undefined,
+      });
+    }
+  }
+
+  return activities;
+};
+
+const generateSampleHydration = (days: number) => {
+  const hydration = [];
+
+  for (let day = 0; day < days; day++) {
+    // 4-6 hydration entries per day
+    const entriesPerDay = 4 + Math.floor(Math.random() * 3);
+
+    for (let i = 0; i < entriesPerDay; i++) {
+      const hour = 8 + Math.floor((12 * i) / entriesPerDay);
+      hydration.push({
+        id: `hydration-${day}-${i}`,
+        amount: 4 + Math.floor(Math.random() * 4), // 4-8 oz
+        timestamp: generateTimestamp(day, hour, 0),
+      });
+    }
+  }
+
+  return hydration;
+};
+
+export const seedSampleData = async (options: SampleDataOptions = {}) => {
+  const {
+    includeMeals = true,
+    includeSleep = true,
+    includeBathroom = true,
+    includeActivity = true,
+    includeHydration = true,
+    daysOfData = 7,
+  } = options;
+
   try {
-    // Save sample data
-    await AsyncStorage.setItem(StorageKeys.MEDICATIONS, JSON.stringify(sampleMedications));
-    await AsyncStorage.setItem(StorageKeys.APPOINTMENTS, JSON.stringify(sampleAppointments));
-    await AsyncStorage.setItem(StorageKeys.PATIENT_NAME, 'Mom');
-    await AsyncStorage.setItem(StorageKeys.DEMO_DATA_SEEDED, 'true');
-    
-    console.log('✓ Sample data seeded successfully');
+    const dataToStore: Record<string, any> = {};
+
+    if (includeMeals) {
+      dataToStore.meals = generateSampleMeals(daysOfData);
+    }
+
+    if (includeSleep) {
+      dataToStore.sleep = generateSampleSleep(daysOfData);
+    }
+
+    if (includeBathroom) {
+      dataToStore.bathroom = generateSampleBathroom(daysOfData);
+    }
+
+    if (includeActivity) {
+      dataToStore.activities = generateSampleActivity(daysOfData);
+    }
+
+    if (includeHydration) {
+      dataToStore.hydration = generateSampleHydration(daysOfData);
+    }
+
+    // Store each data type
+    for (const [key, value] of Object.entries(dataToStore)) {
+      await AsyncStorage.setItem(`sample_${key}`, JSON.stringify(value));
+    }
+
+    // Mark that sample data has been seeded
+    await AsyncStorage.setItem('sample_data_seeded', 'true');
+
+    console.log('Sample data seeded successfully');
+    return true;
   } catch (error) {
     console.error('Error seeding sample data:', error);
-    throw error;
-  }
-}
-
-/**
- * Clear all sample/demo data (Settings action)
- */
-export async function clearDemoData(): Promise<void> {
-  try {
-    await AsyncStorage.removeItem(StorageKeys.MEDICATIONS);
-    await AsyncStorage.removeItem(StorageKeys.APPOINTMENTS);
-    await AsyncStorage.removeItem(StorageKeys.MEDICATION_LOGS);
-    await AsyncStorage.removeItem(StorageKeys.DEMO_DATA_SEEDED);
-    await AsyncStorage.removeItem(StorageKeys.ONBOARDING_COMPLETE);
-    await AsyncStorage.removeItem(StorageKeys.COFFEE_LAST_USED);
-    await AsyncStorage.removeItem(StorageKeys.LAST_RESET_DATE);
-    await AsyncStorage.removeItem('@embermate_user_declined_sample_data');
-    
-    console.log('✓ Demo data cleared');
-  } catch (error) {
-    console.error('Error clearing demo data:', error);
-    throw error;
-  }
-}
-
-/**
- * Check if onboarding is complete
- */
-export async function isOnboardingComplete(): Promise<boolean> {
-  try {
-    const complete = await AsyncStorage.getItem(StorageKeys.ONBOARDING_COMPLETE);
-    return complete === 'true';
-  } catch {
     return false;
   }
-}
+};
 
-/**
- * Mark onboarding as complete
- */
-export async function completeOnboarding(): Promise<void> {
+export const clearSampleData = async () => {
   try {
-    await AsyncStorage.setItem(StorageKeys.ONBOARDING_COMPLETE, 'true');
+    const keys = ['meals', 'sleep', 'bathroom', 'activities', 'hydration'];
+    const keysToRemove = keys.map(key => `sample_${key}`);
+    keysToRemove.push('sample_data_seeded');
+
+    await AsyncStorage.multiRemove(keysToRemove);
+    console.log('Sample data cleared successfully');
+    return true;
   } catch (error) {
-    console.error('Error completing onboarding:', error);
-    throw error;
+    console.error('Error clearing sample data:', error);
+    return false;
   }
-}
+};
+
+export const hasSampleData = async (): Promise<boolean> => {
+  try {
+    const seeded = await AsyncStorage.getItem('sample_data_seeded');
+    return seeded === 'true';
+  } catch (error) {
+    console.error('Error checking sample data:', error);
+    return false;
+  }
+};
+
+export const isOnboardingComplete = async (): Promise<boolean> => {
+  try {
+    const completed = await AsyncStorage.getItem('onboarding_completed');
+    return completed === 'true';
+  } catch (error) {
+    console.error('Error checking onboarding status:', error);
+    return false;
+  }
+};

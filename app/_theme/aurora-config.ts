@@ -5,7 +5,7 @@
 
 export default null;
 
-export type AuroraVariant = 'today' | 'hub' | 'family';
+export type AuroraVariant = 'today' | 'hub' | 'family' | 'log' | 'reports' | 'insights' | 'settings' | 'member' | 'coffee';
 
 export interface AuroraConfig {
   baseHue1: number;

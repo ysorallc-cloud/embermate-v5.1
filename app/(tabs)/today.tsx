@@ -36,7 +36,8 @@ import { QuickLogCard } from '../../components/today/QuickLogCard';
 import { InsightCard } from '../../components/today/InsightCard';
 import { Timeline } from '../../components/today/Timeline';
 import { useTimeline } from '../../hooks/useTimeline';
-import { addDays } from 'date-fns';
+import { addDays, format } from 'date-fns';
+import { getStreaks } from '../../utils/streakStorage';
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -48,6 +49,7 @@ export default function TodayScreen() {
   const [vitals, setVitals] = useState<VitalReading[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [coffeeMomentVisible, setCoffeeMomentVisible] = useState(false);
+  const [streakDays, setStreakDays] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -81,6 +83,11 @@ export default function TodayScreen() {
         return vitalDate === today;
       });
       setVitals(todayVitals);
+
+      // Load streak data
+      const streaks = await getStreaks();
+      // Use wellness streak as the primary streak for display
+      setStreakDays(streaks.wellness.current);
     } catch (error) {
       console.error('Error loading TODAY data:', error);
     }
@@ -239,9 +246,11 @@ export default function TodayScreen() {
             />
           }
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.date}>{getDateLabel()}</Text>
+          {/* Header with Date */}
+          <View style={styles.dateHeader}>
+            <Text style={styles.dateText}>
+              {format(new Date(), 'EEEE, MMMM d')}
+            </Text>
             <TouchableOpacity
               style={styles.pauseButton}
               onPress={() => setCoffeeMomentVisible(true)}
@@ -254,6 +263,12 @@ export default function TodayScreen() {
           <View style={styles.hero}>
             <Text style={styles.heroWord}>{getHeroWord()}</Text>
             <Text style={styles.heroSubtext}>{getStatusMessage()}</Text>
+            {streakDays > 0 && (
+              <View style={styles.streakBadge}>
+                <Text style={styles.streakEmoji}>🔥</Text>
+                <Text style={styles.streakText}>{streakDays} day streak</Text>
+              </View>
+            )}
           </View>
 
           {/* Status Orbs */}
@@ -274,6 +289,51 @@ export default function TodayScreen() {
               color={Colors.purple}
             />
           </View>
+
+          {/* Quick Actions Row */}
+          <View style={styles.quickActionsRow}>
+            <TouchableOpacity
+              style={styles.quickActionButton}
+              onPress={() => router.push('/hub/reports')}
+            >
+              <Text style={styles.quickActionIcon}>📊</Text>
+              <Text style={styles.quickActionLabel}>Reports</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickActionButton}
+              onPress={() => router.push('/visit-prep')}
+            >
+              <Text style={styles.quickActionIcon}>📋</Text>
+              <Text style={styles.quickActionLabel}>Visit Prep</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickActionButton}
+              onPress={() => setCoffeeMomentVisible(true)}
+            >
+              <Text style={styles.quickActionIcon}>☕</Text>
+              <Text style={styles.quickActionLabel}>Breathe</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Alert Banner (if needed) */}
+          {overdueCount > 0 && (
+            <TouchableOpacity
+              style={styles.alertBanner}
+              onPress={() => {
+                // Scroll to timeline or open medication screen
+                router.push('/medication-confirm');
+              }}
+            >
+              <Text style={styles.alertIcon}>🚨</Text>
+              <View style={styles.alertContent}>
+                <Text style={styles.alertTitle}>{overdueCount} Overdue Item{overdueCount > 1 ? 's' : ''}</Text>
+                <Text style={styles.alertSubtitle}>Medication needs attention</Text>
+              </View>
+              <Text style={styles.alertChevron}>›</Text>
+            </TouchableOpacity>
+          )}
 
           {/* AI Insights */}
           <View style={styles.section}>
@@ -349,14 +409,15 @@ const styles = StyleSheet.create({
   },
 
   // Header
-  header: {
+  dateHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.huge,
+    paddingTop: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
-  date: {
-    ...Typography.labelSmall,
+  dateText: {
+    fontSize: 13,
     color: Colors.textMuted,
   },
   pauseButton: {
@@ -380,6 +441,20 @@ const styles = StyleSheet.create({
     ...Typography.bodyLarge,
     color: Colors.textSecondary,
   },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: Spacing.sm,
+  },
+  streakEmoji: {
+    fontSize: 16,
+  },
+  streakText: {
+    fontSize: 12,
+    color: Colors.amber,
+    fontWeight: '600',
+  },
 
   // Orbs
   orbsContainer: {
@@ -394,7 +469,64 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xxl,
   },
 
-  // Quick Actions
+  // Quick Actions Row
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  quickActionButton: {
+    flex: 1,
+    backgroundColor: Colors.glass,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'center',
+  },
+  quickActionIcon: {
+    fontSize: 24,
+    marginBottom: 6,
+  },
+  quickActionLabel: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+
+  // Alert Banner
+  alertBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    backgroundColor: Colors.redLight,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: Spacing.lg,
+  },
+  alertIcon: {
+    fontSize: 20,
+  },
+  alertContent: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.red,
+  },
+  alertSubtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  alertChevron: {
+    fontSize: 18,
+    color: Colors.textMuted,
+  },
+
+  // Quick Actions (original section)
   quickActionsSection: {
     marginBottom: Spacing.xxl,
   },
