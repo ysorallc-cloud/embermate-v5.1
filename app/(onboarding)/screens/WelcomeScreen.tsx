@@ -65,7 +65,7 @@ export const WelcomeScreen: React.FC = () => {
         <View style={styles.textContainer}>
           <Text style={styles.title}>Welcome to EmberMate</Text>
           <Text style={styles.subtitle}>
-            Your journey to understanding and thriving with your Little Human starts here
+             Caring for those who matter most
           </Text>
         </View>
       </View>

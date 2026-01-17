@@ -18,8 +18,8 @@ const generateTimestamp = (daysAgo: number, hour: number, minute: number = 0): s
 
 const generateSampleMeals = (days: number) => {
   const meals = [];
-  const types = ['bottle', 'breast', 'solids'];
-  const amounts = [4, 5, 6, 7, 8];
+  const types = ['breakfast', 'lunch', 'dinner', 'snack'];
+  const portions = ['small', 'medium', 'large'];
 
   for (let day = 0; day < days; day++) {
     // Morning
@@ -89,11 +89,11 @@ const generateSampleSleep = (days: number) => {
 
 const generateSampleBathroom = (days: number) => {
   const bathroom = [];
-  const types = ['wet', 'dirty', 'both'];
+  const types = ['normal', 'urgent'];
 
   for (let day = 0; day < days; day++) {
-    // Generate 6-8 diaper changes per day
-    const changesPerDay = 6 + Math.floor(Math.random() * 3);
+    // Generate 3-5 bathroom logs per day
+    const changesPerDay = 3 + Math.floor(Math.random() * 3);
 
     for (let i = 0; i < changesPerDay; i++) {
       const hour = 6 + Math.floor((18 * i) / changesPerDay);

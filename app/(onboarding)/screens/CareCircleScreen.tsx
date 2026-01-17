@@ -8,10 +8,10 @@ import { Colors, Typography, Spacing } from '../../_theme/theme-tokens';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const careMembers = [
-  { emoji: '👨', label: 'Partner', position: 0 },
-  { emoji: '👵', label: 'Grandma', position: 1 },
-  { emoji: '👨‍⚕️', label: 'Doctor', position: 2 },
-  { emoji: '👶', label: 'You', position: 3, isCenter: true },
+  { emoji: '👤', label: 'You', position: 0 },
+  { emoji: '👩', label: 'Sarah', position: 1 },
+  { emoji: '👨‍⚕️', label: 'Dr. Chen', position: 2 },
+  { emoji: '👵', label: 'Mom', position: 3, isCenter: true },
 ];
 
 export const CareCircleScreen: React.FC = () => {
@@ -110,7 +110,7 @@ export const CareCircleScreen: React.FC = () => {
 
         {/* Description */}
         <Text style={styles.description}>
-          Everyone stays informed, from feeding schedules to doctor visits
+          Everyone stays informed, from medication schedules to doctor visits
         </Text>
       </View>
     </View>

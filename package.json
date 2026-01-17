@@ -19,7 +19,7 @@
   "dependencies": {
     "@expo/vector-icons": "~14.0.4",
     "@react-native-async-storage/async-storage": "1.23.1",
-    "@react-native-community/datetimepicker": "^8.6.0",
+    "@react-native-community/datetimepicker": "8.2.0",
     "@react-native-picker/picker": "2.9.0",
     "@types/crypto-js": "^4.2.2",
     "crypto-js": "^4.2.0",
@@ -61,7 +61,7 @@
     "@babel/core": "^7.25.2",
     "@types/react": "~18.3.12",
     "eslint": "^9.39.2",
-    "eslint-config-expo": "^10.0.0",
+    "eslint-config-expo": "~8.0.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "gh-pages": "^6.3.0",

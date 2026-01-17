@@ -7,10 +7,10 @@ import { Colors, Typography, Spacing } from '../../_theme/theme-tokens';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const features = [
-  { icon: '🍼', title: 'Meals', color: 'rgba(100, 200, 150, 0.6)' },
-  { icon: '💤', title: 'Sleep', color: 'rgba(120, 140, 200, 0.6)' },
-  { icon: '🚽', title: 'Bathroom', color: 'rgba(200, 150, 100, 0.6)' },
-  { icon: '🏃', title: 'Activity', color: 'rgba(150, 100, 200, 0.6)' },
+  { icon: '💊', title: 'Meds', color: 'rgba(245, 158, 11, 0.6)' },
+  { icon: '🫀', title: 'Vitals', color: 'rgba(244, 63, 94, 0.6)' },
+  { icon: '🩺', title: 'Symptoms', color: 'rgba(139, 92, 246, 0.6)' },
+  { icon: '😊', title: 'Mood', color: 'rgba(16, 185, 129, 0.6)' },
 ];
 
 export const TrackHealthScreen: React.FC = () => {
@@ -21,9 +21,9 @@ export const TrackHealthScreen: React.FC = () => {
       <View style={styles.content}>
         {/* Title and subtitle */}
         <View style={styles.textContainer}>
-          <Text style={styles.title}>Track Health Simply</Text>
+          <Text style={styles.title}>Track Everything</Text>
           <Text style={styles.subtitle}>
-            Log meals, sleep, bathroom, and activity in seconds
+            Log medications, vitals, symptoms, and mood in seconds
           </Text>
         </View>
 
@@ -44,7 +44,7 @@ export const TrackHealthScreen: React.FC = () => {
 
         {/* Description */}
         <Text style={styles.description}>
-          Quick, intuitive logging designed for sleep-deprived parents
+          Quick, intuitive logging designed for busy caregivers
         </Text>
       </View>
     </View>

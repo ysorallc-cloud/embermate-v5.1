@@ -16,7 +16,7 @@ export const UnderstandPatternsScreen: React.FC = () => {
         <View style={styles.textContainer}>
           <Text style={styles.title}>Understand Patterns</Text>
           <Text style={styles.subtitle}>
-            AI finds connections between sleep, meals, mood, and more
+            AI finds connections between medications, vitals, sleep, and symptoms
           </Text>
         </View>
 
@@ -28,14 +28,14 @@ export const UnderstandPatternsScreen: React.FC = () => {
 
           <View style={styles.correlationContent}>
             <View style={styles.correlationRow}>
-              <Text style={styles.correlationIcon}>🍼</Text>
+              <Text style={styles.correlationIcon}>😴</Text>
               <View style={styles.correlationBar}>
-                <View style={[styles.correlationBarFill, { width: '85%' }]} />
+                <View style={[styles.correlationBarFill, { width: '65%', backgroundColor: 'rgba(255, 150, 150, 0.8)' }]} />
               </View>
             </View>
 
             <Text style={styles.correlationText}>
-              When Little Human drinks 6oz+ before bed
+              When sleep is under 6 hours
             </Text>
 
             <View style={styles.arrow}>
@@ -43,14 +43,14 @@ export const UnderstandPatternsScreen: React.FC = () => {
             </View>
 
             <View style={styles.correlationRow}>
-              <Text style={styles.correlationIcon}>💤</Text>
+              <Text style={styles.correlationIcon}>🫀</Text>
               <View style={styles.correlationBar}>
-                <View style={[styles.correlationBarFill, { width: '90%', backgroundColor: 'rgba(120, 200, 255, 0.8)' }]} />
+                <View style={[styles.correlationBarFill, { width: '85%', backgroundColor: 'rgba(255, 100, 100, 0.8)' }]} />
               </View>
             </View>
 
             <Text style={styles.correlationText}>
-              They sleep 2+ hours longer
+              Blood pressure is 12% higher
             </Text>
           </View>
 
@@ -59,7 +59,7 @@ export const UnderstandPatternsScreen: React.FC = () => {
 
         {/* Description */}
         <Text style={styles.description}>
-          Discover what works for your unique Little Human
+          Discover what matters for your loved one's health
         </Text>
       </View>
     </View>
