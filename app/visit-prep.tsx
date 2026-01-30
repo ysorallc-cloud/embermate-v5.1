@@ -18,7 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from './_theme/theme-tokens';
-import { getDailyTracking } from '../utils/dailyTrackingStorage';
+import { getDailyTrackingLogs, DailyTrackingLog } from '../utils/dailyTrackingStorage';
 import { getVitals } from '../utils/vitalsStorage';
 
 interface RedFlag {
@@ -56,13 +56,17 @@ export default function VisitPrepScreen() {
 
   const loadReportData = async () => {
     try {
-      // Load recent tracking data
-      const trackingData = await getDailyTracking();
+      // Load recent tracking data (last 14 days)
+      const endDate = new Date().toISOString().split('T')[0];
+      const startDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const trackingData: DailyTrackingLog[] = await getDailyTrackingLogs(startDate, endDate);
       const vitalsData = await getVitals();
 
       // Generate summary
-      const avgMood = trackingData.reduce((sum, d) => sum + (d.mood || 0), 0) / trackingData.length;
-      const avgEnergy = trackingData.reduce((sum, d) => sum + (d.energy || 0), 0) / trackingData.length;
+      const validMoods = trackingData.filter(d => d.mood !== null);
+      const validEnergy = trackingData.filter(d => d.energy !== null);
+      const avgMood = validMoods.length > 0 ? validMoods.reduce((sum, d) => sum + (d.mood || 0), 0) / validMoods.length : 5;
+      const avgEnergy = validEnergy.length > 0 ? validEnergy.reduce((sum, d) => sum + (d.energy || 0), 0) / validEnergy.length : 3;
 
       let summaryText = `Over the past 14 days, ${patientName} has been `;
       if (avgMood >= 7 && avgEnergy >= 6) {

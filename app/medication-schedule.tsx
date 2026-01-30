@@ -274,6 +274,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  backIcon: {
+    fontSize: 18,
+    color: Colors.textPrimary,
+  },
   title: {
     fontSize: 18,
     fontWeight: '600',

@@ -62,11 +62,12 @@ export interface CaregiverProfile {
   name: string;
   email?: string;
   phone?: string;
-  role: 'primary' | 'family' | 'professional' | 'friend';
+  role: 'primary' | 'family' | 'professional' | 'friend' | 'healthcare';
   permissions: SharePermissions;
   joinedAt: string;
   lastActive?: string;
   avatarColor: string;
+  invitedAt?: string;
 }
 
 // ============================================================================

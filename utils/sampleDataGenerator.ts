@@ -4,7 +4,7 @@
 // Use this to populate 30 days of mock data for development
 // ============================================================================
 
-import { saveSymptomLog } from './symptomStorage';
+import { saveSymptom } from './symptomStorage';
 import { saveDailyTracking } from './dailyTrackingStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -46,14 +46,12 @@ export async function generateSampleCorrelationData(): Promise<void> {
     // Dizziness has weak correlation
     const dizziness = Math.random() * 4; // 0-4 (generally low)
     
-    // Save symptom log
-    await saveSymptomLog(dateStr, {
-      pain: Math.round(pain * 10) / 10,
-      fatigue: Math.round(fatigue * 10) / 10,
-      nausea: Math.round(nausea * 10) / 10,
-      dizziness: Math.round(dizziness * 10) / 10,
-      other: null,
-    });
+    // Save symptom logs (one entry per symptom)
+    const timestamp = new Date(dateStr).toISOString();
+    if (pain > 2) await saveSymptom({ symptom: 'Pain', severity: Math.round(pain), timestamp, date: dateStr });
+    if (fatigue > 2) await saveSymptom({ symptom: 'Fatigue', severity: Math.round(fatigue), timestamp, date: dateStr });
+    if (nausea > 2) await saveSymptom({ symptom: 'Nausea', severity: Math.round(nausea), timestamp, date: dateStr });
+    if (dizziness > 2) await saveSymptom({ symptom: 'Dizziness', severity: Math.round(dizziness), timestamp, date: dateStr });
     
     // Save daily tracking
     await saveDailyTracking(dateStr, {

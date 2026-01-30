@@ -39,8 +39,8 @@ function WebContainer({ children }: { children: React.ReactNode }) {
     <View style={styles.webOuter}>
       <View style={[
         styles.webInner,
-        { 
-          width: containerWidth,
+        {
+          width: containerWidth as any,
           maxWidth: isSmallScreen ? '100%' : 480,
         }
       ]}>

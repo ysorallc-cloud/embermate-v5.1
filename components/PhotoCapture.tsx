@@ -4,8 +4,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { Colors, Spacing } from '../app/_theme/theme-tokens';
 import { savePhoto } from '../utils/photoStorage';
 
-interface PhotoCaptureProps {
-  type: 'medication' | 'wound' | 'rash' | 'symptom' | 'report' | 'other';
+export interface PhotoCaptureProps {
+  type: 'medication' | 'wound' | 'document' | 'other';
   onPhotoSaved: () => void;
   medicationId?: string;
 }
@@ -33,11 +33,7 @@ export default function PhotoCapture({ type, onPhotoSaved, medicationId }: Photo
       });
 
       if (!result.canceled && result.assets[0]) {
-        await savePhoto({
-          uri: result.assets[0].uri,
-          type,
-          medicationId,
-        });
+        await savePhoto(result.assets[0].uri, type, { relatedId: medicationId });
         onPhotoSaved();
       }
     } catch (error) {
@@ -56,11 +52,7 @@ export default function PhotoCapture({ type, onPhotoSaved, medicationId }: Photo
       });
 
       if (!result.canceled && result.assets[0]) {
-        await savePhoto({
-          uri: result.assets[0].uri,
-          type,
-          medicationId,
-        });
+        await savePhoto(result.assets[0].uri, type, { relatedId: medicationId });
         onPhotoSaved();
       }
     } catch (error) {

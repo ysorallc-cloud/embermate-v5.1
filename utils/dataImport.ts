@@ -5,8 +5,8 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { addMedication, Medication } from './medicationStorage';
-import { addAppointment, Appointment } from './appointmentStorage';
+import { createMedication, Medication } from './medicationStorage';
+import { createAppointment, Appointment } from './appointmentStorage';
 import { saveVital } from './vitalsStorage';
 import { Alert } from 'react-native';
 
@@ -38,13 +38,14 @@ export async function importFromJSON(jsonString: string): Promise<ImportResult> 
     if (data.medications && Array.isArray(data.medications)) {
       for (const med of data.medications) {
         try {
-          await addMedication({
+          await createMedication({
             name: med.name || 'Unknown',
             dosage: med.dosage || '',
             time: med.time || '08:00',
-            notes: med.notes || '',
-            active: med.active !== false,
+            timeSlot: med.timeSlot || 'morning',
             taken: med.taken || false,
+            active: med.active !== false,
+            notes: med.notes || '',
             daysSupply: med.daysSupply || 30,
           });
           result.imported.medications++;
@@ -58,13 +59,14 @@ export async function importFromJSON(jsonString: string): Promise<ImportResult> 
     if (data.appointments && Array.isArray(data.appointments)) {
       for (const appt of data.appointments) {
         try {
-          await addAppointment({
+          await createAppointment({
             date: appt.date || new Date().toISOString().split('T')[0],
             time: appt.time || '09:00',
             provider: appt.provider || 'Provider',
             specialty: appt.specialty || 'General',
             location: appt.location || '',
             notes: appt.notes || '',
+            hasBrief: appt.hasBrief || false,
             completed: appt.completed || false,
             cancelled: appt.cancelled || false,
           });
@@ -223,13 +225,14 @@ export async function importMedicationsFromCSV(csvString: string): Promise<Impor
       if (values.length < 2) continue;
 
       try {
-        await addMedication({
+        await createMedication({
           name: values[nameIdx] || 'Unknown',
           dosage: values[dosageIdx] || '',
           time: timeIdx !== -1 ? values[timeIdx] : '08:00',
-          notes: notesIdx !== -1 ? values[notesIdx] : '',
-          active: true,
+          timeSlot: 'morning',
           taken: false,
+          active: true,
+          notes: notesIdx !== -1 ? values[notesIdx] : '',
           daysSupply: 30,
         });
         result.imported.medications++;

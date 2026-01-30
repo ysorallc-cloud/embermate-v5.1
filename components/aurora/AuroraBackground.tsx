@@ -12,7 +12,7 @@ import Animated, {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export type AuroraVariant = 'today' | 'hub' | 'log' | 'care' | 'reports' | 'settings';
+export type AuroraVariant = 'today' | 'hub' | 'log' | 'care' | 'reports' | 'settings' | 'family' | 'insights' | 'connect';
 
 interface Props {
   variant?: AuroraVariant;
@@ -60,6 +60,27 @@ const AURORA_CONFIGS: Record<AuroraVariant, {
     colors: [
       'rgba(50, 60, 80, 0.3)',     // Blue-gray
       'rgba(40, 50, 70, 0.15)',    // Darker blue-gray
+      'transparent',
+    ],
+  },
+  family: {
+    colors: [
+      'rgba(100, 60, 100, 0.4)',   // Rose/purple (same as care)
+      'rgba(60, 60, 100, 0.25)',   // Purple
+      'transparent',
+    ],
+  },
+  insights: {
+    colors: [
+      'rgba(80, 60, 140, 0.45)',   // Purple (same as reports)
+      'rgba(40, 80, 120, 0.2)',    // Blue
+      'transparent',
+    ],
+  },
+  connect: {
+    colors: [
+      'rgba(100, 60, 100, 0.4)',   // Rose/purple
+      'rgba(60, 60, 100, 0.25)',   // Purple
       'transparent',
     ],
   },

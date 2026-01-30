@@ -23,6 +23,7 @@ import {
   getCareActivities,
   CaregiverProfile,
   CareActivity,
+  SharePermissions,
 } from '../../utils/collaborativeCare';
 
 // Storage key for last viewed activity timestamp
@@ -99,8 +100,9 @@ export default function FamilyScreen() {
           role: 'family' as const,
           email: 'sarah@example.com',
           phone: '+1234567890',
-          permissions: ['view', 'edit'],
+          permissions: { canView: true, canEdit: true, canMarkMedications: true, canScheduleAppointments: false, canAddNotes: true, canExport: false },
           invitedAt: new Date().toISOString(),
+          joinedAt: new Date().toISOString(),
           avatarColor: Colors.rose,
           lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
         },
@@ -110,8 +112,9 @@ export default function FamilyScreen() {
           role: 'healthcare' as const,
           email: 'dr.chen@example.com',
           phone: '+0987654321',
-          permissions: ['view'],
+          permissions: { canView: true, canEdit: false, canMarkMedications: false, canScheduleAppointments: false, canAddNotes: true, canExport: false },
           invitedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
+          joinedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
           avatarColor: Colors.purple,
           lastActive: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
         },
@@ -198,11 +201,11 @@ export default function FamilyScreen() {
   const hasOtherCaregivers = caregivers.length > 0;
 
   // Get permission label for display
-  const getPermissionLabel = (permissions: string[]): string => {
-    if (permissions.includes('edit') && permissions.includes('view')) {
+  const getPermissionLabel = (permissions: SharePermissions): string => {
+    if (permissions.canEdit && permissions.canView) {
       return 'View & Edit';
     }
-    if (permissions.includes('view')) {
+    if (permissions.canView) {
       return 'View only';
     }
     return 'Full access';
@@ -495,7 +498,7 @@ export default function FamilyScreen() {
                           </View>
                         </View>
                         <Text style={styles.memberStatus}>
-                          {getPermissionLabel(caregiver.permissions || [])} • {caregiver.lastActive ?
+                          {getPermissionLabel(caregiver.permissions)} • {caregiver.lastActive ?
                             getRelativeTime(caregiver.lastActive) :
                             'Invited'}
                         </Text>

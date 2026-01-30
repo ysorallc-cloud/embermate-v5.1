@@ -550,7 +550,7 @@ export default function CareBriefScreen() {
                         </Text>
                         <Text style={styles.upcomingTitle}>{appt.specialty} - {appt.provider}</Text>
                         <Text style={styles.upcomingDetail}>
-                          {appt.reason || 'Follow-up'}{appt.location && ` • ${appt.location}`}
+                          {appt.notes || 'Follow-up'}{appt.location && ` • ${appt.location}`}
                         </Text>
                       </View>
                     );

@@ -222,8 +222,8 @@ async function createSession(): Promise<void> {
   try {
     const crypto = require('expo-crypto');
     const randomBytes = await crypto.getRandomBytesAsync(32);
-    const token = Array.from(randomBytes)
-      .map((b: number) => b.toString(16).padStart(2, '0'))
+    const token = Array.from(randomBytes as Uint8Array)
+      .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
 
     await setKeychainItem(SESSION_TOKEN_KEY, token);

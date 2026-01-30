@@ -258,12 +258,12 @@ function analyzeVitalsStability(vitals: VitalLog[]) {
   });
   
   // Calculate ranges and trends
-  const bpSystolic = last7Days.map(v => v.bloodPressureSystolic).filter(Boolean);
-  const hr = last7Days.map(v => v.heartRate).filter(Boolean);
-  const o2 = last7Days.map(v => v.oxygenSaturation).filter(Boolean);
-  const glucose = last7Days.map(v => v.glucose).filter(Boolean);
-  const temp = last7Days.map(v => v.temperature).filter(Boolean);
-  const weights = last7Days.map(v => v.weight).filter(Boolean);
+  const bpSystolic = last7Days.map(v => v.bloodPressureSystolic).filter((v): v is number => v != null);
+  const hr = last7Days.map(v => v.heartRate).filter((v): v is number => v != null);
+  const o2 = last7Days.map(v => v.oxygenSaturation).filter((v): v is number => v != null);
+  const glucose = last7Days.map(v => v.glucose).filter((v): v is number => v != null);
+  const temp = last7Days.map(v => v.temperature).filter((v): v is number => v != null);
+  const weights = last7Days.map(v => v.weight).filter((v): v is number => v != null);
   
   let outOfRangeCount = 0;
   if (bpSystolic.some(v => v > 140 || v < 90)) outOfRangeCount++;

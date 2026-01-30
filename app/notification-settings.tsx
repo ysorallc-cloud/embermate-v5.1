@@ -37,6 +37,12 @@ export default function NotificationSettingsScreen() {
     reminderMinutesBefore: 0,
     soundEnabled: true,
     vibrationEnabled: true,
+    overdueAlertsEnabled: true,
+    gracePeriodMinutes: 15,
+    overdueAlertMinutes: 30,
+    quietHoursEnabled: false,
+    quietHoursStart: '22:00',
+    quietHoursEnd: '07:00',
   });
   const [hasPermission, setHasPermission] = useState(false);
   const [scheduledCount, setScheduledCount] = useState(0);

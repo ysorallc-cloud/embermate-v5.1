@@ -1,29 +1,24 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, FlatList, Dimensions } from 'react-native';
 import { Colors, Spacing } from '../app/_theme/theme-tokens';
-
-interface Photo {
-  id: string;
-  uri: string;
-  type: string;
-  timestamp: number;
-  notes?: string;
-}
+import { Photo } from '../utils/photoStorage';
 
 interface PhotoGalleryProps {
   photos: Photo[];
   onPhotoPress?: (photo: Photo) => void;
+  onPhotoDeleted?: () => void;
+  emptyMessage?: string;
 }
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = (width - (Spacing.lg * 2) - (Spacing.md * 2)) / 3;
 
-export default function PhotoGallery({ photos, onPhotoPress }: PhotoGalleryProps) {
+export default function PhotoGallery({ photos, onPhotoPress, emptyMessage }: PhotoGalleryProps) {
   if (!photos || photos.length === 0) {
     return (
       <View style={styles.emptyState}>
         <Text style={styles.emptyIcon}>📷</Text>
-        <Text style={styles.emptyText}>No photos yet</Text>
+        <Text style={styles.emptyText}>{emptyMessage || 'No photos yet'}</Text>
       </View>
     );
   }
@@ -35,7 +30,7 @@ export default function PhotoGallery({ photos, onPhotoPress }: PhotoGalleryProps
       activeOpacity={0.7}
     >
       <Image source={{ uri: item.uri }} style={styles.photo} />
-      {item.notes && (
+      {item.caption && (
         <View style={styles.noteBadge}>
           <Text style={styles.noteIcon}>📝</Text>
         </View>

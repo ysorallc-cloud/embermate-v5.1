@@ -6,7 +6,7 @@
 
 import { sampleCorrelation } from 'simple-statistics';
 import { getMedicationLogs } from './medicationStorage';
-import { getSymptomLogs, SymptomLog } from './symptomStorage';
+import { getSymptoms, SymptomLog } from './symptomStorage';
 import { getDailyTrackingLogs, DailyTrackingLog } from './dailyTrackingStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -79,7 +79,11 @@ async function loadCorrelationData(
 ): Promise<CorrelationDataPoint[]> {
   try {
     // Load all tracking data from AsyncStorage (no network)
-    const symptomLogs = await getSymptomLogs(startDate, endDate);
+    const allSymptomLogs = await getSymptoms();
+    const symptomLogs = allSymptomLogs.filter(log => {
+      const logDate = log.timestamp.split('T')[0];
+      return logDate >= startDate && logDate <= endDate;
+    });
     const dailyLogs = await getDailyTrackingLogs(startDate, endDate);
     
     // Merge data by date
@@ -106,14 +110,16 @@ async function loadCorrelationData(
       });
     }
     
-    // Merge symptom logs
+    // Merge symptom logs - map symptom names to specific fields
     symptomLogs.forEach(log => {
-      const existing = dataMap.get(log.date);
+      const dateStr = log.date || log.timestamp.split('T')[0];
+      const existing = dataMap.get(dateStr);
       if (existing) {
-        existing.pain = log.pain;
-        existing.fatigue = log.fatigue;
-        existing.nausea = log.nausea;
-        existing.dizziness = log.dizziness;
+        const symptomName = log.symptom.toLowerCase();
+        if (symptomName.includes('pain')) existing.pain = log.severity;
+        else if (symptomName.includes('fatigue') || symptomName.includes('tired')) existing.fatigue = log.severity;
+        else if (symptomName.includes('nausea')) existing.nausea = log.severity;
+        else if (symptomName.includes('dizz')) existing.dizziness = log.severity;
       }
     });
     
@@ -131,7 +137,7 @@ async function loadCorrelationData(
     const medLogs = await getMedicationLogs();
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split('T')[0];
-      const dayLogs = medLogs.filter(log => log.date === dateStr);
+      const dayLogs = medLogs.filter(log => log.timestamp.split('T')[0] === dateStr);
       if (dayLogs.length > 0) {
         const taken = dayLogs.filter(log => log.taken).length;
         const adherence = (taken / dayLogs.length) * 100;

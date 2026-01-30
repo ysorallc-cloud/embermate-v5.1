@@ -151,8 +151,11 @@ export default function DailyCheckinScreen() {
 
   const handleComplete = async () => {
     try {
-      await saveDailyTracking({
-        date: new Date().toISOString(),
+      const dateStr = new Date().toISOString().split('T')[0];
+      // Parse sleep duration (e.g., "7 hours" -> 7)
+      const sleepHours = sleepDuration ? parseFloat(sleepDuration.replace(/[^0-9.]/g, '')) : null;
+
+      await saveDailyTracking(dateStr, {
         mood: mood!,
         energy: energy!,
         symptoms,
@@ -162,10 +165,8 @@ export default function DailyCheckinScreen() {
           dinner: hadDinner,
         },
         hydration: waterGlasses,
-        sleep: {
-          duration: sleepDuration!,
-          quality: sleepQuality!,
-        },
+        sleep: sleepHours,
+        sleepQuality: sleepQuality,
         notes,
         tags: noteTags,
       });

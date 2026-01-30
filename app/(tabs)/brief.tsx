@@ -528,8 +528,8 @@ export default function HubScreen() {
                     <GlassCard
                       style={[
                         styles.hubSectionCard,
-                        section.primary ? styles.hubSectionPrimary : undefined,
-                      ].filter(Boolean)}
+                        section.primary && styles.hubSectionPrimary,
+                      ]}
                     >
                       <View style={styles.hubSectionContent}>
                         <View

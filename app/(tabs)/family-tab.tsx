@@ -259,14 +259,14 @@ export default function FamilyScreen() {
                     ]}
                   >
                     <Text style={styles.activityIcon}>
-                      {activity.type === 'log' ? '📝' :
-                       activity.type === 'update' ? '✉️' :
-                       activity.type === 'checkin' ? '✓' : '📊'}
+                      {activity.type === 'vital_logged' ? '📝' :
+                       activity.type === 'note_added' ? '✉️' :
+                       activity.type === 'medication_taken' ? '✓' : '📊'}
                     </Text>
                     <View style={styles.activityContent}>
                       <Text style={styles.activityText}>
-                        <Text style={styles.activityWho}>{activity.caregiverName || 'Someone'}</Text>
-                        {' '}{activity.description || 'updated'}
+                        <Text style={styles.activityWho}>{activity.performedBy || 'Someone'}</Text>
+                        {' '}{activity.details?.action || 'updated'}
                       </Text>
                       <Text style={styles.activityTime}>
                         {activity.timestamp ? getRelativeTime(activity.timestamp) : 'Recently'}

@@ -130,8 +130,6 @@ export default function PhotosScreen() {
           <PhotoCapture
             type="other"
             onPhotoSaved={handlePhotoSaved}
-            buttonText="Add Photo"
-            buttonStyle="primary"
           />
 
           {/* Filters */}
@@ -210,10 +208,6 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   headerLabel: { fontSize: 11, color: Colors.textMuted, letterSpacing: 1, fontWeight: '600' },
-  backIcon: {
-    fontSize: 24,
-    color: Colors.textPrimary,
-  },
   placeholder: { width: 40 },
   title: { fontSize: 28, fontWeight: '300', color: Colors.textPrimary, marginBottom: Spacing.lg },
   statsCard: {

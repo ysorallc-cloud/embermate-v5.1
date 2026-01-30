@@ -117,7 +117,7 @@ export const CoffeeMomentModal: React.FC<CoffeeMomentModalProps> = ({
 
   const handleSetReminder = () => {
     handleClose();
-    router.push('/break-reminder-settings');
+    router.push('/break-reminder-settings' as any);
   };
 
   const getPhaseText = () => {

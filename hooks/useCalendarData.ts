@@ -30,9 +30,9 @@ export const useCalendarData = (currentMonth: Date, selectedDate: Date) => {
   const { wellnessChecks, vitalsCheck } = useWellnessSettings();
   const [medications, setMedications] = useState<Medication[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [morningWellnessComplete, setMorningWellnessComplete] = useState<Date | null>(null);
-  const [eveningWellnessComplete, setEveningWellnessComplete] = useState<Date | null>(null);
-  const [vitalsComplete, setVitalsComplete] = useState<Date | null>(null);
+  const [morningWellnessComplete, setMorningWellnessComplete] = useState<Date | undefined>(undefined);
+  const [eveningWellnessComplete, setEveningWellnessComplete] = useState<Date | undefined>(undefined);
+  const [vitalsComplete, setVitalsComplete] = useState<Date | undefined>(undefined);
 
   // Load medications and appointments
   useEffect(() => {
@@ -59,9 +59,9 @@ export const useCalendarData = (currentMonth: Date, selectedDate: Date) => {
       const evening = await getEveningWellness(dateStr);
       const vitalsCompletion = await getVitalsCompletionForDate(dateStr);
 
-      setMorningWellnessComplete(morning ? morning.completedAt : null);
-      setEveningWellnessComplete(evening ? evening.completedAt : null);
-      setVitalsComplete(vitalsCompletion);
+      setMorningWellnessComplete(morning ? morning.completedAt : undefined);
+      setEveningWellnessComplete(evening ? evening.completedAt : undefined);
+      setVitalsComplete(vitalsCompletion ?? undefined);
     };
 
     loadCompletionStatus();

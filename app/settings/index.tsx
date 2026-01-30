@@ -198,7 +198,7 @@ export default function SettingsScreen() {
                   text: 'OK',
                   onPress: () => {
                     // Reload the app or navigate to onboarding
-                    router.replace('/onboarding');
+                    router.replace('/(onboarding)' as any);
                   },
                 },
               ]);
@@ -247,7 +247,7 @@ export default function SettingsScreen() {
                 [
                   {
                     text: 'Reload Now',
-                    onPress: () => router.replace('/onboarding'),
+                    onPress: () => router.replace('/(onboarding)' as any),
                   },
                   {
                     text: 'Later',

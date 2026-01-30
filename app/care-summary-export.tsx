@@ -17,7 +17,32 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing } from './_theme/theme-tokens';
-import { generateCareSummaryPDF } from '../utils/pdfExport';
+import { generateAndSharePDF, ReportData } from '../utils/pdfExport';
+
+// Helper function to generate care summary reports
+async function generateCareSummaryReport(type: string): Promise<boolean> {
+  const reportTitles: Record<string, string> = {
+    full: 'Full Care Summary',
+    medications: 'Medication List',
+    weekly: 'Weekly Health Report',
+    emergency: 'Emergency Information',
+  };
+
+  const reportData: ReportData = {
+    title: reportTitles[type] || 'Care Summary',
+    period: `Generated on ${new Date().toLocaleDateString()}`,
+    periodLabel: 'Report Period',
+    summary: 'Care summary for healthcare provider review',
+    details: [
+      { label: 'Report Type', value: reportTitles[type] || type },
+      { label: 'Generated', value: new Date().toLocaleString() },
+    ],
+    notes: 'This report contains health tracking data collected via EmberMate.',
+    generatedAt: new Date(),
+  };
+
+  return await generateAndSharePDF(reportData);
+}
 
 export default function CareSummaryExportScreen() {
   const router = useRouter();
@@ -54,31 +79,13 @@ export default function CareSummaryExportScreen() {
   const handleExport = async (type: string) => {
     try {
       setGenerating(true);
-      
-      // Generate PDF
-      const pdfPath = await generateCareSummaryPDF(type);
-      
-      Alert.alert(
-        'Report Generated',
-        'Your care summary is ready to share.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Share',
-            onPress: async () => {
-              try {
-                await Share.share({
-                  message: 'Care Summary',
-                  url: pdfPath,
-                  title: 'Care Summary',
-                });
-              } catch (e) {
-                console.error('Share error:', e);
-              }
-            },
-          },
-        ]
-      );
+
+      // Generate and share PDF
+      const success = await generateCareSummaryReport(type);
+
+      if (!success) {
+        Alert.alert('Error', 'Failed to generate report. Please try again.');
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to generate report. Please try again.');
       console.error('Export error:', error);

@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle, Platform } from 'react-native';
+import { View, StyleSheet, ViewStyle, StyleProp, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Colors, BorderRadius, Spacing } from '../../app/_theme/theme-tokens';
 
 interface Props {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   glow?: string;         // Color for glow effect
   padding?: number;      // Override default padding
   noPadding?: boolean;   // Remove padding entirely

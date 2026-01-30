@@ -690,7 +690,7 @@ export default function LogTab() {
           {/* View Full History Link */}
           <TouchableOpacity
             style={styles.historyLink}
-            onPress={() => router.push('/reports')}
+            onPress={() => router.push('/hub/reports' as any)}
             activeOpacity={0.7}
             accessible={true}
             accessibilityRole="button"

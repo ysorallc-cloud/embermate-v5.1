@@ -133,6 +133,7 @@ export const Colors = {
   // Backwards compatibility
   backgroundGradientStart: '#051614',
   backgroundGradientEnd: '#042420',
+  cardBackground: '#0a1f1c',
 };
 
 export const Spacing = {
