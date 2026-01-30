@@ -26,7 +26,7 @@ const generateSampleMeals = (days: number) => {
     meals.push({
       id: `meal-${day}-1`,
       type: types[Math.floor(Math.random() * types.length)],
-      amount: amounts[Math.floor(Math.random() * amounts.length)],
+      amount: portions[Math.floor(Math.random() * portions.length)],
       timestamp: generateTimestamp(day, 7, 30),
       notes: day === 0 ? 'Good appetite this morning' : undefined,
     });
@@ -35,7 +35,7 @@ const generateSampleMeals = (days: number) => {
     meals.push({
       id: `meal-${day}-2`,
       type: types[Math.floor(Math.random() * types.length)],
-      amount: amounts[Math.floor(Math.random() * amounts.length)],
+      amount: portions[Math.floor(Math.random() * portions.length)],
       timestamp: generateTimestamp(day, 12, 0),
     });
 
@@ -43,7 +43,7 @@ const generateSampleMeals = (days: number) => {
     meals.push({
       id: `meal-${day}-3`,
       type: types[Math.floor(Math.random() * types.length)],
-      amount: amounts[Math.floor(Math.random() * amounts.length)],
+      amount: portions[Math.floor(Math.random() * portions.length)],
       timestamp: generateTimestamp(day, 18, 30),
     });
   }
@@ -110,7 +110,7 @@ const generateSampleBathroom = (days: number) => {
 
 const generateSampleActivity = (days: number) => {
   const activities = [];
-  const types = ['tummy_time', 'play', 'walk', 'bath'];
+  const types = ['mobility', 'social', 'walk', 'bath'];
   const durations = [10, 15, 20, 30];
 
   for (let day = 0; day < days; day++) {

@@ -9,7 +9,7 @@ export const AppStrings = {
   tagline: 'Caring for those who matter most',
 
   // Care recipient defaults
-  defaultCareRecipient: 'Mom',
+  defaultCareRecipient: 'Loved One',
   careRecipientPlaceholder: 'Loved One',
 
   // Roles
@@ -147,7 +147,7 @@ export const AppStrings = {
 //
 // ❌ NEVER use these emojis:
 // - 🍼 (use 💊 for medications)
-// - 👶 or 🧒 (use 👵 or 🧓 for care recipients)
+// - 👶 or 🧒 (use ❤️ or 👤 for care recipients)
 // - 🚼 (use ❤️ or 🏥)
 //
 // ============================================================================
