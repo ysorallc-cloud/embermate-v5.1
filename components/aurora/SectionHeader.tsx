@@ -11,10 +11,18 @@ interface Props {
 }
 
 export const SectionHeader: React.FC<Props> = ({ title, action }) => (
-  <View style={styles.container}>
-    <Text style={styles.title}>{title.toUpperCase()}</Text>
+  <View style={styles.container} accessibilityRole="header">
+    <Text style={styles.title} accessibilityRole="header">
+      {title.toUpperCase()}
+    </Text>
     {action && (
-      <TouchableOpacity onPress={action.onPress}>
+      <TouchableOpacity
+        onPress={action.onPress}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={action.label}
+        accessibilityHint={`Tap to ${action.label.toLowerCase()}`}
+      >
         <Text style={styles.action}>{action.label}</Text>
       </TouchableOpacity>
     )}

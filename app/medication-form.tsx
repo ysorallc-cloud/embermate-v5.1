@@ -271,7 +271,14 @@ export default function MedicationFormScreen() {
           <Text style={styles.headerLabel}>
             {isEditing ? 'EDIT MEDICATION' : 'ADD MEDICATION'}
           </Text>
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={handleSave}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={isEditing ? 'Save medication changes' : 'Save new medication'}
+            accessibilityHint="Saves the medication and returns to the previous screen"
+          >
             <Text style={styles.saveButtonText}>Save</Text>
           </TouchableOpacity>
         </View>
@@ -281,7 +288,7 @@ export default function MedicationFormScreen() {
 
           {/* Medication Name */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Medication Name *</Text>
+            <Text style={styles.label} accessibilityRole="text">Medication Name *</Text>
             <TextInput
               style={styles.input}
               value={name}
@@ -300,6 +307,8 @@ export default function MedicationFormScreen() {
               placeholderTextColor={Colors.textMuted}
               autoCapitalize="words"
               autoCorrect={false}
+              accessibilityLabel="Medication name, required"
+              accessibilityHint="Enter the name of the medication"
             />
             {showMedSuggestions && medSuggestions.length > 0 && (
               <ScrollView
@@ -326,7 +335,7 @@ export default function MedicationFormScreen() {
 
           {/* Dosage */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Dosage *</Text>
+            <Text style={styles.label} accessibilityRole="text">Dosage *</Text>
             <TextInput
               style={styles.input}
               value={dosage}
@@ -334,6 +343,8 @@ export default function MedicationFormScreen() {
               placeholder="e.g., 10mg"
               placeholderTextColor={Colors.textMuted}
               autoCorrect={false}
+              accessibilityLabel="Dosage, required"
+              accessibilityHint="Enter the medication dosage"
             />
             {showDosageSuggestions && dosageSuggestions.length > 0 && (
               <ScrollView

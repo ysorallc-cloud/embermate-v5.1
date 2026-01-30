@@ -9,7 +9,11 @@ import { BlurView } from 'expo-blur';
 import { Colors } from '../_theme/theme-tokens';
 
 const TabIcon = ({ icon, focused }: { icon: string; focused: boolean }) => (
-  <View style={{ alignItems: 'center' }}>
+  <View
+    style={{ alignItems: 'center' }}
+    accessible={false}
+    importantForAccessibility="no-hide-descendants"
+  >
     <Text style={{
       fontSize: 24,
       opacity: focused ? 1 : 0.5,
@@ -70,6 +74,8 @@ export default function TabLayout() {
         options={{
           title: 'Today',
           tabBarIcon: ({ focused }) => <TabIcon icon="☀️" focused={focused} />,
+          tabBarAccessibilityLabel: 'Today tab',
+          tabBarButtonTestID: 'tab-today',
         }}
       />
       <Tabs.Screen
@@ -77,6 +83,8 @@ export default function TabLayout() {
         options={{
           title: 'Log',
           tabBarIcon: ({ focused }) => <TabIcon icon="✏️" focused={focused} />,
+          tabBarAccessibilityLabel: 'Log tab. Record medications, vitals, and activities',
+          tabBarButtonTestID: 'tab-log',
         }}
       />
       <Tabs.Screen
@@ -84,6 +92,8 @@ export default function TabLayout() {
         options={{
           title: 'Hub',
           tabBarIcon: ({ focused }) => <TabIcon icon="📊" focused={focused} />,
+          tabBarAccessibilityLabel: 'Hub tab. View health summary and insights',
+          tabBarButtonTestID: 'tab-hub',
         }}
       />
       <Tabs.Screen
@@ -91,6 +101,8 @@ export default function TabLayout() {
         options={{
           title: 'Care Team',
           tabBarIcon: ({ focused }) => <TabIcon icon="👥" focused={focused} />,
+          tabBarAccessibilityLabel: 'Care Team tab. Manage family members and caregivers',
+          tabBarButtonTestID: 'tab-care-team',
         }}
       />
       <Tabs.Screen

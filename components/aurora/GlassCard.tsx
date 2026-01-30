@@ -10,6 +10,11 @@ interface Props {
   padding?: number;      // Override default padding
   noPadding?: boolean;   // Remove padding entirely
   intensity?: number;    // Blur intensity (default 25)
+  // Accessibility props
+  accessible?: boolean;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  accessibilityRole?: 'none' | 'button' | 'link' | 'search' | 'image' | 'text' | 'adjustable' | 'header' | 'summary' | 'alert';
 }
 
 export const GlassCard: React.FC<Props> = ({
@@ -19,21 +24,31 @@ export const GlassCard: React.FC<Props> = ({
   padding,
   noPadding = false,
   intensity = 25,
+  accessible,
+  accessibilityLabel,
+  accessibilityHint,
+  accessibilityRole,
 }) => {
   const cardPadding = noPadding ? 0 : (padding ?? Spacing.xl);
 
   return (
-    <View style={[
-      styles.container,
-      glow && {
-        shadowColor: glow,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.4,
-        shadowRadius: 20,
-        elevation: 8,
-      },
-      style,
-    ]}>
+    <View
+      style={[
+        styles.container,
+        glow && {
+          shadowColor: glow,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.4,
+          shadowRadius: 20,
+          elevation: 8,
+        },
+        style,
+      ]}
+      accessible={accessible}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityRole={accessibilityRole}
+    >
       {/* Blur layer - only on iOS/Android, not web */}
       {Platform.OS !== 'web' && (
         <BlurView

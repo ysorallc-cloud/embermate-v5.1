@@ -7,6 +7,7 @@ interface Props {
   value: string;
   color: string;
   size?: number;
+  accessibilityLabel?: string;
 }
 
 export const StatusOrb: React.FC<Props> = ({
@@ -14,25 +15,38 @@ export const StatusOrb: React.FC<Props> = ({
   value,
   color,
   size = 90,
+  accessibilityLabel: customAccessibilityLabel,
 }) => {
   const fontSize = Math.max(14, size * 0.2);
   const labelSize = Math.max(9, size * 0.12);
+  const defaultAccessibilityLabel = `${label}: ${value}`;
 
   return (
-    <View style={[
-      styles.container,
-      {
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: `${color}12`,
-        borderColor: `${color}30`,
-      },
-    ]}>
-      <Text style={[styles.value, { fontSize, color }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: `${color}12`,
+          borderColor: `${color}30`,
+        },
+      ]}
+      accessible={true}
+      accessibilityRole="text"
+      accessibilityLabel={customAccessibilityLabel || defaultAccessibilityLabel}
+    >
+      <Text
+        style={[styles.value, { fontSize, color }]}
+        importantForAccessibility="no-hide-descendants"
+      >
         {value}
       </Text>
-      <Text style={[styles.label, { fontSize: labelSize }]}>
+      <Text
+        style={[styles.label, { fontSize: labelSize }]}
+        importantForAccessibility="no-hide-descendants"
+      >
         {label}
       </Text>
     </View>

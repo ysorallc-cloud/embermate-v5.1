@@ -556,8 +556,12 @@ export default function TodayScreen() {
             <TouchableOpacity
               style={styles.pauseButton}
               onPress={() => setCoffeeMomentVisible(true)}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Take a coffee moment"
+              accessibilityHint="Opens a brief mindfulness break for caregivers"
             >
-              <Text style={styles.pauseIcon}>☕</Text>
+              <Text style={styles.pauseIcon} importantForAccessibility="no-hide-descendants">☕</Text>
             </TouchableOpacity>
           </View>
 
@@ -565,6 +569,10 @@ export default function TodayScreen() {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => router.push('/quick-checkin')}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Quick Check-In. Vitals, meds, mood, all in one flow"
+            accessibilityHint="Opens the quick check-in wizard"
           >
             <GlassCard style={styles.quickCheckinCard}>
               <View style={styles.quickCheckinContent}>
@@ -612,9 +620,14 @@ export default function TodayScreen() {
               onPress={() => setTimelineExpanded(!timelineExpanded)}
               activeOpacity={0.7}
               style={styles.timelineHeader}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Today's Schedule. ${timelineExpanded ? 'Expanded' : 'Collapsed'}`}
+              accessibilityHint={timelineExpanded ? 'Tap to collapse' : 'Tap to expand'}
+              accessibilityState={{ expanded: timelineExpanded }}
             >
               <SectionHeader title="Today's Schedule" />
-              <Text style={styles.collapseIcon}>
+              <Text style={styles.collapseIcon} importantForAccessibility="no-hide-descendants">
                 {timelineExpanded ? '▼' : '▶'}
               </Text>
             </TouchableOpacity>
@@ -630,9 +643,14 @@ export default function TodayScreen() {
               onPress={() => setQuickLogExpanded(!quickLogExpanded)}
               activeOpacity={0.7}
               style={styles.quickLogHeader}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Quick Log. ${quickLogExpanded ? 'Expanded' : 'Collapsed'}`}
+              accessibilityHint={quickLogExpanded ? 'Tap to collapse' : 'Tap to expand'}
+              accessibilityState={{ expanded: quickLogExpanded }}
             >
               <SectionHeader title="Quick Log" />
-              <Text style={styles.collapseIcon}>
+              <Text style={styles.collapseIcon} importantForAccessibility="no-hide-descendants">
                 {quickLogExpanded ? '▼' : '▶'}
               </Text>
             </TouchableOpacity>
@@ -647,10 +665,14 @@ export default function TodayScreen() {
                         style={styles.quickLogButton}
                         onPress={action.onPress}
                         activeOpacity={0.7}
+                        accessible={true}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Log ${action.label}`}
+                        accessibilityHint={`Tap to log ${action.label.toLowerCase()}`}
                       >
                         <View style={styles.quickLogAction}>
-                          <Text style={styles.quickLogIcon}>{action.icon}</Text>
-                          <Text style={styles.quickLogText}>{action.label}</Text>
+                          <Text style={styles.quickLogIcon} importantForAccessibility="no-hide-descendants">{action.icon}</Text>
+                          <Text style={styles.quickLogText} importantForAccessibility="no-hide-descendants">{action.label}</Text>
                         </View>
                       </TouchableOpacity>
                     ))}
@@ -661,9 +683,13 @@ export default function TodayScreen() {
                     style={styles.moreOptionsButton}
                     onPress={() => router.push('/log')}
                     activeOpacity={0.7}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="More logging options"
+                    accessibilityHint="Opens the full log screen with all logging options"
                   >
-                    <Text style={styles.moreOptionsIcon}>➕</Text>
-                    <Text style={styles.moreOptionsText}>More options</Text>
+                    <Text style={styles.moreOptionsIcon} importantForAccessibility="no-hide-descendants">➕</Text>
+                    <Text style={styles.moreOptionsText} importantForAccessibility="no-hide-descendants">More options</Text>
                   </TouchableOpacity>
                 </View>
               </GlassCard>

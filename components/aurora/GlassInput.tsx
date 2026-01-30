@@ -9,6 +9,10 @@ interface Props {
   placeholder?: string;
   multiline?: boolean;
   keyboardType?: KeyboardTypeOptions;
+  // Accessibility props
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  testID?: string;
 }
 
 export const GlassInput: React.FC<Props> = ({
@@ -18,9 +22,20 @@ export const GlassInput: React.FC<Props> = ({
   placeholder,
   multiline = false,
   keyboardType = 'default',
+  accessibilityLabel,
+  accessibilityHint,
+  testID,
 }) => (
   <View style={styles.container}>
-    {label && <Text style={styles.label}>{label}</Text>}
+    {label && (
+      <Text
+        style={styles.label}
+        accessibilityRole="text"
+        accessible={false}
+      >
+        {label}
+      </Text>
+    )}
     <TextInput
       style={[styles.input, multiline && styles.inputMultiline]}
       value={value}
@@ -29,6 +44,9 @@ export const GlassInput: React.FC<Props> = ({
       placeholderTextColor={Colors.textMuted}
       multiline={multiline}
       keyboardType={keyboardType}
+      accessibilityLabel={accessibilityLabel || label}
+      accessibilityHint={accessibilityHint || (placeholder ? `Enter ${placeholder.toLowerCase()}` : undefined)}
+      testID={testID}
     />
   </View>
 );

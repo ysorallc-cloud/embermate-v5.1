@@ -7,6 +7,8 @@ interface QuickAction {
   label: string;
   onPress: () => void;
   color?: string;
+  accessibilityHint?: string;
+  testID?: string;
 }
 
 interface Props {
@@ -14,7 +16,7 @@ interface Props {
 }
 
 export const QuickActionGrid: React.FC<Props> = ({ actions }) => (
-  <View style={styles.container}>
+  <View style={styles.container} accessibilityRole="toolbar">
     {actions.map((action, i) => (
       <TouchableOpacity
         key={i}
@@ -27,9 +29,14 @@ export const QuickActionGrid: React.FC<Props> = ({ actions }) => (
         ]}
         onPress={action.onPress}
         activeOpacity={0.7}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={action.label}
+        accessibilityHint={action.accessibilityHint || `Tap to ${action.label.toLowerCase()}`}
+        testID={action.testID}
       >
-        <Text style={styles.icon}>{action.icon}</Text>
-        <Text style={styles.label}>{action.label}</Text>
+        <Text style={styles.icon} importantForAccessibility="no-hide-descendants">{action.icon}</Text>
+        <Text style={styles.label} importantForAccessibility="no-hide-descendants">{action.label}</Text>
       </TouchableOpacity>
     ))}
   </View>

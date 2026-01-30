@@ -511,6 +511,10 @@ export default function LogTab() {
             ]}
             onPress={() => !isSwiping && handleEntryPress(entry)}
             activeOpacity={0.7}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`${entry.type}: ${entry.value}. Logged at ${entry.time}`}
+            accessibilityHint="Double tap to open actions. Swipe left to delete"
           >
             <Text style={styles.logIcon}>{entry.icon}</Text>
             <View style={styles.logContent}>
@@ -557,6 +561,10 @@ export default function LogTab() {
                   style={styles.primaryItem}
                   onPress={() => router.push(log.route as any)}
                   activeOpacity={0.7}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${log.label}${context.subtext ? `. ${context.subtext}` : ''}`}
+                  accessibilityHint={`Tap to log ${log.label.toLowerCase()}`}
                 >
                   <GlassCard style={[styles.primaryCard, context.complete && styles.primaryCardComplete]}>
                     <View style={styles.primaryCardHeader}>
@@ -605,8 +613,12 @@ export default function LogTab() {
                     style={styles.waterPlusButton}
                     onPress={incrementWater}
                     activeOpacity={0.7}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Add water. Currently ${waterCount} of ${WATER_GOAL} glasses`}
+                    accessibilityHint="Tap to add one glass of water"
                   >
-                    <Text style={styles.waterPlusText}>+1</Text>
+                    <Text style={styles.waterPlusText} importantForAccessibility="no-hide-descendants">+1</Text>
                   </TouchableOpacity>
                 </View>
               </GlassCard>
@@ -635,9 +647,14 @@ export default function LogTab() {
               style={styles.historyHeader}
               onPress={() => setHistoryExpanded(!historyExpanded)}
               activeOpacity={0.7}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Today's entries. ${historyExpanded ? 'Expanded' : 'Collapsed'}. ${recentLogs.length} entries`}
+              accessibilityHint={historyExpanded ? 'Tap to collapse' : 'Tap to expand'}
+              accessibilityState={{ expanded: historyExpanded }}
             >
               <Text style={styles.sectionLabel}>TODAY'S ENTRIES</Text>
-              <Text style={styles.collapseIcon}>
+              <Text style={styles.collapseIcon} importantForAccessibility="no-hide-descendants">
                 {historyExpanded ? '▼' : '▶'}
               </Text>
             </TouchableOpacity>
@@ -675,6 +692,10 @@ export default function LogTab() {
             style={styles.historyLink}
             onPress={() => router.push('/reports')}
             activeOpacity={0.7}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="View Full History"
+            accessibilityHint="Opens reports to see patterns and trends"
           >
             <GlassCard style={styles.historyLinkCard}>
               <View style={styles.historyLinkContent}>
@@ -735,6 +756,10 @@ export default function LogTab() {
             <TouchableOpacity
               style={styles.onboardingButton}
               onPress={dismissOnboarding}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Get Started"
+              accessibilityHint="Dismisses welcome message and starts logging"
             >
               <Text style={styles.onboardingButtonText}>Get Started</Text>
             </TouchableOpacity>

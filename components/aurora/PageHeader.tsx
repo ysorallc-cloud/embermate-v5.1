@@ -17,19 +17,39 @@ export const PageHeader: React.FC<Props> = ({
   actionIcon,
   onAction,
 }) => (
-  <View style={styles.container}>
+  <View style={styles.container} accessibilityRole="header">
     {onBack && (
-      <TouchableOpacity onPress={onBack} style={styles.backButton}>
-        <Text style={styles.backIcon}>←</Text>
+      <TouchableOpacity
+        onPress={onBack}
+        style={styles.backButton}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        accessibilityHint="Returns to previous screen"
+      >
+        <Text style={styles.backIcon} importantForAccessibility="no-hide-descendants">←</Text>
       </TouchableOpacity>
     )}
     <View style={styles.titleContainer}>
-      {category && <Text style={styles.category}>{category}</Text>}
-      <Text style={styles.title}>{title}</Text>
+      {category && (
+        <Text style={styles.category} accessibilityRole="text">
+          {category}
+        </Text>
+      )}
+      <Text style={styles.title} accessibilityRole="header">
+        {title}
+      </Text>
     </View>
     {actionIcon && onAction && (
-      <TouchableOpacity onPress={onAction} style={styles.actionButton}>
-        <Text style={styles.actionIcon}>{actionIcon}</Text>
+      <TouchableOpacity
+        onPress={onAction}
+        style={styles.actionButton}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel="Action"
+        accessibilityHint="Performs page action"
+      >
+        <Text style={styles.actionIcon} importantForAccessibility="no-hide-descendants">{actionIcon}</Text>
       </TouchableOpacity>
     )}
   </View>

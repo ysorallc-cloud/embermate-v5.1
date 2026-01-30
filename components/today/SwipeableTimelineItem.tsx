@@ -162,6 +162,13 @@ export const SwipeableTimelineItem: React.FC<Props> = ({
           style={styles.item}
           onPress={() => onPress(item)}
           activeOpacity={0.7}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={`${item.title}. ${item.subtitle}. Scheduled for ${formatTime(item.scheduledTime)}. Status: ${item.status === 'done' ? 'completed' : item.status === 'overdue' ? 'overdue' : 'pending'}`}
+          accessibilityHint={isSwipeable ? 'Double tap to view details. Swipe right to mark as complete' : 'Double tap to view details'}
+          accessibilityState={{
+            checked: item.status === 'done',
+          }}
         >
           {/* Timeline connector */}
           <View style={styles.connector}>
@@ -198,8 +205,12 @@ export const SwipeableTimelineItem: React.FC<Props> = ({
                 setJustCompleted(false);
                 onUndo(item);
               }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Undo ${item.title}`}
+              accessibilityHint="Marks this item as not completed"
             >
-              <Text style={styles.undoIcon}>↩️</Text>
+              <Text style={styles.undoIcon} importantForAccessibility="no-hide-descendants">↩️</Text>
             </TouchableOpacity>
           )}
         </TouchableOpacity>
