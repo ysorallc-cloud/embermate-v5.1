@@ -12,44 +12,49 @@ interface Props {
   width: number;
 }
 
+interface DotProps {
+  index: number;
+  scrollX: Animated.SharedValue<number>;
+  width: number;
+}
+
+const AnimatedDot: React.FC<DotProps> = ({ index, scrollX, width }) => {
+  const animatedStyle = useAnimatedStyle(() => {
+    const inputRange = [
+      (index - 1) * width,
+      index * width,
+      (index + 1) * width,
+    ];
+
+    const dotWidth = interpolate(
+      scrollX.value,
+      inputRange,
+      [8, 24, 8],
+      Extrapolation.CLAMP
+    );
+
+    const opacity = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.3, 1, 0.3],
+      Extrapolation.CLAMP
+    );
+
+    return {
+      width: dotWidth,
+      opacity,
+    };
+  });
+
+  return <Animated.View style={[styles.dot, animatedStyle]} />;
+};
+
 export const PaginationDots: React.FC<Props> = ({ count, scrollX, width }) => {
   return (
     <View style={styles.container}>
-      {Array.from({ length: count }).map((_, index) => {
-        const animatedStyle = useAnimatedStyle(() => {
-          const inputRange = [
-            (index - 1) * width,
-            index * width,
-            (index + 1) * width,
-          ];
-
-          const dotWidth = interpolate(
-            scrollX.value,
-            inputRange,
-            [8, 24, 8],
-            Extrapolation.CLAMP
-          );
-
-          const opacity = interpolate(
-            scrollX.value,
-            inputRange,
-            [0.3, 1, 0.3],
-            Extrapolation.CLAMP
-          );
-
-          return {
-            width: dotWidth,
-            opacity,
-          };
-        });
-
-        return (
-          <Animated.View
-            key={index}
-            style={[styles.dot, animatedStyle]}
-          />
-        );
-      })}
+      {Array.from({ length: count }).map((_, index) => (
+        <AnimatedDot key={index} index={index} scrollX={scrollX} width={width} />
+      ))}
     </View>
   );
 };
