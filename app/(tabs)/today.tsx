@@ -117,35 +117,8 @@ export default function TodayScreen() {
     return { label: 'Difficult', color: Colors.red };
   };
 
-  // Memoize greeting and message to prevent changes on every render
-  const heroGreeting = useMemo(() => {
-    const hour = new Date().getHours();
-    const greetings = {
-      morning: ['Good morning', 'Rise and shine', 'Hello sunshine', 'New day ahead'],
-      afternoon: ['Good afternoon', 'Keep going', 'You\'re doing great', 'One step at a time'],
-      evening: ['Good evening', 'Almost there', 'Winding down', 'Rest soon'],
-    };
-
-    if (hour < 12) {
-      return greetings.morning[Math.floor(Math.random() * greetings.morning.length)];
-    } else if (hour < 17) {
-      return greetings.afternoon[Math.floor(Math.random() * greetings.afternoon.length)];
-    } else {
-      return greetings.evening[Math.floor(Math.random() * greetings.evening.length)];
-    }
-  }, []);
-
-  const encouragingMessage = useMemo(() => {
-    const messages = [
-      'Taking care, one moment at a time',
-      'You\'re doing an amazing job',
-      'Small steps make big differences',
-      'Every bit of care matters',
-      'Being present is enough',
-      'You\'ve got this',
-    ];
-    return messages[Math.floor(Math.random() * messages.length)];
-  }, []);
+  // Note: Removed dynamic greetings - Today page now uses fixed human-voiced text
+  // "One step at a time" / "You've got this" provides consistent, calming presence
 
   const isEvening = () => {
     return new Date().getHours() >= 17;
@@ -371,127 +344,8 @@ export default function TodayScreen() {
 
   const tomorrowItemCount = useMemo(() => getTomorrowItemCount(), [appointments, medications]);
 
-  // AI Insight - Based on actual app data (medications, wellness, vitals, appointments)
-  // Memoized to prevent recalculation on every render
-  const aiInsight = useMemo(() => {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const todayStr = now.toISOString().split('T')[0];
-    const tomorrow = addDays(now, 1);
-
-    // Calculate actual medication status
-    const totalMedsCount = medications.length;
-    const takenMedsCount = medications.filter((m) => m.taken).length;
-    const untakenMeds = medications.filter((m) => !m.taken);
-    const morningMedsOverdue = currentHour >= 12 && medications.some((m) => m.timeSlot === 'morning' && !m.taken);
-    const eveningMedsOverdue = currentHour >= 22 && medications.some((m) => m.timeSlot === 'evening' && !m.taken);
-
-    // Check wellness/mood status
-    const moodLogged = dailyTracking?.mood !== null && dailyTracking?.mood !== undefined;
-    const morningWellnessOverdue = currentHour >= 10 && !moodLogged;
-
-    // Check vitals
-    const vitalsLoggedToday = vitals.length > 0;
-
-    // Check today's appointments
-    const todayAppts = appointments.filter((appt) => appt.date === todayStr);
-    const hasAppointmentToday = todayAppts.length > 0;
-
-    // Check tomorrow's appointments (for prep reminder)
-    const tomorrowAppts = appointments.filter((appt) => {
-      const apptDate = new Date(appt.date);
-      return (
-        apptDate.getDate() === tomorrow.getDate() &&
-        apptDate.getMonth() === tomorrow.getMonth() &&
-        apptDate.getFullYear() === tomorrow.getFullYear()
-      );
-    });
-
-    // Check symptoms logged today
-    const symptomsLoggedToday = symptoms.length > 0;
-
-    // Priority 1: Overdue medications (urgent)
-    if (morningMedsOverdue) {
-      const overdueMorningMeds = medications.filter((m) => m.timeSlot === 'morning' && !m.taken);
-      return `Morning medications overdue. ${overdueMorningMeds.length} med${overdueMorningMeds.length > 1 ? 's' : ''} still need to be taken.`;
-    }
-
-    if (eveningMedsOverdue) {
-      const overdueEveningMeds = medications.filter((m) => m.timeSlot === 'evening' && !m.taken);
-      return `Evening medications overdue. ${overdueEveningMeds.length} med${overdueEveningMeds.length > 1 ? 's' : ''} still need to be taken.`;
-    }
-
-    // Priority 2: Today's appointment reminder
-    if (hasAppointmentToday) {
-      const nextAppt = todayAppts[0];
-      return `Appointment today with ${nextAppt.provider} at ${nextAppt.time}. Have questions and med list ready.`;
-    }
-
-    // Priority 3: Morning wellness check overdue
-    if (morningWellnessOverdue) {
-      return `Morning wellness check not logged yet. A quick check-in helps track patterns over time.`;
-    }
-
-    // Priority 4: Medications due soon (time-based reminders)
-    if (currentHour >= 7 && currentHour < 10 && untakenMeds.some((m) => m.timeSlot === 'morning')) {
-      const morningMeds = untakenMeds.filter((m) => m.timeSlot === 'morning');
-      return `Morning medications ready. ${morningMeds.length} med${morningMeds.length > 1 ? 's' : ''} to take with breakfast.`;
-    }
-
-    if (currentHour >= 17 && currentHour < 20 && untakenMeds.some((m) => m.timeSlot === 'evening')) {
-      const eveningMeds = untakenMeds.filter((m) => m.timeSlot === 'evening');
-      return `Evening medications due soon. ${eveningMeds.length} med${eveningMeds.length > 1 ? 's' : ''} to take with dinner.`;
-    }
-
-    // Priority 5: Tomorrow's appointment prep (evening reminder)
-    if (currentHour >= 18 && tomorrowAppts.length > 0) {
-      const appt = tomorrowAppts[0];
-      return `Appointment tomorrow with ${appt.provider}. Good time to prepare questions and gather documents.`;
-    }
-
-    // Priority 6: Vitals reminder (morning is best)
-    if (currentHour >= 6 && currentHour < 10 && !vitalsLoggedToday) {
-      return `Morning is ideal for vitals. Blood pressure and weight are most consistent after waking.`;
-    }
-
-    // Priority 7: Streak celebration
-    if (streakDays >= 7) {
-      return `${streakDays} day streak! Consistent tracking reveals valuable health patterns.`;
-    } else if (streakDays >= 3) {
-      return `${streakDays} day streak! Keep it going—patterns become clearer with each day.`;
-    }
-
-    // Priority 8: All caught up celebration
-    if (totalMedsCount > 0 && takenMedsCount === totalMedsCount && moodLogged) {
-      if (vitalsLoggedToday) {
-        return `All caught up! Medications taken, mood logged, vitals recorded. Great caregiving today.`;
-      }
-      return `Medications complete and mood logged. Consider logging vitals when convenient.`;
-    }
-
-    if (totalMedsCount > 0 && takenMedsCount === totalMedsCount) {
-      return `All ${totalMedsCount} medication${totalMedsCount > 1 ? 's' : ''} taken today. Well done staying on schedule!`;
-    }
-
-    // Priority 9: Evening wind-down
-    if (currentHour >= 20 && !isCheckInComplete()) {
-      return `Evening check-in time. Log how the day went to track patterns.`;
-    }
-
-    // Priority 10: Symptom tracking encouragement (if symptoms were logged)
-    if (symptomsLoggedToday) {
-      return `${symptoms.length} symptom${symptoms.length > 1 ? 's' : ''} logged today. Tracking helps identify triggers.`;
-    }
-
-    // Default: Context-aware encouragement
-    if (currentHour < 12) {
-      return `Good morning! Start the day with a wellness check and medications.`;
-    } else if (currentHour < 17) {
-      return `Afternoon check: How is energy and hydration? Small logs add up.`;
-    } else {
-      return `Evening approaching. Review the day and prepare for a restful night.`;
-    }
-  }, [medications, dailyTracking, vitals, appointments, symptoms, streakDays]);
+  // Note: AI insights moved to Hub/Insights page
+  // Today page is pure presence - no AI analysis
 
   // Calculate wellness status (morning/evening checkins)
   const wellnessComplete = dailyTracking?.mood ? 1 : 0;
@@ -546,12 +400,12 @@ export default function TodayScreen() {
             />
           }
         >
-          {/* Header - Dynamic greeting with encouraging message */}
+          {/* Header - Human-voiced, present-focused */}
           <View style={styles.header}>
             <View style={styles.headerTextContainer}>
-              <Text style={styles.headerLabel}>YOUR DAY</Text>
-              <Text style={styles.headerTitle}>{heroGreeting}</Text>
-              <Text style={styles.headerSubtitle}>{encouragingMessage}</Text>
+              <Text style={styles.headerDate}>{format(new Date(), 'EEEE, MMMM d')}</Text>
+              <Text style={styles.headerTitle}>One step at a time</Text>
+              <Text style={styles.headerSubtitle}>You've got this</Text>
             </View>
             <TouchableOpacity
               style={styles.pauseButton}
@@ -565,7 +419,7 @@ export default function TodayScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Quick Check-In Card - Primary CTA */}
+          {/* Quick Check-In Card - Primary CTA (Human-voiced) */}
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => router.push('/quick-checkin')}
@@ -587,29 +441,14 @@ export default function TodayScreen() {
                 </View>
                 <Text style={styles.quickCheckinArrow}>→</Text>
               </View>
-            </GlassCard>
-          </TouchableOpacity>
-
-          {/* AI Insight Card */}
-          <GlassCard style={styles.insightCard}>
-            <View style={styles.insightContent}>
-              <View style={styles.insightIcon}>
-                <Text style={styles.insightIconText}>✨</Text>
-              </View>
-              <View style={styles.insightText}>
-                <Text style={styles.insightTitle}>AI Insight</Text>
-                <Text style={styles.insightMessage}>
-                  {aiInsight}
+              {/* Reassurance line - human voice */}
+              <View style={styles.quickCheckinReassurance}>
+                <Text style={styles.quickCheckinReassuranceText}>
+                  This covers anything you haven't logged yet
                 </Text>
               </View>
-              {streakDays > 0 && (
-                <View style={styles.streakBadge}>
-                  <Text style={styles.streakEmoji}>🔥</Text>
-                  <Text style={styles.streakText}>{streakDays}</Text>
-                </View>
-              )}
-            </View>
-          </GlassCard>
+            </GlassCard>
+          </TouchableOpacity>
 
           {/* Divider */}
           <View style={styles.divider} />
@@ -753,31 +592,35 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
 
-  // Header - Dynamic greeting with encouraging message
+  // Header - Human-voiced, present-focused
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Spacing.xl,
+    marginBottom: 32, // Increased from Spacing.xl for better breathing room
     paddingTop: Spacing.sm,
   },
   headerTextContainer: {
     flex: 1,
   },
-  headerLabel: {
-    ...Typography.caption,
-    color: Colors.textMuted,
-    marginBottom: Spacing.xs,
+  headerDate: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    marginBottom: 8,
   },
   headerTitle: {
-    ...Typography.displayMedium,
+    fontSize: 36,
+    fontWeight: '300',
     color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
+    marginBottom: 6, // Increased from 4px for better readability
+    lineHeight: 40,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   pauseButton: {
     width: 44,
@@ -793,11 +636,11 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
 
-  // Quick Check-In Card
+  // Quick Check-In Card (Hero)
   quickCheckinCard: {
     backgroundColor: `${Colors.accent}12`,
     borderColor: `${Colors.accent}35`,
-    marginBottom: Spacing.md,
+    marginBottom: 20, // Increased from Spacing.md for cleaner separation
   },
   quickCheckinContent: {
     flexDirection: 'row',
@@ -819,72 +662,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   quickCheckinTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '600',
     color: Colors.accent,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   quickCheckinSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.textSecondary,
   },
   quickCheckinArrow: {
-    fontSize: 20,
-    color: Colors.accent,
+    fontSize: 24,
+    color: 'rgba(255,255,255,0.4)',
   },
-
-  // AI Insight Card
-  insightCard: {
-    backgroundColor: `${Colors.purple}08`,
-    borderColor: `${Colors.purple}25`,
-    marginBottom: Spacing.xl,
-  },
-  insightContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  insightIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: `${Colors.purple}20`,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  insightIconText: {
-    fontSize: 20,
-  },
-  insightText: {
-    flex: 1,
-  },
-  insightTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.purple,
-    marginBottom: 4,
-  },
-  insightMessage: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  streakBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: `${Colors.amber}15`,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  quickCheckinReassurance: {
+    marginTop: 12,
+    paddingTop: 12,
+    paddingHorizontal: 12,
+    paddingBottom: 0,
+    backgroundColor: `${Colors.accent}10`,
     borderRadius: 8,
   },
-  streakEmoji: {
-    fontSize: 14,
-  },
-  streakText: {
-    fontSize: 12,
-    color: Colors.amber,
-    fontWeight: '600',
+  quickCheckinReassuranceText: {
+    fontSize: 13,
+    color: `${Colors.accent}E6`,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingBottom: 12,
   },
 
   // Divider
@@ -895,15 +699,15 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.md,
   },
 
-  // Sections
+  // Sections - Improved spacing
   section: {
-    marginBottom: Spacing.xxl,
+    marginBottom: 28, // Increased for more visual space
   },
   timelineHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.md,
+    marginBottom: 16, // Increased from Spacing.md for better hierarchy
   },
   collapseIcon: {
     fontSize: 12,
@@ -998,14 +802,19 @@ const styles = StyleSheet.create({
     color: Colors.purple,
   },
 
-  // Encouragement
+  // Encouragement - Human voice footer
   encouragement: {
     alignItems: 'center',
-    paddingVertical: Spacing.xl,
+    paddingVertical: 14, // Slightly increased
+    paddingHorizontal: 16,
+    marginTop: 24, // Increased for final spacing
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12,
   },
   encouragementText: {
-    ...Typography.bodySmall,
+    fontSize: 13,
     color: Colors.textMuted,
     textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
