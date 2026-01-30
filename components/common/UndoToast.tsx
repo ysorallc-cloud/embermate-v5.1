@@ -87,9 +87,20 @@ export const UndoToast: React.FC<Props> = ({
           opacity,
         },
       ]}
+      accessible={true}
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      accessibilityLabel={`${message}. Tap undo to reverse this action.`}
     >
       <Text style={styles.message}>{message}</Text>
-      <TouchableOpacity onPress={handleUndo} style={styles.undoButton}>
+      <TouchableOpacity
+        onPress={handleUndo}
+        style={styles.undoButton}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel="Undo"
+        accessibilityHint="Reverses the last action"
+      >
         <Text style={styles.undoText}>Undo</Text>
       </TouchableOpacity>
     </Animated.View>
