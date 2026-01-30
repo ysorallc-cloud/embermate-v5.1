@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Image } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -57,13 +57,21 @@ export const WelcomeScreen: React.FC = () => {
         <View style={styles.logoContainer}>
           <Animated.View style={[styles.glow, glowAnimatedStyle]} />
           <Animated.View style={[styles.logo, logoAnimatedStyle]}>
-            <Text style={styles.logoText}>🔥</Text>
+            {/* Replace this with your icon - ensure embermate-icon.png is in /assets/images/ */}
+            <Image
+              source={require('../../../assets/images/embermate-icon.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </Animated.View>
         </View>
 
         {/* Title and subtitle */}
         <View style={styles.textContainer}>
           <Text style={styles.title}>Welcome to EmberMate</Text>
+          <Text style={styles.tagline}>
+            EmberMate isn't about doing more, it's about helping you stay steady while you care for someone else
+          </Text>
           <Text style={styles.subtitle}>
              Caring for those who matter most
           </Text>
@@ -110,9 +118,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+    overflow: 'hidden',
   },
-  logoText: {
-    fontSize: 64,
+  logoImage: {
+    width: 100,
+    height: 100,
   },
   textContainer: {
     alignItems: 'center',
@@ -121,7 +131,17 @@ const styles = StyleSheet.create({
     ...Typography.h1,
     color: Colors.textPrimary,
     textAlign: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  tagline: {
+    ...Typography.bodySmall,
+    color: Colors.textTertiary,
+    textAlign: 'center',
+    lineHeight: 20,
+    fontStyle: 'italic',
+    opacity: 0.8,
+    marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.md,
   },
   subtitle: {
     ...Typography.body,

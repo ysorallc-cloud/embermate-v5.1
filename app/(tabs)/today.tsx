@@ -31,7 +31,7 @@ import { SectionHeader } from '../../components/aurora/SectionHeader';
 import { QuickActionGrid } from '../../components/aurora/QuickActionGrid';
 
 // Existing Components (keep functionality)
-import { CoffeeMomentModal } from '../../components/CoffeeMomentModal';
+import { CoffeeMomentMinimal } from '../../components/CoffeeMomentMinimal';
 import { QuickLogCard } from '../../components/today/QuickLogCard';
 import { Timeline } from '../../components/today/Timeline';
 import { useTimeline } from '../../hooks/useTimeline';
@@ -568,10 +568,11 @@ export default function TodayScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      {/* Coffee Moment Modal - UNCHANGED */}
-      <CoffeeMomentModal
+      {/* Coffee Moment - Minimal, peripheral, no tracking */}
+      <CoffeeMomentMinimal
         visible={coffeeMomentVisible}
         onClose={() => setCoffeeMomentVisible(false)}
+        microcopy="Pause for a minute"
       />
     </View>
   );

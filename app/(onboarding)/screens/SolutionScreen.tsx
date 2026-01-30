@@ -4,7 +4,7 @@
 // ============================================================================
 
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Image } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -67,7 +67,12 @@ export const SolutionScreen: React.FC = () => {
         <View style={styles.emojiContainer}>
           <Animated.View style={[styles.glow, glowAnimatedStyle]} />
           <Animated.View style={fireAnimatedStyle}>
-            <Text style={styles.emoji}>🔥</Text>
+            {/* Replace this with your icon - ensure embermate-icon.png is in /assets/images/ */}
+            <Image
+              source={require('../../../assets/images/embermate-icon.png')}
+              style={styles.iconImage}
+              resizeMode="contain"
+            />
           </Animated.View>
         </View>
 
@@ -143,6 +148,10 @@ const styles = StyleSheet.create({
   },
   emoji: {
     fontSize: 64,
+  },
+  iconImage: {
+    width: 80,
+    height: 80,
   },
   title: {
     fontSize: 28,
