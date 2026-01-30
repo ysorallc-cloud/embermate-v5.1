@@ -18,7 +18,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors } from './_theme/theme-tokens';
 import { saveDailyTracking } from '../utils/dailyTrackingStorage';
-import { hapticSuccess } from '../utils/hapticFeedback';
+import { updateStreak } from '../utils/streakStorage';
+import { CheckinCelebration } from '../components/CheckinCelebration';
 
 const MOOD_OPTIONS = [
   { value: 9, emoji: '😄', label: 'Great' },
@@ -68,6 +69,7 @@ const QUICK_NOTE_TAGS = [
 export default function DailyCheckinScreen() {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   // Step 1: Mood
   const [mood, setMood] = useState<number | null>(null);
@@ -171,12 +173,20 @@ export default function DailyCheckinScreen() {
         tags: noteTags,
       });
 
-      await hapticSuccess();
-      router.back();
+      // Update streak
+      await updateStreak('wellnessCheck');
+
+      // Show celebration screen
+      setShowCelebration(true);
     } catch (error) {
       console.error('Error saving check-in:', error);
       Alert.alert('Error', 'Failed to save check-in');
     }
+  };
+
+  const handleCelebrationDismiss = () => {
+    setShowCelebration(false);
+    router.back();
   };
 
   const renderStep = () => {
@@ -466,6 +476,9 @@ export default function DailyCheckinScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {showCelebration && (
+        <CheckinCelebration type="daily" onDismiss={handleCelebrationDismiss} />
+      )}
       <LinearGradient
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
