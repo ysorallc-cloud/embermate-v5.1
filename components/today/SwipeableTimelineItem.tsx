@@ -164,7 +164,7 @@ export const SwipeableTimelineItem: React.FC<Props> = ({
           activeOpacity={0.7}
           accessible={true}
           accessibilityRole="button"
-          accessibilityLabel={`${item.title}. ${item.subtitle}. Scheduled for ${formatTime(item.scheduledTime)}. Status: ${item.status === 'done' ? 'completed' : item.status === 'overdue' ? 'overdue' : 'pending'}`}
+          accessibilityLabel={`${item.title}. ${item.subtitle}. Scheduled for ${formatTime(item.scheduledTime)}. Status: ${item.status === 'done' ? 'completed' : item.status === 'available' ? 'still available' : 'pending'}`}
           accessibilityHint={isSwipeable ? 'Double tap to view details. Swipe right to mark as complete' : 'Double tap to view details'}
           accessibilityState={{
             checked: item.status === 'done',
@@ -174,7 +174,7 @@ export const SwipeableTimelineItem: React.FC<Props> = ({
           <View style={styles.connector}>
             <View style={[styles.circle, circleStyles]}>
               {item.status === 'done' && <Text style={styles.checkmark}>✓</Text>}
-              {item.status === 'overdue' && <Text style={styles.exclamation}>!</Text>}
+              {item.status === 'available' && <Text style={styles.availableIcon}>◐</Text>}
             </View>
             {!isLast && (
               <View style={[styles.line, { backgroundColor: statusColors.line }]} />
@@ -187,8 +187,8 @@ export const SwipeableTimelineItem: React.FC<Props> = ({
               <Text style={[styles.time, { color: statusColors.time }]}>
                 {formatTime(item.scheduledTime)}
               </Text>
-              {item.status === 'overdue' && (
-                <Text style={styles.overdueLabel}>• OVERDUE</Text>
+              {item.status === 'available' && (
+                <Text style={styles.availableLabel}>• Still available</Text>
               )}
             </View>
             <Text style={styles.title}>{item.title}</Text>
@@ -238,8 +238,8 @@ const getCircleStyles = (status: string) => {
       return { backgroundColor: Colors.green, borderColor: Colors.green };
     case 'next':
       return { backgroundColor: 'transparent', borderColor: Colors.gold };
-    case 'overdue':
-      return { backgroundColor: 'transparent', borderColor: Colors.red };
+    case 'available':
+      return { backgroundColor: 'rgba(251, 191, 36, 0.1)', borderColor: 'rgba(251, 191, 36, 0.4)' };
     default:
       return { backgroundColor: 'transparent', borderColor: Colors.border };
   }
@@ -251,8 +251,8 @@ const getStatusColors = (status: string) => {
       return { time: Colors.textMuted, subtitle: Colors.green, line: 'rgba(34, 197, 94, 0.3)' };
     case 'next':
       return { time: Colors.textMuted, subtitle: Colors.gold, line: Colors.border };
-    case 'overdue':
-      return { time: Colors.red, subtitle: Colors.red, line: 'rgba(239, 68, 68, 0.3)' };
+    case 'available':
+      return { time: 'rgba(251, 191, 36, 0.8)', subtitle: Colors.textMuted, line: Colors.border };
     default:
       return { time: Colors.textMuted, subtitle: Colors.textMuted, line: Colors.border };
   }
@@ -308,9 +308,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
   },
-  exclamation: {
+  availableIcon: {
     fontSize: 10,
-    color: Colors.red,
+    color: 'rgba(251, 191, 36, 0.8)',
     fontWeight: '700',
   },
   line: {
@@ -332,10 +332,10 @@ const styles = StyleSheet.create({
   time: {
     fontSize: 11,
   },
-  overdueLabel: {
+  availableLabel: {
     fontSize: 11,
-    fontWeight: '600',
-    color: Colors.red,
+    fontWeight: '500',
+    color: 'rgba(251, 191, 36, 0.8)',
   },
   title: {
     fontSize: 14,

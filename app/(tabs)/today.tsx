@@ -173,7 +173,7 @@ export default function TodayScreen() {
   // Memoize today's date to prevent infinite re-renders in useTimeline
   const today = React.useMemo(() => new Date(), []);
 
-  const { items: baseTimelineItems, overdueCount } = useTimeline({
+  const { items: baseTimelineItems, availableCount } = useTimeline({
     medications: timelineMedications,
     appointments: timelineAppointments,
     today,
@@ -212,7 +212,7 @@ export default function TodayScreen() {
         title: 'Morning wellness check',
         subtitle: 'Quick vitals and mood log to start your day',
         type: 'wellness',
-        status: currentHour >= 8 ? 'overdue' : 'upcoming',
+        status: currentHour >= 8 ? 'available' : 'upcoming',
       },
       {
         id: 'breakfast-log',

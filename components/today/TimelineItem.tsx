@@ -52,8 +52,8 @@ export const TimelineItem: React.FC<Props> = ({ item, isLast }) => {
       <View style={styles.connector}>
         <View style={[styles.circle, circleStyles]}>
           {item.status === 'done' && <Text style={styles.checkmark}>✓</Text>}
-          {item.status === 'overdue' && (
-            <Text style={[styles.exclamation, { color: Colors.red }]}>!</Text>
+          {item.status === 'available' && (
+            <Text style={styles.availableIcon}>◐</Text>
           )}
         </View>
 
@@ -74,8 +74,8 @@ export const TimelineItem: React.FC<Props> = ({ item, isLast }) => {
           <Text style={[styles.time, { color: colors.time }]}>
             {formatTime(item.scheduledTime)}
           </Text>
-          {item.status === 'overdue' && (
-            <Text style={styles.overdueLabel}>• OVERDUE</Text>
+          {item.status === 'available' && (
+            <Text style={styles.availableLabel}>• Still available</Text>
           )}
         </View>
 
@@ -108,10 +108,10 @@ const getCircleStyles = (status: string) => {
         backgroundColor: 'transparent',
         borderColor: Colors.gold,
       };
-    case 'overdue':
+    case 'available':
       return {
-        backgroundColor: 'transparent',
-        borderColor: Colors.red,
+        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+        borderColor: 'rgba(251, 191, 36, 0.4)',
       };
     default: // upcoming
       return {
@@ -135,11 +135,11 @@ const getStatusColors = (status: string) => {
         subtitle: Colors.gold,
         line: Colors.border,
       };
-    case 'overdue':
+    case 'available':
       return {
-        time: Colors.red,
-        subtitle: Colors.red,
-        line: Colors.redBorder,
+        time: 'rgba(251, 191, 36, 0.8)',
+        subtitle: Colors.textMuted,
+        line: Colors.border,
       };
     default: // upcoming
       return {
@@ -171,9 +171,10 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
-  exclamation: {
+  availableIcon: {
     fontSize: 10,
     fontWeight: '700',
+    color: 'rgba(251, 191, 36, 0.8)',
   },
   line: {
     flex: 1,
@@ -194,10 +195,10 @@ const styles = StyleSheet.create({
   time: {
     fontSize: 11,
   },
-  overdueLabel: {
+  availableLabel: {
     fontSize: 11,
-    fontWeight: '600',
-    color: Colors.red,
+    fontWeight: '500',
+    color: 'rgba(251, 191, 36, 0.8)',
   },
   title: {
     fontSize: 14,

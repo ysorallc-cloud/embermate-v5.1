@@ -9,11 +9,13 @@ export const getSubtitle = (item: TimelineItem, now: Date): string => {
   switch (item.status) {
     case 'done':
       return getCompletedSubtitle(item);
-    case 'overdue':
-      return getOverdueSubtitle(item, now);
+    case 'available':
+      return getAvailableSubtitle(item);
     case 'next':
     case 'upcoming':
       return getPendingSubtitle(item);
+    default:
+      return '';
   }
 };
 
@@ -34,20 +36,9 @@ const getCompletedSubtitle = (item: TimelineItem): string => {
   }
 };
 
-const getOverdueSubtitle = (item: TimelineItem, now: Date): string => {
-  const diffMs = now.getTime() - item.scheduledTime.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-
-  if (diffMins < 60) {
-    return `${diffMins} min overdue`;
-  }
-
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours === 1) {
-    return '1 hr overdue';
-  }
-
-  return `${diffHours} hrs overdue`;
+const getAvailableSubtitle = (item: TimelineItem): string => {
+  // Gentle language - no time pressure
+  return "When you're ready";
 };
 
 const getPendingSubtitle = (item: TimelineItem): string => {

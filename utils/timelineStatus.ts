@@ -14,9 +14,9 @@ export const calculateItemStatus = (
     return 'done';
   }
 
-  // If scheduled time has passed, it's overdue
+  // If scheduled time has passed, it's still available (gentle language)
   if (now > item.scheduledTime) {
-    return 'overdue';
+    return 'available';
   }
 
   // Otherwise it's upcoming (caller determines which is "next")

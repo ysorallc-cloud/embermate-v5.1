@@ -3,7 +3,7 @@
 // Type definitions for timeline items on TODAY screen
 // ============================================================================
 
-export type TimelineItemStatus = 'done' | 'next' | 'upcoming' | 'overdue';
+export type TimelineItemStatus = 'done' | 'next' | 'upcoming' | 'available';
 
 export type TimelineItemType =
   | 'medication'

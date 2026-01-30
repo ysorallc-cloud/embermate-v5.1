@@ -199,9 +199,9 @@ export const useTimeline = ({
     }));
   }, [medications, appointments, wellnessChecks, vitalsCheck, today, morningWellnessComplete, eveningWellnessComplete, vitalsComplete]);
 
-  const overdueCount = items.filter((i) => i.status === 'overdue').length;
+  const availableCount = items.filter((i) => i.status === 'available').length;
 
-  return { items, overdueCount };
+  return { items, availableCount };
 };
 
 // Helper function
