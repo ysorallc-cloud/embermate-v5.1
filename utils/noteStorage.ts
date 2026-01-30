@@ -48,3 +48,18 @@ export async function getNotesByDate(date: string): Promise<NoteLog[]> {
     return [];
   }
 }
+
+export async function deleteNote(id: string): Promise<boolean> {
+  try {
+    const notes = await getNotes();
+    const filtered = notes.filter(n => n.id !== id);
+    if (filtered.length === notes.length) {
+      return false; // Note not found
+    }
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    return true;
+  } catch (error) {
+    console.error('Error deleting note:', error);
+    return false;
+  }
+}

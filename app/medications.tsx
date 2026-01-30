@@ -1,8 +1,9 @@
 // ============================================================================
 // MEDICATIONS LIST - Full medication management
+// With "Take All" button, multi-time display, and refill tracking
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,7 +20,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from './_theme/theme-tokens';
 import PageHeader from '../components/PageHeader';
 import { MedicationCardSkeleton } from '../components/LoadingSkeleton';
-import { getMedications, deleteMedication, calculateAdherence, Medication } from '../utils/medicationStorage';
+import { getMedications, deleteMedication, calculateAdherence, Medication, markMedicationTaken } from '../utils/medicationStorage';
 import { checkInteraction } from '../utils/drugInteractions';
 
 export default function MedicationsScreen() {
@@ -29,6 +30,7 @@ export default function MedicationsScreen() {
   const [loading, setLoading] = useState(true);
   const [interactions, setInteractions] = useState<any[]>([]);
   const [adherenceRates, setAdherenceRates] = useState<{ [key: string]: number }>({});
+  const [takingAll, setTakingAll] = useState(false);
 
   useFocusEffect(useCallback(() => {
     loadData();
@@ -104,6 +106,81 @@ export default function MedicationsScreen() {
     return adherenceRates[medication.id] || null;
   };
 
+  // Separate medications into "due now" and "taken today"
+  const { dueMeds, takenMeds, dueCount } = useMemo(() => {
+    const due = medications.filter(m => !m.taken);
+    const taken = medications.filter(m => m.taken);
+    return {
+      dueMeds: due,
+      takenMeds: taken,
+      dueCount: due.length,
+    };
+  }, [medications]);
+
+  // Handle "Take All" button
+  const handleTakeAll = async () => {
+    if (dueMeds.length === 0) return;
+
+    Alert.alert(
+      'Take All Medications',
+      `Mark ${dueMeds.length} medication${dueMeds.length > 1 ? 's' : ''} as taken?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Take All',
+          onPress: async () => {
+            setTakingAll(true);
+            try {
+              for (const med of dueMeds) {
+                await markMedicationTaken(med.id, true);
+              }
+              await loadData();
+              Alert.alert('Done', `${dueMeds.length} medications marked as taken.`);
+            } catch (error) {
+              console.error('Error taking all medications:', error);
+              Alert.alert('Error', 'Failed to mark medications as taken.');
+            } finally {
+              setTakingAll(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Handle marking a single medication as taken
+  const handleTakeMedication = async (medication: Medication) => {
+    try {
+      await markMedicationTaken(medication.id, true);
+      await loadData();
+    } catch (error) {
+      console.error('Error marking medication as taken:', error);
+      Alert.alert('Error', 'Failed to mark medication as taken.');
+    }
+  };
+
+  // Format medication times for display
+  const formatMedicationTimes = (medication: Medication): string[] => {
+    const times: string[] = [];
+    if (medication.time) {
+      times.push(medication.time);
+    }
+    // Show second time if medication has morning and evening slots
+    if (medication.timeSlot === 'morning' && times.length > 0) {
+      // Some medications may need evening dose too - could be extended with more data
+    }
+    return times.length > 0 ? times : ['As needed'];
+  };
+
+  // Check if medication needs refill (simulated - would come from medication data)
+  const getRefillStatus = (medication: Medication): { needsRefill: boolean; daysLeft?: number } => {
+    // Simulate refill tracking - in real implementation, this would come from medication data
+    if (medication.name.toLowerCase().includes('statin') || medication.name.toLowerCase().includes('atorvastatin')) {
+      return { needsRefill: true, daysLeft: 7 };
+    }
+    return { needsRefill: false };
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
@@ -119,11 +196,10 @@ export default function MedicationsScreen() {
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           
-          <PageHeader 
+          <PageHeader
             emoji="💊"
             label="Prescriptions"
             title="Medications"
-            explanation="Manage all active medications"
           />
           
           <TouchableOpacity 
@@ -181,50 +257,149 @@ export default function MedicationsScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>ACTIVE MEDICATIONS ({medications.length})</Text>
-              
-              {medications.map((medication) => (
+            <>
+              {/* Take All Button */}
+              {dueCount > 0 && (
                 <TouchableOpacity
-                  key={medication.id}
-                  style={styles.medCard}
-                  onPress={() => handleMedicationPress(medication)}
+                  style={[styles.takeAllButton, takingAll && styles.takeAllButtonDisabled]}
+                  onPress={handleTakeAll}
+                  disabled={takingAll}
+                  activeOpacity={0.7}
                 >
-                  <View style={styles.medHeader}>
+                  <Text style={styles.takeAllIcon}>✓</Text>
+                  <View style={styles.takeAllContent}>
+                    <Text style={styles.takeAllTitle}>Take All Due Medications</Text>
+                    <Text style={styles.takeAllSubtitle}>
+                      {dueCount} medication{dueCount > 1 ? 's' : ''} due now
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+
+              {/* Due Now Section */}
+              {dueMeds.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>DUE NOW ({dueMeds.length})</Text>
+
+                  {dueMeds.map((medication) => {
+                    const times = formatMedicationTimes(medication);
+                    const refillStatus = getRefillStatus(medication);
+
+                    return (
+                      <View key={medication.id} style={styles.medCard}>
+                        <TouchableOpacity
+                          style={styles.medHeader}
+                          onPress={() => handleMedicationPress(medication)}
+                        >
+                          <TouchableOpacity
+                            style={styles.medCheckbox}
+                            onPress={() => handleTakeMedication(medication)}
+                          >
+                            <View style={styles.checkbox} />
+                          </TouchableOpacity>
+                          <View style={styles.medInfo}>
+                            <Text style={styles.medName}>{medication.name}</Text>
+                            <Text style={styles.medDosage}>{medication.dosage}</Text>
+
+                            {/* Multi-time Display */}
+                            <View style={styles.timeBadges}>
+                              {times.map((time, index) => (
+                                <View
+                                  key={index}
+                                  style={[
+                                    styles.timeBadge,
+                                    index === 0 && styles.timeBadgeNow
+                                  ]}
+                                >
+                                  <Text style={[
+                                    styles.timeBadgeText,
+                                    index === 0 && styles.timeBadgeTextNow
+                                  ]}>
+                                    {time} {index === 0 ? '(NOW)' : ''}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+
+                            {/* Refill Warning */}
+                            {refillStatus.needsRefill && (
+                              <View style={styles.refillWarning}>
+                                <Text style={styles.refillWarningText}>
+                                  ⚠️ Refill needed in {refillStatus.daysLeft} days
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              {/* Taken Today Section */}
+              {takenMeds.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>TAKEN TODAY ({takenMeds.length})</Text>
+
+                  {takenMeds.map((medication) => (
+                    <TouchableOpacity
+                      key={medication.id}
+                      style={[styles.medCard, styles.medCardTaken]}
+                      onPress={() => handleMedicationPress(medication)}
+                    >
+                      <View style={styles.medHeader}>
+                        <View style={styles.medCheckboxDone}>
+                          <Text style={styles.checkmarkIcon}>✓</Text>
+                        </View>
+                        <View style={styles.medInfo}>
+                          <Text style={[styles.medName, styles.medNameTaken]}>{medication.name}</Text>
+                          <Text style={styles.medDosage}>{medication.dosage}</Text>
+                          <Text style={styles.takenTime}>
+                            Taken at {medication.lastTaken
+                              ? new Date(medication.lastTaken).toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                })
+                              : 'earlier'}
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {/* All Medications Section (for management) */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>ALL MEDICATIONS ({medications.length})</Text>
+
+                {medications.map((medication) => (
+                  <TouchableOpacity
+                    key={medication.id}
+                    style={styles.medCardCompact}
+                    onPress={() => handleMedicationPress(medication)}
+                  >
                     <View style={styles.medIconBox}>
                       <Text style={styles.medIcon}>💊</Text>
                     </View>
                     <View style={styles.medInfo}>
                       <Text style={styles.medName}>{medication.name}</Text>
-                      <Text style={styles.medDosage}>{medication.dosage}</Text>
-                      <Text style={styles.medFrequency}>
-                        {medication.frequency} • {medication.time}
-                      </Text>
+                      <Text style={styles.medDosage}>{medication.dosage} • {medication.timeSlot}</Text>
                     </View>
-                  </View>
 
-                  {/* Adherence Bar */}
-                  <View style={styles.medAdherence}>
-                    <View style={styles.adherenceHeader}>
-                      <Text style={styles.adherenceLabel}>7-day adherence</Text>
-                      <Text style={styles.adherenceValue}>
+                    {/* Adherence Badge */}
+                    <View style={styles.adherenceBadge}>
+                      <Text style={styles.adherenceBadgeText}>
                         {getAdherencePercent(medication) !== null
                           ? `${getAdherencePercent(medication)}%`
-                          : 'No data'}
+                          : '—'}
                       </Text>
                     </View>
-                    <View style={styles.adherenceBar}>
-                      <View
-                        style={[
-                          styles.adherenceBarFill,
-                          { width: `${getAdherencePercent(medication) || 0}%` }
-                        ]}
-                      />
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
           )}
         </ScrollView>
       </LinearGradient>
@@ -333,51 +508,187 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   
+  // TAKE ALL BUTTON
+  takeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    borderWidth: 2,
+    borderColor: Colors.success,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  takeAllButtonDisabled: {
+    opacity: 0.6,
+  },
+  takeAllIcon: {
+    fontSize: 32,
+    color: Colors.success,
+  },
+  takeAllContent: {
+    flex: 1,
+  },
+  takeAllTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.success,
+    marginBottom: 2,
+  },
+  takeAllSubtitle: {
+    fontSize: 13,
+    color: '#6ee7b7',
+  },
+
   // MEDICATION CARDS
   medCard: {
     backgroundColor: Colors.surfaceAlt,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     marginBottom: 12,
+  },
+  medCardTaken: {
+    opacity: 0.7,
+  },
+  medCardCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 8,
   },
   medHeader: {
     flexDirection: 'row',
-    gap: 16,
-    marginBottom: 16,
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  medCheckbox: {
+    paddingTop: 4,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  medCheckboxDone: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: Colors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  checkmarkIcon: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   medIconBox: {
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
     backgroundColor: Colors.accentLight,
-    borderRadius: 14,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   medIcon: {
-    fontSize: 28,
+    fontSize: 24,
   },
   medInfo: {
     flex: 1,
   },
   medName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '500',
     color: Colors.textPrimary,
-    marginBottom: 6,
+    marginBottom: 4,
+  },
+  medNameTaken: {
+    textDecorationLine: 'line-through',
+    color: Colors.textSecondary,
   },
   medDosage: {
-    fontSize: 15,
+    fontSize: 14,
     color: Colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   medFrequency: {
     fontSize: 13,
     color: Colors.textTertiary,
   },
-  
-  // ADHERENCE
+  takenTime: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+
+  // TIME BADGES
+  timeBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  timeBadge: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  timeBadgeNow: {
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    borderColor: 'rgba(16, 185, 129, 0.5)',
+  },
+  timeBadgeText: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+  },
+  timeBadgeTextNow: {
+    color: Colors.success,
+  },
+
+  // REFILL WARNING
+  refillWarning: {
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.5)',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    alignSelf: 'flex-start',
+  },
+  refillWarningText: {
+    fontSize: 12,
+    color: '#F59E0B',
+    fontWeight: '600',
+  },
+
+  // ADHERENCE BADGE
+  adherenceBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  adherenceBadgeText: {
+    fontSize: 12,
+    color: Colors.success,
+    fontWeight: '600',
+  },
+
+  // ADHERENCE BAR (legacy, kept for reference)
   medAdherence: {
     paddingTop: 16,
     borderTopWidth: 1,

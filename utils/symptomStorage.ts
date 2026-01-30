@@ -50,3 +50,18 @@ export async function getSymptomsByDate(date: string): Promise<SymptomLog[]> {
     return [];
   }
 }
+
+export async function deleteSymptom(id: string): Promise<boolean> {
+  try {
+    const symptoms = await getSymptoms();
+    const filtered = symptoms.filter(s => s.id !== id);
+    if (filtered.length === symptoms.length) {
+      return false; // Symptom not found
+    }
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    return true;
+  } catch (error) {
+    console.error('Error deleting symptom:', error);
+    return false;
+  }
+}

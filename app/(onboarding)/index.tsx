@@ -1,13 +1,23 @@
+// ============================================================================
+// ONBOARDING FLOW - Value-Driven 7-Slide Experience
+// Problem → Solution → Outcomes → Features → How → Privacy → Start
+// ============================================================================
+
 import React, { useRef, useState } from 'react';
 import { View, StyleSheet, FlatList, Dimensions, Pressable, Text } from 'react-native';
 import Animated, { useSharedValue, useAnimatedScrollHandler } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { WelcomeScreen } from './screens/WelcomeScreen';
-import { TrackHealthScreen } from './screens/TrackHealthScreen';
-import { UnderstandPatternsScreen } from './screens/UnderstandPatternsScreen';
-import { CareCircleScreen } from './screens/CareCircleScreen';
-import { CoffeeMomentScreen } from './screens/CoffeeMomentScreen';
+
+// New improved screens
+import { ProblemScreen } from './screens/ProblemScreen';
+import { SolutionScreen } from './screens/SolutionScreen';
+import { OutcomesScreen } from './screens/OutcomesScreen';
+import { FeaturesScreen } from './screens/FeaturesScreen';
+import { HowItWorksScreen } from './screens/HowItWorksScreen';
+import { PrivacyScreen } from './screens/PrivacyScreen';
+import { ReadyToStartScreen } from './screens/ReadyToStartScreen';
+
 import { PaginationDots } from './components/PaginationDots';
 import { seedSampleData } from '../../utils/sampleData';
 import { Colors, Typography, Spacing, BorderRadius } from '../_theme/theme-tokens';
@@ -16,12 +26,15 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
+// Improved 7-screen flow: Problem → Solution → Outcomes → Features → How → Privacy → Start
 const ONBOARDING_SCREENS = [
-  { id: '1', component: WelcomeScreen },
-  { id: '2', component: TrackHealthScreen },
-  { id: '3', component: UnderstandPatternsScreen },
-  { id: '4', component: CareCircleScreen },
-  { id: '5', component: CoffeeMomentScreen },
+  { id: '1', component: ProblemScreen, title: 'Problem' },
+  { id: '2', component: SolutionScreen, title: 'Solution' },
+  { id: '3', component: OutcomesScreen, title: 'Outcomes' },
+  { id: '4', component: FeaturesScreen, title: 'Features' },
+  { id: '5', component: HowItWorksScreen, title: 'How It Works' },
+  { id: '6', component: PrivacyScreen, title: 'Privacy' },
+  { id: '7', component: ReadyToStartScreen, title: 'Ready' },
 ];
 
 export default function OnboardingFlow() {
@@ -45,7 +58,11 @@ export default function OnboardingFlow() {
   };
 
   const handleSkip = async () => {
-    await completeOnboarding();
+    // Skip to last screen
+    flatListRef.current?.scrollToIndex({
+      index: ONBOARDING_SCREENS.length - 1,
+      animated: true,
+    });
   };
 
   const handleAcceptDisclaimer = async (seedData: boolean) => {
@@ -82,9 +99,9 @@ export default function OnboardingFlow() {
   const renderItem = ({ item, index }: any) => {
     const ScreenComponent = item.component;
 
+    // Last screen with accept handler
     if (index === ONBOARDING_SCREENS.length - 1) {
-      // Last screen with disclaimer
-      return <CoffeeMomentScreen onAccept={handleAcceptDisclaimer} />;
+      return <ReadyToStartScreen onAccept={handleAcceptDisclaimer} />;
     }
 
     return <ScreenComponent />;
@@ -109,7 +126,7 @@ export default function OnboardingFlow() {
         bounces={false}
       />
 
-      {/* Navigation footer */}
+      {/* Navigation footer - hidden on last screen */}
       {!isLastScreen && (
         <View style={styles.footer}>
           <Pressable onPress={handleSkip} style={styles.skipButton}>

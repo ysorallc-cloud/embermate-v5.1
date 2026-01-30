@@ -77,6 +77,18 @@ export const Colors = {
   blueLight: 'rgba(59, 130, 246, 0.12)',
   blueBorder: 'rgba(59, 130, 246, 0.25)',
 
+  indigo: '#6366F1',
+  indigoLight: 'rgba(99, 102, 241, 0.12)',
+  indigoBorder: 'rgba(99, 102, 241, 0.25)',
+
+  orange: '#F97316',
+  orangeLight: 'rgba(249, 115, 22, 0.12)',
+  orangeBorder: 'rgba(249, 115, 22, 0.25)',
+
+  cyan: '#06B6D4',
+  cyanLight: 'rgba(6, 182, 212, 0.12)',
+  cyanBorder: 'rgba(6, 182, 212, 0.25)',
+
   // Secondary teal tones
   sage: '#5EEAD4',
   sageMuted: 'rgba(94, 234, 212, 0.4)',

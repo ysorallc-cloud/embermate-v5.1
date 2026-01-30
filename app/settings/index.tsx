@@ -1,17 +1,18 @@
 // ============================================================================
-// SETTINGS SCREEN - Infrastructure, not interface
-// Source of truth for Care Hub and daily tracking
+// SETTINGS SCREEN - Reorganized with categories and search
+// Infrastructure, not interface - Source of truth for Care Hub and daily tracking
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
   Alert,
   Share,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,12 +22,29 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../_theme/theme-tokens';
 import { CommonStyles } from '../_theme/commonStyles';
 import PageHeader from '../../components/PageHeader';
-import { generateSampleData, clearSampleData, hasSampleData } from '../../utils/sampleDataGenerator';
+import { generateSampleCorrelationData, clearSampleCorrelationData, hasSampleData } from '../../utils/sampleDataGenerator';
 import { StorageKeys } from '../../utils/storageKeys';
 import { getMedications } from '../../utils/medicationStorage';
 import { getAppointments, getUpcomingAppointments } from '../../utils/appointmentStorage';
 import { getCaregivers } from '../../utils/collaborativeCare';
 import { exportBackup, clearAllData } from '../../utils/dataBackup';
+
+// Settings category definitions
+interface SettingItem {
+  id: string;
+  icon: string;
+  title: string;
+  subtitle?: string;
+  onPress: () => void;
+  danger?: boolean;
+}
+
+interface SettingsCategory {
+  id: string;
+  icon: string;
+  title: string;
+  items: SettingItem[];
+}
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -37,6 +55,10 @@ export default function SettingsScreen() {
   const [medicationCount, setMedicationCount] = useState(0);
   const [appointmentCount, setAppointmentCount] = useState(0);
   const [caregiverCount, setCaregiverCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({
+    advanced: true, // Advanced collapsed by default
+  });
 
   useEffect(() => {
     loadPatientName();
@@ -132,10 +154,10 @@ export default function SettingsScreen() {
       'This creates test data for development. Your existing data won\'t be affected.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Generate', 
+        {
+          text: 'Generate',
           onPress: async () => {
-            await generateSampleData();
+            await generateSampleCorrelationData();
             await checkSampleData();
             Alert.alert('Done', 'Sample data created. Check Today and Insights tabs.');
           }
@@ -199,7 +221,7 @@ export default function SettingsScreen() {
           text: 'Clear',
           style: 'destructive',
           onPress: async () => {
-            await clearSampleData();
+            await clearSampleCorrelationData();
             await checkSampleData();
             Alert.alert('Done', 'Sample data removed.');
           }
@@ -247,16 +269,16 @@ export default function SettingsScreen() {
     try {
       const medications = await getMedications();
       const appointments = await getAppointments();
-      
+
       const exportData = {
         medications,
         appointments,
         exportDate: new Date().toISOString(),
         version: '1.0'
       };
-      
+
       const jsonString = JSON.stringify(exportData, null, 2);
-      
+
       await Share.share({
         message: jsonString,
         title: 'EmberMate Export'
@@ -265,6 +287,226 @@ export default function SettingsScreen() {
       console.error('Export error:', error);
       Alert.alert('Error', 'Export failed. Please try again.');
     }
+  };
+
+  const toggleCategory = (categoryId: string) => {
+    setCollapsedCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId],
+    }));
+  };
+
+  // Define all settings organized into categories
+  const categories: SettingsCategory[] = useMemo(() => [
+    {
+      id: 'profile',
+      icon: '👤',
+      title: 'Profile & Medical Info',
+      items: [
+        {
+          id: 'patient',
+          icon: '👤',
+          title: 'Patient Information',
+          subtitle: `${patientName || 'Mom'} • Medical history & allergies`,
+          onPress: () => router.push('/patient'),
+        },
+        {
+          id: 'medications',
+          icon: '💊',
+          title: 'Medications',
+          subtitle: `${medicationCount} active`,
+          onPress: () => router.push('/medications'),
+        },
+        {
+          id: 'appointments',
+          icon: '📅',
+          title: 'Appointments',
+          subtitle: `${appointmentCount} upcoming`,
+          onPress: () => router.push('/appointments'),
+        },
+        {
+          id: 'emergency',
+          icon: '🚨',
+          title: 'Emergency Contacts',
+          subtitle: 'Quick dial contacts',
+          onPress: () => router.push('/emergency'),
+        },
+      ],
+    },
+    {
+      id: 'appearance',
+      icon: '🎨',
+      title: 'Appearance & Experience',
+      items: [
+        {
+          id: 'time-format',
+          icon: '🕐',
+          title: '24-Hour Time Format',
+          subtitle: use24HourTime ? 'Currently using 24-hour format' : 'Currently using 12-hour format',
+          onPress: toggleTimeFormat,
+        },
+      ],
+    },
+    {
+      id: 'notifications',
+      icon: '🔔',
+      title: 'Notifications & Reminders',
+      items: [
+        {
+          id: 'notification-settings',
+          icon: '🔔',
+          title: 'Notification Settings',
+          subtitle: 'Medication reminders, appointment alerts',
+          onPress: () => router.push('/notification-settings'),
+        },
+      ],
+    },
+    {
+      id: 'privacy',
+      icon: '🔒',
+      title: 'Privacy & Security',
+      items: [
+        {
+          id: 'security',
+          icon: '🔒',
+          title: 'Security Settings',
+          subtitle: 'App lock, encryption, audit logs',
+          onPress: () => router.push('/settings/security'),
+        },
+      ],
+    },
+    {
+      id: 'data',
+      icon: '💾',
+      title: 'Data Management',
+      items: [
+        {
+          id: 'backup',
+          icon: '💾',
+          title: 'Backup Data',
+          subtitle: 'Export all data to file',
+          onPress: handleBackupData,
+        },
+        {
+          id: 'export-summary',
+          icon: '📤',
+          title: 'Export Summary',
+          subtitle: 'Create care summary PDF',
+          onPress: () => router.push('/care-summary-export'),
+        },
+        {
+          id: 'cloud-sync',
+          icon: '☁️',
+          title: 'Cloud Sync',
+          subtitle: 'Coming soon',
+          onPress: () => Alert.alert(
+            'Cloud Sync - Coming Soon',
+            'Cloud sync will allow you to:\n\n• Sync data across devices\n• End-to-end encryption\n• Multi-device family sharing\n\nThis feature requires a backend service and will be available in a future update.',
+            [{ text: 'OK' }]
+          ),
+        },
+      ],
+    },
+    {
+      id: 'about',
+      icon: 'ℹ️',
+      title: 'About & Support',
+      items: [
+        {
+          id: 'reset-onboarding',
+          icon: '🔄',
+          title: 'Reset Onboarding',
+          subtitle: 'View welcome screens again',
+          onPress: handleResetOnboarding,
+        },
+        {
+          id: 'version',
+          icon: 'ℹ️',
+          title: 'Version',
+          subtitle: '2.0.1',
+          onPress: () => {},
+        },
+      ],
+    },
+    {
+      id: 'advanced',
+      icon: '⚙️',
+      title: 'Advanced',
+      items: [
+        {
+          id: 'clear-data',
+          icon: '⚠️',
+          title: 'Clear All Data',
+          subtitle: 'Permanent deletion',
+          onPress: handleClearAllData,
+          danger: true,
+        },
+      ],
+    },
+  ], [patientName, medicationCount, appointmentCount, use24HourTime]);
+
+  // Filter settings based on search query
+  const filteredCategories = useMemo(() => {
+    if (!searchQuery.trim()) return categories;
+
+    const query = searchQuery.toLowerCase();
+    return categories
+      .map(category => ({
+        ...category,
+        items: category.items.filter(
+          item =>
+            item.title.toLowerCase().includes(query) ||
+            (item.subtitle && item.subtitle.toLowerCase().includes(query))
+        ),
+      }))
+      .filter(category => category.items.length > 0);
+  }, [categories, searchQuery]);
+
+  const renderSettingItem = (item: SettingItem) => (
+    <TouchableOpacity
+      key={item.id}
+      style={[styles.settingItem, item.danger && styles.dangerItem]}
+      onPress={item.onPress}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.settingIcon}>{item.icon}</Text>
+      <View style={styles.settingContent}>
+        <Text style={[styles.settingTitle, item.danger && styles.dangerText]}>
+          {item.title}
+        </Text>
+        {item.subtitle && (
+          <Text style={styles.settingSubtitle}>{item.subtitle}</Text>
+        )}
+      </View>
+      <Text style={styles.arrow}>›</Text>
+    </TouchableOpacity>
+  );
+
+  const renderCategory = (category: SettingsCategory) => {
+    const isCollapsed = collapsedCategories[category.id];
+
+    return (
+      <View key={category.id} style={styles.categoryContainer}>
+        <TouchableOpacity
+          style={styles.categoryHeader}
+          onPress={() => toggleCategory(category.id)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.categoryIcon}>{category.icon}</Text>
+          <View style={styles.categoryTitleContainer}>
+            <Text style={styles.categoryTitle}>{category.title}</Text>
+            <Text style={styles.categoryCount}>{category.items.length} settings</Text>
+          </View>
+          <Text style={styles.collapseIcon}>{isCollapsed ? '▶' : '▼'}</Text>
+        </TouchableOpacity>
+
+        {!isCollapsed && (
+          <View style={styles.categoryItems}>
+            {category.items.map(renderSettingItem)}
+          </View>
+        )}
+      </View>
+    );
   };
 
   return (
@@ -280,16 +522,34 @@ export default function SettingsScreen() {
           >
             <Text style={CommonStyles.backIcon}>←</Text>
           </TouchableOpacity>
-          
-          <PageHeader 
+
+          <PageHeader
             emoji="⚙️"
             label="Configuration"
             title="Settings"
-            explanation="Source of truth for Care Hub and daily tracking"
           />
         </View>
 
         <ScrollView style={styles.content}>
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="🔍 Search settings..."
+              placeholderTextColor={Colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearSearch}
+                onPress={() => setSearchQuery('')}
+              >
+                <Text style={styles.clearSearchText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
           {/* Last Modified */}
           {lastModified && (
             <View style={styles.infoBanner}>
@@ -297,203 +557,21 @@ export default function SettingsScreen() {
             </View>
           )}
 
-          {/* 1. PATIENT BASELINE */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>1. PATIENT BASELINE</Text>
-            <Text style={styles.sectionHelper}>Set once • Review occasionally • Used throughout app</Text>
-            
-            <TouchableOpacity 
-              style={styles.card}
-              onPress={() => {
-                Alert.alert(
-                  'Patient Information',
-                  'Changes here affect all tracking and reports. You can update this anytime.',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Continue', onPress: () => router.push('/patient') }
-                  ]
-                );
-              }}
-            >
-              <View style={styles.cardLeft}>
-                <Text style={styles.cardIcon}>👤</Text>
-                <View style={styles.cardText}>
-                  <Text style={styles.cardTitle}>Patient Information</Text>
-                  <Text style={styles.cardDetail}>{patientName || 'Mom'} • Medical history & allergies</Text>
-                  <Text style={styles.usageLabel}>Used by: Care Hub, Reports</Text>
-                </View>
-              </View>
-              <Text style={styles.arrow}>→</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* 1. SECURITY */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>1. SECURITY & PRIVACY</Text>
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => router.push('/settings/security')}
-            >
-              <Text style={styles.settingIcon}>🔒</Text>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Security Settings</Text>
-                <Text style={styles.settingSubtitle}>App lock, encryption, audit logs</Text>
-              </View>
-              <Text style={styles.arrow}>→</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* 2. PREFERENCES */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>2. PREFERENCES</Text>
-            <Text style={styles.sectionHelper}>Customize your experience</Text>
-            
-            <TouchableOpacity 
-              style={styles.card}
-              onPress={() => router.push('/notification-settings')}
-            >
-              <View style={styles.cardLeft}>
-                <Text style={styles.cardIcon}>🔔</Text>
-                <View style={styles.cardText}>
-                  <Text style={styles.cardTitle}>Notification Settings</Text>
-                  <Text style={styles.cardDetail}>Medication reminders, appointment alerts, and more</Text>
-                  <Text style={styles.usageLabel}>Configure: Reminders, sound, timing</Text>
-                </View>
-              </View>
-              <Text style={styles.arrow}>→</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.card}
-              onPress={toggleTimeFormat}
-            >
-              <View style={styles.cardLeft}>
-                <Text style={styles.cardIcon}>🕐</Text>
-                <View style={styles.cardText}>
-                  <Text style={styles.cardTitle}>24-Hour Time Format</Text>
-                  <Text style={styles.cardDetail}>
-                    {use24HourTime ? 'Currently using 24-hour format (13:00)' : 'Currently using 12-hour format (1:00 PM)'}
-                  </Text>
-                </View>
-              </View>
-              <View style={[styles.toggle, use24HourTime && styles.toggleActive]}>
-                <View style={[styles.toggleDot, use24HourTime && styles.toggleDotActive]} />
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* PATIENT & CARE Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>PATIENT & CARE</Text>
-            
-            <TouchableOpacity 
-              style={styles.settingItem}
-              onPress={() => router.push('/patient')}
-            >
-              <Text style={styles.settingIcon}>👤</Text>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Patient</Text>
-                <Text style={styles.settingSubtitle}>Mom</Text>
-              </View>
-              <Text style={styles.arrow}>→</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.settingItem}
-              onPress={() => router.push('/medications')}
-            >
-              <Text style={styles.settingIcon}>💊</Text>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Medications</Text>
-                <Text style={styles.settingSubtitle}>{medicationCount} active</Text>
-              </View>
-              <Text style={styles.arrow}>→</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.settingItem}
-              onPress={() => router.push('/appointments')}
-            >
-              <Text style={styles.settingIcon}>📅</Text>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Appointments</Text>
-                <Text style={styles.settingSubtitle}>{appointmentCount} upcoming</Text>
-              </View>
-              <Text style={styles.arrow}>→</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* DATA Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>DATA</Text>
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={handleBackupData}
-            >
-              <Text style={styles.settingIcon}>💾</Text>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Backup Data</Text>
-                <Text style={styles.settingSubtitle}>Export all data to file</Text>
-              </View>
-              <Text style={styles.arrow}>→</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => router.push('/care-summary-export')}
-            >
-              <Text style={styles.settingIcon}>📤</Text>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Export Summary</Text>
-                <Text style={styles.settingSubtitle}>Create care summary PDF</Text>
-              </View>
-              <Text style={styles.arrow}>→</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.settingItem, { opacity: 0.6 }]}
-              onPress={() =>
-                Alert.alert(
-                  'Cloud Sync - Coming Soon',
-                  'Cloud sync will allow you to:\n\n• Sync data across devices\n• End-to-end encryption\n• Multi-device family sharing\n\nThis feature requires a backend service and will be available in a future update.',
-                  [{ text: 'OK' }]
-                )
-              }
-            >
-              <Text style={styles.settingIcon}>☁️</Text>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Cloud Sync</Text>
-                <Text style={styles.settingSubtitle}>Coming soon</Text>
-              </View>
-              <Text style={styles.settingIcon}>💡</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={handleResetOnboarding}
-            >
-              <Text style={styles.settingIcon}>🔄</Text>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Reset Onboarding</Text>
-                <Text style={styles.settingSubtitle}>View welcome screens again</Text>
-              </View>
-              <Text style={styles.arrow}>→</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.settingItem, styles.dangerItem]}
-              onPress={handleClearAllData}
-            >
-              <Text style={styles.settingIcon}>⚠️</Text>
-              <View style={styles.settingContent}>
-                <Text style={[styles.settingTitle, styles.dangerText]}>Clear All Data</Text>
-                <Text style={styles.settingSubtitle}>Permanent deletion</Text>
-              </View>
-              <Text style={styles.arrow}>→</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Search Results or Categories */}
+          {searchQuery.trim() ? (
+            <View style={styles.searchResults}>
+              <Text style={styles.searchResultsTitle}>
+                {filteredCategories.reduce((acc, cat) => acc + cat.items.length, 0)} results
+              </Text>
+              {filteredCategories.map(category =>
+                category.items.map(renderSettingItem)
+              )}
+            </View>
+          ) : (
+            <>
+              {categories.map(renderCategory)}
+            </>
+          )}
 
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -510,18 +588,47 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
-  backButtonPositioned: {
-    position: 'absolute',
-    top: 16,
-    left: 24,
-    zIndex: 100,
-  },
   content: {
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 16,
   },
-  
+
+  // Search
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: Colors.textPrimary,
+    fontSize: 14,
+  },
+  clearSearch: {
+    position: 'absolute',
+    right: 12,
+    padding: 4,
+  },
+  clearSearchText: {
+    fontSize: 14,
+    color: Colors.textMuted,
+  },
+  searchResults: {
+    marginBottom: 20,
+  },
+  searchResultsTitle: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginBottom: 12,
+  },
+
   infoBanner: {
     backgroundColor: 'rgba(232, 155, 95, 0.06)',
     borderWidth: 1,
@@ -535,87 +642,87 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
   },
-  
-  section: {
-    marginBottom: 28,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: Colors.textMuted,
-    marginBottom: 4,
-  },
-  sectionHelper: {
-    fontSize: 11,
-    color: Colors.textTertiary,
-    marginBottom: 10,
-    fontStyle: 'italic',
-    lineHeight: 16,
-  },
-  
-  card: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.surfaceAlt,
+
+  // Categories
+  categoryContainer: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 6,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    marginBottom: 12,
+    overflow: 'hidden',
   },
-  dangerCard: {
-    borderColor: 'rgba(248, 113, 113, 0.25)',
-  },
-  cardLeft: {
+  categoryHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    padding: 16,
     gap: 12,
+  },
+  categoryIcon: {
+    fontSize: 24,
+  },
+  categoryTitleContainer: {
     flex: 1,
   },
-  cardIcon: {
-    fontSize: 22,
-    marginTop: 1,
-  },
-  cardText: {
-    flex: 1,
-  },
-  cardTitle: {
+  categoryTitle: {
     fontSize: 15,
     fontWeight: '500',
     color: Colors.textPrimary,
-    marginBottom: 3,
+    marginBottom: 2,
+  },
+  categoryCount: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  collapseIcon: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  categoryItems: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+
+  // Setting Items
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingLeft: 56,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  settingIcon: {
+    fontSize: 18,
+    marginRight: 12,
+  },
+  settingContent: {
+    flex: 1,
+  },
+  settingTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  settingSubtitle: {
+    fontSize: 12,
+    color: Colors.textTertiary,
+  },
+  arrow: {
+    fontSize: 16,
+    color: Colors.textMuted,
+  },
+
+  dangerItem: {
+    backgroundColor: 'rgba(239, 68, 68, 0.05)',
   },
   dangerText: {
     color: Colors.error,
   },
-  cardDetail: {
-    fontSize: 13,
-    color: Colors.textTertiary,
-    lineHeight: 17,
-    marginBottom: 4,
-  },
-  usageLabel: {
-    fontSize: 10,
-    color: 'rgba(232, 155, 95, 0.6)',
-    fontStyle: 'italic',
-    marginTop: 2,
-  },
-  safetyLabel: {
-    fontSize: 10,
-    color: 'rgba(74, 222, 128, 0.7)',
-    fontStyle: 'italic',
-    marginTop: 2,
-  },
-  arrow: {
-    fontSize: 15,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  
-  // TOGGLE SWITCH
+
+  // Toggle (for time format)
   toggle: {
     width: 48,
     height: 28,
@@ -639,54 +746,5 @@ const styles = StyleSheet.create({
   toggleDotActive: {
     backgroundColor: Colors.background,
     alignSelf: 'flex-end',
-  },
-  
-  // SETTING ITEMS
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  settingIcon: {
-    fontSize: 22,
-    marginRight: 14,
-  },
-  settingContent: {
-    flex: 1,
-  },
-  settingTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-    marginBottom: 2,
-  },
-  settingSubtitle: {
-    fontSize: 13,
-    color: Colors.textTertiary,
-  },
-
-  dangerItem: {
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    backgroundColor: 'rgba(239, 68, 68, 0.05)',
-  },
-
-  dangerText: {
-    color: Colors.error,
-  },
-
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    paddingBottom: 80,
-  },
-  footerText: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    marginBottom: 3,
   },
 });
