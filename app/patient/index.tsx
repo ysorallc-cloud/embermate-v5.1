@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -9,16 +9,17 @@ import PageHeader from '../../components/PageHeader';
 
 export default function PatientScreen() {
   const router = useRouter();
+  // Default patient info - in production, load from patient settings storage
   const [patientInfo, setPatientInfo] = useState({
-    name: 'Mom',
+    name: 'Your Loved One',
     age: 73,
     conditions: ['Hypertension', 'Type 2 Diabetes', 'Arthritis'],
     allergies: ['Penicillin', 'Sulfa drugs'],
     bloodType: 'O+',
-    primaryDoctor: 'Dr. Sarah Chen',
+    primaryDoctor: 'Dr. Chen',
     specialty: 'Cardiology',
     phone: '(555) 123-4567',
-    emergencyContact: 'John Doe',
+    emergencyContact: 'Emergency Contact',
     emergencyPhone: '(555) 987-6543',
   });
 
@@ -127,7 +128,8 @@ export default function PatientScreen() {
           <TouchableOpacity
             style={styles.editButton}
             onPress={() => {
-              // TODO: Navigate to edit screen
+              // Profile editing available in Settings > Patient Profile
+              Alert.alert('Edit Profile', 'Profile editing coming soon. Visit Settings to update patient information.');
             }}
           >
             <Text style={styles.editButtonText}>Edit Profile</Text>

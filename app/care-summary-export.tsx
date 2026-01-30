@@ -68,7 +68,7 @@ export default function CareSummaryExportScreen() {
             onPress: async () => {
               try {
                 await Share.share({
-                  message: 'Care Summary for Mom',
+                  message: 'Care Summary',
                   url: pdfPath,
                   title: 'Care Summary',
                 });

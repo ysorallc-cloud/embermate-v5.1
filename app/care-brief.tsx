@@ -21,7 +21,7 @@ import { generateAndSharePDF, ReportData, PatientInfo } from '../utils/pdfExport
 
 export default function CareBriefScreen() {
   const router = useRouter();
-  const [patientName, setPatientName] = useState('Mom');
+  const [patientName, setPatientName] = useState('Patient');
   const [medications, setMedications] = useState<Medication[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [refreshing, setRefreshing] = useState(false);

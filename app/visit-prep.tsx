@@ -38,7 +38,7 @@ interface SymptomLogEntry {
 export default function VisitPrepScreen() {
   const router = useRouter();
   const [dateRange] = useState('Last 14 days');
-  const [patientName] = useState('Mom');
+  const [patientName] = useState('Patient');
   const [summary, setSummary] = useState('');
   const [redFlags, setRedFlags] = useState<RedFlag[]>([]);
   const [symptoms, setSymptoms] = useState<SymptomLogEntry[]>([]);

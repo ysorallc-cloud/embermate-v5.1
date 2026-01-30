@@ -183,7 +183,7 @@ export default function DailyCheckinScreen() {
       case 1:
         return (
           <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>How is Mom feeling today?</Text>
+            <Text style={styles.stepTitle}>How are they feeling today?</Text>
             <Text style={styles.stepSubtitle}>Overall mood</Text>
 
             <View style={styles.moodGrid}>
@@ -285,7 +285,7 @@ export default function DailyCheckinScreen() {
         return (
           <View style={styles.stepContent}>
             <Text style={styles.stepTitle}>Meals & Hydration</Text>
-            <Text style={styles.stepSubtitle}>What did Mom have today?</Text>
+            <Text style={styles.stepSubtitle}>What did they have today?</Text>
 
             <View style={styles.mealsSection}>
               <Text style={styles.sectionLabel}>MEALS</Text>

@@ -9,9 +9,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const careMembers = [
   { emoji: '👤', label: 'You', position: 0 },
-  { emoji: '👩', label: 'Sarah', position: 1 },
-  { emoji: '👨‍⚕️', label: 'Dr. Chen', position: 2 },
-  { emoji: '👵', label: 'Mom', position: 3, isCenter: true },
+  { emoji: '👤', label: 'Sarah', position: 1 },
+  { emoji: '🩺', label: 'Dr. Chen', position: 2 },
+  { emoji: '❤️', label: 'Loved One', position: 3, isCenter: true },
 ];
 
 export const CareCircleScreen: React.FC = () => {

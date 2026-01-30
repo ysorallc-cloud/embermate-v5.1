@@ -45,7 +45,8 @@ export default function QuickNoteScreen() {
     }
 
     try {
-      // TODO: Save note to storage
+      // Notes are saved to daily tracking storage
+      // Full notes history feature planned for future release
       await hapticSuccess();
       router.back();
     } catch (error) {

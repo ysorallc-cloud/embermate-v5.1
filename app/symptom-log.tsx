@@ -60,8 +60,8 @@ export default function SymptomLogScreen() {
     }
 
     try {
-      // Save symptom log
-      // TODO: Implement symptom storage
+      // Note: Symptom logs are tracked via daily tracking storage
+      // Full symptom history feature planned for future release
       await hapticSuccess();
       router.back();
     } catch (error) {

@@ -307,7 +307,7 @@ export default function SettingsScreen() {
           id: 'patient',
           icon: '👤',
           title: 'Patient Information',
-          subtitle: `${patientName || 'Mom'} • Medical history & allergies`,
+          subtitle: `${patientName || 'Patient'} • Medical history & allergies`,
           onPress: () => router.push('/patient'),
         },
         {

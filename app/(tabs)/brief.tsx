@@ -96,10 +96,10 @@ export default function HubScreen() {
     const pain = dailyTracking?.pain;
 
     if (!mood && !energy && !pain) {
-      return "Start logging to see Mom's story unfold here. Even small check-ins help build the picture.";
+      return "Start logging to see your loved one's story unfold here. Even small check-ins help build the picture.";
     }
 
-    let narrative = "Mom's having a ";
+    let narrative = "Today is shaping up to be a ";
 
     if (mood && energy && pain !== null) {
       if (mood >= 7 && energy >= 4 && pain <= 3) {
@@ -115,13 +115,13 @@ export default function HubScreen() {
 
     if (mood) {
       if (mood >= 7) {
-        narrative += "Mood is positive and she's been upbeat. ";
+        narrative += "Mood is positive and upbeat. ";
       } else if (mood >= 5) {
-        narrative += "Mood is stable and she's been calm. ";
+        narrative += "Mood is stable and calm. ";
       } else if (mood >= 3) {
-        narrative += "Mood has been low and she seems quieter. ";
+        narrative += "Mood has been low, seeming quieter. ";
       } else {
-        narrative += "She's been struggling and may need extra support. ";
+        narrative += "Struggling today and may need extra support. ";
       }
     }
 
@@ -169,7 +169,7 @@ export default function HubScreen() {
     }
 
     if (mood !== null && mood < 5) {
-      approach += "If she seems restless, quiet company may be better. ";
+      approach += "If restless, quiet company may be better. ";
     }
 
     if (energy !== null && pain !== null && mood !== null && energy >= 4 && pain <= 3 && mood >= 7) {

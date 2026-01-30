@@ -31,7 +31,7 @@ import {
 
 export default function FamilySharingScreen() {
   const router = useRouter();
-  const [patientName, setPatientName] = useState('Mom');
+  const [patientName, setPatientName] = useState('Patient');
   const [invites, setInvites] = useState<ShareInvite[]>([]);
   const [caregivers, setCaregivers] = useState<CaregiverProfile[]>([]);
   const [showJoinCode, setShowJoinCode] = useState(false);

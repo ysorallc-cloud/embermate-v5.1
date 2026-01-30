@@ -362,8 +362,8 @@ export default function FamilyScreen() {
           <View style={styles.circleContainer}>
             {/* Center - Care Recipient */}
             <View style={styles.centerAvatar}>
-              <Text style={styles.centerAvatarText}>👵</Text>
-              <Text style={styles.centerAvatarLabel}>Mom</Text>
+              <Text style={styles.centerAvatarText}>❤️</Text>
+              <Text style={styles.centerAvatarLabel}>Loved One</Text>
             </View>
 
             {/* Orbiting avatars - tappable with names */}
