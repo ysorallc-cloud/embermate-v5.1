@@ -73,7 +73,7 @@ export default function CareSummaryExportScreen() {
                   title: 'Care Summary',
                 });
               } catch (e) {
-                console.log('Share error:', e);
+                console.error('Share error:', e);
               }
             },
           },
@@ -81,7 +81,7 @@ export default function CareSummaryExportScreen() {
       );
     } catch (error) {
       Alert.alert('Error', 'Failed to generate report. Please try again.');
-      console.log('Export error:', error);
+      console.error('Export error:', error);
     } finally {
       setGenerating(false);
     }

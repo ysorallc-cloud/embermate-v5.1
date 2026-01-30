@@ -15,8 +15,8 @@ export const StatusOrb: React.FC<Props> = ({
   color,
   size = 90,
 }) => {
-  const fontSize = size * 0.22;
-  const labelSize = size * 0.11;
+  const fontSize = Math.max(14, size * 0.2);
+  const labelSize = Math.max(9, size * 0.12);
 
   return (
     <View style={[

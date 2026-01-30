@@ -97,7 +97,7 @@ export async function setupNotificationCategories(): Promise<void> {
       },
     ]);
 
-    console.log('✓ Notification categories configured');
+    if (__DEV__) console.log('Notification categories configured');
   } catch (error) {
     console.error('Error setting up notification categories:', error);
   }
@@ -117,7 +117,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
     }
 
     if (finalStatus !== 'granted') {
-      console.log('Notification permissions not granted');
+      if (__DEV__) console.log('Notification permissions not granted');
       return false;
     }
 
@@ -198,14 +198,14 @@ export async function scheduleMedicationNotifications(medications: Medication[])
     // Check permissions
     const hasPermission = await hasNotificationPermissions();
     if (!hasPermission) {
-      console.log('No notification permissions, skipping scheduling');
+      if (__DEV__) console.log('No notification permissions, skipping scheduling');
       return;
     }
 
     // Check if notifications are enabled
     const settings = await getNotificationSettings();
     if (!settings.enabled) {
-      console.log('Notifications disabled in settings');
+      if (__DEV__) console.log('Notifications disabled in settings');
       return;
     }
 
@@ -219,7 +219,7 @@ export async function scheduleMedicationNotifications(medications: Medication[])
       await scheduleMedicationNotification(medication, settings);
     }
 
-    console.log(`Scheduled ${activeMedications.length} medication notifications`);
+    if (__DEV__) console.log(`Scheduled ${activeMedications.length} medication notifications`);
   } catch (error) {
     console.error('Error scheduling medication notifications:', error);
   }
@@ -292,10 +292,12 @@ async function scheduleMedicationNotification(
     await scheduleOverdueAlert(medication, settings);
 
     // Log for debugging
-    const nextTrigger = scheduleDate <= now
-      ? new Date(now.getTime() + 24 * 60 * 60 * 1000)
-      : scheduleDate;
-    console.log(`✓ Scheduled ${medication.name} for ${nextTrigger.toLocaleString()}`);
+    if (__DEV__) {
+      const nextTrigger = scheduleDate <= now
+        ? new Date(now.getTime() + 24 * 60 * 60 * 1000)
+        : scheduleDate;
+      console.log(`Scheduled ${medication.name} for ${nextTrigger.toLocaleString()}`);
+    }
   } catch (error) {
     console.error(`Error scheduling notification for ${medication.name}:`, error);
   }
@@ -314,13 +316,13 @@ export async function scheduleOneTimeNotification(
   try {
     const hasPermission = await hasNotificationPermissions();
     if (!hasPermission) {
-      console.log('No notification permissions');
+      if (__DEV__) console.log('No notification permissions');
       return null;
     }
 
     const settings = await getNotificationSettings();
     if (!settings.enabled) {
-      console.log('Notifications disabled');
+      if (__DEV__) console.log('Notifications disabled');
       return null;
     }
 

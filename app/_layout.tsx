@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { resetDailyMedicationStatus } from '../utils/medicationStorage';
 import { requestNotificationPermissions } from '../utils/notificationService';
 import { useNotificationHandler } from '../utils/useNotificationHandler';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 function WebContainer({ children }: { children: React.ReactNode }) {
   const { width, height } = useWindowDimensions();
@@ -90,36 +91,38 @@ export default function RootLayout() {
   }
 
   return (
-    <WebContainer>
-      <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(onboarding)" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="coffee" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="calendar" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="medication-schedule" />
-        <Stack.Screen name="medication-form" />
-        <Stack.Screen name="medication-interactions" />
-        <Stack.Screen name="medications" />
-        <Stack.Screen name="appointment-form" />
-        <Stack.Screen name="appointments" />
-        <Stack.Screen name="photos" />
-        <Stack.Screen name="emergency" />
-        <Stack.Screen name="vitals" />
-        <Stack.Screen name="vitals-log" />
-        <Stack.Screen name="symptoms" />
-        <Stack.Screen name="symptoms-log" />
-        <Stack.Screen name="care-brief" />
-        <Stack.Screen name="care-summary-export" />
-        <Stack.Screen name="family-sharing" />
-        <Stack.Screen name="family-activity" />
-        <Stack.Screen name="caregiver-management" />
-        <Stack.Screen name="notification-settings" />
-        <Stack.Screen name="correlation-report" />
-        <Stack.Screen name="correlation-test" />
-      </Stack>
-    </WebContainer>
+    <ErrorBoundary>
+      <WebContainer>
+        <StatusBar style="light" />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(onboarding)" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="coffee" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="calendar" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="medication-schedule" />
+          <Stack.Screen name="medication-form" />
+          <Stack.Screen name="medication-interactions" />
+          <Stack.Screen name="medications" />
+          <Stack.Screen name="appointment-form" />
+          <Stack.Screen name="appointments" />
+          <Stack.Screen name="photos" />
+          <Stack.Screen name="emergency" />
+          <Stack.Screen name="vitals" />
+          <Stack.Screen name="vitals-log" />
+          <Stack.Screen name="symptoms" />
+          <Stack.Screen name="symptoms-log" />
+          <Stack.Screen name="care-brief" />
+          <Stack.Screen name="care-summary-export" />
+          <Stack.Screen name="family-sharing" />
+          <Stack.Screen name="family-activity" />
+          <Stack.Screen name="caregiver-management" />
+          <Stack.Screen name="notification-settings" />
+          <Stack.Screen name="correlation-report" />
+          <Stack.Screen name="correlation-test" />
+        </Stack>
+      </WebContainer>
+    </ErrorBoundary>
   );
 }
 

@@ -3,7 +3,7 @@
 // Care Brief: Narrative summary + Health tracking hub
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { formatDistanceToNow } from 'date-fns';
 import { Colors, Spacing, Typography, BorderRadius } from '../_theme/theme-tokens';
 import { getMedications, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
@@ -38,6 +39,10 @@ export default function HubScreen() {
   const [latestSystolic, setLatestSystolic] = useState<number | null>(null);
   const [latestDiastolic, setLatestDiastolic] = useState<number | null>(null);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+
+  // Collapsible section state
+  const [keyFeaturesExpanded, setKeyFeaturesExpanded] = useState(true);
+  const [managementExpanded, setManagementExpanded] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
@@ -181,42 +186,102 @@ export default function HubScreen() {
 
   const upcomingAppts = appointments.slice(0, 3);
 
-  // Calculate health score (0-100)
-  const calculateHealthScore = () => {
+  // Calculate health score (0-100) and contributing factors
+  const healthScoreData = useMemo(() => {
     let score = 0;
-    let factors = 0;
+    let factorCount = 0;
+    const factors = {
+      meds: { tracked: false, status: 'missing' as 'good' | 'warning' | 'missing' },
+      mood: { tracked: false, status: 'missing' as 'good' | 'warning' | 'missing' },
+      bp: { tracked: false, status: 'missing' as 'good' | 'warning' | 'missing' },
+      energy: { tracked: false, status: 'missing' as 'good' | 'warning' | 'missing' },
+    };
 
     // Medication adherence (30%)
-    score += adherencePercent * 0.3;
-    factors++;
+    if (totalMeds > 0) {
+      score += adherencePercent * 0.3;
+      factorCount++;
+      factors.meds.tracked = true;
+      factors.meds.status = adherencePercent >= 80 ? 'good' : 'warning';
+    }
 
     // Mood score (30%)
     const moodMap: { [key: string]: number } = { 'struggling': 20, 'difficult': 40, 'managing': 60, 'good': 80, 'great': 100 };
     if (wellnessCheck?.mood) {
       score += moodMap[wellnessCheck.mood] * 0.3;
-      factors++;
+      factorCount++;
+      factors.mood.tracked = true;
+      factors.mood.status = moodMap[wellnessCheck.mood] >= 60 ? 'good' : 'warning';
     }
 
     // BP (20%) - normal range is ~120/80
     if (latestSystolic && latestDiastolic) {
       const bpScore = Math.max(0, 100 - Math.abs(120 - latestSystolic) - Math.abs(80 - latestDiastolic));
       score += bpScore * 0.2;
-      factors++;
+      factorCount++;
+      factors.bp.tracked = true;
+      factors.bp.status = bpScore >= 70 ? 'good' : 'warning';
     }
 
     // Energy level (20%)
     if (wellnessCheck?.energyLevel) {
       score += (wellnessCheck.energyLevel / 5) * 100 * 0.2;
-      factors++;
+      factorCount++;
+      factors.energy.tracked = true;
+      factors.energy.status = wellnessCheck.energyLevel >= 3 ? 'good' : 'warning';
     }
 
-    return factors > 0 ? Math.round(score) : 75; // Default to 75 if no data
-  };
+    const trackedCount = Object.values(factors).filter(f => f.tracked).length;
 
-  const healthScore = calculateHealthScore();
+    return {
+      score: factorCount > 0 ? Math.round(score) : 75,
+      factors,
+      trackedCount,
+    };
+  }, [totalMeds, adherencePercent, wellnessCheck, latestSystolic, latestDiastolic]);
 
-  // Hub sections
-  const HUB_SECTIONS = [
+  const healthScore = healthScoreData.score;
+
+  // Last updated text
+  const lastUpdatedText = useMemo(() => {
+    try {
+      return `Updated ${formatDistanceToNow(lastUpdated)} ago`;
+    } catch {
+      return 'Updated just now';
+    }
+  }, [lastUpdated]);
+
+  // Quick stats
+  const quickStats = useMemo(() => {
+    const nextAppt = appointments[0];
+    let nextApptText = 'None scheduled';
+    if (nextAppt) {
+      const apptDate = new Date(nextAppt.date);
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      if (apptDate.toDateString() === today.toDateString()) {
+        nextApptText = 'Today';
+      } else if (apptDate.toDateString() === tomorrow.toDateString()) {
+        nextApptText = 'Tomorrow';
+      } else {
+        nextApptText = apptDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      }
+    }
+
+    // Count logs for today
+    const logsToday = dailyTracking ? Object.keys(dailyTracking).filter(k => dailyTracking[k] !== null && dailyTracking[k] !== undefined).length : 0;
+
+    return [
+      { icon: '💊', value: `${totalMeds}`, label: 'meds active' },
+      { icon: '📝', value: `${logsToday}`, label: 'logs today' },
+      { icon: '📅', value: nextApptText, label: 'next appt' },
+    ];
+  }, [totalMeds, dailyTracking, appointments]);
+
+  // Hub sections - grouped by category
+  const KEY_FEATURES = [
     {
       id: 'reports',
       icon: '📋',
@@ -243,6 +308,9 @@ export default function HubScreen() {
       subtitle: '30-day overview',
       route: '/vitals',
     },
+  ];
+
+  const MANAGEMENT_SECTIONS = [
     {
       id: 'medications',
       icon: '💊',
@@ -353,6 +421,7 @@ export default function HubScreen() {
             <View>
               <Text style={styles.headerLabel}>EMBERMATE</Text>
               <Text style={styles.headerTitle}>Hub</Text>
+              <Text style={styles.lastUpdated}>{lastUpdatedText}</Text>
             </View>
             <TouchableOpacity
               style={styles.settingsButton}
@@ -397,57 +466,153 @@ export default function HubScreen() {
               <View style={styles.scoreText}>
                 <Text style={styles.scoreTitle}>Health Score</Text>
                 <Text style={styles.scoreTrend}>↑ +5 this month</Text>
-                <Text style={styles.scoreDescription}>Based on all health metrics</Text>
+                <Text style={styles.scoreDescription}>
+                  {healthScoreData.trackedCount} metrics tracked today
+                </Text>
               </View>
+            </View>
+            {/* Health Factors */}
+            <View style={styles.healthFactors}>
+              {[
+                { key: 'meds', label: 'Meds' },
+                { key: 'mood', label: 'Mood' },
+                { key: 'bp', label: 'BP' },
+                { key: 'energy', label: 'Energy' },
+              ].map((factor) => {
+                const f = healthScoreData.factors[factor.key as keyof typeof healthScoreData.factors];
+                return (
+                  <View key={factor.key} style={styles.factorItem}>
+                    <Text style={[
+                      styles.factorIcon,
+                      f.tracked ? (f.status === 'good' ? styles.factorGood : styles.factorWarning) : styles.factorMissing,
+                    ]}>
+                      {f.tracked ? '✓' : '○'}
+                    </Text>
+                    <Text style={styles.factorLabel}>{factor.label}</Text>
+                  </View>
+                );
+              })}
             </View>
           </GlassCard>
 
-          {/* Hub Sections */}
-          <View style={styles.hubSections}>
-            {HUB_SECTIONS.map((section) => (
-              <TouchableOpacity
-                key={section.id}
-                onPress={() => router.push(section.route as any)}
-                activeOpacity={0.7}
-              >
-                <GlassCard
-                  style={[
-                    styles.hubSectionCard,
-                    section.primary && styles.hubSectionPrimary,
-                  ]}
-                >
-                  <View style={styles.hubSectionContent}>
-                    <View
-                      style={[
-                        styles.hubSectionIcon,
-                        section.primary && styles.hubSectionIconPrimary,
-                      ]}
-                    >
-                      <Text style={styles.hubSectionIconText}>{section.icon}</Text>
-                    </View>
-                    <View style={styles.hubSectionText}>
-                      <Text style={styles.hubSectionTitle}>{section.title}</Text>
-                      <Text style={styles.hubSectionSubtitle}>{section.subtitle}</Text>
-                    </View>
-                    {section.badge && (
-                      <View
-                        style={[
-                          styles.hubBadge,
-                          { backgroundColor: `${section.badgeColor}20` },
-                        ]}
-                      >
-                        <Text
-                          style={[styles.hubBadgeText, { color: section.badgeColor }]}
-                        >
-                          {section.badge}
-                        </Text>
-                      </View>
-                    )}
-                    <Text style={styles.hubChevron}>›</Text>
-                  </View>
-                </GlassCard>
-              </TouchableOpacity>
+          {/* Quick Stats Row */}
+          <View style={styles.quickStatsRow}>
+            {quickStats.map((stat, i) => (
+              <GlassCard key={i} style={styles.quickStatCard}>
+                <Text style={styles.quickStatIcon}>{stat.icon}</Text>
+                <Text style={styles.quickStatValue}>{stat.value}</Text>
+                <Text style={styles.quickStatLabel}>{stat.label}</Text>
+              </GlassCard>
             ))}
+          </View>
+
+          {/* Hub Sections - Grouped */}
+          <View style={styles.hubSections}>
+            {/* KEY FEATURES Group */}
+            <TouchableOpacity
+              style={styles.groupHeader}
+              onPress={() => setKeyFeaturesExpanded(!keyFeaturesExpanded)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.groupHeaderText}>KEY FEATURES</Text>
+              <Text style={styles.groupHeaderChevron}>{keyFeaturesExpanded ? '▼' : '▶'}</Text>
+            </TouchableOpacity>
+            {keyFeaturesExpanded && (
+              <View style={styles.groupContent}>
+                {KEY_FEATURES.map((section) => (
+                  <TouchableOpacity
+                    key={section.id}
+                    onPress={() => router.push(section.route as any)}
+                    activeOpacity={0.7}
+                  >
+                    <GlassCard
+                      style={[
+                        styles.hubSectionCard,
+                        section.primary ? styles.hubSectionPrimary : undefined,
+                      ].filter(Boolean)}
+                    >
+                      <View style={styles.hubSectionContent}>
+                        <View
+                          style={[
+                            styles.hubSectionIcon,
+                            section.primary && styles.hubSectionIconPrimary,
+                          ]}
+                        >
+                          <Text style={styles.hubSectionIconText}>{section.icon}</Text>
+                        </View>
+                        <View style={styles.hubSectionText}>
+                          <Text style={styles.hubSectionTitle}>{section.title}</Text>
+                          <Text style={styles.hubSectionSubtitle}>{section.subtitle}</Text>
+                        </View>
+                        {section.badge && (
+                          <View
+                            style={[
+                              styles.hubBadge,
+                              { backgroundColor: `${section.badgeColor}20` },
+                            ]}
+                          >
+                            <Text
+                              style={[styles.hubBadgeText, { color: section.badgeColor }]}
+                            >
+                              {section.badge}
+                            </Text>
+                          </View>
+                        )}
+                        <Text style={styles.hubChevron}>›</Text>
+                      </View>
+                    </GlassCard>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* MANAGEMENT Group */}
+            <TouchableOpacity
+              style={styles.groupHeader}
+              onPress={() => setManagementExpanded(!managementExpanded)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.groupHeaderText}>MANAGEMENT</Text>
+              <Text style={styles.groupHeaderChevron}>{managementExpanded ? '▼' : '▶'}</Text>
+            </TouchableOpacity>
+            {managementExpanded && (
+              <View style={styles.groupContent}>
+                {MANAGEMENT_SECTIONS.map((section) => (
+                  <TouchableOpacity
+                    key={section.id}
+                    onPress={() => router.push(section.route as any)}
+                    activeOpacity={0.7}
+                  >
+                    <GlassCard style={styles.hubSectionCard}>
+                      <View style={styles.hubSectionContent}>
+                        <View style={styles.hubSectionIcon}>
+                          <Text style={styles.hubSectionIconText}>{section.icon}</Text>
+                        </View>
+                        <View style={styles.hubSectionText}>
+                          <Text style={styles.hubSectionTitle}>{section.title}</Text>
+                          <Text style={styles.hubSectionSubtitle}>{section.subtitle}</Text>
+                        </View>
+                        {section.badge && (
+                          <View
+                            style={[
+                              styles.hubBadge,
+                              { backgroundColor: `${section.badgeColor}20` },
+                            ]}
+                          >
+                            <Text
+                              style={[styles.hubBadgeText, { color: section.badgeColor }]}
+                            >
+                              {section.badge}
+                            </Text>
+                          </View>
+                        )}
+                        <Text style={styles.hubChevron}>›</Text>
+                      </View>
+                    </GlassCard>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* Legacy sections - now integrated into Hub Sections above */}
@@ -599,6 +764,11 @@ const styles = StyleSheet.create({
     ...Typography.displayMedium,
     color: Colors.textPrimary,
   },
+  lastUpdated: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginTop: 4,
+  },
   settingsButton: {
     padding: Spacing.sm,
   },
@@ -667,13 +837,92 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
+  // Health Factors
+  healthFactors: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: Spacing.md,
+    marginTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  factorItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  factorIcon: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  factorGood: {
+    color: Colors.green,
+  },
+  factorWarning: {
+    color: Colors.amber,
+  },
+  factorMissing: {
+    color: Colors.textMuted,
+  },
+  factorLabel: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+  },
+
+  // Quick Stats Row
+  quickStatsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: Spacing.xl,
+  },
+  quickStatCard: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 12,
+  },
+  quickStatIcon: {
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  quickStatValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  quickStatLabel: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    textAlign: 'center',
+  },
+
   // Hub Sections
   hubSections: {
     gap: 10,
     marginBottom: Spacing.xxl,
   },
+  groupHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  groupHeaderText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.textMuted,
+    letterSpacing: 0.5,
+  },
+  groupHeaderChevron: {
+    fontSize: 10,
+    color: Colors.textMuted,
+  },
+  groupContent: {
+    gap: 8,
+    marginBottom: 8,
+  },
   hubSectionCard: {
-    padding: Spacing.lg,
+    padding: 14,
   },
   hubSectionPrimary: {
     backgroundColor: `${Colors.accent}10`,

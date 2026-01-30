@@ -391,7 +391,7 @@ async function scheduleAppointmentNotifications(appointment: Appointment): Promi
       );
     }
     
-    console.log(`Scheduled notifications for appointment: ${appointment.specialty}`);
+    if (__DEV__) console.log(`Scheduled notifications for appointment: ${appointment.specialty}`);
   } catch (error) {
     console.error('Error scheduling appointment notifications:', error);
   }
@@ -408,7 +408,7 @@ export async function scheduleAllAppointmentNotifications(): Promise<void> {
       await scheduleAppointmentNotifications(appointment);
     }
     
-    console.log(`Scheduled notifications for ${appointments.length} appointments`);
+    if (__DEV__) console.log(`Scheduled notifications for ${appointments.length} appointments`);
   } catch (error) {
     console.error('Error scheduling all appointment notifications:', error);
   }

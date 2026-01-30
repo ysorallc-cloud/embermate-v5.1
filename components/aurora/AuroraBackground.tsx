@@ -7,6 +7,7 @@ import Animated, {
   withRepeat,
   withTiming,
   Easing,
+  cancelAnimation,
 } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -65,7 +66,8 @@ const AURORA_CONFIGS: Record<AuroraVariant, {
 };
 
 export const AuroraBackground: React.FC<Props> = ({ variant = 'today' }) => {
-  const config = AURORA_CONFIGS[variant];
+  // Safety check: fallback to 'today' if invalid variant
+  const config = AURORA_CONFIGS[variant] || AURORA_CONFIGS.today;
 
   // Subtle animation
   const translateX = useSharedValue(0);
@@ -82,6 +84,12 @@ export const AuroraBackground: React.FC<Props> = ({ variant = 'today' }) => {
       -1,
       true
     );
+
+    // Cleanup animations on unmount
+    return () => {
+      cancelAnimation(translateX);
+      cancelAnimation(translateY);
+    };
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({

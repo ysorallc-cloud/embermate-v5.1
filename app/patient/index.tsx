@@ -124,11 +124,10 @@ export default function PatientScreen() {
           </View>
 
           {/* Edit Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.editButton}
             onPress={() => {
-              // Navigate to edit screen (to be implemented)
-              console.log('Edit patient info');
+              // TODO: Navigate to edit screen
             }}
           >
             <Text style={styles.editButtonText}>Edit Profile</Text>

@@ -47,7 +47,7 @@ export const Timeline: React.FC<TimelineProps> = ({ items, tomorrowCount = 0, on
         case 'wellness-evening':
           await saveEveningWellness(format(new Date(), 'yyyy-MM-dd'), {
             mood: 'managing',
-            mealsLogged: 'some',
+            mealsLogged: true,
             dayRating: 3,
             completedAt: new Date(),
           });

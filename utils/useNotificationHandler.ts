@@ -22,13 +22,13 @@ export function useNotificationHandler() {
   useEffect(() => {
     // Handler for notifications received while app is foregrounded
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('📬 Notification received:', notification);
+      if (__DEV__) console.log('Notification received:', notification.request.identifier);
       // Optionally show an in-app banner or update badge
     });
 
     // Handler for notification taps and quick actions
     responseListener.current = Notifications.addNotificationResponseReceivedListener(async (response) => {
-      console.log('👆 Notification action:', response.actionIdentifier);
+      if (__DEV__) console.log('Notification action:', response.actionIdentifier);
       
       const data = response.notification.request.content.data;
       const actionId = response.actionIdentifier;
@@ -112,7 +112,7 @@ async function handleMarkTaken(data: any): Promise<void> {
       },
     });
     
-    console.log(`✓ Marked medication ${medicationId} as taken via quick action`);
+    if (__DEV__) console.log(`Marked medication ${medicationId} as taken via quick action`);
 
     // Show a local notification to confirm
     await Notifications.scheduleNotificationAsync({
@@ -148,7 +148,7 @@ async function handleSnooze(data: any): Promise<void> {
       },
     });
 
-    console.log(`⏰ Snoozed medication reminder for 15 minutes`);
+    if (__DEV__) console.log('Snoozed medication reminder for 15 minutes');
 
     // Show confirmation
     await Notifications.scheduleNotificationAsync({
@@ -184,7 +184,7 @@ async function handleSnoozeAppointment(data: any): Promise<void> {
       },
     });
 
-    console.log(`⏰ Snoozed appointment reminder for 30 minutes`);
+    if (__DEV__) console.log('Snoozed appointment reminder for 30 minutes');
   } catch (error) {
     console.error('Error snoozing appointment:', error);
   }

@@ -397,13 +397,9 @@ export default function SettingsScreen() {
         {
           id: 'cloud-sync',
           icon: '☁️',
-          title: 'Cloud Sync',
-          subtitle: 'Coming soon',
-          onPress: () => Alert.alert(
-            'Cloud Sync - Coming Soon',
-            'Cloud sync will allow you to:\n\n• Sync data across devices\n• End-to-end encryption\n• Multi-device family sharing\n\nThis feature requires a backend service and will be available in a future update.',
-            [{ text: 'OK' }]
-          ),
+          title: 'Cloud Backup',
+          subtitle: 'Encrypted backup & restore',
+          onPress: () => router.push('/settings/backup'),
         },
       ],
     },

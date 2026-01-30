@@ -209,8 +209,16 @@ export const SwipeableTimelineItem: React.FC<Props> = ({
 };
 
 // Helper functions
-const formatTime = (date: Date): string => {
-  return format(date, 'h:mm a');
+const formatTime = (date: Date | undefined | null): string => {
+  // Handle invalid dates gracefully
+  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+    return '--:--';
+  }
+  try {
+    return format(date, 'h:mm a');
+  } catch {
+    return '--:--';
+  }
 };
 
 const getCircleStyles = (status: string) => {

@@ -104,11 +104,11 @@ export async function recoverFromBackup<T>(
   defaultValue: T
 ): Promise<T> {
   try {
-    console.log(`[SafeStorage] Attempting to recover from backup for key: ${key}`);
+    if (__DEV__) console.log(`[SafeStorage] Attempting to recover from backup for key: ${key}`);
 
     const backupData = await AsyncStorage.getItem(`${key}_backup`);
     if (!backupData) {
-      console.warn(`[SafeStorage] No backup found for key: ${key}`);
+      if (__DEV__) console.warn(`[SafeStorage] No backup found for key: ${key}`);
       return defaultValue;
     }
 
@@ -117,7 +117,7 @@ export async function recoverFromBackup<T>(
     // If recovery successful, restore it as the main value
     if (recovered !== defaultValue) {
       await AsyncStorage.setItem(key, backupData);
-      console.log(`[SafeStorage] Successfully recovered from backup for key: ${key}`);
+      if (__DEV__) console.log(`[SafeStorage] Successfully recovered from backup for key: ${key}`);
     }
 
     return recovered;
@@ -141,7 +141,7 @@ export function validateStructure<T extends object>(
 
   for (const key of requiredKeys) {
     if (!(key in data)) {
-      console.warn(`[SafeStorage] Missing required key: ${String(key)}`);
+      if (__DEV__) console.warn(`[SafeStorage] Missing required key: ${String(key)}`);
       return false;
     }
   }
@@ -163,13 +163,13 @@ export async function safeGetItemWithValidation<T extends object>(
     return data;
   }
 
-  console.warn(`[SafeStorage] Data structure validation failed for key: ${key}`);
+  if (__DEV__) console.warn(`[SafeStorage] Data structure validation failed for key: ${key}`);
 
   // Try to recover from backup
   const recovered = await recoverFromBackup(key, defaultValue);
 
   if (validateStructure(recovered, requiredKeys)) {
-    console.log(`[SafeStorage] Validation passed after recovery for key: ${key}`);
+    if (__DEV__) console.log(`[SafeStorage] Validation passed after recovery for key: ${key}`);
     return recovered;
   }
 
@@ -184,7 +184,7 @@ export async function clearCorruptedData(key: string): Promise<void> {
   try {
     await AsyncStorage.removeItem(key);
     await AsyncStorage.removeItem(`${key}_backup`);
-    console.log(`[SafeStorage] Cleared corrupted data for key: ${key}`);
+    if (__DEV__) console.log(`[SafeStorage] Cleared corrupted data for key: ${key}`);
   } catch (error) {
     console.error(`[SafeStorage] Failed to clear data for key: ${key}`, error);
   }

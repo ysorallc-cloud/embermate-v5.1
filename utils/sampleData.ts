@@ -193,7 +193,7 @@ export const seedSampleData = async (options: SampleDataOptions = {}) => {
     // Mark that sample data has been seeded
     await AsyncStorage.setItem('sample_data_seeded', 'true');
 
-    console.log('Sample data seeded successfully');
+    if (__DEV__) console.log('Sample data seeded successfully');
     return true;
   } catch (error) {
     console.error('Error seeding sample data:', error);
@@ -208,7 +208,7 @@ export const clearSampleData = async () => {
     keysToRemove.push('sample_data_seeded');
 
     await AsyncStorage.multiRemove(keysToRemove);
-    console.log('Sample data cleared successfully');
+    if (__DEV__) console.log('Sample data cleared successfully');
     return true;
   } catch (error) {
     console.error('Error clearing sample data:', error);

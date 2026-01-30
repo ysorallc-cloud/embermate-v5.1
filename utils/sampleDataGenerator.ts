@@ -16,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * - Fatigue correlates negatively with medication adherence (-0.5 coefficient)
  */
 export async function generateSampleCorrelationData(): Promise<void> {
-  console.log('Generating 30 days of sample correlation data...');
+  if (__DEV__) console.log('Generating 30 days of sample correlation data...');
   
   const endDate = new Date();
   const startDate = new Date();
@@ -77,29 +77,31 @@ export async function generateSampleCorrelationData(): Promise<void> {
     await AsyncStorage.setItem(medLogKey, JSON.stringify(medLogs));
   }
   
-  console.log('Sample data generation complete!');
-  console.log('Expected correlations:');
-  console.log('  - Pain & Hydration: ~-0.6 (negative)');
-  console.log('  - Mood & Sleep: ~+0.7 (positive)');
-  console.log('  - Fatigue & Med Adherence: ~-0.5 (negative)');
+  if (__DEV__) {
+    console.log('Sample data generation complete!');
+    console.log('Expected correlations:');
+    console.log('  - Pain & Hydration: ~-0.6 (negative)');
+    console.log('  - Mood & Sleep: ~+0.7 (positive)');
+    console.log('  - Fatigue & Med Adherence: ~-0.5 (negative)');
+  }
 }
 
 /**
  * Clear all sample correlation data
  */
 export async function clearSampleCorrelationData(): Promise<void> {
-  console.log('Clearing sample correlation data...');
-  
+  if (__DEV__) console.log('Clearing sample correlation data...');
+
   const allKeys = await AsyncStorage.getAllKeys();
-  const keysToRemove = allKeys.filter(key => 
+  const keysToRemove = allKeys.filter(key =>
     key.startsWith('@symptom_logs_') ||
     key.startsWith('@daily_tracking_') ||
     key.startsWith('@medication_logs_') ||
     key === '@correlation_cache'
   );
-  
+
   await AsyncStorage.multiRemove(keysToRemove);
-  console.log(`Cleared ${keysToRemove.length} keys`);
+  if (__DEV__) console.log(`Cleared ${keysToRemove.length} keys`);
 }
 
 /**

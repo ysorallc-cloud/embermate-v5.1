@@ -154,7 +154,7 @@ const awardAchievement = async (
  * This could show a modal, send a notification, or play an animation
  */
 const triggerCelebration = async (achievement: Achievement): Promise<void> => {
-  console.log(`🎉 Achievement unlocked: ${achievement.name} ${achievement.icon}`);
+  if (__DEV__) console.log(`Achievement unlocked: ${achievement.name} ${achievement.icon}`);
   // TODO: Show celebration modal or animation
 };
 

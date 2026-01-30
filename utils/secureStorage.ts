@@ -146,7 +146,7 @@ async function decryptData(encryptedData: string): Promise<string> {
  */
 async function migrateLegacyEncryption(legacyData: string): Promise<string> {
   try {
-    console.log('Migrating legacy encryption to AES-256-GCM...');
+    if (__DEV__) console.log('Migrating legacy encryption to AES-256-GCM...');
     const key = await getOrCreateEncryptionKey();
 
     // Split legacy format (iv:encrypted)
@@ -354,7 +354,7 @@ export async function testEncryption(): Promise<boolean> {
 
     // Test encryption
     const encrypted = await encryptData(JSON.stringify(testData));
-    console.log('✅ Encryption successful');
+    if (__DEV__) console.log('Encryption successful');
 
     // Test decryption
     const decrypted = await decryptData(encrypted);
@@ -366,17 +366,16 @@ export async function testEncryption(): Promise<boolean> {
       throw new Error('Decrypted data does not match original');
     }
 
-    console.log('✅ Decryption successful');
-    console.log('✅ Data integrity verified');
+    if (__DEV__) console.log('Decryption and integrity verified');
 
     // Test tamper detection
     try {
       const tamperedData = encrypted.replace(/.$/, '0'); // Modify last character
       await decryptData(tamperedData);
-      console.error('❌ Tamper detection FAILED - this should have thrown an error');
+      console.error('Tamper detection FAILED - this should have thrown an error');
       return false;
     } catch (error) {
-      console.log('✅ Tamper detection successful');
+      if (__DEV__) console.log('Tamper detection successful');
     }
 
     return true;

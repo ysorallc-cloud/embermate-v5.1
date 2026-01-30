@@ -38,23 +38,23 @@ export const QuickActionGrid: React.FC<Props> = ({ actions }) => (
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   button: {
     flex: 1,
     backgroundColor: Colors.glass,
     borderWidth: 1,
     borderColor: Colors.glassBorder,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   icon: {
-    fontSize: 24,
-    marginBottom: Spacing.xs,
+    fontSize: 22,
+    marginBottom: 4,
   },
   label: {
-    ...Typography.captionSmall,
+    fontSize: 11,
     color: Colors.textSecondary,
   },
 });
