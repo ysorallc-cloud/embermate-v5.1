@@ -21,7 +21,7 @@
       "bundleIdentifier": "com.embermate.app",
       "buildNumber": "1",
       "config": {
-        "usesNonExemptEncryption": true
+        "usesNonExemptEncryption": false
       },
       "infoPlist": {
         "NSCameraUsageDescription": "EmberMate needs camera access to take photos of medications, wounds, and medical documents.",
