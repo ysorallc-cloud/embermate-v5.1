@@ -56,6 +56,7 @@ export const CoffeeMomentModal: React.FC<CoffeeMomentModalProps> = ({
   const [breathPhase, setBreathPhase] = useState<BreathPhase>('ready');
   const [isBreathing, setIsBreathing] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // V3: AI-personalized encouragement
   const [encouragement, setEncouragement] = useState<Encouragement | null>(null);
@@ -83,7 +84,7 @@ export const CoffeeMomentModal: React.FC<CoffeeMomentModalProps> = ({
       }).start(() => {
         // Hold
         setBreathPhase('hold');
-        setTimeout(() => {
+        holdTimerRef.current = setTimeout(() => {
           // Exhale - contract
           setBreathPhase('exhale');
           Animated.timing(scaleAnim, {
@@ -100,6 +101,10 @@ export const CoffeeMomentModal: React.FC<CoffeeMomentModalProps> = ({
     runBreathCycle();
 
     return () => {
+      if (holdTimerRef.current) {
+        clearTimeout(holdTimerRef.current);
+        holdTimerRef.current = null;
+      }
       scaleAnim.setValue(1);
     };
   }, [isBreathing, scaleAnim]);
