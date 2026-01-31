@@ -1,9 +1,10 @@
 // ============================================================================
-// NOTIFICATION SETTINGS SCREEN
-// Configure medication reminder preferences
+// NOTIFICATION SETTINGS - Human-Focused Redesign
+// "Here's how often we're allowed to bother you, and about what."
+// Hierarchy: Status Summary → Critical → Helpful → Timing → Alerts → Quiet Mode
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,7 +16,6 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
@@ -29,6 +29,9 @@ import {
 } from '../utils/notificationService';
 import { getMedications } from '../utils/medicationStorage';
 import { scheduleMedicationNotifications } from '../utils/notificationService';
+
+// Aurora Components
+import { AuroraBackground } from '../components/aurora/AuroraBackground';
 
 export default function NotificationSettingsScreen() {
   const router = useRouter();
@@ -48,6 +51,12 @@ export default function NotificationSettingsScreen() {
   const [scheduledCount, setScheduledCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  // New state for redesign
+  const [appointmentsEnabled, setAppointmentsEnabled] = useState(true);
+  const [vitalsEnabled, setVitalsEnabled] = useState(false);
+  const [timingExpanded, setTimingExpanded] = useState(false);
+  const [quietModeEnabled, setQuietModeEnabled] = useState(false);
+
   useEffect(() => {
     loadSettings();
   }, []);
@@ -59,7 +68,7 @@ export default function NotificationSettingsScreen() {
         hasNotificationPermissions(),
         getScheduledNotifications(),
       ]);
-      
+
       setSettings(savedSettings);
       setHasPermission(permission);
       setScheduledCount(scheduled.length);
@@ -73,13 +82,12 @@ export default function NotificationSettingsScreen() {
   const handleRequestPermissions = async () => {
     const granted = await requestNotificationPermissions();
     setHasPermission(granted);
-    
+
     if (granted) {
       Alert.alert(
         'Permissions Granted',
         'You will now receive medication reminders.'
       );
-      // Reschedule notifications
       const medications = await getMedications();
       await scheduleMedicationNotifications(medications);
       await loadSettings();
@@ -91,12 +99,11 @@ export default function NotificationSettingsScreen() {
     }
   };
 
-  const handleToggleEnabled = async (value: boolean) => {
+  const handleToggleMedications = async (value: boolean) => {
     const newSettings = { ...settings, enabled: value };
     setSettings(newSettings);
     await saveNotificationSettings(newSettings);
-    
-    // Reschedule or cancel notifications
+
     const medications = await getMedications();
     await scheduleMedicationNotifications(medications);
     await loadSettings();
@@ -106,27 +113,28 @@ export default function NotificationSettingsScreen() {
     const newSettings = { ...settings, soundEnabled: value };
     setSettings(newSettings);
     await saveNotificationSettings(newSettings);
-    
-    // Reschedule with new settings
+
     const medications = await getMedications();
     await scheduleMedicationNotifications(medications);
-  };
-
-  const handleToggleVibration = async (value: boolean) => {
-    const newSettings = { ...settings, vibrationEnabled: value };
-    setSettings(newSettings);
-    await saveNotificationSettings(newSettings);
   };
 
   const handleReminderTimeChange = async (minutes: number) => {
     const newSettings = { ...settings, reminderMinutesBefore: minutes };
     setSettings(newSettings);
     await saveNotificationSettings(newSettings);
-    
-    // Reschedule with new timing
+    setTimingExpanded(false);
+
     const medications = await getMedications();
     await scheduleMedicationNotifications(medications);
     await loadSettings();
+  };
+
+  const handleQuietModeToggle = (enabled: boolean) => {
+    setQuietModeEnabled(enabled);
+    if (enabled) {
+      // Pause non-critical reminders
+      setVitalsEnabled(false);
+    }
   };
 
   const reminderOptions = [
@@ -137,27 +145,44 @@ export default function NotificationSettingsScreen() {
     { label: '30 minutes before', value: 30 },
   ];
 
+  const currentTimingLabel = useMemo(() => {
+    const option = reminderOptions.find(o => o.value === settings.reminderMinutesBefore);
+    return option?.label || 'At scheduled time';
+  }, [settings.reminderMinutesBefore]);
+
+  // Generate status summary
+  const statusSummary = useMemo(() => {
+    const enabled = [];
+    if (settings.enabled && hasPermission) enabled.push('medications');
+    if (appointmentsEnabled) enabled.push('appointments');
+
+    if (enabled.length === 0) {
+      return 'No reminders are currently enabled.';
+    } else if (enabled.length === 1) {
+      return `You'll receive reminders for ${enabled[0]}.`;
+    } else {
+      return `You'll receive reminders for ${enabled.join(' and ')}.`;
+    }
+  }, [settings.enabled, hasPermission, appointmentsEnabled]);
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <LinearGradient
-          colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
-          style={styles.gradient}
-        >
+      <View style={styles.container}>
+        <AuroraBackground variant="settings" />
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
           <View style={styles.loadingContainer}>
             <Text style={styles.loadingText}>Loading...</Text>
           </View>
-        </LinearGradient>
-      </SafeAreaView>
+        </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
-        style={styles.gradient}
-      >
+    <View style={styles.container}>
+      <AuroraBackground variant="settings" />
+
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Header */}
           <View style={styles.header}>
@@ -170,14 +195,19 @@ export default function NotificationSettingsScreen() {
 
           <Text style={styles.title}>Notification Settings</Text>
 
-          {/* Permission Status */}
+          {/* Status Summary - Instant Orientation */}
+          <View style={styles.statusSummary}>
+            <Text style={styles.statusSummaryText}>{statusSummary}</Text>
+          </View>
+
+          {/* Permission Required Warning */}
           {!hasPermission && (
             <View style={styles.warningCard}>
               <Ionicons name="alert-circle" size={24} color={Colors.warning} />
               <View style={styles.warningContent}>
                 <Text style={styles.warningTitle}>Permissions Required</Text>
                 <Text style={styles.warningText}>
-                  Allow EmberMate to send notifications to receive medication reminders.
+                  Allow EmberMate to send notifications to receive reminders.
                 </Text>
               </View>
               <TouchableOpacity
@@ -189,144 +219,168 @@ export default function NotificationSettingsScreen() {
             </View>
           )}
 
-          {/* Main Toggle */}
+          {/* CRITICAL Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>REMINDER TYPES</Text>
+            <Text style={styles.sectionHeader}>CRITICAL</Text>
 
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Medication Reminders</Text>
-                <Text style={styles.settingDescription}>
-                  Daily notifications for scheduled medications
-                </Text>
+            {/* Medications */}
+            <View style={styles.reminderItem}>
+              <View style={styles.reminderHeader}>
+                <Text style={styles.reminderTitle}>Medications</Text>
+                <Switch
+                  value={settings.enabled && hasPermission}
+                  onValueChange={handleToggleMedications}
+                  disabled={!hasPermission}
+                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(94,234,212,0.3)' }}
+                  thumbColor={settings.enabled && hasPermission ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
+                />
               </View>
-              <Switch
-                value={settings.enabled && hasPermission}
-                onValueChange={handleToggleEnabled}
-                disabled={!hasPermission}
-                trackColor={{ false: Colors.textMuted, true: Colors.accent }}
-                thumbColor={Colors.surface}
-              />
+              <Text style={styles.reminderSubtitle}>Daily reminders at scheduled times</Text>
             </View>
 
-            <View style={styles.infoNote}>
-              <Text style={styles.infoNoteText}>
-                💊 Configure individual medication reminders in the medication form
-              </Text>
+            {/* Appointments */}
+            <View style={styles.reminderItem}>
+              <View style={styles.reminderHeader}>
+                <Text style={styles.reminderTitle}>Appointments</Text>
+                <Switch
+                  value={appointmentsEnabled}
+                  onValueChange={setAppointmentsEnabled}
+                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(94,234,212,0.3)' }}
+                  thumbColor={appointmentsEnabled ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
+                />
+              </View>
+              <Text style={styles.reminderSubtitle}>1 day and 1 hour before</Text>
             </View>
           </View>
 
-          {/* Appointment Reminders */}
+          {/* HELPFUL Section */}
           <View style={styles.section}>
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Appointment Reminders</Text>
-                <Text style={styles.settingDescription}>
-                  Notifications 1 day before and 1 hour before appointments
-                </Text>
-              </View>
-            </View>
+            <Text style={styles.sectionHeader}>HELPFUL</Text>
 
-            <View style={styles.infoNote}>
-              <Text style={styles.infoNoteText}>
-                📅 Configure individual appointment reminders in the appointment form
-              </Text>
+            {/* Vitals */}
+            <View style={styles.reminderItem}>
+              <View style={styles.reminderHeader}>
+                <Text style={styles.reminderTitle}>Vitals</Text>
+                <Switch
+                  value={vitalsEnabled && !quietModeEnabled}
+                  onValueChange={setVitalsEnabled}
+                  disabled={quietModeEnabled}
+                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(94,234,212,0.3)' }}
+                  thumbColor={vitalsEnabled && !quietModeEnabled ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
+                />
+              </View>
+              <Text style={styles.reminderSubtitle}>Daily at 9:00 AM</Text>
             </View>
           </View>
 
-          {/* Vitals Reminders */}
+          {/* TIMING Section - Collapsed by Default */}
           <View style={styles.section}>
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Vitals Reminders</Text>
-                <Text style={styles.settingDescription}>
-                  Daily reminder to log vitals at 9:00 AM
-                </Text>
+            <Text style={styles.sectionHeader}>TIMING</Text>
+
+            <TouchableOpacity
+              style={styles.timingSection}
+              onPress={() => setTimingExpanded(!timingExpanded)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.timingSelected}>
+                <Text style={styles.timingLabel}>Reminder timing</Text>
+                <Text style={styles.timingValue}>{currentTimingLabel} ›</Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
-            <View style={styles.infoNote}>
-              <Text style={styles.infoNoteText}>
-                ❤️ Configure vitals reminders in the vitals log screen
-              </Text>
-            </View>
-          </View>
-
-          {/* Reminder Timing */}
-          {settings.enabled && hasPermission && (
-            <>
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>REMINDER TIMING</Text>
-                {reminderOptions.map(option => (
+            {timingExpanded && (
+              <View style={styles.timingOptions}>
+                {reminderOptions.map((option) => (
                   <TouchableOpacity
                     key={option.value}
-                    style={styles.optionRow}
+                    style={styles.timingOption}
                     onPress={() => handleReminderTimeChange(option.value)}
+                    activeOpacity={0.7}
                   >
-                    <Text style={styles.optionLabel}>{option.label}</Text>
-                    {settings.reminderMinutesBefore === option.value && (
-                      <Ionicons name="checkmark-circle" size={22} color={Colors.accent} />
-                    )}
+                    <Text style={[
+                      styles.timingOptionText,
+                      settings.reminderMinutesBefore === option.value && styles.timingOptionSelected,
+                    ]}>
+                      {settings.reminderMinutesBefore === option.value ? '✓ ' : ''}{option.label}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
+            )}
+          </View>
 
-              {/* Sound & Vibration */}
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>NOTIFICATION STYLE</Text>
-                
-                <View style={styles.settingRow}>
-                  <View style={styles.settingInfo}>
-                    <Text style={styles.settingLabel}>Sound</Text>
-                    <Text style={styles.settingDescription}>Play notification sound</Text>
-                  </View>
-                  <Switch
-                    value={settings.soundEnabled}
-                    onValueChange={handleToggleSound}
-                    trackColor={{ false: Colors.textMuted, true: Colors.accent }}
-                    thumbColor={Colors.surface}
-                  />
-                </View>
+          {/* ALERTS Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionHeader}>ALERTS</Text>
 
-                {Platform.OS === 'android' && (
-                  <View style={styles.settingRow}>
-                    <View style={styles.settingInfo}>
-                      <Text style={styles.settingLabel}>Vibration</Text>
-                      <Text style={styles.settingDescription}>Vibrate on notification</Text>
-                    </View>
-                    <Switch
-                      value={settings.vibrationEnabled}
-                      onValueChange={handleToggleVibration}
-                      trackColor={{ false: Colors.textMuted, true: Colors.accent }}
-                      thumbColor={Colors.surface}
-                    />
-                  </View>
-                )}
+            <View style={styles.soundSection}>
+              <View style={styles.soundHeader}>
+                <Text style={styles.soundTitle}>Allow audible alerts</Text>
+                <Switch
+                  value={settings.soundEnabled}
+                  onValueChange={handleToggleSound}
+                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(94,234,212,0.3)' }}
+                  thumbColor={settings.soundEnabled ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
+                />
               </View>
+              <Text style={styles.soundHelper}>Recommended for medications</Text>
+            </View>
+          </View>
 
-              {/* Status Info */}
-              <View style={styles.infoCard}>
-                <Ionicons name="information-circle" size={20} color={Colors.accent} />
-                <Text style={styles.infoText}>
-                  {scheduledCount} {scheduledCount === 1 ? 'reminder' : 'reminders'} scheduled for active medications
-                </Text>
-              </View>
-            </>
-          )}
+          {/* Quiet Mode - New */}
+          <View style={styles.quietMode}>
+            <View style={styles.quietModeHeader}>
+              <Text style={styles.quietModeTitle}>Quiet mode</Text>
+              <Switch
+                value={quietModeEnabled}
+                onValueChange={handleQuietModeToggle}
+                trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(139,92,246,0.3)' }}
+                thumbColor={quietModeEnabled ? '#A78BFA' : 'rgba(255,255,255,0.5)'}
+              />
+            </View>
+            <Text style={styles.quietModeSubtitle}>Pause non-critical reminders</Text>
+          </View>
+
+          {/* Footer Message - Human, Not Warning */}
+          <View style={styles.footerMessage}>
+            <Text style={styles.footerIcon}>💬</Text>
+            <Text style={styles.footerText}>
+              {scheduledCount > 0
+                ? `${scheduledCount} ${scheduledCount === 1 ? 'reminder' : 'reminders'} scheduled. Adjust anytime.`
+                : 'No medication reminders are active right now. You can turn these on anytime.'}
+            </Text>
+          </View>
 
           <View style={{ height: 40 }} />
         </ScrollView>
-      </LinearGradient>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  gradient: { flex: 1 },
-  scrollView: { flex: 1, paddingHorizontal: Spacing.xl },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { fontSize: 16, color: Colors.textSecondary },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: Spacing.xl,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+  },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -334,23 +388,50 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? 20 : 0,
     paddingBottom: Spacing.md,
   },
-    backButton: {
+  backButton: {
     width: 44,
     height: 44,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backIcon: {
     fontSize: 24,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
   },
-  headerLabel: { fontSize: 11, color: Colors.textMuted, letterSpacing: 1, fontWeight: '600' },
-  placeholder: { width: 40 },
-  title: { fontSize: 28, fontWeight: '300', color: Colors.textPrimary, marginBottom: Spacing.xl },
+  headerLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+    letterSpacing: 1,
+    fontWeight: '600',
+  },
+  placeholder: {
+    width: 44,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '300',
+    color: '#FFFFFF',
+    marginBottom: Spacing.lg,
+  },
+
+  // Status Summary
+  statusSummary: {
+    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(94, 234, 212, 0.2)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 20,
+  },
+  statusSummaryText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    lineHeight: 20,
+  },
+
+  // Permission Warning
   warningCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -362,65 +443,176 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(251, 191, 36, 0.2)',
   },
-  warningContent: { flex: 1 },
-  warningTitle: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary, marginBottom: 4 },
-  warningText: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
+  warningContent: {
+    flex: 1,
+  },
+  warningTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  warningText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 18,
+  },
   permissionButton: {
     backgroundColor: Colors.accent,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.sm,
   },
-  permissionButtonText: { fontSize: 14, fontWeight: '600', color: Colors.surface },
-  section: { marginBottom: Spacing.xl },
-  sectionLabel: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    letterSpacing: 0.8,
+  permissionButtonText: {
+    fontSize: 14,
     fontWeight: '600',
-    marginBottom: Spacing.md,
+    color: Colors.background,
   },
-  settingRow: {
+
+  // Sections
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.5)',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+
+  // Reminder Items
+  reminderItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+  },
+  reminderHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
-    marginBottom: Spacing.sm,
-  },
-  settingInfo: { flex: 1, marginRight: Spacing.md },
-  settingLabel: { fontSize: 16, color: Colors.textPrimary, fontWeight: '500', marginBottom: 4 },
-  settingDescription: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
-  optionRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
-    marginBottom: Spacing.sm,
+    marginBottom: 4,
   },
-  optionLabel: { fontSize: 15, color: Colors.textPrimary },
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: Colors.surfaceAlt,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
+  reminderTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
-  infoText: { flex: 1, fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
-  infoNote: {
-    backgroundColor: 'rgba(139, 168, 136, 0.08)',
-    borderRadius: BorderRadius.sm,
-    padding: Spacing.md,
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  infoNoteText: {
+  reminderSubtitle: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+
+  // Timing Section
+  timingSection: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 14,
+  },
+  timingSelected: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timingLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  timingValue: {
+    fontSize: 13,
+    color: 'rgba(94, 234, 212, 0.8)',
+  },
+  timingOptions: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  timingOption: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  timingOptionText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  timingOptionSelected: {
+    color: '#5EEAD4',
+  },
+
+  // Sound Section
+  soundSection: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 14,
+  },
+  soundHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  soundTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  soundHelper: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+
+  // Quiet Mode
+  quietMode: {
+    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 20,
+  },
+  quietModeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  quietModeTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#A78BFA',
+  },
+  quietModeSubtitle: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+
+  // Footer Message
+  footerMessage: {
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderRadius: 10,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  footerIcon: {
+    fontSize: 16,
+  },
+  footerText: {
+    flex: 1,
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 18,
   },
 });
