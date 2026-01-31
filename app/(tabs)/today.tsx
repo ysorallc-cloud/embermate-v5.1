@@ -150,8 +150,8 @@ export default function TodayScreen() {
     return count;
   };
 
-  // Transform data for timeline
-  const timelineMedications = medications.map((med) => ({
+  // Transform data for timeline - MUST be memoized to prevent infinite re-renders
+  const timelineMedications = useMemo(() => medications.map((med) => ({
     id: med.id,
     name: med.name,
     timeSlot: med.timeSlot as 'morning' | 'evening' | 'afternoon' | 'bedtime',
@@ -159,16 +159,16 @@ export default function TodayScreen() {
     scheduledMinute: 0,
     taken: med.taken || false,
     takenTime: med.lastTaken ? new Date(med.lastTaken) : undefined,
-  }));
+  })), [medications]);
 
-  const timelineAppointments = appointments.map((apt) => ({
+  const timelineAppointments = useMemo(() => appointments.map((apt) => ({
     id: apt.id,
     provider: apt.provider,
     specialty: apt.specialty,
     date: apt.date,
     time: apt.time || '12:00',
     location: apt.location,
-  }));
+  })), [appointments]);
 
   // Memoize today's date to prevent infinite re-renders in useTimeline
   const today = React.useMemo(() => new Date(), []);
