@@ -1,6 +1,6 @@
 // ============================================================================
-// TAB LAYOUT - 4 Tabs (Today, Log, Hub, Care Team)
-// V3 with expanded navigation
+// TAB LAYOUT - 4 Tabs (Now, Record, Understand, Support)
+// V4 with renamed navigation for clarity
 // ============================================================================
 
 import { Tabs } from 'expo-router';
@@ -70,39 +70,39 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="today"
+        name="now"
         options={{
-          title: 'Today',
+          title: 'Now',
           tabBarIcon: ({ focused }) => <TabIcon icon="☀️" focused={focused} />,
-          tabBarAccessibilityLabel: 'Today tab',
-          tabBarButtonTestID: 'tab-today',
+          tabBarAccessibilityLabel: 'Now tab. What is happening right now',
+          tabBarButtonTestID: 'tab-now',
         }}
       />
       <Tabs.Screen
-        name="log"
+        name="record"
         options={{
-          title: 'Log',
+          title: 'Record',
           tabBarIcon: ({ focused }) => <TabIcon icon="✏️" focused={focused} />,
-          tabBarAccessibilityLabel: 'Log tab. Record medications, vitals, and activities',
-          tabBarButtonTestID: 'tab-log',
+          tabBarAccessibilityLabel: 'Record tab. Record medications, vitals, and activities',
+          tabBarButtonTestID: 'tab-record',
         }}
       />
       <Tabs.Screen
-        name="brief"
+        name="understand"
         options={{
-          title: 'Hub',
+          title: 'Understand',
           tabBarIcon: ({ focused }) => <TabIcon icon="📊" focused={focused} />,
-          tabBarAccessibilityLabel: 'Hub tab. View health summary and insights',
-          tabBarButtonTestID: 'tab-hub',
+          tabBarAccessibilityLabel: 'Understand tab. View health patterns and insights',
+          tabBarButtonTestID: 'tab-understand',
         }}
       />
       <Tabs.Screen
-        name="care"
+        name="support"
         options={{
-          title: 'Care Team',
+          title: 'Support',
           tabBarIcon: ({ focused }) => <TabIcon icon="👥" focused={focused} />,
-          tabBarAccessibilityLabel: 'Care Team tab. Manage family members and caregivers',
-          tabBarButtonTestID: 'tab-care-team',
+          tabBarAccessibilityLabel: 'Support tab. Manage care circle and family',
+          tabBarButtonTestID: 'tab-support',
         }}
       />
       <Tabs.Screen

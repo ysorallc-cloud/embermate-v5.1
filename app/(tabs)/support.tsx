@@ -41,7 +41,7 @@ interface RecentShare {
   date: string;
 }
 
-export default function FamilyScreen() {
+export default function SupportScreen() {
   const router = useRouter();
   const [caregivers, setCaregivers] = useState<CaregiverProfile[]>([]);
   const [activities, setActivities] = useState<CareActivity[]>([]);
@@ -335,8 +335,8 @@ export default function FamilyScreen() {
               <Text style={styles.headerDate}>
                 {hasOtherCaregivers ? `${activeCount} active • ${weeklyUpdates} updates this week` : 'CARE CIRCLE'}
               </Text>
-              <Text style={styles.headerTitle}>Caring together</Text>
-              <Text style={styles.headerSubtitle}>Your support circle</Text>
+              <Text style={styles.headerTitle}>Support</Text>
+              <Text style={styles.headerSubtitle}>Your care circle</Text>
             </View>
             <TouchableOpacity
               style={styles.notifButton}

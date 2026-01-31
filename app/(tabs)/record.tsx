@@ -1,6 +1,6 @@
 // ============================================================================
-// LOG TAB - 8 Collapsible Sections (Restructured per COMPLETE_IMPLEMENTATION_GUIDE)
-// All logging in one place with collapsible sections and Save All button
+// RECORD TAB - 8 Collapsible Sections
+// All health data recording in one place with collapsible sections
 // ============================================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -47,7 +47,7 @@ const COMMON_SIDE_EFFECTS = ['None', 'Dizzy', 'Nausea', 'Tired', 'Headache', 'Dr
 const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 const WATER_GOAL = 8;
 
-export default function LogTab() {
+export default function RecordTab() {
   const [expandedSections, setExpandedSections] = useState<Set<SectionId>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -420,7 +420,7 @@ export default function LogTab() {
             style={styles.headerGradient}
           >
             <View style={styles.header}>
-              <Text style={styles.title}>Log Health Data</Text>
+              <Text style={styles.title}>Record</Text>
               <Text style={styles.subtitle}>Tap sections to expand</Text>
             </View>
           </LinearGradient>

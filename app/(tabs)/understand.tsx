@@ -1,6 +1,6 @@
 // ============================================================================
-// HUB PAGE - Aurora Redesign
-// Care Brief: Narrative summary + Health tracking hub
+// UNDERSTAND PAGE - Health Insights & Patterns
+// View health summary, insights, and patterns
 // ============================================================================
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -29,7 +29,7 @@ import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { GlassCard } from '../../components/aurora/GlassCard';
 import { SectionHeader } from '../../components/aurora/SectionHeader';
 
-export default function HubScreen() {
+export default function UnderstandScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [medications, setMedications] = useState<Medication[]>([]);
@@ -419,8 +419,8 @@ export default function HubScreen() {
           {/* Header - Standardized */}
           <View style={styles.header}>
             <View style={styles.headerText}>
-              <Text style={styles.headerTitle}>Hub</Text>
-              <Text style={styles.headerSubtitle}>Your health dashboard</Text>
+              <Text style={styles.headerTitle}>Understand</Text>
+              <Text style={styles.headerSubtitle}>Health patterns & insights</Text>
             </View>
             <TouchableOpacity
               style={styles.settingsButton}

@@ -59,7 +59,7 @@ export default function Index() {
 
   // P1.1: Route to onboarding if not complete, otherwise to Today
   if (onboardingDone) {
-    return <Redirect href="/(tabs)/today" />;
+    return <Redirect href="/(tabs)/now" />;
   }
 
   return <Redirect href="/(onboarding)" />;

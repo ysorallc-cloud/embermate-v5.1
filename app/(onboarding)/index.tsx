@@ -80,7 +80,7 @@ export default function OnboardingFlow() {
       }
 
       // Navigate to main app
-      router.replace('/(tabs)/today');
+      router.replace('/(tabs)/now');
     } catch (error) {
       console.error('Error saving onboarding state:', error);
     }
