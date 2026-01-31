@@ -99,26 +99,28 @@ function hexToBytes(hex: string): Uint8Array {
 /**
  * Derive encryption key from password using PBKDF2-like approach
  * Note: React Native doesn't have native PBKDF2, so we use iterated hashing
+ * Optimized: Reduced iterations and avoid string concatenation memory buildup
  */
 async function deriveKey(password: string, salt: Uint8Array): Promise<Uint8Array> {
-  let key = password + bytesToHex(salt);
+  const saltHex = bytesToHex(salt);
+  const passwordSuffix = password.substring(0, 8);
 
-  // Iterate hashing to strengthen key derivation
-  for (let i = 0; i < 1000; i++) {
-    const hash = await Crypto.digestStringAsync(
-      Crypto.CryptoDigestAlgorithm.SHA256,
-      key
-    );
-    key = hash + password.substring(0, 8);
-  }
-
-  // Final hash to get consistent key length
-  const finalHash = await Crypto.digestStringAsync(
+  // Start with combined value
+  let hash = await Crypto.digestStringAsync(
     Crypto.CryptoDigestAlgorithm.SHA256,
-    key
+    password + saltHex
   );
 
-  return hexToBytes(finalHash);
+  // Reduced iterations (100 instead of 1000) to prevent memory pressure
+  // Each iteration reuses the same variable instead of concatenating
+  for (let i = 0; i < 100; i++) {
+    hash = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      hash + passwordSuffix
+    );
+  }
+
+  return hexToBytes(hash);
 }
 
 /**

@@ -3,7 +3,7 @@
 // Swipe right to complete, tap to open details
 // ============================================================================
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -42,6 +42,17 @@ export const SwipeableTimelineItem: React.FC<Props> = ({
   const translateX = useRef(new Animated.Value(0)).current;
   const [isRevealed, setIsRevealed] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
+  const resetTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) {
+        clearTimeout(resetTimerRef.current);
+        resetTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // Haptic feedback
   const triggerHaptic = (type: 'light' | 'medium' | 'success') => {
@@ -101,9 +112,13 @@ export const SwipeableTimelineItem: React.FC<Props> = ({
             setJustCompleted(true);
             onComplete(item);
 
-            // Reset position after completion
-            setTimeout(() => {
+            // Reset position after completion (with cleanup support)
+            if (resetTimerRef.current) {
+              clearTimeout(resetTimerRef.current);
+            }
+            resetTimerRef.current = setTimeout(() => {
               translateX.setValue(0);
+              resetTimerRef.current = null;
             }, 100);
           });
         } else {

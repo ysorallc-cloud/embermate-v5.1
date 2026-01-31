@@ -133,18 +133,26 @@ async function loadCorrelationData(
       }
     });
     
-    // Calculate medication adherence per day
+    // Calculate medication adherence per day (optimized: single pass with pre-built lookup)
     const medLogs = await getMedicationLogs();
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
-      const dayLogs = medLogs.filter(log => log.timestamp.split('T')[0] === dateStr);
-      if (dayLogs.length > 0) {
-        const taken = dayLogs.filter(log => log.taken).length;
-        const adherence = (taken / dayLogs.length) * 100;
-        const existing = dataMap.get(dateStr);
-        if (existing) {
-          existing.medicationAdherence = adherence;
-        }
+
+    // Build a lookup map by date in a single pass (avoids nested filter loops)
+    const medLogsByDate = new Map<string, { taken: number; total: number }>();
+    for (const log of medLogs) {
+      const logDate = log.timestamp.split('T')[0];
+      if (logDate >= startDate && logDate <= endDate) {
+        const existing = medLogsByDate.get(logDate) || { taken: 0, total: 0 };
+        existing.total++;
+        if (log.taken) existing.taken++;
+        medLogsByDate.set(logDate, existing);
+      }
+    }
+
+    // Apply adherence from the lookup map
+    for (const [dateStr, counts] of medLogsByDate) {
+      const existing = dataMap.get(dateStr);
+      if (existing && counts.total > 0) {
+        existing.medicationAdherence = (counts.taken / counts.total) * 100;
       }
     }
     

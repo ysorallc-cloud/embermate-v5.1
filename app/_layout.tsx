@@ -5,8 +5,8 @@
 
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, StyleSheet, Platform, useWindowDimensions, AppState } from 'react-native';
-import { useEffect, useState, useRef } from 'react';
+import { View, StyleSheet, Platform, useWindowDimensions } from 'react-native';
+import { useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { resetDailyMedicationStatus } from '../utils/medicationStorage';
 import { requestNotificationPermissions } from '../utils/notificationService';
@@ -53,10 +53,19 @@ function WebContainer({ children }: { children: React.ReactNode }) {
 export default function RootLayout() {
   // Handle notification taps
   useNotificationHandler();
+  const notificationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     checkAndResetMedicationStatus();
     requestNotificationPermissionsOnStartup();
+
+    // Cleanup timer on unmount
+    return () => {
+      if (notificationTimerRef.current) {
+        clearTimeout(notificationTimerRef.current);
+        notificationTimerRef.current = null;
+      }
+    };
   }, []);
 
   async function checkAndResetMedicationStatus() {
@@ -77,12 +86,14 @@ export default function RootLayout() {
     try {
       // Only request on first launch or if not yet requested
       const hasAskedBefore = await AsyncStorage.getItem('@embermate_notification_permissions_asked');
-      
+
       if (!hasAskedBefore) {
         // Wait a moment to let UI settle before showing permission dialog
-        setTimeout(async () => {
+        // Store ref for cleanup on unmount
+        notificationTimerRef.current = setTimeout(async () => {
           await requestNotificationPermissions();
           await AsyncStorage.setItem('@embermate_notification_permissions_asked', 'true');
+          notificationTimerRef.current = null;
         }, 1000);
       }
     } catch (error) {
