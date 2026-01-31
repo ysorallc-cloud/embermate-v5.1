@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
   withSequence,
   Easing,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { Colors, Typography, Spacing } from '../../_theme/theme-tokens';
@@ -38,6 +39,11 @@ export const WelcomeScreen: React.FC = () => {
       -1,
       false
     );
+
+    return () => {
+      cancelAnimation(scale);
+      cancelAnimation(glowOpacity);
+    };
   }, []);
 
   const logoAnimatedStyle = useAnimatedStyle(() => ({

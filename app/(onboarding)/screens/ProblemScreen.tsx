@@ -14,6 +14,7 @@ import Animated, {
   withDelay,
   Easing,
   FadeInDown,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { Colors, Typography, Spacing } from '../../_theme/theme-tokens';
@@ -50,6 +51,11 @@ export const ProblemScreen: React.FC = () => {
       -1,
       false
     );
+
+    return () => {
+      cancelAnimation(heartScale);
+      cancelAnimation(heartOpacity);
+    };
   }, []);
 
   const heartAnimatedStyle = useAnimatedStyle(() => ({

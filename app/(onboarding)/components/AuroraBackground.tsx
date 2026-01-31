@@ -7,6 +7,7 @@ import Animated, {
   withRepeat,
   withTiming,
   Easing,
+  cancelAnimation,
 } from 'react-native-reanimated';
 
 export type OnboardingAuroraVariant = 'welcome' | 'track' | 'understand' | 'connect' | 'coffee';
@@ -73,6 +74,11 @@ export const AuroraBackground: React.FC<Props> = ({ variant }) => {
       -1,
       true
     );
+
+    return () => {
+      cancelAnimation(translateX);
+      cancelAnimation(translateY);
+    };
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({

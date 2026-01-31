@@ -13,6 +13,7 @@ import Animated, {
   withSequence,
   Easing,
   FadeInDown,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { Colors, Typography, Spacing } from '../../_theme/theme-tokens';
@@ -48,6 +49,11 @@ export const SolutionScreen: React.FC = () => {
       -1,
       false
     );
+
+    return () => {
+      cancelAnimation(fireScale);
+      cancelAnimation(glowOpacity);
+    };
   }, []);
 
   const fireAnimatedStyle = useAnimatedStyle(() => ({

@@ -7,6 +7,7 @@ import Animated, {
   withSequence,
   withTiming,
   Easing,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { GlassCard } from '../../../components/aurora/GlassCard';
@@ -47,6 +48,11 @@ export const CoffeeMomentScreen: React.FC<Props> = ({ onAccept }) => {
       -1,
       false
     );
+
+    return () => {
+      cancelAnimation(scale);
+      cancelAnimation(opacity);
+    };
   }, []);
 
   const orbAnimatedStyle = useAnimatedStyle(() => ({

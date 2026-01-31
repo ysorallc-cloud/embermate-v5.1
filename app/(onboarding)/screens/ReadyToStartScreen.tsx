@@ -13,6 +13,7 @@ import Animated, {
   withSequence,
   withTiming,
   Easing,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { Colors, Spacing, BorderRadius } from '../../_theme/theme-tokens';
@@ -43,6 +44,10 @@ export const ReadyToStartScreen: React.FC<ReadyToStartScreenProps> = ({ onAccept
       -1,
       false
     );
+
+    return () => {
+      cancelAnimation(rocketScale);
+    };
   }, []);
 
   const rocketAnimatedStyle = useAnimatedStyle(() => ({
