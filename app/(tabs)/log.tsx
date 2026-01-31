@@ -1,532 +1,407 @@
 // ============================================================================
-// LOG TAB - Quick Capture (Redesigned)
-// V3.1: 3×2 grid, secondary actions, collapsible history
+// LOG TAB - 8 Collapsible Sections (Restructured per COMPLETE_IMPLEMENTATION_GUIDE)
+// All logging in one place with collapsible sections and Save All button
 // ============================================================================
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
   Text,
-  Modal,
-  Animated,
-  PanResponder,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { format } from 'date-fns';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
-import { GlassCard } from '../../components/aurora/GlassCard';
 import { Colors, Spacing, Typography } from '../../theme/theme-tokens';
-import { getMedications } from '../../utils/medicationStorage';
-import { getVitals, deleteVital } from '../../utils/vitalsStorage';
-import { getNotes, deleteNote } from '../../utils/noteStorage';
-import { getDailyTracking } from '../../utils/dailyTrackingStorage';
-import { getSymptoms, deleteSymptom } from '../../utils/symptomStorage';
+import { getMedications, Medication } from '../../utils/medicationStorage';
+import {
+  saveMedicationLog,
+  saveVitalsLog,
+  saveMoodLog,
+  saveSymptomLog,
+  saveSleepLog,
+  saveMealsLog,
+  saveWaterLog,
+  saveNotesLog,
+  getTodayMedicationLog,
+  getTodayVitalsLog,
+  getTodayMoodLog,
+  getTodaySymptomLog,
+  getTodaySleepLog,
+  getTodayMealsLog,
+  getTodayWaterLog,
+  getTodayNotesLog,
+  updateTodayWaterLog,
+} from '../../utils/centralStorage';
 
-const SWIPE_THRESHOLD = -80;
+type SectionId = 'medications' | 'vitals' | 'symptoms' | 'mood' | 'sleep' | 'meals' | 'water' | 'notes';
 
-// Primary actions - 6 items for 3×2 grid (FIXED: unique colors)
-const PRIMARY_LOGS = [
-  { id: 'meds', icon: '💊', label: 'Meds', color: Colors.amber, route: '/medication-confirm' },
-  { id: 'vitals', icon: '🫀', label: 'Vitals', color: Colors.rose, route: '/log-vitals' },
-  { id: 'symptoms', icon: '🩺', label: 'Symptoms', color: Colors.orange, route: '/log-symptom' },
-  { id: 'mood', icon: '😊', label: 'Mood', color: Colors.gold, route: '/log-mood' },
-  { id: 'sleep', icon: '😴', label: 'Sleep', color: Colors.indigo, route: '/log-sleep' },
-  { id: 'nutrition', icon: '🍽️', label: 'Meals', color: Colors.green, route: '/log-meal' },
-];
-
-// Secondary actions - compact row (Voice Note removed - merged into Notes)
-const SECONDARY_LOGS = [
-  { id: 'notes', icon: '📝', label: 'Note', color: Colors.accent, route: '/log-note' },
-];
-
-// Water storage key
-const WATER_STORAGE_KEY = '@embermate_water_today';
-const WATER_GOAL = 8; // glasses per day
-
-interface LogEntry {
-  id: string;
-  icon: string;
-  type: string;
-  value: string;
-  time: string;
-  route?: string;
-}
-
-// Storage key for onboarding
-const ONBOARDING_KEY = 'log_onboarding_shown';
+const COMMON_SYMPTOMS = ['Headache', 'Fatigue', 'Nausea', 'Dizziness', 'Pain', 'Shortness of breath', 'Anxiety', 'Insomnia'];
+const COMMON_SIDE_EFFECTS = ['None', 'Dizzy', 'Nausea', 'Tired', 'Headache', 'Drowsy'];
+const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+const WATER_GOAL = 8;
 
 export default function LogTab() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
-  const [recentLogs, setRecentLogs] = useState<LogEntry[]>([]);
-  const [historyExpanded, setHistoryExpanded] = useState(true);
-  const [todayCount, setTodayCount] = useState(0);
+  const [expandedSections, setExpandedSections] = useState<Set<SectionId>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Onboarding modal state
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  // Medications state
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [selectedMedIds, setSelectedMedIds] = useState<string[]>([]);
+  const [sideEffects, setSideEffects] = useState<string[]>([]);
 
-  // Quick action menu state
-  const [selectedEntry, setSelectedEntry] = useState<LogEntry | null>(null);
-  const [showActionMenu, setShowActionMenu] = useState(false);
+  // Vitals state
+  const [systolic, setSystolic] = useState('');
+  const [diastolic, setDiastolic] = useState('');
+  const [heartRate, setHeartRate] = useState('');
+  const [glucose, setGlucose] = useState('');
+  const [weight, setWeight] = useState('');
 
-  // Sequential logging state
-  const [showSequentialPrompt, setShowSequentialPrompt] = useState(false);
-  const [lastLoggedType, setLastLoggedType] = useState<string | null>(null);
+  // Symptoms state
+  const [symptoms, setSymptoms] = useState<string[]>([]);
+  const [symptomNotes, setSymptomNotes] = useState('');
 
-  // Water counter state
-  const [waterCount, setWaterCount] = useState(0);
+  // Mood state
+  const [mood, setMood] = useState<number | null>(null);
+  const [energy, setEnergy] = useState<number | null>(null);
+  const [pain, setPain] = useState<number | null>(null);
 
-  // Contextual info state
-  const [medsInfo, setMedsInfo] = useState({ pending: 0, total: 0, allTaken: false });
-  const [vitalsInfo, setVitalsInfo] = useState<{ lastReading: string | null; lastTime: string | null }>({ lastReading: null, lastTime: null });
-  const [sleepInfo, setSleepInfo] = useState<string | null>(null);
-  const [mealsLogged, setMealsLogged] = useState(0);
+  // Sleep state
+  const [sleepHours, setSleepHours] = useState('');
+  const [sleepQuality, setSleepQuality] = useState<number>(0);
 
-  // Check for first-time visit
-  useEffect(() => {
-    checkOnboarding();
-  }, []);
+  // Meals state
+  const [mealsLogged, setMealsLogged] = useState<string[]>([]);
+  const [mealDescription, setMealDescription] = useState('');
 
-  const checkOnboarding = async () => {
-    try {
-      const shown = await AsyncStorage.getItem(ONBOARDING_KEY);
-      if (!shown) {
-        setShowOnboarding(true);
-      }
-    } catch (error) {
-      console.error('Error checking onboarding:', error);
-    }
-  };
+  // Water state
+  const [waterGlasses, setWaterGlasses] = useState(0);
 
-  const dismissOnboarding = async () => {
-    try {
-      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
-      setShowOnboarding(false);
-    } catch (error) {
-      console.error('Error dismissing onboarding:', error);
-    }
-  };
-
-  // Load water count for today
-  const loadWaterCount = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const data = await AsyncStorage.getItem(WATER_STORAGE_KEY);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (parsed.date === today) {
-          setWaterCount(parsed.count);
-        } else {
-          // Reset for new day
-          setWaterCount(0);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading water count:', error);
-    }
-  };
-
-  // Increment water count
-  const incrementWater = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const newCount = Math.min(waterCount + 1, WATER_GOAL + 4); // Allow up to 12 glasses
-      setWaterCount(newCount);
-      await AsyncStorage.setItem(WATER_STORAGE_KEY, JSON.stringify({ date: today, count: newCount }));
-    } catch (error) {
-      console.error('Error incrementing water:', error);
-    }
-  };
-
-  // Load contextual info for buttons
-  const loadContextualInfo = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-
-      // Meds info
-      const meds = await getMedications();
-      const activeMeds = meds.filter(m => m.active !== false);
-      const takenToday = activeMeds.filter(m => {
-        if (!m.lastTaken) return false;
-        return new Date(m.lastTaken).toISOString().split('T')[0] === today && m.taken;
-      });
-      setMedsInfo({
-        pending: activeMeds.length - takenToday.length,
-        total: activeMeds.length,
-        allTaken: takenToday.length >= activeMeds.length && activeMeds.length > 0,
-      });
-
-      // Vitals info - check for BP readings (systolic/diastolic)
-      const vitals = await getVitals();
-      const todayVitals = vitals.filter(v => new Date(v.timestamp).toISOString().split('T')[0] === today);
-      if (todayVitals.length > 0) {
-        // Look for BP readings first
-        const systolic = todayVitals.find(v => v.type === 'systolic');
-        const diastolic = todayVitals.find(v => v.type === 'diastolic');
-        let displayReading: string;
-        if (systolic && diastolic) {
-          displayReading = `${systolic.value}/${diastolic.value}`;
-        } else {
-          const latest = todayVitals[todayVitals.length - 1];
-          displayReading = `${latest.value}${latest.unit || ''}`;
-        }
-        setVitalsInfo({
-          lastReading: displayReading,
-          lastTime: format(new Date(todayVitals[todayVitals.length - 1].timestamp), 'h:mm a'),
-        });
-      } else {
-        setVitalsInfo({ lastReading: null, lastTime: null });
-      }
-
-      // Sleep info - check daily tracking
-      const tracking = await getDailyTracking(today);
-      if (tracking?.sleep) {
-        setSleepInfo(`${tracking.sleep}h`);
-      } else {
-        setSleepInfo(null);
-      }
-
-      // Meals logged count
-      const notes = await getNotes();
-      const mealNotes = notes.filter(n => n.date === today);
-      setMealsLogged(mealNotes.length);
-    } catch (error) {
-      console.error('Error loading contextual info:', error);
-    }
-  };
+  // Notes state
+  const [notes, setNotes] = useState('');
 
   useFocusEffect(
     useCallback(() => {
-      loadRecentLogs();
-      loadWaterCount();
-      loadContextualInfo();
-
-      // Check if returning from a log action (sequential logging)
-      if (params.justLogged) {
-        setLastLoggedType(params.justLogged as string);
-        setShowSequentialPrompt(true);
-      }
-    }, [params.justLogged])
+      loadTodayData();
+    }, [])
   );
 
-  const loadRecentLogs = async () => {
-    const today = new Date().toISOString().split('T')[0];
-    const logs: LogEntry[] = [];
-
+  const loadTodayData = async () => {
     try {
-      // Get medications taken today
-      const meds = await getMedications();
-      const takenMeds = meds.filter((m) => {
-        if (!m.lastTaken) return false;
-        const takenDate = new Date(m.lastTaken).toISOString().split('T')[0];
-        return takenDate === today && m.taken;
-      });
-      takenMeds.forEach((med) => {
-        logs.push({
-          id: `med-${med.id}`,
-          icon: '💊',
-          type: 'Medication',
-          value: med.name,
-          time: format(new Date(med.lastTaken!), 'h:mm a'),
-          route: '/medication-confirm',
-        });
-      });
+      setLoading(true);
 
-      // Get vitals logged today
-      const vitals = await getVitals();
-      const todayVitals = vitals.filter((v) => {
-        const vitalDate = new Date(v.timestamp).toISOString().split('T')[0];
-        return vitalDate === today;
-      });
-      todayVitals.forEach((vital) => {
-        logs.push({
-          id: `vital-${vital.timestamp}`,
-          icon: '🫀',
-          type: 'Vitals',
-          value: `${vital.type}: ${vital.value}${vital.unit || ''}`,
-          time: format(new Date(vital.timestamp), 'h:mm a'),
-          route: '/log-vitals',
-        });
-      });
+      // Load medications from existing storage
+      const allMeds = await getMedications();
+      const activeMeds = allMeds.filter(m => m.active !== false);
+      setMedications(activeMeds);
 
-      // Get notes logged today
-      const notes = await getNotes();
-      const todayNotes = notes.filter((n) => n.date === today);
-      todayNotes.forEach((note) => {
-        logs.push({
-          id: `note-${note.id}`,
-          icon: '📝',
-          type: 'Note',
-          value: note.content.substring(0, 40) + (note.content.length > 40 ? '...' : ''),
-          time: format(new Date(note.timestamp), 'h:mm a'),
-          route: '/log-note',
-        });
-      });
+      // Load today's logs from central storage
+      const [todayMeds, todayVitals, todayMood, todaySymptoms, todaySleep, todayMeals, todayWater, todayNotes] = await Promise.all([
+        getTodayMedicationLog(),
+        getTodayVitalsLog(),
+        getTodayMoodLog(),
+        getTodaySymptomLog(),
+        getTodaySleepLog(),
+        getTodayMealsLog(),
+        getTodayWaterLog(),
+        getTodayNotesLog(),
+      ]);
 
-      // Get symptoms logged today
-      const symptoms = await getSymptoms();
-      const todaySymptoms = symptoms.filter((s) => s.date === today);
-      todaySymptoms.forEach((symptom) => {
-        logs.push({
-          id: `symptom-${symptom.id}`,
-          icon: '🩺',
-          type: 'Symptom',
-          value: symptom.symptom,
-          time: format(new Date(symptom.timestamp || Date.now()), 'h:mm a'),
-          route: '/log-symptom',
-        });
-      });
-
-      // Get daily tracking (mood, etc.)
-      const tracking = await getDailyTracking(today);
-      if (tracking?.mood) {
-        logs.push({
-          id: 'mood',
-          icon: '😊',
-          type: 'Mood',
-          value: `${tracking.mood}/10`,
-          time: format(new Date(), 'h:mm a'),
-          route: '/log-mood',
-        });
+      // Restore medications state
+      if (todayMeds) {
+        setSelectedMedIds(todayMeds.medicationIds);
+        setSideEffects(todayMeds.sideEffects || []);
+      } else {
+        // Pre-select all medications by default
+        setSelectedMedIds(activeMeds.map(m => m.id));
       }
 
-      // Sort by time (most recent first)
-      logs.sort((a, b) => {
-        const timeA = new Date(`${today} ${a.time}`);
-        const timeB = new Date(`${today} ${b.time}`);
-        return timeB.getTime() - timeA.getTime();
-      });
+      // Restore vitals state
+      if (todayVitals) {
+        setSystolic(todayVitals.systolic?.toString() || '');
+        setDiastolic(todayVitals.diastolic?.toString() || '');
+        setHeartRate(todayVitals.heartRate?.toString() || '');
+        setGlucose(todayVitals.glucose?.toString() || '');
+        setWeight(todayVitals.weight?.toString() || '');
+      }
 
-      setTodayCount(logs.length);
-      setRecentLogs(logs.slice(0, 8)); // Show more entries
+      // Restore mood state
+      if (todayMood) {
+        setMood(todayMood.mood);
+        setEnergy(todayMood.energy);
+        setPain(todayMood.pain);
+      }
+
+      // Restore symptoms state
+      if (todaySymptoms) {
+        setSymptoms(todaySymptoms.symptoms);
+        setSymptomNotes(todaySymptoms.notes || '');
+      }
+
+      // Restore sleep state
+      if (todaySleep) {
+        setSleepHours(todaySleep.hours.toString());
+        setSleepQuality(todaySleep.quality);
+      }
+
+      // Restore meals state
+      if (todayMeals) {
+        setMealsLogged(todayMeals.meals);
+        setMealDescription(todayMeals.description || '');
+      }
+
+      // Restore water state
+      if (todayWater) {
+        setWaterGlasses(todayWater.glasses);
+      }
+
+      // Restore notes state
+      if (todayNotes) {
+        setNotes(todayNotes.content);
+      }
+
     } catch (error) {
-      console.error('Error loading recent logs:', error);
+      console.error('Error loading today data:', error);
+      Alert.alert('Error', 'Failed to load data');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Time-based contextual tip (memoized to prevent recalculation)
-  const tip = useMemo(() => {
-    const hour = new Date().getHours();
-
-    if (hour >= 5 && hour < 10) {
-      return {
-        icon: '🌅',
-        text: 'Morning vitals are most consistent for tracking patterns.',
-      };
-    } else if (hour >= 10 && hour < 12) {
-      return {
-        icon: '💧',
-        text: 'Mid-morning is a great time to log water intake.',
-      };
-    } else if (hour >= 12 && hour < 14) {
-      return {
-        icon: '🥗',
-        text: 'Log your lunch to track nutrition patterns.',
-      };
-    } else if (hour >= 14 && hour < 17) {
-      return {
-        icon: '🩺',
-        text: 'Afternoon check: Note any symptoms or changes.',
-      };
-    } else if (hour >= 17 && hour < 20) {
-      return {
-        icon: '💊',
-        text: 'Evening medications due? Log them now.',
-      };
-    } else if (hour >= 20 && hour < 23) {
-      return {
-        icon: '😊',
-        text: 'End of day: How was your mood and energy?',
-      };
+  const toggleSection = (sectionId: SectionId) => {
+    const newExpanded = new Set(expandedSections);
+    if (newExpanded.has(sectionId)) {
+      newExpanded.delete(sectionId);
     } else {
-      return {
-        icon: '😴',
-        text: 'Track sleep quality in the morning for better insights.',
-      };
+      newExpanded.add(sectionId);
     }
-  }, []);
-
-  // Open quick action menu on entry tap
-  const handleEntryPress = (entry: LogEntry) => {
-    setSelectedEntry(entry);
-    setShowActionMenu(true);
+    setExpandedSections(newExpanded);
   };
 
-  // Quick action: Log Again (navigate to log screen with prefill)
-  const handleLogAgain = () => {
-    if (selectedEntry?.route) {
-      setShowActionMenu(false);
-      router.push(selectedEntry.route as any);
-    }
-  };
-
-  // Quick action: Edit (same as log again for now)
-  const handleEdit = () => {
-    if (selectedEntry?.route) {
-      setShowActionMenu(false);
-      router.push(selectedEntry.route as any);
-    }
-  };
-
-  // Quick action: Delete entry
-  const handleDelete = async () => {
-    if (!selectedEntry) return;
-
-    Alert.alert(
-      'Delete Entry',
-      `Are you sure you want to delete this ${selectedEntry.type.toLowerCase()} entry?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Delete based on entry type
-              if (selectedEntry.id.startsWith('vital-')) {
-                const timestamp = selectedEntry.id.replace('vital-', '');
-                await deleteVital(timestamp);
-              } else if (selectedEntry.id.startsWith('note-')) {
-                const noteId = selectedEntry.id.replace('note-', '');
-                await deleteNote(noteId);
-              } else if (selectedEntry.id.startsWith('symptom-')) {
-                const symptomId = selectedEntry.id.replace('symptom-', '');
-                await deleteSymptom(symptomId);
-              }
-              // Reload logs after deletion
-              await loadRecentLogs();
-            } catch (error) {
-              console.error('Error deleting entry:', error);
-              Alert.alert('Error', 'Failed to delete entry. Please try again.');
-            }
-            setShowActionMenu(false);
-            setSelectedEntry(null);
-          },
-        },
-      ]
+  const toggleMedication = (medId: string) => {
+    setSelectedMedIds(prev =>
+      prev.includes(medId)
+        ? prev.filter(id => id !== medId)
+        : [...prev, medId]
     );
   };
 
-  // Dismiss sequential logging prompt
-  const dismissSequentialPrompt = () => {
-    setShowSequentialPrompt(false);
-    setLastLoggedType(null);
-  };
-
-  // Get suggested next logs for sequential logging
-  const getSequentialSuggestions = () => {
-    const suggestions = PRIMARY_LOGS.filter(log => log.label !== lastLoggedType).slice(0, 3);
-    return suggestions;
-  };
-
-  // Get contextual info for each button
-  const getButtonContext = (id: string): { badge?: string; subtext?: string; complete?: boolean } => {
-    switch (id) {
-      case 'meds':
-        if (medsInfo.allTaken) return { complete: true, subtext: 'All taken ✓' };
-        if (medsInfo.pending > 0) return { badge: `${medsInfo.pending}`, subtext: `${medsInfo.pending} pending` };
-        return {};
-      case 'vitals':
-        if (vitalsInfo.lastReading) return { subtext: vitalsInfo.lastReading, complete: true };
-        return { subtext: 'Not logged' };
-      case 'sleep':
-        if (sleepInfo) return { subtext: sleepInfo, complete: true };
-        return { subtext: 'Log sleep' };
-      case 'nutrition':
-        return { subtext: `${mealsLogged}/3 meals` };
-      default:
-        return {};
+  const toggleChip = (value: string, currentArray: string[], setter: (arr: string[]) => void) => {
+    if (currentArray.includes(value)) {
+      setter(currentArray.filter(v => v !== value));
+    } else {
+      setter([...currentArray, value]);
     }
   };
 
-  // Swipeable Log Entry Component
-  const SwipeableLogEntry = ({ entry, index, isLast }: { entry: LogEntry; index: number; isLast: boolean }) => {
-    const translateX = useRef(new Animated.Value(0)).current;
-    const [isSwiping, setIsSwiping] = useState(false);
+  const incrementWater = () => {
+    setWaterGlasses(prev => Math.min(prev + 1, WATER_GOAL + 4));
+  };
 
-    const panResponder = useRef(
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => false,
-        onMoveShouldSetPanResponder: (_, gestureState) => {
-          // Only respond to horizontal swipes
-          return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 10;
-        },
-        onPanResponderGrant: () => {
-          setIsSwiping(true);
-        },
-        onPanResponderMove: (_, gestureState) => {
-          // Only allow left swipe (negative dx)
-          if (gestureState.dx < 0) {
-            translateX.setValue(Math.max(gestureState.dx, -100));
-          }
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          setIsSwiping(false);
-          if (gestureState.dx < SWIPE_THRESHOLD) {
-            // Show delete confirmation
-            setSelectedEntry(entry);
-            handleDelete();
-            // Reset position
-            Animated.spring(translateX, {
-              toValue: 0,
-              useNativeDriver: true,
-            }).start();
-          } else {
-            // Snap back
-            Animated.spring(translateX, {
-              toValue: 0,
-              useNativeDriver: true,
-            }).start();
-          }
-        },
-      })
-    ).current;
+  const decrementWater = () => {
+    setWaterGlasses(prev => Math.max(prev - 1, 0));
+  };
 
+  const handleSaveAll = async () => {
+    try {
+      setSaving(true);
+      const timestamp = new Date().toISOString();
+      let savedCount = 0;
+
+      // Save medications if any selected
+      if (selectedMedIds.length > 0) {
+        await saveMedicationLog({
+          timestamp,
+          medicationIds: selectedMedIds,
+          sideEffects: sideEffects.length > 0 ? sideEffects : undefined,
+        });
+        savedCount++;
+      }
+
+      // Save vitals if any filled
+      if (systolic || diastolic || heartRate || glucose || weight) {
+        await saveVitalsLog({
+          timestamp,
+          systolic: systolic ? parseInt(systolic) : undefined,
+          diastolic: diastolic ? parseInt(diastolic) : undefined,
+          heartRate: heartRate ? parseInt(heartRate) : undefined,
+          glucose: glucose ? parseInt(glucose) : undefined,
+          weight: weight ? parseFloat(weight) : undefined,
+        });
+        savedCount++;
+      }
+
+      // Save symptoms if any selected
+      if (symptoms.length > 0) {
+        await saveSymptomLog({
+          timestamp,
+          symptoms,
+          notes: symptomNotes || undefined,
+        });
+        savedCount++;
+      }
+
+      // Save mood if any set
+      if (mood !== null || energy !== null || pain !== null) {
+        await saveMoodLog({
+          timestamp,
+          mood,
+          energy,
+          pain,
+        });
+        savedCount++;
+      }
+
+      // Save sleep if hours entered
+      if (sleepHours) {
+        await saveSleepLog({
+          timestamp,
+          hours: parseFloat(sleepHours),
+          quality: sleepQuality || 3,
+        });
+        savedCount++;
+      }
+
+      // Save meals if any logged
+      if (mealsLogged.length > 0) {
+        await saveMealsLog({
+          timestamp,
+          meals: mealsLogged,
+          description: mealDescription || undefined,
+        });
+        savedCount++;
+      }
+
+      // Save water if any logged
+      if (waterGlasses > 0) {
+        await updateTodayWaterLog(waterGlasses);
+        savedCount++;
+      }
+
+      // Save notes if any entered
+      if (notes.trim()) {
+        await saveNotesLog({
+          timestamp,
+          content: notes.trim(),
+        });
+        savedCount++;
+      }
+
+      if (savedCount > 0) {
+        Alert.alert('Saved', `${savedCount} ${savedCount === 1 ? 'section' : 'sections'} saved successfully`);
+        // Collapse all sections after save
+        setExpandedSections(new Set());
+      } else {
+        Alert.alert('Nothing to Save', 'Please fill in at least one section before saving.');
+      }
+
+    } catch (error) {
+      console.error('Error saving data:', error);
+      Alert.alert('Error', 'Failed to save some data. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getSectionStatus = (sectionId: SectionId): {
+    text: string;
+    status: 'pending' | 'complete' | 'optional';
+    count?: string;
+  } => {
+    switch (sectionId) {
+      case 'medications':
+        if (medications.length === 0) return { text: 'No medications', status: 'optional' };
+        if (selectedMedIds.length === 0) {
+          return { text: `${medications.length} medications pending`, status: 'pending', count: String(medications.length) };
+        }
+        return {
+          text: selectedMedIds.length === medications.length ? 'All selected' : `${selectedMedIds.length} selected`,
+          status: 'complete',
+          count: `${selectedMedIds.length}/${medications.length}`
+        };
+
+      case 'vitals':
+        const filledVitals = [systolic, diastolic, heartRate, glucose, weight].filter(Boolean).length;
+        if (filledVitals === 0) {
+          return { text: 'Blood pressure, heart rate', status: 'optional' };
+        }
+        return { text: `${filledVitals} vitals logged`, status: 'complete' };
+
+      case 'symptoms':
+        if (symptoms.length === 0) {
+          return { text: 'Track symptoms', status: 'optional' };
+        }
+        return { text: `${symptoms.length} symptoms logged`, status: 'complete' };
+
+      case 'mood':
+        if (mood === null && energy === null && pain === null) {
+          return { text: 'How are they feeling?', status: 'optional' };
+        }
+        const moodText = mood !== null ? (mood >= 7 ? 'Feeling good' : mood >= 4 ? 'Feeling okay' : 'Struggling') : 'Logged';
+        return { text: moodText, status: 'complete' };
+
+      case 'sleep':
+        if (!sleepHours) {
+          return { text: 'Hours slept last night', status: 'optional' };
+        }
+        return { text: `${sleepHours} hours`, status: 'complete' };
+
+      case 'meals':
+        if (mealsLogged.length === 0) {
+          return { text: 'Which meals today?', status: 'optional' };
+        }
+        return { text: `${mealsLogged.length} meals logged`, status: 'complete' };
+
+      case 'water':
+        if (waterGlasses === 0) {
+          return { text: `0/${WATER_GOAL} glasses`, status: 'optional' };
+        }
+        return { text: `${waterGlasses}/${WATER_GOAL} glasses`, status: waterGlasses >= WATER_GOAL ? 'complete' : 'pending' };
+
+      case 'notes':
+        if (!notes.trim()) {
+          return { text: 'Add observations', status: 'optional' };
+        }
+        return { text: 'Note added', status: 'complete' };
+
+      default:
+        return { text: '', status: 'optional' };
+    }
+  };
+
+  const getCompletedCount = () => {
+    let count = 0;
+    if (selectedMedIds.length > 0) count++;
+    if (systolic || diastolic || heartRate || glucose || weight) count++;
+    if (symptoms.length > 0) count++;
+    if (mood !== null || energy !== null || pain !== null) count++;
+    if (sleepHours) count++;
+    if (mealsLogged.length > 0) count++;
+    if (waterGlasses > 0) count++;
+    if (notes.trim()) count++;
+    return count;
+  };
+
+  if (loading) {
     return (
-      <View style={styles.swipeContainer}>
-        {/* Delete background */}
-        <View style={styles.deleteBackground}>
-          <Text style={styles.deleteText}>🗑️ Delete</Text>
+      <View style={styles.container}>
+        <AuroraBackground variant="log" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.accent} />
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
-
-        {/* Swipeable content */}
-        <Animated.View
-          style={[
-            styles.swipeableContent,
-            { transform: [{ translateX }] },
-          ]}
-          {...panResponder.panHandlers}
-        >
-          <TouchableOpacity
-            style={[
-              styles.logRow,
-              !isLast && styles.logRowBorder,
-            ]}
-            onPress={() => !isSwiping && handleEntryPress(entry)}
-            activeOpacity={0.7}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel={`${entry.type}: ${entry.value}. Logged at ${entry.time}`}
-            accessibilityHint="Double tap to open actions. Swipe left to delete"
-          >
-            <Text style={styles.logIcon}>{entry.icon}</Text>
-            <View style={styles.logContent}>
-              <Text style={styles.logType}>{entry.type}</Text>
-              <Text style={styles.logValue}>{entry.value}</Text>
-            </View>
-            <Text style={styles.logTime}>{entry.time}</Text>
-          </TouchableOpacity>
-        </Animated.View>
       </View>
     );
-  };
+  }
+
+  const completedCount = getCompletedCount();
+  const progressPercent = (completedCount / 8) * 100;
 
   return (
     <View style={styles.container}>
@@ -534,325 +409,540 @@ export default function LogTab() {
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
+          style={styles.scrollView}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* Header with daily count badge */}
+          {/* Header */}
           <View style={styles.header}>
-            <View>
-              <Text style={styles.subtitle}>QUICK CAPTURE</Text>
-              <Text style={styles.title}>Log</Text>
+            <Text style={styles.title}>Log Health Data</Text>
+            <Text style={styles.subtitle}>Tap sections to expand</Text>
+          </View>
+
+          {/* Progress Indicator */}
+          <View style={styles.progressContainer}>
+            <Text style={styles.progressText}>{completedCount}/8 complete</Text>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
             </View>
-            {todayCount > 0 && (
-              <View style={styles.countBadge}>
-                <Text style={styles.countText}>{todayCount} entries today</Text>
+          </View>
+
+          {/* Medications Section */}
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => toggleSection('medications')}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Medications. ${getSectionStatus('medications').text}`}
+              accessibilityState={{ expanded: expandedSections.has('medications') }}
+            >
+              <Text style={styles.sectionIcon}>💊</Text>
+              <View style={styles.sectionMain}>
+                <View style={styles.sectionTitleRow}>
+                  <Text style={styles.sectionTitle}>Medications</Text>
+                  {getSectionStatus('medications').count && (
+                    <View style={styles.sectionCount}>
+                      <Text style={styles.sectionCountText}>{getSectionStatus('medications').count}</Text>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.sectionStatusRow}>
+                  <View style={[styles.statusDot, styles[`statusDot_${getSectionStatus('medications').status}`]]} />
+                  <Text style={styles.sectionStatus}>{getSectionStatus('medications').text}</Text>
+                </View>
+              </View>
+              <Text style={[styles.chevron, expandedSections.has('medications') && styles.chevronExpanded]}>›</Text>
+            </TouchableOpacity>
+
+            {expandedSections.has('medications') && (
+              <View style={styles.sectionContent}>
+                {medications.length === 0 ? (
+                  <Text style={styles.emptyText}>No medications added yet</Text>
+                ) : (
+                  <View style={styles.medList}>
+                    {medications.map(med => (
+                      <TouchableOpacity
+                        key={med.id}
+                        style={[styles.medItem, selectedMedIds.includes(med.id) && styles.medItemSelected]}
+                        onPress={() => toggleMedication(med.id)}
+                      >
+                        <View style={[styles.checkbox, selectedMedIds.includes(med.id) && styles.checkboxChecked]}>
+                          {selectedMedIds.includes(med.id) && <Text style={styles.checkmark}>✓</Text>}
+                        </View>
+                        <View style={styles.medInfo}>
+                          <Text style={styles.medName}>{med.name}</Text>
+                          <Text style={styles.medDosage}>{med.dosage} - {med.timeSlot}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                <View style={styles.formSection}>
+                  <Text style={styles.formLabel}>Side Effects?</Text>
+                  <View style={styles.chipRow}>
+                    {COMMON_SIDE_EFFECTS.map(effect => (
+                      <TouchableOpacity
+                        key={effect}
+                        style={[styles.chip, sideEffects.includes(effect) && styles.chipSelected]}
+                        onPress={() => toggleChip(effect, sideEffects, setSideEffects)}
+                      >
+                        <Text style={[styles.chipText, sideEffects.includes(effect) && styles.chipTextSelected]}>
+                          {effect}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
               </View>
             )}
           </View>
 
-          {/* Primary 3×2 Grid with Contextual Info */}
-          <View style={styles.primaryGrid}>
-            {PRIMARY_LOGS.map((log) => {
-              const context = getButtonContext(log.id);
-              return (
-                <TouchableOpacity
-                  key={log.id}
-                  style={styles.primaryItem}
-                  onPress={() => router.push(log.route as any)}
-                  activeOpacity={0.7}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${log.label}${context.subtext ? `. ${context.subtext}` : ''}`}
-                  accessibilityHint={`Tap to log ${log.label.toLowerCase()}`}
-                >
-                  <GlassCard style={[styles.primaryCard, context.complete && styles.primaryCardComplete]}>
-                    <View style={styles.primaryCardHeader}>
-                      <Text style={styles.primaryIcon}>{log.icon}</Text>
-                      {context.badge && (
-                        <View style={[styles.buttonBadge, { backgroundColor: `${log.color}30` }]}>
-                          <Text style={[styles.buttonBadgeText, { color: log.color }]}>{context.badge}</Text>
-                        </View>
-                      )}
-                      {context.complete && !context.badge && (
-                        <Text style={styles.completeCheck}>✓</Text>
-                      )}
-                    </View>
-                    <Text style={styles.primaryLabel}>{log.label}</Text>
-                    {context.subtext && (
-                      <Text style={[styles.primarySubtext, context.complete && styles.primarySubtextComplete]}>
-                        {context.subtext}
-                      </Text>
-                    )}
-                  </GlassCard>
-                </TouchableOpacity>
-              );
-            })}
+          {/* Vitals Section */}
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => toggleSection('vitals')}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Vitals. ${getSectionStatus('vitals').text}`}
+              accessibilityState={{ expanded: expandedSections.has('vitals') }}
+            >
+              <Text style={styles.sectionIcon}>📊</Text>
+              <View style={styles.sectionMain}>
+                <View style={styles.sectionTitleRow}>
+                  <Text style={styles.sectionTitle}>Vitals</Text>
+                </View>
+                <View style={styles.sectionStatusRow}>
+                  <View style={[styles.statusDot, styles[`statusDot_${getSectionStatus('vitals').status}`]]} />
+                  <Text style={styles.sectionStatus}>{getSectionStatus('vitals').text}</Text>
+                </View>
+              </View>
+              <Text style={[styles.chevron, expandedSections.has('vitals') && styles.chevronExpanded]}>›</Text>
+            </TouchableOpacity>
+
+            {expandedSections.has('vitals') && (
+              <View style={styles.sectionContent}>
+                <View style={styles.vitalRow}>
+                  <Text style={styles.vitalLabel}>Blood Pressure</Text>
+                  <View style={styles.vitalInputs}>
+                    <TextInput
+                      style={styles.vitalInput}
+                      placeholder="120"
+                      placeholderTextColor="rgba(255,255,255,0.25)"
+                      keyboardType="numeric"
+                      value={systolic}
+                      onChangeText={setSystolic}
+                    />
+                    <Text style={styles.vitalSlash}>/</Text>
+                    <TextInput
+                      style={styles.vitalInput}
+                      placeholder="80"
+                      placeholderTextColor="rgba(255,255,255,0.25)"
+                      keyboardType="numeric"
+                      value={diastolic}
+                      onChangeText={setDiastolic}
+                    />
+                    <Text style={styles.vitalUnit}>mmHg</Text>
+                  </View>
+                </View>
+
+                <View style={styles.vitalRow}>
+                  <Text style={styles.vitalLabel}>Heart Rate</Text>
+                  <View style={styles.vitalInputs}>
+                    <TextInput
+                      style={styles.vitalInput}
+                      placeholder="72"
+                      placeholderTextColor="rgba(255,255,255,0.25)"
+                      keyboardType="numeric"
+                      value={heartRate}
+                      onChangeText={setHeartRate}
+                    />
+                    <Text style={styles.vitalUnit}>bpm</Text>
+                  </View>
+                </View>
+
+                <View style={styles.vitalRow}>
+                  <Text style={styles.vitalLabel}>Blood Glucose</Text>
+                  <View style={styles.vitalInputs}>
+                    <TextInput
+                      style={styles.vitalInput}
+                      placeholder="100"
+                      placeholderTextColor="rgba(255,255,255,0.25)"
+                      keyboardType="numeric"
+                      value={glucose}
+                      onChangeText={setGlucose}
+                    />
+                    <Text style={styles.vitalUnit}>mg/dL</Text>
+                  </View>
+                </View>
+
+                <View style={styles.vitalRow}>
+                  <Text style={styles.vitalLabel}>Weight</Text>
+                  <View style={styles.vitalInputs}>
+                    <TextInput
+                      style={styles.vitalInput}
+                      placeholder="150"
+                      placeholderTextColor="rgba(255,255,255,0.25)"
+                      keyboardType="numeric"
+                      value={weight}
+                      onChangeText={setWeight}
+                    />
+                    <Text style={styles.vitalUnit}>lbs</Text>
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
 
-          {/* Water Counter + Notes Row */}
-          <View style={styles.secondaryRow}>
-            {/* Water Counter */}
-            <View style={styles.waterCounterContainer}>
-              <GlassCard style={styles.waterCounterCard}>
-                <View style={styles.waterCounterContent}>
-                  <Text style={styles.waterIcon}>💧</Text>
-                  <View style={styles.waterInfo}>
-                    <Text style={styles.waterLabel}>Water</Text>
-                    <Text style={styles.waterProgress}>{waterCount}/{WATER_GOAL} glasses</Text>
-                    <View style={styles.waterProgressBar}>
-                      <View
-                        style={[
-                          styles.waterProgressFill,
-                          { width: `${Math.min((waterCount / WATER_GOAL) * 100, 100)}%` },
-                        ]}
-                      />
+          {/* Symptoms Section */}
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => toggleSection('symptoms')}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Symptoms. ${getSectionStatus('symptoms').text}`}
+              accessibilityState={{ expanded: expandedSections.has('symptoms') }}
+            >
+              <Text style={styles.sectionIcon}>🩺</Text>
+              <View style={styles.sectionMain}>
+                <View style={styles.sectionTitleRow}>
+                  <Text style={styles.sectionTitle}>Symptoms</Text>
+                </View>
+                <View style={styles.sectionStatusRow}>
+                  <View style={[styles.statusDot, styles[`statusDot_${getSectionStatus('symptoms').status}`]]} />
+                  <Text style={styles.sectionStatus}>{getSectionStatus('symptoms').text}</Text>
+                </View>
+              </View>
+              <Text style={[styles.chevron, expandedSections.has('symptoms') && styles.chevronExpanded]}>›</Text>
+            </TouchableOpacity>
+
+            {expandedSections.has('symptoms') && (
+              <View style={styles.sectionContent}>
+                <View style={styles.chipRow}>
+                  {COMMON_SYMPTOMS.map(symptom => (
+                    <TouchableOpacity
+                      key={symptom}
+                      style={[styles.chip, symptoms.includes(symptom) && styles.chipSelected]}
+                      onPress={() => toggleChip(symptom, symptoms, setSymptoms)}
+                    >
+                      <Text style={[styles.chipText, symptoms.includes(symptom) && styles.chipTextSelected]}>
+                        {symptom}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <TextInput
+                  style={styles.textArea}
+                  placeholder="Additional notes about symptoms..."
+                  placeholderTextColor="rgba(255,255,255,0.25)"
+                  multiline
+                  numberOfLines={3}
+                  value={symptomNotes}
+                  onChangeText={setSymptomNotes}
+                />
+              </View>
+            )}
+          </View>
+
+          {/* Mood & Energy Section */}
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => toggleSection('mood')}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Mood and Energy. ${getSectionStatus('mood').text}`}
+              accessibilityState={{ expanded: expandedSections.has('mood') }}
+            >
+              <Text style={styles.sectionIcon}>😊</Text>
+              <View style={styles.sectionMain}>
+                <View style={styles.sectionTitleRow}>
+                  <Text style={styles.sectionTitle}>Mood & Energy</Text>
+                </View>
+                <View style={styles.sectionStatusRow}>
+                  <View style={[styles.statusDot, styles[`statusDot_${getSectionStatus('mood').status}`]]} />
+                  <Text style={styles.sectionStatus}>{getSectionStatus('mood').text}</Text>
+                </View>
+              </View>
+              <Text style={[styles.chevron, expandedSections.has('mood') && styles.chevronExpanded]}>›</Text>
+            </TouchableOpacity>
+
+            {expandedSections.has('mood') && (
+              <View style={styles.sectionContent}>
+                <View style={styles.sliderGroup}>
+                  <View style={styles.sliderItem}>
+                    <View style={styles.sliderHeader}>
+                      <Text style={styles.sliderLabel}>Mood</Text>
+                      <Text style={styles.sliderValue}>{mood || 0}/10</Text>
+                    </View>
+                    <View style={styles.sliderTrack}>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(value => (
+                        <TouchableOpacity
+                          key={value}
+                          style={[styles.sliderSegment, mood !== null && mood >= value && styles.sliderSegmentFilled]}
+                          onPress={() => setMood(value)}
+                        />
+                      ))}
                     </View>
                   </View>
-                  <TouchableOpacity
-                    style={styles.waterPlusButton}
-                    onPress={incrementWater}
-                    activeOpacity={0.7}
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Add water. Currently ${waterCount} of ${WATER_GOAL} glasses`}
-                    accessibilityHint="Tap to add one glass of water"
-                  >
-                    <Text style={styles.waterPlusText} importantForAccessibility="no-hide-descendants">+1</Text>
+
+                  <View style={styles.sliderItem}>
+                    <View style={styles.sliderHeader}>
+                      <Text style={styles.sliderLabel}>Energy</Text>
+                      <Text style={styles.sliderValue}>{energy || 0}/10</Text>
+                    </View>
+                    <View style={styles.sliderTrack}>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(value => (
+                        <TouchableOpacity
+                          key={value}
+                          style={[styles.sliderSegment, energy !== null && energy >= value && styles.sliderSegmentFilledEnergy]}
+                          onPress={() => setEnergy(value)}
+                        />
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.sliderItem}>
+                    <View style={styles.sliderHeader}>
+                      <Text style={styles.sliderLabel}>Pain Level</Text>
+                      <Text style={styles.sliderValue}>{pain || 0}/10</Text>
+                    </View>
+                    <View style={styles.sliderTrack}>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(value => (
+                        <TouchableOpacity
+                          key={value}
+                          style={[styles.sliderSegment, pain !== null && pain >= value && styles.sliderSegmentFilledPain]}
+                          onPress={() => setPain(value)}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Sleep Section */}
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => toggleSection('sleep')}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Sleep. ${getSectionStatus('sleep').text}`}
+              accessibilityState={{ expanded: expandedSections.has('sleep') }}
+            >
+              <Text style={styles.sectionIcon}>😴</Text>
+              <View style={styles.sectionMain}>
+                <View style={styles.sectionTitleRow}>
+                  <Text style={styles.sectionTitle}>Sleep</Text>
+                </View>
+                <View style={styles.sectionStatusRow}>
+                  <View style={[styles.statusDot, styles[`statusDot_${getSectionStatus('sleep').status}`]]} />
+                  <Text style={styles.sectionStatus}>{getSectionStatus('sleep').text}</Text>
+                </View>
+              </View>
+              <Text style={[styles.chevron, expandedSections.has('sleep') && styles.chevronExpanded]}>›</Text>
+            </TouchableOpacity>
+
+            {expandedSections.has('sleep') && (
+              <View style={styles.sectionContent}>
+                <View style={styles.vitalRow}>
+                  <Text style={styles.vitalLabel}>Hours Slept</Text>
+                  <View style={styles.vitalInputs}>
+                    <TextInput
+                      style={styles.vitalInput}
+                      placeholder="8"
+                      placeholderTextColor="rgba(255,255,255,0.25)"
+                      keyboardType="numeric"
+                      value={sleepHours}
+                      onChangeText={setSleepHours}
+                    />
+                    <Text style={styles.vitalUnit}>hours</Text>
+                  </View>
+                </View>
+
+                <View style={styles.formSection}>
+                  <Text style={styles.formLabel}>Sleep Quality</Text>
+                  <View style={styles.chipRow}>
+                    {[1, 2, 3, 4, 5].map(rating => (
+                      <TouchableOpacity
+                        key={rating}
+                        style={[styles.ratingChip, sleepQuality === rating && styles.chipSelected]}
+                        onPress={() => setSleepQuality(rating)}
+                      >
+                        <Text style={[styles.ratingText, sleepQuality === rating && styles.chipTextSelected]}>
+                          {rating === 1 ? '😫' : rating === 2 ? '😕' : rating === 3 ? '😐' : rating === 4 ? '😊' : '😴'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Meals Section */}
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => toggleSection('meals')}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Meals. ${getSectionStatus('meals').text}`}
+              accessibilityState={{ expanded: expandedSections.has('meals') }}
+            >
+              <Text style={styles.sectionIcon}>🍽️</Text>
+              <View style={styles.sectionMain}>
+                <View style={styles.sectionTitleRow}>
+                  <Text style={styles.sectionTitle}>Meals</Text>
+                </View>
+                <View style={styles.sectionStatusRow}>
+                  <View style={[styles.statusDot, styles[`statusDot_${getSectionStatus('meals').status}`]]} />
+                  <Text style={styles.sectionStatus}>{getSectionStatus('meals').text}</Text>
+                </View>
+              </View>
+              <Text style={[styles.chevron, expandedSections.has('meals') && styles.chevronExpanded]}>›</Text>
+            </TouchableOpacity>
+
+            {expandedSections.has('meals') && (
+              <View style={styles.sectionContent}>
+                <View style={styles.chipRow}>
+                  {MEAL_TYPES.map(meal => (
+                    <TouchableOpacity
+                      key={meal}
+                      style={[styles.chip, mealsLogged.includes(meal) && styles.chipSelected]}
+                      onPress={() => toggleChip(meal, mealsLogged, setMealsLogged)}
+                    >
+                      <Text style={[styles.chipText, mealsLogged.includes(meal) && styles.chipTextSelected]}>
+                        {meal}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <TextInput
+                  style={styles.textArea}
+                  placeholder="What did they eat? (optional)"
+                  placeholderTextColor="rgba(255,255,255,0.25)"
+                  multiline
+                  numberOfLines={3}
+                  value={mealDescription}
+                  onChangeText={setMealDescription}
+                />
+              </View>
+            )}
+          </View>
+
+          {/* Water Section */}
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => toggleSection('water')}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Water. ${getSectionStatus('water').text}`}
+              accessibilityState={{ expanded: expandedSections.has('water') }}
+            >
+              <Text style={styles.sectionIcon}>💧</Text>
+              <View style={styles.sectionMain}>
+                <View style={styles.sectionTitleRow}>
+                  <Text style={styles.sectionTitle}>Water</Text>
+                </View>
+                <View style={styles.sectionStatusRow}>
+                  <View style={[styles.statusDot, styles[`statusDot_${getSectionStatus('water').status}`]]} />
+                  <Text style={styles.sectionStatus}>{getSectionStatus('water').text}</Text>
+                </View>
+              </View>
+              <Text style={[styles.chevron, expandedSections.has('water') && styles.chevronExpanded]}>›</Text>
+            </TouchableOpacity>
+
+            {expandedSections.has('water') && (
+              <View style={styles.sectionContent}>
+                <View style={styles.waterCounter}>
+                  <TouchableOpacity style={styles.waterButton} onPress={decrementWater}>
+                    <Text style={styles.waterButtonText}>−</Text>
+                  </TouchableOpacity>
+                  <View style={styles.waterDisplay}>
+                    <Text style={styles.waterCount}>{waterGlasses}</Text>
+                    <Text style={styles.waterGoal}>of {WATER_GOAL} glasses</Text>
+                  </View>
+                  <TouchableOpacity style={styles.waterButton} onPress={incrementWater}>
+                    <Text style={styles.waterButtonText}>+</Text>
                   </TouchableOpacity>
                 </View>
-              </GlassCard>
-            </View>
-
-            {/* Notes Button */}
-            {SECONDARY_LOGS.map((log) => (
-              <TouchableOpacity
-                key={log.id}
-                style={styles.notesButton}
-                onPress={() => router.push(log.route as any)}
-                activeOpacity={0.7}
-              >
-                <GlassCard style={styles.notesCard}>
-                  <Text style={styles.notesIcon}>{log.icon}</Text>
-                  <Text style={styles.notesLabel}>{log.label}</Text>
-                  <Text style={styles.notesSubtext}>Text / Voice</Text>
-                </GlassCard>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Collapsible Today's Entries */}
-          <View style={styles.historySection}>
-            <TouchableOpacity
-              style={styles.historyHeader}
-              onPress={() => setHistoryExpanded(!historyExpanded)}
-              activeOpacity={0.7}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel={`Today's entries. ${historyExpanded ? 'Expanded' : 'Collapsed'}. ${recentLogs.length} entries`}
-              accessibilityHint={historyExpanded ? 'Tap to collapse' : 'Tap to expand'}
-              accessibilityState={{ expanded: historyExpanded }}
-            >
-              <Text style={styles.sectionLabel}>TODAY'S ENTRIES</Text>
-              <Text style={styles.collapseIcon} importantForAccessibility="no-hide-descendants">
-                {historyExpanded ? '▼' : '▶'}
-              </Text>
-            </TouchableOpacity>
-
-            {historyExpanded && (
-              <GlassCard noPadding style={styles.historyCard}>
-                {recentLogs.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyIcon}>{tip.icon}</Text>
-                    <Text style={styles.emptyTitle}>No logs yet today</Text>
-                    <Text style={styles.emptyHint}>
-                      Tap 💊 Meds or 🫀 Vitals to start logging
-                    </Text>
-                    <Text style={styles.emptyTip}>{tip.text}</Text>
-                  </View>
-                ) : (
-                  <>
-                    {recentLogs.map((log, index) => (
-                      <SwipeableLogEntry
-                        key={log.id}
-                        entry={log}
-                        index={index}
-                        isLast={index === recentLogs.length - 1}
-                      />
-                    ))}
-                    <Text style={styles.swipeHint}>← Swipe left to delete</Text>
-                  </>
-                )}
-              </GlassCard>
+                <View style={styles.waterProgressBar}>
+                  <View style={[styles.waterProgressFill, { width: `${Math.min((waterGlasses / WATER_GOAL) * 100, 100)}%` }]} />
+                </View>
+              </View>
             )}
           </View>
 
-          {/* View Full History Link */}
-          <TouchableOpacity
-            style={styles.historyLink}
-            onPress={() => router.push('/hub/reports' as any)}
-            activeOpacity={0.7}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="View Full History"
-            accessibilityHint="Opens reports to see patterns and trends"
-          >
-            <GlassCard style={styles.historyLinkCard}>
-              <View style={styles.historyLinkContent}>
-                <Text style={styles.historyLinkIcon}>📊</Text>
-                <View style={styles.historyLinkText}>
-                  <Text style={styles.historyLinkTitle}>View Full History</Text>
-                  <Text style={styles.historyLinkSubtitle}>See patterns & trends</Text>
-                </View>
-              </View>
-              <Text style={styles.historyLinkArrow}>→</Text>
-            </GlassCard>
-          </TouchableOpacity>
-
-          {/* Contextual Tip (compact, only when history has entries) */}
-          {recentLogs.length > 0 && (
-            <View style={styles.contextTip}>
-              <Text style={styles.contextTipIcon}>{tip.icon}</Text>
-              <Text style={styles.contextTipText}>{tip.text}</Text>
-            </View>
-          )}
-
-          {/* Bottom spacing for tab bar */}
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      </SafeAreaView>
-
-      {/* Onboarding Modal */}
-      <Modal
-        visible={showOnboarding}
-        transparent
-        animationType="fade"
-        onRequestClose={dismissOnboarding}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.onboardingModal}>
-            <Text style={styles.onboardingEmoji}>👋</Text>
-            <Text style={styles.onboardingTitle}>Welcome to Quick Logging!</Text>
-            <Text style={styles.onboardingText}>
-              Track what matters most for better care insights.
-            </Text>
-            <View style={styles.onboardingIcons}>
-              <View style={styles.onboardingIconItem}>
-                <Text style={styles.onboardingIcon}>💊</Text>
-                <Text style={styles.onboardingIconLabel}>Medications</Text>
-              </View>
-              <View style={styles.onboardingIconItem}>
-                <Text style={styles.onboardingIcon}>🫀</Text>
-                <Text style={styles.onboardingIconLabel}>Vitals</Text>
-              </View>
-              <View style={styles.onboardingIconItem}>
-                <Text style={styles.onboardingIcon}>😊</Text>
-                <Text style={styles.onboardingIconLabel}>Mood</Text>
-              </View>
-            </View>
-            <Text style={styles.onboardingHint}>
-              Each entry helps reveal patterns over time.
-            </Text>
+          {/* Notes Section */}
+          <View style={styles.section}>
             <TouchableOpacity
-              style={styles.onboardingButton}
-              onPress={dismissOnboarding}
+              style={styles.sectionHeader}
+              onPress={() => toggleSection('notes')}
               accessible={true}
               accessibilityRole="button"
-              accessibilityLabel="Get Started"
-              accessibilityHint="Dismisses welcome message and starts logging"
+              accessibilityLabel={`Notes. ${getSectionStatus('notes').text}`}
+              accessibilityState={{ expanded: expandedSections.has('notes') }}
             >
-              <Text style={styles.onboardingButtonText}>Get Started</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Quick Action Menu Modal */}
-      <Modal
-        visible={showActionMenu}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowActionMenu(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowActionMenu(false)}
-        >
-          <View style={styles.actionMenuContainer}>
-            <View style={styles.actionMenuHeader}>
-              <Text style={styles.actionMenuIcon}>{selectedEntry?.icon}</Text>
-              <View>
-                <Text style={styles.actionMenuTitle}>{selectedEntry?.type}</Text>
-                <Text style={styles.actionMenuValue}>{selectedEntry?.value}</Text>
+              <Text style={styles.sectionIcon}>📝</Text>
+              <View style={styles.sectionMain}>
+                <View style={styles.sectionTitleRow}>
+                  <Text style={styles.sectionTitle}>Notes</Text>
+                </View>
+                <View style={styles.sectionStatusRow}>
+                  <View style={[styles.statusDot, styles[`statusDot_${getSectionStatus('notes').status}`]]} />
+                  <Text style={styles.sectionStatus}>{getSectionStatus('notes').text}</Text>
+                </View>
               </View>
-            </View>
-
-            <View style={styles.actionMenuDivider} />
-
-            <TouchableOpacity style={styles.actionMenuItem} onPress={handleLogAgain}>
-              <Text style={styles.actionMenuItemIcon}>🔄</Text>
-              <Text style={styles.actionMenuItemText}>Log Again</Text>
+              <Text style={[styles.chevron, expandedSections.has('notes') && styles.chevronExpanded]}>›</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionMenuItem} onPress={handleEdit}>
-              <Text style={styles.actionMenuItemIcon}>✏️</Text>
-              <Text style={styles.actionMenuItemText}>Edit Details</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.actionMenuItem, styles.actionMenuItemDanger]} onPress={handleDelete}>
-              <Text style={styles.actionMenuItemIcon}>🗑️</Text>
-              <Text style={[styles.actionMenuItemText, styles.actionMenuItemTextDanger]}>Delete Entry</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionMenuCancel}
-              onPress={() => setShowActionMenu(false)}
-            >
-              <Text style={styles.actionMenuCancelText}>Cancel</Text>
-            </TouchableOpacity>
+            {expandedSections.has('notes') && (
+              <View style={styles.sectionContent}>
+                <TextInput
+                  style={styles.textAreaLarge}
+                  placeholder="Any observations, concerns, or things to remember..."
+                  placeholderTextColor="rgba(255,255,255,0.25)"
+                  multiline
+                  numberOfLines={5}
+                  value={notes}
+                  onChangeText={setNotes}
+                />
+              </View>
+            )}
           </View>
-        </TouchableOpacity>
-      </Modal>
 
-      {/* Sequential Logging Prompt Modal */}
-      <Modal
-        visible={showSequentialPrompt}
-        transparent
-        animationType="slide"
-        onRequestClose={dismissSequentialPrompt}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.sequentialModal}>
-            <Text style={styles.sequentialEmoji}>✓</Text>
-            <Text style={styles.sequentialTitle}>{lastLoggedType} logged!</Text>
-            <Text style={styles.sequentialText}>Log something else?</Text>
+          {/* Bottom spacing */}
+          <View style={{ height: 100 }} />
+        </ScrollView>
 
-            <View style={styles.sequentialButtons}>
-              {getSequentialSuggestions().map((log) => (
-                <TouchableOpacity
-                  key={log.id}
-                  style={styles.sequentialButton}
-                  onPress={() => {
-                    dismissSequentialPrompt();
-                    router.push(log.route as any);
-                  }}
-                >
-                  <Text style={styles.sequentialButtonIcon}>{log.icon}</Text>
-                  <Text style={styles.sequentialButtonLabel}>{log.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TouchableOpacity
-              style={styles.sequentialDone}
-              onPress={dismissSequentialPrompt}
-            >
-              <Text style={styles.sequentialDoneText}>Done for Now</Text>
-            </TouchableOpacity>
-          </View>
+        {/* Bottom Save Button */}
+        <View style={styles.bottomActions}>
+          <TouchableOpacity
+            style={[styles.btnPrimary, saving && styles.btnPrimaryDisabled]}
+            onPress={handleSaveAll}
+            disabled={saving}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Save All"
+            accessibilityHint="Saves all entered health data"
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color={Colors.background} />
+            ) : (
+              <Text style={styles.btnPrimaryText}>Save All ✓</Text>
+            )}
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </SafeAreaView>
     </View>
   );
 }
@@ -865,583 +955,432 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  scroll: {
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: Colors.textSecondary,
+    fontSize: 16,
+    marginTop: 10,
+  },
+  scrollView: {
     flex: 1,
   },
-  content: {
-    padding: Spacing.xl,
-  },
-
-  // Header with count badge
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xxl,
-    paddingTop: Spacing.sm,
-  },
-  subtitle: {
-    ...Typography.caption,
-    color: Colors.textMuted,
-    marginBottom: Spacing.xs,
+    padding: Spacing.xl,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
   title: {
     ...Typography.displayLarge,
     color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
   },
-  countBadge: {
-    backgroundColor: `${Colors.accent}15`,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  countText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.accent,
-  },
-
-  // Primary 3×2 Grid - Larger tap targets with contextual info
-  primaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: Spacing.lg,
-  },
-  primaryItem: {
-    width: '31%', // 3 columns
-  },
-  primaryCard: {
-    padding: Spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 100,
-  },
-  primaryCardComplete: {
-    borderColor: `${Colors.green}40`,
-  },
-  primaryCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  primaryIcon: {
-    fontSize: 32,
-  },
-  buttonBadge: {
-    position: 'absolute',
-    top: -8,
-    right: -12,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    minWidth: 18,
-    alignItems: 'center',
-  },
-  buttonBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  completeCheck: {
-    position: 'absolute',
-    top: -6,
-    right: -10,
-    fontSize: 12,
-    color: Colors.green,
-  },
-  primaryLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  primarySubtext: {
-    fontSize: 9,
+  subtitle: {
+    ...Typography.bodySmall,
     color: Colors.textMuted,
-    textAlign: 'center',
-    marginTop: 2,
   },
-  primarySubtextComplete: {
-    color: Colors.green,
-  },
-
-  // Secondary Row - Water Counter + Notes
-  secondaryRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: Spacing.xl,
-  },
-  waterCounterContainer: {
-    flex: 2,
-  },
-  waterCounterCard: {
-    padding: 12,
-  },
-  waterCounterContent: {
+  progressContainer: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
-  waterIcon: {
-    fontSize: 28,
+  progressText: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    fontWeight: '500',
   },
-  waterInfo: {
+  progressBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.accent,
+  },
+
+  // Section styles
+  section: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  sectionHeader: {
+    padding: 18,
+    paddingHorizontal: Spacing.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  sectionIcon: {
+    fontSize: 26,
+  },
+  sectionMain: {
     flex: 1,
   },
-  waterLabel: {
-    fontSize: 12,
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  sectionTitle: {
+    fontSize: 17,
     fontWeight: '600',
     color: Colors.textPrimary,
   },
-  waterProgress: {
-    fontSize: 11,
+  sectionCount: {
+    backgroundColor: `${Colors.accent}20`,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  sectionCountText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.accent,
+  },
+  sectionStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  sectionStatus: {
+    fontSize: 13,
     color: Colors.textMuted,
-    marginBottom: 4,
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  statusDot_pending: {
+    backgroundColor: Colors.red,
+    shadowColor: Colors.red,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  statusDot_complete: {
+    backgroundColor: Colors.green,
+    shadowColor: Colors.green,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  statusDot_optional: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  chevron: {
+    fontSize: 22,
+    color: 'rgba(255,255,255,0.3)',
+  },
+  chevronExpanded: {
+    transform: [{ rotate: '90deg' }],
+  },
+  sectionContent: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: 22,
+    paddingTop: 16,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.04)',
+  },
+  emptyText: {
+    color: Colors.textMuted,
+    fontSize: 14,
+    textAlign: 'center',
+    paddingVertical: Spacing.lg,
+  },
+
+  // Medication list
+  medList: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  medItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.background,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.04)',
+  },
+  medItemSelected: {
+    backgroundColor: `${Colors.accent}10`,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: `${Colors.accent}50`,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  checkmark: {
+    color: Colors.background,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  medInfo: {
+    flex: 1,
+  },
+  medName: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  medDosage: {
+    fontSize: 13,
+    color: Colors.textMuted,
+  },
+
+  // Form elements
+  formSection: {
+    marginTop: 18,
+  },
+  formLabel: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+    fontWeight: '600',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 7,
+  },
+  chipSelected: {
+    backgroundColor: `${Colors.accent}20`,
+    borderColor: `${Colors.accent}50`,
+  },
+  chipText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  chipTextSelected: {
+    color: Colors.accent,
+  },
+  ratingChip: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 10,
+  },
+  ratingText: {
+    fontSize: 24,
+  },
+
+  // Vitals inputs
+  vitalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  vitalLabel: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    minWidth: 100,
+    fontWeight: '500',
+  },
+  vitalInputs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    flex: 1,
+  },
+  vitalInput: {
+    width: 60,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 7,
+    padding: 10,
+    paddingHorizontal: 8,
+    color: Colors.textPrimary,
+    fontSize: 16,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  vitalSlash: {
+    fontSize: 16,
+    color: Colors.textMuted,
+  },
+  vitalUnit: {
+    fontSize: 13,
+    color: Colors.textMuted,
+  },
+
+  // Sliders
+  sliderGroup: {
+    gap: 18,
+  },
+  sliderItem: {
+    gap: 8,
+  },
+  sliderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sliderLabel: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  sliderValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.accent,
+  },
+  sliderTrack: {
+    flexDirection: 'row',
+    gap: 3,
+    height: 8,
+  },
+  sliderSegment: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 4,
+  },
+  sliderSegmentFilled: {
+    backgroundColor: Colors.accent,
+  },
+  sliderSegmentFilledEnergy: {
+    backgroundColor: Colors.gold,
+  },
+  sliderSegmentFilledPain: {
+    backgroundColor: Colors.red,
+  },
+
+  // Text areas
+  textArea: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 8,
+    padding: 14,
+    color: Colors.textPrimary,
+    fontSize: 14,
+    minHeight: 90,
+    textAlignVertical: 'top',
+    marginTop: 10,
+  },
+  textAreaLarge: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 8,
+    padding: 14,
+    color: Colors.textPrimary,
+    fontSize: 14,
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
+
+  // Water counter
+  waterCounter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 20,
+    marginBottom: 16,
+  },
+  waterButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: `${Colors.cyan}20`,
+    borderWidth: 1,
+    borderColor: `${Colors.cyan}40`,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  waterButtonText: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.cyan,
+  },
+  waterDisplay: {
+    alignItems: 'center',
+  },
+  waterCount: {
+    fontSize: 36,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  waterGoal: {
+    fontSize: 13,
+    color: Colors.textMuted,
   },
   waterProgressBar: {
-    height: 4,
+    height: 6,
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 2,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   waterProgressFill: {
     height: '100%',
     backgroundColor: Colors.cyan,
-    borderRadius: 2,
-  },
-  waterPlusButton: {
-    backgroundColor: `${Colors.cyan}20`,
-    borderWidth: 1,
-    borderColor: `${Colors.cyan}40`,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  waterPlusText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.cyan,
-  },
-  notesButton: {
-    flex: 1,
-  },
-  notesCard: {
-    padding: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 70,
-  },
-  notesIcon: {
-    fontSize: 22,
-    marginBottom: 2,
-  },
-  notesLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-  },
-  notesSubtext: {
-    fontSize: 9,
-    color: Colors.textMuted,
-    marginTop: 1,
-  },
-  secondaryItem: {
-    flex: 1,
-  },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-  },
-  secondaryButtonVoice: {
-    backgroundColor: `${Colors.accent}15`,
-    borderColor: `${Colors.accent}30`,
-  },
-  secondaryIcon: {
-    fontSize: 20,
-  },
-  secondaryLabel: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-  },
-  secondaryLabelVoice: {
-    color: Colors.accent,
-    fontWeight: '600',
+    borderRadius: 3,
   },
 
-  // History Section - Collapsible
-  historySection: {
-    marginBottom: Spacing.lg,
-  },
-  historyHeader: {
+  // Bottom actions
+  bottomActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 2,
-    color: Colors.textMuted,
-  },
-  collapseIcon: {
-    fontSize: 12,
-    color: Colors.textMuted,
-  },
-
-  // Log entries - Tappable
-  logRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    gap: Spacing.md,
-  },
-  logRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.glassBorder,
-  },
-  logIcon: {
-    fontSize: 20,
-  },
-  logContent: {
-    flex: 1,
-  },
-  logType: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-  },
-  logValue: {
-    fontSize: 12,
-    color: Colors.textMuted,
-  },
-  logTime: {
-    fontSize: 11,
-    color: Colors.textMuted,
-  },
-
-  // Empty state - Enhanced
-  emptyState: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  emptyIcon: {
-    fontSize: 32,
-    marginBottom: Spacing.sm,
-  },
-  emptyTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xs,
-  },
-  emptyHint: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    marginBottom: Spacing.md,
-    textAlign: 'center',
-  },
-  emptyTip: {
-    fontSize: 12,
-    color: Colors.accent,
-    fontStyle: 'italic',
-    textAlign: 'center',
-  },
-
-  // View Full History Link
-  historyLink: {
-    marginBottom: Spacing.lg,
-  },
-  historyLinkCard: {
-    backgroundColor: `${Colors.purple}08`,
-    borderColor: `${Colors.purple}25`,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  historyLinkContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  historyLinkIcon: {
-    fontSize: 18,
-  },
-  historyLinkText: {
-    flex: 1,
-  },
-  historyLinkTitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-  },
-  historyLinkSubtitle: {
-    fontSize: 11,
-    color: Colors.textMuted,
-  },
-  historyLinkArrow: {
-    fontSize: 18,
-    color: Colors.purple,
-  },
-
-  // Contextual Tip - Compact inline
-  contextTip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-  },
-  contextTipIcon: {
-    fontSize: 16,
-  },
-  contextTipText: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    fontStyle: 'italic',
-  },
-
-  // Swipeable entries
-  historyCard: {
-    overflow: 'hidden',
-  },
-  swipeContainer: {
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  deleteBackground: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: 100,
-    backgroundColor: Colors.red,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  deleteText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  swipeableContent: {
-    backgroundColor: Colors.glass,
-  },
-  swipeHint: {
-    fontSize: 10,
-    color: Colors.textMuted,
-    textAlign: 'center',
-    paddingVertical: 8,
-    fontStyle: 'italic',
-  },
-
-  // Modal overlay
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Onboarding Modal
-  onboardingModal: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 24,
-    padding: 32,
-    width: '85%',
-    maxWidth: 340,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-  },
-  onboardingEmoji: {
-    fontSize: 48,
-    marginBottom: Spacing.md,
-  },
-  onboardingTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-    textAlign: 'center',
-  },
-  onboardingText: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: Spacing.xl,
-  },
-  onboardingIcons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginBottom: Spacing.xl,
-  },
-  onboardingIconItem: {
-    alignItems: 'center',
-  },
-  onboardingIcon: {
-    fontSize: 32,
-    marginBottom: 4,
-  },
-  onboardingIconLabel: {
-    fontSize: 11,
-    color: Colors.textMuted,
-  },
-  onboardingHint: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    textAlign: 'center',
-    marginBottom: Spacing.xl,
-    fontStyle: 'italic',
-  },
-  onboardingButton: {
-    backgroundColor: Colors.accent,
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    borderRadius: 12,
-    width: '100%',
-  },
-  onboardingButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-
-  // Quick Action Menu
-  actionMenuContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: Colors.cardBackground,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 40,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: Colors.glassBorder,
-  },
-  actionMenuHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  actionMenuIcon: {
-    fontSize: 28,
-  },
-  actionMenuTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  actionMenuValue: {
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  actionMenuDivider: {
-    height: 1,
-    backgroundColor: Colors.glassBorder,
-    marginVertical: Spacing.md,
-  },
-  actionMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: 14,
-  },
-  actionMenuItemIcon: {
-    fontSize: 20,
-  },
-  actionMenuItemText: {
-    fontSize: 16,
-    color: Colors.textPrimary,
-  },
-  actionMenuItemDanger: {
-    marginTop: Spacing.sm,
-  },
-  actionMenuItemTextDanger: {
-    color: Colors.red,
-  },
-  actionMenuCancel: {
-    marginTop: Spacing.lg,
-    paddingVertical: 14,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  actionMenuCancelText: {
-    fontSize: 16,
-    color: Colors.textSecondary,
-    fontWeight: '500',
-  },
-
-  // Sequential Logging Prompt
-  sequentialModal: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 24,
-    padding: 28,
-    width: '85%',
-    maxWidth: 340,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-  },
-  sequentialEmoji: {
-    fontSize: 40,
-    marginBottom: Spacing.sm,
-    color: Colors.green,
-  },
-  sequentialTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  sequentialText: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xl,
-  },
-  sequentialButtons: {
-    flexDirection: 'row',
+    padding: Spacing.xl,
     gap: 12,
-    marginBottom: Spacing.xl,
+    backgroundColor: Colors.background,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
   },
-  sequentialButton: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    borderRadius: 16,
+  btnPrimary: {
+    flex: 1,
     padding: 16,
+    backgroundColor: Colors.accent,
+    borderRadius: 12,
     alignItems: 'center',
-    minWidth: 80,
+    justifyContent: 'center',
   },
-  sequentialButtonIcon: {
-    fontSize: 28,
-    marginBottom: 4,
+  btnPrimaryDisabled: {
+    opacity: 0.7,
   },
-  sequentialButtonLabel: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-  },
-  sequentialDone: {
-    paddingVertical: 12,
-  },
-  sequentialDoneText: {
-    fontSize: 14,
-    color: Colors.textMuted,
+  btnPrimaryText: {
+    color: Colors.background,
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

@@ -19,9 +19,19 @@ import { Colors, Spacing, Typography } from '../../theme/theme-tokens';
 import { getMedications, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
 import { getDailyTracking } from '../../utils/dailyTrackingStorage';
-import { getSymptoms, SymptomLog } from '../../utils/symptomStorage';
-import { getNotes, NoteLog } from '../../utils/noteStorage';
-import { getVitals, VitalReading } from '../../utils/vitalsStorage';
+import { getSymptomsByDate, SymptomLog } from '../../utils/symptomStorage';
+import { getNotesByDate, NoteLog } from '../../utils/noteStorage';
+import { getVitalsForDate, VitalReading } from '../../utils/vitalsStorage';
+import {
+  getTodayMedicationLog,
+  getTodayVitalsLog,
+  getTodayMoodLog,
+  getTodayMealsLog,
+  saveMedicationLog,
+  saveMealsLog,
+  TodayLogStatus,
+  getTodayLogStatus,
+} from '../../utils/centralStorage';
 
 // Aurora Components
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
@@ -52,6 +62,18 @@ export default function TodayScreen() {
   const [timelineExpanded, setTimelineExpanded] = useState(true);
   const [quickLogExpanded, setQuickLogExpanded] = useState(true);
 
+  // Quick Check-In status
+  const [logStatus, setLogStatus] = useState<TodayLogStatus>({
+    medications: false,
+    vitals: false,
+    mood: false,
+    symptoms: false,
+    sleep: false,
+    meals: false,
+    water: false,
+    notes: false,
+  });
+
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -70,27 +92,54 @@ export default function TodayScreen() {
       const tracking = await getDailyTracking(today);
       setDailyTracking(tracking);
 
-      const allSymptoms = await getSymptoms();
-      const todaySymptoms = allSymptoms.filter((s) => s.date === today);
+      // Use date-specific queries to reduce memory pressure
+      const todaySymptoms = await getSymptomsByDate(today);
       setSymptoms(todaySymptoms);
 
-      const allNotes = await getNotes();
-      const todayNotes = allNotes.filter((n) => n.date === today);
+      const todayNotes = await getNotesByDate(today);
       setNotes(todayNotes);
 
-      const allVitals = await getVitals();
-      const todayVitals = allVitals.filter((v) => {
-        const vitalDate = new Date(v.timestamp).toISOString().split('T')[0];
-        return vitalDate === today;
-      });
+      const todayVitals = await getVitalsForDate(today);
       setVitals(todayVitals);
 
       // Load streak data
       const streaks = await getStreaks();
       // Use wellness streak as the primary streak for display
       setStreakDays(streaks.wellnessCheck.current);
+
+      // Load central storage log status
+      const status = await getTodayLogStatus();
+      setLogStatus(status);
     } catch (error) {
       console.error('Error loading TODAY data:', error);
+    }
+  };
+
+  // Quick log handlers for the Quick Check-In card
+  const handleQuickLogMeds = async () => {
+    try {
+      const allMedIds = medications.map(m => m.id);
+      if (allMedIds.length > 0) {
+        await saveMedicationLog({
+          timestamp: new Date().toISOString(),
+          medicationIds: allMedIds,
+        });
+        setLogStatus(prev => ({ ...prev, medications: true }));
+      }
+    } catch (error) {
+      console.error('Error quick logging meds:', error);
+    }
+  };
+
+  const handleQuickLogMeals = async () => {
+    try {
+      await saveMealsLog({
+        timestamp: new Date().toISOString(),
+        meals: ['Breakfast', 'Lunch', 'Dinner'],
+      });
+      setLogStatus(prev => ({ ...prev, meals: true }));
+    } catch (error) {
+      console.error('Error quick logging meals:', error);
     }
   };
 
@@ -419,36 +468,75 @@ export default function TodayScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Quick Check-In Card - Primary CTA (Human-voiced) */}
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => router.push('/quick-checkin')}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Quick Check-In. Vitals, meds, mood, all in one flow"
-            accessibilityHint="Opens the quick check-in wizard"
-          >
-            <GlassCard style={styles.quickCheckinCard}>
-              <View style={styles.quickCheckinContent}>
-                <View style={styles.quickCheckinIcon}>
-                  <Text style={styles.quickCheckinIconText}>📋</Text>
-                </View>
-                <View style={styles.quickCheckinText}>
-                  <Text style={styles.quickCheckinTitle}>Quick Check-In</Text>
-                  <Text style={styles.quickCheckinSubtitle}>
-                    Vitals, meds, mood — all in one flow
-                  </Text>
-                </View>
-                <Text style={styles.quickCheckinArrow}>→</Text>
-              </View>
-              {/* Reassurance line - human voice */}
-              <View style={styles.quickCheckinReassurance}>
-                <Text style={styles.quickCheckinReassuranceText}>
-                  This covers anything you haven't logged yet
-                </Text>
-              </View>
-            </GlassCard>
-          </TouchableOpacity>
+          {/* Quick Check-In Card with Status */}
+          <GlassCard style={styles.quickCheckinCard}>
+            <View style={styles.quickCheckinHeader}>
+              <Text style={styles.quickCheckinTitle}>Quick Check-In</Text>
+              <Text style={styles.quickCheckinSubtitle}>Log common items fast</Text>
+            </View>
+
+            <View style={styles.quickCheckinActions}>
+              <TouchableOpacity
+                style={[styles.quickActionBtn, logStatus.medications && styles.quickActionBtnComplete]}
+                onPress={handleQuickLogMeds}
+                activeOpacity={0.7}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`Medications. ${logStatus.medications ? 'Logged' : 'Not logged'}`}
+              >
+                <Text style={styles.quickActionIcon}>💊</Text>
+                <Text style={styles.quickActionText}>Meds</Text>
+                {logStatus.medications && <Text style={styles.checkIcon}>✓</Text>}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.quickActionBtn, logStatus.vitals && styles.quickActionBtnComplete]}
+                onPress={() => router.push('/(tabs)/log')}
+                activeOpacity={0.7}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`Vitals. ${logStatus.vitals ? 'Logged' : 'Not logged'}`}
+              >
+                <Text style={styles.quickActionIcon}>📊</Text>
+                <Text style={styles.quickActionText}>Vitals</Text>
+                {logStatus.vitals && <Text style={styles.checkIcon}>✓</Text>}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.quickActionBtn, logStatus.mood && styles.quickActionBtnComplete]}
+                onPress={() => router.push('/(tabs)/log')}
+                activeOpacity={0.7}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`Mood. ${logStatus.mood ? 'Logged' : 'Not logged'}`}
+              >
+                <Text style={styles.quickActionIcon}>😊</Text>
+                <Text style={styles.quickActionText}>Mood</Text>
+                {logStatus.mood && <Text style={styles.checkIcon}>✓</Text>}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.quickActionBtn, logStatus.meals && styles.quickActionBtnComplete]}
+                onPress={handleQuickLogMeals}
+                activeOpacity={0.7}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`Meals. ${logStatus.meals ? 'Logged' : 'Not logged'}`}
+              >
+                <Text style={styles.quickActionIcon}>🍽️</Text>
+                <Text style={styles.quickActionText}>Meals</Text>
+                {logStatus.meals && <Text style={styles.checkIcon}>✓</Text>}
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.viewAllLogsButton}
+              onPress={() => router.push('/(tabs)/log')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.viewAllLogsText}>Open Full Log →</Text>
+            </TouchableOpacity>
+          </GlassCard>
 
           {/* Divider */}
           <View style={styles.divider} />
@@ -637,59 +725,72 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
 
-  // Quick Check-In Card (Hero)
+  // Quick Check-In Card (with status)
   quickCheckinCard: {
     backgroundColor: `${Colors.accent}12`,
     borderColor: `${Colors.accent}35`,
-    marginBottom: 20, // Increased from Spacing.md for cleaner separation
+    marginBottom: 20,
+    padding: Spacing.lg,
   },
-  quickCheckinContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  quickCheckinIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: `${Colors.accent}20`,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickCheckinIconText: {
-    fontSize: 22,
-  },
-  quickCheckinText: {
-    flex: 1,
+  quickCheckinHeader: {
+    marginBottom: Spacing.md,
   },
   quickCheckinTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.accent,
+    color: Colors.textPrimary,
     marginBottom: 4,
   },
   quickCheckinSubtitle: {
     fontSize: 14,
     color: Colors.textSecondary,
   },
-  quickCheckinArrow: {
-    fontSize: 24,
-    color: 'rgba(255,255,255,0.4)',
+  quickCheckinActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: Spacing.md,
   },
-  quickCheckinReassurance: {
-    marginTop: 12,
-    paddingTop: 12,
-    paddingHorizontal: 12,
-    paddingBottom: 0,
-    backgroundColor: `${Colors.accent}10`,
-    borderRadius: 8,
+  quickActionBtn: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    position: 'relative',
   },
-  quickCheckinReassuranceText: {
-    fontSize: 13,
-    color: `${Colors.accent}E6`,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingBottom: 12,
+  quickActionBtnComplete: {
+    backgroundColor: `${Colors.accent}15`,
+    borderColor: `${Colors.accent}40`,
+  },
+  quickActionIcon: {
+    fontSize: 28,
+    marginBottom: 5,
+  },
+  quickActionText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  checkIcon: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    fontSize: 14,
+    color: Colors.green,
+  },
+  viewAllLogsButton: {
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+    marginTop: Spacing.xs,
+  },
+  viewAllLogsText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.accent,
   },
 
   // Divider
