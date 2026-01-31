@@ -681,13 +681,15 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
 
-  // Header - Human-voiced, present-focused
+  // Header - Standardized per HEADER_IMPLEMENTATION_SUMMARY
   header: {
+    paddingTop: 60, // Clears iPhone notch
+    paddingHorizontal: 0, // Uses scrollContent padding
+    paddingBottom: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 32, // Increased from Spacing.xl for better breathing room
-    paddingTop: Spacing.sm,
+    marginBottom: 12,
   },
   headerTextContainer: {
     flex: 1,
@@ -700,29 +702,29 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   headerTitle: {
-    fontSize: 36,
+    fontSize: 34,
     fontWeight: '300',
-    color: Colors.textPrimary,
-    marginBottom: 6, // Increased from 4px for better readability
-    lineHeight: 40,
+    color: '#FFFFFF',
+    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: Colors.textSecondary,
-    lineHeight: 22,
+    fontSize: 15,
+    fontWeight: '400',
+    color: 'rgba(255, 255, 255, 0.6)',
+    letterSpacing: 0.3,
   },
   pauseButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.glass,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 16,
   },
   pauseIcon: {
-    fontSize: 22,
+    fontSize: 24,
   },
 
   // Quick Check-In Card (with status)

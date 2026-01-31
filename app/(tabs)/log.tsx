@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { Colors, Spacing, Typography } from '../../theme/theme-tokens';
 import { getMedications, Medication } from '../../utils/medicationStorage';
@@ -413,11 +414,16 @@ export default function LogTab() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>Log Health Data</Text>
-            <Text style={styles.subtitle}>Tap sections to expand</Text>
-          </View>
+          {/* Header with Gradient Demarcation */}
+          <LinearGradient
+            colors={['rgba(94, 234, 212, 0.08)', 'rgba(94, 234, 212, 0.02)']}
+            style={styles.headerGradient}
+          >
+            <View style={styles.header}>
+              <Text style={styles.title}>Log Health Data</Text>
+              <Text style={styles.subtitle}>Tap sections to expand</Text>
+            </View>
+          </LinearGradient>
 
           {/* Progress Indicator */}
           <View style={styles.progressContainer}>
@@ -968,19 +974,28 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  // Header with gradient demarcation
+  headerGradient: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(94, 234, 212, 0.1)',
+  },
   header: {
-    padding: Spacing.xl,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
+    paddingTop: 60, // Clears iPhone notch
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   title: {
-    ...Typography.displayLarge,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
+    fontSize: 34,
+    fontWeight: '300',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   subtitle: {
-    ...Typography.bodySmall,
-    color: Colors.textMuted,
+    fontSize: 15,
+    fontWeight: '400',
+    color: 'rgba(255, 255, 255, 0.6)',
+    letterSpacing: 0.3,
   },
   progressContainer: {
     paddingHorizontal: Spacing.xl,

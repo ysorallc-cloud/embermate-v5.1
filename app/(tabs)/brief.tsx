@@ -21,7 +21,7 @@ import { Colors, Spacing, Typography, BorderRadius } from '../../theme/theme-tok
 import { getMedications, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
 import { getDailyTracking } from '../../utils/dailyTrackingStorage';
-import { getVitalsByType } from '../../utils/vitalsStorage';
+import { getLatestVitalsByTypes } from '../../utils/vitalsStorage';
 import { getMorningWellness, StoredMorningWellness } from '../../utils/wellnessCheckStorage';
 
 // Aurora Components
@@ -65,15 +65,15 @@ export default function HubScreen() {
       const wellness = await getMorningWellness(today);
       setWellnessCheck(wellness);
 
-      const systolicReadings = await getVitalsByType('systolic');
-      const diastolicReadings = await getVitalsByType('diastolic');
+      // Single load for both BP vital types (reduces redundant JSON.parse calls)
+      const latestVitals = await getLatestVitalsByTypes(['systolic', 'diastolic']);
 
-      if (systolicReadings.length > 0) {
-        setLatestSystolic(systolicReadings[0].value);
+      if (latestVitals.systolic) {
+        setLatestSystolic(latestVitals.systolic.value);
       }
 
-      if (diastolicReadings.length > 0) {
-        setLatestDiastolic(diastolicReadings[0].value);
+      if (latestVitals.diastolic) {
+        setLatestDiastolic(latestVitals.diastolic.value);
       }
 
       setLastUpdated(new Date());
@@ -416,16 +416,18 @@ export default function HubScreen() {
             />
           }
         >
-          {/* Header */}
+          {/* Header - Standardized */}
           <View style={styles.header}>
-            <View>
-              <Text style={styles.headerLabel}>EMBERMATE</Text>
+            <View style={styles.headerText}>
               <Text style={styles.headerTitle}>Hub</Text>
-              <Text style={styles.lastUpdated}>{lastUpdatedText}</Text>
+              <Text style={styles.headerSubtitle}>Your health dashboard</Text>
             </View>
             <TouchableOpacity
               style={styles.settingsButton}
               onPress={() => router.push('/settings')}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Settings"
             >
               <Text style={styles.settingsIcon}>⚙️</Text>
             </TouchableOpacity>
@@ -748,21 +750,31 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
 
-  // Header
+  // Header - Standardized per HEADER_IMPLEMENTATION_SUMMARY
   header: {
+    paddingTop: 60, // Clears iPhone notch
+    paddingHorizontal: 0, // Uses scrollContent padding
+    paddingBottom: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Spacing.xxl,
+    marginBottom: 12,
   },
-  headerLabel: {
-    ...Typography.caption,
-    color: Colors.textMuted,
-    marginBottom: Spacing.xs,
+  headerText: {
+    flex: 1,
   },
   headerTitle: {
-    ...Typography.displayMedium,
-    color: Colors.textPrimary,
+    fontSize: 34,
+    fontWeight: '300',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    fontWeight: '400',
+    color: 'rgba(255, 255, 255, 0.6)',
+    letterSpacing: 0.3,
   },
   lastUpdated: {
     fontSize: 11,
@@ -770,10 +782,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   settingsButton: {
-    padding: Spacing.sm,
+    width: 44,
+    height: 44,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 16,
   },
   settingsIcon: {
-    fontSize: 20,
+    fontSize: 24,
   },
 
   // Narrative (legacy)

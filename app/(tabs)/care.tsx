@@ -685,12 +685,15 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
 
-  // Header - Consistent with Today page (32px margin-bottom)
+  // Header - Standardized per HEADER_IMPLEMENTATION_SUMMARY
   header: {
+    paddingTop: 60, // Clears iPhone notch
+    paddingHorizontal: 0, // Uses scrollContent padding
+    paddingBottom: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 32, // Consistent across all tabs
+    marginBottom: 12,
   },
   headerTextContainer: {
     flex: 1,
@@ -703,32 +706,42 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   headerTitle: {
-    fontSize: 36,
+    fontSize: 34,
     fontWeight: '300',
-    color: Colors.textPrimary,
-    marginBottom: 6,
-    lineHeight: 40,
+    color: '#FFFFFF',
+    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.6)',
-    lineHeight: 22,
+    fontSize: 15,
+    fontWeight: '400',
+    color: 'rgba(255, 255, 255, 0.6)',
+    letterSpacing: 0.3,
   },
   notifButton: {
-    padding: Spacing.sm,
+    width: 44,
+    height: 44,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 16,
     position: 'relative',
   },
   notifIcon: {
-    fontSize: 20,
+    fontSize: 24,
   },
   notifBadge: {
     position: 'absolute',
     top: 6,
     right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.red,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
   },
 
   // Support Message
