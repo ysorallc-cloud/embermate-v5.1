@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Colors } from './_theme/theme-tokens';
+import { Colors } from '../theme/theme-tokens';
 import { getDailyTrackingLogs, DailyTrackingLog } from '../utils/dailyTrackingStorage';
 import { getVitals } from '../utils/vitalsStorage';
 

@@ -20,7 +20,7 @@ import { ReadyToStartScreen } from './screens/ReadyToStartScreen';
 
 import { PaginationDots } from './components/PaginationDots';
 import { seedSampleData } from '../../utils/sampleData';
-import { Colors, Typography, Spacing, BorderRadius } from '../_theme/theme-tokens';
+import { Colors, Typography, Spacing, BorderRadius } from '../../theme/theme-tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

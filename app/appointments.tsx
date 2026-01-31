@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors } from './_theme/theme-tokens';
+import { Colors } from '../theme/theme-tokens';
 import { getUpcomingAppointments, Appointment } from '../utils/appointmentStorage';
 
 export default function AppointmentsScreen() {

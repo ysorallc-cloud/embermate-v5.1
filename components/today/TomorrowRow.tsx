@@ -5,7 +5,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors } from '../../app/_theme/theme-tokens';
+import { Colors } from '../../theme/theme-tokens';
 import { addDays } from 'date-fns';
 
 interface TomorrowRowProps {

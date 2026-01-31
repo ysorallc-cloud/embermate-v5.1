@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Spacing, BorderRadius } from './_theme/theme-tokens';
+import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { detectCorrelations, hasSufficientData, DetectedPattern } from '../utils/correlationDetector';
 
 export default function CorrelationReportScreen() {

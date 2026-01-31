@@ -9,7 +9,7 @@ import { SwipeableTimelineItem } from './SwipeableTimelineItem';
 import { TomorrowRow } from './TomorrowRow';
 import { UndoToast } from '../common/UndoToast';
 import { TimelineItem } from '../../types/timeline';
-import { Colors } from '../../app/_theme/theme-tokens';
+import { Colors } from '../../theme/theme-tokens';
 import { markMedicationTaken } from '../../utils/medicationStorage';
 import { saveMorningWellness, saveEveningWellness } from '../../utils/wellnessCheckStorage';
 import { format } from 'date-fns';

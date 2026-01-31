@@ -19,7 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Spacing, BorderRadius } from './_theme/theme-tokens';
+import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { hapticSuccess } from '../utils/hapticFeedback';
 

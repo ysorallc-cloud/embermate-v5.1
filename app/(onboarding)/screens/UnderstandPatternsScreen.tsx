@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { GlassCard } from '../../../components/aurora/GlassCard';
-import { Colors, Typography, Spacing } from '../../_theme/theme-tokens';
+import { Colors, Typography, Spacing } from '../../../theme/theme-tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

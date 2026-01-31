@@ -19,14 +19,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Colors, Spacing, BorderRadius } from './_theme/theme-tokens';
+import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { GlassCard } from '../components/aurora/GlassCard';
-import { CheckinCelebration } from '../components/CheckinCelebration';
 import { getMedications, Medication, markMedicationTaken } from '../utils/medicationStorage';
 import { saveVital } from '../utils/vitalsStorage';
 import { saveDailyTracking } from '../utils/dailyTrackingStorage';
 import { saveNote } from '../utils/noteStorage';
-import { updateStreak } from '../utils/streakStorage';
 
 const STEPS = ['Vitals', 'Medications', 'Feelings', 'Notes'];
 
@@ -49,7 +47,6 @@ interface CheckinData {
 export default function QuickCheckinScreen() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const [showCelebration, setShowCelebration] = useState(false);
   const [medications, setMedications] = useState<Medication[]>([]);
   const [checkinData, setCheckinData] = useState<CheckinData>({
     systolic: '',
@@ -168,20 +165,15 @@ export default function QuickCheckinScreen() {
         });
       }
 
-      // Update streak
-      await updateStreak('wellnessCheck');
-
-      // Show celebration screen
-      setShowCelebration(true);
+      Alert.alert(
+        'Check-in Complete',
+        'All data has been saved successfully.',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
     } catch (error) {
       console.error('Error saving check-in data:', error);
       Alert.alert('Error', 'Failed to save check-in data. Please try again.');
     }
-  };
-
-  const handleCelebrationDismiss = () => {
-    setShowCelebration(false);
-    router.back();
   };
 
   const getMoodLabel = (value: number) => {
@@ -475,9 +467,6 @@ export default function QuickCheckinScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {showCelebration && (
-        <CheckinCelebration type="quick" onDismiss={handleCelebrationDismiss} />
-      )}
       <LinearGradient
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}

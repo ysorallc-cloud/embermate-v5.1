@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Colors } from './_theme/theme-tokens';
+import { Colors } from '../theme/theme-tokens';
 import { getMedications, markMedicationTaken, Medication } from '../utils/medicationStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
 

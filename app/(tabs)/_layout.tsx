@@ -6,7 +6,7 @@
 import { Tabs } from 'expo-router';
 import { View, Text, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Colors } from '../_theme/theme-tokens';
+import { Colors } from '../../theme/theme-tokens';
 
 const TabIcon = ({ icon, focused }: { icon: string; focused: boolean }) => (
   <View

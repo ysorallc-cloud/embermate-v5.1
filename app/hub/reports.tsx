@@ -11,7 +11,7 @@ import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { GlassCard } from '../../components/aurora/GlassCard';
 import { PageHeader } from '../../components/aurora/PageHeader';
 import { SectionHeader } from '../../components/aurora/SectionHeader';
-import { Colors, Spacing, Typography, BorderRadius } from '../_theme/theme-tokens';
+import { Colors, Spacing, Typography, BorderRadius } from '../../theme/theme-tokens';
 
 const REPORT_CATEGORIES = [
   {

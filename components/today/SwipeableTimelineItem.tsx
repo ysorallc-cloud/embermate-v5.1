@@ -16,7 +16,7 @@ import {
   Platform,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../app/_theme/theme-tokens';
+import { Colors } from '../../theme/theme-tokens';
 import { TimelineItem as TimelineItemType } from '../../types/timeline';
 import { format } from 'date-fns';
 

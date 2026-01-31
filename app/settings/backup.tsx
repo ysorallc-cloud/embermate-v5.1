@@ -19,8 +19,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
-import { Colors } from '../_theme/theme-tokens';
-import { CommonStyles } from '../_theme/commonStyles';
+import { Colors } from '../../theme/theme-tokens';
+import { CommonStyles } from '../../theme/commonStyles';
 import PageHeader from '../../components/PageHeader';
 import {
   quickBackup,

@@ -5,7 +5,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CalendarDay } from '@/types/calendar';
-import { Colors } from '@/app/_theme/theme-tokens';
+import { Colors } from '@/theme/theme-tokens';
 import { isSameDay } from 'date-fns';
 
 const DAYS_OF_WEEK = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];

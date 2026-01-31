@@ -19,11 +19,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.embermate.app",
-      "buildNumber": "1",
-      "config": {
-        "usesNonExemptEncryption": false
-      },
+      "buildNumber": "23",
+      "usesNonExemptEncryption": false,
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "EmberMate needs camera access to take photos of medications, wounds, and medical documents.",
         "NSPhotoLibraryUsageDescription": "EmberMate needs photo library access to select images of medications, wounds, and medical documents.",
         "NSFaceIDUsageDescription": "EmberMate uses Face ID to securely protect your sensitive health information.",

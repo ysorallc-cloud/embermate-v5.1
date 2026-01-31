@@ -5,7 +5,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { format } from 'date-fns';
-import { Colors } from '../../app/_theme/theme-tokens';
+import { Colors } from '../../theme/theme-tokens';
 import { CalendarItem } from '../../types/calendar';
 import { APPOINTMENT_TYPES } from '../../constants/appointmentTypes';
 

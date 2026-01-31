@@ -5,7 +5,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors } from '../../app/_theme/theme-tokens';
+import { Colors } from '../../theme/theme-tokens';
 
 export const EmptyCard: React.FC = () => {
   const router = useRouter();

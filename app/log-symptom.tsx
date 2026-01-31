@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Colors } from './_theme/theme-tokens';
+import { Colors } from '../theme/theme-tokens';
 import { saveSymptom } from '../utils/symptomStorage';
 
 const COMMON_SYMPTOMS = [

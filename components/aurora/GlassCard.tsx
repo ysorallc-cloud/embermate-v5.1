@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle, StyleProp, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Colors, BorderRadius, Spacing } from '../../app/_theme/theme-tokens';
+import { Colors, BorderRadius, Spacing } from '../../theme/theme-tokens';
 
 interface Props {
   children: React.ReactNode;

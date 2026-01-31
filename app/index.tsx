@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { Redirect } from 'expo-router';
 import { isOnboardingComplete } from '../utils/sampleData';
-import { Colors } from './_theme/theme-tokens';
+import { Colors } from '../theme/theme-tokens';
 
 export default function Index() {
   const [loading, setLoading] = useState(true);

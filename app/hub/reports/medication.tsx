@@ -10,7 +10,7 @@ import { useRouter } from 'expo-router';
 import { AuroraBackground } from '../../../components/aurora/AuroraBackground';
 import { GlassCard } from '../../../components/aurora/GlassCard';
 import { PageHeader } from '../../../components/aurora/PageHeader';
-import { Colors, Spacing, Typography, BorderRadius } from '../../_theme/theme-tokens';
+import { Colors, Spacing, Typography, BorderRadius } from '../../../theme/theme-tokens';
 
 // Sample data
 const SAMPLE_DATA = {

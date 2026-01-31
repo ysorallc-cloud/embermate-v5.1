@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors } from '../../app/_theme/theme-tokens';
+import { Colors } from '../../theme/theme-tokens';
 import { getAllInsights, Insight } from '../../utils/insights';
 import { Medication } from '../../utils/medicationStorage';
 

@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Colors, Spacing } from './_theme/theme-tokens';
+import { Colors, Spacing } from '../theme/theme-tokens';
 import { generateAndSharePDF, ReportData } from '../utils/pdfExport';
 
 // Helper function to generate care summary reports

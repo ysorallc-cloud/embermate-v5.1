@@ -7,7 +7,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
-import { Colors, Spacing } from '../../_theme/theme-tokens';
+import { Colors, Spacing } from '../../../theme/theme-tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

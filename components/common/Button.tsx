@@ -13,7 +13,7 @@ import {
   TextStyle,
   View,
 } from 'react-native';
-import { Colors, Spacing, BorderRadius } from '../../app/_theme/theme-tokens';
+import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost' | 'success';
 type ButtonSize = 'small' | 'medium' | 'large';

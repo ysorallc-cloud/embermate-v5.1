@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, ScrollView, Pressable } from 'react-native';
 import { GlassCard } from '../../../components/aurora/GlassCard';
-import { Colors, Typography, Spacing, BorderRadius } from '../../_theme/theme-tokens';
+import { Colors, Typography, Spacing, BorderRadius } from '../../../theme/theme-tokens';
 
 interface Props {
   visible: boolean;

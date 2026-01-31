@@ -7,7 +7,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TimelineItem } from '@/components/today/TimelineItem';
 import { TimelineItem as TimelineItemType } from '@/types/timeline';
-import { Colors } from '@/app/_theme/theme-tokens';
+import { Colors } from '@/theme/theme-tokens';
 import { format, isToday } from 'date-fns';
 
 interface Props {

@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Colors, Spacing } from '../_theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import PageHeader from '../../components/PageHeader';
 
 export default function PatientScreen() {

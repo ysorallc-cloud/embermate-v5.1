@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors, Spacing } from '../app/_theme/theme-tokens';
+import { Colors, Spacing } from '../theme/theme-tokens';
 
 interface PageHeaderProps {
   emoji: string;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, Spacing, Typography } from '../../app/_theme/theme-tokens';
+import { Colors, Spacing, Typography } from '../../theme/theme-tokens';
 
 interface Props {
   category?: string;

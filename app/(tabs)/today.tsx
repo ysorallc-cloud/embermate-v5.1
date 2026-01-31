@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Colors, Spacing, Typography } from '../_theme/theme-tokens';
+import { Colors, Spacing, Typography } from '../../theme/theme-tokens';
 import { getMedications, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
 import { getDailyTracking } from '../../utils/dailyTrackingStorage';

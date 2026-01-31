@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { Colors } from '../app/_theme/theme-tokens';
+import { Colors } from '../theme/theme-tokens';
 
 interface Props {
   children: ReactNode;

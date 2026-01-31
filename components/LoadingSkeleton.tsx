@@ -5,7 +5,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import { Colors, Spacing, BorderRadius } from '../app/_theme/theme-tokens';
+import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 
 interface LoadingSkeletonProps {
   width?: number | string;

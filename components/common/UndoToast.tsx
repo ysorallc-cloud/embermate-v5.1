@@ -5,7 +5,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
-import { Colors } from '../../app/_theme/theme-tokens';
+import { Colors } from '../../theme/theme-tokens';
 
 interface Props {
   visible: boolean;

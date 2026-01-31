@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '../../app/_theme/theme-tokens';
+import { Colors } from '../../theme/theme-tokens';
 
 export const CaughtUpCard: React.FC = () => {
   return (

@@ -19,7 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius } from './_theme/theme-tokens';
+import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { checkMedicationInteractions } from '../utils/medicationStorage';
 import { DrugInteraction } from '../utils/drugInteractions';
 import InteractionWarnings from '../components/InteractionWarnings';

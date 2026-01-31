@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Colors, Spacing } from '../app/_theme/theme-tokens';
+import { Colors, Spacing } from '../theme/theme-tokens';
 import { savePhoto } from '../utils/photoStorage';
 
 export interface PhotoCaptureProps {

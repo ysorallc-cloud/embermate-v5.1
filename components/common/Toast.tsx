@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   AccessibilityInfo,
 } from 'react-native';
-import { Colors, Spacing, BorderRadius } from '../../app/_theme/theme-tokens';
+import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 

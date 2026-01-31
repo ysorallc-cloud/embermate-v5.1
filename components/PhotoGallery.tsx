@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, FlatList, Dimensions } from 'react-native';
-import { Colors, Spacing } from '../app/_theme/theme-tokens';
+import { Colors, Spacing } from '../theme/theme-tokens';
 import { Photo } from '../utils/photoStorage';
 
 interface PhotoGalleryProps {

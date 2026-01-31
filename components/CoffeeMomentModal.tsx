@@ -14,7 +14,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors } from '../app/_theme/theme-tokens';
+import { Colors } from '../theme/theme-tokens';
 import { getPersonalizedEncouragement, getSampleCaregiverInsights, Encouragement } from '../utils/coffee-moment';
 
 interface CoffeeMomentModalProps {

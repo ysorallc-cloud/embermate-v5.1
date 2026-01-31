@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { formatDistanceToNow } from 'date-fns';
-import { Colors, Spacing, Typography, BorderRadius } from '../_theme/theme-tokens';
+import { Colors, Spacing, Typography, BorderRadius } from '../../theme/theme-tokens';
 import { getMedications, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
 import { getDailyTracking } from '../../utils/dailyTrackingStorage';
@@ -41,7 +41,6 @@ export default function HubScreen() {
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
   // Collapsible section state
-  const [aiInsightsExpanded, setAiInsightsExpanded] = useState(true);
   const [keyFeaturesExpanded, setKeyFeaturesExpanded] = useState(true);
   const [managementExpanded, setManagementExpanded] = useState(true);
 
@@ -344,88 +343,6 @@ export default function HubScreen() {
     },
   ];
 
-  // AI Insights - Generated patterns and correlations
-  const aiInsights = useMemo(() => {
-    const insights = [];
-
-    // Weekly Energy Pattern
-    if (wellnessCheck?.energyLevel) {
-      const energyLevel = wellnessCheck.energyLevel;
-      if (energyLevel <= 2) {
-        insights.push({
-          id: 'energy-time',
-          icon: '⚡',
-          title: 'Energy Pattern',
-          description: 'Energy tends to be lower in late afternoons (2-5pm). Morning activities may show better engagement.',
-          type: 'pattern',
-          color: Colors.amber,
-        });
-      } else {
-        insights.push({
-          id: 'energy-time',
-          icon: '⚡',
-          title: 'Energy Pattern',
-          description: 'Energy levels are steady. Best engagement typically in mornings (9am-12pm).',
-          type: 'pattern',
-          color: Colors.green,
-        });
-      }
-    }
-
-    // Sleep-Mood Correlation
-    if (dailyTracking?.sleepQuality && wellnessCheck?.mood) {
-      const sleepQuality = dailyTracking.sleepQuality;
-      const moodMap: { [key: string]: number } = { 'struggling': 2, 'difficult': 4, 'managing': 5, 'good': 7, 'great': 9 };
-      const moodScore = moodMap[wellnessCheck.mood] || 5;
-
-      if (sleepQuality >= 4 && moodScore >= 7) {
-        insights.push({
-          id: 'sleep-mood',
-          icon: '😴',
-          title: 'Sleep & Mood Connection',
-          description: 'Good sleep quality correlates with improved mood. Nights with 7+ hours show +2 points average mood improvement.',
-          type: 'correlation',
-          color: Colors.purple,
-        });
-      } else if (sleepQuality < 3) {
-        insights.push({
-          id: 'sleep-mood',
-          icon: '😴',
-          title: 'Sleep & Mood Connection',
-          description: 'Sleep quality has been lower recently. This may affect mood and energy levels.',
-          type: 'correlation',
-          color: Colors.amber,
-        });
-      }
-    }
-
-    // Medication Adherence
-    if (totalMeds > 0) {
-      insights.push({
-        id: 'med-adherence',
-        icon: '💊',
-        title: 'Medication Adherence',
-        description: `${adherencePercent}% adherence this week. ${adherencePercent >= 90 ? 'Great consistency!' : 'Consider setting reminders for missed doses.'}`,
-        type: 'trend',
-        color: adherencePercent >= 90 ? Colors.green : Colors.amber,
-      });
-    }
-
-    // Default insight if none generated
-    if (insights.length === 0) {
-      insights.push({
-        id: 'get-started',
-        icon: '🧠',
-        title: 'Building Your Insights',
-        description: 'Keep logging to discover patterns. AI insights appear after a few days of tracking.',
-        type: 'info',
-        color: Colors.accent,
-      });
-    }
-
-    return insights;
-  }, [wellnessCheck, dailyTracking, totalMeds, adherencePercent]);
-
   // Health tracking categories
   const healthCategories = [
     {
@@ -587,54 +504,6 @@ export default function HubScreen() {
                 <Text style={styles.quickStatLabel}>{stat.label}</Text>
               </GlassCard>
             ))}
-          </View>
-
-          {/* AI Insights Section */}
-          <View style={styles.aiInsightsSection}>
-            <TouchableOpacity
-              style={styles.groupHeader}
-              onPress={() => setAiInsightsExpanded(!aiInsightsExpanded)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.aiInsightsHeaderLeft}>
-                <Text style={styles.aiInsightsLabel}>🧠</Text>
-                <Text style={styles.groupHeaderText}>AI INSIGHTS</Text>
-              </View>
-              <Text style={styles.groupHeaderChevron}>{aiInsightsExpanded ? '▼' : '▶'}</Text>
-            </TouchableOpacity>
-            {aiInsightsExpanded && (
-              <View style={styles.aiInsightsContent}>
-                {aiInsights.map((insight) => (
-                  <GlassCard
-                    key={insight.id}
-                    style={[
-                      styles.aiInsightCard,
-                      { borderLeftColor: insight.color, borderLeftWidth: 3 },
-                    ]}
-                  >
-                    <View style={styles.aiInsightHeader}>
-                      <Text style={styles.aiInsightIcon}>{insight.icon}</Text>
-                      <View style={styles.aiInsightTitleRow}>
-                        <Text style={styles.aiInsightTitle}>{insight.title}</Text>
-                        <View style={[styles.aiInsightBadge, { backgroundColor: `${insight.color}20` }]}>
-                          <Text style={[styles.aiInsightBadgeText, { color: insight.color }]}>
-                            {insight.type === 'pattern' ? 'Pattern' : insight.type === 'correlation' ? 'Correlation' : insight.type === 'trend' ? 'Trend' : 'AI'}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                    <Text style={styles.aiInsightDescription}>{insight.description}</Text>
-                  </GlassCard>
-                ))}
-                <TouchableOpacity
-                  style={styles.viewAllInsights}
-                  onPress={() => router.push('/correlation-report')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.viewAllInsightsText}>View all patterns & correlations →</Text>
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
 
           {/* Hub Sections - Grouped */}
@@ -1005,74 +874,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     marginBottom: Spacing.xl,
-  },
-
-  // AI Insights Section
-  aiInsightsSection: {
-    marginBottom: Spacing.xl,
-  },
-  aiInsightsHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  aiInsightsLabel: {
-    fontSize: 14,
-  },
-  aiInsightsContent: {
-    gap: 10,
-  },
-  aiInsightCard: {
-    padding: 14,
-    borderLeftWidth: 3,
-  },
-  aiInsightHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 8,
-  },
-  aiInsightIcon: {
-    fontSize: 24,
-  },
-  aiInsightTitleRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  aiInsightTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    flex: 1,
-  },
-  aiInsightBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  aiInsightBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  aiInsightDescription: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 20,
-    marginLeft: 36,
-  },
-  viewAllInsights: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  viewAllInsightsText: {
-    fontSize: 14,
-    color: Colors.accent,
-    fontWeight: '500',
   },
   quickStatCard: {
     flex: 1,

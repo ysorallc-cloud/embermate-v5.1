@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing, BorderRadius } from './_theme/theme-tokens';
+import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { getMedications, getMedicationLogs, Medication } from '../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../utils/appointmentStorage';
 import { generateComprehensiveReport, ComprehensiveReport } from '../utils/reportGenerator';

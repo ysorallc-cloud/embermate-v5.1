@@ -16,7 +16,7 @@ import Animated, {
   cancelAnimation,
 } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
-import { Colors, Spacing, BorderRadius } from '../../_theme/theme-tokens';
+import { Colors, Spacing, BorderRadius } from '../../../theme/theme-tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing, Typography, BorderRadius } from '../_theme/theme-tokens';
+import { Colors, Spacing, Typography, BorderRadius } from '../../theme/theme-tokens';
 import {
   getCaregivers,
   getCareActivities,
@@ -329,16 +329,14 @@ export default function FamilyScreen() {
             />
           }
         >
-          {/* Header with Team Stats */}
+          {/* Header with Team Stats - Consistent with Today page */}
           <View style={styles.header}>
-            <View>
-              <Text style={styles.headerLabel}>CARE CIRCLE</Text>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerDate}>
+                {hasOtherCaregivers ? `${activeCount} active • ${weeklyUpdates} updates this week` : 'CARE CIRCLE'}
+              </Text>
               <Text style={styles.headerTitle}>Caring together</Text>
-              {hasOtherCaregivers && (
-                <Text style={styles.headerStats}>
-                  {activeCount} active • {weeklyUpdates} updates this week
-                </Text>
-              )}
+              <Text style={styles.headerSubtitle}>Your support circle</Text>
             </View>
             <TouchableOpacity
               style={styles.notifButton}
@@ -687,26 +685,34 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
 
-  // Header
+  // Header - Consistent with Today page (32px margin-bottom)
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Spacing.xxl,
+    marginBottom: 32, // Consistent across all tabs
   },
-  headerLabel: {
-    ...Typography.caption,
-    color: Colors.textMuted,
-    marginBottom: Spacing.xs,
+  headerTextContainer: {
+    flex: 1,
+  },
+  headerDate: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    marginBottom: 8,
   },
   headerTitle: {
-    ...Typography.displayMedium,
+    fontSize: 36,
+    fontWeight: '300',
     color: Colors.textPrimary,
+    marginBottom: 6,
+    lineHeight: 40,
   },
-  headerStats: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    marginTop: 4,
+  headerSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.6)',
+    lineHeight: 22,
   },
   notifButton: {
     padding: Spacing.sm,

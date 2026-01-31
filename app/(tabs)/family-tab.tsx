@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Colors, Spacing, Typography, BorderRadius } from '../_theme/theme-tokens';
+import { Colors, Spacing, Typography, BorderRadius } from '../../theme/theme-tokens';
 import {
   getCaregivers,
   getCareActivities,

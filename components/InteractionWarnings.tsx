@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { DrugInteraction } from '../utils/drugInteractions';
-import { Colors, Spacing } from '../app/_theme/theme-tokens';
+import { Colors, Spacing } from '../theme/theme-tokens';
 
 interface InteractionWarningsProps {
   interactions: DrugInteraction[];

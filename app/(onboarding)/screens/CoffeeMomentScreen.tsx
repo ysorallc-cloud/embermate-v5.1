@@ -12,7 +12,7 @@ import Animated, {
 import { AuroraBackground } from '../components/AuroraBackground';
 import { GlassCard } from '../../../components/aurora/GlassCard';
 import { DisclaimerModal } from '../components/DisclaimerModal';
-import { Colors, Typography, Spacing, BorderRadius } from '../../_theme/theme-tokens';
+import { Colors, Typography, Spacing, BorderRadius } from '../../../theme/theme-tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, BorderRadius, Spacing, Typography } from '../../app/_theme/theme-tokens';
+import { Colors, BorderRadius, Spacing, Typography } from '../../theme/theme-tokens';
 
 interface QuickAction {
   icon: string;

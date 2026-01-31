@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing } from '../_theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import PageHeader from '../../components/PageHeader';
 
 type TimeRange = '7days' | '30days' | '3months';

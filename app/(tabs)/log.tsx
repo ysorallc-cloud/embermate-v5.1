@@ -22,7 +22,7 @@ import { format } from 'date-fns';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { GlassCard } from '../../components/aurora/GlassCard';
-import { Colors, Spacing, Typography } from '../_theme/theme-tokens';
+import { Colors, Spacing, Typography } from '../../theme/theme-tokens';
 import { getMedications } from '../../utils/medicationStorage';
 import { getVitals, deleteVital } from '../../utils/vitalsStorage';
 import { getNotes, deleteNote } from '../../utils/noteStorage';

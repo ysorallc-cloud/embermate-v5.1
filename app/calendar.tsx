@@ -7,7 +7,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Colors } from './_theme/theme-tokens';
+import { Colors } from '../theme/theme-tokens';
 import { CalendarGrid } from '../components/calendar/CalendarGrid';
 import { DayTimeline } from '../components/calendar/DayTimeline';
 import { useCalendarData } from '../hooks/useCalendarData';

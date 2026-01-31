@@ -18,8 +18,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius } from '../_theme/theme-tokens';
-import { CommonStyles } from '../_theme/commonStyles';
+import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { CommonStyles } from '../../theme/commonStyles';
 import {
   checkBiometricCapabilities,
   enableBiometricAuth,

@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '../../app/_theme/theme-tokens';
+import { Colors } from '../../theme/theme-tokens';
 
 interface Props {
   type: string;
