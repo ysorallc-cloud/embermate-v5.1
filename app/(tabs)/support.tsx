@@ -1,6 +1,7 @@
 // ============================================================================
-// FAMILY PAGE - Aurora Redesign
-// Care circle collaboration view
+// SUPPORT PAGE - Clear Modes Redesign
+// "Who's with me, and how do I reach them?"
+// Hierarchy: Primary Action → Care Team → Activity → Emergency → Privacy
 // ============================================================================
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -12,6 +13,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Linking,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -32,61 +34,18 @@ const LAST_VIEWED_KEY = '@embermate_care_last_viewed';
 // Aurora Components
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { GlassCard } from '../../components/aurora/GlassCard';
-import { SectionHeader } from '../../components/aurora/SectionHeader';
-
-interface RecentShare {
-  id: string;
-  reportName: string;
-  sharedWith: string;
-  date: string;
-}
 
 export default function SupportScreen() {
   const router = useRouter();
   const [caregivers, setCaregivers] = useState<CaregiverProfile[]>([]);
   const [activities, setActivities] = useState<CareActivity[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [recentShares, setRecentShares] = useState<RecentShare[]>([]);
-
-  // Phase 1: Notification badge state
-  const [hasNewNotifications, setHasNewNotifications] = useState(false);
-  const [lastViewedTime, setLastViewedTime] = useState<number>(0);
-
-  // Phase 2: Collapsible activity state
-  const [activityExpanded, setActivityExpanded] = useState(true);
-
-  // Phase 3: Activity filter state
-  const [activityFilter, setActivityFilter] = useState<'all' | 'shares' | 'logs'>('all');
 
   useFocusEffect(
     useCallback(() => {
       loadData();
-      checkNotifications();
     }, [])
   );
-
-  // Check for new notifications
-  const checkNotifications = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(LAST_VIEWED_KEY);
-      const lastViewed = stored ? parseInt(stored, 10) : 0;
-      setLastViewedTime(lastViewed);
-    } catch (error) {
-      console.error('Error checking notifications:', error);
-    }
-  };
-
-  // Mark notifications as read
-  const markNotificationsRead = async () => {
-    try {
-      const now = Date.now();
-      await AsyncStorage.setItem(LAST_VIEWED_KEY, now.toString());
-      setLastViewedTime(now);
-      setHasNewNotifications(false);
-    } catch (error) {
-      console.error('Error marking notifications read:', error);
-    }
-  };
 
   const loadData = async () => {
     let team = await getCaregivers();
@@ -96,7 +55,7 @@ export default function SupportScreen() {
       team = [
         {
           id: 'sarah-1',
-          name: 'Sarah',
+          name: 'Sarah Chen',
           role: 'family' as const,
           email: 'sarah@example.com',
           phone: '+1234567890',
@@ -104,19 +63,31 @@ export default function SupportScreen() {
           invitedAt: new Date().toISOString(),
           joinedAt: new Date().toISOString(),
           avatarColor: Colors.rose,
-          lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+          lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
         },
         {
-          id: 'dr-chen-1',
-          name: 'Dr. Chen',
+          id: 'dr-johnson-1',
+          name: 'Dr. Johnson',
           role: 'healthcare' as const,
-          email: 'dr.chen@example.com',
+          email: 'dr.johnson@example.com',
           phone: '+0987654321',
           permissions: { canView: true, canEdit: false, canMarkMedications: false, canScheduleAppointments: false, canAddNotes: true, canExport: false },
-          invitedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
+          invitedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
           joinedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
           avatarColor: Colors.purple,
-          lastActive: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+          lastActive: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: 'mike-1',
+          name: 'Mike Chen',
+          role: 'family' as const,
+          email: 'mike@example.com',
+          phone: '+1122334455',
+          permissions: { canView: true, canEdit: false, canMarkMedications: false, canScheduleAppointments: false, canAddNotes: false, canExport: false },
+          invitedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+          joinedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+          avatarColor: Colors.amber,
+          lastActive: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
         },
       ];
     }
@@ -130,56 +101,32 @@ export default function SupportScreen() {
       acts = [
         {
           id: 'act-1',
-          type: 'vital_logged' as const,
-          performedBy: 'Sarah',
-          performedById: 'sarah-1',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          details: { vitalType: 'evening vitals' },
-        },
-        {
-          id: 'act-2',
           type: 'note_added' as const,
           performedBy: 'You',
           performedById: 'user',
-          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          details: { action: 'shared weekly summary', recipient: 'Sarah' },
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          details: { action: 'shared medication log', recipient: 'Dr. Johnson' },
+        },
+        {
+          id: 'act-2',
+          type: 'vital_logged' as const,
+          performedBy: 'Sarah',
+          performedById: 'sarah-1',
+          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+          details: { vitalType: 'vitals' },
         },
         {
           id: 'act-3',
           type: 'note_added' as const,
           performedBy: 'You',
           performedById: 'user',
-          timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          details: { action: 'shared medication report', recipient: 'Dr. Chen' },
+          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          details: { action: 'modified care plan' },
         },
       ];
     }
 
     setActivities(acts);
-
-    // Check for new notifications (activities since last viewed)
-    const stored = await AsyncStorage.getItem(LAST_VIEWED_KEY);
-    const lastViewed = stored ? parseInt(stored, 10) : 0;
-    const hasNew = acts.some(a => new Date(a.timestamp).getTime() > lastViewed);
-    setHasNewNotifications(hasNew);
-
-    // Keep recent shares for backwards compatibility (but we'll merge into activity)
-    if (team.length > 0) {
-      setRecentShares([
-        {
-          id: '1',
-          reportName: 'Weekly Health Summary',
-          sharedWith: 'Sarah',
-          date: '2 days ago',
-        },
-        {
-          id: '2',
-          reportName: 'Medication Report',
-          sharedWith: 'Dr. Chen',
-          date: '1 week ago',
-        },
-      ]);
-    }
   };
 
   const onRefresh = useCallback(async () => {
@@ -188,49 +135,23 @@ export default function SupportScreen() {
     setRefreshing(false);
   }, []);
 
-  // Team stats
-  const activeCount = caregivers.filter(c =>
-    c.lastActive && new Date(c.lastActive).getTime() > Date.now() - 24 * 60 * 60 * 1000
-  ).length + 1; // +1 for current user
-
-  const weeklyUpdates = useMemo(() => {
-    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    return activities.filter(a => new Date(a.timestamp).getTime() > weekAgo).length;
-  }, [activities]);
-
-  const hasOtherCaregivers = caregivers.length > 0;
-
-  // Get permission label for display
-  const getPermissionLabel = (permissions: SharePermissions): string => {
-    if (permissions.canEdit && permissions.canView) {
-      return 'View & Edit';
+  // Get role label
+  const getRoleLabel = (role: string): string => {
+    switch (role) {
+      case 'family':
+        return 'Family support';
+      case 'healthcare':
+        return 'Primary physician';
+      default:
+        return 'Care team';
     }
-    if (permissions.canView) {
-      return 'View only';
-    }
-    return 'Full access';
   };
 
-  // Filter activities based on current filter
-  const filteredActivities = useMemo(() => {
-    if (activityFilter === 'all') return activities;
-    if (activityFilter === 'shares') {
-      return activities.filter(a => a.type === 'note_added' && a.details?.action?.includes('shared'));
-    }
-    if (activityFilter === 'logs') {
-      return activities.filter(a =>
-        a.type === 'vital_logged' || a.type === 'symptom_logged' ||
-        a.type === 'medication_taken' || a.type === 'medication_missed'
-      );
-    }
-    return activities;
-  }, [activities, activityFilter]);
-
-  // Get activity description for display
+  // Get activity description
   const getActivityDescription = (activity: CareActivity): string => {
     switch (activity.type) {
       case 'vital_logged':
-        return `logged ${activity.details?.vitalType || 'vitals'}`;
+        return `updated ${activity.details?.vitalType || 'vitals'}`;
       case 'symptom_logged':
         return 'logged symptoms';
       case 'medication_taken':
@@ -238,6 +159,9 @@ export default function SupportScreen() {
       case 'medication_missed':
         return 'missed medication';
       case 'note_added':
+        if (activity.details?.action?.includes('shared')) {
+          return `${activity.details.action}${activity.details.recipient ? ` with ${activity.details.recipient}` : ''}`;
+        }
         return activity.details?.action || 'added a note';
       case 'appointment_scheduled':
         return 'scheduled appointment';
@@ -250,67 +174,26 @@ export default function SupportScreen() {
     }
   };
 
-  // Get activity icon
-  const getActivityIcon = (activity: CareActivity): string => {
-    switch (activity.type) {
-      case 'vital_logged':
-        return '🫀';
-      case 'symptom_logged':
-        return '🩺';
-      case 'medication_taken':
-      case 'medication_missed':
-        return '💊';
-      case 'note_added':
-        return activity.details?.action?.includes('shared') ? '📊' : '📝';
-      case 'appointment_scheduled':
-      case 'appointment_completed':
-        return '📅';
-      case 'caregiver_joined':
-        return '👤';
-      default:
-        return '📝';
-    }
+  // Handle emergency alert with confirmation
+  const handleEmergencyAlert = () => {
+    Alert.alert(
+      'Alert Care Team?',
+      'This will immediately notify all care team members that you need help.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Alert Now',
+          style: 'destructive',
+          onPress: () => {
+            // Navigate to emergency screen
+            router.push('/emergency');
+          },
+        },
+      ]
+    );
   };
 
-  // Get orbit member data with names
-  const orbitMembers = useMemo(() => {
-    const members = [
-      { id: 'you', name: 'You', color: Colors.accent, angle: 180 },
-    ];
-
-    caregivers.slice(0, 2).forEach((cg, i) => {
-      members.push({
-        id: cg.id,
-        name: cg.name.split(' ')[0], // First name only
-        color: cg.avatarColor || (i === 0 ? Colors.rose : Colors.purple),
-        angle: i === 0 ? 60 : 300,
-      });
-    });
-
-    return members;
-  }, [caregivers]);
-
-  // Quick share actions with SOS badge
-  const quickShareActions = [
-    {
-      icon: '✉️',
-      label: 'Update',
-      onPress: () => router.push('/family-sharing'),
-      badge: null,
-    },
-    {
-      icon: '📋',
-      label: 'Report',
-      onPress: () => router.push('/care-summary-export'),
-      badge: null,
-    },
-    {
-      icon: '📞',
-      label: 'Help',
-      onPress: () => router.push('/emergency'),
-      badge: 'SOS',
-    },
-  ];
+  const careCircleCount = caregivers.length + 1; // +1 for current user
 
   return (
     <View style={styles.container}>
@@ -329,181 +212,54 @@ export default function SupportScreen() {
             />
           }
         >
-          {/* Header with Team Stats - Consistent with Today page */}
+          {/* Header */}
           <View style={styles.header}>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.headerDate}>
-                {hasOtherCaregivers ? `${activeCount} active • ${weeklyUpdates} updates this week` : 'CARE CIRCLE'}
-              </Text>
+            <View style={styles.headerText}>
               <Text style={styles.headerTitle}>Support</Text>
-              <Text style={styles.headerSubtitle}>Your care circle</Text>
+              <Text style={styles.headerSubtitle}>Who's with me, and how do I reach them</Text>
             </View>
             <TouchableOpacity
-              style={styles.notifButton}
-              onPress={() => {
-                markNotificationsRead();
-                router.push('/notification-settings');
-              }}
+              style={styles.settingsButton}
+              onPress={() => router.push('/notification-settings')}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Notifications"
             >
-              <Text style={styles.notifIcon}>🔔</Text>
-              {hasNewNotifications && <View style={styles.notifBadge} />}
+              <Text style={styles.settingsIcon}>🔔</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Support Message */}
-          {hasOtherCaregivers && (
-            <GlassCard style={styles.supportCard}>
-              <Text style={styles.supportText}>
-                Caregiving is a shared journey. Your team is here with you.
-              </Text>
-            </GlassCard>
-          )}
-
-          {/* Care Circle Visual - Tappable with Names */}
-          <View style={styles.circleContainer}>
-            {/* Center - Care Recipient */}
-            <View style={styles.centerAvatar}>
-              <Text style={styles.centerAvatarText}>❤️</Text>
-              <Text style={styles.centerAvatarLabel}>Loved One</Text>
-            </View>
-
-            {/* Orbiting avatars - tappable with names */}
-            {orbitMembers.map((member) => {
-              const angle = ((member.angle - 90) * Math.PI) / 180;
-              const radius = 65;
-              const x = Math.cos(angle) * radius;
-              const y = Math.sin(angle) * radius;
-
-              return (
-                <TouchableOpacity
-                  key={member.id}
-                  style={[
-                    styles.orbitAvatarWrapper,
-                    {
-                      left: `${50 + (x / 80) * 32}%`,
-                      top: `${50 + (y / 80) * 32}%`,
-                    },
-                  ]}
-                  onPress={() => {
-                    if (member.id === 'you') {
-                      router.push('/settings');
-                    } else {
-                      router.push('/caregiver-management');
-                    }
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.orbitAvatar,
-                      {
-                        backgroundColor: `${member.color}20`,
-                        borderColor: member.color,
-                      },
-                    ]}
-                  >
-                    <Text style={styles.orbitAvatarText}>👤</Text>
-                  </View>
-                  <Text style={styles.orbitName}>{member.name}</Text>
-                </TouchableOpacity>
-              );
-            })}
+          {/* Primary Action (Dominant) */}
+          <View style={styles.primaryAction}>
+            <Text style={styles.primaryActionLabel}>QUICK ACTION</Text>
+            <TouchableOpacity
+              style={styles.primaryActionButton}
+              onPress={() => router.push('/family-sharing')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.primaryActionButtonText}>📢 Send an update</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Care Team with Permissions */}
+          {/* Care Team List */}
           <View style={styles.section}>
-            <SectionHeader
-              title={`Care Team (${caregivers.length + 1})`}
-              action={{
-                label: '+ Invite',
-                onPress: () => router.push('/family-sharing'),
-              }}
-            />
-
-            <GlassCard noPadding>
-              {/* Primary Caregiver */}
-              <TouchableOpacity
-                style={[styles.memberRow, styles.memberRowBorder]}
-                onPress={() => router.push('/settings')}
-                activeOpacity={0.7}
-              >
-                <View style={styles.memberAvatarContainer}>
-                  <View style={[
-                    styles.memberAvatar,
-                    {
-                      backgroundColor: `${Colors.accent}20`,
-                      borderColor: Colors.accent,
-                    },
-                  ]}>
-                    <Text style={styles.memberAvatarText}>👤</Text>
-                  </View>
-                  <View style={[styles.memberIndicator, { backgroundColor: Colors.green }]} />
-                </View>
-                <View style={styles.memberContent}>
-                  <View style={styles.memberNameRow}>
-                    <Text style={styles.memberName}>You (Amber)</Text>
-                    <View style={styles.memberRoleBadge}>
-                      <Text style={styles.memberRole}>Primary</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.memberStatus}>Full access • Active now</Text>
-                </View>
-                <Text style={styles.memberChevron}>›</Text>
-              </TouchableOpacity>
-
-              {/* Other Caregivers with Permissions & Quick Contact */}
-              {caregivers.slice(0, 3).map((caregiver, i) => {
-                const isActive = caregiver.lastActive &&
-                  new Date(caregiver.lastActive).getTime() > Date.now() - 24 * 60 * 60 * 1000;
-
-                return (
-                  <View
-                    key={caregiver.id}
-                    style={[
-                      styles.memberRow,
-                      i < Math.min(2, caregivers.length - 1) && styles.memberRowBorder,
-                    ]}
-                  >
-                    <TouchableOpacity
-                      style={styles.memberMainContent}
-                      onPress={() => router.push('/caregiver-management')}
-                      activeOpacity={0.7}
+            <Text style={styles.sectionHeader}>YOUR CARE CIRCLE ({careCircleCount})</Text>
+            <View style={styles.teamContainer}>
+              {caregivers.slice(0, 4).map((caregiver) => (
+                <GlassCard key={caregiver.id} style={styles.memberCard}>
+                  <View style={styles.memberContent}>
+                    <View
+                      style={[
+                        styles.memberAvatar,
+                        { backgroundColor: `${caregiver.avatarColor || Colors.accent}20` },
+                      ]}
                     >
-                      <View style={styles.memberAvatarContainer}>
-                        <View style={[
-                          styles.memberAvatar,
-                          {
-                            backgroundColor: `${caregiver.avatarColor || Colors.purple}20`,
-                            borderColor: caregiver.avatarColor || Colors.purple,
-                          },
-                        ]}>
-                          <Text style={styles.memberAvatarText}>👤</Text>
-                        </View>
-                        <View style={[
-                          styles.memberIndicator,
-                          { backgroundColor: isActive ? Colors.green : Colors.textMuted },
-                        ]} />
-                      </View>
-                      <View style={styles.memberContent}>
-                        <View style={styles.memberNameRow}>
-                          <Text style={styles.memberName}>{caregiver.name}</Text>
-                          <View style={styles.memberRoleBadge}>
-                            <Text style={styles.memberRole}>
-                              {caregiver.role === 'family' ? 'Family' :
-                               caregiver.role === 'healthcare' ? 'Healthcare' :
-                               'Team'}
-                            </Text>
-                          </View>
-                        </View>
-                        <Text style={styles.memberStatus}>
-                          {getPermissionLabel(caregiver.permissions)} • {caregiver.lastActive ?
-                            getRelativeTime(caregiver.lastActive) :
-                            'Invited'}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    {/* Quick Contact Buttons */}
+                      <Text style={styles.memberAvatarText}>👤</Text>
+                    </View>
+                    <View style={styles.memberInfo}>
+                      <Text style={styles.memberName}>{caregiver.name}</Text>
+                      <Text style={styles.memberRole}>{getRoleLabel(caregiver.role)}</Text>
+                    </View>
                     <View style={styles.memberActions}>
                       <TouchableOpacity
                         style={styles.actionButton}
@@ -527,127 +283,67 @@ export default function SupportScreen() {
                       </TouchableOpacity>
                     </View>
                   </View>
-                );
-              })}
-            </GlassCard>
-          </View>
+                </GlassCard>
+              ))}
 
-          {/* Recent Activity - Collapsible with Filters */}
-          {activities.length > 0 && (
-            <View style={styles.section}>
+              {/* Manage team link */}
               <TouchableOpacity
-                style={styles.collapsibleHeader}
-                onPress={() => setActivityExpanded(!activityExpanded)}
+                style={styles.manageTeamLink}
+                onPress={() => router.push('/caregiver-management')}
                 activeOpacity={0.7}
               >
-                <Text style={styles.sectionTitle}>RECENT ACTIVITY</Text>
-                <Text style={styles.collapseIcon}>{activityExpanded ? '▼' : '▶'}</Text>
+                <Text style={styles.manageTeamText}>Manage team →</Text>
               </TouchableOpacity>
+            </View>
+          </View>
 
-              {activityExpanded && (
-                <GlassCard>
-                  {/* Activity Filters */}
-                  <View style={styles.filterRow}>
-                    {(['all', 'shares', 'logs'] as const).map((filter) => (
-                      <TouchableOpacity
-                        key={filter}
-                        style={[
-                          styles.filterButton,
-                          activityFilter === filter && styles.filterButtonActive,
-                        ]}
-                        onPress={() => setActivityFilter(filter)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[
-                          styles.filterButtonText,
-                          activityFilter === filter && styles.filterButtonTextActive,
-                        ]}>
-                          {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+          {/* Recent Coordination (limited to 3) */}
+          {activities.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionHeader}>RECENT COORDINATION</Text>
+              <View style={styles.activityContainer}>
+                {activities.slice(0, 3).map((activity, i) => (
+                  <View key={activity.id || i} style={styles.activityItem}>
+                    <Text style={styles.activityTime}>
+                      {getRelativeTime(activity.timestamp)}
+                    </Text>
+                    <Text style={styles.activityText}>
+                      {activity.performedBy} {getActivityDescription(activity)}
+                    </Text>
                   </View>
+                ))}
 
-                  {/* Activity List */}
-                  {filteredActivities.slice(0, 4).map((activity, i) => (
-                    <View
-                      key={activity.id || i}
-                      style={[
-                        styles.activityRow,
-                        i < Math.min(3, filteredActivities.length - 1) && styles.activityRowBorder,
-                      ]}
-                    >
-                      <Text style={styles.activityIcon}>
-                        {getActivityIcon(activity)}
-                      </Text>
-                      <View style={styles.activityContent}>
-                        <Text style={styles.activityText}>
-                          <Text style={styles.activityWho}>{activity.performedBy || 'Someone'}</Text>
-                          {' '}{getActivityDescription(activity)}
-                        </Text>
-                        <Text style={styles.activityTime}>
-                          {activity.timestamp ? getRelativeTime(activity.timestamp) : 'Recently'}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-
-                  {filteredActivities.length === 0 && (
-                    <View style={styles.emptyActivity}>
-                      <Text style={styles.emptyActivityText}>No {activityFilter} activity yet</Text>
-                    </View>
-                  )}
-
-                  <TouchableOpacity
-                    style={styles.viewAllButton}
-                    onPress={() => router.push('/family-activity')}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.viewAllText}>View all activity →</Text>
-                  </TouchableOpacity>
-                </GlassCard>
-              )}
+                <TouchableOpacity
+                  style={styles.viewAllLink}
+                  onPress={() => router.push('/family-activity')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.viewAllText}>View all →</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
-          {/* Quick Actions */}
-          <View style={styles.section}>
-            <SectionHeader title="Quick Actions" />
-
-            <View style={styles.quickShareRow}>
-              {quickShareActions.map((action, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={styles.quickShareButton}
-                  onPress={action.onPress}
-                  activeOpacity={0.7}
-                >
-                  <GlassCard style={styles.quickShareCard} padding={14}>
-                    <Text style={styles.quickShareIcon}>{action.icon}</Text>
-                    <Text style={styles.quickShareLabel}>{action.label}</Text>
-                    {action.badge && (
-                      <View style={styles.sosBadge}>
-                        <Text style={styles.sosBadgeText}>{action.badge}</Text>
-                      </View>
-                    )}
-                  </GlassCard>
-                </TouchableOpacity>
-              ))}
-            </View>
+          {/* Emergency Section (Visually Distinct) */}
+          <View style={styles.emergencySection}>
+            <Text style={styles.emergencyHeader}>⚠️ EMERGENCY ONLY</Text>
+            <TouchableOpacity
+              style={styles.emergencyButton}
+              onPress={handleEmergencyAlert}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.emergencyButtonText}>🆘 Alert care team now</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Privacy Notice */}
-          <GlassCard style={styles.privacyCard}>
-            <View style={styles.privacyContent}>
-              <Text style={styles.privacyIcon}>🔒</Text>
-              <View style={styles.privacyText}>
-                <Text style={styles.privacyTitle}>Privacy Protected</Text>
-                <Text style={styles.privacyDescription}>
-                  All data stays on device. You control what's shared.
-                </Text>
-              </View>
-            </View>
-          </GlassCard>
+          {/* Privacy Reassurance */}
+          <View style={styles.privacyCard}>
+            <Text style={styles.privacyIcon}>🔒</Text>
+            <Text style={styles.privacyTitle}>Nothing is shared without you</Text>
+            <Text style={styles.privacyText}>
+              Each person sees only what you allow. You control all access.
+            </Text>
+          </View>
 
           {/* Bottom spacing */}
           <View style={{ height: 100 }} />
@@ -665,8 +361,10 @@ function getRelativeTime(timestamp: string): string {
   const diffDays = Math.floor(diffHours / 24);
 
   if (diffHours < 1) return 'Just now';
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffHours === 1) return '1 hour ago';
+  if (diffHours < 24) return `${diffHours} hours ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
   return time.toLocaleDateString();
 }
 
@@ -685,25 +383,18 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
 
-  // Header - Standardized per HEADER_IMPLEMENTATION_SUMMARY
+  // Header
   header: {
-    paddingTop: 60, // Clears iPhone notch
-    paddingHorizontal: 0, // Uses scrollContent padding
+    paddingTop: 60,
+    paddingHorizontal: 0,
     paddingBottom: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 12,
   },
-  headerTextContainer: {
+  headerText: {
     flex: 1,
-  },
-  headerDate: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.5)',
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    marginBottom: 8,
   },
   headerTitle: {
     fontSize: 34,
@@ -718,7 +409,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.6)',
     letterSpacing: 0.3,
   },
-  notifButton: {
+  settingsButton: {
     width: 44,
     height: 44,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -726,174 +417,93 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 16,
-    position: 'relative',
   },
-  notifIcon: {
+  settingsIcon: {
     fontSize: 24,
   },
-  notifBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: '#EF4444',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
 
-  // Support Message
-  supportCard: {
-    backgroundColor: `${Colors.accent}08`,
-    borderColor: `${Colors.accent}20`,
-    marginBottom: Spacing.xxl,
-  },
-  supportText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-
-  // Circle Visualization
-  circleContainer: {
-    alignItems: 'center',      // Center horizontally
-    justifyContent: 'center',  // Center vertically
-    marginBottom: Spacing.xxl,
-    height: 200,
-    position: 'relative',
-    width: '100%',             // Take full width so centering works
-    alignSelf: 'center',       // Center the whole component horizontally
-  },
-  centerAvatar: {
-    position: 'absolute',
-    left: '50%',
-    top: '50%',
-    transform: [{ translateX: -35 }, { translateY: -35 }],  // Proper centering
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: `${Colors.accent}20`,
+  // Primary Action (Dominant)
+  primaryAction: {
+    backgroundColor: 'rgba(94, 234, 212, 0.15)',
     borderWidth: 2,
-    borderColor: Colors.accent,
+    borderColor: 'rgba(94, 234, 212, 0.4)',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  centerAvatarText: {
-    fontSize: 28,
-  },
-  centerAvatarLabel: {
-    ...Typography.captionSmall,
-    color: Colors.textSecondary,
-    position: 'absolute',
-    bottom: -20,
-  },
-  orbitAvatarWrapper: {
-    position: 'absolute',
-    alignItems: 'center',
-    transform: [{ translateX: -27 }, { translateY: -30 }],
-  },
-  orbitAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  orbitAvatarText: {
-    fontSize: 22,
-  },
-  orbitName: {
-    fontSize: 10,
-    color: Colors.textMuted,
+  primaryActionLabel: {
+    fontSize: 13,
     fontWeight: '600',
-    marginTop: 4,
-    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.7)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  primaryActionButton: {
+    backgroundColor: 'rgba(94, 234, 212, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(94, 234, 212, 0.4)',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+  },
+  primaryActionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#5EEAD4',
   },
 
   // Sections
   section: {
-    marginBottom: Spacing.xxl,
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.5)',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+    paddingHorizontal: 4,
   },
 
-  // Members
-  memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  // Care Team
+  teamContainer: {
+    gap: 10,
+  },
+  memberCard: {
     padding: 14,
-    gap: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  memberRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.glassBorder,
-  },
-  memberMainContent: {
-    flex: 1,
+  memberContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-  },
-  memberAvatarContainer: {
-    position: 'relative',
   },
   memberAvatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   memberAvatarText: {
     fontSize: 20,
-    textAlign: 'center',
-    includeFontPadding: false,
   },
-  memberContent: {
+  memberInfo: {
     flex: 1,
-  },
-  memberNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
   },
   memberName: {
     fontSize: 14,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-  },
-  memberRoleBadge: {
-    backgroundColor: `${Colors.accent}20`,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
   },
   memberRole: {
-    fontSize: 10,
-    color: Colors.accent,
-    fontWeight: '500',
-  },
-  memberStatus: {
     fontSize: 11,
-    color: Colors.textMuted,
-  },
-  memberIndicator: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: Colors.cardBackground || '#1a1f2e',
-  },
-  memberChevron: {
-    fontSize: 16,
-    color: Colors.textMuted,
+    color: 'rgba(255, 255, 255, 0.5)',
   },
   memberActions: {
     flexDirection: 'row',
@@ -902,170 +512,109 @@ const styles = StyleSheet.create({
   actionButton: {
     width: 32,
     height: 32,
+    backgroundColor: 'rgba(94, 234, 212, 0.12)',
     borderRadius: 16,
-    backgroundColor: `${Colors.accent}15`,
     alignItems: 'center',
     justifyContent: 'center',
   },
   actionButtonIcon: {
-    fontSize: 14,
-  },
-
-  // Collapsible Section Header
-  collapsibleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    letterSpacing: 2,
-    color: Colors.textMuted,
-    fontWeight: '600',
-  },
-  collapseIcon: {
-    fontSize: 12,
-    color: Colors.textMuted,
-  },
-
-  // Activity Filters
-  filterRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  filterButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  filterButtonActive: {
-    backgroundColor: `${Colors.accent}20`,
-    borderWidth: 1,
-    borderColor: Colors.accent,
-  },
-  filterButtonText: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    fontWeight: '500',
-  },
-  filterButtonTextActive: {
-    color: Colors.accent,
-  },
-
-  // Activity
-  activityRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 10,
-    gap: 10,
-  },
-  activityRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.glassBorder,
-  },
-  activityIcon: {
     fontSize: 16,
   },
-  activityContent: {
-    flex: 1,
+  manageTeamLink: {
+    paddingVertical: 12,
+    alignItems: 'center',
   },
-  activityText: {
+  manageTeamText: {
     fontSize: 12,
-    color: Colors.textSecondary,
-    lineHeight: 18,
+    color: 'rgba(94, 234, 212, 0.7)',
   },
-  activityWho: {
-    color: Colors.accent,
-    fontWeight: '600',
+
+  // Recent Coordination
+  activityContainer: {
+    gap: 0,
+  },
+  activityItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderLeftWidth: 3,
+    borderLeftColor: 'rgba(94, 234, 212, 0.3)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
   },
   activityTime: {
     fontSize: 10,
-    color: Colors.textMuted,
-    marginTop: 2,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: 4,
   },
-  emptyActivity: {
-    paddingVertical: 16,
-    alignItems: 'center',
+  activityText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
-  emptyActivityText: {
-    fontSize: 12,
-    color: Colors.textMuted,
-  },
-  viewAllButton: {
+  viewAllLink: {
     paddingVertical: 12,
     alignItems: 'center',
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: Colors.glassBorder,
   },
   viewAllText: {
     fontSize: 12,
-    color: Colors.accent,
-    fontWeight: '500',
+    color: 'rgba(94, 234, 212, 0.7)',
   },
 
-  // Quick Actions
-  quickShareRow: {
-    flexDirection: 'row',
-    gap: 10,
+  // Emergency Section (Visually Distinct - Red)
+  emergencySection: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 2,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 14,
+    padding: 16,
+    marginTop: 8,
+    marginBottom: 16,
   },
-  quickShareButton: {
-    flex: 1,
-  },
-  quickShareCard: {
-    alignItems: 'center',
-    position: 'relative',
-  },
-  quickShareIcon: {
-    fontSize: 24,
-    marginBottom: 6,
-  },
-  quickShareLabel: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  sosBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: Colors.red,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  sosBadgeText: {
-    fontSize: 9,
+  emergencyHeader: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#fff',
+    color: '#EF4444',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  emergencyButton: {
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    borderWidth: 2,
+    borderColor: 'rgba(239, 68, 68, 0.5)',
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emergencyButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#EF4444',
   },
 
-  // Privacy
+  // Privacy Reassurance
   privacyCard: {
-    backgroundColor: `${Colors.accent}05`,
-    borderColor: `${Colors.accent}15`,
-  },
-  privacyContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
+    backgroundColor: 'rgba(94, 234, 212, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(94, 234, 212, 0.15)',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 8,
   },
   privacyIcon: {
     fontSize: 20,
-  },
-  privacyText: {
-    flex: 1,
+    marginBottom: 6,
   },
   privacyTitle: {
-    ...Typography.bodySmall,
-    color: Colors.textPrimary,
-    marginBottom: 2,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#5EEAD4',
+    marginBottom: 4,
   },
-  privacyDescription: {
-    ...Typography.captionSmall,
-    color: Colors.textMuted,
+  privacyText: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 16,
   },
 });
