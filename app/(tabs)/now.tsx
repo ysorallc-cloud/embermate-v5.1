@@ -86,6 +86,13 @@ interface TodayStats {
   meals: StatData;
 }
 
+interface AIInsight {
+  icon: string;
+  title: string;
+  message: string;
+  type: 'positive' | 'suggestion' | 'reminder' | 'celebration';
+}
+
 export default function NowScreen() {
   const router = useRouter();
   const [medications, setMedications] = useState<Medication[]>([]);
@@ -112,6 +119,9 @@ export default function NowScreen() {
     meals: { completed: 0, total: 3 },
   });
 
+  // AI Insight
+  const [aiInsight, setAiInsight] = useState<AIInsight | null>(null);
+
   // Check for onboarding, notification prompt, and welcome banner on mount
   useEffect(() => {
     checkOnboarding();
@@ -133,6 +143,161 @@ export default function NowScreen() {
     const shouldShow = await shouldShowWelcomeBanner();
     setShowWelcomeBanner(shouldShow);
   };
+
+  // Generate AI Insight based on today's data and upcoming events
+  const generateAIInsight = useCallback((
+    stats: TodayStats,
+    moodLevel: number | null,
+    todayAppointments: Appointment[],
+    meds: Medication[]
+  ): AIInsight | null => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const insights: AIInsight[] = [];
+
+    // Calculate completion percentages
+    const medsPercent = stats.meds.total > 0 ? (stats.meds.completed / stats.meds.total) * 100 : 100;
+    const vitalsPercent = (stats.vitals.completed / stats.vitals.total) * 100;
+    const mealsPercent = (stats.meals.completed / stats.meals.total) * 100;
+    const overallProgress = (medsPercent + vitalsPercent + (stats.mood.completed * 100) + mealsPercent) / 4;
+
+    // CELEBRATION: All tasks complete
+    if (overallProgress === 100 && (stats.meds.total > 0 || stats.vitals.completed > 0)) {
+      insights.push({
+        icon: '🌟',
+        title: 'Amazing day!',
+        message: "All care tasks complete. You're providing wonderful support.",
+        type: 'celebration',
+      });
+    }
+
+    // POSITIVE: Mood logged and it's good
+    if (moodLevel && moodLevel >= 4) {
+      insights.push({
+        icon: '💚',
+        title: 'Positive mood today',
+        message: moodLevel === 5
+          ? "They're feeling great! A wonderful day for connection."
+          : "Good spirits noted. Small joys make a big difference.",
+        type: 'positive',
+      });
+    }
+
+    // REMINDER: Upcoming appointment today
+    if (todayAppointments.length > 0) {
+      const nextAppt = todayAppointments[0];
+      insights.push({
+        icon: '📅',
+        title: 'Appointment today',
+        message: `${nextAppt.specialty || 'Appointment'} with ${nextAppt.provider} at ${nextAppt.time || 'scheduled time'}.`,
+        type: 'reminder',
+      });
+    }
+
+    // SUGGESTION: Morning - encourage starting the day
+    if (currentHour >= 6 && currentHour < 10 && overallProgress < 25) {
+      insights.push({
+        icon: '🌅',
+        title: 'Good morning',
+        message: stats.meds.total > 0
+          ? 'Starting with morning medications helps establish a healthy routine.'
+          : 'A calm morning sets the tone for the day ahead.',
+        type: 'suggestion',
+      });
+    }
+
+    // SUGGESTION: Medications on track
+    if (stats.meds.completed > 0 && stats.meds.completed === stats.meds.total && stats.meds.total > 0) {
+      insights.push({
+        icon: '💊',
+        title: 'Medications on track',
+        message: `All ${stats.meds.total} medication${stats.meds.total > 1 ? 's' : ''} logged for today. Great consistency!`,
+        type: 'positive',
+      });
+    }
+
+    // SUGGESTION: Vitals logged
+    if (stats.vitals.completed >= 2) {
+      insights.push({
+        icon: '📊',
+        title: 'Vitals recorded',
+        message: 'Tracking vitals helps identify patterns and supports better care conversations with doctors.',
+        type: 'positive',
+      });
+    }
+
+    // SUGGESTION: Afternoon check-in
+    if (currentHour >= 12 && currentHour < 15 && stats.meals.completed < 2) {
+      insights.push({
+        icon: '🍽️',
+        title: 'Lunch time',
+        message: 'Logging meals helps track nutrition and appetite patterns over time.',
+        type: 'suggestion',
+      });
+    }
+
+    // SUGGESTION: Evening wind-down
+    if (currentHour >= 18 && currentHour < 21) {
+      const eveningMeds = meds.filter(m => m.timeSlot === 'evening' || m.timeSlot === 'bedtime');
+      if (eveningMeds.length > 0 && eveningMeds.some(m => !m.taken)) {
+        insights.push({
+          icon: '🌙',
+          title: 'Evening routine',
+          message: `${eveningMeds.filter(m => !m.taken).length} evening medication${eveningMeds.filter(m => !m.taken).length > 1 ? 's' : ''} remaining. Consistent timing supports better sleep.`,
+          type: 'reminder',
+        });
+      }
+    }
+
+    // POSITIVE: Good progress mid-day
+    if (currentHour >= 12 && currentHour < 18 && overallProgress >= 50 && overallProgress < 100) {
+      insights.push({
+        icon: '👍',
+        title: 'On track today',
+        message: "Good progress on today's care tasks. Keep up the steady pace.",
+        type: 'positive',
+      });
+    }
+
+    // SUGGESTION: Mood check reminder (if not logged by afternoon)
+    if (currentHour >= 14 && stats.mood.completed === 0) {
+      insights.push({
+        icon: '😊',
+        title: 'How are they feeling?',
+        message: 'Checking in on mood helps you notice patterns and respond to their needs.',
+        type: 'suggestion',
+      });
+    }
+
+    // POSITIVE: Difficult mood logged (supportive message)
+    if (moodLevel && moodLevel <= 2) {
+      insights.push({
+        icon: '💙',
+        title: 'Tough day noted',
+        message: "It's okay to have hard days. Your presence and care make a difference.",
+        type: 'positive',
+      });
+    }
+
+    // Return the most relevant insight (priority: celebration > reminder > positive > suggestion)
+    const priorityOrder = ['celebration', 'reminder', 'positive', 'suggestion'];
+    for (const priority of priorityOrder) {
+      const match = insights.find(i => i.type === priority);
+      if (match) return match;
+    }
+
+    // Default insight if nothing else matches
+    if (currentHour < 12) {
+      return {
+        icon: '✨',
+        title: 'Ready when you are',
+        message: 'Take care tasks one at a time. Every small action counts.',
+        type: 'suggestion',
+      };
+    }
+
+    return null;
+  }, []);
 
   const handleDismissBanner = async () => {
     await dismissWelcomeBanner();
@@ -312,6 +477,14 @@ export default function NowScreen() {
       // Compute prompts based on current state
       const currentMoodLevel = moodLog?.mood ?? null;
       await computePrompts(newStats, currentMoodLevel);
+
+      // Generate AI Insight
+      const todayAppts = appts.filter(appt => {
+        const apptDate = new Date(appt.date);
+        return apptDate.toDateString() === new Date().toDateString();
+      });
+      const insight = generateAIInsight(newStats, currentMoodLevel, todayAppts, activeMeds);
+      setAiInsight(insight);
     } catch (error) {
       console.error('Error loading Now data:', error);
     }
@@ -594,6 +767,27 @@ export default function NowScreen() {
               </View>
             </View>
 
+            {/* AI Insight Card */}
+            {aiInsight && (
+              <View style={[
+                styles.aiInsightCard,
+                aiInsight.type === 'celebration' && styles.aiInsightCelebration,
+                aiInsight.type === 'reminder' && styles.aiInsightReminder,
+                aiInsight.type === 'positive' && styles.aiInsightPositive,
+              ]}>
+                <View style={styles.aiInsightHeader}>
+                  <View style={styles.aiInsightIconContainer}>
+                    <Text style={styles.aiInsightIcon}>{aiInsight.icon}</Text>
+                  </View>
+                  <View style={styles.aiInsightBadge}>
+                    <Text style={styles.aiInsightBadgeText}>AI INSIGHT</Text>
+                  </View>
+                </View>
+                <Text style={styles.aiInsightTitle}>{aiInsight.title}</Text>
+                <Text style={styles.aiInsightMessage}>{aiInsight.message}</Text>
+              </View>
+            )}
+
             {/* Timeline Section */}
             <TouchableOpacity
               style={styles.sectionHeaderRow}
@@ -760,6 +954,68 @@ const styles = StyleSheet.create({
     color: 'rgba(94, 234, 212, 0.7)',
     fontSize: 12,
     fontWeight: '500',
+  },
+
+  // AI Insight Card
+  aiInsightCard: {
+    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.25)',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 25,
+  },
+  aiInsightCelebration: {
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+  },
+  aiInsightReminder: {
+    backgroundColor: 'rgba(251, 191, 36, 0.08)',
+    borderColor: 'rgba(251, 191, 36, 0.25)',
+  },
+  aiInsightPositive: {
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    borderColor: 'rgba(59, 130, 246, 0.25)',
+  },
+  aiInsightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  aiInsightIconContainer: {
+    width: 40,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiInsightIcon: {
+    fontSize: 20,
+  },
+  aiInsightBadge: {
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  aiInsightBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(167, 139, 250, 0.9)',
+    letterSpacing: 1,
+  },
+  aiInsightTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  aiInsightMessage: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 20,
   },
 
   // Timeline Events
