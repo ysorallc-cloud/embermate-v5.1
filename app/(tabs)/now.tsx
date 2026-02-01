@@ -779,13 +779,13 @@ export default function NowScreen() {
               />
             )}
 
-            {/* Check-In Button */}
+            {/* Record Button */}
             <TouchableOpacity
-              style={styles.checkinButton}
+              style={styles.recordButton}
               onPress={() => router.push('/(tabs)/record')}
               activeOpacity={0.7}
             >
-              <Text style={styles.checkinButtonText}>✓ Check-In</Text>
+              <Text style={styles.recordButtonText}>✏️ Record</Text>
             </TouchableOpacity>
 
             {/* Timeline Section */}
@@ -881,8 +881,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 
-  // Check-In Button
-  checkinButton: {
+  // Record Button
+  recordButton: {
     alignSelf: 'flex-start',
     backgroundColor: 'rgba(94, 234, 212, 0.1)',
     borderWidth: 1,
@@ -892,7 +892,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     marginBottom: 20,
   },
-  checkinButtonText: {
+  recordButtonText: {
     fontSize: 13,
     fontWeight: '500',
     color: Colors.accent,
