@@ -3,9 +3,14 @@
 // Layer 1: Insight (dominant) - What your data suggests
 // Layer 2: Exploration Tools - How to explore
 // Layer 3: Reference - What's on file
+//
+// DATA STAGES:
+// - Early (1-3 days): Orientation, not insight
+// - Emerging (4-10 days): Directional signals
+// - Established (14+ days): Pattern confidence
 // ============================================================================
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,16 +22,47 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/theme-tokens';
-import { getMedications, Medication } from '../../utils/medicationStorage';
+import { getMedications, Medication, getMedicationLogs } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
-import { getDailyTracking } from '../../utils/dailyTrackingStorage';
-import { getLatestVitalsByTypes } from '../../utils/vitalsStorage';
+import { getDailyTracking, getDailyTrackingLogs } from '../../utils/dailyTrackingStorage';
+import { getLatestVitalsByTypes, getVitalsInRange } from '../../utils/vitalsStorage';
 import { getMorningWellness, StoredMorningWellness } from '../../utils/wellnessCheckStorage';
+import {
+  getTodayMoodLog,
+  getTodayMealsLog,
+  getTodayVitalsLog,
+  getMedicationLogs as getCentralMedLogs,
+} from '../../utils/centralStorage';
 
 // Aurora Components
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { GlassCard } from '../../components/aurora/GlassCard';
+
+// Track first use date
+const FIRST_USE_KEY = '@embermate_first_use_date';
+
+type DataStage = 'early' | 'emerging' | 'established';
+
+interface DataMetrics {
+  daysOfData: number;
+  stage: DataStage;
+  medAdherenceRate: number;
+  medConsistencyStreak: number;
+  vitalsLoggedDays: number;
+  moodLoggedDays: number;
+  mealsLoggedDays: number;
+  totalDataPoints: number;
+  hasEnoughData: boolean;
+}
+
+interface StageInsight {
+  mainText: string;
+  subText: string;
+  dataContext: string;
+  tone: 'educational' | 'observational' | 'confident';
+}
 
 export default function UnderstandScreen() {
   const router = useRouter();
@@ -37,6 +73,17 @@ export default function UnderstandScreen() {
   const [wellnessCheck, setWellnessCheck] = useState<StoredMorningWellness | null>(null);
   const [latestSystolic, setLatestSystolic] = useState<number | null>(null);
   const [latestDiastolic, setLatestDiastolic] = useState<number | null>(null);
+  const [dataMetrics, setDataMetrics] = useState<DataMetrics>({
+    daysOfData: 0,
+    stage: 'early',
+    medAdherenceRate: 0,
+    medConsistencyStreak: 0,
+    vitalsLoggedDays: 0,
+    moodLoggedDays: 0,
+    mealsLoggedDays: 0,
+    totalDataPoints: 0,
+    hasEnoughData: false,
+  });
 
   useFocusEffect(
     useCallback(() => {
@@ -46,8 +93,20 @@ export default function UnderstandScreen() {
 
   const loadData = async () => {
     try {
+      // Track first use date
+      let firstUseDate = await AsyncStorage.getItem(FIRST_USE_KEY);
+      if (!firstUseDate) {
+        firstUseDate = new Date().toISOString();
+        await AsyncStorage.setItem(FIRST_USE_KEY, firstUseDate);
+      }
+
+      const daysSinceFirstUse = Math.floor(
+        (Date.now() - new Date(firstUseDate).getTime()) / (1000 * 60 * 60 * 24)
+      ) + 1; // +1 to include today
+
       const meds = await getMedications();
-      setMedications(meds.filter((m) => m.active));
+      const activeMeds = meds.filter((m) => m.active);
+      setMedications(activeMeds);
 
       const appts = await getUpcomingAppointments();
       setAppointments(appts);
@@ -61,17 +120,87 @@ export default function UnderstandScreen() {
 
       // Load BP vitals
       const latestVitals = await getLatestVitalsByTypes(['systolic', 'diastolic']);
+      if (latestVitals.systolic) setLatestSystolic(latestVitals.systolic.value);
+      if (latestVitals.diastolic) setLatestDiastolic(latestVitals.diastolic.value);
 
-      if (latestVitals.systolic) {
-        setLatestSystolic(latestVitals.systolic.value);
-      }
-
-      if (latestVitals.diastolic) {
-        setLatestDiastolic(latestVitals.diastolic.value);
-      }
+      // Calculate data metrics
+      const metrics = await calculateDataMetrics(daysSinceFirstUse, activeMeds);
+      setDataMetrics(metrics);
     } catch (error) {
       console.error('Error loading Understand data:', error);
     }
+  };
+
+  const calculateDataMetrics = async (
+    daysSinceFirstUse: number,
+    activeMeds: Medication[]
+  ): Promise<DataMetrics> => {
+    // Determine stage
+    let stage: DataStage = 'early';
+    if (daysSinceFirstUse >= 14) stage = 'established';
+    else if (daysSinceFirstUse >= 4) stage = 'emerging';
+
+    // Get historical data for the period
+    const endDate = new Date().toISOString().split('T')[0];
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - Math.min(daysSinceFirstUse, 30));
+    const startDateStr = startDate.toISOString().split('T')[0];
+
+    // Get tracking logs
+    let trackingLogs: any[] = [];
+    try {
+      trackingLogs = await getDailyTrackingLogs(startDateStr, endDate);
+    } catch (e) {
+      trackingLogs = [];
+    }
+
+    // Calculate medication adherence
+    let medAdherenceRate = 100;
+    let medConsistencyStreak = 0;
+    if (activeMeds.length > 0) {
+      try {
+        const medLogs = await getMedicationLogs();
+        const recentLogs = medLogs.filter(
+          log => new Date(log.timestamp) >= startDate
+        );
+        const expectedDoses = activeMeds.length * daysSinceFirstUse;
+        const takenDoses = recentLogs.filter(log => log.taken).length;
+        medAdherenceRate = expectedDoses > 0 ? Math.round((takenDoses / expectedDoses) * 100) : 100;
+
+        // Calculate streak (simplified - consecutive days with all meds taken)
+        // This would need more complex logic for real streak calculation
+        medConsistencyStreak = medAdherenceRate >= 80 ? Math.min(daysSinceFirstUse, 7) : 0;
+      } catch (e) {
+        medAdherenceRate = 0;
+      }
+    }
+
+    // Count days with different types of logs
+    const vitalsLoggedDays = trackingLogs.filter(t =>
+      t.vitals?.systolic || t.vitals?.diastolic || t.vitals?.heartRate
+    ).length;
+    const moodLoggedDays = trackingLogs.filter(t =>
+      t.mood !== null && t.mood !== undefined
+    ).length;
+    const mealsLoggedDays = trackingLogs.filter(t =>
+      t.meals && t.meals.length > 0
+    ).length;
+
+    // Total data points
+    const totalDataPoints = vitalsLoggedDays + moodLoggedDays + mealsLoggedDays +
+      (activeMeds.length > 0 ? daysSinceFirstUse : 0);
+
+    return {
+      daysOfData: daysSinceFirstUse,
+      stage,
+      medAdherenceRate,
+      medConsistencyStreak,
+      vitalsLoggedDays,
+      moodLoggedDays,
+      mealsLoggedDays,
+      totalDataPoints,
+      hasEnoughData: totalDataPoints >= 3,
+    };
   };
 
   const onRefresh = useCallback(async () => {
@@ -85,105 +214,170 @@ export default function UnderstandScreen() {
   const takenMeds = medications.filter((m) => m.taken).length;
   const adherencePercent = totalMeds > 0 ? Math.round((takenMeds / totalMeds) * 100) : 100;
 
-  // Calculate health score and generate insight
-  const insightData = useMemo(() => {
-    let score = 0;
-    let factorCount = 0;
-    const insights: string[] = [];
+  // Generate stage-appropriate insight
+  const stageInsight = useMemo((): StageInsight => {
+    const { stage, daysOfData, medAdherenceRate, vitalsLoggedDays, moodLoggedDays, totalDataPoints } = dataMetrics;
+
+    // EARLY STAGE (Day 1-3): Orientation, not insight
+    if (stage === 'early') {
+      if (totalDataPoints === 0) {
+        return {
+          mainText: "We're ready to start building your baseline.",
+          subText: "Log medications, vitals, or mood to begin seeing patterns. Even small check-ins help build the picture.",
+          dataContext: `Day ${daysOfData} of tracking`,
+          tone: 'educational',
+        };
+      }
+
+      const logged: string[] = [];
+      if (medAdherenceRate > 0) logged.push('medications');
+      if (vitalsLoggedDays > 0) logged.push('vitals');
+      if (moodLoggedDays > 0) logged.push('mood');
+
+      return {
+        mainText: "Building your personal baseline.",
+        subText: logged.length > 0
+          ? `${logged.join(' and ')} tracking started. Pattern detection improves with each day of data.`
+          : "Insights will appear as you log more data. We need a few days to identify meaningful patterns.",
+        dataContext: `Based on ${daysOfData} day${daysOfData > 1 ? 's' : ''} of data`,
+        tone: 'educational',
+      };
+    }
+
+    // EMERGING STAGE (Day 4-10): Directional signals
+    if (stage === 'emerging') {
+      const observations: string[] = [];
+
+      // Medication observations (use soft language)
+      if (totalMeds > 0) {
+        if (medAdherenceRate >= 80) {
+          observations.push('Medication tracking tends to be consistent so far');
+        } else if (medAdherenceRate >= 50) {
+          observations.push('Medication adherence may be worth watching');
+        } else {
+          observations.push('Medication gaps are appearing — this may affect patterns');
+        }
+      }
+
+      // Vitals observations
+      if (vitalsLoggedDays >= 3 && latestSystolic && latestDiastolic) {
+        if (latestSystolic <= 130 && latestDiastolic <= 85) {
+          observations.push('Vitals appear stable so far');
+        } else {
+          observations.push('Blood pressure seems elevated — worth monitoring');
+        }
+      }
+
+      // Mood observations
+      if (moodLoggedDays >= 3) {
+        observations.push('Mood data is building — patterns may emerge soon');
+      }
+
+      if (observations.length === 0) {
+        return {
+          mainText: "Patterns are starting to form.",
+          subText: "Continue logging to unlock directional insights. We're looking for trends in your data.",
+          dataContext: `Based on ${daysOfData} days of data`,
+          tone: 'observational',
+        };
+      }
+
+      return {
+        mainText: observations[0] + '.',
+        subText: observations.length > 1
+          ? observations.slice(1).join('. ') + '.'
+          : "More data will strengthen these early observations.",
+        dataContext: `Based on ${daysOfData} days of data`,
+        tone: 'observational',
+      };
+    }
+
+    // ESTABLISHED STAGE (14+ days): Pattern confidence
+    const patterns: string[] = [];
     const concerns: string[] = [];
 
-    // Medication adherence (30%)
+    // Medication patterns (confident language)
     if (totalMeds > 0) {
-      score += adherencePercent * 0.3;
-      factorCount++;
-      if (adherencePercent >= 80) {
-        insights.push('Medication adherence improving steadily');
-      } else if (adherencePercent < 60) {
-        concerns.push('medication adherence needs attention');
-      }
-    }
-
-    // Mood score (30%)
-    const moodMap: { [key: string]: number } = { 'struggling': 20, 'difficult': 40, 'managing': 60, 'good': 80, 'great': 100 };
-    if (wellnessCheck?.mood) {
-      const moodScore = moodMap[wellnessCheck.mood];
-      score += moodScore * 0.3;
-      factorCount++;
-      if (moodScore >= 80) {
-        insights.push('Mood consistency improving');
-      } else if (moodScore < 50) {
-        concerns.push('mood has been lower');
-      }
-    }
-
-    // BP (20%)
-    if (latestSystolic && latestDiastolic) {
-      const bpScore = Math.max(0, 100 - Math.abs(120 - latestSystolic) - Math.abs(80 - latestDiastolic));
-      score += bpScore * 0.2;
-      factorCount++;
-      if (bpScore >= 70) {
-        insights.push('Vitals stable');
+      if (medAdherenceRate >= 90) {
+        patterns.push('Consistent medication adherence correlates with steadier overall patterns');
+      } else if (medAdherenceRate >= 70) {
+        patterns.push('Medication adherence is moderate — consistency may improve outcomes');
       } else {
-        concerns.push('blood pressure needs monitoring');
+        concerns.push('review medication schedule — gaps may be affecting your health patterns');
       }
     }
 
-    // Energy level (20%)
-    if (wellnessCheck?.energyLevel) {
-      const energyScore = (wellnessCheck.energyLevel / 5) * 100;
-      score += energyScore * 0.2;
-      factorCount++;
-      if (energyScore >= 60) {
-        insights.push('Energy levels holding steady');
+    // Vitals patterns
+    if (vitalsLoggedDays >= 7 && latestSystolic && latestDiastolic) {
+      if (latestSystolic <= 120 && latestDiastolic <= 80) {
+        patterns.push('Blood pressure remains in healthy range');
+      } else if (latestSystolic <= 130 && latestDiastolic <= 85) {
+        patterns.push('Blood pressure is slightly elevated but stable');
       } else {
-        concerns.push('energy shows declining trend');
+        concerns.push('blood pressure trends warrant attention');
       }
     }
 
-    const finalScore = factorCount > 0 ? Math.round(score) : 75;
+    // Mood-sleep correlation (would need actual correlation data)
+    if (moodLoggedDays >= 7) {
+      patterns.push('Mood tracking provides baseline for correlation detection');
+    }
 
-    // Generate main insight text
-    let insightText = '';
+    if (patterns.length === 0 && concerns.length === 0) {
+      return {
+        mainText: "Data collection is strong.",
+        subText: "Continue logging to maintain pattern visibility. Your consistency helps identify meaningful changes.",
+        dataContext: `Based on ${daysOfData} days of data`,
+        tone: 'confident',
+      };
+    }
+
+    const mainText = patterns.length > 0 ? patterns[0] + '.' : 'Some areas need attention.';
     let subText = '';
-
-    if (insights.length === 0 && concerns.length === 0) {
-      insightText = 'Start tracking to see insights here.';
-      subText = 'Even small check-ins help build the picture.';
-    } else if (insights.length > 0 && concerns.length === 0) {
-      insightText = insights[0] + '.';
-      if (insights.length > 1) {
-        subText = insights.slice(1).join('. ') + '.';
-      } else {
-        subText = 'Overall trends looking positive.';
-      }
-    } else if (insights.length > 0 && concerns.length > 0) {
-      insightText = insights[0] + '.';
-      subText = concerns.length > 0 ? `However, ${concerns[0]}.` : '';
-    } else {
-      insightText = 'Some areas need attention.';
-      subText = concerns[0] ? `Notably, ${concerns[0]}.` : '';
+    if (patterns.length > 1) {
+      subText = patterns.slice(1).join('. ') + '.';
     }
-
-    // Trend direction
-    let trendDirection = '→';
-    let trendText = 'Stable this month';
-    if (finalScore >= 80) {
-      trendDirection = '↑';
-      trendText = 'Improvement this month';
-    } else if (finalScore < 50) {
-      trendDirection = '↓';
-      trendText = 'Needs attention';
+    if (concerns.length > 0) {
+      subText += (subText ? ' ' : '') + `Consider: ${concerns[0]}.`;
     }
 
     return {
-      score: finalScore,
-      insightText,
-      subText,
-      trendDirection,
-      trendText,
-      trackedCount: factorCount,
+      mainText,
+      subText: subText || 'Your tracking consistency enables reliable pattern detection.',
+      dataContext: `Based on ${daysOfData} days of data`,
+      tone: 'confident',
     };
-  }, [totalMeds, adherencePercent, wellnessCheck, latestSystolic, latestDiastolic]);
+  }, [dataMetrics, totalMeds, takenMeds, latestSystolic, latestDiastolic]);
+
+  // Generate score based on data quality and health indicators
+  const healthScore = useMemo(() => {
+    const { stage, medAdherenceRate, vitalsLoggedDays, moodLoggedDays, totalDataPoints } = dataMetrics;
+
+    if (stage === 'early' || totalDataPoints < 3) {
+      return null; // Don't show score in early stage
+    }
+
+    let score = 50; // Base score
+
+    // Medication component
+    if (totalMeds > 0) {
+      score += (medAdherenceRate / 100) * 25;
+    } else {
+      score += 25; // No penalty if no meds
+    }
+
+    // Vitals component
+    if (latestSystolic && latestDiastolic) {
+      const bpScore = Math.max(0, 100 - Math.abs(120 - latestSystolic) - Math.abs(80 - latestDiastolic));
+      score += (bpScore / 100) * 15;
+    }
+
+    // Data consistency component
+    const consistencyScore = Math.min(100, (totalDataPoints / 20) * 100);
+    score += (consistencyScore / 100) * 10;
+
+    return Math.round(Math.min(100, score));
+  }, [dataMetrics, totalMeds, latestSystolic, latestDiastolic]);
 
   // Exploration tools (Layer 2)
   const EXPLORATION_TOOLS = [
@@ -232,6 +426,20 @@ export default function UnderstandScreen() {
     },
   ];
 
+  // Get card style based on stage
+  const getInsightCardStyle = () => {
+    switch (dataMetrics.stage) {
+      case 'early':
+        return styles.insightCardEarly;
+      case 'emerging':
+        return styles.insightCardEmerging;
+      case 'established':
+        return styles.insightCardEstablished;
+      default:
+        return {};
+    }
+  };
+
   return (
     <View style={styles.container}>
       <AuroraBackground variant="hub" />
@@ -267,22 +475,42 @@ export default function UnderstandScreen() {
           </View>
 
           {/* Layer 1: Insight Card (Dominant) */}
-          <GlassCard style={styles.insightCard}>
+          <GlassCard style={[styles.insightCard, getInsightCardStyle()]}>
             <View style={styles.insightContent}>
+              {/* Data context badge */}
+              <View style={styles.dataContextBadge}>
+                <Text style={styles.dataContextText}>{stageInsight.dataContext}</Text>
+              </View>
+
               {/* Insight text FIRST - dominant */}
-              <Text style={styles.insightMainText}>{insightData.insightText}</Text>
-              {insightData.subText ? (
-                <Text style={styles.insightSubText}>{insightData.subText}</Text>
+              <Text style={styles.insightMainText}>{stageInsight.mainText}</Text>
+              {stageInsight.subText ? (
+                <Text style={styles.insightSubText}>{stageInsight.subText}</Text>
               ) : null}
 
-              {/* Score secondary - at bottom */}
-              <View style={styles.scoreRow}>
-                <Text style={styles.scoreNumber}>{insightData.score}</Text>
-                <View style={styles.trendContainer}>
-                  <Text style={styles.trendArrow}>{insightData.trendDirection}</Text>
-                  <Text style={styles.trendText}>{insightData.trendText}</Text>
+              {/* Score row - only show for emerging/established */}
+              {healthScore !== null && (
+                <View style={styles.scoreRow}>
+                  <Text style={styles.scoreNumber}>{healthScore}</Text>
+                  <View style={styles.trendContainer}>
+                    <Text style={styles.trendArrow}>
+                      {healthScore >= 70 ? '↑' : healthScore >= 50 ? '→' : '↓'}
+                    </Text>
+                    <Text style={styles.trendText}>
+                      {dataMetrics.stage === 'emerging' ? 'Building baseline' :
+                       healthScore >= 70 ? 'Positive trend' :
+                       healthScore >= 50 ? 'Stable' : 'Needs attention'}
+                    </Text>
+                  </View>
                 </View>
-              </View>
+              )}
+
+              {/* Improvement hint for early stage */}
+              {dataMetrics.stage === 'early' && (
+                <Text style={styles.improvementHint}>
+                  Insights improve as more data is recorded.
+                </Text>
+              )}
             </View>
           </GlassCard>
 
@@ -402,30 +630,59 @@ const styles = StyleSheet.create({
   // Layer 1: Insight Card (Dominant)
   insightCard: {
     marginBottom: Spacing.xl,
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
-    borderColor: 'rgba(94, 234, 212, 0.25)',
     borderWidth: 1,
-    padding: 14,
+    padding: 16,
+  },
+  insightCardEarly: {
+    backgroundColor: 'rgba(148, 163, 184, 0.08)', // Slate/gray - educational
+    borderColor: 'rgba(148, 163, 184, 0.25)',
+  },
+  insightCardEmerging: {
+    backgroundColor: 'rgba(251, 191, 36, 0.08)', // Amber - observational
+    borderColor: 'rgba(251, 191, 36, 0.25)',
+  },
+  insightCardEstablished: {
+    backgroundColor: 'rgba(94, 234, 212, 0.08)', // Teal - confident
+    borderColor: 'rgba(94, 234, 212, 0.25)',
   },
   insightContent: {
-    gap: 6,
+    gap: 8,
+  },
+  dataContextBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+  dataContextText: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontWeight: '500',
   },
   insightMainText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.9)',
-    lineHeight: 20,
+    color: 'rgba(255, 255, 255, 0.95)',
+    lineHeight: 22,
   },
   insightSubText: {
     fontSize: 13,
     fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.65)',
-    lineHeight: 18,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 19,
+  },
+  improvementHint: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 8,
   },
   scoreRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 8,
     gap: 10,
   },
   scoreNumber: {
