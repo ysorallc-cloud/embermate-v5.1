@@ -400,11 +400,9 @@ export default function NowScreen() {
       }
 
       // 4. Check for NUDGE prompt (single incomplete item suggestion)
-      // Priority: meds > vitals > mood > meals
+      // Priority: meds > mood > meals (vitals excluded from nudges)
       if (stats.meds.completed < stats.meds.total && stats.meds.total > 0) {
         setNudgePrompt(getNudgePrompt('medication', '/(tabs)/record'));
-      } else if (stats.vitals.completed < stats.vitals.total) {
-        setNudgePrompt(getNudgePrompt('vitals', '/(tabs)/record'));
       } else if (stats.mood.completed < stats.mood.total) {
         setNudgePrompt(getNudgePrompt('mood', '/(tabs)/record'));
       } else if (stats.meals.completed < stats.meals.total) {
