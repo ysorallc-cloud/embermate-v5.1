@@ -12,11 +12,12 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { Colors, Spacing } from '../../theme/theme-tokens';
+import { MICROCOPY } from '../../constants/microcopy';
 import { getMedications, Medication } from '../../utils/medicationStorage';
 import {
   getTodayMedicationLog,
@@ -257,21 +258,19 @@ export default function RecordTab() {
     <View style={styles.container}>
       <AuroraBackground variant="log" />
 
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Header - Forgiving, not directive */}
-          <View style={styles.header}>
-            <Text style={styles.pageTitle}>Record</Text>
-            <Text style={styles.pageSubtitle}>What did you come here to log?</Text>
-          </View>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <ScreenHeader
+          title="Record"
+          subtitle={MICROCOPY.RECORD_SUBTITLE}
+        />
 
-          {/* NO PROGRESS BAR - Removes pressure */}
+        {/* NO PROGRESS BAR - Removes pressure */}
 
-          {/* Group 1: Quick */}
+        {/* Group 1: Quick */}
           <Text style={styles.groupHeader}>QUICK</Text>
           {quickItems.map(renderLogItem)}
 
@@ -307,10 +306,15 @@ export default function RecordTab() {
           <Text style={styles.groupHeader}>OPTIONAL</Text>
           {optionalItems.map(renderLogItem)}
 
-          {/* Bottom spacing */}
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      </SafeAreaView>
+        {/* Encouragement Message */}
+        <View style={styles.encouragement}>
+          <Text style={styles.encouragementTitle}>{MICROCOPY.ONE_STEP}</Text>
+          <Text style={styles.encouragementSubtitle}>{MICROCOPY.YOU_GOT_THIS}</Text>
+        </View>
+
+        {/* Bottom spacing */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
     </View>
   );
 }
@@ -319,9 +323,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-  },
-  safeArea: {
-    flex: 1,
   },
   loadingContainer: {
     flex: 1,
@@ -337,25 +338,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    paddingHorizontal: 20,
     paddingBottom: 80,
-  },
-
-  // Header - Forgiving tone
-  header: {
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  pageTitle: {
-    fontSize: 34,
-    fontWeight: '300',
-    color: '#FFFFFF',
-    marginBottom: 4,
-    letterSpacing: 0.5,
-  },
-  pageSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.6)',
   },
 
   // Group Headers
@@ -365,45 +349,46 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 12,
-    marginTop: 24,
+    marginBottom: 10,                           // Reduced from 12
+    marginTop: 20,                              // Reduced from 24
   },
 
-  // Log Items
+  // Log Items - STANDARD sizing
   logItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 14,             // STANDARD
+    padding: 14,                  // STANDARD
+    marginBottom: 8,              // Reduced from 10
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 12,                      // STANDARD
+    minHeight: 68,                // Slightly reduced from 72
   },
   itemIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: 'rgba(94, 234, 212, 0.12)',
-    borderRadius: 20,
+    width: 48,                    // STANDARD
+    height: 48,                   // STANDARD
+    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    borderRadius: 12,             // STANDARD
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconEmoji: {
-    fontSize: 20,
+    fontSize: 24,                 // Increased for larger icon
   },
   itemContent: {
     flex: 1,
   },
   itemQuestion: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,                 // STANDARD
+    fontWeight: '600',            // STANDARD
     color: '#FFFFFF',
     marginBottom: 2,
   },
   itemHint: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 11,                 // STANDARD
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   itemStatus: {
     fontSize: 11,
@@ -420,12 +405,30 @@ const styles = StyleSheet.create({
   // More Items
   moreItems: {
     alignItems: 'center',
-    paddingVertical: 16,
-    marginTop: 10,
+    paddingVertical: 12,                        // Reduced from 16
+    marginTop: 6,                               // Reduced from 10
   },
   moreItemsLink: {
     color: 'rgba(94, 234, 212, 0.7)',
-    fontSize: 13,
+    fontSize: 12,                               // Reduced from 13
     fontWeight: '500',
+  },
+
+  // Encouragement
+  encouragement: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    marginTop: 20,
+  },
+  encouragementTitle: {
+    fontSize: 18,
+    fontWeight: '300',
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 4,
+  },
+  encouragementSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontWeight: '400',
   },
 });

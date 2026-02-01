@@ -836,11 +836,6 @@ export default function NowScreen() {
               </View>
             )}
 
-            {/* Encouragement Message at Bottom */}
-            <View style={styles.encouragement}>
-              <Text style={styles.encouragementTitle}>{MICROCOPY.ONE_STEP}</Text>
-              <Text style={styles.encouragementSubtitle}>{MICROCOPY.YOU_GOT_THIS}</Text>
-            </View>
           </View>
 
         {/* Bottom spacing for tab bar */}
@@ -1118,21 +1113,4 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
   },
 
-  // Encouragement at Bottom - Compact
-  encouragement: {
-    alignItems: 'center',
-    paddingVertical: 16,
-    marginTop: 12,
-  },
-  encouragementTitle: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: 2,
-  },
-  encouragementSubtitle: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
-    fontWeight: '400',
-  },
 });
