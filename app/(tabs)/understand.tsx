@@ -387,15 +387,29 @@ export default function UnderstandScreen() {
 
           {/* Layer 1: Insight Card (Dominant) */}
           <View style={[styles.insightCard, getInsightCardStyle()]}>
-            {/* Gradient background - warm purple, deeper on left */}
+            {/* Gradient background - varies by state */}
             <LinearGradient
-              colors={[
-                'rgba(126, 34, 206, 0.25)',    // Deep purple (left)
-                'rgba(168, 85, 247, 0.18)',    // Medium purple
-                'rgba(192, 132, 252, 0.12)',   // Light purple (right)
-              ]}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
+              colors={
+                isBaselineForming
+                  ? [
+                      'rgba(100, 116, 139, 0.2)',   // Slate
+                      'rgba(148, 163, 184, 0.15)',
+                      'rgba(71, 85, 105, 0.18)',
+                    ]
+                  : getWhatsDifferent.length > 0
+                  ? [
+                      'rgba(251, 191, 36, 0.2)',    // Amber
+                      'rgba(245, 158, 11, 0.15)',
+                      'rgba(217, 119, 6, 0.12)',
+                    ]
+                  : [
+                      'rgba(59, 130, 246, 0.2)',    // Blue → Purple → Teal
+                      'rgba(139, 92, 246, 0.18)',
+                      'rgba(94, 234, 212, 0.15)',
+                    ]
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.insightCardGradient}
             />
             <View style={styles.insightContent}>
@@ -572,15 +586,15 @@ const styles = StyleSheet.create({
   },
   insightCardEarly: {
     backgroundColor: 'transparent', // Use gradient
-    borderColor: 'rgba(168, 85, 247, 0.4)',
+    borderColor: 'rgba(148, 163, 184, 0.5)',
   },
   insightCardEmerging: {
     backgroundColor: 'transparent', // Use gradient
-    borderColor: 'rgba(168, 85, 247, 0.4)',
+    borderColor: 'rgba(251, 191, 36, 0.5)',
   },
   insightCardEstablished: {
     backgroundColor: 'transparent', // Use gradient
-    borderColor: 'rgba(168, 85, 247, 0.4)',
+    borderColor: 'rgba(94, 234, 212, 0.5)',
   },
   insightCardGradient: {
     position: 'absolute',
