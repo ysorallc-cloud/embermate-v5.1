@@ -167,32 +167,29 @@ export default function NotificationSettingsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <AuroraBackground variant="settings" />
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading...</Text>
-          </View>
-        </SafeAreaView>
-      </View>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <AuroraBackground variant="settings" />
 
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-              <Text style={styles.backIcon}>←</Text>
+              <Text style={styles.backText}>← Back</Text>
             </TouchableOpacity>
-            <Text style={styles.headerLabel}>NOTIFICATIONS</Text>
-            <View style={styles.placeholder} />
           </View>
 
+          <Text style={styles.headerLabel}>NOTIFICATIONS</Text>
           <Text style={styles.title}>Notification Settings</Text>
 
           {/* Status Summary - Instant Orientation */}
@@ -352,9 +349,9 @@ export default function NotificationSettingsScreen() {
           </View>
 
           <View style={{ height: 40 }} />
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -363,12 +360,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  safeArea: {
-    flex: 1,
-  },
   scrollView: {
     flex: 1,
-    paddingHorizontal: Spacing.xl,
+  },
+  content: {
+    padding: Spacing.xl,
+    paddingTop: 0,
   },
   loadingContainer: {
     flex: 1,
@@ -382,32 +379,23 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'android' ? 20 : 0,
-    paddingBottom: Spacing.md,
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 8,
   },
-  backIcon: {
-    fontSize: 24,
-    color: '#FFFFFF',
+  backText: {
+    fontSize: 14,
+    color: Colors.accent,
+    fontWeight: '500',
   },
   headerLabel: {
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.5)',
     letterSpacing: 1,
     fontWeight: '600',
-  },
-  placeholder: {
-    width: 44,
+    marginBottom: 8,
   },
   title: {
     fontSize: 28,
