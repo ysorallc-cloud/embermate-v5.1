@@ -758,15 +758,6 @@ export default function NowScreen() {
               </View>
             </View>
 
-            {/* Check-In Button */}
-            <TouchableOpacity
-              style={styles.checkinButton}
-              onPress={() => router.push('/quick-checkin')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.checkinButtonText}>✏️ Check-In</Text>
-            </TouchableOpacity>
-
             {/* Timeline Section */}
             <TouchableOpacity
               style={styles.sectionHeaderRow}
@@ -858,23 +849,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     marginTop: 12,
-  },
-
-  // Check-In Button
-  checkinButton: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(94, 234, 212, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.25)',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    marginBottom: 20,
-  },
-  checkinButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.accent,
   },
 
   // Section Header
