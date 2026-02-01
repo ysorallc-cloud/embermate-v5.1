@@ -19,6 +19,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { Colors, Spacing } from '../../theme/theme-tokens';
 import { MICROCOPY } from '../../constants/microcopy';
 import { getMedications, Medication } from '../../utils/medicationStorage';
+import { countUpcomingAppointments } from '../../utils/appointmentStorage';
 import {
   getTodayMedicationLog,
   getTodayVitalsLog,
@@ -56,6 +57,7 @@ export default function RecordTab() {
   const [waterGlasses, setWaterGlasses] = useState(0);
   const [symptomsLogged, setSymptomsLogged] = useState(false);
   const [notesLogged, setNotesLogged] = useState(false);
+  const [appointmentsCount, setAppointmentsCount] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -85,6 +87,7 @@ export default function RecordTab() {
         todayWater,
         todaySymptoms,
         todayNotes,
+        upcomingAppointments,
       ] = await Promise.all([
         getMedications(),
         getTodayMedicationLog(),
@@ -95,6 +98,7 @@ export default function RecordTab() {
         getTodayWaterLog(),
         getTodaySymptomLog(),
         getTodayNotesLog(),
+        countUpcomingAppointments(),
       ]);
 
       const activeMeds = allMeds.filter(m => m.active !== false);
@@ -107,6 +111,7 @@ export default function RecordTab() {
       setWaterGlasses(todayWater?.glasses || 0);
       setSymptomsLogged(Boolean(todaySymptoms?.symptoms?.length));
       setNotesLogged(Boolean(todayNotes?.content));
+      setAppointmentsCount(upcomingAppointments);
     } catch (error) {
       console.error('Error loading Record data:', error);
     } finally {
@@ -187,6 +192,7 @@ export default function RecordTab() {
       emoji: '📅',
       question: 'Log appointment?',
       hint: 'Doctor visits & notes',
+      status: appointmentsCount > 0 ? { text: `${appointmentsCount} scheduled`, done: true } : undefined,
       route: '/log-appointment',
     },
   ];
