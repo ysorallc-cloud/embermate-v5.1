@@ -39,7 +39,6 @@ import { initializeSampleData } from '../../utils/sampleDataGenerator';
 import {
   getOrientationPrompt,
   getRegulationPrompt,
-  getNudgePrompt,
   getClosurePrompt,
   recordAppOpen,
   getHoursSinceLastOpen,
@@ -55,13 +54,11 @@ import {
   Prompt,
   OrientationPrompt as OrientationPromptType,
   RegulationPrompt as RegulationPromptType,
-  NudgePrompt as NudgePromptType,
   ClosurePrompt as ClosurePromptType,
 } from '../../utils/promptSystem';
 import {
   OrientationPrompt,
   RegulationPrompt,
-  NudgePrompt,
   ClosurePrompt,
   OnboardingPrompt,
   NotificationPrompt,
@@ -107,7 +104,6 @@ export default function NowScreen() {
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [orientationPrompt, setOrientationPrompt] = useState<OrientationPromptType | null>(null);
   const [regulationPrompt, setRegulationPrompt] = useState<RegulationPromptType | null>(null);
-  const [nudgePrompt, setNudgePrompt] = useState<NudgePromptType | null>(null);
   const [showClosure, setShowClosure] = useState(false);
   const [closureMessage, setClosureMessage] = useState('');
 
@@ -392,18 +388,6 @@ export default function NowScreen() {
         setOrientationPrompt(orientation);
       } else {
         setOrientationPrompt(null);
-      }
-
-      // 4. Check for NUDGE prompt (single incomplete item suggestion)
-      // Priority: meds > mood > meals (vitals excluded from nudges)
-      if (stats.meds.completed < stats.meds.total && stats.meds.total > 0) {
-        setNudgePrompt(getNudgePrompt('medication', '/(tabs)/record'));
-      } else if (stats.mood.completed < stats.mood.total) {
-        setNudgePrompt(getNudgePrompt('mood', '/(tabs)/record'));
-      } else if (stats.meals.completed < stats.meals.total) {
-        setNudgePrompt(getNudgePrompt('meals', '/(tabs)/record'));
-      } else {
-        setNudgePrompt(null);
       }
 
       // Record this app open for next time
@@ -777,15 +761,6 @@ export default function NowScreen() {
                 {renderProgressRing('🍽️', 'Meals', todayStats.meals, () => handleQuickCheck('meals'))}
               </View>
             </View>
-
-            {/* Nudge Prompt - Single inline suggestion */}
-            {nudgePrompt && !showOnboarding && (
-              <NudgePrompt
-                message={nudgePrompt.message}
-                route={nudgePrompt.route}
-                category={nudgePrompt.category}
-              />
-            )}
 
             {/* Check-In Button */}
             <TouchableOpacity
