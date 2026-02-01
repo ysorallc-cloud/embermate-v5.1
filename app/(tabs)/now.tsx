@@ -33,6 +33,20 @@ import {
   recordVisit,
 } from '../../utils/lastVisitTracker';
 import { MICROCOPY } from '../../constants/microcopy';
+import {
+  getAllBaselines,
+  getAllTodayVsBaseline,
+  getNextBaselineToConfirm,
+  confirmBaseline,
+  rejectBaseline,
+  dismissBaselinePrompt,
+  BaselineData,
+  TodayVsBaseline,
+  BaselineCategory,
+  CategoryBaseline,
+  getBaselineLanguage,
+  MIN_DAYS_FOR_BASELINE,
+} from '../../utils/baselineStorage';
 
 // Prompt System
 import {
@@ -61,6 +75,7 @@ import {
   ClosurePrompt,
   OnboardingPrompt,
   NotificationPrompt,
+  BaselineConfirmPrompt,
 } from '../../components/prompts';
 import * as Notifications from 'expo-notifications';
 
@@ -116,6 +131,14 @@ export default function NowScreen() {
 
   // AI Insight
   const [aiInsight, setAiInsight] = useState<AIInsight | null>(null);
+
+  // Baseline state
+  const [baselineData, setBaselineData] = useState<BaselineData | null>(null);
+  const [todayVsBaseline, setTodayVsBaseline] = useState<TodayVsBaseline[]>([]);
+  const [baselineToConfirm, setBaselineToConfirm] = useState<{
+    category: BaselineCategory;
+    baseline: CategoryBaseline;
+  } | null>(null);
 
   // Check for onboarding, notification prompt, and welcome banner on mount
   useEffect(() => {
@@ -324,6 +347,98 @@ export default function NowScreen() {
     setShowNotificationPrompt(false);
   };
 
+  // Baseline confirmation handlers
+  const handleBaselineYes = async () => {
+    if (baselineToConfirm) {
+      await confirmBaseline(baselineToConfirm.category);
+      setBaselineToConfirm(null);
+      // Check for next one to confirm
+      const next = await getNextBaselineToConfirm();
+      setBaselineToConfirm(next);
+    }
+  };
+
+  const handleBaselineNotReally = async () => {
+    if (baselineToConfirm) {
+      await rejectBaseline(baselineToConfirm.category);
+      setBaselineToConfirm(null);
+      const next = await getNextBaselineToConfirm();
+      setBaselineToConfirm(next);
+    }
+  };
+
+  const handleBaselineDismiss = async () => {
+    if (baselineToConfirm) {
+      await dismissBaselinePrompt(baselineToConfirm.category);
+      setBaselineToConfirm(null);
+      const next = await getNextBaselineToConfirm();
+      setBaselineToConfirm(next);
+    }
+  };
+
+  // Generate baseline status messages
+  const getBaselineStatusMessage = (comparison: TodayVsBaseline): { main: string; sub?: string } | null => {
+    const { category, baseline, today, matchesBaseline, belowBaseline } = comparison;
+
+    // Get confidence level from baselineData
+    let categoryBaseline: CategoryBaseline | null = null;
+    if (baselineData) {
+      switch (category) {
+        case 'meals':
+          categoryBaseline = baselineData.meals;
+          break;
+        case 'vitals':
+          categoryBaseline = baselineData.vitals;
+          break;
+        case 'meds':
+          categoryBaseline = baselineData.meds;
+          break;
+      }
+    }
+
+    if (!categoryBaseline || categoryBaseline.confidence === 'none') return null;
+
+    const { adverb } = getBaselineLanguage(categoryBaseline.confidence);
+    const isConfident = categoryBaseline.confidence === 'confident';
+
+    if (matchesBaseline) {
+      switch (category) {
+        case 'meals':
+          return { main: isConfident ? 'Meals are on your usual routine today.' : `Meals match your ${adverb} pattern.` };
+        case 'vitals':
+          return { main: isConfident ? 'Vitals match your normal daily pattern.' : `Vitals are on track so far.` };
+        case 'meds':
+          return { main: isConfident ? 'Medications are on your usual routine.' : `Medications are going as ${adverb}.` };
+        default:
+          return null;
+      }
+    }
+
+    if (belowBaseline) {
+      switch (category) {
+        case 'meals':
+          return {
+            main: `Meals are lower than ${adverb} so far today.`,
+            sub: "That's okay. You can update this anytime.",
+          };
+        case 'vitals':
+          return {
+            main: `Vitals are lower than ${adverb} so far today.`,
+            sub: "That's okay. You can update this anytime.",
+          };
+        case 'meds':
+          return {
+            main: `Medications are behind ${adverb} today.`,
+            sub: "That's okay. You can update this anytime.",
+          };
+        default:
+          return null;
+      }
+    }
+
+    return null;
+  };
+
   const handleDismissRegulation = async () => {
     await dismissPrompt('regulation');
     setRegulationPrompt(null);
@@ -362,7 +477,6 @@ export default function NowScreen() {
         setShowClosure(true);
         setOrientationPrompt(null);
         setRegulationPrompt(null);
-        setNudgePrompt(null);
         return;
       } else {
         setShowClosure(false);
@@ -466,6 +580,19 @@ export default function NowScreen() {
       });
       const insight = generateAIInsight(newStats, currentMoodLevel, todayAppts, activeMeds);
       setAiInsight(insight);
+
+      // Load baseline data
+      const baselines = await getAllBaselines();
+      setBaselineData(baselines);
+
+      if (baselines.hasAnyBaseline) {
+        const comparisons = await getAllTodayVsBaseline();
+        setTodayVsBaseline(comparisons);
+      }
+
+      // Check if we should show baseline confirmation
+      const toConfirm = await getNextBaselineToConfirm();
+      setBaselineToConfirm(toConfirm);
     } catch (error) {
       console.error('Error loading Now data:', error);
     }
@@ -721,6 +848,39 @@ export default function NowScreen() {
                 onEnable={handleEnableNotifications}
                 onNotNow={handleNotNowNotifications}
               />
+            )}
+
+            {/* Baseline Confirmation Prompt */}
+            {baselineToConfirm && !showOnboarding && (
+              <BaselineConfirmPrompt
+                category={baselineToConfirm.category}
+                baseline={baselineToConfirm.baseline}
+                onYes={handleBaselineYes}
+                onNotReally={handleBaselineNotReally}
+                onDismiss={handleBaselineDismiss}
+              />
+            )}
+
+            {/* Baseline Status Messages - Only show when baseline exists */}
+            {todayVsBaseline.length > 0 && !showOnboarding && (
+              <View style={styles.baselineStatusContainer}>
+                {todayVsBaseline.map(comparison => {
+                  const message = getBaselineStatusMessage(comparison);
+                  if (!message) return null;
+                  return (
+                    <View key={comparison.category} style={[
+                      styles.baselineStatus,
+                      comparison.matchesBaseline && styles.baselineStatusMatch,
+                      comparison.belowBaseline && styles.baselineStatusBelow,
+                    ]}>
+                      <Text style={styles.baselineStatusMain}>{message.main}</Text>
+                      {message.sub && (
+                        <Text style={styles.baselineStatusSub}>{message.sub}</Text>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
             )}
 
             {/* AI Insight Card - At top of content */}
@@ -1064,6 +1224,36 @@ const styles = StyleSheet.create({
   emptyTimelineText: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
+  },
+
+  // Baseline Status
+  baselineStatusContainer: {
+    marginBottom: 16,
+    gap: 6,
+  },
+  baselineStatus: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  },
+  baselineStatusMatch: {
+    borderLeftWidth: 3,
+    borderLeftColor: 'rgba(16, 185, 129, 0.4)',
+  },
+  baselineStatusBelow: {
+    borderLeftWidth: 3,
+    borderLeftColor: 'rgba(251, 191, 36, 0.4)',
+  },
+  baselineStatusMain: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 18,
+  },
+  baselineStatusSub: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 2,
   },
 
 });

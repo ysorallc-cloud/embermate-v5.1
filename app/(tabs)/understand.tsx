@@ -35,6 +35,14 @@ import {
   getTodayVitalsLog,
   getMedicationLogs as getCentralMedLogs,
 } from '../../utils/centralStorage';
+import {
+  getAllBaselines,
+  getAllTodayVsBaseline,
+  BaselineData,
+  TodayVsBaseline,
+  getBaselineLanguage,
+  MIN_DAYS_FOR_BASELINE,
+} from '../../utils/baselineStorage';
 
 // Aurora Components
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
@@ -57,12 +65,6 @@ interface DataMetrics {
   hasEnoughData: boolean;
 }
 
-interface StageInsight {
-  mainText: string;
-  subText: string;
-  dataContext: string;
-  tone: 'educational' | 'observational' | 'confident';
-}
 
 export default function UnderstandScreen() {
   const router = useRouter();
@@ -84,6 +86,8 @@ export default function UnderstandScreen() {
     totalDataPoints: 0,
     hasEnoughData: false,
   });
+  const [baselineData, setBaselineData] = useState<BaselineData | null>(null);
+  const [todayVsBaseline, setTodayVsBaseline] = useState<TodayVsBaseline[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -126,6 +130,17 @@ export default function UnderstandScreen() {
       // Calculate data metrics
       const metrics = await calculateDataMetrics(daysSinceFirstUse, activeMeds);
       setDataMetrics(metrics);
+
+      // Load baseline data
+      const baselines = await getAllBaselines();
+      setBaselineData(baselines);
+
+      if (baselines.hasAnyBaseline) {
+        const comparisons = await getAllTodayVsBaseline();
+        setTodayVsBaseline(comparisons);
+      } else {
+        setTodayVsBaseline([]);
+      }
     } catch (error) {
       console.error('Error loading Understand data:', error);
     }
@@ -209,175 +224,73 @@ export default function UnderstandScreen() {
     setRefreshing(false);
   }, []);
 
+  // Generate "What's normal" items based on baselines
+  const getWhatsNormal = useMemo((): string[] => {
+    if (!baselineData || !baselineData.hasAnyBaseline) return [];
+
+    const items: string[] = [];
+    const confident = baselineData.daysOfData >= 5;
+    const adverb = confident ? 'typically' : 'usually';
+
+    if (baselineData.meals && baselineData.meals.dailyCount > 0) {
+      items.push(`Meals are ${adverb} logged ${baselineData.meals.dailyCount} time${baselineData.meals.dailyCount !== 1 ? 's' : ''} per day`);
+    }
+
+    if (baselineData.vitals && baselineData.vitals.dailyCount > 0) {
+      items.push(`Vitals are ${adverb} checked ${baselineData.vitals.dailyCount === 1 ? 'once' : baselineData.vitals.dailyCount + ' times'} per day`);
+    }
+
+    if (baselineData.meds && baselineData.meds.dailyCount > 0) {
+      items.push(`${baselineData.meds.dailyCount} medication${baselineData.meds.dailyCount !== 1 ? 's' : ''} ${adverb} taken daily`);
+    }
+
+    return items;
+  }, [baselineData]);
+
+  // Generate "What's different today" items
+  const getWhatsDifferent = useMemo((): string[] => {
+    if (!baselineData || !baselineData.hasAnyBaseline || todayVsBaseline.length === 0) return [];
+
+    const items: string[] = [];
+
+    for (const comparison of todayVsBaseline) {
+      if (comparison.belowBaseline && comparison.today === 0) {
+        switch (comparison.category) {
+          case 'meals':
+            items.push("Meals haven't been logged yet today");
+            break;
+          case 'vitals':
+            items.push("Vitals haven't been logged yet today");
+            break;
+          case 'meds':
+            items.push("Medications haven't been logged yet today");
+            break;
+        }
+      } else if (comparison.belowBaseline) {
+        switch (comparison.category) {
+          case 'meals':
+            items.push(`Meals are lower than usual (${comparison.today} of ${comparison.baseline})`);
+            break;
+          case 'vitals':
+            items.push(`Vitals are lower than usual (${comparison.today} of ${comparison.baseline})`);
+            break;
+          case 'meds':
+            items.push(`Fewer medications logged than usual (${comparison.today} of ${comparison.baseline})`);
+            break;
+        }
+      }
+    }
+
+    return items;
+  }, [baselineData, todayVsBaseline]);
+
+  // Check if baseline is still forming
+  const isBaselineForming = useMemo(() => {
+    return !baselineData || baselineData.daysOfData < MIN_DAYS_FOR_BASELINE || !baselineData.hasAnyBaseline;
+  }, [baselineData]);
+
   // Calculate stats
   const totalMeds = medications.length;
-  const takenMeds = medications.filter((m) => m.taken).length;
-  const adherencePercent = totalMeds > 0 ? Math.round((takenMeds / totalMeds) * 100) : 100;
-
-  // Generate stage-appropriate insight
-  const stageInsight = useMemo((): StageInsight => {
-    const { stage, daysOfData, medAdherenceRate, vitalsLoggedDays, moodLoggedDays, totalDataPoints } = dataMetrics;
-
-    // EARLY STAGE (Day 1-3): Orientation, not insight
-    if (stage === 'early') {
-      if (totalDataPoints === 0) {
-        return {
-          mainText: "We're ready to start building your baseline.",
-          subText: "Log medications, vitals, or mood to begin seeing patterns. Even small check-ins help build the picture.",
-          dataContext: `Day ${daysOfData} of tracking`,
-          tone: 'educational',
-        };
-      }
-
-      const logged: string[] = [];
-      if (medAdherenceRate > 0) logged.push('medications');
-      if (vitalsLoggedDays > 0) logged.push('vitals');
-      if (moodLoggedDays > 0) logged.push('mood');
-
-      return {
-        mainText: "Building your personal baseline.",
-        subText: logged.length > 0
-          ? `${logged.join(' and ')} tracking started. Pattern detection improves with each day of data.`
-          : "Insights will appear as you log more data. We need a few days to identify meaningful patterns.",
-        dataContext: `Based on ${daysOfData} day${daysOfData > 1 ? 's' : ''} of data`,
-        tone: 'educational',
-      };
-    }
-
-    // EMERGING STAGE (Day 4-10): Directional signals
-    if (stage === 'emerging') {
-      const observations: string[] = [];
-
-      // Medication observations (use soft language)
-      if (totalMeds > 0) {
-        if (medAdherenceRate >= 80) {
-          observations.push('Medication tracking tends to be consistent so far');
-        } else if (medAdherenceRate >= 50) {
-          observations.push('Medication adherence may be worth watching');
-        } else {
-          observations.push('Medication gaps are appearing — this may affect patterns');
-        }
-      }
-
-      // Vitals observations
-      if (vitalsLoggedDays >= 3 && latestSystolic && latestDiastolic) {
-        if (latestSystolic <= 130 && latestDiastolic <= 85) {
-          observations.push('Vitals appear stable so far');
-        } else {
-          observations.push('Blood pressure seems elevated — worth monitoring');
-        }
-      }
-
-      // Mood observations
-      if (moodLoggedDays >= 3) {
-        observations.push('Mood data is building — patterns may emerge soon');
-      }
-
-      if (observations.length === 0) {
-        return {
-          mainText: "Patterns are starting to form.",
-          subText: "Continue logging to unlock directional insights. We're looking for trends in your data.",
-          dataContext: `Based on ${daysOfData} days of data`,
-          tone: 'observational',
-        };
-      }
-
-      return {
-        mainText: observations[0] + '.',
-        subText: observations.length > 1
-          ? observations.slice(1).join('. ') + '.'
-          : "More data will strengthen these early observations.",
-        dataContext: `Based on ${daysOfData} days of data`,
-        tone: 'observational',
-      };
-    }
-
-    // ESTABLISHED STAGE (14+ days): Pattern confidence
-    const patterns: string[] = [];
-    const concerns: string[] = [];
-
-    // Medication patterns (confident language)
-    if (totalMeds > 0) {
-      if (medAdherenceRate >= 90) {
-        patterns.push('Consistent medication adherence correlates with steadier overall patterns');
-      } else if (medAdherenceRate >= 70) {
-        patterns.push('Medication adherence is moderate — consistency may improve outcomes');
-      } else {
-        concerns.push('review medication schedule — gaps may be affecting your health patterns');
-      }
-    }
-
-    // Vitals patterns
-    if (vitalsLoggedDays >= 7 && latestSystolic && latestDiastolic) {
-      if (latestSystolic <= 120 && latestDiastolic <= 80) {
-        patterns.push('Blood pressure remains in healthy range');
-      } else if (latestSystolic <= 130 && latestDiastolic <= 85) {
-        patterns.push('Blood pressure is slightly elevated but stable');
-      } else {
-        concerns.push('blood pressure trends warrant attention');
-      }
-    }
-
-    // Mood-sleep correlation (would need actual correlation data)
-    if (moodLoggedDays >= 7) {
-      patterns.push('Mood tracking provides baseline for correlation detection');
-    }
-
-    if (patterns.length === 0 && concerns.length === 0) {
-      return {
-        mainText: "Data collection is strong.",
-        subText: "Continue logging to maintain pattern visibility. Your consistency helps identify meaningful changes.",
-        dataContext: `Based on ${daysOfData} days of data`,
-        tone: 'confident',
-      };
-    }
-
-    const mainText = patterns.length > 0 ? patterns[0] + '.' : 'Some areas need attention.';
-    let subText = '';
-    if (patterns.length > 1) {
-      subText = patterns.slice(1).join('. ') + '.';
-    }
-    if (concerns.length > 0) {
-      subText += (subText ? ' ' : '') + `Consider: ${concerns[0]}.`;
-    }
-
-    return {
-      mainText,
-      subText: subText || 'Your tracking consistency enables reliable pattern detection.',
-      dataContext: `Based on ${daysOfData} days of data`,
-      tone: 'confident',
-    };
-  }, [dataMetrics, totalMeds, takenMeds, latestSystolic, latestDiastolic]);
-
-  // Generate score based on data quality and health indicators
-  const healthScore = useMemo(() => {
-    const { stage, medAdherenceRate, vitalsLoggedDays, moodLoggedDays, totalDataPoints } = dataMetrics;
-
-    if (stage === 'early' || totalDataPoints < 3) {
-      return null; // Don't show score in early stage
-    }
-
-    let score = 50; // Base score
-
-    // Medication component
-    if (totalMeds > 0) {
-      score += (medAdherenceRate / 100) * 25;
-    } else {
-      score += 25; // No penalty if no meds
-    }
-
-    // Vitals component
-    if (latestSystolic && latestDiastolic) {
-      const bpScore = Math.max(0, 100 - Math.abs(120 - latestSystolic) - Math.abs(80 - latestDiastolic));
-      score += (bpScore / 100) * 15;
-    }
-
-    // Data consistency component
-    const consistencyScore = Math.min(100, (totalDataPoints / 20) * 100);
-    score += (consistencyScore / 100) * 10;
-
-    return Math.round(Math.min(100, score));
-  }, [dataMetrics, totalMeds, latestSystolic, latestDiastolic]);
 
   // Exploration tools (Layer 2)
   const EXPLORATION_TOOLS = [
@@ -426,18 +339,15 @@ export default function UnderstandScreen() {
     },
   ];
 
-  // Get card style based on stage
+  // Get card style based on baseline status
   const getInsightCardStyle = () => {
-    switch (dataMetrics.stage) {
-      case 'early':
-        return styles.insightCardEarly;
-      case 'emerging':
-        return styles.insightCardEmerging;
-      case 'established':
-        return styles.insightCardEstablished;
-      default:
-        return {};
+    if (isBaselineForming) {
+      return styles.insightCardEarly;
     }
+    if (getWhatsDifferent.length > 0) {
+      return styles.insightCardEmerging; // Amber for differences
+    }
+    return styles.insightCardEstablished; // Teal for normal
   };
 
   return (
@@ -477,39 +387,52 @@ export default function UnderstandScreen() {
           {/* Layer 1: Insight Card (Dominant) */}
           <GlassCard style={[styles.insightCard, getInsightCardStyle()]}>
             <View style={styles.insightContent}>
-              {/* Data context badge */}
-              <View style={styles.dataContextBadge}>
-                <Text style={styles.dataContextText}>{stageInsight.dataContext}</Text>
-              </View>
+              {/* Baseline forming state */}
+              {isBaselineForming ? (
+                <>
+                  <Text style={styles.insightSectionTitle}>Building your routine</Text>
+                  <Text style={styles.insightSubText}>
+                    We're learning what a typical day looks like. Insights will improve as more data is recorded.
+                  </Text>
+                  {baselineData && baselineData.daysOfData > 0 && (
+                    <View style={styles.dataContextBadge}>
+                      <Text style={styles.dataContextText}>
+                        Day {baselineData.daysOfData} of tracking
+                      </Text>
+                    </View>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Section 1: What's normal */}
+                  {getWhatsNormal.length > 0 && (
+                    <View style={styles.insightSection}>
+                      <Text style={styles.insightSectionTitle}>What's normal</Text>
+                      {getWhatsNormal.map((item, index) => (
+                        <Text key={index} style={styles.insightBullet}>• {item}</Text>
+                      ))}
+                    </View>
+                  )}
 
-              {/* Insight text FIRST - dominant */}
-              <Text style={styles.insightMainText}>{stageInsight.mainText}</Text>
-              {stageInsight.subText ? (
-                <Text style={styles.insightSubText}>{stageInsight.subText}</Text>
-              ) : null}
+                  {/* Section 2: What's different (only if true) */}
+                  {getWhatsDifferent.length > 0 && (
+                    <View style={styles.insightSection}>
+                      <Text style={styles.insightSectionTitleDifferent}>What's different today</Text>
+                      {getWhatsDifferent.map((item, index) => (
+                        <Text key={index} style={styles.insightBulletDifferent}>• {item}</Text>
+                      ))}
+                    </View>
+                  )}
 
-              {/* Score row - only show for emerging/established */}
-              {healthScore !== null && (
-                <View style={styles.scoreRow}>
-                  <Text style={styles.scoreNumber}>{healthScore}</Text>
-                  <View style={styles.trendContainer}>
-                    <Text style={styles.trendArrow}>
-                      {healthScore >= 70 ? '↑' : healthScore >= 50 ? '→' : '↓'}
-                    </Text>
-                    <Text style={styles.trendText}>
-                      {dataMetrics.stage === 'emerging' ? 'Building baseline' :
-                       healthScore >= 70 ? 'Positive trend' :
-                       healthScore >= 50 ? 'Stable' : 'Needs attention'}
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Improvement hint for early stage */}
-              {dataMetrics.stage === 'early' && (
-                <Text style={styles.improvementHint}>
-                  Insights improve as more data is recorded.
-                </Text>
+                  {/* If nothing different, just show normal - no invented insight */}
+                  {getWhatsDifferent.length === 0 && getWhatsNormal.length > 0 && (
+                    <View style={styles.dataContextBadge}>
+                      <Text style={styles.dataContextText}>
+                        Based on {baselineData?.daysOfData || 0} days of data
+                      </Text>
+                    </View>
+                  )}
+                </>
               )}
             </View>
           </GlassCard>
@@ -646,7 +569,34 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(94, 234, 212, 0.25)',
   },
   insightContent: {
-    gap: 8,
+    gap: 12,
+  },
+  insightSection: {
+    gap: 4,
+  },
+  insightSectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 4,
+  },
+  insightSectionTitleDifferent: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(251, 191, 36, 0.9)',
+    marginBottom: 4,
+  },
+  insightBullet: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 20,
+    paddingLeft: 4,
+  },
+  insightBulletDifferent: {
+    fontSize: 13,
+    color: 'rgba(251, 191, 36, 0.8)',
+    lineHeight: 20,
+    paddingLeft: 4,
   },
   dataContextBadge: {
     alignSelf: 'flex-start',
@@ -654,54 +604,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    marginBottom: 4,
+    marginTop: 4,
   },
   dataContextText: {
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.6)',
     fontWeight: '500',
   },
-  insightMainText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.95)',
-    lineHeight: 22,
-  },
   insightSubText: {
     fontSize: 13,
     fontWeight: '400',
     color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 19,
-  },
-  improvementHint: {
-    fontSize: 12,
-    fontStyle: 'italic',
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginTop: 8,
-  },
-  scoreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    gap: 10,
-  },
-  scoreNumber: {
-    fontSize: 24,
-    fontWeight: '300',
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  trendContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  trendArrow: {
-    fontSize: 14,
-    color: Colors.accent,
-  },
-  trendText: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
   },
 
   // Sections

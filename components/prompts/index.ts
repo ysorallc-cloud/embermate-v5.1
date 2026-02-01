@@ -4,3 +4,4 @@ export { NudgePrompt } from './NudgePrompt';
 export { ClosurePrompt } from './ClosurePrompt';
 export { OnboardingPrompt } from './OnboardingPrompt';
 export { NotificationPrompt } from './NotificationPrompt';
+export { BaselineConfirmPrompt } from './BaselineConfirmPrompt';
