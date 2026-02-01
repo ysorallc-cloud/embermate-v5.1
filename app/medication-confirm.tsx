@@ -1,6 +1,6 @@
 // ============================================================================
-// MEDICATION CONFIRMATION
-// Quick medication checklist with side effects
+// MEDICATION LOG
+// Consolidated: Medication dropdown, Dosage, Side Effects, Search
 // ============================================================================
 
 import React, { useState, useCallback } from 'react';
@@ -15,34 +15,49 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
-import { getMedications, markMedicationTaken, createMedication, Medication } from '../utils/medicationStorage';
+import { createMedication, markMedicationTaken } from '../utils/medicationStorage';
+import { saveMedicationLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
 
-// Common medications for quick selection
+// Common medications for dropdown
 const COMMON_MEDICATIONS = [
-  { name: 'Metformin', dosages: ['500mg', '850mg', '1000mg'] },
-  { name: 'Lisinopril', dosages: ['5mg', '10mg', '20mg', '40mg'] },
-  { name: 'Amlodipine', dosages: ['2.5mg', '5mg', '10mg'] },
-  { name: 'Metoprolol', dosages: ['25mg', '50mg', '100mg'] },
-  { name: 'Atorvastatin', dosages: ['10mg', '20mg', '40mg', '80mg'] },
-  { name: 'Omeprazole', dosages: ['20mg', '40mg'] },
-  { name: 'Levothyroxine', dosages: ['25mcg', '50mcg', '75mcg', '100mcg'] },
-  { name: 'Gabapentin', dosages: ['100mg', '300mg', '400mg', '600mg'] },
-  { name: 'Losartan', dosages: ['25mg', '50mg', '100mg'] },
-  { name: 'Furosemide', dosages: ['20mg', '40mg', '80mg'] },
-  { name: 'Aspirin', dosages: ['81mg', '325mg'] },
-  { name: 'Warfarin', dosages: ['1mg', '2mg', '2.5mg', '5mg', '7.5mg', '10mg'] },
-  { name: 'Prednisone', dosages: ['5mg', '10mg', '20mg'] },
-  { name: 'Vitamin D', dosages: ['1000IU', '2000IU', '5000IU'] },
-  { name: 'Vitamin B12', dosages: ['500mcg', '1000mcg'] },
-  { name: 'Fish Oil', dosages: ['1000mg', '1200mg'] },
-  { name: 'Calcium', dosages: ['500mg', '600mg'] },
-  { name: 'Multivitamin', dosages: ['1 tablet'] },
-  { name: 'Acetaminophen', dosages: ['325mg', '500mg', '650mg'] },
-  { name: 'Ibuprofen', dosages: ['200mg', '400mg', '600mg', '800mg'] },
+  'Metformin',
+  'Lisinopril',
+  'Amlodipine',
+  'Metoprolol',
+  'Atorvastatin',
+  'Omeprazole',
+  'Levothyroxine',
+  'Gabapentin',
+  'Losartan',
+  'Furosemide',
+  'Aspirin',
+  'Warfarin',
+  'Prednisone',
+  'Vitamin D',
+  'Vitamin B12',
+  'Fish Oil',
+  'Calcium',
+  'Multivitamin',
+  'Acetaminophen',
+  'Ibuprofen',
+  'Hydrochlorothiazide',
+  'Simvastatin',
+  'Pantoprazole',
+  'Sertraline',
+  'Escitalopram',
+];
+
+const COMMON_DOSAGES = [
+  '5mg', '10mg', '20mg', '25mg', '40mg', '50mg', '75mg', '100mg',
+  '150mg', '200mg', '250mg', '300mg', '400mg', '500mg', '600mg',
+  '750mg', '800mg', '850mg', '1000mg',
+  '25mcg', '50mcg', '75mcg', '100mcg',
+  '81mg', '325mg',
+  '1000IU', '2000IU', '5000IU',
+  '1 tablet', '2 tablets',
 ];
 
 const SIDE_EFFECTS = [
@@ -50,177 +65,100 @@ const SIDE_EFFECTS = [
   { id: 'dizzy', label: 'Dizzy' },
   { id: 'nausea', label: 'Nausea' },
   { id: 'tired', label: 'Tired' },
+  { id: 'headache', label: 'Headache' },
   { id: 'other', label: 'Other' },
 ];
 
-export default function MedicationConfirmScreen() {
+export default function MedicationLogScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-  const [medications, setMedications] = useState<Medication[]>([]);
-  const [checkedMeds, setCheckedMeds] = useState<Set<string>>(new Set());
+
+  // Form state
+  const [selectedMedication, setSelectedMedication] = useState('');
+  const [dosage, setDosage] = useState('');
   const [sideEffect, setSideEffect] = useState('none');
-  const [timeSlot, setTimeSlot] = useState<'morning' | 'evening'>('morning');
-
-  // Quick add state
-  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [quickAddMeds, setQuickAddMeds] = useState<Set<string>>(new Set());
-  const [customDosage, setCustomDosage] = useState('');
+  const [showMedDropdown, setShowMedDropdown] = useState(false);
+  const [showDosageDropdown, setShowDosageDropdown] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadMedications();
-    }, [params.ids])
-  );
+  // Filter medications based on search
+  const filteredMedications = searchQuery.trim()
+    ? COMMON_MEDICATIONS.filter(med =>
+        med.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : COMMON_MEDICATIONS;
 
-  const loadMedications = async () => {
-    try {
-      const allMeds = await getMedications();
-
-      // Get medication IDs from params
-      const medIds = params.ids
-        ? (params.ids as string).split(',').filter(id => id.length > 0)
-        : [];
-
-      let relevantMeds: Medication[];
-
-      if (medIds.length > 0) {
-        // Load specific medications by ID
-        relevantMeds = allMeds.filter(
-          (m) => m.active && medIds.includes(m.id)
-        );
-      } else {
-        // No IDs passed - load all active, untaken medications
-        relevantMeds = allMeds.filter((m) => m.active && !m.taken);
-      }
-
-      // Determine time slot from the medications
-      if (relevantMeds.length > 0) {
-        setTimeSlot(relevantMeds[0].timeSlot as 'morning' | 'evening');
-      }
-
-      setMedications(relevantMeds);
-    } catch (error) {
-      console.error('Error loading medications:', error);
-    }
-  };
-
-  const toggleMedication = (medId: string) => {
-    setCheckedMeds((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(medId)) {
-        newSet.delete(medId);
-      } else {
-        newSet.add(medId);
-      }
-      return newSet;
-    });
-  };
-
-  const handleAllTaken = async () => {
-    try {
-      for (const med of medications) {
-        if (checkedMeds.has(med.id) || checkedMeds.size === 0) {
-          await markMedicationTaken(med.id);
-        }
-      }
-
-      await hapticSuccess();
-      router.back();
-    } catch (error) {
-      console.error('Error marking medications taken:', error);
-      Alert.alert('Error', 'Failed to save medication log');
-    }
-  };
-
-  const handleSkipDose = () => {
-    Alert.alert(
-      'Skip Dose',
-      'Are you sure you want to skip this dose?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Skip',
-          style: 'destructive',
-          onPress: () => router.back(),
-        },
-      ]
-    );
-  };
-
-  // Filter common medications based on search
-  const filteredMedications = COMMON_MEDICATIONS.filter(med =>
-    med.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Check if search query is a custom medication (not in common list)
+  // Check if search is a custom medication
   const isCustomMedication = searchQuery.trim().length > 0 &&
     !COMMON_MEDICATIONS.some(med =>
-      med.name.toLowerCase() === searchQuery.toLowerCase().trim()
+      med.toLowerCase() === searchQuery.toLowerCase().trim()
     );
 
-  // Add custom medication
-  const handleAddCustomMed = () => {
-    if (!searchQuery.trim() || !customDosage.trim()) {
-      Alert.alert('Required', 'Please enter both medication name and dosage');
+  // Filter dosages based on input
+  const filteredDosages = dosage.trim()
+    ? COMMON_DOSAGES.filter(d =>
+        d.toLowerCase().includes(dosage.toLowerCase())
+      )
+    : COMMON_DOSAGES.slice(0, 12);
+
+  const handleSelectMedication = (med: string) => {
+    setSelectedMedication(med);
+    setSearchQuery('');
+    setShowMedDropdown(false);
+  };
+
+  const handleSelectDosage = (d: string) => {
+    setDosage(d);
+    setShowDosageDropdown(false);
+  };
+
+  const handleAddCustomMedication = () => {
+    if (searchQuery.trim()) {
+      setSelectedMedication(searchQuery.trim());
+      setSearchQuery('');
+      setShowMedDropdown(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!selectedMedication.trim()) {
+      Alert.alert('Required', 'Please select a medication');
       return;
     }
-    const key = `${searchQuery.trim()}|${customDosage.trim()}`;
-    setQuickAddMeds(prev => new Set(prev).add(key));
-    setSearchQuery('');
-    setCustomDosage('');
-  };
+    if (!dosage.trim()) {
+      Alert.alert('Required', 'Please enter a dosage');
+      return;
+    }
 
-  // Toggle quick add medication selection
-  const toggleQuickAddMed = (medName: string, dosage: string) => {
-    const key = `${medName}|${dosage}`;
-    setQuickAddMeds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(key)) {
-        newSet.delete(key);
-      } else {
-        newSet.add(key);
-      }
-      return newSet;
-    });
-  };
-
-  // Handle recording quick add medications
-  const handleRecordQuickAdd = async () => {
+    setSaving(true);
     try {
-      const medsToAdd = Array.from(quickAddMeds);
-      for (const key of medsToAdd) {
-        const [name, dosage] = key.split('|');
-        // Create the medication and mark it as taken
-        const newMed = await createMedication({
-          name,
-          dosage,
-          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-          timeSlot: 'morning',
-          taken: true,
-          active: true,
-        });
-        await markMedicationTaken(newMed.id);
-      }
+      // Create and save the medication
+      const newMed = await createMedication({
+        name: selectedMedication.trim(),
+        dosage: dosage.trim(),
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        timeSlot: 'morning',
+        taken: true,
+        active: true,
+        notes: sideEffect !== 'none' ? `Side effect: ${sideEffect}` : undefined,
+      });
+
+      await markMedicationTaken(newMed.id);
+
+      // Also save to central storage for Now page sync
+      await saveMedicationLog({
+        timestamp: new Date().toISOString(),
+        medicationIds: [newMed.id],
+        sideEffects: sideEffect !== 'none' ? [sideEffect] : undefined,
+      });
 
       await hapticSuccess();
       router.back();
     } catch (error) {
-      console.error('Error recording medications:', error);
-      Alert.alert('Error', 'Failed to record medications');
+      console.error('Error saving medication:', error);
+      Alert.alert('Error', 'Failed to save medication');
+      setSaving(false);
     }
-  };
-
-  const getTimeLabel = () => {
-    return timeSlot.charAt(0).toUpperCase() + timeSlot.slice(1);
-  };
-
-  const getTimeString = () => {
-    // Get the time from the first medication's scheduled time
-    if (medications.length > 0) {
-      return medications[0].time;
-    }
-    return timeSlot === 'morning' ? '8:00 AM' : '6:00 PM';
   };
 
   return (
@@ -234,194 +172,134 @@ export default function MedicationConfirmScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            {medications.length > 0 ? (
-              <>
-                <Text style={styles.headerTime}>{getTimeString()}</Text>
-                <Text style={styles.headerTitle}>{getTimeLabel()} Medications</Text>
-              </>
-            ) : (
-              <>
-                <Text style={styles.headerTitle}>Record Medication</Text>
-                <Text style={styles.headerSubtitle}>Select from common medications</Text>
-              </>
-            )}
-          </View>
+          <Text style={styles.headerTitle}>Log Medication</Text>
           <View style={{ width: 44 }} />
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Scheduled Medication List */}
-          {medications.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>SCHEDULED MEDICATIONS</Text>
-              {medications.map((med) => (
-                <TouchableOpacity
-                  key={med.id}
-                  style={[
-                    styles.medCard,
-                    checkedMeds.has(med.id) && styles.medCardChecked,
-                  ]}
-                  onPress={() => toggleMedication(med.id)}
-                >
-                  <View
-                    style={[
-                      styles.checkbox,
-                      checkedMeds.has(med.id) && styles.checkboxChecked,
-                    ]}
-                  >
-                    {checkedMeds.has(med.id) && (
-                      <Text style={styles.checkmark}>✓</Text>
-                    )}
-                  </View>
-                  <View style={styles.medInfo}>
-                    <Text style={styles.medName}>{med.name}</Text>
-                    <Text style={styles.medDose}>{med.dosage}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* 1. MEDICATION FIELD */}
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>MEDICATION</Text>
 
-          {/* Quick Add Section */}
-          <View style={styles.section}>
-            <TouchableOpacity
-              style={styles.quickAddHeader}
-              onPress={() => setShowQuickAdd(!showQuickAdd)}
-            >
-              <Text style={styles.sectionLabel}>
-                {medications.length > 0 ? 'RECORD OTHER MEDICATION' : 'RECORD MEDICATION'}
-              </Text>
-              <Text style={styles.expandIcon}>{showQuickAdd ? '−' : '+'}</Text>
-            </TouchableOpacity>
-
-            {(showQuickAdd || medications.length === 0) && (
-              <View style={styles.quickAddContent}>
-                {/* Search Input */}
+            {/* Selected medication display or search input */}
+            {selectedMedication ? (
+              <TouchableOpacity
+                style={styles.selectedField}
+                onPress={() => {
+                  setSelectedMedication('');
+                  setShowMedDropdown(true);
+                }}
+              >
+                <Text style={styles.selectedFieldText}>{selectedMedication}</Text>
+                <Text style={styles.changeText}>Change</Text>
+              </TouchableOpacity>
+            ) : (
+              <View>
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Search or type new medication..."
+                  placeholder="Search or type medication name..."
                   placeholderTextColor="rgba(255, 255, 255, 0.4)"
                   value={searchQuery}
-                  onChangeText={setSearchQuery}
+                  onChangeText={(text) => {
+                    setSearchQuery(text);
+                    setShowMedDropdown(true);
+                  }}
+                  onFocus={() => setShowMedDropdown(true)}
                 />
 
-                {/* Custom Medication Entry - shows when typing a new med name */}
-                {isCustomMedication && (
-                  <View style={styles.customMedSection}>
-                    <Text style={styles.customMedLabel}>Add "{searchQuery.trim()}"</Text>
-                    <View style={styles.customMedRow}>
-                      <TextInput
-                        style={styles.dosageInput}
-                        placeholder="Enter dosage (e.g., 50mg)"
-                        placeholderTextColor="rgba(255, 255, 255, 0.4)"
-                        value={customDosage}
-                        onChangeText={setCustomDosage}
-                      />
+                {/* Dropdown */}
+                {showMedDropdown && (
+                  <View style={styles.dropdown}>
+                    {/* Custom medication option */}
+                    {isCustomMedication && (
                       <TouchableOpacity
-                        style={[
-                          styles.addCustomButton,
-                          !customDosage.trim() && styles.addCustomButtonDisabled,
-                        ]}
-                        onPress={handleAddCustomMed}
-                        disabled={!customDosage.trim()}
+                        style={styles.customOption}
+                        onPress={handleAddCustomMedication}
                       >
-                        <Text style={styles.addCustomButtonText}>Add</Text>
+                        <Text style={styles.customOptionText}>
+                          Add "{searchQuery.trim()}"
+                        </Text>
                       </TouchableOpacity>
-                    </View>
+                    )}
+
+                    {/* Medication list */}
+                    {filteredMedications.slice(0, 8).map((med) => (
+                      <TouchableOpacity
+                        key={med}
+                        style={styles.dropdownItem}
+                        onPress={() => handleSelectMedication(med)}
+                      >
+                        <Text style={styles.dropdownItemText}>{med}</Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
-                )}
-
-                {/* Medication List */}
-                <View style={styles.medList}>
-                  {filteredMedications.slice(0, 10).map((med) => (
-                    <View key={med.name} style={styles.quickMedItem}>
-                      <Text style={styles.quickMedName}>{med.name}</Text>
-                      <View style={styles.dosageRow}>
-                        {med.dosages.map((dosage) => {
-                          const key = `${med.name}|${dosage}`;
-                          const isSelected = quickAddMeds.has(key);
-                          return (
-                            <TouchableOpacity
-                              key={dosage}
-                              style={[
-                                styles.dosageChip,
-                                isSelected && styles.dosageChipSelected,
-                              ]}
-                              onPress={() => toggleQuickAddMed(med.name, dosage)}
-                            >
-                              <Text
-                                style={[
-                                  styles.dosageText,
-                                  isSelected && styles.dosageTextSelected,
-                                ]}
-                              >
-                                {dosage}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </View>
-                    </View>
-                  ))}
-                </View>
-
-                {/* Selected Medications Summary */}
-                {quickAddMeds.size > 0 && (
-                  <View style={styles.selectedMedsSection}>
-                    <Text style={styles.selectedMedsLabel}>Selected:</Text>
-                    <View style={styles.selectedMedsList}>
-                      {Array.from(quickAddMeds).map(key => {
-                        const [name, dosage] = key.split('|');
-                        return (
-                          <TouchableOpacity
-                            key={key}
-                            style={styles.selectedMedChip}
-                            onPress={() => toggleQuickAddMed(name, dosage)}
-                          >
-                            <Text style={styles.selectedMedText}>{name} {dosage}</Text>
-                            <Text style={styles.selectedMedRemove}>×</Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  </View>
-                )}
-
-                {/* Quick Add Button */}
-                {quickAddMeds.size > 0 && (
-                  <TouchableOpacity
-                    style={styles.quickAddButton}
-                    onPress={handleRecordQuickAdd}
-                  >
-                    <Text style={styles.quickAddButtonText}>
-                      Record {quickAddMeds.size} Medication{quickAddMeds.size > 1 ? 's' : ''} ✓
-                    </Text>
-                  </TouchableOpacity>
                 )}
               </View>
             )}
           </View>
 
-          {/* Side Effects */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>ANY SIDE EFFECTS?</Text>
-            <View style={styles.chipRow}>
+          {/* 2. DOSAGE FIELD */}
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>DOSAGE</Text>
+
+            <TextInput
+              style={styles.dosageInput}
+              placeholder="Enter or select dosage (e.g., 50mg)"
+              placeholderTextColor="rgba(255, 255, 255, 0.4)"
+              value={dosage}
+              onChangeText={(text) => {
+                setDosage(text);
+                setShowDosageDropdown(true);
+              }}
+              onFocus={() => setShowDosageDropdown(true)}
+              onBlur={() => setTimeout(() => setShowDosageDropdown(false), 200)}
+            />
+
+            {/* Common dosages */}
+            {showDosageDropdown && (
+              <View style={styles.dosageChips}>
+                {filteredDosages.slice(0, 8).map((d) => (
+                  <TouchableOpacity
+                    key={d}
+                    style={[
+                      styles.dosageChip,
+                      dosage === d && styles.dosageChipSelected,
+                    ]}
+                    onPress={() => handleSelectDosage(d)}
+                  >
+                    <Text style={[
+                      styles.dosageChipText,
+                      dosage === d && styles.dosageChipTextSelected,
+                    ]}>
+                      {d}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* 3. SIDE EFFECTS FIELD */}
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>SIDE EFFECTS</Text>
+            <View style={styles.sideEffectsRow}>
               {SIDE_EFFECTS.map((effect) => (
                 <TouchableOpacity
                   key={effect.id}
                   style={[
-                    styles.chip,
-                    sideEffect === effect.id && styles.chipSelected,
+                    styles.sideEffectChip,
+                    sideEffect === effect.id && styles.sideEffectChipSelected,
                   ]}
                   onPress={() => setSideEffect(effect.id)}
                 >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      sideEffect === effect.id && styles.chipTextSelected,
-                    ]}
-                  >
+                  <Text style={[
+                    styles.sideEffectText,
+                    sideEffect === effect.id && styles.sideEffectTextSelected,
+                  ]}>
                     {effect.label}
                   </Text>
                 </TouchableOpacity>
@@ -429,38 +307,40 @@ export default function MedicationConfirmScreen() {
             </View>
           </View>
 
+          {/* Confirmation Summary */}
+          {selectedMedication && dosage && (
+            <View style={styles.summary}>
+              <Text style={styles.summaryLabel}>WILL LOG:</Text>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryMed}>{selectedMedication}</Text>
+                <Text style={styles.summaryDosage}>{dosage}</Text>
+                {sideEffect !== 'none' && (
+                  <Text style={styles.summarySideEffect}>
+                    Side effect: {SIDE_EFFECTS.find(e => e.id === sideEffect)?.label}
+                  </Text>
+                )}
+              </View>
+            </View>
+          )}
+
           <View style={{ height: 120 }} />
         </ScrollView>
 
-        {/* Footer Buttons */}
-        {medications.length > 0 && (
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={styles.skipButton}
-              onPress={handleSkipDose}
-            >
-              <Text style={styles.skipButtonText}>Skip Dose</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={handleAllTaken}
-            >
-              <Text style={styles.confirmButtonText}>All Taken ✓</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Back button when no scheduled meds */}
-        {medications.length === 0 && quickAddMeds.size === 0 && (
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={styles.backButtonLarge}
-              onPress={() => router.back()}
-            >
-              <Text style={styles.backButtonLargeText}>← Back</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        {/* Footer */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              (!selectedMedication || !dosage || saving) && styles.saveButtonDisabled,
+            ]}
+            onPress={handleSave}
+            disabled={!selectedMedication || !dosage || saving}
+          >
+            <Text style={styles.saveButtonText}>
+              {saving ? 'Saving...' : 'Log Medication ✓'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -499,23 +379,10 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: Colors.textPrimary,
   },
-  headerCenter: {
-    alignItems: 'center',
-  },
-  headerTime: {
-    fontSize: 13,
-    color: Colors.gold,
-    marginBottom: 2,
-  },
   headerTitle: {
     fontSize: 17,
     fontWeight: '600',
     color: Colors.textPrimary,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginTop: 2,
   },
 
   // Content
@@ -524,168 +391,95 @@ const styles = StyleSheet.create({
     padding: 20,
   },
 
-  // Section
-  section: {
+  // Field
+  field: {
     marginBottom: 24,
   },
-  sectionLabel: {
-    fontSize: 10,
+  fieldLabel: {
+    fontSize: 11,
     fontWeight: '600',
     letterSpacing: 1.5,
-    color: 'rgba(255, 255, 255, 0.4)',
-    marginBottom: 12,
-  },
-
-  // Medication Card
-  medCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
-    borderRadius: 12,
-    padding: 16,
+    color: 'rgba(255, 255, 255, 0.5)',
     marginBottom: 10,
-    gap: 14,
-  },
-  medCardChecked: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-  },
-  checkbox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: 'rgba(20, 184, 166, 0.3)',
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: Colors.green,
-    borderColor: Colors.green,
-  },
-  checkmark: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
-  medInfo: {
-    flex: 1,
-  },
-  medName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginBottom: 2,
-  },
-  medDose: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
   },
 
-  // Side Effects Chips
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+  // Search/Selected Field
+  searchInput: {
     backgroundColor: 'rgba(13, 148, 136, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
-    borderRadius: 20,
+    borderColor: 'rgba(20, 184, 166, 0.2)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: Colors.textPrimary,
   },
-  chipSelected: {
-    backgroundColor: 'rgba(20, 184, 166, 0.15)',
-    borderColor: Colors.accent,
-  },
-  chipText: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  chipTextSelected: {
-    color: Colors.accent,
-    fontWeight: '600',
-  },
-
-  // Footer
-  footer: {
-    flexDirection: 'row',
-    padding: 20,
-    paddingBottom: 24,
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(20, 184, 166, 0.15)',
-    backgroundColor: Colors.background,
-  },
-  skipButton: {
-    flex: 1,
-    paddingVertical: 16,
+  selectedField: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
     borderWidth: 1,
-    borderColor: Colors.redBorder,
+    borderColor: Colors.green,
     borderRadius: 12,
-    alignItems: 'center',
-  },
-  skipButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.red,
-  },
-  confirmButton: {
-    flex: 1,
-    paddingVertical: 16,
-    backgroundColor: Colors.green,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  confirmButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-
-  // Quick Add Styles
-  quickAddHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  expandIcon: {
-    fontSize: 18,
-    color: Colors.accent,
+  selectedFieldText: {
+    fontSize: 16,
     fontWeight: '600',
+    color: Colors.green,
   },
-  quickAddContent: {
-    marginTop: 12,
+  changeText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.5)',
   },
-  searchInput: {
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+
+  // Dropdown
+  dropdown: {
+    backgroundColor: 'rgba(13, 148, 136, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
-    borderRadius: 10,
-    paddingHorizontal: 14,
+    borderColor: 'rgba(20, 184, 166, 0.2)',
+    borderRadius: 12,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  dropdownItem: {
+    paddingHorizontal: 16,
     paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  dropdownItemText: {
     fontSize: 15,
     color: Colors.textPrimary,
-    marginBottom: 16,
   },
-  medList: {
-    gap: 12,
+  customOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(94, 234, 212, 0.1)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
-  quickMedItem: {
-    marginBottom: 4,
-  },
-  quickMedName: {
-    fontSize: 14,
+  customOptionText: {
+    fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
-    marginBottom: 8,
+    color: Colors.accent,
   },
-  dosageRow: {
+
+  // Dosage
+  dosageInput: {
+    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 184, 166, 0.2)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: Colors.textPrimary,
+    marginBottom: 12,
+  },
+  dosageChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
@@ -702,126 +496,98 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
     borderColor: Colors.green,
   },
-  dosageText: {
-    fontSize: 12,
+  dosageChipText: {
+    fontSize: 13,
     color: 'rgba(255, 255, 255, 0.7)',
   },
-  dosageTextSelected: {
+  dosageChipTextSelected: {
     color: Colors.green,
     fontWeight: '600',
   },
-  quickAddButton: {
-    marginTop: 16,
-    paddingVertical: 14,
-    backgroundColor: Colors.accent,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  quickAddButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  backButtonLarge: {
-    flex: 1,
-    paddingVertical: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.3)',
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  backButtonLargeText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-  },
 
-  // Custom Medication Styles
-  customMedSection: {
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.2)',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-  },
-  customMedLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.accent,
-    marginBottom: 10,
-  },
-  customMedRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  dosageInput: {
-    flex: 1,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: Colors.textPrimary,
-  },
-  addCustomButton: {
-    backgroundColor: Colors.accent,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    justifyContent: 'center',
-  },
-  addCustomButtonDisabled: {
-    opacity: 0.5,
-  },
-  addCustomButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-
-  // Selected Medications Summary
-  selectedMedsSection: {
-    marginTop: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  selectedMedsLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  selectedMedsList: {
+  // Side Effects
+  sideEffectsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  selectedMedChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+  sideEffectChip: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(13, 148, 136, 0.08)',
     borderWidth: 1,
-    borderColor: Colors.green,
-    borderRadius: 16,
-    paddingVertical: 6,
-    paddingLeft: 12,
-    paddingRight: 8,
-    gap: 6,
+    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderRadius: 20,
   },
-  selectedMedText: {
-    fontSize: 12,
-    fontWeight: '500',
+  sideEffectChipSelected: {
+    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accent,
+  },
+  sideEffectText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  sideEffectTextSelected: {
+    color: Colors.accent,
+    fontWeight: '600',
+  },
+
+  // Summary
+  summary: {
+    marginTop: 8,
+  },
+  summaryLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: 10,
+  },
+  summaryCard: {
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.2)',
+    borderRadius: 12,
+    padding: 16,
+  },
+  summaryMed: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  summaryDosage: {
+    fontSize: 15,
     color: Colors.green,
+    fontWeight: '500',
   },
-  selectedMedRemove: {
+  summarySideEffect: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+
+  // Footer
+  footer: {
+    padding: 20,
+    paddingBottom: 24,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(20, 184, 166, 0.15)',
+    backgroundColor: Colors.background,
+  },
+  saveButton: {
+    backgroundColor: Colors.green,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  saveButtonDisabled: {
+    opacity: 0.5,
+  },
+  saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.green,
+    color: '#FFFFFF',
   },
 });
