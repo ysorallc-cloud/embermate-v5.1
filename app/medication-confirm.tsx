@@ -65,6 +65,7 @@ export default function MedicationConfirmScreen() {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [quickAddMeds, setQuickAddMeds] = useState<Set<string>>(new Set());
+  const [customDosage, setCustomDosage] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -151,6 +152,24 @@ export default function MedicationConfirmScreen() {
   const filteredMedications = COMMON_MEDICATIONS.filter(med =>
     med.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Check if search query is a custom medication (not in common list)
+  const isCustomMedication = searchQuery.trim().length > 0 &&
+    !COMMON_MEDICATIONS.some(med =>
+      med.name.toLowerCase() === searchQuery.toLowerCase().trim()
+    );
+
+  // Add custom medication
+  const handleAddCustomMed = () => {
+    if (!searchQuery.trim() || !customDosage.trim()) {
+      Alert.alert('Required', 'Please enter both medication name and dosage');
+      return;
+    }
+    const key = `${searchQuery.trim()}|${customDosage.trim()}`;
+    setQuickAddMeds(prev => new Set(prev).add(key));
+    setSearchQuery('');
+    setCustomDosage('');
+  };
 
   // Toggle quick add medication selection
   const toggleQuickAddMed = (medName: string, dosage: string) => {
@@ -281,11 +300,37 @@ export default function MedicationConfirmScreen() {
                 {/* Search Input */}
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Search medications..."
+                  placeholder="Search or type new medication..."
                   placeholderTextColor="rgba(255, 255, 255, 0.4)"
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                 />
+
+                {/* Custom Medication Entry - shows when typing a new med name */}
+                {isCustomMedication && (
+                  <View style={styles.customMedSection}>
+                    <Text style={styles.customMedLabel}>Add "{searchQuery.trim()}"</Text>
+                    <View style={styles.customMedRow}>
+                      <TextInput
+                        style={styles.dosageInput}
+                        placeholder="Enter dosage (e.g., 50mg)"
+                        placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                        value={customDosage}
+                        onChangeText={setCustomDosage}
+                      />
+                      <TouchableOpacity
+                        style={[
+                          styles.addCustomButton,
+                          !customDosage.trim() && styles.addCustomButtonDisabled,
+                        ]}
+                        onPress={handleAddCustomMed}
+                        disabled={!customDosage.trim()}
+                      >
+                        <Text style={styles.addCustomButtonText}>Add</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
 
                 {/* Medication List */}
                 <View style={styles.medList}>
@@ -320,6 +365,28 @@ export default function MedicationConfirmScreen() {
                     </View>
                   ))}
                 </View>
+
+                {/* Selected Medications Summary */}
+                {quickAddMeds.size > 0 && (
+                  <View style={styles.selectedMedsSection}>
+                    <Text style={styles.selectedMedsLabel}>Selected:</Text>
+                    <View style={styles.selectedMedsList}>
+                      {Array.from(quickAddMeds).map(key => {
+                        const [name, dosage] = key.split('|');
+                        return (
+                          <TouchableOpacity
+                            key={key}
+                            style={styles.selectedMedChip}
+                            onPress={() => toggleQuickAddMed(name, dosage)}
+                          >
+                            <Text style={styles.selectedMedText}>{name} {dosage}</Text>
+                            <Text style={styles.selectedMedRemove}>×</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
 
                 {/* Quick Add Button */}
                 {quickAddMeds.size > 0 && (
@@ -667,5 +734,94 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: Colors.textSecondary,
+  },
+
+  // Custom Medication Styles
+  customMedSection: {
+    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(94, 234, 212, 0.2)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+  },
+  customMedLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.accent,
+    marginBottom: 10,
+  },
+  customMedRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  dosageInput: {
+    flex: 1,
+    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: Colors.textPrimary,
+  },
+  addCustomButton: {
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    justifyContent: 'center',
+  },
+  addCustomButtonDisabled: {
+    opacity: 0.5,
+  },
+  addCustomButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+
+  // Selected Medications Summary
+  selectedMedsSection: {
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  selectedMedsLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  selectedMedsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  selectedMedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: Colors.green,
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingLeft: 12,
+    paddingRight: 8,
+    gap: 6,
+  },
+  selectedMedText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.green,
+  },
+  selectedMedRemove: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.green,
   },
 });
