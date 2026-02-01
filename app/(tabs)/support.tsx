@@ -185,8 +185,9 @@ export default function SupportScreen() {
               onPress={() => router.push('/family-sharing')}
               activeOpacity={0.7}
             >
-              <Text style={styles.primaryActionButtonText}>📢 Send an update</Text>
+              <Text style={styles.primaryActionButtonText}>📤 Share today's summary</Text>
             </TouchableOpacity>
+            <Text style={styles.primaryActionHint}>Send a snapshot of recent logs to your care team</Text>
           </View>
 
           {/* Care Team List */}
@@ -411,6 +412,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#5EEAD4',
+  },
+  primaryActionHint: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 10,
+    textAlign: 'center',
   },
 
   // Sections
