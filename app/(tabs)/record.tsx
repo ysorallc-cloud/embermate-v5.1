@@ -50,7 +50,7 @@ export default function RecordTab() {
   // Data state
   const [medications, setMedications] = useState<Medication[]>([]);
   const [medicationsTaken, setMedicationsTaken] = useState(0);
-  const [vitalsLogged, setVitalsLogged] = useState(false);
+  const [vitalsCount, setVitalsCount] = useState(0);
   const [moodLogged, setMoodLogged] = useState(false);
   const [sleepLogged, setSleepLogged] = useState(false);
   const [mealsLogged, setMealsLogged] = useState(0);
@@ -103,8 +103,17 @@ export default function RecordTab() {
 
       const activeMeds = allMeds.filter(m => m.active !== false);
       setMedications(activeMeds);
-      setMedicationsTaken(todayMeds?.medicationIds?.length || 0);
-      setVitalsLogged(Boolean(todayVitals?.systolic || todayVitals?.heartRate));
+      // Count medications with taken=true (same as Now page)
+      setMedicationsTaken(activeMeds.filter(m => m.taken).length);
+      // Count individual vitals (same as Now page)
+      let vitalsLogged = 0;
+      if (todayVitals) {
+        if (todayVitals.systolic) vitalsLogged++;
+        if (todayVitals.diastolic) vitalsLogged++;
+        if (todayVitals.heartRate) vitalsLogged++;
+        if (todayVitals.temperature) vitalsLogged++;
+      }
+      setVitalsCount(vitalsLogged);
       setMoodLogged(todayMood?.mood !== null && todayMood?.mood !== undefined);
       setSleepLogged(Boolean(todaySleep?.hours));
       setMealsLogged(todayMeals?.meals?.length || 0);
@@ -156,7 +165,7 @@ export default function RecordTab() {
       emoji: '🍽️',
       question: 'Did they eat?',
       hint: 'Meals today',
-      status: mealsLogged > 0 ? { text: `${mealsLogged}/3`, done: mealsLogged >= 3 } : undefined,
+      status: mealsLogged > 0 ? { text: `${mealsLogged}/4`, done: mealsLogged >= 4 } : undefined,
       route: '/log-meal',
     },
   ];
@@ -176,7 +185,7 @@ export default function RecordTab() {
       emoji: '📊',
       question: 'Check vitals?',
       hint: 'BP, heart rate, etc.',
-      status: vitalsLogged ? { text: '✓ Logged', done: true } : undefined,
+      status: vitalsCount > 0 ? { text: `${vitalsCount}/4`, done: vitalsCount >= 4 } : undefined,
       route: '/log-vitals',
     },
     {
