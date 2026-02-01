@@ -161,103 +161,105 @@ export default function NowScreen() {
     const eveningMeds = meds.filter(m => m.timeSlot === 'evening' || m.timeSlot === 'bedtime');
     const eveningMedsRemaining = eveningMeds.filter(m => !m.taken).length;
 
-    // CELEBRATION: All tasks complete (data-driven)
+    // CELEBRATION: Strong progress today
     if (stats.meds.completed === stats.meds.total && stats.meds.total > 0 &&
         stats.mood.completed > 0 && stats.meals.completed >= 3) {
       insights.push({
         icon: '🌟',
-        title: 'Great progress today',
-        message: `${stats.meds.completed} meds logged, mood checked, ${stats.meals.completed} meals tracked.`,
+        title: 'Strong day of care',
+        message: `${stats.meds.completed} medications logged, mood tracked, and ${stats.meals.completed} meals recorded. Consistent tracking like this helps you spot patterns and gives doctors better information during visits. Keep it up!`,
         type: 'celebration',
       });
     }
 
-    // REMINDER: Upcoming appointment today (future-looking)
+    // REMINDER: Upcoming appointment today (future-looking with context)
     if (todayAppointments.length > 0) {
       const nextAppt = todayAppointments[0];
       insights.push({
         icon: '📅',
         title: 'Appointment today',
-        message: `${nextAppt.specialty || 'Appointment'} with ${nextAppt.provider}${nextAppt.time ? ` at ${nextAppt.time}` : ''}.`,
+        message: `${nextAppt.specialty || 'Appointment'} with ${nextAppt.provider}${nextAppt.time ? ` at ${nextAppt.time}` : ''}. Having recent vitals and medication logs ready can make the visit more productive.`,
         type: 'reminder',
       });
     }
 
-    // REMINDER: Evening medications coming up (future-looking)
+    // REMINDER: Evening medications coming up (future-looking with context)
     if (currentHour >= 16 && currentHour < 20 && eveningMedsRemaining > 0) {
       insights.push({
         icon: '🌙',
-        title: 'Evening meds ahead',
-        message: `${eveningMedsRemaining} evening medication${eveningMedsRemaining > 1 ? 's' : ''} scheduled. Consistent timing helps.`,
+        title: 'Evening meds coming up',
+        message: `${eveningMedsRemaining} evening medication${eveningMedsRemaining > 1 ? 's' : ''} still to go. Taking medications at consistent times helps maintain stable levels in the body and can improve effectiveness.`,
         type: 'reminder',
       });
     }
 
-    // POSITIVE: Medications complete (data-driven)
+    // POSITIVE: Medications complete with context
     if (stats.meds.completed > 0 && stats.meds.completed === stats.meds.total && stats.meds.total > 0) {
       insights.push({
         icon: '💊',
-        title: 'Meds complete',
-        message: `All ${stats.meds.total} medication${stats.meds.total > 1 ? 's' : ''} logged today.`,
+        title: 'Medications complete',
+        message: `All ${stats.meds.total} medication${stats.meds.total > 1 ? 's' : ''} logged today. Medication adherence is one of the most impactful things you can do for their health. Great work staying on top of it.`,
         type: 'positive',
       });
     }
 
-    // POSITIVE: Mood insight (data-driven)
+    // POSITIVE: Mood insight with context
     if (moodLevel) {
       if (moodLevel >= 4) {
         insights.push({
           icon: '💚',
-          title: 'Positive mood logged',
-          message: moodLevel === 5 ? "They're feeling great today." : "Good spirits noted for today.",
+          title: 'Positive mood today',
+          message: moodLevel === 5
+            ? "They're feeling great! Positive days are worth noting—tracking mood over time helps you see what activities or routines contribute to better days."
+            : "Good spirits logged. Noticing these moments helps you identify what's working well in their care routine.",
           type: 'positive',
         });
       } else if (moodLevel <= 2) {
         insights.push({
           icon: '💙',
-          title: 'Tough day noted',
-          message: "Hard days happen. Your care makes a difference.",
+          title: 'A harder day',
+          message: "Difficult days are part of the journey. Logging them helps you track patterns and share context with healthcare providers. Your presence matters more than you know.",
           type: 'positive',
         });
       }
     }
 
-    // POSITIVE: Meals tracking (data-driven)
+    // POSITIVE: Meals tracking with context
     if (stats.meals.completed >= 3) {
       insights.push({
         icon: '🍽️',
-        title: 'Meals on track',
-        message: `${stats.meals.completed} meal${stats.meals.completed > 1 ? 's' : ''} logged today.`,
+        title: 'Meals well tracked',
+        message: `${stats.meals.completed} meals logged. Tracking nutrition helps you notice appetite changes early—often one of the first signs of health shifts. You're building valuable data.`,
         type: 'positive',
       });
     }
 
-    // POSITIVE: Vitals logged (data-driven)
+    // POSITIVE: Vitals logged with context
     if (stats.vitals.completed >= 2) {
       insights.push({
         icon: '📊',
-        title: 'Vitals recorded',
-        message: `${stats.vitals.completed} vital${stats.vitals.completed > 1 ? 's' : ''} logged. Tracking helps spot patterns.`,
+        title: 'Vitals captured',
+        message: `${stats.vitals.completed} vitals recorded today. Regular tracking creates a baseline that makes it easier to spot meaningful changes and have informed conversations with doctors.`,
         type: 'positive',
       });
     }
 
-    // SUGGESTION: Morning with pending meds (current status)
-    if (currentHour >= 6 && currentHour < 11 && medsRemaining > 0) {
+    // SUGGESTION: Morning with pending meds
+    if (currentHour >= 6 && currentHour < 11 && medsRemaining > 0 && stats.meds.total > 0) {
       insights.push({
         icon: '🌅',
-        title: 'Morning meds pending',
-        message: `${medsRemaining} medication${medsRemaining > 1 ? 's' : ''} to log today.`,
+        title: 'Morning medications',
+        message: `${medsRemaining} of ${stats.meds.total} medication${medsRemaining > 1 ? 's' : ''} still to log. Morning routines help establish consistency, which makes it easier to remember over time.`,
         type: 'suggestion',
       });
     }
 
-    // SUGGESTION: Afternoon - check meals (current status)
+    // SUGGESTION: Afternoon - check meals
     if (currentHour >= 12 && currentHour < 15 && stats.meals.completed < 2) {
       insights.push({
         icon: '🍽️',
-        title: 'Meal logging',
-        message: `${stats.meals.completed} of 4 meals logged so far.`,
+        title: 'Lunchtime check-in',
+        message: `${stats.meals.completed} of 4 meals logged so far. Even quick notes about appetite help you track nutrition patterns that might be worth mentioning to their doctor.`,
         type: 'suggestion',
       });
     }
@@ -266,8 +268,18 @@ export default function NowScreen() {
     if (totalLogged === 0 && currentHour >= 8) {
       insights.push({
         icon: '✨',
-        title: 'Ready to start',
-        message: 'No logs yet today. Start with what feels easiest.',
+        title: 'Fresh start today',
+        message: "No logs yet—and that's okay. Start with whatever feels most natural. Even logging one thing builds the habit that makes caregiving easier over time.",
+        type: 'suggestion',
+      });
+    }
+
+    // SUGGESTION: Good progress mid-day
+    if (currentHour >= 11 && currentHour < 17 && totalLogged >= 2 && totalLogged < 6) {
+      insights.push({
+        icon: '👍',
+        title: 'Building momentum',
+        message: `${totalLogged} items logged so far. Each entry adds to a clearer picture of their health over time—helpful for you and for their care team.`,
         type: 'suggestion',
       });
     }
@@ -654,7 +666,6 @@ export default function NowScreen() {
         <ScreenHeader
           title="Now"
           subtitle={showClosure ? undefined : "What needs attention today"}
-          kicker={format(new Date(), 'EEEE, MMMM d')}
         />
 
         {/* Onboarding Prompt - First app open */}
@@ -713,15 +724,18 @@ export default function NowScreen() {
                 aiInsight.type === 'positive' && styles.aiInsightPositive,
               ]}>
                 <View style={styles.aiInsightHeader}>
-                  <View style={styles.aiInsightIconContainer}>
-                    <Text style={styles.aiInsightIcon}>{aiInsight.icon}</Text>
-                  </View>
+                  <Text style={styles.aiInsightDate}>{format(new Date(), 'EEEE, MMMM d')}</Text>
                   <View style={styles.aiInsightBadge}>
                     <Text style={styles.aiInsightBadgeText}>AI INSIGHT</Text>
                   </View>
                 </View>
-                <Text style={styles.aiInsightTitle}>{aiInsight.title}</Text>
-                <Text style={styles.aiInsightMessage}>{aiInsight.message}</Text>
+                <View style={styles.aiInsightBody}>
+                  <Text style={styles.aiInsightIcon}>{aiInsight.icon}</Text>
+                  <View style={styles.aiInsightContent}>
+                    <Text style={styles.aiInsightTitle}>{aiInsight.title}</Text>
+                    <Text style={styles.aiInsightMessage}>{aiInsight.message}</Text>
+                  </View>
+                </View>
               </View>
             )}
 
@@ -946,18 +960,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  aiInsightIconContainer: {
-    width: 40,
-    height: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aiInsightIcon: {
-    fontSize: 20,
+  aiInsightDate: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   aiInsightBadge: {
     backgroundColor: 'rgba(139, 92, 246, 0.2)',
@@ -971,16 +979,28 @@ const styles = StyleSheet.create({
     color: 'rgba(167, 139, 250, 0.9)',
     letterSpacing: 1,
   },
+  aiInsightBody: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+  },
+  aiInsightIcon: {
+    fontSize: 28,
+    marginTop: 2,
+  },
+  aiInsightContent: {
+    flex: 1,
+  },
   aiInsightTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 6,
   },
   aiInsightMessage: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 20,
+    color: 'rgba(255, 255, 255, 0.75)',
+    lineHeight: 21,
   },
 
   // Timeline Events
