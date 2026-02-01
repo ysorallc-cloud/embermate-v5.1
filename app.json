@@ -14,7 +14,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#082839"
+      "backgroundColor": "#1A303B"
     },
     "ios": {
       "supportsTablet": true,
@@ -41,7 +41,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#082839"
+        "backgroundColor": "#1A303B"
       },
       "package": "com.embermate.app",
       "versionCode": 2,

@@ -368,11 +368,11 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: 60,
     paddingHorizontal: 0,
-    paddingBottom: 20,
+    paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   headerText: {
     flex: 1,
@@ -405,35 +405,35 @@ const styles = StyleSheet.create({
 
   // Layer 1: Insight Card (Dominant)
   insightCard: {
-    marginBottom: Spacing.xxl,
+    marginBottom: Spacing.xl,
     backgroundColor: 'rgba(94, 234, 212, 0.08)',
     borderColor: 'rgba(94, 234, 212, 0.25)',
     borderWidth: 1,
-    padding: 20,
+    padding: 14,
   },
   insightContent: {
-    gap: 12,
+    gap: 6,
   },
   insightMainText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '500',
     color: 'rgba(255, 255, 255, 0.9)',
-    lineHeight: 22,
+    lineHeight: 20,
   },
   insightSubText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '400',
     color: 'rgba(255, 255, 255, 0.65)',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   scoreRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    gap: 12,
+    marginTop: 4,
+    gap: 10,
   },
   scoreNumber: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '300',
     color: 'rgba(255, 255, 255, 0.7)',
   },
@@ -453,42 +453,42 @@ const styles = StyleSheet.create({
 
   // Sections
   section: {
-    marginBottom: Spacing.xxl,
+    marginBottom: Spacing.xl,
   },
   sectionHeader: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.5)',
     letterSpacing: 1,
     textTransform: 'uppercase',
-    marginBottom: 12,
+    marginBottom: 8,
     paddingHorizontal: 4,
   },
 
   // Layer 2: Exploration Tools
   toolsContainer: {
-    gap: 8,
+    gap: 6,
   },
   toolCard: {
-    padding: 14,
+    padding: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   toolContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 10,
   },
   toolIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: 'rgba(94, 234, 212, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   toolIconText: {
-    fontSize: 22,
+    fontSize: 18,
     textAlign: 'center',
   },
   toolText: {
@@ -496,44 +496,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   toolTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '500',
     color: Colors.textPrimary,
   },
   toolSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.textMuted,
-    marginTop: 2,
+    marginTop: 1,
   },
   chevron: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.textMuted,
   },
 
   // Layer 3: Reference (Demoted)
   referenceContainer: {
-    gap: 6,
+    gap: 4,
   },
   referenceCard: {
-    padding: 12,
+    padding: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.02)',
     borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   referenceContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   referenceIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   referenceIconText: {
-    fontSize: 18,
+    fontSize: 14,
     opacity: 0.6,
   },
   referenceTitle: {
@@ -542,7 +542,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
   },
   referenceChevron: {
-    fontSize: 14,
+    fontSize: 12,
     color: 'rgba(255, 255, 255, 0.4)',
   },
 });
