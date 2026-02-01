@@ -1,6 +1,6 @@
 // ============================================================================
-// QUICK CHECK-IN FLOW - Batch entry for daily routine
-// Reduces 10 navigation steps to 1 flow
+// QUICK CHECK-IN FLOW - Single page matching Progress card items
+// Covers: Medications, Vitals, Mood, Meals
 // ============================================================================
 
 import React, { useState, useCallback } from 'react';
@@ -23,41 +23,42 @@ import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { GlassCard } from '../components/aurora/GlassCard';
 import { getMedications, Medication, markMedicationTaken } from '../utils/medicationStorage';
 import { saveVital } from '../utils/vitalsStorage';
-import { saveDailyTracking } from '../utils/dailyTrackingStorage';
-import { saveNote } from '../utils/noteStorage';
-
-const STEPS = ['Vitals', 'Medications', 'Feelings', 'Notes'];
+import { saveMoodLog, saveMealsLog } from '../utils/centralStorage';
 
 interface CheckinData {
+  // Medications
+  selectedMeds: string[];
   // Vitals
   systolic: string;
   diastolic: string;
   heartRate: string;
-  temperature: string;
-  // Feelings
-  mood: number;
-  energy: number;
-  pain: number;
-  // Notes
-  notes: string;
-  // Meds
-  selectedMeds: string[];
+  // Mood
+  mood: number | null;
+  // Meals
+  meals: string[];
 }
+
+const MOOD_OPTIONS = [
+  { value: 1, emoji: '😢', label: 'Struggling' },
+  { value: 2, emoji: '😕', label: 'Difficult' },
+  { value: 3, emoji: '😐', label: 'Managing' },
+  { value: 4, emoji: '🙂', label: 'Good' },
+  { value: 5, emoji: '😊', label: 'Great' },
+];
+
+const MEAL_OPTIONS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
 export default function QuickCheckinScreen() {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(1);
   const [medications, setMedications] = useState<Medication[]>([]);
+  const [saving, setSaving] = useState(false);
   const [checkinData, setCheckinData] = useState<CheckinData>({
+    selectedMeds: [],
     systolic: '',
     diastolic: '',
     heartRate: '',
-    temperature: '',
-    mood: 7,
-    energy: 3,
-    pain: 2,
-    notes: '',
-    selectedMeds: [],
+    mood: null,
+    meals: [],
   });
 
   useFocusEffect(
@@ -90,23 +91,17 @@ export default function QuickCheckinScreen() {
     }));
   };
 
-  const handleNext = () => {
-    if (currentStep < 4) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      handleSaveAll();
-    }
+  const toggleMeal = (meal: string) => {
+    setCheckinData(prev => ({
+      ...prev,
+      meals: prev.meals.includes(meal)
+        ? prev.meals.filter(m => m !== meal)
+        : [...prev.meals, meal],
+    }));
   };
 
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    } else {
-      router.back();
-    }
-  };
-
-  const handleSaveAll = async () => {
+  const handleSave = async () => {
+    setSaving(true);
     try {
       const today = new Date().toISOString().split('T')[0];
 
@@ -135,335 +130,49 @@ export default function QuickCheckinScreen() {
         });
       }
 
-      if (checkinData.temperature) {
-        await saveVital({
-          type: 'temperature',
-          value: parseFloat(checkinData.temperature),
-          timestamp: new Date().toISOString(),
-          unit: '°F',
-        });
-      }
-
       // Mark selected medications as taken
       for (const medId of checkinData.selectedMeds) {
         await markMedicationTaken(medId, true);
       }
 
-      // Save daily tracking (mood, energy, pain)
-      await saveDailyTracking(today, {
-        mood: checkinData.mood,
-        energy: checkinData.energy,
-        pain: checkinData.pain,
-      });
-
-      // Save notes if entered
-      if (checkinData.notes.trim()) {
-        await saveNote({
+      // Save mood if selected
+      if (checkinData.mood !== null) {
+        await saveMoodLog({
           date: today,
+          mood: checkinData.mood,
           timestamp: new Date().toISOString(),
-          content: `[Quick Check-In] ${checkinData.notes}`,
         });
       }
 
-      Alert.alert(
-        'Check-in Complete',
-        'All data has been saved successfully.',
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
+      // Save meals if any selected
+      if (checkinData.meals.length > 0) {
+        await saveMealsLog({
+          date: today,
+          meals: checkinData.meals,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      router.back();
     } catch (error) {
       console.error('Error saving check-in data:', error);
       Alert.alert('Error', 'Failed to save check-in data. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const getMoodLabel = (value: number) => {
-    if (value >= 8) return 'Great';
-    if (value >= 6) return 'Good';
-    if (value >= 4) return 'Okay';
-    if (value >= 2) return 'Low';
-    return 'Struggling';
+  const hasAnyData = () => {
+    return (
+      checkinData.selectedMeds.length > 0 ||
+      checkinData.systolic !== '' ||
+      checkinData.diastolic !== '' ||
+      checkinData.heartRate !== '' ||
+      checkinData.mood !== null ||
+      checkinData.meals.length > 0
+    );
   };
 
-  const getEnergyLabel = (value: number) => {
-    if (value >= 4) return 'Energetic';
-    if (value >= 3) return 'Moderate';
-    if (value >= 2) return 'Low';
-    return 'Exhausted';
-  };
-
-  const getPainLabel = (value: number) => {
-    if (value === 0) return 'None';
-    if (value <= 2) return 'Minimal';
-    if (value <= 4) return 'Mild';
-    if (value <= 6) return 'Moderate';
-    if (value <= 8) return 'Severe';
-    return 'Extreme';
-  };
-
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>📊 Vitals</Text>
-            <Text style={styles.stepSubtitle}>Quick vitals check (all optional)</Text>
-
-            <GlassCard style={styles.formCard}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Blood Pressure</Text>
-                <View style={styles.bpInputRow}>
-                  <TextInput
-                    style={styles.bpInput}
-                    placeholder="120"
-                    placeholderTextColor={Colors.textMuted}
-                    keyboardType="numeric"
-                    value={checkinData.systolic}
-                    onChangeText={(text) => setCheckinData(prev => ({ ...prev, systolic: text }))}
-                  />
-                  <Text style={styles.bpSlash}>/</Text>
-                  <TextInput
-                    style={styles.bpInput}
-                    placeholder="80"
-                    placeholderTextColor={Colors.textMuted}
-                    keyboardType="numeric"
-                    value={checkinData.diastolic}
-                    onChangeText={(text) => setCheckinData(prev => ({ ...prev, diastolic: text }))}
-                  />
-                  <Text style={styles.bpUnit}>mmHg</Text>
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Heart Rate</Text>
-                <View style={styles.inputRow}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="72"
-                    placeholderTextColor={Colors.textMuted}
-                    keyboardType="numeric"
-                    value={checkinData.heartRate}
-                    onChangeText={(text) => setCheckinData(prev => ({ ...prev, heartRate: text }))}
-                  />
-                  <Text style={styles.inputUnit}>bpm</Text>
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Temperature (optional)</Text>
-                <View style={styles.inputRow}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="98.6"
-                    placeholderTextColor={Colors.textMuted}
-                    keyboardType="decimal-pad"
-                    value={checkinData.temperature}
-                    onChangeText={(text) => setCheckinData(prev => ({ ...prev, temperature: text }))}
-                  />
-                  <Text style={styles.inputUnit}>°F</Text>
-                </View>
-              </View>
-            </GlassCard>
-          </View>
-        );
-
-      case 2:
-        return (
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>💊 Medications</Text>
-            <Text style={styles.stepSubtitle}>
-              {medications.length > 0
-                ? `${checkinData.selectedMeds.length} of ${medications.length} selected`
-                : 'No medications due right now'}
-            </Text>
-
-            {medications.length > 0 && (
-              <TouchableOpacity
-                style={styles.selectAllButton}
-                onPress={() => {
-                  const allSelected = checkinData.selectedMeds.length === medications.length;
-                  setCheckinData(prev => ({
-                    ...prev,
-                    selectedMeds: allSelected ? [] : medications.map(m => m.id),
-                  }));
-                }}
-              >
-                <Text style={styles.selectAllText}>
-                  {checkinData.selectedMeds.length === medications.length
-                    ? 'Deselect All'
-                    : 'Select All'}
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            <GlassCard style={styles.formCard}>
-              {medications.length === 0 ? (
-                <View style={styles.emptyMeds}>
-                  <Text style={styles.emptyMedsIcon}>✓</Text>
-                  <Text style={styles.emptyMedsText}>All medications taken!</Text>
-                </View>
-              ) : (
-                medications.map((med) => (
-                  <TouchableOpacity
-                    key={med.id}
-                    style={styles.medItem}
-                    onPress={() => toggleMedication(med.id)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[
-                      styles.checkbox,
-                      checkinData.selectedMeds.includes(med.id) && styles.checkboxChecked
-                    ]}>
-                      {checkinData.selectedMeds.includes(med.id) && (
-                        <Text style={styles.checkmark}>✓</Text>
-                      )}
-                    </View>
-                    <View style={styles.medInfo}>
-                      <Text style={styles.medName}>{med.name}</Text>
-                      <Text style={styles.medDosage}>{med.dosage} • {med.time}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))
-              )}
-            </GlassCard>
-          </View>
-        );
-
-      case 3:
-        return (
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>😊 How are you feeling?</Text>
-            <Text style={styles.stepSubtitle}>Rate your current state</Text>
-
-            <GlassCard style={styles.formCard}>
-              <View style={styles.sliderGroup}>
-                <View style={styles.sliderHeader}>
-                  <Text style={styles.sliderLabel}>Mood</Text>
-                  <Text style={styles.sliderValue}>
-                    {checkinData.mood} - {getMoodLabel(checkinData.mood)}
-                  </Text>
-                </View>
-                <View style={styles.sliderContainer}>
-                  <Text style={styles.sliderMin}>😞</Text>
-                  <View style={styles.sliderTrack}>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((val) => (
-                      <TouchableOpacity
-                        key={val}
-                        style={[
-                          styles.sliderDot,
-                          val <= checkinData.mood && styles.sliderDotActive
-                        ]}
-                        onPress={() => setCheckinData(prev => ({ ...prev, mood: val }))}
-                      />
-                    ))}
-                  </View>
-                  <Text style={styles.sliderMax}>😊</Text>
-                </View>
-              </View>
-
-              <View style={styles.sliderGroup}>
-                <View style={styles.sliderHeader}>
-                  <Text style={styles.sliderLabel}>Energy Level</Text>
-                  <Text style={styles.sliderValue}>
-                    {checkinData.energy} - {getEnergyLabel(checkinData.energy)}
-                  </Text>
-                </View>
-                <View style={styles.sliderContainer}>
-                  <Text style={styles.sliderMin}>🔋</Text>
-                  <View style={styles.sliderTrack}>
-                    {[1, 2, 3, 4, 5].map((val) => (
-                      <TouchableOpacity
-                        key={val}
-                        style={[
-                          styles.sliderDot,
-                          styles.sliderDotLarge,
-                          val <= checkinData.energy && styles.sliderDotActive
-                        ]}
-                        onPress={() => setCheckinData(prev => ({ ...prev, energy: val }))}
-                      />
-                    ))}
-                  </View>
-                  <Text style={styles.sliderMax}>⚡</Text>
-                </View>
-              </View>
-
-              <View style={styles.sliderGroup}>
-                <View style={styles.sliderHeader}>
-                  <Text style={styles.sliderLabel}>Pain Level</Text>
-                  <Text style={styles.sliderValue}>
-                    {checkinData.pain} - {getPainLabel(checkinData.pain)}
-                  </Text>
-                </View>
-                <View style={styles.sliderContainer}>
-                  <Text style={styles.sliderMin}>0</Text>
-                  <View style={styles.sliderTrack}>
-                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((val) => (
-                      <TouchableOpacity
-                        key={val}
-                        style={[
-                          styles.sliderDot,
-                          val <= checkinData.pain && styles.sliderDotPain
-                        ]}
-                        onPress={() => setCheckinData(prev => ({ ...prev, pain: val }))}
-                      />
-                    ))}
-                  </View>
-                  <Text style={styles.sliderMax}>10</Text>
-                </View>
-              </View>
-            </GlassCard>
-          </View>
-        );
-
-      case 4:
-        return (
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>📝 Anything else?</Text>
-            <Text style={styles.stepSubtitle}>Optional notes about how you're feeling</Text>
-
-            <GlassCard style={styles.formCard}>
-              <TextInput
-                style={styles.notesInput}
-                placeholder="Optional notes about symptoms, concerns, or anything else..."
-                placeholderTextColor={Colors.textMuted}
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-                value={checkinData.notes}
-                onChangeText={(text) => setCheckinData(prev => ({ ...prev, notes: text }))}
-              />
-            </GlassCard>
-
-            {/* Summary */}
-            <GlassCard style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>✓ Ready to Save</Text>
-              <View style={styles.summaryItems}>
-                {(checkinData.systolic && checkinData.diastolic) && (
-                  <Text style={styles.summaryItem}>
-                    • Vitals: BP {checkinData.systolic}/{checkinData.diastolic}
-                    {checkinData.heartRate && `, HR ${checkinData.heartRate} bpm`}
-                  </Text>
-                )}
-                <Text style={styles.summaryItem}>
-                  • Medications: {checkinData.selectedMeds.length} of {medications.length} marked
-                </Text>
-                <Text style={styles.summaryItem}>
-                  • Mood: {checkinData.mood}/10 ({getMoodLabel(checkinData.mood)})
-                </Text>
-                <Text style={styles.summaryItem}>
-                  • Energy: {checkinData.energy}/5 ({getEnergyLabel(checkinData.energy)})
-                </Text>
-                <Text style={styles.summaryItem}>
-                  • Pain: {checkinData.pain}/10 ({getPainLabel(checkinData.pain)})
-                </Text>
-                {checkinData.notes.trim() && (
-                  <Text style={styles.summaryItem}>• Note added</Text>
-                )}
-              </View>
-            </GlassCard>
-          </View>
-        );
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -477,30 +186,14 @@ export default function QuickCheckinScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
               <Text style={styles.backIcon}>←</Text>
             </TouchableOpacity>
             <View style={styles.headerCenter}>
-              <Text style={styles.headerLabel}>QUICK CHECK-IN</Text>
-              <Text style={styles.headerTitle}>Morning Routine</Text>
+              <Text style={styles.headerTitle}>Check-In</Text>
+              <Text style={styles.headerSubtitle}>Log what you need</Text>
             </View>
             <View style={styles.placeholder} />
-          </View>
-
-          {/* Progress Bar */}
-          <View style={styles.progressContainer}>
-            <View style={styles.progressBar}>
-              {STEPS.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.progressSegment,
-                    index + 1 <= currentStep && styles.progressSegmentActive
-                  ]}
-                />
-              ))}
-            </View>
-            <Text style={styles.progressText}>Step {currentStep} of 4</Text>
           </View>
 
           {/* Content */}
@@ -510,30 +203,182 @@ export default function QuickCheckinScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {renderStepContent()}
+            {/* Medications Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionIcon}>💊</Text>
+                <Text style={styles.sectionTitle}>Medications</Text>
+                {medications.length > 0 && (
+                  <Text style={styles.sectionCount}>
+                    {checkinData.selectedMeds.length}/{medications.length}
+                  </Text>
+                )}
+              </View>
+              <GlassCard style={styles.sectionCard}>
+                {medications.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyIcon}>✓</Text>
+                    <Text style={styles.emptyText}>All medications taken</Text>
+                  </View>
+                ) : (
+                  <>
+                    {medications.map((med) => (
+                      <TouchableOpacity
+                        key={med.id}
+                        style={styles.medItem}
+                        onPress={() => toggleMedication(med.id)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[
+                          styles.checkbox,
+                          checkinData.selectedMeds.includes(med.id) && styles.checkboxChecked
+                        ]}>
+                          {checkinData.selectedMeds.includes(med.id) && (
+                            <Text style={styles.checkmark}>✓</Text>
+                          )}
+                        </View>
+                        <View style={styles.medInfo}>
+                          <Text style={styles.medName}>{med.name}</Text>
+                          <Text style={styles.medDosage}>{med.dosage}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </>
+                )}
+              </GlassCard>
+            </View>
+
+            {/* Vitals Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionIcon}>📊</Text>
+                <Text style={styles.sectionTitle}>Vitals</Text>
+              </View>
+              <GlassCard style={styles.sectionCard}>
+                <View style={styles.vitalsRow}>
+                  <View style={styles.vitalInput}>
+                    <Text style={styles.vitalLabel}>BP</Text>
+                    <View style={styles.bpInputRow}>
+                      <TextInput
+                        style={styles.bpInput}
+                        placeholder="120"
+                        placeholderTextColor={Colors.textMuted}
+                        keyboardType="numeric"
+                        value={checkinData.systolic}
+                        onChangeText={(text) => setCheckinData(prev => ({ ...prev, systolic: text }))}
+                      />
+                      <Text style={styles.bpSlash}>/</Text>
+                      <TextInput
+                        style={styles.bpInput}
+                        placeholder="80"
+                        placeholderTextColor={Colors.textMuted}
+                        keyboardType="numeric"
+                        value={checkinData.diastolic}
+                        onChangeText={(text) => setCheckinData(prev => ({ ...prev, diastolic: text }))}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.vitalInput}>
+                    <Text style={styles.vitalLabel}>Heart Rate</Text>
+                    <View style={styles.hrInputRow}>
+                      <TextInput
+                        style={styles.hrInput}
+                        placeholder="72"
+                        placeholderTextColor={Colors.textMuted}
+                        keyboardType="numeric"
+                        value={checkinData.heartRate}
+                        onChangeText={(text) => setCheckinData(prev => ({ ...prev, heartRate: text }))}
+                      />
+                      <Text style={styles.hrUnit}>bpm</Text>
+                    </View>
+                  </View>
+                </View>
+              </GlassCard>
+            </View>
+
+            {/* Mood Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionIcon}>😊</Text>
+                <Text style={styles.sectionTitle}>Mood</Text>
+              </View>
+              <GlassCard style={styles.sectionCard}>
+                <View style={styles.moodGrid}>
+                  {MOOD_OPTIONS.map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.moodOption,
+                        checkinData.mood === option.value && styles.moodOptionSelected
+                      ]}
+                      onPress={() => setCheckinData(prev => ({ ...prev, mood: option.value }))}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.moodEmoji}>{option.emoji}</Text>
+                      <Text style={[
+                        styles.moodLabel,
+                        checkinData.mood === option.value && styles.moodLabelSelected
+                      ]}>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </GlassCard>
+            </View>
+
+            {/* Meals Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionIcon}>🍽️</Text>
+                <Text style={styles.sectionTitle}>Meals</Text>
+                {checkinData.meals.length > 0 && (
+                  <Text style={styles.sectionCount}>
+                    {checkinData.meals.length}/{MEAL_OPTIONS.length}
+                  </Text>
+                )}
+              </View>
+              <GlassCard style={styles.sectionCard}>
+                <View style={styles.mealsGrid}>
+                  {MEAL_OPTIONS.map((meal) => (
+                    <TouchableOpacity
+                      key={meal}
+                      style={[
+                        styles.mealOption,
+                        checkinData.meals.includes(meal) && styles.mealOptionSelected
+                      ]}
+                      onPress={() => toggleMeal(meal)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[
+                        styles.mealLabel,
+                        checkinData.meals.includes(meal) && styles.mealLabelSelected
+                      ]}>
+                        {meal}
+                      </Text>
+                      {checkinData.meals.includes(meal) && (
+                        <Text style={styles.mealCheck}>✓</Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </GlassCard>
+            </View>
           </ScrollView>
 
-          {/* Navigation Buttons */}
+          {/* Save Button */}
           <View style={styles.navigation}>
-            {currentStep > 1 && (
-              <TouchableOpacity
-                style={styles.backNavButton}
-                onPress={handleBack}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.backNavText}>← Back</Text>
-              </TouchableOpacity>
-            )}
             <TouchableOpacity
               style={[
-                styles.nextButton,
-                currentStep === 4 && styles.saveButton
+                styles.saveButton,
+                !hasAnyData() && styles.saveButtonDisabled
               ]}
-              onPress={handleNext}
+              onPress={handleSave}
               activeOpacity={0.7}
+              disabled={saving || !hasAnyData()}
             >
-              <Text style={styles.nextButtonText}>
-                {currentStep === 4 ? '✓ Save All' : 'Next →'}
+              <Text style={styles.saveButtonText}>
+                {saving ? 'Saving...' : '✓ Save Check-In'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -561,16 +406,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing.md,
   },
   backButton: {
     width: 44,
     height: 44,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -581,44 +424,18 @@ const styles = StyleSheet.create({
   headerCenter: {
     alignItems: 'center',
   },
-  headerLabel: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    letterSpacing: 1,
-    fontWeight: '600',
-  },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '300',
+    fontWeight: '600',
     color: Colors.textPrimary,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    marginTop: 2,
   },
   placeholder: {
     width: 44,
-  },
-
-  // Progress
-  progressContainer: {
-    paddingHorizontal: Spacing.xl,
-    marginBottom: Spacing.lg,
-  },
-  progressBar: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
-  },
-  progressSegment: {
-    flex: 1,
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 2,
-  },
-  progressSegmentActive: {
-    backgroundColor: Colors.accent,
-  },
-  progressText: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    textAlign: 'right',
   },
 
   // Content
@@ -629,100 +446,47 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.xl,
   },
-  stepContent: {},
-  stepTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  stepSubtitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.lg,
-  },
 
-  // Form Card
-  formCard: {
-    marginBottom: Spacing.lg,
+  // Sections
+  section: {
+    marginBottom: 20,
   },
-
-  // Vitals inputs
-  inputGroup: {
-    marginBottom: Spacing.lg,
-  },
-  inputLabel: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    marginBottom: 8,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 8,
-    padding: 12,
-    color: Colors.textPrimary,
-    fontSize: 16,
-  },
-  inputUnit: {
-    fontSize: 14,
-    color: Colors.textMuted,
-    width: 40,
-  },
-  bpInputRow: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginBottom: 10,
   },
-  bpInput: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 8,
-    padding: 12,
-    color: Colors.textPrimary,
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  bpSlash: {
+  sectionIcon: {
     fontSize: 18,
-    color: Colors.textMuted,
   },
-  bpUnit: {
-    fontSize: 14,
-    color: Colors.textMuted,
-    marginLeft: 4,
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    flex: 1,
   },
-
-  // Medications
-  selectAllButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 8,
-  },
-  selectAllText: {
-    fontSize: 14,
+  sectionCount: {
+    fontSize: 13,
     color: Colors.accent,
     fontWeight: '500',
   },
+  sectionCard: {
+    padding: 14,
+  },
+
+  // Medications
   medItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderBottomColor: 'rgba(255,255,255,0.06)',
   },
   checkbox: {
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
     borderRadius: 6,
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.2)',
@@ -735,166 +499,175 @@ const styles = StyleSheet.create({
     borderColor: Colors.accent,
   },
   checkmark: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#000',
+    fontSize: 12,
+    fontWeight: '700',
   },
   medInfo: {
     flex: 1,
   },
   medName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '500',
     color: Colors.textPrimary,
-    marginBottom: 2,
   },
   medDosage: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 1,
+  },
+
+  // Empty states
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  emptyIcon: {
+    fontSize: 24,
+    color: Colors.success,
+    marginBottom: 4,
+  },
+  emptyText: {
     fontSize: 13,
     color: Colors.textSecondary,
   },
-  emptyMeds: {
+
+  // Vitals
+  vitalsRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  vitalInput: {
+    flex: 1,
+  },
+  vitalLabel: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginBottom: 6,
+  },
+  bpInputRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.xl,
   },
-  emptyMedsIcon: {
-    fontSize: 32,
-    color: Colors.success,
-    marginBottom: 8,
+  bpInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 8,
+    padding: 10,
+    color: Colors.textPrimary,
+    fontSize: 16,
+    textAlign: 'center',
   },
-  emptyMedsText: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+  bpSlash: {
+    fontSize: 16,
+    color: Colors.textMuted,
+    marginHorizontal: 4,
+  },
+  hrInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  hrInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 8,
+    padding: 10,
+    color: Colors.textPrimary,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  hrUnit: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginLeft: 6,
   },
 
-  // Sliders
-  sliderGroup: {
-    marginBottom: Spacing.xl,
-  },
-  sliderHeader: {
+  // Mood
+  moodGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 6,
+  },
+  moodOption: {
+    flex: 1,
     alignItems: 'center',
-    marginBottom: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
-  sliderLabel: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+  moodOptionSelected: {
+    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    borderColor: Colors.accent,
   },
-  sliderValue: {
-    fontSize: 14,
+  moodEmoji: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  moodLabel: {
+    fontSize: 10,
+    color: Colors.textMuted,
+  },
+  moodLabelSelected: {
     color: Colors.accent,
     fontWeight: '600',
   },
-  sliderContainer: {
+
+  // Meals
+  mealsGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 8,
   },
-  sliderMin: {
-    fontSize: 16,
-    width: 24,
-    textAlign: 'center',
-  },
-  sliderMax: {
-    fontSize: 16,
-    width: 24,
-    textAlign: 'center',
-  },
-  sliderTrack: {
-    flex: 1,
+  mealOption: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    height: 32,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    gap: 6,
   },
-  sliderDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  sliderDotLarge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
-  sliderDotActive: {
-    backgroundColor: Colors.accent,
+  mealOptionSelected: {
+    backgroundColor: 'rgba(94, 234, 212, 0.15)',
     borderColor: Colors.accent,
   },
-  sliderDotPain: {
-    backgroundColor: Colors.error,
-    borderColor: Colors.error,
-  },
-
-  // Notes
-  notesInput: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 8,
-    padding: 12,
-    color: Colors.textPrimary,
-    fontSize: 14,
-    minHeight: 120,
-  },
-
-  // Summary
-  summaryCard: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-  },
-  summaryTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.success,
-    marginBottom: 12,
-  },
-  summaryItems: {},
-  summaryItem: {
+  mealLabel: {
     fontSize: 13,
     color: Colors.textSecondary,
-    lineHeight: 22,
+  },
+  mealLabelSelected: {
+    color: Colors.accent,
+    fontWeight: '500',
+  },
+  mealCheck: {
+    fontSize: 12,
+    color: Colors.accent,
+    fontWeight: '700',
   },
 
   // Navigation
   navigation: {
-    flexDirection: 'row',
-    gap: 12,
     paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: 'rgba(255,255,255,0.1)',
   },
-  backNavButton: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  backNavText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  nextButton: {
-    flex: 2,
+  saveButton: {
     backgroundColor: Colors.accent,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
   },
-  saveButton: {
-    backgroundColor: Colors.success,
+  saveButtonDisabled: {
+    opacity: 0.5,
   },
-  nextButtonText: {
+  saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#000',
   },
 });

@@ -24,18 +24,21 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingTop: 80,
+    paddingBottom: 20,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: 4,
+    fontSize: 34,
+    fontWeight: '300',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   subtitle: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    fontWeight: '400',
+    color: 'rgba(255, 255, 255, 0.6)',
+    letterSpacing: 0.3,
   },
 });
 
