@@ -3,7 +3,7 @@
 // "What's happening right now?" — Quick status and timeline
 // ============================================================================
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import {
   RefreshControl,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, Typography } from '../../theme/theme-tokens';
@@ -29,10 +28,50 @@ import {
   TodayLogStatus,
   getTodayLogStatus,
 } from '../../utils/centralStorage';
+import {
+  shouldShowWelcomeBanner,
+  dismissWelcomeBanner,
+  recordVisit,
+} from '../../utils/lastVisitTracker';
+import { MICROCOPY } from '../../constants/microcopy';
+
+// Prompt System
+import {
+  getOrientationPrompt,
+  getRegulationPrompt,
+  getNudgePrompt,
+  getClosurePrompt,
+  recordAppOpen,
+  getHoursSinceLastOpen,
+  isFirstOpenOfDay,
+  isRapidNavigation,
+  recordNavigation,
+  dismissPrompt,
+  isPromptDismissed,
+  isOnboardingComplete,
+  completeOnboarding,
+  shouldShowNotificationPrompt,
+  dismissNotificationPrompt,
+  Prompt,
+  OrientationPrompt as OrientationPromptType,
+  RegulationPrompt as RegulationPromptType,
+  NudgePrompt as NudgePromptType,
+  ClosurePrompt as ClosurePromptType,
+} from '../../utils/promptSystem';
+import {
+  OrientationPrompt,
+  RegulationPrompt,
+  NudgePrompt,
+  ClosurePrompt,
+  OnboardingPrompt,
+  NotificationPrompt,
+} from '../../components/prompts';
+import * as Notifications from 'expo-notifications';
 
 // Aurora Components
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
-import { CoffeeMomentMinimal } from '../../components/CoffeeMomentMinimal';
+import { ScreenHeader } from '../../components/ScreenHeader';
+import { WelcomeBackBanner } from '../../components/common/WelcomeBackBanner';
 import { format } from 'date-fns';
 
 interface StatData {
@@ -53,8 +92,17 @@ export default function NowScreen() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [dailyTracking, setDailyTracking] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [coffeeMomentVisible, setCoffeeMomentVisible] = useState(false);
   const [timelineExpanded, setTimelineExpanded] = useState(true);
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+
+  // Prompt system state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [orientationPrompt, setOrientationPrompt] = useState<OrientationPromptType | null>(null);
+  const [regulationPrompt, setRegulationPrompt] = useState<RegulationPromptType | null>(null);
+  const [nudgePrompt, setNudgePrompt] = useState<NudgePromptType | null>(null);
+  const [showClosure, setShowClosure] = useState(false);
+  const [closureMessage, setClosureMessage] = useState('');
 
   // Stats for progress rings
   const [todayStats, setTodayStats] = useState<TodayStats>({
@@ -64,9 +112,156 @@ export default function NowScreen() {
     meals: { completed: 0, total: 3 },
   });
 
+  // Check for onboarding, notification prompt, and welcome banner on mount
+  useEffect(() => {
+    checkOnboarding();
+    checkNotificationPrompt();
+    checkWelcomeBanner();
+  }, []);
+
+  const checkOnboarding = async () => {
+    const complete = await isOnboardingComplete();
+    setShowOnboarding(!complete);
+  };
+
+  const checkNotificationPrompt = async () => {
+    const shouldShow = await shouldShowNotificationPrompt();
+    setShowNotificationPrompt(shouldShow);
+  };
+
+  const checkWelcomeBanner = async () => {
+    const shouldShow = await shouldShowWelcomeBanner();
+    setShowWelcomeBanner(shouldShow);
+  };
+
+  const handleDismissBanner = async () => {
+    await dismissWelcomeBanner();
+    setShowWelcomeBanner(false);
+  };
+
+  const handleShowMeWhatMatters = async () => {
+    await completeOnboarding();
+    setShowOnboarding(false);
+    // Navigate to Record page to show what matters
+    router.push('/(tabs)/record');
+  };
+
+  const handleExploreOnMyOwn = async () => {
+    await completeOnboarding();
+    setShowOnboarding(false);
+  };
+
+  const handleEnableNotifications = async () => {
+    // Dismiss the prompt first (won't show again regardless of outcome)
+    await dismissNotificationPrompt();
+    setShowNotificationPrompt(false);
+
+    // Request notification permissions
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status === 'granted') {
+      // Navigate to notification settings so user can configure
+      router.push('/notification-settings');
+    }
+  };
+
+  const handleNotNowNotifications = async () => {
+    await dismissNotificationPrompt();
+    setShowNotificationPrompt(false);
+  };
+
+  const handleDismissRegulation = async () => {
+    await dismissPrompt('regulation');
+    setRegulationPrompt(null);
+  };
+
+  // Compute prompts based on current state
+  const computePrompts = useCallback(async (stats: TodayStats, moodLevel: number | null) => {
+    try {
+      // Record navigation for rapid navigation detection
+      recordNavigation();
+
+      const hoursSinceOpen = await getHoursSinceLastOpen();
+      const firstOpen = await isFirstOpenOfDay();
+      const rapid = isRapidNavigation();
+
+      // Calculate pending count (items not complete)
+      const pendingCount =
+        (stats.meds.total - stats.meds.completed) +
+        (stats.vitals.total - stats.vitals.completed) +
+        (stats.mood.total - stats.mood.completed) +
+        (stats.meals.total - stats.meals.completed);
+
+      // Calculate overdue count (for simplicity, items started but not complete)
+      const overdueCount = pendingCount;
+
+      // 1. Check for CLOSURE (all done)
+      const allComplete =
+        stats.meds.completed >= stats.meds.total &&
+        stats.vitals.completed >= stats.vitals.total &&
+        stats.mood.completed >= stats.mood.total &&
+        stats.meals.completed >= stats.meals.total;
+
+      if (allComplete && stats.meds.total + stats.vitals.total + stats.mood.total + stats.meals.total > 0) {
+        const closure = getClosurePrompt();
+        setClosureMessage(closure.message);
+        setShowClosure(true);
+        setOrientationPrompt(null);
+        setRegulationPrompt(null);
+        setNudgePrompt(null);
+        return;
+      } else {
+        setShowClosure(false);
+      }
+
+      // 2. Check for REGULATION prompt (emotional support needed)
+      const regDismissed = await isPromptDismissed('regulation');
+      if (!regDismissed) {
+        const reg = getRegulationPrompt(overdueCount, moodLevel, rapid, hoursSinceOpen);
+        if (reg) {
+          setRegulationPrompt(reg);
+        } else {
+          setRegulationPrompt(null);
+        }
+      } else {
+        setRegulationPrompt(null);
+      }
+
+      // 3. Set ORIENTATION prompt (always show on first open or returning)
+      if (firstOpen || hoursSinceOpen >= 12) {
+        const orientation = getOrientationPrompt(pendingCount, firstOpen);
+        setOrientationPrompt(orientation);
+      } else {
+        setOrientationPrompt(null);
+      }
+
+      // 4. Check for NUDGE prompt (single incomplete item suggestion)
+      // Priority: meds > vitals > mood > meals
+      if (stats.meds.completed < stats.meds.total && stats.meds.total > 0) {
+        setNudgePrompt(getNudgePrompt('medication', '/(tabs)/record'));
+      } else if (stats.vitals.completed < stats.vitals.total) {
+        setNudgePrompt(getNudgePrompt('vitals', '/(tabs)/record'));
+      } else if (stats.mood.completed < stats.mood.total) {
+        setNudgePrompt(getNudgePrompt('mood', '/(tabs)/record'));
+      } else if (stats.meals.completed < stats.meals.total) {
+        setNudgePrompt(getNudgePrompt('meals', '/(tabs)/record'));
+      } else {
+        setNudgePrompt(null);
+      }
+
+      // Record this app open for next time
+      await recordAppOpen();
+    } catch (error) {
+      console.error('Error computing prompts:', error);
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       loadData();
+      // Check if notification prompt should show (after adding meds/appointments)
+      checkNotificationPrompt();
+      // Record visit when screen loads
+      recordVisit();
     }, [])
   );
 
@@ -106,12 +301,17 @@ export default function NowScreen() {
       const moodLog = await getTodayMoodLog();
       const moodLogged = moodLog?.mood !== null && moodLog?.mood !== undefined ? 1 : 0;
 
-      setTodayStats({
+      const newStats = {
         meds: { completed: takenMeds, total: totalMeds },
         vitals: { completed: vitalsLogged, total: 4 },
         mood: { completed: moodLogged, total: 1 },
-        meals: { completed: mealsLogged, total: 3 },
-      });
+        meals: { completed: mealsLogged, total: 4 }, // breakfast, lunch, dinner, snack
+      };
+      setTodayStats(newStats);
+
+      // Compute prompts based on current state
+      const currentMoodLevel = moodLog?.mood ?? null;
+      await computePrompts(newStats, currentMoodLevel);
     } catch (error) {
       console.error('Error loading Now data:', error);
     }
@@ -146,8 +346,21 @@ export default function NowScreen() {
   };
 
   const handleQuickCheck = (type: 'meds' | 'vitals' | 'mood' | 'meals') => {
-    // Navigate to Record page
-    router.push('/(tabs)/record');
+    // Navigate directly to the specific log screen
+    switch (type) {
+      case 'meds':
+        router.push('/medication-confirm');
+        break;
+      case 'vitals':
+        router.push('/log-vitals');
+        break;
+      case 'mood':
+        router.push('/log-mood');
+        break;
+      case 'meals':
+        router.push('/log-meal');
+        break;
+    }
   };
 
   const renderProgressRing = (
@@ -285,40 +498,74 @@ export default function NowScreen() {
     <View style={styles.container}>
       <AuroraBackground variant="today" />
 
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={Colors.accent}
-            />
-          }
-        >
-          {/* Header - Simplified */}
-          <View style={styles.header}>
-            <Text style={styles.date}>{format(new Date(), 'EEEE, MMMM d')}</Text>
-            <View style={styles.titleRow}>
-              <Text style={styles.pageTitle}>Now</Text>
-              <TouchableOpacity
-                style={styles.coffeeIcon}
-                onPress={() => setCoffeeMomentVisible(true)}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="Take a coffee moment"
-              >
-                <Text style={styles.coffeeEmoji}>☕</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.accent}
+          />
+        }
+      >
+        <ScreenHeader
+          title="Now"
+          subtitle={showClosure ? undefined : "What needs attention today"}
+          kicker={format(new Date(), 'EEEE, MMMM d')}
+        />
 
-          <View style={styles.content}>
+        {/* Onboarding Prompt - First app open */}
+        {showOnboarding && (
+          <OnboardingPrompt
+            onShowMeWhatMatters={handleShowMeWhatMatters}
+            onExploreOnMyOwn={handleExploreOnMyOwn}
+          />
+        )}
+
+        {/* Closure Prompt - Shows in header area when all done */}
+        {showClosure && !showOnboarding && (
+          <View style={styles.closureContainer}>
+            <ClosurePrompt message={closureMessage} />
+          </View>
+        )}
+
+        {/* Orientation Prompt - Calm text under header */}
+        {orientationPrompt && !showClosure && !showOnboarding && (
+          <View style={styles.orientationContainer}>
+            <OrientationPrompt
+              message={orientationPrompt.message}
+              pendingCount={orientationPrompt.pendingCount}
+            />
+          </View>
+        )}
+
+        <View style={styles.content}>
+            {/* Regulation Prompt - Emotional support when needed */}
+            {regulationPrompt && !showOnboarding && (
+              <RegulationPrompt
+                message={regulationPrompt.message}
+                onDismiss={handleDismissRegulation}
+              />
+            )}
+
+            {/* Welcome Banner (if returning after 3+ days) */}
+            {showWelcomeBanner && (
+              <WelcomeBackBanner onDismiss={handleDismissBanner} />
+            )}
+
+            {/* Notification Prompt - Contextual, after meds/appointments added */}
+            {showNotificationPrompt && !showOnboarding && (
+              <NotificationPrompt
+                onEnable={handleEnableNotifications}
+                onNotNow={handleNotNowNotifications}
+              />
+            )}
+
             {/* Quick Check-In Card with Progress Rings */}
             <View style={styles.quickCheckinCard}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>QUICK CHECK-IN</Text>
+                <Text style={styles.sectionTitle}>{MICROCOPY.QUICK_CHECKIN}</Text>
               </View>
 
               <View style={styles.checkinGrid}>
@@ -328,12 +575,21 @@ export default function NowScreen() {
                 {renderProgressRing('🍽️', 'Meals', todayStats.meals, () => handleQuickCheck('meals'))}
               </View>
 
+              {/* Nudge Prompt - Single inline suggestion */}
+              {nudgePrompt && !showOnboarding && (
+                <NudgePrompt
+                  message={nudgePrompt.message}
+                  route={nudgePrompt.route}
+                  category={nudgePrompt.category}
+                />
+              )}
+
               <View style={styles.openFullLog}>
                 <TouchableOpacity
                   onPress={() => router.push('/(tabs)/record')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.openFullLogLink}>Open Full Record →</Text>
+                  <Text style={styles.openFullLogLink}>{MICROCOPY.OPEN_FULL_RECORD} →</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -344,7 +600,7 @@ export default function NowScreen() {
               onPress={() => setTimelineExpanded(!timelineExpanded)}
               activeOpacity={0.7}
             >
-              <Text style={styles.sectionTitle}>TODAY'S SCHEDULE</Text>
+              <Text style={styles.sectionTitle}>{MICROCOPY.TODAYS_SCHEDULE}</Text>
               <Text style={styles.collapseIcon}>{timelineExpanded ? '▼' : '▶'}</Text>
             </TouchableOpacity>
 
@@ -363,28 +619,20 @@ export default function NowScreen() {
 
             {timelineExpanded && timelineEvents.length === 0 && (
               <View style={styles.emptyTimeline}>
-                <Text style={styles.emptyTimelineText}>All caught up for now!</Text>
+                <Text style={styles.emptyTimelineText}>{MICROCOPY.ALL_CAUGHT_UP}</Text>
               </View>
             )}
 
             {/* Encouragement Message at Bottom */}
             <View style={styles.encouragement}>
-              <Text style={styles.encouragementTitle}>One step at a time</Text>
-              <Text style={styles.encouragementSubtitle}>You've got this</Text>
+              <Text style={styles.encouragementTitle}>{MICROCOPY.ONE_STEP}</Text>
+              <Text style={styles.encouragementSubtitle}>{MICROCOPY.YOU_GOT_THIS}</Text>
             </View>
           </View>
 
-          {/* Bottom spacing for tab bar */}
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      </SafeAreaView>
-
-      {/* Coffee Moment */}
-      <CoffeeMomentMinimal
-        visible={coffeeMomentVisible}
-        onClose={() => setCoffeeMomentVisible(false)}
-        microcopy="Pause for a minute"
-      />
+        {/* Bottom spacing for tab bar */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
     </View>
   );
 }
@@ -394,51 +642,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  safeArea: {
-    flex: 1,
-  },
   scrollView: {
     flex: 1,
   },
 
-  // Header
-  header: {
-    paddingTop: 60,
+  // Prompt Containers
+  closureContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    marginTop: -4,
   },
-  date: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginBottom: 8,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  pageTitle: {
-    fontSize: 34,
-    fontWeight: '300',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-  },
-  coffeeIcon: {
-    width: 50,
-    height: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  coffeeEmoji: {
-    fontSize: 28,
+  orientationContainer: {
+    paddingHorizontal: 20,
+    marginTop: -4,
+    marginBottom: 4,
   },
 
   // Content
   content: {
-    padding: 20,
-    paddingTop: 0,
+    paddingHorizontal: 20,
+    paddingTop: 8,
   },
 
   // Quick Check-In Card

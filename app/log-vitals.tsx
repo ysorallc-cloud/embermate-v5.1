@@ -7,21 +7,19 @@ import { useRouter } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { saveVital } from '../utils/vitalsStorage';
 import { saveVitalsLog } from '../utils/centralStorage';
+import { hapticSuccess } from '../utils/hapticFeedback';
 
 export default function LogVitalsScreen() {
   const router = useRouter();
-  const [systolic, setSystolic] = useState('');
-  const [diastolic, setDiastolic] = useState('');
+  // Prepopulate with typical values - user can adjust if needed
+  const [systolic, setSystolic] = useState('120');
+  const [diastolic, setDiastolic] = useState('80');
   const [glucose, setGlucose] = useState('');
   const [weight, setWeight] = useState('');
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
-    if (!systolic && !diastolic && !glucose && !weight) {
-      Alert.alert('Required', 'Please enter at least one vital sign');
-      return;
-    }
-
+    // Allow saving with any values (prepopulated or entered)
     setSaving(true);
     try {
       const now = new Date();
@@ -43,11 +41,11 @@ export default function LogVitalsScreen() {
         weight: weight ? parseFloat(weight) : undefined,
       });
 
-      Alert.alert('Success', 'Vitals logged successfully', [{ text: 'OK', onPress: () => router.back() }]);
+      await hapticSuccess();
+      router.back();
     } catch (error) {
       Alert.alert('Error', 'Failed to log vitals');
       console.error(error);
-    } finally {
       setSaving(false);
     }
   };
