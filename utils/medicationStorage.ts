@@ -369,10 +369,15 @@ export async function resetMedications(): Promise<void> {
 /**
  * Reset daily medication status
  * Call this at midnight to reset all "taken" flags
+ *
+ * IMPORTANT: Reads directly from storage to avoid infinite recursion.
+ * DO NOT call getMedications() here - it triggers checkAndResetDaily()
+ * which calls this function again, causing stack overflow/OOM.
  */
 export async function resetDailyMedicationStatus(): Promise<void> {
   try {
-    const medications = await getMedications();
+    // Read directly from storage - DO NOT use getMedications() to avoid recursion
+    const medications = await safeGetItem<Medication[]>(MEDICATIONS_KEY, []);
     const reset = medications.map(med => ({ ...med, taken: false }));
     await safeSetItem(MEDICATIONS_KEY, reset);
   } catch (error) {
