@@ -601,18 +601,6 @@ export default function NowScreen() {
     const currentHour = now.getHours();
     const events = [];
 
-    // Morning wellness check (vitals)
-    const vitalsRemaining = 4 - todayStats.vitals.completed;
-    if (vitalsRemaining > 0) {
-      events.push({
-        id: 'morning-wellness',
-        time: '7:00 AM',
-        status: currentHour >= 7 ? 'Still available' : 'Upcoming',
-        title: 'Morning wellness check',
-        subtitle: vitalsRemaining === 4 ? 'Log vitals' : `Log remaining vitals`,
-      });
-    }
-
     // Morning medications
     const medsRemaining = todayStats.meds.total - todayStats.meds.completed;
     if (medsRemaining > 0 && todayStats.meds.total > 0) {
@@ -735,37 +723,7 @@ export default function NowScreen() {
               />
             )}
 
-            {/* Progress Section - Independent status cards */}
-            <View style={styles.progressSection}>
-              <Text style={styles.sectionTitle}>PROGRESS</Text>
-              <View style={styles.progressGrid}>
-                {renderProgressRing('💊', 'Meds', todayStats.meds, () => handleQuickCheck('meds'))}
-                {renderProgressRing('📊', 'Vitals', todayStats.vitals, () => handleQuickCheck('vitals'))}
-                {renderProgressRing('😊', 'Mood', todayStats.mood, () => handleQuickCheck('mood'))}
-                {renderProgressRing('🍽️', 'Meals', todayStats.meals, () => handleQuickCheck('meals'))}
-              </View>
-            </View>
-
-            {/* Nudge Prompt - Single inline suggestion */}
-            {nudgePrompt && !showOnboarding && (
-              <NudgePrompt
-                message={nudgePrompt.message}
-                route={nudgePrompt.route}
-                category={nudgePrompt.category}
-              />
-            )}
-
-            {/* Quick Check-In Button */}
-            <TouchableOpacity
-              style={styles.quickCheckinButton}
-              onPress={() => router.push('/quick-checkin')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.quickCheckinButtonIcon}>✓</Text>
-              <Text style={styles.quickCheckinButtonText}>Quick Check-In</Text>
-            </TouchableOpacity>
-
-            {/* AI Insight Card */}
+            {/* AI Insight Card - At top of content */}
             {aiInsight && (
               <View style={[
                 styles.aiInsightCard,
@@ -785,6 +743,35 @@ export default function NowScreen() {
                 <Text style={styles.aiInsightMessage}>{aiInsight.message}</Text>
               </View>
             )}
+
+            {/* Progress Section - Below AI Insight */}
+            <View style={styles.progressSection}>
+              <Text style={styles.sectionTitle}>PROGRESS</Text>
+              <View style={styles.progressGrid}>
+                {renderProgressRing('💊', 'Meds', todayStats.meds, () => handleQuickCheck('meds'))}
+                {renderProgressRing('📊', 'Vitals', todayStats.vitals, () => handleQuickCheck('vitals'))}
+                {renderProgressRing('😊', 'Mood', todayStats.mood, () => handleQuickCheck('mood'))}
+                {renderProgressRing('🍽️', 'Meals', todayStats.meals, () => handleQuickCheck('meals'))}
+              </View>
+            </View>
+
+            {/* Nudge Prompt - Single inline suggestion */}
+            {nudgePrompt && !showOnboarding && (
+              <NudgePrompt
+                message={nudgePrompt.message}
+                route={nudgePrompt.route}
+                category={nudgePrompt.category}
+              />
+            )}
+
+            {/* Quick Check-In Button - Compact */}
+            <TouchableOpacity
+              style={styles.quickCheckinButton}
+              onPress={() => router.push('/quick-checkin')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.quickCheckinButtonText}>✓ Quick Check-In</Text>
+            </TouchableOpacity>
 
             {/* Timeline Section */}
             <TouchableOpacity
@@ -865,27 +852,20 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 
-  // Quick Check-In Button
+  // Quick Check-In Button - Compact
   quickCheckinButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(94, 234, 212, 0.12)',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(94, 234, 212, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.3)',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    borderColor: 'rgba(94, 234, 212, 0.25)',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
     marginBottom: 20,
-    gap: 10,
-  },
-  quickCheckinButtonIcon: {
-    fontSize: 18,
-    color: Colors.accent,
   },
   quickCheckinButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
     color: Colors.accent,
   },
 
