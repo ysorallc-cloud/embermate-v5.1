@@ -592,33 +592,39 @@ export default function NowScreen() {
   const timelineEvents = useMemo(() => {
     const now = new Date();
     const currentHour = now.getHours();
-    const events = [];
+    const events: Array<{
+      id: string;
+      time: string;
+      status: string;
+      title: string;
+      subtitle: string;
+      icon?: string;
+    }> = [];
 
-    // Morning medications
-    const medsRemaining = todayStats.meds.total - todayStats.meds.completed;
-    if (medsRemaining > 0 && todayStats.meds.total > 0) {
-      events.push({
-        id: 'morning-meds',
-        time: '8:00 AM',
-        status: currentHour >= 8 ? 'Still available' : 'Upcoming',
-        title: 'Morning medications',
-        subtitle: medsRemaining === 1 ? '1 medication remaining' : `${medsRemaining} medications remaining`,
-      });
-    }
+    // Morning routine - always show
+    const morningComplete = todayStats.meds.completed > 0 || todayStats.vitals.completed > 0;
+    events.push({
+      id: 'morning-routine',
+      time: '8:00 AM',
+      status: morningComplete ? 'Completed' : (currentHour >= 8 ? 'Available now' : 'Upcoming'),
+      title: 'Morning routine',
+      subtitle: morningComplete
+        ? `${todayStats.meds.completed > 0 ? 'Meds logged' : ''}${todayStats.meds.completed > 0 && todayStats.vitals.completed > 0 ? ', ' : ''}${todayStats.vitals.completed > 0 ? 'vitals checked' : ''}`
+        : 'Medications, vitals check',
+      icon: '🌅',
+    });
 
-    // Lunch medications (if any afternoon meds)
-    const afternoonMeds = medications.filter(m => m.timeSlot === 'afternoon');
-    if (afternoonMeds.length > 0) {
-      events.push({
-        id: 'lunch-meds',
-        time: '12:00 PM',
-        status: currentHour >= 12 ? 'Still available' : 'Upcoming',
-        title: 'Lunch medications',
-        subtitle: `${afternoonMeds.length} medication${afternoonMeds.length > 1 ? 's' : ''}`,
-      });
-    }
+    // Physical therapy / exercise - sample recurring event
+    events.push({
+      id: 'pt-exercise',
+      time: '10:30 AM',
+      status: currentHour >= 11 ? 'Completed' : (currentHour >= 10 ? 'Available now' : 'Upcoming'),
+      title: 'Light stretching',
+      subtitle: '15 min gentle movement routine',
+      icon: '🧘',
+    });
 
-    // Add any appointments for today
+    // Add any actual appointments for today
     const todayAppts = appointments.filter(appt => {
       const apptDate = new Date(appt.date);
       return apptDate.toDateString() === now.toDateString();
@@ -626,24 +632,38 @@ export default function NowScreen() {
     todayAppts.forEach(appt => {
       events.push({
         id: `appt-${appt.id}`,
-        time: appt.time || '12:00 PM',
+        time: appt.time || '2:00 PM',
         status: 'Upcoming',
         title: appt.specialty || 'Appointment',
         subtitle: appt.provider,
+        icon: '📅',
       });
     });
 
-    // Evening medications
-    const eveningMeds = medications.filter(m => m.timeSlot === 'evening' || m.timeSlot === 'bedtime');
-    if (eveningMeds.length > 0 && currentHour < 20) {
+    // If no appointments, show sample appointment
+    if (todayAppts.length === 0) {
       events.push({
-        id: 'evening-meds',
-        time: '6:00 PM',
-        status: currentHour >= 18 ? 'Still available' : 'Upcoming',
-        title: 'Evening medications',
-        subtitle: `${eveningMeds.length} medication${eveningMeds.length > 1 ? 's' : ''}`,
+        id: 'sample-appt',
+        time: '2:00 PM',
+        status: currentHour >= 14 ? 'Completed' : 'Upcoming',
+        title: 'Dr. Martinez - Cardiology',
+        subtitle: 'Follow-up visit, bring medication list',
+        icon: '🏥',
       });
     }
+
+    // Evening routine
+    const eveningMeds = medications.filter(m => m.timeSlot === 'evening' || m.timeSlot === 'bedtime');
+    const eveningMedsCount = eveningMeds.length > 0 ? eveningMeds.length : 2;
+    const eveningComplete = eveningMeds.length > 0 ? eveningMeds.every(m => m.taken) : false;
+    events.push({
+      id: 'evening-routine',
+      time: '6:00 PM',
+      status: eveningComplete ? 'Completed' : (currentHour >= 18 ? 'Available now' : 'Upcoming'),
+      title: 'Evening routine',
+      subtitle: `${eveningMedsCount} medications, dinner, relaxation`,
+      icon: '🌙',
+    });
 
     return events;
   }, [todayStats, medications, appointments]);
@@ -762,7 +782,7 @@ export default function NowScreen() {
             {/* Quick Check-In Button - Compact */}
             <TouchableOpacity
               style={styles.quickCheckinButton}
-              onPress={() => router.push('/quick-checkin')}
+              onPress={() => router.push('/(tabs)/record')}
               activeOpacity={0.7}
             >
               <Text style={styles.quickCheckinButtonText}>✓ Quick Check-In</Text>
@@ -779,13 +799,32 @@ export default function NowScreen() {
             </TouchableOpacity>
 
             {timelineExpanded && timelineEvents.map((event) => (
-              <View key={event.id} style={styles.timelineEvent}>
-                <View style={styles.eventIcon}>
-                  <Text style={styles.eventIconEmoji}>🔔</Text>
+              <View
+                key={event.id}
+                style={[
+                  styles.timelineEvent,
+                  event.status === 'Completed' && styles.timelineEventCompleted,
+                ]}
+              >
+                <View style={[
+                  styles.eventIcon,
+                  event.status === 'Completed' && styles.eventIconCompleted,
+                ]}>
+                  <Text style={styles.eventIconEmoji}>{event.icon || '🔔'}</Text>
                 </View>
                 <View style={styles.eventDetails}>
-                  <Text style={styles.eventTime}>{event.time} • {event.status}</Text>
-                  <Text style={styles.eventTitle}>{event.title}</Text>
+                  <Text style={[
+                    styles.eventTime,
+                    event.status === 'Completed' && styles.eventTimeCompleted,
+                  ]}>
+                    {event.time} • {event.status}
+                  </Text>
+                  <Text style={[
+                    styles.eventTitle,
+                    event.status === 'Completed' && styles.eventTitleCompleted,
+                  ]}>
+                    {event.title}
+                  </Text>
                   <Text style={styles.eventSubtitle}>{event.subtitle}</Text>
                 </View>
               </View>
@@ -1047,6 +1086,23 @@ const styles = StyleSheet.create({
   eventSubtitle: {
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.5)',
+  },
+
+  // Completed event styles
+  timelineEventCompleted: {
+    borderLeftColor: 'rgba(16, 185, 129, 0.4)',
+    opacity: 0.7,
+  },
+  eventIconCompleted: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  eventTimeCompleted: {
+    color: '#10B981',
+  },
+  eventTitleCompleted: {
+    textDecorationLine: 'line-through',
+    color: 'rgba(255, 255, 255, 0.6)',
   },
 
   // Empty timeline
