@@ -20,6 +20,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -385,7 +386,20 @@ export default function UnderstandScreen() {
           </View>
 
           {/* Layer 1: Insight Card (Dominant) */}
-          <GlassCard style={[styles.insightCard, getInsightCardStyle()]}>
+          <View style={[styles.insightCard, getInsightCardStyle()]}>
+            {/* Gradient background for established state */}
+            {!isBaselineForming && getWhatsDifferent.length === 0 && (
+              <LinearGradient
+                colors={[
+                  'rgba(59, 130, 246, 0.18)',
+                  'rgba(139, 92, 246, 0.15)',
+                  'rgba(94, 234, 212, 0.12)',
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.insightCardGradient}
+              />
+            )}
             <View style={styles.insightContent}>
               {/* Baseline forming state */}
               {isBaselineForming ? (
@@ -435,7 +449,7 @@ export default function UnderstandScreen() {
                 </>
               )}
             </View>
-          </GlassCard>
+          </View>
 
           {/* Layer 2: Exploration Tools */}
           <View style={styles.section}>
@@ -552,110 +566,126 @@ const styles = StyleSheet.create({
 
   // Layer 1: Insight Card (Dominant)
   insightCard: {
-    marginBottom: Spacing.xl,
-    borderWidth: 1,
-    padding: 16,
+    marginBottom: 28,
+    borderWidth: 1.5,
+    padding: 20,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   insightCardEarly: {
-    backgroundColor: 'rgba(148, 163, 184, 0.08)', // Slate/gray - educational
-    borderColor: 'rgba(148, 163, 184, 0.25)',
+    backgroundColor: 'rgba(148, 163, 184, 0.15)', // Slate/gray - educational
+    borderColor: 'rgba(148, 163, 184, 0.4)',
   },
   insightCardEmerging: {
-    backgroundColor: 'rgba(251, 191, 36, 0.08)', // Amber - observational
-    borderColor: 'rgba(251, 191, 36, 0.25)',
+    backgroundColor: 'rgba(251, 191, 36, 0.15)', // Amber - observational
+    borderColor: 'rgba(251, 191, 36, 0.4)',
   },
   insightCardEstablished: {
-    backgroundColor: 'rgba(94, 234, 212, 0.08)', // Teal - confident
-    borderColor: 'rgba(94, 234, 212, 0.25)',
+    backgroundColor: 'transparent', // Use gradient instead
+    borderColor: 'rgba(94, 234, 212, 0.4)',
+  },
+  insightCardGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 1,
   },
   insightContent: {
-    gap: 12,
+    gap: 14,
   },
   insightSection: {
-    gap: 4,
+    gap: 6,
   },
   insightSectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.85)',
+    marginBottom: 6,
+    letterSpacing: 0.3,
   },
   insightSectionTitleDifferent: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: 'rgba(251, 191, 36, 0.9)',
-    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: '700',
+    color: 'rgba(251, 191, 36, 0.95)',
+    marginBottom: 6,
+    letterSpacing: 0.3,
   },
   insightBullet: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 20,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.75)',
+    lineHeight: 21,
     paddingLeft: 4,
   },
   insightBulletDifferent: {
-    fontSize: 13,
-    color: 'rgba(251, 191, 36, 0.8)',
-    lineHeight: 20,
+    fontSize: 14,
+    color: 'rgba(251, 191, 36, 0.85)',
+    lineHeight: 21,
     paddingLeft: 4,
   },
   dataContextBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    marginTop: 6,
   },
   dataContextText: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontWeight: '500',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.65)',
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   insightSubText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 19,
+    color: 'rgba(255, 255, 255, 0.75)',
+    lineHeight: 20,
   },
 
   // Sections
   section: {
-    marginBottom: Spacing.xl,
+    marginBottom: 32,
   },
   sectionHeader: {
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: 'rgba(255, 255, 255, 0.5)',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
-    marginBottom: 8,
+    marginBottom: 12,
     paddingHorizontal: 4,
   },
 
-  // Layer 2: Exploration Tools
+  // Layer 2: Exploration Tools (More prominent with teal accent)
   toolsContainer: {
-    gap: 6,
+    gap: 10,
   },
   toolCard: {
-    padding: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 14,
+    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+    borderColor: 'rgba(94, 234, 212, 0.2)',
+    borderWidth: 1,
+    borderLeftWidth: 3,
+    borderLeftColor: 'rgba(94, 234, 212, 0.5)',
   },
   toolContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   toolIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(94, 234, 212, 0.12)',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(94, 234, 212, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   toolIconText: {
-    fontSize: 18,
+    fontSize: 20,
     textAlign: 'center',
   },
   toolText: {
@@ -663,53 +693,58 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   toolTitle: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: Colors.textPrimary,
+    letterSpacing: 0.2,
   },
   toolSubtitle: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    marginTop: 1,
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: 2,
   },
   chevron: {
-    fontSize: 14,
-    color: Colors.textMuted,
+    fontSize: 18,
+    color: 'rgba(94, 234, 212, 0.6)',
+    fontWeight: '600',
   },
 
-  // Layer 3: Reference (Demoted)
+  // Layer 3: Reference (Subtle with minimal borders)
   referenceContainer: {
-    gap: 4,
+    gap: 8,
   },
   referenceCard: {
-    padding: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderRadius: 12,
   },
   referenceContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   referenceIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: 'rgba(148, 163, 184, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   referenceIconText: {
-    fontSize: 14,
-    opacity: 0.6,
+    fontSize: 16,
+    opacity: 0.7,
   },
   referenceTitle: {
     flex: 1,
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.75)',
   },
   referenceChevron: {
-    fontSize: 12,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.4)',
   },
 });
