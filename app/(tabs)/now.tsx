@@ -155,127 +155,120 @@ export default function NowScreen() {
     const currentHour = now.getHours();
     const insights: AIInsight[] = [];
 
-    // Calculate completion percentages
-    const medsPercent = stats.meds.total > 0 ? (stats.meds.completed / stats.meds.total) * 100 : 100;
-    const vitalsPercent = (stats.vitals.completed / stats.vitals.total) * 100;
-    const mealsPercent = (stats.meals.completed / stats.meals.total) * 100;
-    const overallProgress = (medsPercent + vitalsPercent + (stats.mood.completed * 100) + mealsPercent) / 4;
+    // Calculate actual data summaries
+    const totalLogged = stats.meds.completed + stats.vitals.completed + stats.mood.completed + stats.meals.completed;
+    const medsRemaining = stats.meds.total - stats.meds.completed;
+    const eveningMeds = meds.filter(m => m.timeSlot === 'evening' || m.timeSlot === 'bedtime');
+    const eveningMedsRemaining = eveningMeds.filter(m => !m.taken).length;
 
-    // CELEBRATION: All tasks complete
-    if (overallProgress === 100 && (stats.meds.total > 0 || stats.vitals.completed > 0)) {
+    // CELEBRATION: All tasks complete (data-driven)
+    if (stats.meds.completed === stats.meds.total && stats.meds.total > 0 &&
+        stats.mood.completed > 0 && stats.meals.completed >= 3) {
       insights.push({
         icon: '🌟',
-        title: 'Amazing day!',
-        message: "All care tasks complete. You're providing wonderful support.",
+        title: 'Great progress today',
+        message: `${stats.meds.completed} meds logged, mood checked, ${stats.meals.completed} meals tracked.`,
         type: 'celebration',
       });
     }
 
-    // POSITIVE: Mood logged and it's good
-    if (moodLevel && moodLevel >= 4) {
-      insights.push({
-        icon: '💚',
-        title: 'Positive mood today',
-        message: moodLevel === 5
-          ? "They're feeling great! A wonderful day for connection."
-          : "Good spirits noted. Small joys make a big difference.",
-        type: 'positive',
-      });
-    }
-
-    // REMINDER: Upcoming appointment today
+    // REMINDER: Upcoming appointment today (future-looking)
     if (todayAppointments.length > 0) {
       const nextAppt = todayAppointments[0];
       insights.push({
         icon: '📅',
         title: 'Appointment today',
-        message: `${nextAppt.specialty || 'Appointment'} with ${nextAppt.provider} at ${nextAppt.time || 'scheduled time'}.`,
+        message: `${nextAppt.specialty || 'Appointment'} with ${nextAppt.provider}${nextAppt.time ? ` at ${nextAppt.time}` : ''}.`,
         type: 'reminder',
       });
     }
 
-    // SUGGESTION: Morning - encourage starting the day
-    if (currentHour >= 6 && currentHour < 10 && overallProgress < 25) {
+    // REMINDER: Evening medications coming up (future-looking)
+    if (currentHour >= 16 && currentHour < 20 && eveningMedsRemaining > 0) {
       insights.push({
-        icon: '🌅',
-        title: 'Good morning',
-        message: stats.meds.total > 0
-          ? 'Starting with morning medications helps establish a healthy routine.'
-          : 'A calm morning sets the tone for the day ahead.',
-        type: 'suggestion',
+        icon: '🌙',
+        title: 'Evening meds ahead',
+        message: `${eveningMedsRemaining} evening medication${eveningMedsRemaining > 1 ? 's' : ''} scheduled. Consistent timing helps.`,
+        type: 'reminder',
       });
     }
 
-    // SUGGESTION: Medications on track
+    // POSITIVE: Medications complete (data-driven)
     if (stats.meds.completed > 0 && stats.meds.completed === stats.meds.total && stats.meds.total > 0) {
       insights.push({
         icon: '💊',
-        title: 'Medications on track',
-        message: `All ${stats.meds.total} medication${stats.meds.total > 1 ? 's' : ''} logged for today. Great consistency!`,
+        title: 'Meds complete',
+        message: `All ${stats.meds.total} medication${stats.meds.total > 1 ? 's' : ''} logged today.`,
         type: 'positive',
       });
     }
 
-    // SUGGESTION: Vitals logged
-    if (stats.vitals.completed >= 2) {
-      insights.push({
-        icon: '📊',
-        title: 'Vitals recorded',
-        message: 'Tracking vitals helps identify patterns and supports better care conversations with doctors.',
-        type: 'positive',
-      });
-    }
-
-    // SUGGESTION: Afternoon check-in
-    if (currentHour >= 12 && currentHour < 15 && stats.meals.completed < 2) {
-      insights.push({
-        icon: '🍽️',
-        title: 'Lunch time',
-        message: 'Logging meals helps track nutrition and appetite patterns over time.',
-        type: 'suggestion',
-      });
-    }
-
-    // SUGGESTION: Evening wind-down
-    if (currentHour >= 18 && currentHour < 21) {
-      const eveningMeds = meds.filter(m => m.timeSlot === 'evening' || m.timeSlot === 'bedtime');
-      if (eveningMeds.length > 0 && eveningMeds.some(m => !m.taken)) {
+    // POSITIVE: Mood insight (data-driven)
+    if (moodLevel) {
+      if (moodLevel >= 4) {
         insights.push({
-          icon: '🌙',
-          title: 'Evening routine',
-          message: `${eveningMeds.filter(m => !m.taken).length} evening medication${eveningMeds.filter(m => !m.taken).length > 1 ? 's' : ''} remaining. Consistent timing supports better sleep.`,
-          type: 'reminder',
+          icon: '💚',
+          title: 'Positive mood logged',
+          message: moodLevel === 5 ? "They're feeling great today." : "Good spirits noted for today.",
+          type: 'positive',
+        });
+      } else if (moodLevel <= 2) {
+        insights.push({
+          icon: '💙',
+          title: 'Tough day noted',
+          message: "Hard days happen. Your care makes a difference.",
+          type: 'positive',
         });
       }
     }
 
-    // POSITIVE: Good progress mid-day
-    if (currentHour >= 12 && currentHour < 18 && overallProgress >= 50 && overallProgress < 100) {
+    // POSITIVE: Meals tracking (data-driven)
+    if (stats.meals.completed >= 3) {
       insights.push({
-        icon: '👍',
-        title: 'On track today',
-        message: "Good progress on today's care tasks. Keep up the steady pace.",
+        icon: '🍽️',
+        title: 'Meals on track',
+        message: `${stats.meals.completed} meal${stats.meals.completed > 1 ? 's' : ''} logged today.`,
         type: 'positive',
       });
     }
 
-    // SUGGESTION: Mood check reminder (if not logged by afternoon)
-    if (currentHour >= 14 && stats.mood.completed === 0) {
+    // POSITIVE: Vitals logged (data-driven)
+    if (stats.vitals.completed >= 2) {
       insights.push({
-        icon: '😊',
-        title: 'How are they feeling?',
-        message: 'Checking in on mood helps you notice patterns and respond to their needs.',
+        icon: '📊',
+        title: 'Vitals recorded',
+        message: `${stats.vitals.completed} vital${stats.vitals.completed > 1 ? 's' : ''} logged. Tracking helps spot patterns.`,
+        type: 'positive',
+      });
+    }
+
+    // SUGGESTION: Morning with pending meds (current status)
+    if (currentHour >= 6 && currentHour < 11 && medsRemaining > 0) {
+      insights.push({
+        icon: '🌅',
+        title: 'Morning meds pending',
+        message: `${medsRemaining} medication${medsRemaining > 1 ? 's' : ''} to log today.`,
         type: 'suggestion',
       });
     }
 
-    // POSITIVE: Difficult mood logged (supportive message)
-    if (moodLevel && moodLevel <= 2) {
+    // SUGGESTION: Afternoon - check meals (current status)
+    if (currentHour >= 12 && currentHour < 15 && stats.meals.completed < 2) {
       insights.push({
-        icon: '💙',
-        title: 'Tough day noted',
-        message: "It's okay to have hard days. Your presence and care make a difference.",
-        type: 'positive',
+        icon: '🍽️',
+        title: 'Meal logging',
+        message: `${stats.meals.completed} of 4 meals logged so far.`,
+        type: 'suggestion',
+      });
+    }
+
+    // SUGGESTION: No data yet today
+    if (totalLogged === 0 && currentHour >= 8) {
+      insights.push({
+        icon: '✨',
+        title: 'Ready to start',
+        message: 'No logs yet today. Start with what feels easiest.',
+        type: 'suggestion',
       });
     }
 
@@ -284,16 +277,6 @@ export default function NowScreen() {
     for (const priority of priorityOrder) {
       const match = insights.find(i => i.type === priority);
       if (match) return match;
-    }
-
-    // Default insight if nothing else matches
-    if (currentHour < 12) {
-      return {
-        icon: '✨',
-        title: 'Ready when you are',
-        message: 'Take care tasks one at a time. Every small action counts.',
-        type: 'suggestion',
-      };
     }
 
     return null;
@@ -1059,22 +1042,21 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
   },
 
-  // Encouragement at Bottom
+  // Encouragement at Bottom - Compact
   encouragement: {
     alignItems: 'center',
-    paddingVertical: 24,
-    marginTop: 20,
+    paddingVertical: 16,
+    marginTop: 12,
   },
   encouragementTitle: {
-    fontSize: 24,
-    fontWeight: '300',
-    color: '#FFFFFF',
-    marginBottom: 6,
-    letterSpacing: 0.3,
+    fontSize: 14,
+    fontWeight: '400',
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: 2,
   },
   encouragementSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.4)',
     fontWeight: '400',
   },
 });
