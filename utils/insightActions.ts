@@ -1,0 +1,156 @@
+// ============================================================================
+// INSIGHT ACTIONS TRACKING
+// Logs when users take actions on insights for analytics
+// ============================================================================
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const INSIGHT_ACTIONS_KEY = '@embermate_insight_actions';
+
+export interface InsightActionLog {
+  insightId: string;
+  actionId: string;
+  timestamp: number;
+}
+
+/**
+ * Log when user takes an action on an insight
+ */
+export async function logInsightAction(
+  insightId: string,
+  actionId: string
+): Promise<void> {
+  try {
+    const logs = await getInsightActionLogs();
+
+    logs.push({
+      insightId,
+      actionId,
+      timestamp: Date.now(),
+    });
+
+    // Keep only last 500 logs to prevent storage overflow
+    const trimmedLogs = logs.slice(-500);
+
+    await AsyncStorage.setItem(INSIGHT_ACTIONS_KEY, JSON.stringify(trimmedLogs));
+
+    if (__DEV__) {
+      console.log(`Insight action logged: ${actionId} for insight ${insightId}`);
+    }
+  } catch (error) {
+    console.error('Error logging insight action:', error);
+  }
+}
+
+/**
+ * Get all insight action logs
+ */
+export async function getInsightActionLogs(): Promise<InsightActionLog[]> {
+  try {
+    const logs = await AsyncStorage.getItem(INSIGHT_ACTIONS_KEY);
+    return logs ? JSON.parse(logs) : [];
+  } catch (error) {
+    console.error('Error getting insight action logs:', error);
+    return [];
+  }
+}
+
+/**
+ * Calculate action rate for analytics
+ */
+export async function calculateActionRate(): Promise<{
+  totalInsightsSeen: number;
+  totalActionsTaken: number;
+  actionRate: number;
+}> {
+  try {
+    const logs = await getInsightActionLogs();
+
+    // Get unique insights seen
+    const uniqueInsights = new Set(logs.map(l => l.insightId));
+    const totalInsightsSeen = uniqueInsights.size;
+
+    // Count actions taken (excluding dismissals)
+    const totalActionsTaken = logs.filter(l => l.actionId !== 'dismiss').length;
+
+    const actionRate = totalInsightsSeen > 0
+      ? (totalActionsTaken / totalInsightsSeen) * 100
+      : 0;
+
+    return {
+      totalInsightsSeen,
+      totalActionsTaken,
+      actionRate,
+    };
+  } catch (error) {
+    console.error('Error calculating action rate:', error);
+    return {
+      totalInsightsSeen: 0,
+      totalActionsTaken: 0,
+      actionRate: 0,
+    };
+  }
+}
+
+/**
+ * Get actions taken for a specific insight
+ */
+export async function getActionsForInsight(insightId: string): Promise<InsightActionLog[]> {
+  try {
+    const logs = await getInsightActionLogs();
+    return logs.filter(l => l.insightId === insightId);
+  } catch (error) {
+    console.error('Error getting actions for insight:', error);
+    return [];
+  }
+}
+
+/**
+ * Get recent action statistics (last 30 days)
+ */
+export async function getRecentActionStats(): Promise<{
+  insightsShown: number;
+  actionsTaken: number;
+  dismissed: number;
+  actionRate: string;
+}> {
+  try {
+    const logs = await getInsightActionLogs();
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+
+    const recentLogs = logs.filter(l => l.timestamp >= thirtyDaysAgo);
+    const uniqueInsights = new Set(recentLogs.map(l => l.insightId));
+    const insightsShown = uniqueInsights.size;
+    const actionsTaken = recentLogs.filter(l => l.actionId !== 'dismiss').length;
+    const dismissed = recentLogs.filter(l => l.actionId === 'dismiss').length;
+    const actionRate = insightsShown > 0
+      ? ((actionsTaken / insightsShown) * 100).toFixed(1)
+      : '0';
+
+    return {
+      insightsShown,
+      actionsTaken,
+      dismissed,
+      actionRate: `${actionRate}%`,
+    };
+  } catch (error) {
+    console.error('Error getting recent action stats:', error);
+    return {
+      insightsShown: 0,
+      actionsTaken: 0,
+      dismissed: 0,
+      actionRate: '0%',
+    };
+  }
+}
+
+/**
+ * Clear all action logs (for testing)
+ */
+export async function clearInsightActionLogs(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(INSIGHT_ACTIONS_KEY);
+  } catch (error) {
+    console.error('Error clearing insight action logs:', error);
+  }
+}

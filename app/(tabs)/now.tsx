@@ -19,7 +19,6 @@ import { Colors, Spacing, Typography } from '../../theme/theme-tokens';
 import { getMedications, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
 import { getDailyTracking } from '../../utils/dailyTrackingStorage';
-import { getVitalsForDate } from '../../utils/vitalsStorage';
 import {
   getTodayMedicationLog,
   getTodayVitalsLog,
@@ -443,9 +442,14 @@ export default function NowScreen() {
       const status = await getTodayLogStatus();
 
       // Load vitals to count
-      const todayVitals = await getVitalsForDate(today);
-      const vitalTypes = new Set(todayVitals.map(v => v.type));
-      const vitalsLogged = vitalTypes.size;
+      const todayVitals = await getTodayVitalsLog();
+      let vitalsLogged = 0;
+      if (todayVitals) {
+        if (todayVitals.systolic) vitalsLogged++;
+        if (todayVitals.diastolic) vitalsLogged++;
+        if (todayVitals.heartRate) vitalsLogged++;
+        if (todayVitals.temperature) vitalsLogged++;
+      }
 
       // Calculate stats
       const takenMeds = activeMeds.filter(m => m.taken).length;

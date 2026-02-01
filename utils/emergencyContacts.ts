@@ -1,0 +1,183 @@
+// ============================================================================
+// EMERGENCY CONTACTS STORAGE
+// Manages emergency contacts for quick access in critical situations
+// ============================================================================
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Linking from 'expo-linking';
+import { Alert } from 'react-native';
+
+export interface EmergencyContact {
+  id: string;
+  name: string;
+  relationship: string;
+  phone: string;
+  isPrimary: boolean;
+  type: 'family' | 'friend' | 'doctor' | 'caregiver';
+}
+
+const EMERGENCY_CONTACTS_KEY = 'emergency_contacts';
+
+/**
+ * Get all emergency contacts
+ */
+export async function getEmergencyContacts(): Promise<EmergencyContact[]> {
+  try {
+    const data = await AsyncStorage.getItem(EMERGENCY_CONTACTS_KEY);
+    if (!data) return [];
+
+    const contacts = JSON.parse(data);
+
+    // Sort by primary first, then by name
+    return contacts.sort((a: EmergencyContact, b: EmergencyContact) => {
+      if (a.isPrimary && !b.isPrimary) return -1;
+      if (!a.isPrimary && b.isPrimary) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  } catch (error) {
+    console.error('Error getting emergency contacts:', error);
+    return [];
+  }
+}
+
+/**
+ * Save emergency contact
+ */
+export async function saveEmergencyContact(
+  contact: Omit<EmergencyContact, 'id'>
+): Promise<void> {
+  try {
+    const contacts = await getEmergencyContacts();
+
+    const newContact: EmergencyContact = {
+      ...contact,
+      id: Date.now().toString(),
+    };
+
+    contacts.push(newContact);
+
+    await AsyncStorage.setItem(
+      EMERGENCY_CONTACTS_KEY,
+      JSON.stringify(contacts)
+    );
+  } catch (error) {
+    console.error('Error saving emergency contact:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update emergency contact
+ */
+export async function updateEmergencyContact(
+  contact: EmergencyContact
+): Promise<void> {
+  try {
+    const contacts = await getEmergencyContacts();
+    const index = contacts.findIndex(c => c.id === contact.id);
+
+    if (index === -1) {
+      throw new Error('Contact not found');
+    }
+
+    contacts[index] = contact;
+
+    await AsyncStorage.setItem(
+      EMERGENCY_CONTACTS_KEY,
+      JSON.stringify(contacts)
+    );
+  } catch (error) {
+    console.error('Error updating emergency contact:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete emergency contact
+ */
+export async function deleteEmergencyContact(id: string): Promise<void> {
+  try {
+    const contacts = await getEmergencyContacts();
+    const filtered = contacts.filter(c => c.id !== id);
+
+    await AsyncStorage.setItem(
+      EMERGENCY_CONTACTS_KEY,
+      JSON.stringify(filtered)
+    );
+  } catch (error) {
+    console.error('Error deleting emergency contact:', error);
+    throw error;
+  }
+}
+
+/**
+ * Make a phone call
+ */
+export async function makePhoneCall(phoneNumber: string): Promise<void> {
+  try {
+    // Remove any formatting from phone number
+    const cleaned = phoneNumber.replace(/\D/g, '');
+    const url = `tel:${cleaned}`;
+
+    const supported = await Linking.canOpenURL(url);
+
+    if (supported) {
+      await Linking.openURL(url);
+    } else {
+      Alert.alert(
+        'Cannot Make Call',
+        'Your device does not support phone calls.',
+        [{ text: 'OK' }]
+      );
+    }
+  } catch (error) {
+    console.error('Error making phone call:', error);
+    Alert.alert(
+      'Call Failed',
+      'Unable to initiate call. Please dial manually.',
+      [{ text: 'OK' }]
+    );
+  }
+}
+
+/**
+ * Call 911
+ */
+export async function call911(): Promise<void> {
+  Alert.alert(
+    'Call 911',
+    'This will call emergency services immediately.',
+    [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Call Now',
+        style: 'destructive',
+        onPress: () => makePhoneCall('911'),
+      },
+    ]
+  );
+}
+
+/**
+ * Format phone number for display
+ */
+export function formatPhoneNumber(phone: string): string {
+  // Remove all non-digits
+  const cleaned = phone.replace(/\D/g, '');
+
+  // Format as (XXX) XXX-XXXX for US numbers
+  if (cleaned.length === 10) {
+    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+  }
+
+  // Format as +X (XXX) XXX-XXXX for 11-digit numbers
+  if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
+  }
+
+  // Return original if not standard format
+  return phone;
+}

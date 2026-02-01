@@ -1,0 +1,208 @@
+// ============================================================================
+// DATA EXPORT UTILITY
+// Export user data in various formats (JSON, CSV)
+// ============================================================================
+
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
+import Constants from 'expo-constants';
+
+/**
+ * Export all data as JSON
+ */
+export async function exportDataAsJSON(): Promise<void> {
+  try {
+    // Get all data
+    const keys = await AsyncStorage.getAllKeys();
+    const userDataKeys = keys.filter(
+      (key) => !key.startsWith('system_') && !key.startsWith('app_')
+    );
+
+    const data: { [key: string]: any } = {};
+
+    for (const key of userDataKeys) {
+      const value = await AsyncStorage.getItem(key);
+      if (value) {
+        try {
+          data[key] = JSON.parse(value);
+        } catch {
+          data[key] = value;
+        }
+      }
+    }
+
+    // Create export object
+    const appVersion = Constants.expoConfig?.version || '1.0.0';
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      appVersion,
+      dataCount: userDataKeys.length,
+      data,
+    };
+
+    // Generate filename
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `embermate-export-${timestamp}.json`;
+    const fileUri = `${FileSystem.documentDirectory}${filename}`;
+
+    // Write file
+    await FileSystem.writeAsStringAsync(
+      fileUri,
+      JSON.stringify(exportData, null, 2)
+    );
+
+    // Share file
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'application/json',
+        dialogTitle: 'Export EmberMate Data',
+      });
+    } else {
+      Alert.alert(
+        'Export Complete',
+        `Data exported to: ${filename}\n\nYou can find it in your device's documents folder.`
+      );
+    }
+  } catch (error) {
+    console.error('Error exporting data:', error);
+    Alert.alert('Export Failed', 'Unable to export data. Please try again.');
+  }
+}
+
+/**
+ * Export data as CSV (simplified - medications and vitals)
+ */
+export async function exportDataAsCSV(): Promise<void> {
+  try {
+    // Get medication and vitals data
+    const medications = await AsyncStorage.getItem('@embermate_medications');
+    const vitals = await AsyncStorage.getItem('@vitals_readings');
+    const dailyTracking = await AsyncStorage.getAllKeys().then(async (keys) => {
+      const trackingKeys = keys.filter((k) => k.startsWith('@daily_tracking_'));
+      const data = [];
+      for (const key of trackingKeys) {
+        const value = await AsyncStorage.getItem(key);
+        if (value) data.push(JSON.parse(value));
+      }
+      return data;
+    });
+
+    let csv = 'Type,Date,Name,Value,Notes\n';
+
+    // Add medications
+    if (medications) {
+      try {
+        const meds = JSON.parse(medications);
+        for (const med of meds) {
+          const notes = (med.notes || '').replace(/"/g, '""');
+          csv += `Medication,${med.createdAt || ''},${med.name},${med.dosage},"${notes}"\n`;
+        }
+      } catch (e) {
+        console.error('Error parsing medications:', e);
+      }
+    }
+
+    // Add vitals
+    if (vitals) {
+      try {
+        const vitalsList = JSON.parse(vitals);
+        for (const vital of vitalsList) {
+          const notes = (vital.notes || '').replace(/"/g, '""');
+          csv += `Vital,${vital.timestamp || ''},${vital.type},${vital.value} ${vital.unit || ''},"${notes}"\n`;
+        }
+      } catch (e) {
+        console.error('Error parsing vitals:', e);
+      }
+    }
+
+    // Add daily tracking
+    for (const tracking of dailyTracking) {
+      if (tracking.mood !== null) {
+        csv += `Mood,${tracking.date},,${tracking.mood},\n`;
+      }
+      if (tracking.sleep !== null) {
+        csv += `Sleep,${tracking.date},,${tracking.sleep} hours,\n`;
+      }
+      if (tracking.hydration !== null) {
+        csv += `Hydration,${tracking.date},,${tracking.hydration} glasses,\n`;
+      }
+    }
+
+    // Generate filename
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `embermate-export-${timestamp}.csv`;
+    const fileUri = `${FileSystem.documentDirectory}${filename}`;
+
+    // Write file
+    await FileSystem.writeAsStringAsync(fileUri, csv);
+
+    // Share file
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'text/csv',
+        dialogTitle: 'Export EmberMate Data',
+      });
+    } else {
+      Alert.alert(
+        'Export Complete',
+        `Data exported to: ${filename}\n\nYou can find it in your device's documents folder.`
+      );
+    }
+  } catch (error) {
+    console.error('Error exporting CSV:', error);
+    Alert.alert('Export Failed', 'Unable to export data. Please try again.');
+  }
+}
+
+/**
+ * Generate a health summary PDF-ready data object
+ * (Actual PDF generation would require additional libraries)
+ */
+export async function generateHealthSummary(): Promise<{
+  medicationCount: number;
+  vitalCount: number;
+  trackingDays: number;
+  dateRange: { start: string; end: string };
+}> {
+  try {
+    const medications = await AsyncStorage.getItem('@embermate_medications');
+    const vitals = await AsyncStorage.getItem('@vitals_readings');
+    const trackingKeys = (await AsyncStorage.getAllKeys()).filter((k) =>
+      k.startsWith('@daily_tracking_')
+    );
+
+    const medCount = medications ? JSON.parse(medications).length : 0;
+    const vitalCount = vitals ? JSON.parse(vitals).length : 0;
+
+    // Get date range from tracking keys
+    const dates = trackingKeys
+      .map((k) => k.replace('@daily_tracking_', ''))
+      .sort();
+    const startDate = dates[0] || new Date().toISOString().split('T')[0];
+    const endDate =
+      dates[dates.length - 1] || new Date().toISOString().split('T')[0];
+
+    return {
+      medicationCount: medCount,
+      vitalCount: vitalCount,
+      trackingDays: trackingKeys.length,
+      dateRange: {
+        start: startDate,
+        end: endDate,
+      },
+    };
+  } catch (error) {
+    console.error('Error generating health summary:', error);
+    return {
+      medicationCount: 0,
+      vitalCount: 0,
+      trackingDays: 0,
+      dateRange: {
+        start: new Date().toISOString().split('T')[0],
+        end: new Date().toISOString().split('T')[0],
+      },
+    };
+  }
+}

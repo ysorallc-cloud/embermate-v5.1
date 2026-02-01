@@ -148,3 +148,45 @@ export async function clearVitals(): Promise<void> {
     throw error;
   }
 }
+
+/**
+ * Get vitals for a specific date
+ */
+export async function getVitalsForDate(date: string): Promise<VitalReading[]> {
+  try {
+    const vitals = await getVitals();
+    return vitals.filter((v: VitalReading) => {
+      const vitalDate = new Date(v.timestamp).toISOString().split('T')[0];
+      return vitalDate === date;
+    });
+  } catch (error) {
+    console.error('Error getting vitals for date:', error);
+    return [];
+  }
+}
+
+/**
+ * Get latest vitals by types
+ */
+export async function getLatestVitalsByTypes(
+  types: VitalType[]
+): Promise<Record<string, VitalReading | null>> {
+  try {
+    const vitals = await getVitals();
+    const result: Record<string, VitalReading | null> = {};
+
+    for (const type of types) {
+      const typeVitals = vitals
+        .filter((v: VitalReading) => v.type === type)
+        .sort((a: VitalReading, b: VitalReading) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+      result[type] = typeVitals.length > 0 ? typeVitals[0] : null;
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error getting latest vitals by types:', error);
+    return {};
+  }
+}
