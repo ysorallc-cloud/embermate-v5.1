@@ -1,12 +1,379 @@
 // ============================================================================
-// SAMPLE DATA GENERATOR FOR CORRELATION TESTING
-// Generates realistic sample data to test correlation detection
+// SAMPLE DATA GENERATOR
+// Generates realistic sample data for correlation testing and demo purposes
 // Use this to populate 30 days of mock data for development
 // ============================================================================
 
 import { saveSymptom } from './symptomStorage';
 import { saveDailyTracking } from './dailyTrackingStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Medication } from './medicationStorage';
+
+const SAMPLE_DATA_INITIALIZED_KEY = '@embermate_sample_data_initialized';
+
+// ============================================================================
+// SAMPLE CAREGIVERS (Family & Caregivers - NOT doctors)
+// ============================================================================
+
+export const getSampleCaregivers = () => {
+  const now = new Date();
+
+  return [
+    {
+      id: 'cg-1',
+      name: 'Sarah Chen',
+      role: 'family',
+      relationship: 'Daughter',
+      email: 'sarah.chen@email.com',
+      phone: '+1 (555) 123-4567',
+      permissions: {
+        canView: true,
+        canEdit: true,
+        canMarkMedications: true,
+        canScheduleAppointments: true,
+        canAddNotes: true,
+        canExport: true,
+      },
+      invitedAt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+      joinedAt: new Date(now.getTime() - 59 * 24 * 60 * 60 * 1000).toISOString(),
+      avatarColor: '#10B981',
+      lastActive: new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: 'cg-2',
+      name: 'Michael Chen',
+      role: 'family',
+      relationship: 'Son',
+      email: 'mike.chen@email.com',
+      phone: '+1 (555) 234-5678',
+      permissions: {
+        canView: true,
+        canEdit: false,
+        canMarkMedications: true,
+        canScheduleAppointments: false,
+        canAddNotes: true,
+        canExport: false,
+      },
+      invitedAt: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+      joinedAt: new Date(now.getTime() - 44 * 24 * 60 * 60 * 1000).toISOString(),
+      avatarColor: '#3B82F6',
+      lastActive: new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: 'cg-3',
+      name: 'Maria Gonzalez',
+      role: 'caregiver',
+      relationship: 'Home Health Aide',
+      email: 'maria.g@careservice.com',
+      phone: '+1 (555) 345-6789',
+      permissions: {
+        canView: true,
+        canEdit: false,
+        canMarkMedications: true,
+        canScheduleAppointments: false,
+        canAddNotes: true,
+        canExport: false,
+      },
+      invitedAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      joinedAt: new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000).toISOString(),
+      avatarColor: '#F59E0B',
+      lastActive: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(),
+    },
+  ];
+};
+
+// ============================================================================
+// SAMPLE ACTIVITIES
+// ============================================================================
+
+export const getSampleActivities = () => {
+  const now = new Date();
+
+  return [
+    {
+      id: 'act-1',
+      type: 'medication_taken',
+      performedBy: 'Sarah',
+      performedById: 'cg-1',
+      timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+      details: { medications: ['Lisinopril', 'Metformin'] },
+    },
+    {
+      id: 'act-2',
+      type: 'vital_logged',
+      performedBy: 'Maria',
+      performedById: 'cg-3',
+      timestamp: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(),
+      details: { vitalType: 'blood pressure', value: '128/82' },
+    },
+    {
+      id: 'act-3',
+      type: 'note_added',
+      performedBy: 'Michael',
+      performedById: 'cg-2',
+      timestamp: new Date(now.getTime() - 8 * 60 * 60 * 1000).toISOString(),
+      details: { action: 'added note about appetite' },
+    },
+    {
+      id: 'act-4',
+      type: 'medication_taken',
+      performedBy: 'You',
+      performedById: 'user',
+      timestamp: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+      details: { medications: ['Atorvastatin'] },
+    },
+    {
+      id: 'act-5',
+      type: 'appointment_scheduled',
+      performedBy: 'Sarah',
+      performedById: 'cg-1',
+      timestamp: new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString(),
+      details: { provider: 'Dr. Martinez', date: 'Thursday' },
+    },
+  ];
+};
+
+// ============================================================================
+// SAMPLE MEDICATIONS
+// ============================================================================
+
+export const getSampleMedications = (): Medication[] => {
+  const now = new Date();
+  return [
+    {
+      id: 'med-1',
+      name: 'Lisinopril',
+      dosage: '10mg',
+      time: '8:00 AM',
+      timeSlot: 'morning',
+      taken: true,
+      active: true,
+      createdAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      lastTaken: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+      pillsRemaining: 24,
+      daysSupply: 30,
+      notes: 'Blood pressure medication',
+    },
+    {
+      id: 'med-2',
+      name: 'Metformin',
+      dosage: '500mg',
+      time: '8:00 AM',
+      timeSlot: 'morning',
+      taken: true,
+      active: true,
+      createdAt: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+      lastTaken: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+      pillsRemaining: 18,
+      daysSupply: 30,
+      notes: 'Take with breakfast',
+    },
+    {
+      id: 'med-3',
+      name: 'Atorvastatin',
+      dosage: '20mg',
+      time: '9:00 PM',
+      timeSlot: 'evening',
+      taken: false,
+      active: true,
+      createdAt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+      pillsRemaining: 22,
+      daysSupply: 30,
+      notes: 'Cholesterol medication',
+    },
+    {
+      id: 'med-4',
+      name: 'Vitamin D3',
+      dosage: '2000 IU',
+      time: '8:00 AM',
+      timeSlot: 'morning',
+      taken: true,
+      active: true,
+      createdAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+      lastTaken: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+      pillsRemaining: 45,
+      daysSupply: 90,
+    },
+  ];
+};
+
+// ============================================================================
+// SAMPLE VITALS (Last 30 days)
+// ============================================================================
+
+export const getSampleVitals = () => {
+  const vitals = [];
+  const now = new Date();
+
+  for (let i = 0; i < 30; i++) {
+    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    const dateStr = date.toISOString();
+
+    // Systolic BP (trending slightly down - good progress)
+    vitals.push({
+      id: `vital-sys-${i}`,
+      type: 'systolic',
+      value: 135 - Math.floor(i * 0.3) + Math.floor(Math.random() * 8 - 4),
+      timestamp: dateStr,
+      unit: 'mmHg',
+    });
+
+    // Diastolic BP
+    vitals.push({
+      id: `vital-dia-${i}`,
+      type: 'diastolic',
+      value: 85 - Math.floor(i * 0.15) + Math.floor(Math.random() * 5 - 2),
+      timestamp: dateStr,
+      unit: 'mmHg',
+    });
+
+    // Heart rate
+    vitals.push({
+      id: `vital-hr-${i}`,
+      type: 'heartRate',
+      value: 72 + Math.floor(Math.random() * 12 - 6),
+      timestamp: dateStr,
+      unit: 'bpm',
+    });
+
+    // Weight (stable with slight fluctuation)
+    if (i % 3 === 0) {
+      vitals.push({
+        id: `vital-wt-${i}`,
+        type: 'weight',
+        value: 165 + Math.floor(Math.random() * 4 - 2),
+        timestamp: dateStr,
+        unit: 'lbs',
+      });
+    }
+
+    // Glucose (every other day)
+    if (i % 2 === 0) {
+      vitals.push({
+        id: `vital-glu-${i}`,
+        type: 'glucose',
+        value: 110 + Math.floor(Math.random() * 25 - 10),
+        timestamp: dateStr,
+        unit: 'mg/dL',
+      });
+    }
+  }
+
+  return vitals;
+};
+
+// ============================================================================
+// SAMPLE MOOD/WELLNESS DATA (Last 30 days)
+// ============================================================================
+
+export const getSampleMoodLogs = () => {
+  const logs = [];
+  const now = new Date();
+
+  for (let i = 0; i < 30; i++) {
+    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    const dateStr = date.toISOString().split('T')[0];
+
+    // Mood trending slightly up
+    const baseMood = 3 + Math.floor(i / 15);
+    const mood = Math.min(5, Math.max(1, baseMood + Math.floor(Math.random() * 2 - 0.5)));
+
+    logs.push({
+      id: `mood-${i}`,
+      date: dateStr,
+      timestamp: date.toISOString(),
+      mood: mood,
+      energy: Math.min(5, Math.max(1, mood + Math.floor(Math.random() * 2 - 1))),
+      pain: Math.max(0, 3 - Math.floor(Math.random() * 3)),
+    });
+  }
+
+  return logs;
+};
+
+// ============================================================================
+// SAMPLE APPOINTMENTS
+// ============================================================================
+
+export const getSampleAppointments = () => {
+  const now = new Date();
+
+  return [
+    {
+      id: 'appt-1',
+      date: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      time: '10:30 AM',
+      provider: 'Dr. Martinez',
+      specialty: 'Cardiology',
+      location: 'Heart Care Center',
+      notes: 'Follow-up on blood pressure. Bring medication list.',
+      confirmed: true,
+    },
+    {
+      id: 'appt-2',
+      date: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      time: '2:00 PM',
+      provider: 'Dr. Thompson',
+      specialty: 'Primary Care',
+      location: 'Family Medical Clinic',
+      notes: 'Annual checkup',
+      confirmed: false,
+    },
+    {
+      id: 'appt-3',
+      date: new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      time: '9:00 AM',
+      provider: 'Dr. Patel',
+      specialty: 'Endocrinology',
+      location: 'Diabetes Care Center',
+      notes: 'Diabetes management review',
+      confirmed: true,
+    },
+  ];
+};
+
+// ============================================================================
+// INITIALIZE ALL SAMPLE DATA
+// ============================================================================
+
+export const initializeSampleData = async (): Promise<boolean> => {
+  try {
+    // Check if already initialized
+    const initialized = await AsyncStorage.getItem(SAMPLE_DATA_INITIALIZED_KEY);
+    if (initialized === 'true') {
+      return false;
+    }
+
+    // Save medications
+    await AsyncStorage.setItem('@embermate_medications', JSON.stringify(getSampleMedications()));
+
+    // Save vitals
+    await AsyncStorage.setItem('@vitals_readings', JSON.stringify(getSampleVitals()));
+
+    // Save mood logs
+    await AsyncStorage.setItem('@embermate_central_mood_logs', JSON.stringify(getSampleMoodLogs()));
+
+    // Save appointments
+    await AsyncStorage.setItem('@embermate_appointments', JSON.stringify(getSampleAppointments()));
+
+    // Save caregivers
+    await AsyncStorage.setItem('@embermate_caregivers', JSON.stringify(getSampleCaregivers()));
+
+    // Mark as initialized
+    await AsyncStorage.setItem(SAMPLE_DATA_INITIALIZED_KEY, 'true');
+
+    return true;
+  } catch (error) {
+    console.error('Error initializing sample data:', error);
+    return false;
+  }
+};
+
+// Reset sample data (for testing)
+export const resetSampleData = async (): Promise<void> => {
+  await AsyncStorage.removeItem(SAMPLE_DATA_INITIALIZED_KEY);
+  await initializeSampleData();
+};
 
 /**
  * Generate sample correlation data for testing

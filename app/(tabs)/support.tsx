@@ -27,6 +27,11 @@ import {
   CareActivity,
   SharePermissions,
 } from '../../utils/collaborativeCare';
+import {
+  getSampleCaregivers,
+  getSampleActivities,
+  initializeSampleData,
+} from '../../utils/sampleDataGenerator';
 
 // Storage key for last viewed activity timestamp
 const LAST_VIEWED_KEY = '@embermate_care_last_viewed';
@@ -48,82 +53,23 @@ export default function SupportScreen() {
   );
 
   const loadData = async () => {
+    // Initialize sample data if needed
+    await initializeSampleData();
+
     let team = await getCaregivers();
 
-    // Add sample caregivers if the team is empty (for demo)
+    // Use sample caregivers if the team is empty (for demo)
     if (team.length === 0) {
-      team = [
-        {
-          id: 'sarah-1',
-          name: 'Sarah Chen',
-          role: 'family' as const,
-          email: 'sarah@example.com',
-          phone: '+1234567890',
-          permissions: { canView: true, canEdit: true, canMarkMedications: true, canScheduleAppointments: false, canAddNotes: true, canExport: false },
-          invitedAt: new Date().toISOString(),
-          joinedAt: new Date().toISOString(),
-          avatarColor: Colors.rose,
-          lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: 'dr-johnson-1',
-          name: 'Dr. Johnson',
-          role: 'healthcare' as const,
-          email: 'dr.johnson@example.com',
-          phone: '+0987654321',
-          permissions: { canView: true, canEdit: false, canMarkMedications: false, canScheduleAppointments: false, canAddNotes: true, canExport: false },
-          invitedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          joinedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          avatarColor: Colors.purple,
-          lastActive: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: 'mike-1',
-          name: 'Mike Chen',
-          role: 'family' as const,
-          email: 'mike@example.com',
-          phone: '+1122334455',
-          permissions: { canView: true, canEdit: false, canMarkMedications: false, canScheduleAppointments: false, canAddNotes: false, canExport: false },
-          invitedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-          joinedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-          avatarColor: Colors.amber,
-          lastActive: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-      ];
+      team = getSampleCaregivers() as CaregiverProfile[];
     }
 
     setCaregivers(team);
 
     let acts = await getCareActivities(100);
 
-    // Add sample activities if none exist (for demo)
+    // Use sample activities if none exist (for demo)
     if (acts.length === 0 && team.length > 0) {
-      acts = [
-        {
-          id: 'act-1',
-          type: 'note_added' as const,
-          performedBy: 'You',
-          performedById: 'user',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          details: { action: 'shared medication log', recipient: 'Dr. Johnson' },
-        },
-        {
-          id: 'act-2',
-          type: 'vital_logged' as const,
-          performedBy: 'Sarah',
-          performedById: 'sarah-1',
-          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-          details: { vitalType: 'vitals' },
-        },
-        {
-          id: 'act-3',
-          type: 'note_added' as const,
-          performedBy: 'You',
-          performedById: 'user',
-          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          details: { action: 'modified care plan' },
-        },
-      ];
+      acts = getSampleActivities() as CareActivity[];
     }
 
     setActivities(acts);
@@ -135,13 +81,19 @@ export default function SupportScreen() {
     setRefreshing(false);
   }, []);
 
-  // Get role label
-  const getRoleLabel = (role: string): string => {
-    switch (role) {
+  // Get role label with relationship
+  const getRoleLabel = (caregiver: CaregiverProfile): string => {
+    const relationship = (caregiver as any).relationship;
+    if (relationship) {
+      return relationship;
+    }
+    switch (caregiver.role) {
       case 'family':
-        return 'Family support';
+        return 'Family member';
+      case 'caregiver':
+        return 'Caregiver';
       case 'healthcare':
-        return 'Primary physician';
+        return 'Healthcare provider';
       default:
         return 'Care team';
     }
@@ -246,44 +198,55 @@ export default function SupportScreen() {
             <Text style={styles.sectionHeader}>YOUR CARE CIRCLE ({careCircleCount})</Text>
             <View style={styles.teamContainer}>
               {caregivers.slice(0, 4).map((caregiver) => (
-                <GlassCard key={caregiver.id} style={styles.memberCard}>
-                  <View style={styles.memberContent}>
-                    <View
-                      style={[
-                        styles.memberAvatar,
-                        { backgroundColor: `${caregiver.avatarColor || Colors.accent}20` },
-                      ]}
-                    >
-                      <Text style={styles.memberAvatarText}>👤</Text>
-                    </View>
-                    <View style={styles.memberInfo}>
-                      <Text style={styles.memberName}>{caregiver.name}</Text>
-                      <Text style={styles.memberRole}>{getRoleLabel(caregiver.role)}</Text>
-                    </View>
-                    <View style={styles.memberActions}>
-                      <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => {
-                          const phone = (caregiver as any).phone || '';
-                          if (phone) Linking.openURL(`tel:${phone}`);
-                        }}
-                        activeOpacity={0.7}
+                <TouchableOpacity
+                  key={caregiver.id}
+                  onPress={() => router.push(`/caregiver-management?id=${caregiver.id}`)}
+                  activeOpacity={0.7}
+                >
+                  <GlassCard style={styles.memberCard}>
+                    <View style={styles.memberContent}>
+                      <View
+                        style={[
+                          styles.memberAvatar,
+                          { backgroundColor: `${caregiver.avatarColor || Colors.accent}20` },
+                        ]}
                       >
-                        <Text style={styles.actionButtonIcon}>📞</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => {
-                          const phone = (caregiver as any).phone || '';
-                          if (phone) Linking.openURL(`sms:${phone}`);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.actionButtonIcon}>💬</Text>
-                      </TouchableOpacity>
+                        <Text style={styles.memberAvatarText}>
+                          {caregiver.name.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={styles.memberInfo}>
+                        <Text style={styles.memberName}>{caregiver.name}</Text>
+                        <Text style={styles.memberRole}>{getRoleLabel(caregiver)}</Text>
+                      </View>
+                      <View style={styles.memberActions}>
+                        <TouchableOpacity
+                          style={styles.actionButton}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            const phone = (caregiver as any).phone || '';
+                            if (phone) Linking.openURL(`tel:${phone}`);
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.actionButtonIcon}>📞</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.actionButton}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            const phone = (caregiver as any).phone || '';
+                            if (phone) Linking.openURL(`sms:${phone}`);
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.actionButtonIcon}>💬</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.editChevron}>›</Text>
+                      </View>
                     </View>
-                  </View>
-                </GlassCard>
+                  </GlassCard>
+                </TouchableOpacity>
               ))}
 
               {/* Manage team link */}
@@ -490,7 +453,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   memberAvatarText: {
-    fontSize: 20,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   memberInfo: {
     flex: 1,
@@ -519,6 +484,11 @@ const styles = StyleSheet.create({
   },
   actionButtonIcon: {
     fontSize: 16,
+  },
+  editChevron: {
+    fontSize: 18,
+    color: 'rgba(255, 255, 255, 0.4)',
+    marginLeft: 4,
   },
   manageTeamLink: {
     paddingVertical: 12,

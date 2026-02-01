@@ -33,6 +33,7 @@ import {
   recordVisit,
 } from '../../utils/lastVisitTracker';
 import { MICROCOPY } from '../../constants/microcopy';
+import { initializeSampleData } from '../../utils/sampleDataGenerator';
 
 // Prompt System
 import {
@@ -424,6 +425,9 @@ export default function NowScreen() {
 
   const loadData = async () => {
     try {
+      // Initialize sample data for demo/reporting
+      await initializeSampleData();
+
       // Load medications
       const meds = await getMedications();
       const activeMeds = meds.filter((m) => m.active);
