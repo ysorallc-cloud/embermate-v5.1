@@ -203,7 +203,7 @@ export default function NowScreen() {
     if (moodLevel) {
       if (moodLevel >= 4) {
         insights.push({
-          icon: '💚',
+          icon: '😊',
           title: 'Positive mood today',
           message: moodLevel === 5
             ? "They're feeling great! Positive days are worth noting—tracking mood over time helps you see what activities or routines contribute to better days."
@@ -212,7 +212,7 @@ export default function NowScreen() {
         });
       } else if (moodLevel <= 2) {
         insights.push({
-          icon: '💙',
+          icon: '😔',
           title: 'A harder day',
           message: "Difficult days are part of the journey. Logging them helps you track patterns and share context with healthcare providers. Your presence matters more than you know.",
           type: 'positive',

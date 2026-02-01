@@ -405,37 +405,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
   backButton: {
-    width: 44,
-    height: 44,
+    width: 36,
+    height: 36,
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 22,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backIcon: {
-    fontSize: 24,
+    fontSize: 20,
     color: Colors.textPrimary,
   },
   headerCenter: {
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '600',
     color: Colors.textPrimary,
   },
   headerSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: Colors.textMuted,
-    marginTop: 2,
+    marginTop: 1,
   },
   placeholder: {
-    width: 44,
+    width: 36,
   },
 
   // Content
@@ -443,51 +443,51 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
 
   // Sections
   section: {
-    marginBottom: 20,
+    marginBottom: 14,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
+    gap: 6,
+    marginBottom: 6,
   },
   sectionIcon: {
-    fontSize: 18,
+    fontSize: 14,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
     color: Colors.textPrimary,
     flex: 1,
   },
   sectionCount: {
-    fontSize: 13,
+    fontSize: 11,
     color: Colors.accent,
     fontWeight: '500',
   },
   sectionCard: {
-    padding: 14,
+    padding: 10,
   },
 
   // Medications
   medItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
+    gap: 8,
+    paddingVertical: 6,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.06)',
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 4,
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.2)',
     backgroundColor: 'rgba(255,255,255,0.05)',
@@ -500,50 +500,49 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     color: '#000',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
   },
   medInfo: {
     flex: 1,
   },
   medName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     color: Colors.textPrimary,
   },
   medDosage: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.textMuted,
-    marginTop: 1,
   },
 
   // Empty states
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 10,
   },
   emptyIcon: {
-    fontSize: 24,
+    fontSize: 18,
     color: Colors.success,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   emptyText: {
-    fontSize: 13,
+    fontSize: 12,
     color: Colors.textSecondary,
   },
 
   // Vitals
   vitalsRow: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
   },
   vitalInput: {
     flex: 1,
   },
   vitalLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.textMuted,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   bpInputRow: {
     flexDirection: 'row',
@@ -552,16 +551,16 @@ const styles = StyleSheet.create({
   bpInput: {
     flex: 1,
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 6,
+    padding: 8,
     color: Colors.textPrimary,
-    fontSize: 16,
+    fontSize: 14,
     textAlign: 'center',
   },
   bpSlash: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.textMuted,
-    marginHorizontal: 4,
+    marginHorizontal: 3,
   },
   hrInputRow: {
     flexDirection: 'row',
@@ -570,29 +569,29 @@ const styles = StyleSheet.create({
   hrInput: {
     flex: 1,
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 6,
+    padding: 8,
     color: Colors.textPrimary,
-    fontSize: 16,
+    fontSize: 14,
     textAlign: 'center',
   },
   hrUnit: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.textMuted,
-    marginLeft: 6,
+    marginLeft: 4,
   },
 
   // Mood
   moodGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 6,
+    gap: 4,
   },
   moodOption: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
@@ -602,11 +601,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.accent,
   },
   moodEmoji: {
-    fontSize: 24,
-    marginBottom: 4,
+    fontSize: 18,
+    marginBottom: 2,
   },
   moodLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: Colors.textMuted,
   },
   moodLabelSelected: {
@@ -618,25 +617,25 @@ const styles = StyleSheet.create({
   mealsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   mealOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    gap: 6,
+    gap: 4,
   },
   mealOptionSelected: {
     backgroundColor: 'rgba(94, 234, 212, 0.15)',
     borderColor: Colors.accent,
   },
   mealLabel: {
-    fontSize: 13,
+    fontSize: 12,
     color: Colors.textSecondary,
   },
   mealLabelSelected: {
@@ -644,29 +643,29 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   mealCheck: {
-    fontSize: 12,
+    fontSize: 10,
     color: Colors.accent,
     fontWeight: '700',
   },
 
   // Navigation
   navigation: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.1)',
   },
   saveButton: {
     backgroundColor: Colors.accent,
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 10,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   saveButtonDisabled: {
     opacity: 0.5,
   },
   saveButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#000',
   },
