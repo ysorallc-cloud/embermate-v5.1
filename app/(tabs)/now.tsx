@@ -735,37 +735,35 @@ export default function NowScreen() {
               />
             )}
 
-            {/* Quick Check-In Card with Progress Rings */}
-            <View style={styles.quickCheckinCard}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>{MICROCOPY.QUICK_CHECKIN}</Text>
-              </View>
-
-              <View style={styles.checkinGrid}>
+            {/* Progress Section - Independent status cards */}
+            <View style={styles.progressSection}>
+              <Text style={styles.sectionTitle}>PROGRESS</Text>
+              <View style={styles.progressGrid}>
                 {renderProgressRing('💊', 'Meds', todayStats.meds, () => handleQuickCheck('meds'))}
                 {renderProgressRing('📊', 'Vitals', todayStats.vitals, () => handleQuickCheck('vitals'))}
                 {renderProgressRing('😊', 'Mood', todayStats.mood, () => handleQuickCheck('mood'))}
                 {renderProgressRing('🍽️', 'Meals', todayStats.meals, () => handleQuickCheck('meals'))}
               </View>
-
-              {/* Nudge Prompt - Single inline suggestion */}
-              {nudgePrompt && !showOnboarding && (
-                <NudgePrompt
-                  message={nudgePrompt.message}
-                  route={nudgePrompt.route}
-                  category={nudgePrompt.category}
-                />
-              )}
-
-              <View style={styles.openFullLog}>
-                <TouchableOpacity
-                  onPress={() => router.push('/(tabs)/record')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.openFullLogLink}>{MICROCOPY.OPEN_FULL_RECORD} →</Text>
-                </TouchableOpacity>
-              </View>
             </View>
+
+            {/* Nudge Prompt - Single inline suggestion */}
+            {nudgePrompt && !showOnboarding && (
+              <NudgePrompt
+                message={nudgePrompt.message}
+                route={nudgePrompt.route}
+                category={nudgePrompt.category}
+              />
+            )}
+
+            {/* Quick Check-In Button */}
+            <TouchableOpacity
+              style={styles.quickCheckinButton}
+              onPress={() => router.push('/quick-checkin')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.quickCheckinButtonIcon}>✓</Text>
+              <Text style={styles.quickCheckinButtonText}>Quick Check-In</Text>
+            </TouchableOpacity>
 
             {/* AI Insight Card */}
             {aiInsight && (
@@ -857,14 +855,38 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
 
-  // Quick Check-In Card
-  quickCheckinCard: {
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+  // Progress Section
+  progressSection: {
+    marginBottom: 16,
+  },
+  progressGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+
+  // Quick Check-In Button
+  quickCheckinButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(94, 234, 212, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.25)',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 25,
+    borderColor: 'rgba(94, 234, 212, 0.3)',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    marginBottom: 20,
+    gap: 10,
+  },
+  quickCheckinButtonIcon: {
+    fontSize: 18,
+    color: Colors.accent,
+  },
+  quickCheckinButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.accent,
   },
 
   // Section Header
@@ -886,12 +908,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
   },
 
-  // Check-in Grid
-  checkinGrid: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
-  },
+  // Progress Item
   checkinItem: {
     flex: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
@@ -941,19 +958,6 @@ const styles = StyleSheet.create({
   },
   stat_empty: {
     color: 'rgba(255, 255, 255, 0.4)',
-  },
-
-  // Open Full Record Link
-  openFullLog: {
-    alignItems: 'center',
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(94, 234, 212, 0.15)',
-  },
-  openFullLogLink: {
-    color: 'rgba(94, 234, 212, 0.7)',
-    fontSize: 12,
-    fontWeight: '500',
   },
 
   // AI Insight Card
