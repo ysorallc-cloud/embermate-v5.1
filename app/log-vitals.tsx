@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { saveVital } from '../utils/vitalsStorage';
+import { saveVitalsLog } from '../utils/centralStorage';
 
 export default function LogVitalsScreen() {
   const router = useRouter();
@@ -24,13 +25,23 @@ export default function LogVitalsScreen() {
     setSaving(true);
     try {
       const now = new Date();
-      
+
+      // Save to vitalsStorage (for detailed vitals history)
       if (systolic && diastolic) {
         await saveVital({ type: 'systolic', value: parseFloat(systolic), unit: 'mmHg', timestamp: now.toISOString() });
         await saveVital({ type: 'diastolic', value: parseFloat(diastolic), unit: 'mmHg', timestamp: now.toISOString() });
       }
       if (glucose) await saveVital({ type: 'glucose', value: parseFloat(glucose), unit: 'mg/dL', timestamp: now.toISOString() });
       if (weight) await saveVital({ type: 'weight', value: parseFloat(weight), unit: 'lbs', timestamp: now.toISOString() });
+
+      // Also save to centralStorage for Now page sync
+      await saveVitalsLog({
+        timestamp: now.toISOString(),
+        systolic: systolic ? parseFloat(systolic) : undefined,
+        diastolic: diastolic ? parseFloat(diastolic) : undefined,
+        glucose: glucose ? parseFloat(glucose) : undefined,
+        weight: weight ? parseFloat(weight) : undefined,
+      });
 
       Alert.alert('Success', 'Vitals logged successfully', [{ text: 'OK', onPress: () => router.back() }]);
     } catch (error) {

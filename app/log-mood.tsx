@@ -2,7 +2,7 @@
 // LOG MOOD SCREEN - Simple mood logging
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
+import { saveMoodLog } from '../utils/centralStorage';
+import { hapticSuccess } from '../utils/hapticFeedback';
 
 const MOODS = [
   { id: 'great', emoji: '😊', label: 'Great' },
@@ -26,13 +28,46 @@ const MOODS = [
 export default function LogMoodScreen() {
   const router = useRouter();
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleMoodSelect = (moodId: string) => {
+  // Cleanup timeout on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleMoodSelect = async (moodId: string) => {
     setSelectedMood(moodId);
-    // In a real implementation, save the mood here
-    setTimeout(() => {
+
+    // Convert mood ID to numeric value for storage
+    const moodValues: Record<string, number> = {
+      'great': 5,
+      'good': 4,
+      'okay': 3,
+      'down': 2,
+      'difficult': 1,
+    };
+
+    try {
+      await saveMoodLog({
+        timestamp: new Date().toISOString(),
+        mood: moodValues[moodId] || 3,
+        energy: null,
+        pain: null,
+      });
+
+      await hapticSuccess();
+
+      navigationTimeoutRef.current = setTimeout(() => {
+        router.back();
+      }, 300);
+    } catch (error) {
+      console.error('Error saving mood:', error);
       router.back();
-    }, 300);
+    }
   };
 
   return (
