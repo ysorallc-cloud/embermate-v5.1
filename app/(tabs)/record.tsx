@@ -237,32 +237,37 @@ export default function RecordTab() {
     },
   ];
 
-  const renderLogItem = (item: LogItemData) => (
-    <TouchableOpacity
-      key={item.id}
-      style={styles.logItem}
-      onPress={() => handleItemPress(item.route)}
-      activeOpacity={0.7}
-      accessible={true}
-      accessibilityRole="button"
-      accessibilityLabel={`${item.question}. ${item.status?.text || item.hint}`}
-    >
-      <View style={styles.itemIcon}>
-        <Text style={styles.iconEmoji}>{item.emoji}</Text>
-      </View>
-      <View style={styles.itemContent}>
-        <Text style={styles.itemQuestion}>{item.question}</Text>
-        {item.status ? (
-          <Text style={[styles.itemStatus, item.status.done && styles.itemStatusDone]}>
-            {item.status.text}
+  const renderLogItem = (item: LogItemData) => {
+    const isDone = item.status?.done;
+    return (
+      <TouchableOpacity
+        key={item.id}
+        style={[styles.logItem, isDone && styles.logItemDone]}
+        onPress={() => handleItemPress(item.route)}
+        activeOpacity={0.7}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={`${item.question}. ${item.status?.text || item.hint}`}
+      >
+        <View style={[styles.itemIcon, isDone && styles.itemIconDone]}>
+          <Text style={styles.iconEmoji}>{item.emoji}</Text>
+        </View>
+        <View style={styles.itemContent}>
+          <Text style={[styles.itemQuestion, isDone && styles.itemQuestionDone]}>
+            {item.question}
           </Text>
-        ) : (
-          <Text style={styles.itemHint}>{item.hint}</Text>
-        )}
-      </View>
-      <Text style={styles.itemChevron}>›</Text>
-    </TouchableOpacity>
-  );
+          {item.status ? (
+            <Text style={[styles.itemStatus, item.status.done && styles.itemStatusDone]}>
+              {item.status.text}
+            </Text>
+          ) : (
+            <Text style={styles.itemHint}>{item.hint}</Text>
+          )}
+        </View>
+        <Text style={styles.itemChevron}>›</Text>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
@@ -293,11 +298,11 @@ export default function RecordTab() {
         {/* NO PROGRESS BAR - Removes pressure */}
 
         {/* Group 1: Quick */}
-          <Text style={styles.groupHeader}>QUICK</Text>
+          <Text style={styles.groupHeader}>UNDER 10 SECONDS</Text>
           {quickItems.map(renderLogItem)}
 
-          {/* Group 2: Takes a moment */}
-          <Text style={styles.groupHeader}>TAKES A MOMENT</Text>
+          {/* Group 2: A bit more detail */}
+          <Text style={styles.groupHeader}>A BIT MORE DETAIL</Text>
           {momentItems.map(renderLogItem)}
 
           {/* More items - Collapsed by default */}
@@ -388,6 +393,10 @@ const styles = StyleSheet.create({
     gap: 12,                      // STANDARD
     minHeight: 68,                // Slightly reduced from 72
   },
+  logItemDone: {
+    opacity: 0.6,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  },
   itemIcon: {
     width: 48,                    // STANDARD
     height: 48,                   // STANDARD
@@ -395,6 +404,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,             // STANDARD
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  itemIconDone: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
   },
   iconEmoji: {
     fontSize: 24,                 // Increased for larger icon
@@ -407,6 +419,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',            // STANDARD
     color: '#FFFFFF',
     marginBottom: 2,
+  },
+  itemQuestionDone: {
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   itemHint: {
     fontSize: 11,                 // STANDARD
