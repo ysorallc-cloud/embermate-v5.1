@@ -182,6 +182,13 @@ export default function RecordTab() {
       status: sleepLogged ? { text: '✓ Logged', done: true } : undefined,
       route: '/log-sleep',
     },
+    {
+      id: 'appointment',
+      emoji: '📅',
+      question: 'Log appointment?',
+      hint: 'Doctor visits & notes',
+      route: '/log-appointment',
+    },
   ];
 
   // More items - collapsed by default
