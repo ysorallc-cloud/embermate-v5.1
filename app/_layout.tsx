@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { resetDailyMedicationStatus } from '../utils/medicationStorage';
 import { requestNotificationPermissions } from '../utils/notificationService';
+import { initializeSampleData } from '../utils/sampleDataGenerator';
 import { useNotificationHandler } from '../utils/useNotificationHandler';
 import ErrorBoundary from '../components/ErrorBoundary';
 
@@ -58,6 +59,8 @@ export default function RootLayout() {
   useEffect(() => {
     checkAndResetMedicationStatus();
     requestNotificationPermissionsOnStartup();
+    // Initialize sample data once at app startup
+    initializeSampleData();
 
     // Cleanup timer on unmount
     return () => {

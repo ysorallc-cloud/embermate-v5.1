@@ -30,7 +30,6 @@ import {
 import {
   getSampleCaregivers,
   getSampleActivities,
-  initializeSampleData,
 } from '../../utils/sampleDataGenerator';
 
 // Storage key for last viewed activity timestamp
@@ -53,9 +52,6 @@ export default function SupportScreen() {
   );
 
   const loadData = async () => {
-    // Initialize sample data if needed
-    await initializeSampleData();
-
     let team = await getCaregivers();
 
     // Use sample caregivers if the team is empty (for demo)

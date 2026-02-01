@@ -23,7 +23,6 @@ import { getUpcomingAppointments, Appointment } from '../../utils/appointmentSto
 import { getDailyTracking } from '../../utils/dailyTrackingStorage';
 import { getLatestVitalsByTypes } from '../../utils/vitalsStorage';
 import { getMorningWellness, StoredMorningWellness } from '../../utils/wellnessCheckStorage';
-import { initializeSampleData } from '../../utils/sampleDataGenerator';
 
 // Aurora Components
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
@@ -47,9 +46,6 @@ export default function UnderstandScreen() {
 
   const loadData = async () => {
     try {
-      // Initialize sample data for demo/reporting
-      await initializeSampleData();
-
       const meds = await getMedications();
       setMedications(meds.filter((m) => m.active));
 
