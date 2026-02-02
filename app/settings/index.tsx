@@ -429,6 +429,13 @@ export default function SettingsScreen() {
       icon: '⚙️',
       title: 'Advanced',
       items: [
+        ...(hasSample ? [{
+          id: 'clear-sample',
+          icon: '🧹',
+          title: 'Clear Sample Data',
+          subtitle: 'Remove demo data only',
+          onPress: handleClearSample,
+        }] : []),
         {
           id: 'clear-data',
           icon: '⚠️',
@@ -439,7 +446,7 @@ export default function SettingsScreen() {
         },
       ],
     },
-  ], [patientName, medicationCount, appointmentCount, use24HourTime]);
+  ], [patientName, medicationCount, appointmentCount, use24HourTime, hasSample]);
 
   // Filter settings based on search query
   const filteredCategories = useMemo(() => {
