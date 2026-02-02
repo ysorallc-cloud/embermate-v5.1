@@ -22,6 +22,7 @@ import { Colors, BorderRadius, Spacing } from '../theme/theme-tokens';
 import { saveDailyTracking, getDailyTracking } from '../utils/dailyTrackingStorage';
 import { saveMealsLog, getTodayMealsLog, MealsLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
+import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage';
 
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Breakfast', icon: '🌅' },
@@ -36,8 +37,18 @@ export default function LogMeal() {
   const [selectedMeals, setSelectedMeals] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<TodayProgress | null>(null);
 
   const today = new Date().toISOString().split('T')[0];
+
+  // Load rhythm progress on mount
+  useEffect(() => {
+    const loadProgress = async () => {
+      const progressData = await getTodayProgress();
+      setProgress(progressData);
+    };
+    loadProgress();
+  }, []);
 
   // Pre-select meal type if passed via params
   useEffect(() => {
@@ -156,6 +167,15 @@ export default function LogMeal() {
               <View style={{ width: 44 }} />
             </View>
 
+            {/* Rhythm context banner */}
+            {progress && progress.meals.expected > 0 && (
+              <View style={styles.contextBanner}>
+                <Text style={styles.contextText}>
+                  {progress.meals.completed} of {progress.meals.expected} meals logged today
+                </Text>
+              </View>
+            )}
+
             {/* Meal Type Selection */}
             <View style={styles.section}>
               <Text style={styles.label}>Meal Type</Text>
@@ -267,6 +287,22 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: Colors.textPrimary,
+  },
+
+  // Rhythm context banner
+  contextBanner: {
+    backgroundColor: 'rgba(74, 222, 128, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(74, 222, 128, 0.15)',
+    borderRadius: 10,
+    padding: 10,
+    marginHorizontal: Spacing.xl,
+    marginBottom: Spacing.md,
+  },
+  contextText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
   },
 
   // Section

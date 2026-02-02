@@ -309,7 +309,37 @@ export default function NowScreen() {
       if (match) return match;
     }
 
-    return null;
+    // Default fallback - always show something
+    const hour = currentHour;
+    if (hour < 12) {
+      return {
+        icon: '🌅',
+        title: 'Good morning',
+        message: "A new day of caregiving begins. Every small action you take matters—even just being present makes a difference.",
+        type: 'suggestion',
+      };
+    } else if (hour < 17) {
+      return {
+        icon: '☀️',
+        title: 'Afternoon check-in',
+        message: "You're doing great. Caregiving is a marathon, not a sprint. Take a moment to appreciate your efforts today.",
+        type: 'suggestion',
+      };
+    } else if (hour < 21) {
+      return {
+        icon: '🌆',
+        title: 'Evening wind-down',
+        message: "The day is winding down. Reflect on what went well today—consistency over perfection is what matters most.",
+        type: 'suggestion',
+      };
+    } else {
+      return {
+        icon: '🌙',
+        title: 'Rest well',
+        message: "Another day of care complete. Rest is part of caregiving too—you can't pour from an empty cup.",
+        type: 'suggestion',
+      };
+    }
   }, []);
 
   const handleDismissBanner = async () => {

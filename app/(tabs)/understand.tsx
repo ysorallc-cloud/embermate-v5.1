@@ -44,6 +44,12 @@ import {
   getBaselineLanguage,
   MIN_DAYS_FOR_BASELINE,
 } from '../../utils/baselineStorage';
+import {
+  getRhythm,
+  detectDeviation,
+  Rhythm,
+  DeviationAnalysis,
+} from '../../utils/rhythmStorage';
 
 // Aurora Components
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
@@ -89,6 +95,8 @@ export default function UnderstandScreen() {
   });
   const [baselineData, setBaselineData] = useState<BaselineData | null>(null);
   const [todayVsBaseline, setTodayVsBaseline] = useState<TodayVsBaseline[]>([]);
+  const [rhythm, setRhythm] = useState<Rhythm | null>(null);
+  const [deviation, setDeviation] = useState<DeviationAnalysis | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -142,6 +150,14 @@ export default function UnderstandScreen() {
       } else {
         setTodayVsBaseline([]);
       }
+
+      // Load rhythm data for anchoring insights
+      const [rhythmData, deviationData] = await Promise.all([
+        getRhythm(),
+        detectDeviation(),
+      ]);
+      setRhythm(rhythmData);
+      setDeviation(deviationData);
     } catch (error) {
       console.error('Error loading Understand data:', error);
     }
@@ -430,6 +446,13 @@ export default function UnderstandScreen() {
                 </>
               ) : (
                 <>
+                  {/* Rhythm anchor - shows when rhythm exists */}
+                  {rhythm && (
+                    <Text style={styles.insightAnchor}>
+                      Compared to your usual rhythm...
+                    </Text>
+                  )}
+
                   {/* Section 1: What's normal */}
                   {getWhatsNormal.length > 0 && (
                     <View style={styles.insightSection}>
@@ -462,6 +485,23 @@ export default function UnderstandScreen() {
               )}
             </View>
           </View>
+
+          {/* Deviation Insight Card - Only shows when significant deviation detected */}
+          {deviation?.hasDeviation && (
+            <View style={[styles.insightCard, styles.deviationCard]}>
+              <View style={styles.insightContent}>
+                <Text style={styles.insightAnchor}>
+                  Compared to your usual rhythm...
+                </Text>
+                <Text style={styles.insightSubText}>
+                  This week looks different from your typical pattern.
+                  {deviation.categories.vitals && ' Vitals have been logged less often than usual.'}
+                  {deviation.categories.meals && ' Meals have been logged less frequently.'}
+                  {' '}Something may have shifted.
+                </Text>
+              </View>
+            </View>
+          )}
 
           {/* Layer 2: Exploration Tools */}
           <View style={styles.section}>
@@ -655,6 +695,17 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: 'rgba(255, 255, 255, 0.75)',
     lineHeight: 20,
+  },
+  insightAnchor: {
+    fontSize: 12,
+    color: 'rgba(74, 222, 128, 0.7)',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  deviationCard: {
+    backgroundColor: 'rgba(245, 158, 11, 0.05)',
+    borderColor: 'rgba(245, 158, 11, 0.15)',
+    marginBottom: 28,
   },
 
   // Sections

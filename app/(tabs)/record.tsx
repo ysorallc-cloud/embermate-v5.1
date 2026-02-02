@@ -30,7 +30,14 @@ import {
   getTodaySymptomLog,
   getTodayNotesLog,
 } from '../../utils/centralStorage';
-import { emitDataUpdate } from '../../lib/events';
+import { useDataListener } from '../../lib/events';
+import {
+  getRhythm,
+  getTodayProgress,
+  setFirstUseDate,
+  Rhythm,
+  TodayProgress,
+} from '../../utils/rhythmStorage';
 
 interface LogItemData {
   id: string;
@@ -59,16 +66,24 @@ export default function RecordTab() {
   const [notesLogged, setNotesLogged] = useState(false);
   const [appointmentsCount, setAppointmentsCount] = useState(0);
 
+  // Rhythm state
+  const [rhythm, setRhythm] = useState<Rhythm | null>(null);
+  const [todayProgress, setTodayProgress] = useState<TodayProgress | null>(null);
+
   useFocusEffect(
     useCallback(() => {
       loadTodayData();
     }, [])
   );
 
+  // Listen for data updates from other parts of the app
+  useDataListener(() => {
+    loadTodayData();
+  });
+
   // Handle navigation params to auto-expand sections
   useEffect(() => {
     if (params.expandSection) {
-      // Could be used to scroll to or highlight a section
       setShowMoreItems(params.expandSection === 'symptoms');
     }
   }, [params.expandSection]);
@@ -76,6 +91,9 @@ export default function RecordTab() {
   const loadTodayData = async () => {
     try {
       setLoading(true);
+
+      // Set first use date if not set
+      await setFirstUseDate();
 
       const [
         allMeds,
@@ -88,6 +106,8 @@ export default function RecordTab() {
         todaySymptoms,
         todayNotes,
         upcomingAppointments,
+        rhythmData,
+        progressData,
       ] = await Promise.all([
         getMedications(),
         getTodayMedicationLog(),
@@ -99,19 +119,27 @@ export default function RecordTab() {
         getTodaySymptomLog(),
         getTodayNotesLog(),
         countUpcomingAppointments(),
+        getRhythm(),
+        getTodayProgress(),
       ]);
+
+      // Set rhythm data
+      setRhythm(rhythmData);
+      setTodayProgress(progressData);
 
       const activeMeds = allMeds.filter(m => m.active !== false);
       setMedications(activeMeds);
-      // Count medications with taken=true (same as Now page)
       setMedicationsTaken(activeMeds.filter(m => m.taken).length);
-      // Count individual vitals (same as Now page)
+
+      // Count individual vitals
       let vitalsLogged = 0;
       if (todayVitals) {
-        if (todayVitals.systolic) vitalsLogged++;
-        if (todayVitals.diastolic) vitalsLogged++;
+        if (todayVitals.systolic || todayVitals.diastolic) vitalsLogged++;
         if (todayVitals.heartRate) vitalsLogged++;
         if (todayVitals.temperature) vitalsLogged++;
+        if (todayVitals.glucose) vitalsLogged++;
+        if (todayVitals.oxygen) vitalsLogged++;
+        if (todayVitals.weight) vitalsLogged++;
       }
       setVitalsCount(vitalsLogged);
       setMoodLogged(todayMood?.mood !== null && todayMood?.mood !== undefined);
@@ -132,11 +160,60 @@ export default function RecordTab() {
     router.push(route as any);
   };
 
+  // Render rhythm panel (only shows on Day 4+)
+  const renderRhythmPanel = () => {
+    if (!rhythm) return null;
+
+    const panelTitle = rhythm.isInferred ? "Observed Rhythm" : "Today's Rhythm";
+
+    return (
+      <View style={styles.rhythmPanel}>
+        <View style={styles.rhythmContent}>
+          <Text style={[styles.rhythmTitle, rhythm.isInferred && styles.rhythmTitleObserved]}>
+            {panelTitle}
+          </Text>
+          <Text style={styles.rhythmBaseline}>
+            {rhythm.medications > 0 && (
+              <>
+                <Text style={styles.rhythmLabel}>Medications:</Text> {rhythm.medications} doses
+                {(rhythm.vitals > 0 || rhythm.meals > 0) && ' • '}
+              </>
+            )}
+            {rhythm.vitals > 0 && (
+              <>
+                <Text style={styles.rhythmLabel}>Vitals:</Text> {rhythm.vitals} checks
+                {rhythm.meals > 0 && ' • '}
+              </>
+            )}
+            {rhythm.meals > 0 && (
+              <>
+                <Text style={styles.rhythmLabel}>Meals:</Text> {rhythm.meals}
+              </>
+            )}
+          </Text>
+        </View>
+        <View style={styles.rhythmFooter}>
+          <TouchableOpacity onPress={() => router.push('/rhythm-edit' as any)}>
+            <Text style={styles.rhythmLink}>Adjust if needed</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   // Generate medication status text
   const getMedicationStatusText = (): { text: string; done: boolean } | undefined => {
+    // If rhythm exists, show progress against expected
+    if (todayProgress && todayProgress.medications.expected > 0) {
+      const { completed, expected } = todayProgress.medications;
+      const done = completed >= expected;
+      return { text: `${completed}/${expected}`, done };
+    }
+
+    // Fallback to existing logic
     if (medications.length === 0) return undefined;
     if (medicationsTaken === medications.length) {
-      return { text: 'Nothing to do ✓', done: true };
+      return { text: 'Nothing to do', done: true };
     }
     const remaining = medications.length - medicationsTaken;
     return { text: `${remaining} remaining`, done: false };
@@ -165,7 +242,13 @@ export default function RecordTab() {
       emoji: '🍽️',
       question: 'Did they eat?',
       hint: 'Meals today',
-      status: mealsLogged > 0 ? { text: `${mealsLogged}/4`, done: mealsLogged >= 4 } : undefined,
+      status: (() => {
+        if (todayProgress && todayProgress.meals.expected > 0) {
+          const { completed, expected } = todayProgress.meals;
+          return { text: `${completed}/${expected}`, done: completed >= expected };
+        }
+        return mealsLogged > 0 ? { text: `${mealsLogged}`, done: false } : undefined;
+      })(),
       route: '/log-meal',
     },
   ];
@@ -185,7 +268,13 @@ export default function RecordTab() {
       emoji: '📊',
       question: 'Check vitals?',
       hint: 'BP, heart rate, etc.',
-      status: vitalsCount > 0 ? { text: `${vitalsCount}/4`, done: vitalsCount >= 4 } : undefined,
+      status: (() => {
+        if (todayProgress && todayProgress.vitals.expected > 0) {
+          const { completed, expected } = todayProgress.vitals;
+          return { text: `${completed}/${expected}`, done: completed >= expected };
+        }
+        return vitalsCount > 0 ? { text: `${vitalsCount}`, done: false } : undefined;
+      })(),
       route: '/log-vitals',
     },
     {
@@ -239,6 +328,7 @@ export default function RecordTab() {
 
   const renderLogItem = (item: LogItemData) => {
     const isDone = item.status?.done;
+
     return (
       <TouchableOpacity
         key={item.id}
@@ -295,43 +385,44 @@ export default function RecordTab() {
           subtitle={MICROCOPY.RECORD_SUBTITLE}
         />
 
-        {/* NO PROGRESS BAR - Removes pressure */}
+        {/* Rhythm Panel - Only shows on Day 4+ */}
+        {renderRhythmPanel()}
 
         {/* Group 1: Quick */}
-          <Text style={styles.groupHeader}>UNDER 10 SECONDS</Text>
-          {quickItems.map(renderLogItem)}
+        <Text style={styles.groupHeader}>QUICK</Text>
+        {quickItems.map(renderLogItem)}
 
-          {/* Group 2: A bit more detail */}
-          <Text style={styles.groupHeader}>A BIT MORE DETAIL</Text>
-          {momentItems.map(renderLogItem)}
+        {/* Group 2: More detail */}
+        <Text style={styles.groupHeader}>MORE DETAIL</Text>
+        {momentItems.map(renderLogItem)}
 
-          {/* More items - Collapsed by default */}
-          {!showMoreItems && (
+        {/* More items - Collapsed by default */}
+        {!showMoreItems && (
+          <TouchableOpacity
+            style={styles.moreItems}
+            onPress={() => setShowMoreItems(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.moreItemsLink}>+ More items</Text>
+          </TouchableOpacity>
+        )}
+
+        {showMoreItems && (
+          <>
+            {moreItems.map(renderLogItem)}
             <TouchableOpacity
               style={styles.moreItems}
-              onPress={() => setShowMoreItems(true)}
+              onPress={() => setShowMoreItems(false)}
               activeOpacity={0.7}
             >
-              <Text style={styles.moreItemsLink}>+ More items</Text>
+              <Text style={styles.moreItemsLink}>− Hide items</Text>
             </TouchableOpacity>
-          )}
+          </>
+        )}
 
-          {showMoreItems && (
-            <>
-              {moreItems.map(renderLogItem)}
-              <TouchableOpacity
-                style={styles.moreItems}
-                onPress={() => setShowMoreItems(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.moreItemsLink}>− Hide items</Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          {/* Group 3: Optional */}
-          <Text style={styles.groupHeader}>OPTIONAL</Text>
-          {optionalItems.map(renderLogItem)}
+        {/* Group 3: Optional */}
+        <Text style={styles.groupHeader}>OPTIONAL</Text>
+        {optionalItems.map(renderLogItem)}
 
         {/* Encouragement Message */}
         <View style={styles.encouragement}>
@@ -369,6 +460,49 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
 
+  // Rhythm Panel
+  rhythmPanel: {
+    backgroundColor: 'rgba(74, 222, 128, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(74, 222, 128, 0.2)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+  },
+  rhythmContent: {
+    gap: 6,
+  },
+  rhythmTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.5)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  rhythmTitleObserved: {
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontWeight: '500',
+  },
+  rhythmBaseline: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 20,
+  },
+  rhythmLabel: {
+    color: '#4ade80',
+    fontWeight: '600',
+  },
+  rhythmFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+  },
+  rhythmLink: {
+    fontSize: 10,
+    color: 'rgba(74, 222, 128, 0.5)',
+    fontWeight: '400',
+  },
+
   // Group Headers
   groupHeader: {
     fontSize: 11,
@@ -376,32 +510,32 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 10,                           // Reduced from 12
-    marginTop: 20,                              // Reduced from 24
+    marginBottom: 10,
+    marginTop: 20,
   },
 
-  // Log Items - STANDARD sizing
+  // Log Items
   logItem: {
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
-    borderRadius: 14,             // STANDARD
-    padding: 14,                  // STANDARD
-    marginBottom: 8,              // Reduced from 10
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,                      // STANDARD
-    minHeight: 68,                // Slightly reduced from 72
+    gap: 12,
+    minHeight: 68,
   },
   logItemDone: {
     opacity: 0.6,
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
   },
   itemIcon: {
-    width: 48,                    // STANDARD
-    height: 48,                   // STANDARD
+    width: 48,
+    height: 48,
     backgroundColor: 'rgba(94, 234, 212, 0.15)',
-    borderRadius: 12,             // STANDARD
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -409,14 +543,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
   },
   iconEmoji: {
-    fontSize: 24,                 // Increased for larger icon
+    fontSize: 24,
   },
   itemContent: {
     flex: 1,
   },
   itemQuestion: {
-    fontSize: 15,                 // STANDARD
-    fontWeight: '600',            // STANDARD
+    fontSize: 15,
+    fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 2,
   },
@@ -424,7 +558,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
   },
   itemHint: {
-    fontSize: 11,                 // STANDARD
+    fontSize: 11,
     color: 'rgba(255, 255, 255, 0.6)',
   },
   itemStatus: {
@@ -442,12 +576,12 @@ const styles = StyleSheet.create({
   // More Items
   moreItems: {
     alignItems: 'center',
-    paddingVertical: 12,                        // Reduced from 16
-    marginTop: 6,                               // Reduced from 10
+    paddingVertical: 12,
+    marginTop: 6,
   },
   moreItemsLink: {
     color: 'rgba(94, 234, 212, 0.7)',
-    fontSize: 12,                               // Reduced from 13
+    fontSize: 12,
     fontWeight: '500',
   },
 

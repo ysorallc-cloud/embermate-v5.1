@@ -8,6 +8,7 @@ import { Colors } from '../theme/theme-tokens';
 import { saveVital } from '../utils/vitalsStorage';
 import { saveVitalsLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
+import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage';
 
 export default function LogVitalsScreen() {
   const router = useRouter();
@@ -17,6 +18,16 @@ export default function LogVitalsScreen() {
   const [glucose, setGlucose] = useState('');
   const [weight, setWeight] = useState('');
   const [saving, setSaving] = useState(false);
+  const [progress, setProgress] = useState<TodayProgress | null>(null);
+
+  // Load rhythm progress on mount
+  React.useEffect(() => {
+    const loadProgress = async () => {
+      const progressData = await getTodayProgress();
+      setProgress(progressData);
+    };
+    loadProgress();
+  }, []);
 
   const handleSave = async () => {
     // Allow saving with any values (prepopulated or entered)
@@ -64,6 +75,15 @@ export default function LogVitalsScreen() {
               <Text style={styles.subtitle}>Track blood pressure, glucose, weight, and more</Text>
             </View>
 
+            {/* Rhythm context banner */}
+            {progress && progress.vitals.expected > 0 && (
+              <View style={styles.contextBanner}>
+                <Text style={styles.contextText}>
+                  {progress.vitals.completed} of {progress.vitals.expected} vitals checks logged today
+                </Text>
+              </View>
+            )}
+
             <View style={styles.form}>
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Blood Pressure</Text>
@@ -107,6 +127,19 @@ const styles = StyleSheet.create({
   gradient: { flex: 1 },
   scrollView: { flex: 1 },
   content: { padding: 20, paddingBottom: 40 },
+  contextBanner: {
+    backgroundColor: 'rgba(74, 222, 128, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(74, 222, 128, 0.15)',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 20,
+  },
+  contextText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+  },
   header: { alignItems: 'center', marginBottom: 32 },
   backButton: { alignSelf: 'flex-start', marginBottom: 16 },
   backText: { fontSize: 14, color: Colors.accent, fontWeight: '500' },

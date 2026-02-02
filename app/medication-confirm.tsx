@@ -20,6 +20,7 @@ import { Colors } from '../theme/theme-tokens';
 import { createMedication, markMedicationTaken } from '../utils/medicationStorage';
 import { saveMedicationLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
+import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage';
 
 // Common medications for dropdown
 const COMMON_MEDICATIONS = [
@@ -80,6 +81,16 @@ export default function MedicationLogScreen() {
   const [showMedDropdown, setShowMedDropdown] = useState(false);
   const [showDosageDropdown, setShowDosageDropdown] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [progress, setProgress] = useState<TodayProgress | null>(null);
+
+  // Load rhythm progress on mount
+  React.useEffect(() => {
+    const loadProgress = async () => {
+      const progressData = await getTodayProgress();
+      setProgress(progressData);
+    };
+    loadProgress();
+  }, []);
 
   // Filter medications based on search
   const filteredMedications = searchQuery.trim()
@@ -181,6 +192,15 @@ export default function MedicationLogScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Rhythm context banner */}
+          {progress && progress.medications.expected > 0 && (
+            <View style={styles.contextBanner}>
+              <Text style={styles.contextText}>
+                {progress.medications.completed} of {progress.medications.expected} doses logged today
+              </Text>
+            </View>
+          )}
+
           {/* 1. MEDICATION FIELD */}
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>MEDICATION</Text>
@@ -389,6 +409,21 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 20,
+  },
+
+  // Rhythm context banner
+  contextBanner: {
+    backgroundColor: 'rgba(74, 222, 128, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(74, 222, 128, 0.15)',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 20,
+  },
+  contextText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
   },
 
   // Field
