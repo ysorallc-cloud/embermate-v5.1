@@ -12,6 +12,7 @@ import { resetDailyMedicationStatus } from '../utils/medicationStorage';
 import { requestNotificationPermissions } from '../utils/notificationService';
 import { initializeSampleData } from '../utils/sampleDataGenerator';
 import { useNotificationHandler } from '../utils/useNotificationHandler';
+import { ensureDailySnapshot, pruneOldOverrides } from '../utils/carePlanStorage';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 function WebContainer({ children }: { children: React.ReactNode }) {
@@ -61,6 +62,10 @@ export default function RootLayout() {
     requestNotificationPermissionsOnStartup();
     // Initialize sample data once at app startup
     initializeSampleData();
+    // Ensure CarePlan daily snapshot exists (freezes plan at start of day)
+    ensureDailySnapshot();
+    // Clean up old CarePlan overrides
+    pruneOldOverrides();
 
     // Cleanup timer on unmount
     return () => {
@@ -134,6 +139,7 @@ export default function RootLayout() {
           <Stack.Screen name="notification-settings" />
           <Stack.Screen name="correlation-report" />
           <Stack.Screen name="correlation-test" />
+          <Stack.Screen name="care-plan-settings" />
         </Stack>
       </WebContainer>
     </ErrorBoundary>

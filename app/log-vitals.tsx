@@ -3,15 +3,23 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { saveVital } from '../utils/vitalsStorage';
 import { saveVitalsLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage';
+import { parseCarePlanContext, getCarePlanBannerText, CarePlanNavigationContext } from '../utils/carePlanRouting';
+import { trackCarePlanProgress } from '../utils/carePlanStorage';
 
 export default function LogVitalsScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+
+  // Parse CarePlan context from navigation params
+  const carePlanContext = parseCarePlanContext(params as Record<string, string>);
+  const isFromCarePlan = carePlanContext !== null;
+
   // Prepopulate with typical values - user can adjust if needed
   const [systolic, setSystolic] = useState('120');
   const [diastolic, setDiastolic] = useState('80');
@@ -52,6 +60,15 @@ export default function LogVitalsScreen() {
         weight: weight ? parseFloat(weight) : undefined,
       });
 
+      // Track CarePlan progress if navigated from CarePlan
+      if (carePlanContext) {
+        await trackCarePlanProgress(
+          carePlanContext.routineId,
+          carePlanContext.carePlanItemId,
+          { logType: 'vitals' }
+        );
+      }
+
       await hapticSuccess();
       router.back();
     } catch (error) {
@@ -75,8 +92,23 @@ export default function LogVitalsScreen() {
               <Text style={styles.subtitle}>Track blood pressure, glucose, weight, and more</Text>
             </View>
 
-            {/* Rhythm context banner */}
-            {progress && progress.vitals.expected > 0 && (
+            {/* CarePlan context banner */}
+            {isFromCarePlan && carePlanContext && (
+              <View style={[styles.contextBanner, styles.carePlanBanner]}>
+                <Text style={styles.carePlanBannerLabel}>FROM CARE PLAN</Text>
+                <Text style={styles.contextText}>
+                  {getCarePlanBannerText(carePlanContext)}
+                </Text>
+                {carePlanContext.completed !== undefined && carePlanContext.targetCount !== undefined && (
+                  <Text style={styles.progressText}>
+                    {carePlanContext.completed} of {carePlanContext.targetCount} logged today
+                  </Text>
+                )}
+              </View>
+            )}
+
+            {/* Rhythm context banner (fallback when not from CarePlan) */}
+            {!isFromCarePlan && progress && progress.vitals.expected > 0 && (
               <View style={styles.contextBanner}>
                 <Text style={styles.contextText}>
                   {progress.vitals.completed} of {progress.vitals.expected} vitals checks logged today
@@ -135,10 +167,28 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 20,
   },
+  carePlanBanner: {
+    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  carePlanBannerLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(167, 139, 250, 0.9)',
+    letterSpacing: 1,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
   contextText: {
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
+  },
+  progressText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textAlign: 'center',
+    marginTop: 4,
   },
   header: { alignItems: 'center', marginBottom: 32 },
   backButton: { alignSelf: 'flex-start', marginBottom: 16 },

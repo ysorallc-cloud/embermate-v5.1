@@ -31,13 +31,12 @@ import {
   getTodayNotesLog,
 } from '../../utils/centralStorage';
 import { useDataListener } from '../../lib/events';
+import { useCarePlan } from '../../hooks/useCarePlan';
+import { CarePlanPanel } from '../../components/careplan/CarePlanPanel';
 import {
-  getRhythm,
-  getTodayProgress,
-  setFirstUseDate,
-  Rhythm,
-  TodayProgress,
-} from '../../utils/rhythmStorage';
+  NoMedicationsBanner,
+  DataIntegrityBanner,
+} from '../../components/common/ConsistencyBanner';
 
 interface LogItemData {
   id: string;
@@ -54,6 +53,17 @@ export default function RecordTab() {
   const [loading, setLoading] = useState(true);
   const [showMoreItems, setShowMoreItems] = useState(false);
 
+  // Care Plan hook - provides dayState with progress and derived completion
+  const {
+    dayState,
+    carePlan,
+    loading: carePlanLoading,
+    setItemOverride,
+    clearItemOverride,
+    initializeCarePlan,
+    integrityWarnings,
+  } = useCarePlan();
+
   // Data state
   const [medications, setMedications] = useState<Medication[]>([]);
   const [medicationsTaken, setMedicationsTaken] = useState(0);
@@ -65,10 +75,6 @@ export default function RecordTab() {
   const [symptomsLogged, setSymptomsLogged] = useState(false);
   const [notesLogged, setNotesLogged] = useState(false);
   const [appointmentsCount, setAppointmentsCount] = useState(0);
-
-  // Rhythm state
-  const [rhythm, setRhythm] = useState<Rhythm | null>(null);
-  const [todayProgress, setTodayProgress] = useState<TodayProgress | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -92,9 +98,6 @@ export default function RecordTab() {
     try {
       setLoading(true);
 
-      // Set first use date if not set
-      await setFirstUseDate();
-
       const [
         allMeds,
         todayMeds,
@@ -106,8 +109,6 @@ export default function RecordTab() {
         todaySymptoms,
         todayNotes,
         upcomingAppointments,
-        rhythmData,
-        progressData,
       ] = await Promise.all([
         getMedications(),
         getTodayMedicationLog(),
@@ -119,13 +120,7 @@ export default function RecordTab() {
         getTodaySymptomLog(),
         getTodayNotesLog(),
         countUpcomingAppointments(),
-        getRhythm(),
-        getTodayProgress(),
       ]);
-
-      // Set rhythm data
-      setRhythm(rhythmData);
-      setTodayProgress(progressData);
 
       const activeMeds = allMeds.filter(m => m.active !== false);
       setMedications(activeMeds);
@@ -160,57 +155,20 @@ export default function RecordTab() {
     router.push(route as any);
   };
 
-  // Render rhythm panel (only shows on Day 4+)
-  const renderRhythmPanel = () => {
-    if (!rhythm) return null;
-
-    const panelTitle = rhythm.isInferred ? "Observed Rhythm" : "Today's Rhythm";
-
-    return (
-      <View style={styles.rhythmPanel}>
-        <View style={styles.rhythmContent}>
-          <Text style={[styles.rhythmTitle, rhythm.isInferred && styles.rhythmTitleObserved]}>
-            {panelTitle}
-          </Text>
-          <Text style={styles.rhythmBaseline}>
-            {rhythm.medications > 0 && (
-              <>
-                <Text style={styles.rhythmLabel}>Medications:</Text> {rhythm.medications} doses
-                {(rhythm.vitals > 0 || rhythm.meals > 0) && ' • '}
-              </>
-            )}
-            {rhythm.vitals > 0 && (
-              <>
-                <Text style={styles.rhythmLabel}>Vitals:</Text> {rhythm.vitals} checks
-                {rhythm.meals > 0 && ' • '}
-              </>
-            )}
-            {rhythm.meals > 0 && (
-              <>
-                <Text style={styles.rhythmLabel}>Meals:</Text> {rhythm.meals}
-              </>
-            )}
-          </Text>
-        </View>
-        <View style={styles.rhythmFooter}>
-          <TouchableOpacity onPress={() => router.push('/rhythm-edit' as any)}>
-            <Text style={styles.rhythmLink}>Adjust if needed</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
+  // GUARDRAIL: Check if CarePlan exists to determine data source
+  const hasCarePlan = !!carePlan && !!dayState;
 
   // Generate medication status text
   const getMedicationStatusText = (): { text: string; done: boolean } | undefined => {
-    // If rhythm exists, show progress against expected
-    if (todayProgress && todayProgress.medications.expected > 0) {
-      const { completed, expected } = todayProgress.medications;
+    // GUARDRAIL: Use dayState.progress exclusively when CarePlan exists
+    if (hasCarePlan) {
+      const { completed, expected } = dayState!.progress.meds;
+      if (expected === 0) return undefined;
       const done = completed >= expected;
       return { text: `${completed}/${expected}`, done };
     }
 
-    // Fallback to existing logic
+    // Fallback ONLY when no CarePlan exists
     if (medications.length === 0) return undefined;
     if (medicationsTaken === medications.length) {
       return { text: 'Nothing to do', done: true };
@@ -226,7 +184,15 @@ export default function RecordTab() {
       emoji: '😊',
       question: 'How are they feeling?',
       hint: 'Mood & energy',
-      status: moodLogged ? { text: '✓ Logged', done: true } : undefined,
+      status: (() => {
+        // GUARDRAIL: Use dayState exclusively when CarePlan exists
+        if (hasCarePlan) {
+          const { completed, expected } = dayState!.progress.mood;
+          if (expected === 0) return moodLogged ? { text: '✓ Logged', done: true } : undefined;
+          return { text: completed >= expected ? '✓ Logged' : 'Tap to log', done: completed >= expected };
+        }
+        return moodLogged ? { text: '✓ Logged', done: true } : undefined;
+      })(),
       route: '/log-mood',
     },
     {
@@ -234,7 +200,15 @@ export default function RecordTab() {
       emoji: '💧',
       question: 'Water today?',
       hint: 'Quick count',
-      status: waterGlasses > 0 ? { text: `${waterGlasses} glasses`, done: waterGlasses >= 8 } : undefined,
+      status: (() => {
+        // GUARDRAIL: Use dayState exclusively when CarePlan exists
+        if (hasCarePlan) {
+          const { completed, expected } = dayState!.progress.hydration;
+          if (expected === 0) return waterGlasses > 0 ? { text: `${waterGlasses} glasses`, done: waterGlasses >= 8 } : undefined;
+          return { text: `${completed}/${expected}`, done: completed >= expected };
+        }
+        return waterGlasses > 0 ? { text: `${waterGlasses} glasses`, done: waterGlasses >= 8 } : undefined;
+      })(),
       route: '/log-water',
     },
     {
@@ -243,10 +217,13 @@ export default function RecordTab() {
       question: 'Did they eat?',
       hint: 'Meals today',
       status: (() => {
-        if (todayProgress && todayProgress.meals.expected > 0) {
-          const { completed, expected } = todayProgress.meals;
+        // GUARDRAIL: Use dayState exclusively when CarePlan exists
+        if (hasCarePlan) {
+          const { completed, expected } = dayState!.progress.meals;
+          if (expected === 0) return undefined;
           return { text: `${completed}/${expected}`, done: completed >= expected };
         }
+        // Fallback ONLY when no CarePlan
         return mealsLogged > 0 ? { text: `${mealsLogged}`, done: false } : undefined;
       })(),
       route: '/log-meal',
@@ -261,7 +238,7 @@ export default function RecordTab() {
       question: 'Medications',
       hint: medications.length > 0 ? `${medications.length} scheduled` : 'No medications',
       status: getMedicationStatusText(),
-      route: '/medication-confirm',
+      route: '/medications',  // Route to canonical Understand medications screen
     },
     {
       id: 'vitals',
@@ -269,10 +246,13 @@ export default function RecordTab() {
       question: 'Check vitals?',
       hint: 'BP, heart rate, etc.',
       status: (() => {
-        if (todayProgress && todayProgress.vitals.expected > 0) {
-          const { completed, expected } = todayProgress.vitals;
+        // GUARDRAIL: Use dayState exclusively when CarePlan exists
+        if (hasCarePlan) {
+          const { completed, expected } = dayState!.progress.vitals;
+          if (expected === 0) return undefined;
           return { text: `${completed}/${expected}`, done: completed >= expected };
         }
+        // Fallback ONLY when no CarePlan
         return vitalsCount > 0 ? { text: `${vitalsCount}`, done: false } : undefined;
       })(),
       route: '/log-vitals',
@@ -288,10 +268,10 @@ export default function RecordTab() {
     {
       id: 'appointment',
       emoji: '📅',
-      question: 'Log appointment?',
-      hint: 'Doctor visits & notes',
-      status: appointmentsCount > 0 ? { text: `${appointmentsCount} scheduled`, done: true } : undefined,
-      route: '/log-appointment',
+      question: 'Appointments',
+      hint: 'View & manage visits',
+      status: appointmentsCount > 0 ? { text: `${appointmentsCount} scheduled`, done: false } : undefined,
+      route: '/appointments',  // Route to canonical Understand appointments screen
     },
   ];
 
@@ -359,7 +339,7 @@ export default function RecordTab() {
     );
   };
 
-  if (loading) {
+  if (loading || carePlanLoading) {
     return (
       <View style={styles.container}>
         <AuroraBackground variant="log" />
@@ -385,8 +365,28 @@ export default function RecordTab() {
           subtitle={MICROCOPY.RECORD_SUBTITLE}
         />
 
-        {/* Rhythm Panel - Only shows on Day 4+ */}
-        {renderRhythmPanel()}
+        {/* Care Plan Panel - Shows routines and progress */}
+        {dayState && (
+          <CarePlanPanel
+            dayState={dayState}
+            onItemOverride={setItemOverride}
+            onClearOverride={clearItemOverride}
+            onSetupPress={initializeCarePlan}
+          />
+        )}
+
+        {/* Data Integrity Warning - Show if CarePlan has orphaned references */}
+        {integrityWarnings && integrityWarnings.length > 0 && (
+          <DataIntegrityBanner
+            issueCount={integrityWarnings.length}
+            onFix={() => router.push('/care-plan-settings' as any)}
+          />
+        )}
+
+        {/* Empty State: No Medications Set Up */}
+        {medications.length === 0 && (
+          <NoMedicationsBanner />
+        )}
 
         {/* Group 1: Quick */}
         <Text style={styles.groupHeader}>QUICK</Text>
@@ -458,49 +458,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 80,
-  },
-
-  // Rhythm Panel
-  rhythmPanel: {
-    backgroundColor: 'rgba(74, 222, 128, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(74, 222, 128, 0.2)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 20,
-  },
-  rhythmContent: {
-    gap: 6,
-  },
-  rhythmTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  rhythmTitleObserved: {
-    color: 'rgba(255, 255, 255, 0.4)',
-    fontWeight: '500',
-  },
-  rhythmBaseline: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
-    lineHeight: 20,
-  },
-  rhythmLabel: {
-    color: '#4ade80',
-    fontWeight: '600',
-  },
-  rhythmFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 8,
-  },
-  rhythmLink: {
-    fontSize: 10,
-    color: 'rgba(74, 222, 128, 0.5)',
-    fontWeight: '400',
   },
 
   // Group Headers

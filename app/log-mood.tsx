@@ -12,10 +12,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { saveMoodLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
+import { parseCarePlanContext, getCarePlanBannerText } from '../utils/carePlanRouting';
+import { trackCarePlanProgress } from '../utils/carePlanStorage';
 
 const MOODS = [
   { id: 'great', emoji: '😊', label: 'Great' },
@@ -27,6 +29,12 @@ const MOODS = [
 
 export default function LogMoodScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+
+  // Parse CarePlan context from navigation params
+  const carePlanContext = parseCarePlanContext(params as Record<string, string>);
+  const isFromCarePlan = carePlanContext !== null;
+
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -59,6 +67,15 @@ export default function LogMoodScreen() {
         pain: null,
       });
 
+      // Track CarePlan progress if navigated from CarePlan
+      if (carePlanContext) {
+        await trackCarePlanProgress(
+          carePlanContext.routineId,
+          carePlanContext.carePlanItemId,
+          { logType: 'mood' }
+        );
+      }
+
       await hapticSuccess();
 
       navigationTimeoutRef.current = setTimeout(() => {
@@ -89,6 +106,16 @@ export default function LogMoodScreen() {
         </View>
 
         <ScrollView style={styles.content}>
+          {/* CarePlan context banner */}
+          {isFromCarePlan && carePlanContext && (
+            <View style={styles.carePlanBanner}>
+              <Text style={styles.carePlanBannerLabel}>FROM CARE PLAN</Text>
+              <Text style={styles.carePlanBannerText}>
+                {getCarePlanBannerText(carePlanContext)}
+              </Text>
+            </View>
+          )}
+
           <Text style={styles.question}>How are they feeling?</Text>
 
           <View style={styles.moodsContainer}>
@@ -153,6 +180,27 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  carePlanBanner: {
+    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 16,
+  },
+  carePlanBannerLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(167, 139, 250, 0.9)',
+    letterSpacing: 1,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  carePlanBannerText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
   },
   question: {
     fontSize: 20,

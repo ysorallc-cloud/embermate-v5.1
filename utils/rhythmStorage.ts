@@ -131,7 +131,16 @@ export async function getRhythm(): Promise<Rhythm | null> {
       }
     }
 
-    return null;
+    // DEV: Return default rhythm for testing (remove for production)
+    const defaultRhythm: Rhythm = {
+      medications: 4,
+      vitals: 2,
+      meals: 3,
+      isInferred: true,
+      inferredDate: new Date().toISOString(),
+      daysObserved: 3,
+    };
+    return defaultRhythm;
   } catch (error) {
     console.error('Error getting rhythm:', error);
     return null;

@@ -85,6 +85,37 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { WelcomeBackBanner } from '../../components/common/WelcomeBackBanner';
 import { format } from 'date-fns';
 
+// CarePlan System
+import { useCarePlan } from '../../hooks/useCarePlan';
+import { useAppointments } from '../../hooks/useAppointments';
+import {
+  buildTodaySchedule,
+  groupScheduleByStatus,
+  getScheduleAttentionCount,
+  isScheduleComplete,
+  getScheduleEntryRoute,
+  ScheduleConflict,
+} from '../../utils/carePlanSchedule';
+import {
+  ScheduleEntry,
+  ScheduleStatus,
+  formatMinutesAsTime,
+} from '../../types/schedule';
+import { routeForScheduleEntry } from '../../utils/carePlanRouting';
+import {
+  NoMedicationsBanner,
+  NoCarePlanBanner,
+  DataIntegrityBanner,
+} from '../../components/common/ConsistencyBanner';
+
+// Helper to format 24hr time (HH:MM) to display format
+function formatTime(time24: string): string {
+  const [hours, minutes] = time24.split(':').map(Number);
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const hour12 = hours % 12 || 12;
+  return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+}
+
 interface StatData {
   completed: number;
   total: number;
@@ -106,6 +137,16 @@ interface AIInsight {
 
 export default function NowScreen() {
   const router = useRouter();
+
+  // CarePlan hook - provides progress, timeline, and schedule from derived state
+  const { dayState, carePlan, overrides, snoozeItem, setItemOverride, integrityWarnings } = useCarePlan();
+
+  // Appointments hook - single source of truth for appointments
+  const {
+    todayAppointments,
+    complete: completeAppointment,
+  } = useAppointments();
+
   const [medications, setMedications] = useState<Medication[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [dailyTracking, setDailyTracking] = useState<any>(null);
@@ -591,12 +632,29 @@ export default function NowScreen() {
       const moodLog = await getTodayMoodLog();
       const moodLogged = moodLog?.mood !== null && moodLog?.mood !== undefined ? 1 : 0;
 
-      const newStats = {
-        meds: { completed: takenMeds, total: totalMeds },
-        vitals: { completed: vitalsLogged, total: 4 },
-        mood: { completed: moodLogged, total: 1 },
-        meals: { completed: mealsLogged, total: 4 }, // breakfast, lunch, dinner, snack
-      };
+      // GUARDRAIL: Only use dayState.progress when CarePlan exists
+      // Never compute progress from raw logs if a CarePlan is loaded
+      // Fallback logic ONLY when: no CarePlan exists OR CarePlan failed to load
+      let newStats: TodayStats;
+
+      if (carePlan && dayState?.progress) {
+        // CarePlan exists - use dayState.progress as single source of truth
+        const dsProgress = dayState.progress;
+        newStats = {
+          meds: { completed: dsProgress.meds.completed, total: dsProgress.meds.expected },
+          vitals: { completed: dsProgress.vitals.completed, total: dsProgress.vitals.expected },
+          mood: { completed: dsProgress.mood.completed, total: dsProgress.mood.expected },
+          meals: { completed: dsProgress.meals.completed, total: dsProgress.meals.expected },
+        };
+      } else {
+        // No CarePlan - fallback to raw log calculations
+        newStats = {
+          meds: { completed: takenMeds, total: totalMeds },
+          vitals: { completed: vitalsLogged, total: 4 },
+          mood: { completed: moodLogged, total: 1 },
+          meals: { completed: mealsLogged, total: 4 },
+        };
+      }
       setTodayStats(newStats);
 
       // Compute prompts based on current state
@@ -657,10 +715,10 @@ export default function NowScreen() {
   };
 
   const handleQuickCheck = (type: 'meds' | 'vitals' | 'mood' | 'meals') => {
-    // Navigate directly to the specific log screen
+    // Navigate to the appropriate canonical screen
     switch (type) {
       case 'meds':
-        router.push('/medication-confirm');
+        router.push('/medications');  // Canonical Understand medications screen
         break;
       case 'vitals':
         router.push('/log-vitals');
@@ -733,85 +791,81 @@ export default function NowScreen() {
     );
   };
 
-  // Generate timeline events based on current time and data
-  const timelineEvents = useMemo(() => {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const events: Array<{
-      id: string;
-      time: string;
-      status: string;
-      title: string;
-      subtitle: string;
-      icon?: string;
-    }> = [];
-
-    // Morning routine - always show
-    const morningComplete = todayStats.meds.completed > 0 || todayStats.vitals.completed > 0;
-    events.push({
-      id: 'morning-routine',
-      time: '8:00 AM',
-      status: morningComplete ? 'Completed' : (currentHour >= 8 ? 'Available now' : 'Upcoming'),
-      title: 'Morning routine',
-      subtitle: morningComplete
-        ? `${todayStats.meds.completed > 0 ? 'Meds logged' : ''}${todayStats.meds.completed > 0 && todayStats.vitals.completed > 0 ? ', ' : ''}${todayStats.vitals.completed > 0 ? 'vitals checked' : ''}`
-        : 'Medications, vitals check',
-      icon: '🌅',
+  // Build unified Today's Schedule from CarePlan + Appointments
+  // This is the SINGLE SOURCE OF TRUTH for Today's Schedule
+  const todaySchedule = useMemo(() => {
+    return buildTodaySchedule({
+      dayState,
+      carePlan,
+      appointments: todayAppointments, // Use appointments from hook (single source of truth)
+      overrides,
+      currentTime: new Date(),
     });
+  }, [dayState, carePlan, todayAppointments, overrides]);
 
-    // Physical therapy / exercise - sample recurring event
-    events.push({
-      id: 'pt-exercise',
-      time: '10:30 AM',
-      status: currentHour >= 11 ? 'Completed' : (currentHour >= 10 ? 'Available now' : 'Upcoming'),
-      title: 'Light stretching',
-      subtitle: '15 min gentle movement routine',
-      icon: '🧘',
-    });
+  // Destructure for convenience
+  const scheduleEntries = todaySchedule.entries;
+  const groupedSchedule = todaySchedule.grouped;
+  const scheduleConflicts = todaySchedule.conflicts;
+  const scheduleStats = todaySchedule.stats;
 
-    // Add any actual appointments for today
-    const todayAppts = appointments.filter(appt => {
-      const apptDate = new Date(appt.date);
-      return apptDate.toDateString() === now.toDateString();
-    });
-    todayAppts.forEach(appt => {
-      events.push({
-        id: `appt-${appt.id}`,
-        time: appt.time || '2:00 PM',
-        status: 'Upcoming',
-        title: appt.specialty || 'Appointment',
-        subtitle: appt.provider,
-        icon: '📅',
-      });
-    });
+  // Check if schedule is complete (for closure state)
+  const scheduleComplete = useMemo(() => {
+    return isScheduleComplete(scheduleEntries);
+  }, [scheduleEntries]);
 
-    // If no appointments, show sample appointment
-    if (todayAppts.length === 0) {
-      events.push({
-        id: 'sample-appt',
-        time: '2:00 PM',
-        status: currentHour >= 14 ? 'Completed' : 'Upcoming',
-        title: 'Dr. Martinez - Cardiology',
-        subtitle: 'Follow-up visit, bring medication list',
-        icon: '🏥',
-      });
+  // Helper to get status display text
+  const getStatusDisplayText = (status: ScheduleStatus): string => {
+    switch (status) {
+      case 'availableNow': return 'Available now';
+      case 'upcoming': return 'Upcoming';
+      case 'completed': return 'Completed';
+      case 'missed': return 'Missed';
+      case 'snoozed': return 'Snoozed';
+      default: return '';
     }
+  };
 
-    // Evening routine
-    const eveningMeds = medications.filter(m => m.timeSlot === 'evening' || m.timeSlot === 'bedtime');
-    const eveningMedsCount = eveningMeds.length > 0 ? eveningMeds.length : 2;
-    const eveningComplete = eveningMeds.length > 0 ? eveningMeds.every(m => m.taken) : false;
-    events.push({
-      id: 'evening-routine',
-      time: '6:00 PM',
-      status: eveningComplete ? 'Completed' : (currentHour >= 18 ? 'Available now' : 'Upcoming'),
-      title: 'Evening routine',
-      subtitle: `${eveningMedsCount} medications, dinner, relaxation`,
-      icon: '🌙',
-    });
+  // Handler for schedule item tap
+  // - Care Plan items: go to logging screen with CarePlan context params
+  // - Appointments: go to Understand's appointment form (canonical view/edit UI)
+  const handleScheduleItemPress = useCallback((entry: ScheduleEntry) => {
+    if (entry.source === 'appointment') {
+      // Route to Understand's canonical appointment form (view/edit)
+      router.push(`/appointment-form?id=${entry.appointmentId}` as any);
+    } else if (entry.source === 'carePlan') {
+      // Use routing helper to get proper route with CarePlan context
+      const route = routeForScheduleEntry(entry);
+      if (route) {
+        router.push({
+          pathname: route.pathname,
+          params: route.params,
+        } as any);
+      } else if (entry.actionRoute) {
+        // Fallback to action route without context
+        router.push(entry.actionRoute as any);
+      }
+    }
+  }, [router]);
 
-    return events;
-  }, [todayStats, medications, appointments]);
+  // Handler for completing an appointment from the schedule
+  const handleAppointmentComplete = useCallback(async (appointmentId: string) => {
+    await completeAppointment(appointmentId);
+  }, [completeAppointment]);
+
+  // Handler for "Later" action (snooze)
+  const handleSnooze = useCallback(async (entry: ScheduleEntry) => {
+    if (entry.routineId && entry.itemId) {
+      await snoozeItem(entry.routineId, entry.itemId, 30); // Snooze for 30 minutes
+    }
+  }, [snoozeItem]);
+
+  // Handler for manual mark as done
+  const handleMarkDone = useCallback(async (entry: ScheduleEntry) => {
+    if (entry.routineId && entry.itemId) {
+      await setItemOverride(entry.routineId, entry.itemId, true);
+    }
+  }, [setItemOverride]);
 
   return (
     <View style={styles.container}>
@@ -937,6 +991,24 @@ export default function NowScreen() {
               </View>
             )}
 
+            {/* Data Integrity Warning - Show if CarePlan has orphaned references */}
+            {integrityWarnings && integrityWarnings.length > 0 && (
+              <DataIntegrityBanner
+                issueCount={integrityWarnings.length}
+                onFix={() => router.push('/care-plan-settings' as any)}
+              />
+            )}
+
+            {/* Empty State: No Medications Set Up */}
+            {medications.length === 0 && !showOnboarding && (
+              <NoMedicationsBanner />
+            )}
+
+            {/* Empty State: No Care Plan Set Up */}
+            {!carePlan && !showOnboarding && (
+              <NoCarePlanBanner onSetup={() => router.push('/care-plan-settings' as any)} />
+            )}
+
             {/* Progress Section - Below AI Insight */}
             <View style={styles.progressSection}>
               <Text style={styles.sectionTitle}>PROGRESS</Text>
@@ -948,51 +1020,187 @@ export default function NowScreen() {
               </View>
             </View>
 
-            {/* Timeline Section */}
+            {/* Today's Schedule Section - Driven by CarePlan */}
             <TouchableOpacity
               style={styles.sectionHeaderRow}
               onPress={() => setTimelineExpanded(!timelineExpanded)}
               activeOpacity={0.7}
             >
-              <Text style={styles.sectionTitle}>{MICROCOPY.TODAYS_SCHEDULE}</Text>
+              <View>
+                <Text style={styles.sectionTitle}>{MICROCOPY.TODAYS_SCHEDULE}</Text>
+                {carePlan && (
+                  <Text style={styles.sectionSubtitle}>
+                    {scheduleStats.carePlanItems} tasks + {scheduleStats.appointments} appointments
+                  </Text>
+                )}
+              </View>
               <Text style={styles.collapseIcon}>{timelineExpanded ? '▼' : '▶'}</Text>
             </TouchableOpacity>
 
-            {timelineExpanded && timelineEvents.map((event) => (
-              <View
-                key={event.id}
-                style={[
-                  styles.timelineEvent,
-                  event.status === 'Completed' && styles.timelineEventCompleted,
-                ]}
-              >
-                <View style={[
-                  styles.eventIcon,
-                  event.status === 'Completed' && styles.eventIconCompleted,
-                ]}>
-                  <Text style={styles.eventIconEmoji}>{event.icon || '🔔'}</Text>
-                </View>
-                <View style={styles.eventDetails}>
-                  <Text style={[
-                    styles.eventTime,
-                    event.status === 'Completed' && styles.eventTimeCompleted,
-                  ]}>
-                    {event.time} • {event.status}
-                  </Text>
-                  <Text style={[
-                    styles.eventTitle,
-                    event.status === 'Completed' && styles.eventTitleCompleted,
-                  ]}>
-                    {event.title}
-                  </Text>
-                  <Text style={styles.eventSubtitle}>{event.subtitle}</Text>
-                </View>
+            {/* Conflict hints - show when appointments overlap with routines */}
+            {timelineExpanded && scheduleConflicts.length > 0 && (
+              <View style={styles.conflictHintContainer}>
+                {scheduleConflicts.map((conflict, index) => (
+                  <View key={`conflict-${index}`} style={styles.conflictHint}>
+                    <Text style={styles.conflictHintIcon}>⚠️</Text>
+                    <View style={styles.conflictHintContent}>
+                      <Text style={styles.conflictHintText}>{conflict.message}</Text>
+                      <Text style={styles.conflictHintSuggestion}>{conflict.suggestion}</Text>
+                    </View>
+                  </View>
+                ))}
               </View>
-            ))}
+            )}
 
-            {timelineExpanded && timelineEvents.length === 0 && (
+            {timelineExpanded && (
+              <>
+                {/* Active items (availableNow + missed) - highest priority */}
+                {groupedSchedule.active.map((entry) => (
+                  <TouchableOpacity
+                    key={entry.id}
+                    style={[
+                      styles.scheduleItem,
+                      entry.source === 'appointment' && styles.scheduleItemAppointment,
+                      entry.status === 'missed' && styles.scheduleItemMissed,
+                      entry.status === 'availableNow' && styles.scheduleItemActive,
+                    ]}
+                    onPress={() => handleScheduleItemPress(entry)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[
+                      styles.scheduleIcon,
+                      entry.source === 'appointment' && styles.scheduleIconAppointment,
+                      entry.status === 'missed' && styles.scheduleIconMissed,
+                    ]}>
+                      <Text style={styles.scheduleIconEmoji}>{entry.emoji || '🔔'}</Text>
+                    </View>
+                    <View style={styles.scheduleDetails}>
+                      <View style={styles.scheduleTimeRow}>
+                        <Text style={[
+                          styles.scheduleTime,
+                          entry.status === 'missed' && styles.scheduleTimeMissed,
+                        ]}>
+                          {formatMinutesAsTime(entry.startMin)} • {getStatusDisplayText(entry.status)}
+                        </Text>
+                        {entry.source === 'appointment' && (
+                          <View style={styles.appointmentBadge}>
+                            <Text style={styles.appointmentBadgeText}>APPT</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.scheduleTitle}>{entry.title}</Text>
+                      <Text style={styles.scheduleSubtitle}>
+                        {entry.subtitle}
+                        {entry.completed !== undefined && entry.expected !== undefined && (
+                          ` • ${entry.completed}/${entry.expected}`
+                        )}
+                      </Text>
+                    </View>
+                    <View style={[
+                      styles.scheduleAction,
+                      entry.source === 'appointment' && styles.scheduleActionAppointment,
+                    ]}>
+                      <Text style={styles.scheduleActionText}>{entry.actionLabel || 'Log'}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+
+                {/* Upcoming items */}
+                {groupedSchedule.upcoming.map((entry) => (
+                  <TouchableOpacity
+                    key={entry.id}
+                    style={[
+                      styles.scheduleItem,
+                      entry.source === 'appointment' && styles.scheduleItemAppointment,
+                    ]}
+                    onPress={() => handleScheduleItemPress(entry)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[
+                      styles.scheduleIcon,
+                      entry.source === 'appointment' && styles.scheduleIconAppointment,
+                    ]}>
+                      <Text style={styles.scheduleIconEmoji}>{entry.emoji || '🔔'}</Text>
+                    </View>
+                    <View style={styles.scheduleDetails}>
+                      <View style={styles.scheduleTimeRow}>
+                        <Text style={styles.scheduleTime}>
+                          {formatMinutesAsTime(entry.startMin)} • {getStatusDisplayText(entry.status)}
+                        </Text>
+                        {entry.source === 'appointment' && (
+                          <View style={styles.appointmentBadge}>
+                            <Text style={styles.appointmentBadgeText}>APPT</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.scheduleTitle}>{entry.title}</Text>
+                      <Text style={styles.scheduleSubtitle}>{entry.subtitle}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+
+                {/* Snoozed items */}
+                {groupedSchedule.snoozed.length > 0 && (
+                  <View style={styles.snoozedSection}>
+                    <Text style={styles.snoozedHeader}>Snoozed</Text>
+                    {groupedSchedule.snoozed.map((entry) => (
+                      <TouchableOpacity
+                        key={entry.id}
+                        style={[styles.scheduleItem, styles.scheduleItemSnoozed]}
+                        onPress={() => handleScheduleItemPress(entry)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[styles.scheduleIcon, styles.scheduleIconSnoozed]}>
+                          <Text style={styles.scheduleIconEmoji}>{entry.emoji || '🔔'}</Text>
+                        </View>
+                        <View style={styles.scheduleDetails}>
+                          <Text style={styles.scheduleTimeSnoozed}>
+                            Until {formatMinutesAsTime(entry.snoozedUntilMin || 0)}
+                          </Text>
+                          <Text style={styles.scheduleTitleSnoozed}>{entry.title}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                {/* Completed items - collapsible */}
+                {groupedSchedule.completed.length > 0 && (
+                  <View style={styles.completedSection}>
+                    <Text style={styles.completedHeader}>
+                      Completed today ({groupedSchedule.completed.length})
+                    </Text>
+                    {groupedSchedule.completed.map((entry) => (
+                      <View
+                        key={entry.id}
+                        style={[styles.scheduleItem, styles.scheduleItemCompleted]}
+                      >
+                        <View style={[styles.scheduleIcon, styles.scheduleIconCompleted]}>
+                          <Text style={styles.scheduleIconEmoji}>{entry.emoji || '✓'}</Text>
+                        </View>
+                        <View style={styles.scheduleDetails}>
+                          <Text style={styles.scheduleTimeCompleted}>
+                            {formatMinutesAsTime(entry.startMin)} • Completed
+                          </Text>
+                          <Text style={styles.scheduleTitleCompleted}>{entry.title}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
+
+            {timelineExpanded && scheduleEntries.length === 0 && !carePlan && (
               <View style={styles.emptyTimeline}>
                 <Text style={styles.emptyTimelineText}>{MICROCOPY.ALL_CAUGHT_UP}</Text>
+              </View>
+            )}
+
+            {timelineExpanded && scheduleEntries.length === 0 && carePlan && (
+              <View style={styles.emptyTimeline}>
+                <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
+                <Text style={styles.emptyTimelineSubtext}>Your Care Plan is set up, check back tomorrow</Text>
               </View>
             )}
 
@@ -1254,6 +1462,213 @@ const styles = StyleSheet.create({
   emptyTimelineText: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
+  },
+  emptyTimelineSubtext: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.35)',
+    marginTop: 4,
+  },
+
+  // Section subtitle for "Built from Care Plan"
+  sectionSubtitle: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.4)',
+    marginTop: 2,
+  },
+
+  // Schedule Items (New CarePlan-driven schedule system)
+  scheduleItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderLeftWidth: 3,
+    borderLeftColor: 'rgba(255, 193, 7, 0.4)',
+    borderRadius: 8,
+    padding: 12,
+    paddingLeft: 14,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  scheduleItemActive: {
+    borderLeftColor: 'rgba(59, 130, 246, 0.6)',
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+  },
+  scheduleItemMissed: {
+    borderLeftColor: 'rgba(239, 68, 68, 0.5)',
+    backgroundColor: 'rgba(239, 68, 68, 0.06)',
+  },
+  scheduleItemAppointment: {
+    borderLeftColor: 'rgba(139, 92, 246, 0.5)',
+    backgroundColor: 'rgba(139, 92, 246, 0.06)',
+  },
+  scheduleItemSnoozed: {
+    borderLeftColor: 'rgba(156, 163, 175, 0.4)',
+    opacity: 0.7,
+  },
+  scheduleItemCompleted: {
+    borderLeftColor: 'rgba(16, 185, 129, 0.4)',
+    opacity: 0.6,
+  },
+  scheduleIcon: {
+    width: 38,
+    height: 38,
+    backgroundColor: 'rgba(255, 193, 7, 0.15)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 193, 7, 0.3)',
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scheduleIconMissed: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  scheduleIconAppointment: {
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+  },
+  scheduleIconSnoozed: {
+    backgroundColor: 'rgba(156, 163, 175, 0.15)',
+    borderColor: 'rgba(156, 163, 175, 0.3)',
+  },
+  scheduleIconCompleted: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  scheduleIconEmoji: {
+    fontSize: 16,
+  },
+  scheduleDetails: {
+    flex: 1,
+  },
+  scheduleTime: {
+    fontSize: 12,
+    color: '#FFC107',
+    fontWeight: '600',
+  },
+  scheduleTimeMissed: {
+    color: '#EF4444',
+  },
+  scheduleTimeSnoozed: {
+    color: 'rgba(156, 163, 175, 0.8)',
+  },
+  scheduleTimeCompleted: {
+    color: '#10B981',
+  },
+  scheduleTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  scheduleTitleSnoozed: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  scheduleTitleCompleted: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.6)',
+    textDecorationLine: 'line-through',
+  },
+  scheduleSubtitle: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+  scheduleTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 3,
+  },
+  appointmentBadge: {
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  appointmentBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: 'rgba(167, 139, 250, 0.9)',
+    letterSpacing: 0.5,
+  },
+  scheduleAction: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  scheduleActionAppointment: {
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  scheduleActionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+
+  // Snoozed section
+  snoozedSection: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  snoozedHeader: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.4)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+
+  // Completed section
+  completedSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  completedHeader: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.4)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+
+  // Conflict hints
+  conflictHintContainer: {
+    marginBottom: 12,
+    gap: 8,
+  },
+  conflictHint: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(251, 191, 36, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.2)',
+    borderRadius: 8,
+    padding: 10,
+    gap: 8,
+  },
+  conflictHintIcon: {
+    fontSize: 14,
+  },
+  conflictHintContent: {
+    flex: 1,
+  },
+  conflictHintText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.85)',
+  },
+  conflictHintSuggestion: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 2,
   },
 
   // Baseline Status

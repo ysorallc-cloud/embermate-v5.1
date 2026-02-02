@@ -23,6 +23,8 @@ import { saveDailyTracking, getDailyTracking } from '../utils/dailyTrackingStora
 import { saveMealsLog, getTodayMealsLog, MealsLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage';
+import { parseCarePlanContext, getCarePlanBannerText, getPreSelectionHints } from '../utils/carePlanRouting';
+import { trackCarePlanProgress } from '../utils/carePlanStorage';
 
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Breakfast', icon: '🌅' },
@@ -34,6 +36,12 @@ const MEAL_TYPES = [
 export default function LogMeal() {
   const router = useRouter();
   const params = useLocalSearchParams();
+
+  // Parse CarePlan context from navigation params
+  const carePlanContext = parseCarePlanContext(params as Record<string, string>);
+  const isFromCarePlan = carePlanContext !== null;
+  const preSelectionHints = carePlanContext ? getPreSelectionHints(carePlanContext) : null;
+
   const [selectedMeals, setSelectedMeals] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -50,10 +58,18 @@ export default function LogMeal() {
     loadProgress();
   }, []);
 
-  // Pre-select meal type if passed via params
+  // Pre-select meal type if passed via params or CarePlan context
   useEffect(() => {
+    // First priority: explicit mealType param
     if (params.mealType) {
       setSelectedMeals([params.mealType as string]);
+    }
+    // Second priority: CarePlan context hints
+    else if (preSelectionHints?.mealType) {
+      const mealId = preSelectionHints.mealType.toLowerCase();
+      if (MEAL_TYPES.some(m => m.id === mealId)) {
+        setSelectedMeals([mealId]);
+      }
     }
     loadExistingData();
   }, []);
@@ -130,6 +146,15 @@ export default function LogMeal() {
         description: description.trim() || undefined,
       });
 
+      // Track CarePlan progress if navigated from CarePlan
+      if (carePlanContext) {
+        await trackCarePlanProgress(
+          carePlanContext.routineId,
+          carePlanContext.carePlanItemId,
+          { logType: 'meals' }
+        );
+      }
+
       await hapticSuccess();
       router.back();
     } catch (error) {
@@ -167,8 +192,18 @@ export default function LogMeal() {
               <View style={{ width: 44 }} />
             </View>
 
-            {/* Rhythm context banner */}
-            {progress && progress.meals.expected > 0 && (
+            {/* CarePlan context banner */}
+            {isFromCarePlan && carePlanContext && (
+              <View style={[styles.contextBanner, styles.carePlanBanner]}>
+                <Text style={styles.carePlanBannerLabel}>FROM CARE PLAN</Text>
+                <Text style={styles.contextText}>
+                  {getCarePlanBannerText(carePlanContext)}
+                </Text>
+              </View>
+            )}
+
+            {/* Rhythm context banner (fallback when not from CarePlan) */}
+            {!isFromCarePlan && progress && progress.meals.expected > 0 && (
               <View style={styles.contextBanner}>
                 <Text style={styles.contextText}>
                   {progress.meals.completed} of {progress.meals.expected} meals logged today
@@ -298,6 +333,18 @@ const styles = StyleSheet.create({
     padding: 10,
     marginHorizontal: Spacing.xl,
     marginBottom: Spacing.md,
+  },
+  carePlanBanner: {
+    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  carePlanBannerLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(167, 139, 250, 0.9)',
+    letterSpacing: 1,
+    textAlign: 'center',
+    marginBottom: 4,
   },
   contextText: {
     fontSize: 13,

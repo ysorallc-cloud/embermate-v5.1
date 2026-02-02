@@ -15,12 +15,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { createMedication, markMedicationTaken } from '../utils/medicationStorage';
 import { saveMedicationLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage';
+import { parseCarePlanContext, getCarePlanBannerText } from '../utils/carePlanRouting';
+import { trackCarePlanProgress } from '../utils/carePlanStorage';
 
 // Common medications for dropdown
 const COMMON_MEDICATIONS = [
@@ -72,6 +74,11 @@ const SIDE_EFFECTS = [
 
 export default function MedicationLogScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+
+  // Parse CarePlan context from navigation params
+  const carePlanContext = parseCarePlanContext(params as Record<string, string>);
+  const isFromCarePlan = carePlanContext !== null;
 
   // Form state
   const [selectedMedication, setSelectedMedication] = useState('');
@@ -163,6 +170,15 @@ export default function MedicationLogScreen() {
         sideEffects: sideEffect !== 'none' ? [sideEffect] : undefined,
       });
 
+      // Track CarePlan progress if navigated from CarePlan
+      if (carePlanContext) {
+        await trackCarePlanProgress(
+          carePlanContext.routineId,
+          carePlanContext.carePlanItemId,
+          { logType: 'meds' }
+        );
+      }
+
       await hapticSuccess();
       router.back();
     } catch (error) {
@@ -192,8 +208,23 @@ export default function MedicationLogScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Rhythm context banner */}
-          {progress && progress.medications.expected > 0 && (
+          {/* CarePlan context banner */}
+          {isFromCarePlan && carePlanContext && (
+            <View style={[styles.contextBanner, styles.carePlanBanner]}>
+              <Text style={styles.carePlanBannerLabel}>FROM CARE PLAN</Text>
+              <Text style={styles.contextText}>
+                {getCarePlanBannerText(carePlanContext)}
+              </Text>
+              {carePlanContext.completed !== undefined && carePlanContext.targetCount !== undefined && (
+                <Text style={styles.progressText}>
+                  {carePlanContext.completed} of {carePlanContext.targetCount} logged today
+                </Text>
+              )}
+            </View>
+          )}
+
+          {/* Rhythm context banner (fallback when not from CarePlan) */}
+          {!isFromCarePlan && progress && progress.medications.expected > 0 && (
             <View style={styles.contextBanner}>
               <Text style={styles.contextText}>
                 {progress.medications.completed} of {progress.medications.expected} doses logged today
@@ -411,7 +442,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
 
-  // Rhythm context banner
+  // Context banners
   contextBanner: {
     backgroundColor: 'rgba(74, 222, 128, 0.08)',
     borderWidth: 1,
@@ -420,10 +451,28 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 20,
   },
+  carePlanBanner: {
+    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  carePlanBannerLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(167, 139, 250, 0.9)',
+    letterSpacing: 1,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
   contextText: {
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
+  },
+  progressText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textAlign: 'center',
+    marginTop: 4,
   },
 
   // Field
