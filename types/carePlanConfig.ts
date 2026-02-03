@@ -1,0 +1,439 @@
+// ============================================================================
+// CARE PLAN CONFIGURATION TYPES
+// The "Brain" - Persistent configuration of what to track and how
+// ============================================================================
+// Care Plan = configuration of what to track (NOT a daily checklist)
+// Now = reflection of plan status and what's due (status view)
+// Record = logging actions (input)
+// Understand = insights, trends, reports (analysis)
+// ============================================================================
+
+// ============================================================================
+// BUCKET TYPES - Categories of care to track
+// ============================================================================
+
+export type BucketType =
+  | 'meds'
+  | 'vitals'
+  | 'meals'
+  | 'water'
+  | 'mood'
+  | 'sleep'
+  | 'symptoms'
+  | 'activity'
+  | 'appointments';
+
+export const BUCKET_TYPES: BucketType[] = [
+  'meds',
+  'vitals',
+  'meals',
+  'water',
+  'mood',
+  'sleep',
+  'symptoms',
+  'activity',
+  'appointments',
+];
+
+// Primary buckets shown by default
+export const PRIMARY_BUCKETS: BucketType[] = ['meds', 'vitals', 'meals', 'water', 'mood'];
+
+// Secondary buckets hidden behind "More" initially
+export const SECONDARY_BUCKETS: BucketType[] = ['sleep', 'symptoms', 'activity'];
+
+// Appointments is optional/separate
+export const OPTIONAL_BUCKETS: BucketType[] = ['appointments'];
+
+// ============================================================================
+// BUCKET METADATA
+// ============================================================================
+
+export interface BucketMeta {
+  type: BucketType;
+  name: string;
+  emoji: string;
+  aiInsight: string; // Educational, non-medical description
+  route: string; // Log screen route
+}
+
+export const BUCKET_META: Record<BucketType, BucketMeta> = {
+  meds: {
+    type: 'meds',
+    name: 'Medications',
+    emoji: '💊',
+    aiInsight: 'Keeps dosing and adherence accurate for reports and patterns.',
+    route: '/medications',
+  },
+  vitals: {
+    type: 'vitals',
+    name: 'Vitals',
+    emoji: '📊',
+    aiInsight: 'Makes trends visible over time, even when each reading seems normal.',
+    route: '/log-vitals',
+  },
+  meals: {
+    type: 'meals',
+    name: 'Meals',
+    emoji: '🍽️',
+    aiInsight: 'Helps connect nutrition to mood, energy, and symptoms.',
+    route: '/log-meal',
+  },
+  water: {
+    type: 'water',
+    name: 'Water',
+    emoji: '💧',
+    aiInsight: 'Supports hydration goals and explains fatigue or headaches.',
+    route: '/log-water',
+  },
+  mood: {
+    type: 'mood',
+    name: 'Mood',
+    emoji: '😊',
+    aiInsight: "Creates context for 'why today felt harder' without overthinking.",
+    route: '/log-mood',
+  },
+  sleep: {
+    type: 'sleep',
+    name: 'Sleep',
+    emoji: '😴',
+    aiInsight: 'Links rest quality to symptoms and energy.',
+    route: '/log-sleep',
+  },
+  symptoms: {
+    type: 'symptoms',
+    name: 'Symptoms',
+    emoji: '🩺',
+    aiInsight: 'Captures patterns that help doctors understand the full picture.',
+    route: '/log-symptom',
+  },
+  activity: {
+    type: 'activity',
+    name: 'Activity',
+    emoji: '🚶',
+    aiInsight: 'Shows how movement connects to energy, mood, and overall wellness.',
+    route: '/log-activity',
+  },
+  appointments: {
+    type: 'appointments',
+    name: 'Appointments',
+    emoji: '📅',
+    aiInsight: 'Prepares visit summaries and keeps care team info organized.',
+    route: '/appointments',
+  },
+};
+
+// ============================================================================
+// TIME OF DAY
+// ============================================================================
+
+export type TimeOfDay = 'morning' | 'midday' | 'evening' | 'night' | 'custom';
+
+export const TIME_OF_DAY_OPTIONS: { value: TimeOfDay; label: string; time: string }[] = [
+  { value: 'morning', label: 'Morning', time: '8:00 AM' },
+  { value: 'midday', label: 'Midday', time: '12:00 PM' },
+  { value: 'evening', label: 'Evening', time: '6:00 PM' },
+  { value: 'night', label: 'Night', time: '9:00 PM' },
+  { value: 'custom', label: 'Custom', time: '' },
+];
+
+// Default times (HH:mm format)
+export const TIME_OF_DAY_DEFAULTS: Record<TimeOfDay, string> = {
+  morning: '08:00',
+  midday: '12:00',
+  evening: '18:00',
+  night: '21:00',
+  custom: '',
+};
+
+// ============================================================================
+// PRIORITY LEVELS
+// ============================================================================
+
+export type BucketPriority = 'required' | 'recommended' | 'optional';
+
+export const PRIORITY_OPTIONS: { value: BucketPriority; label: string; description: string }[] = [
+  { value: 'required', label: 'Required', description: 'Critical for care - always prompted' },
+  { value: 'recommended', label: 'Recommended', description: 'Important - gentle reminders' },
+  { value: 'optional', label: 'Optional', description: 'Track when you remember' },
+];
+
+// ============================================================================
+// NOTIFICATION SCHEDULE
+// ============================================================================
+
+export type NotificationRepeat = 'none' | 'daily' | 'weekdays';
+
+export interface NotificationSchedule {
+  leadMinutes?: number; // Minutes before time to notify (0, 5, 10, 15, 30)
+  repeat?: NotificationRepeat;
+}
+
+// ============================================================================
+// BUCKET CONFIG - Base configuration for each category
+// ============================================================================
+
+export interface BucketConfig {
+  enabled: boolean;
+  priority: BucketPriority;
+  timesOfDay: TimeOfDay[];
+  customTimes?: string[]; // HH:mm format
+  notificationsEnabled?: boolean;
+  notificationSchedule?: NotificationSchedule;
+  units?: string; // For water: oz/ml, for weight: lbs/kg
+  targets?: {
+    dailyGoal?: number;
+    min?: number;
+    max?: number;
+  };
+  notes?: string;
+}
+
+// ============================================================================
+// CATEGORY-SPECIFIC CONFIGS
+// ============================================================================
+
+// Medication Plan Item (individual medication)
+export interface MedicationPlanItem {
+  id: string;
+  name: string;
+  dosage: string;
+  instructions?: string; // "take with food"
+  timesOfDay: TimeOfDay[];
+  customTimes?: string[]; // HH:mm format
+  supplyEnabled?: boolean;
+  daysSupply?: number;
+  refillThresholdDays?: number; // Default 7
+  notificationsEnabled?: boolean;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Meds Bucket extends base config with medication list
+export interface MedsBucketConfig extends BucketConfig {
+  medications: MedicationPlanItem[];
+}
+
+// Vitals Bucket extends base config with vital types
+export type VitalType = 'bp' | 'hr' | 'spo2' | 'glucose' | 'temp' | 'weight';
+
+export interface VitalsBucketConfig extends BucketConfig {
+  vitalTypes: VitalType[];
+  frequency?: 'daily' | 'weekly' | 'as_needed';
+}
+
+export const VITAL_TYPE_OPTIONS: { value: VitalType; label: string; emoji: string }[] = [
+  { value: 'bp', label: 'Blood Pressure', emoji: '🩸' },
+  { value: 'hr', label: 'Heart Rate', emoji: '❤️' },
+  { value: 'spo2', label: 'Oxygen Level', emoji: '🫁' },
+  { value: 'glucose', label: 'Blood Sugar', emoji: '🩸' },
+  { value: 'temp', label: 'Temperature', emoji: '🌡️' },
+  { value: 'weight', label: 'Weight', emoji: '⚖️' },
+];
+
+// Meals/Water Bucket extends with tracking style
+export type TrackingStyle = 'quick' | 'detailed';
+
+export interface MealsBucketConfig extends BucketConfig {
+  trackingStyle?: TrackingStyle;
+}
+
+export interface WaterBucketConfig extends BucketConfig {
+  trackingStyle?: TrackingStyle;
+  dailyGoalGlasses?: number; // Default 8
+}
+
+// ============================================================================
+// CARE PLAN - Main configuration object
+// ============================================================================
+
+export interface CarePlanConfig {
+  id: string;
+  patientId: string;
+  createdAt: string;
+  updatedAt: string;
+  version: number;
+
+  // Bucket configurations
+  meds: MedsBucketConfig;
+  vitals: VitalsBucketConfig;
+  meals: MealsBucketConfig;
+  water: WaterBucketConfig;
+  mood: BucketConfig;
+  sleep: BucketConfig;
+  symptoms: BucketConfig;
+  activity: BucketConfig;
+  appointments: BucketConfig;
+}
+
+// ============================================================================
+// DEFAULT CONFIGURATIONS
+// ============================================================================
+
+export const DEFAULT_BUCKET_CONFIG: BucketConfig = {
+  enabled: false,
+  priority: 'recommended',
+  timesOfDay: ['morning'],
+  notificationsEnabled: false,
+};
+
+export const DEFAULT_MEDS_CONFIG: MedsBucketConfig = {
+  ...DEFAULT_BUCKET_CONFIG,
+  medications: [],
+};
+
+export const DEFAULT_VITALS_CONFIG: VitalsBucketConfig = {
+  ...DEFAULT_BUCKET_CONFIG,
+  vitalTypes: ['bp', 'hr'],
+  frequency: 'daily',
+};
+
+export const DEFAULT_MEALS_CONFIG: MealsBucketConfig = {
+  ...DEFAULT_BUCKET_CONFIG,
+  timesOfDay: ['morning', 'midday', 'evening'],
+  trackingStyle: 'quick',
+};
+
+export const DEFAULT_WATER_CONFIG: WaterBucketConfig = {
+  ...DEFAULT_BUCKET_CONFIG,
+  trackingStyle: 'quick',
+  dailyGoalGlasses: 8,
+  units: 'glasses',
+};
+
+export function createDefaultCarePlanConfig(patientId: string): CarePlanConfig {
+  const now = new Date().toISOString();
+  return {
+    id: `careplan_${Date.now()}`,
+    patientId,
+    createdAt: now,
+    updatedAt: now,
+    version: 1,
+    meds: { ...DEFAULT_MEDS_CONFIG },
+    vitals: { ...DEFAULT_VITALS_CONFIG },
+    meals: { ...DEFAULT_MEALS_CONFIG },
+    water: { ...DEFAULT_WATER_CONFIG },
+    mood: { ...DEFAULT_BUCKET_CONFIG },
+    sleep: { ...DEFAULT_BUCKET_CONFIG },
+    symptoms: { ...DEFAULT_BUCKET_CONFIG },
+    activity: { ...DEFAULT_BUCKET_CONFIG },
+    appointments: { ...DEFAULT_BUCKET_CONFIG },
+  };
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Check if any bucket is enabled in the care plan
+ */
+export function hasAnyEnabledBucket(config: CarePlanConfig): boolean {
+  return BUCKET_TYPES.some(bucket => config[bucket]?.enabled === true);
+}
+
+/**
+ * Get list of enabled bucket types
+ */
+export function getEnabledBuckets(config: CarePlanConfig): BucketType[] {
+  return BUCKET_TYPES.filter(bucket => config[bucket]?.enabled === true);
+}
+
+/**
+ * Get bucket config by type
+ */
+export function getBucketConfig(config: CarePlanConfig, bucket: BucketType): BucketConfig {
+  return config[bucket];
+}
+
+/**
+ * Check if a specific bucket is enabled
+ */
+export function isBucketEnabled(config: CarePlanConfig, bucket: BucketType): boolean {
+  return config[bucket]?.enabled === true;
+}
+
+/**
+ * Get status text for a bucket (e.g., "3 meds", "BP + HR")
+ */
+export function getBucketStatusText(config: CarePlanConfig, bucket: BucketType): string | null {
+  const bucketConfig = config[bucket];
+  if (!bucketConfig?.enabled) return null;
+
+  switch (bucket) {
+    case 'meds': {
+      const medsConfig = bucketConfig as MedsBucketConfig;
+      const activeMeds = medsConfig.medications?.filter(m => m.active) || [];
+      return activeMeds.length > 0 ? `${activeMeds.length} meds` : null;
+    }
+    case 'vitals': {
+      const vitalsConfig = bucketConfig as VitalsBucketConfig;
+      const types = vitalsConfig.vitalTypes || [];
+      if (types.length === 0) return null;
+      if (types.length <= 2) {
+        return types.map(t => t.toUpperCase()).join(' + ');
+      }
+      return `${types.length} vitals`;
+    }
+    case 'water': {
+      const waterConfig = bucketConfig as WaterBucketConfig;
+      const goal = waterConfig.dailyGoalGlasses || 8;
+      return `Goal: ${goal} ${waterConfig.units || 'glasses'}`;
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * Parse time string safely (handles HH:mm and various formats)
+ */
+export function parseTimeString(time: string): { hours: number; minutes: number } | null {
+  if (!time || typeof time !== 'string') return null;
+
+  // Try HH:mm format
+  const match = time.match(/^(\d{1,2}):(\d{2})$/);
+  if (match) {
+    const hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    if (!isNaN(hours) && !isNaN(minutes) && hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
+      return { hours, minutes };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Format time for display (handles NaN safely)
+ */
+export function formatTimeForDisplay(time: string | undefined | null): string {
+  if (!time) return 'Time not set';
+
+  const parsed = parseTimeString(time);
+  if (!parsed) return 'Time not set';
+
+  const { hours, minutes } = parsed;
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+}
+
+/**
+ * Convert 12-hour time to HH:mm format
+ */
+export function parseDisplayTimeToHHmm(displayTime: string): string | null {
+  const match = displayTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return null;
+
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const isPM = match[3].toUpperCase() === 'PM';
+
+  if (isNaN(hours) || isNaN(minutes)) return null;
+
+  if (isPM && hours !== 12) hours += 12;
+  if (!isPM && hours === 12) hours = 0;
+
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}

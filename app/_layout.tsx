@@ -13,6 +13,7 @@ import { requestNotificationPermissions } from '../utils/notificationService';
 import { initializeSampleData } from '../utils/sampleDataGenerator';
 import { useNotificationHandler } from '../utils/useNotificationHandler';
 import { ensureDailySnapshot, pruneOldOverrides } from '../utils/carePlanStorage';
+import { runMigrations } from '../services/migrationService';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 function WebContainer({ children }: { children: React.ReactNode }) {
@@ -62,6 +63,8 @@ export default function RootLayout() {
     requestNotificationPermissionsOnStartup();
     // Initialize sample data once at app startup
     initializeSampleData();
+    // Run migrations (converts medications to CarePlanItems if needed)
+    runMigrations().catch(err => console.error('Migration error:', err));
     // Ensure CarePlan daily snapshot exists (freezes plan at start of day)
     ensureDailySnapshot();
     // Clean up old CarePlan overrides
@@ -140,6 +143,8 @@ export default function RootLayout() {
           <Stack.Screen name="correlation-report" />
           <Stack.Screen name="correlation-test" />
           <Stack.Screen name="care-plan-settings" />
+          <Stack.Screen name="care-plan" />
+          <Stack.Screen name="log-medication-plan-item" />
         </Stack>
       </WebContainer>
     </ErrorBoundary>

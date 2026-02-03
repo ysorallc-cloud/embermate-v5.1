@@ -87,33 +87,96 @@ import { format } from 'date-fns';
 
 // CarePlan System
 import { useCarePlan } from '../../hooks/useCarePlan';
+import { useDailyCareInstances } from '../../hooks/useDailyCareInstances';
 import { useAppointments } from '../../hooks/useAppointments';
-import {
-  buildTodaySchedule,
-  groupScheduleByStatus,
-  getScheduleAttentionCount,
-  isScheduleComplete,
-  getScheduleEntryRoute,
-  ScheduleConflict,
-} from '../../utils/carePlanSchedule';
-import {
-  ScheduleEntry,
-  ScheduleStatus,
-  formatMinutesAsTime,
-} from '../../types/schedule';
-import { routeForScheduleEntry } from '../../utils/carePlanRouting';
+import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
+import { BucketType } from '../../types/carePlanConfig';
 import {
   NoMedicationsBanner,
   NoCarePlanBanner,
   DataIntegrityBanner,
 } from '../../components/common/ConsistencyBanner';
 
-// Helper to format 24hr time (HH:MM) to display format
+// Helper to format 24hr time (HH:MM) to display format - with NaN protection
 function formatTime(time24: string): string {
-  const [hours, minutes] = time24.split(':').map(Number);
+  if (!time24 || typeof time24 !== 'string') return 'Time not set';
+
+  const parts = time24.split(':');
+  if (parts.length < 2) return 'Time not set';
+
+  const hours = parseInt(parts[0], 10);
+  const minutes = parseInt(parts[1], 10);
+
+  // Validate hours and minutes are valid numbers
+  if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return 'Time not set';
+  }
+
   const ampm = hours >= 12 ? 'PM' : 'AM';
   const hour12 = hours % 12 || 12;
   return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+}
+
+// Grace period in minutes before an item is considered overdue
+const OVERDUE_GRACE_MINUTES = 30;
+
+// Helper to check if a scheduled time is overdue
+function isOverdue(scheduledTime: string, graceMinutes: number = OVERDUE_GRACE_MINUTES): boolean {
+  if (!scheduledTime) return false;
+  const now = new Date();
+  const scheduled = new Date(scheduledTime);
+  // Handle invalid dates
+  if (isNaN(scheduled.getTime())) return false;
+  // Add grace period to scheduled time
+  const graceCutoff = new Date(scheduled.getTime() + graceMinutes * 60 * 1000);
+  return now > graceCutoff;
+}
+
+// Helper to check if scheduled time is in the future
+function isFuture(scheduledTime: string): boolean {
+  if (!scheduledTime) return false;
+  const now = new Date();
+  const scheduled = new Date(scheduledTime);
+  // Handle invalid dates
+  if (isNaN(scheduled.getTime())) return false;
+  return scheduled > now;
+}
+
+// Helper to parse time for display (handles both ISO and HH:mm formats) - with NaN protection
+function parseTimeForDisplay(scheduledTime: string): string {
+  if (!scheduledTime || typeof scheduledTime !== 'string') return 'Time not set';
+
+  // If it's an ISO timestamp, parse it
+  if (scheduledTime.includes('T')) {
+    const date = new Date(scheduledTime);
+    // Validate the date is valid
+    if (isNaN(date.getTime())) return 'Time not set';
+
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+    return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+  }
+  // Otherwise assume HH:mm format
+  return formatTime(scheduledTime);
+}
+
+// Helper to get route for instance item type (from NEW regimen system)
+function getRouteForInstanceType(itemType: string): string {
+  switch (itemType) {
+    case 'medication': return '/medication-confirm';
+    case 'vitals': return '/log-vitals';
+    case 'nutrition': return '/log-meal';
+    case 'mood': return '/log-mood';
+    case 'sleep': return '/log-sleep';
+    case 'hydration': return '/log-water';
+    case 'activity': return '/log-activity';
+    case 'appointment': return '/appointments';
+    case 'custom':
+    default:
+      return '/log-note';
+  }
 }
 
 interface StatData {
@@ -138,6 +201,13 @@ interface AIInsight {
 export default function NowScreen() {
   const router = useRouter();
 
+  // NEW: Daily Care Instances hook - uses the regimen-based system
+  const {
+    state: instancesState,
+    loading: instancesLoading,
+    completeInstance,
+  } = useDailyCareInstances();
+
   // CarePlan hook - provides progress, timeline, and schedule from derived state
   const { dayState, carePlan, overrides, snoozeItem, setItemOverride, integrityWarnings } = useCarePlan();
 
@@ -146,6 +216,16 @@ export default function NowScreen() {
     todayAppointments,
     complete: completeAppointment,
   } = useAppointments();
+
+  // NEW: Bucket-based Care Plan Config hook
+  const { hasCarePlan: hasBucketCarePlan, loading: carePlanConfigLoading, enabledBuckets } = useCarePlanConfig();
+
+  // Determine which system to use:
+  // If instancesState has instances, prefer the NEW regimen-based system
+  const hasRegimenInstances = instancesState && instancesState.instances.length > 0;
+
+  // A care plan exists if EITHER the old routine-based plan exists OR the new bucket-based config has enabled buckets
+  const hasAnyCarePlan = carePlan || hasBucketCarePlan || hasRegimenInstances;
 
   const [medications, setMedications] = useState<Medication[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -632,13 +712,34 @@ export default function NowScreen() {
       const moodLog = await getTodayMoodLog();
       const moodLogged = moodLog?.mood !== null && moodLog?.mood !== undefined ? 1 : 0;
 
-      // GUARDRAIL: Only use dayState.progress when CarePlan exists
-      // Never compute progress from raw logs if a CarePlan is loaded
-      // Fallback logic ONLY when: no CarePlan exists OR CarePlan failed to load
+      // GUARDRAIL: Progress source priority:
+      // 1. NEW regimen instances (hasRegimenInstances)
+      // 2. OLD routine-based dayState.progress
+      // 3. Raw log calculations (fallback)
       let newStats: TodayStats;
 
-      if (carePlan && dayState?.progress) {
-        // CarePlan exists - use dayState.progress as single source of truth
+      if (hasRegimenInstances && instancesState) {
+        // NEW regimen system - derive progress from instances
+        const getTypeStats = (itemType: string) => {
+          const typeInstances = instancesState.instances.filter(i => i.itemType === itemType);
+          const completed = typeInstances.filter(i => i.status === 'completed').length;
+          return { completed, total: typeInstances.length };
+        };
+
+        newStats = {
+          meds: getTypeStats('medication'),
+          vitals: getTypeStats('vitals'),
+          mood: getTypeStats('mood'),
+          meals: getTypeStats('nutrition'),
+        };
+
+        // Fill in defaults if no instances exist for a type
+        if (newStats.vitals.total === 0) newStats.vitals = { completed: vitalsLogged, total: 4 };
+        if (newStats.mood.total === 0) newStats.mood = { completed: moodLogged, total: 1 };
+        if (newStats.meals.total === 0) newStats.meals = { completed: mealsLogged, total: 4 };
+        if (newStats.meds.total === 0) newStats.meds = { completed: takenMeds, total: totalMeds };
+      } else if (carePlan && dayState?.progress) {
+        // OLD routine system - use dayState.progress as single source of truth
         const dsProgress = dayState.progress;
         newStats = {
           meds: { completed: dsProgress.meds.completed, total: dsProgress.meds.expected },
@@ -791,81 +892,43 @@ export default function NowScreen() {
     );
   };
 
-  // Build unified Today's Schedule from CarePlan + Appointments
-  // This is the SINGLE SOURCE OF TRUTH for Today's Schedule
-  const todaySchedule = useMemo(() => {
-    return buildTodaySchedule({
-      dayState,
-      carePlan,
-      appointments: todayAppointments, // Use appointments from hook (single source of truth)
-      overrides,
-      currentTime: new Date(),
-    });
-  }, [dayState, carePlan, todayAppointments, overrides]);
+  // ============================================================================
+  // TODAY TIMELINE - Built from DailyCareInstances
+  // ============================================================================
 
-  // Destructure for convenience
-  const scheduleEntries = todaySchedule.entries;
-  const groupedSchedule = todaySchedule.grouped;
-  const scheduleConflicts = todaySchedule.conflicts;
-  const scheduleStats = todaySchedule.stats;
-
-  // Check if schedule is complete (for closure state)
-  const scheduleComplete = useMemo(() => {
-    return isScheduleComplete(scheduleEntries);
-  }, [scheduleEntries]);
-
-  // Helper to get status display text
-  const getStatusDisplayText = (status: ScheduleStatus): string => {
-    switch (status) {
-      case 'availableNow': return 'Available now';
-      case 'upcoming': return 'Upcoming';
-      case 'completed': return 'Completed';
-      case 'missed': return 'Missed';
-      case 'snoozed': return 'Snoozed';
-      default: return '';
+  // Compute timeline from DailyCareInstances sorted by scheduledTime
+  const todayTimeline = useMemo(() => {
+    if (!instancesState?.instances) {
+      return { overdue: [], upcoming: [], completed: [], nextUp: null };
     }
-  };
 
-  // Handler for schedule item tap
-  // - Care Plan items: go to logging screen with CarePlan context params
-  // - Appointments: go to Understand's appointment form (canonical view/edit UI)
-  const handleScheduleItemPress = useCallback((entry: ScheduleEntry) => {
-    if (entry.source === 'appointment') {
-      // Route to Understand's canonical appointment form (view/edit)
-      router.push(`/appointment-form?id=${entry.appointmentId}` as any);
-    } else if (entry.source === 'carePlan') {
-      // Use routing helper to get proper route with CarePlan context
-      const route = routeForScheduleEntry(entry);
-      if (route) {
-        router.push({
-          pathname: route.pathname,
-          params: route.params,
-        } as any);
-      } else if (entry.actionRoute) {
-        // Fallback to action route without context
-        router.push(entry.actionRoute as any);
-      }
-    }
+    const now = new Date();
+    const sorted = [...instancesState.instances].sort((a, b) =>
+      a.scheduledTime.localeCompare(b.scheduledTime)
+    );
+
+    // Filter into categories
+    const overdue = sorted.filter(
+      i => i.status === 'pending' && isOverdue(i.scheduledTime)
+    );
+    const upcoming = sorted.filter(
+      i => i.status === 'pending' && !isOverdue(i.scheduledTime)
+    );
+    const completed = sorted.filter(
+      i => i.status === 'completed' || i.status === 'skipped'
+    );
+
+    // "Next Up" = first pending after now, or first overdue if nothing upcoming
+    let nextUp = upcoming.find(i => isFuture(i.scheduledTime)) || upcoming[0] || overdue[0] || null;
+
+    return { overdue, upcoming, completed, nextUp };
+  }, [instancesState?.instances]);
+
+  // Handler for timeline item tap
+  const handleTimelineItemPress = useCallback((instance: any) => {
+    const route = getRouteForInstanceType(instance.itemType);
+    router.push(route as any);
   }, [router]);
-
-  // Handler for completing an appointment from the schedule
-  const handleAppointmentComplete = useCallback(async (appointmentId: string) => {
-    await completeAppointment(appointmentId);
-  }, [completeAppointment]);
-
-  // Handler for "Later" action (snooze)
-  const handleSnooze = useCallback(async (entry: ScheduleEntry) => {
-    if (entry.routineId && entry.itemId) {
-      await snoozeItem(entry.routineId, entry.itemId, 30); // Snooze for 30 minutes
-    }
-  }, [snoozeItem]);
-
-  // Handler for manual mark as done
-  const handleMarkDone = useCallback(async (entry: ScheduleEntry) => {
-    if (entry.routineId && entry.itemId) {
-      await setItemOverride(entry.routineId, entry.itemId, true);
-    }
-  }, [setItemOverride]);
 
   return (
     <View style={styles.container}>
@@ -995,7 +1058,7 @@ export default function NowScreen() {
             {integrityWarnings && integrityWarnings.length > 0 && (
               <DataIntegrityBanner
                 issueCount={integrityWarnings.length}
-                onFix={() => router.push('/care-plan-settings' as any)}
+                onFix={() => router.push('/care-plan' as any)}
               />
             )}
 
@@ -1005,184 +1068,164 @@ export default function NowScreen() {
             )}
 
             {/* Empty State: No Care Plan Set Up */}
-            {!carePlan && !showOnboarding && (
-              <NoCarePlanBanner onSetup={() => router.push('/care-plan-settings' as any)} />
+            {!hasAnyCarePlan && !showOnboarding && !carePlanConfigLoading && (
+              <NoCarePlanBanner onSetup={() => router.push('/care-plan' as any)} />
             )}
 
             {/* Progress Section - Below AI Insight */}
+            {/* Only show progress rings for enabled buckets, or all if no config exists */}
             <View style={styles.progressSection}>
               <Text style={styles.sectionTitle}>PROGRESS</Text>
               <View style={styles.progressGrid}>
-                {renderProgressRing('💊', 'Meds', todayStats.meds, () => handleQuickCheck('meds'))}
-                {renderProgressRing('📊', 'Vitals', todayStats.vitals, () => handleQuickCheck('vitals'))}
-                {renderProgressRing('😊', 'Mood', todayStats.mood, () => handleQuickCheck('mood'))}
-                {renderProgressRing('🍽️', 'Meals', todayStats.meals, () => handleQuickCheck('meals'))}
+                {(enabledBuckets.length === 0 || enabledBuckets.includes('meds' as BucketType)) &&
+                  renderProgressRing('💊', 'Meds', todayStats.meds, () => handleQuickCheck('meds'))}
+                {(enabledBuckets.length === 0 || enabledBuckets.includes('vitals' as BucketType)) &&
+                  renderProgressRing('📊', 'Vitals', todayStats.vitals, () => handleQuickCheck('vitals'))}
+                {(enabledBuckets.length === 0 || enabledBuckets.includes('mood' as BucketType)) &&
+                  renderProgressRing('😊', 'Mood', todayStats.mood, () => handleQuickCheck('mood'))}
+                {(enabledBuckets.length === 0 || enabledBuckets.includes('meals' as BucketType)) &&
+                  renderProgressRing('🍽️', 'Meals', todayStats.meals, () => handleQuickCheck('meals'))}
               </View>
             </View>
 
-            {/* Today's Schedule Section - Driven by CarePlan */}
+            {/* Next Up Card - First pending after now, or first overdue */}
+            {hasRegimenInstances && todayTimeline.nextUp && (
+              <TouchableOpacity
+                style={[
+                  styles.nextPendingCard,
+                  isOverdue(todayTimeline.nextUp.scheduledTime) && styles.nextPendingCardOverdue,
+                ]}
+                onPress={() => handleTimelineItemPress(todayTimeline.nextUp)}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.nextPendingIcon,
+                  isOverdue(todayTimeline.nextUp.scheduledTime) && styles.nextPendingIconOverdue,
+                ]}>
+                  <Text style={styles.nextPendingEmoji}>
+                    {todayTimeline.nextUp.itemEmoji || '🔔'}
+                  </Text>
+                </View>
+                <View style={styles.nextPendingContent}>
+                  <Text style={[
+                    styles.nextPendingLabel,
+                    isOverdue(todayTimeline.nextUp.scheduledTime) && styles.nextPendingLabelOverdue,
+                  ]}>
+                    {isOverdue(todayTimeline.nextUp.scheduledTime) ? 'OVERDUE' : 'NEXT UP'}
+                  </Text>
+                  <Text style={styles.nextPendingTitle}>
+                    {todayTimeline.nextUp.itemName}
+                  </Text>
+                  <Text style={styles.nextPendingTime}>
+                    {parseTimeForDisplay(todayTimeline.nextUp.scheduledTime)}
+                  </Text>
+                </View>
+                <View style={[
+                  styles.nextPendingAction,
+                  isOverdue(todayTimeline.nextUp.scheduledTime) && styles.nextPendingActionOverdue,
+                ]}>
+                  <Text style={styles.nextPendingActionText}>Log</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {/* Today Timeline Section - Built from DailyCareInstances */}
             <TouchableOpacity
               style={styles.sectionHeaderRow}
               onPress={() => setTimelineExpanded(!timelineExpanded)}
               activeOpacity={0.7}
             >
               <View>
-                <Text style={styles.sectionTitle}>{MICROCOPY.TODAYS_SCHEDULE}</Text>
-                {carePlan && (
+                <Text style={styles.sectionTitle}>TODAY TIMELINE</Text>
+                {hasRegimenInstances && (
                   <Text style={styles.sectionSubtitle}>
-                    {scheduleStats.carePlanItems} tasks + {scheduleStats.appointments} appointments
+                    {todayTimeline.overdue.length > 0 && `${todayTimeline.overdue.length} overdue • `}
+                    {todayTimeline.upcoming.length} upcoming • {todayTimeline.completed.length} done
                   </Text>
                 )}
               </View>
               <Text style={styles.collapseIcon}>{timelineExpanded ? '▼' : '▶'}</Text>
             </TouchableOpacity>
 
-            {/* Conflict hints - show when appointments overlap with routines */}
-            {timelineExpanded && scheduleConflicts.length > 0 && (
-              <View style={styles.conflictHintContainer}>
-                {scheduleConflicts.map((conflict, index) => (
-                  <View key={`conflict-${index}`} style={styles.conflictHint}>
-                    <Text style={styles.conflictHintIcon}>⚠️</Text>
-                    <View style={styles.conflictHintContent}>
-                      <Text style={styles.conflictHintText}>{conflict.message}</Text>
-                      <Text style={styles.conflictHintSuggestion}>{conflict.suggestion}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {timelineExpanded && (
+            {timelineExpanded && hasRegimenInstances && (
               <>
-                {/* Active items (availableNow + missed) - highest priority */}
-                {groupedSchedule.active.map((entry) => (
-                  <TouchableOpacity
-                    key={entry.id}
-                    style={[
-                      styles.scheduleItem,
-                      entry.source === 'appointment' && styles.scheduleItemAppointment,
-                      entry.status === 'missed' && styles.scheduleItemMissed,
-                      entry.status === 'availableNow' && styles.scheduleItemActive,
-                    ]}
-                    onPress={() => handleScheduleItemPress(entry)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[
-                      styles.scheduleIcon,
-                      entry.source === 'appointment' && styles.scheduleIconAppointment,
-                      entry.status === 'missed' && styles.scheduleIconMissed,
-                    ]}>
-                      <Text style={styles.scheduleIconEmoji}>{entry.emoji || '🔔'}</Text>
-                    </View>
-                    <View style={styles.scheduleDetails}>
-                      <View style={styles.scheduleTimeRow}>
-                        <Text style={[
-                          styles.scheduleTime,
-                          entry.status === 'missed' && styles.scheduleTimeMissed,
-                        ]}>
-                          {formatMinutesAsTime(entry.startMin)} • {getStatusDisplayText(entry.status)}
-                        </Text>
-                        {entry.source === 'appointment' && (
-                          <View style={styles.appointmentBadge}>
-                            <Text style={styles.appointmentBadgeText}>APPT</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={styles.scheduleTitle}>{entry.title}</Text>
-                      <Text style={styles.scheduleSubtitle}>
-                        {entry.subtitle}
-                        {entry.completed !== undefined && entry.expected !== undefined && (
-                          ` • ${entry.completed}/${entry.expected}`
-                        )}
-                      </Text>
-                    </View>
-                    <View style={[
-                      styles.scheduleAction,
-                      entry.source === 'appointment' && styles.scheduleActionAppointment,
-                    ]}>
-                      <Text style={styles.scheduleActionText}>{entry.actionLabel || 'Log'}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-
-                {/* Upcoming items */}
-                {groupedSchedule.upcoming.map((entry) => (
-                  <TouchableOpacity
-                    key={entry.id}
-                    style={[
-                      styles.scheduleItem,
-                      entry.source === 'appointment' && styles.scheduleItemAppointment,
-                    ]}
-                    onPress={() => handleScheduleItemPress(entry)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[
-                      styles.scheduleIcon,
-                      entry.source === 'appointment' && styles.scheduleIconAppointment,
-                    ]}>
-                      <Text style={styles.scheduleIconEmoji}>{entry.emoji || '🔔'}</Text>
-                    </View>
-                    <View style={styles.scheduleDetails}>
-                      <View style={styles.scheduleTimeRow}>
-                        <Text style={styles.scheduleTime}>
-                          {formatMinutesAsTime(entry.startMin)} • {getStatusDisplayText(entry.status)}
-                        </Text>
-                        {entry.source === 'appointment' && (
-                          <View style={styles.appointmentBadge}>
-                            <Text style={styles.appointmentBadgeText}>APPT</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={styles.scheduleTitle}>{entry.title}</Text>
-                      <Text style={styles.scheduleSubtitle}>{entry.subtitle}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-
-                {/* Snoozed items */}
-                {groupedSchedule.snoozed.length > 0 && (
-                  <View style={styles.snoozedSection}>
-                    <Text style={styles.snoozedHeader}>Snoozed</Text>
-                    {groupedSchedule.snoozed.map((entry) => (
+                {/* Overdue items - highest priority */}
+                {todayTimeline.overdue.length > 0 && (
+                  <View style={styles.overdueSection}>
+                    <Text style={styles.overdueHeader}>Overdue</Text>
+                    {todayTimeline.overdue.map((instance) => (
                       <TouchableOpacity
-                        key={entry.id}
-                        style={[styles.scheduleItem, styles.scheduleItemSnoozed]}
-                        onPress={() => handleScheduleItemPress(entry)}
+                        key={instance.id}
+                        style={[styles.timelineItem, styles.timelineItemOverdue]}
+                        onPress={() => handleTimelineItemPress(instance)}
                         activeOpacity={0.7}
                       >
-                        <View style={[styles.scheduleIcon, styles.scheduleIconSnoozed]}>
-                          <Text style={styles.scheduleIconEmoji}>{entry.emoji || '🔔'}</Text>
+                        <View style={[styles.timelineIcon, styles.timelineIconOverdue]}>
+                          <Text style={styles.timelineIconEmoji}>{instance.itemEmoji || '🔔'}</Text>
                         </View>
-                        <View style={styles.scheduleDetails}>
-                          <Text style={styles.scheduleTimeSnoozed}>
-                            Until {formatMinutesAsTime(entry.snoozedUntilMin || 0)}
+                        <View style={styles.timelineDetails}>
+                          <Text style={styles.timelineTimeOverdue}>
+                            {parseTimeForDisplay(instance.scheduledTime)} • Overdue
                           </Text>
-                          <Text style={styles.scheduleTitleSnoozed}>{entry.title}</Text>
+                          <Text style={styles.timelineTitle}>{instance.itemName}</Text>
+                          {instance.instructions && (
+                            <Text style={styles.timelineSubtitle} numberOfLines={1}>
+                              {instance.instructions}
+                            </Text>
+                          )}
+                        </View>
+                        <View style={[styles.timelineAction, styles.timelineActionOverdue]}>
+                          <Text style={styles.timelineActionText}>Log</Text>
                         </View>
                       </TouchableOpacity>
                     ))}
                   </View>
                 )}
 
-                {/* Completed items - collapsible */}
-                {groupedSchedule.completed.length > 0 && (
+                {/* Upcoming items */}
+                {todayTimeline.upcoming.map((instance) => (
+                  <TouchableOpacity
+                    key={instance.id}
+                    style={styles.timelineItem}
+                    onPress={() => handleTimelineItemPress(instance)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.timelineIcon}>
+                      <Text style={styles.timelineIconEmoji}>{instance.itemEmoji || '🔔'}</Text>
+                    </View>
+                    <View style={styles.timelineDetails}>
+                      <Text style={styles.timelineTime}>
+                        {parseTimeForDisplay(instance.scheduledTime)}
+                      </Text>
+                      <Text style={styles.timelineTitle}>{instance.itemName}</Text>
+                      {instance.instructions && (
+                        <Text style={styles.timelineSubtitle} numberOfLines={1}>
+                          {instance.instructions}
+                        </Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+
+                {/* Completed items */}
+                {todayTimeline.completed.length > 0 && (
                   <View style={styles.completedSection}>
                     <Text style={styles.completedHeader}>
-                      Completed today ({groupedSchedule.completed.length})
+                      Completed ({todayTimeline.completed.length})
                     </Text>
-                    {groupedSchedule.completed.map((entry) => (
+                    {todayTimeline.completed.map((instance) => (
                       <View
-                        key={entry.id}
-                        style={[styles.scheduleItem, styles.scheduleItemCompleted]}
+                        key={instance.id}
+                        style={[styles.timelineItem, styles.timelineItemCompleted]}
                       >
-                        <View style={[styles.scheduleIcon, styles.scheduleIconCompleted]}>
-                          <Text style={styles.scheduleIconEmoji}>{entry.emoji || '✓'}</Text>
+                        <View style={[styles.timelineIcon, styles.timelineIconCompleted]}>
+                          <Text style={styles.timelineIconEmoji}>✓</Text>
                         </View>
-                        <View style={styles.scheduleDetails}>
-                          <Text style={styles.scheduleTimeCompleted}>
-                            {formatMinutesAsTime(entry.startMin)} • Completed
+                        <View style={styles.timelineDetails}>
+                          <Text style={styles.timelineTimeCompleted}>
+                            {parseTimeForDisplay(instance.scheduledTime)} • {instance.status === 'skipped' ? 'Skipped' : 'Done'}
                           </Text>
-                          <Text style={styles.scheduleTitleCompleted}>{entry.title}</Text>
+                          <Text style={styles.timelineTitleCompleted}>{instance.itemName}</Text>
                         </View>
                       </View>
                     ))}
@@ -1191,16 +1234,30 @@ export default function NowScreen() {
               </>
             )}
 
-            {timelineExpanded && scheduleEntries.length === 0 && !carePlan && (
+            {/* Empty states */}
+            {timelineExpanded && !hasRegimenInstances && (
               <View style={styles.emptyTimeline}>
-                <Text style={styles.emptyTimelineText}>{MICROCOPY.ALL_CAUGHT_UP}</Text>
+                <Text style={styles.emptyTimelineText}>No Care Plan set up yet</Text>
+                <Text style={styles.emptyTimelineSubtext}>Add medications or items to see your timeline</Text>
               </View>
             )}
 
-            {timelineExpanded && scheduleEntries.length === 0 && carePlan && (
+            {timelineExpanded && hasRegimenInstances &&
+              todayTimeline.overdue.length === 0 &&
+              todayTimeline.upcoming.length === 0 &&
+              todayTimeline.completed.length === 0 && (
               <View style={styles.emptyTimeline}>
                 <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
-                <Text style={styles.emptyTimelineSubtext}>Your Care Plan is set up, check back tomorrow</Text>
+              </View>
+            )}
+
+            {timelineExpanded && hasRegimenInstances &&
+              todayTimeline.overdue.length === 0 &&
+              todayTimeline.upcoming.length === 0 &&
+              todayTimeline.completed.length > 0 && (
+              <View style={styles.allDoneMessage}>
+                <Text style={styles.allDoneEmoji}>🎉</Text>
+                <Text style={styles.allDoneText}>All caught up!</Text>
               </View>
             )}
 
@@ -1699,6 +1756,206 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.5)',
     marginTop: 2,
+  },
+
+  // Next Pending Card (from NEW regimen system)
+  nextPendingCard: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  nextPendingIcon: {
+    width: 44,
+    height: 44,
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nextPendingEmoji: {
+    fontSize: 22,
+  },
+  nextPendingContent: {
+    flex: 1,
+  },
+  nextPendingLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#3B82F6',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  nextPendingTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  nextPendingInstructions: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 2,
+  },
+  nextPendingAction: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  nextPendingActionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  nextPendingTime: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 2,
+  },
+
+  // Overdue variants
+  nextPendingCardOverdue: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  nextPendingIconOverdue: {
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+  },
+  nextPendingLabelOverdue: {
+    color: '#EF4444',
+  },
+  nextPendingActionOverdue: {
+    backgroundColor: '#EF4444',
+  },
+
+  // Timeline items (new simplified version)
+  timelineItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderLeftWidth: 3,
+    borderLeftColor: 'rgba(255, 193, 7, 0.4)',
+    borderRadius: 8,
+    padding: 12,
+    paddingLeft: 14,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  timelineItemOverdue: {
+    borderLeftColor: 'rgba(239, 68, 68, 0.5)',
+    backgroundColor: 'rgba(239, 68, 68, 0.06)',
+  },
+  timelineItemCompleted: {
+    borderLeftColor: 'rgba(16, 185, 129, 0.4)',
+    opacity: 0.6,
+  },
+  timelineIcon: {
+    width: 38,
+    height: 38,
+    backgroundColor: 'rgba(255, 193, 7, 0.15)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 193, 7, 0.3)',
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timelineIconOverdue: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  timelineIconCompleted: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  timelineIconEmoji: {
+    fontSize: 16,
+  },
+  timelineDetails: {
+    flex: 1,
+  },
+  timelineTime: {
+    fontSize: 12,
+    color: '#FFC107',
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  timelineTimeOverdue: {
+    fontSize: 12,
+    color: '#EF4444',
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  timelineTimeCompleted: {
+    fontSize: 12,
+    color: '#10B981',
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  timelineTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  timelineTitleCompleted: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.6)',
+    textDecorationLine: 'line-through',
+  },
+  timelineSubtitle: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+  timelineAction: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  timelineActionOverdue: {
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+  },
+  timelineActionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+
+  // Overdue section
+  overdueSection: {
+    marginBottom: 12,
+  },
+  overdueHeader: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#EF4444',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+
+  // All done message
+  allDoneMessage: {
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  allDoneEmoji: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  allDoneText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#10B981',
   },
 
 });

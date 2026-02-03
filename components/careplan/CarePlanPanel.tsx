@@ -103,9 +103,9 @@ export function CarePlanPanel({
   if (dayState.routines.length === 0) {
     return (
       <View style={styles.emptyPanel}>
-        <Text style={styles.emptyTitle}>No care plan set up</Text>
+        <Text style={styles.emptyTitle}>No Care Plan set up</Text>
         <Text style={styles.emptySubtitle}>
-          Set up a care plan to track daily routines
+          Set up a Care Plan to track daily routines
         </Text>
         {onSetupPress && (
           <TouchableOpacity style={styles.setupButton} onPress={onSetupPress}>
@@ -121,12 +121,12 @@ export function CarePlanPanel({
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Today's Care Plan</Text>
-          <Text style={styles.subtitle}>Drives your Now timeline and progress</Text>
+          <Text style={styles.title}>Care Plan</Text>
+          <Text style={styles.subtitle}>Today's items</Text>
         </View>
         <TouchableOpacity
           style={styles.settingsButton}
-          onPress={() => router.push('/care-plan-settings' as any)}
+          onPress={() => router.push('/care-plan' as any)}
         >
           <Text style={styles.settingsIcon}>⚙️</Text>
         </TouchableOpacity>

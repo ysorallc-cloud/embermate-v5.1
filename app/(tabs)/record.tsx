@@ -31,7 +31,15 @@ import {
   getTodayNotesLog,
 } from '../../utils/centralStorage';
 import { useDataListener } from '../../lib/events';
+// Use BOTH the old useCarePlan (for legacy dayState) and new useDailyCareInstances
 import { useCarePlan } from '../../hooks/useCarePlan';
+import { useDailyCareInstances } from '../../hooks/useDailyCareInstances';
+// NEW: Bucket-based Care Plan Config
+import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
+import { BucketType } from '../../types/carePlanConfig';
+// Use the NEW DailyInstancesPanel when regimen system is active
+import { DailyInstancesPanel } from '../../components/careplan/DailyInstancesPanel';
+// Keep old CarePlanPanel as fallback
 import { CarePlanPanel } from '../../components/careplan/CarePlanPanel';
 import {
   NoMedicationsBanner,
@@ -53,7 +61,15 @@ export default function RecordTab() {
   const [loading, setLoading] = useState(true);
   const [showMoreItems, setShowMoreItems] = useState(false);
 
-  // Care Plan hook - provides dayState with progress and derived completion
+  // NEW: Daily Care Instances hook - uses the regimen-based system
+  const {
+    state: instancesState,
+    loading: instancesLoading,
+    completeInstance,
+    skipInstance,
+  } = useDailyCareInstances();
+
+  // OLD: Care Plan hook - provides dayState with progress (kept for legacy UI)
   const {
     dayState,
     carePlan,
@@ -63,6 +79,14 @@ export default function RecordTab() {
     initializeCarePlan,
     integrityWarnings,
   } = useCarePlan();
+
+  // NEW: Bucket-based Care Plan Config hook
+  const { hasCarePlan: hasBucketCarePlan, enabledBuckets } = useCarePlanConfig();
+
+  // Determine which system to use:
+  // - If instancesState has groups, use the NEW regimen-based system
+  // - Otherwise fall back to the OLD routine-based dayState
+  const hasRegimenInstances = instancesState && instancesState.groups.length > 0;
 
   // Data state
   const [medications, setMedications] = useState<Medication[]>([]);
@@ -156,13 +180,24 @@ export default function RecordTab() {
   };
 
   // GUARDRAIL: Check if CarePlan exists to determine data source
-  const hasCarePlan = !!carePlan && !!dayState;
+  // Prefer new regimen system over old routine-based system
+  const hasCarePlan = hasRegimenInstances || (!!carePlan && !!dayState);
 
   // Generate medication status text
   const getMedicationStatusText = (): { text: string; done: boolean } | undefined => {
-    // GUARDRAIL: Use dayState.progress exclusively when CarePlan exists
-    if (hasCarePlan) {
-      const { completed, expected } = dayState!.progress.meds;
+    // GUARDRAIL: NEW regimen system - derive from instancesState
+    if (hasRegimenInstances && instancesState) {
+      // Count medication instances from the new system
+      const medInstances = instancesState.instances.filter(i => i.itemType === 'medication');
+      if (medInstances.length === 0) return undefined;
+      const completed = medInstances.filter(i => i.status === 'completed').length;
+      const done = completed >= medInstances.length;
+      return { text: `${completed}/${medInstances.length}`, done };
+    }
+
+    // GUARDRAIL: OLD routine system - use dayState.progress
+    if (hasCarePlan && dayState) {
+      const { completed, expected } = dayState.progress.meds;
       if (expected === 0) return undefined;
       const done = completed >= expected;
       return { text: `${completed}/${expected}`, done };
@@ -177,6 +212,16 @@ export default function RecordTab() {
     return { text: `${remaining} remaining`, done: false };
   };
 
+  // Helper: Get status from new regimen instances by item type
+  const getInstanceStatusByType = (itemType: string): { text: string; done: boolean } | undefined => {
+    if (!hasRegimenInstances || !instancesState) return undefined;
+    const typeInstances = instancesState.instances.filter(i => i.itemType === itemType);
+    if (typeInstances.length === 0) return undefined;
+    const completed = typeInstances.filter(i => i.status === 'completed').length;
+    const done = completed >= typeInstances.length;
+    return { text: `${completed}/${typeInstances.length}`, done };
+  };
+
   // Quick items - 1-tap, low effort
   const quickItems: LogItemData[] = [
     {
@@ -185,9 +230,13 @@ export default function RecordTab() {
       question: 'How are they feeling?',
       hint: 'Mood & energy',
       status: (() => {
-        // GUARDRAIL: Use dayState exclusively when CarePlan exists
-        if (hasCarePlan) {
-          const { completed, expected } = dayState!.progress.mood;
+        // GUARDRAIL: NEW regimen system first
+        const regimenStatus = getInstanceStatusByType('mood');
+        if (regimenStatus) return regimenStatus;
+
+        // OLD routine system
+        if (hasCarePlan && dayState) {
+          const { completed, expected } = dayState.progress.mood;
           if (expected === 0) return moodLogged ? { text: '✓ Logged', done: true } : undefined;
           return { text: completed >= expected ? '✓ Logged' : 'Tap to log', done: completed >= expected };
         }
@@ -201,9 +250,13 @@ export default function RecordTab() {
       question: 'Water today?',
       hint: 'Quick count',
       status: (() => {
-        // GUARDRAIL: Use dayState exclusively when CarePlan exists
-        if (hasCarePlan) {
-          const { completed, expected } = dayState!.progress.hydration;
+        // GUARDRAIL: NEW regimen system first
+        const regimenStatus = getInstanceStatusByType('hydration');
+        if (regimenStatus) return regimenStatus;
+
+        // OLD routine system
+        if (hasCarePlan && dayState) {
+          const { completed, expected } = dayState.progress.hydration;
           if (expected === 0) return waterGlasses > 0 ? { text: `${waterGlasses} glasses`, done: waterGlasses >= 8 } : undefined;
           return { text: `${completed}/${expected}`, done: completed >= expected };
         }
@@ -217,9 +270,13 @@ export default function RecordTab() {
       question: 'Did they eat?',
       hint: 'Meals today',
       status: (() => {
-        // GUARDRAIL: Use dayState exclusively when CarePlan exists
-        if (hasCarePlan) {
-          const { completed, expected } = dayState!.progress.meals;
+        // GUARDRAIL: NEW regimen system first
+        const regimenStatus = getInstanceStatusByType('nutrition');
+        if (regimenStatus) return regimenStatus;
+
+        // OLD routine system
+        if (hasCarePlan && dayState) {
+          const { completed, expected } = dayState.progress.meals;
           if (expected === 0) return undefined;
           return { text: `${completed}/${expected}`, done: completed >= expected };
         }
@@ -246,9 +303,13 @@ export default function RecordTab() {
       question: 'Check vitals?',
       hint: 'BP, heart rate, etc.',
       status: (() => {
-        // GUARDRAIL: Use dayState exclusively when CarePlan exists
-        if (hasCarePlan) {
-          const { completed, expected } = dayState!.progress.vitals;
+        // GUARDRAIL: NEW regimen system first
+        const regimenStatus = getInstanceStatusByType('vitals');
+        if (regimenStatus) return regimenStatus;
+
+        // OLD routine system
+        if (hasCarePlan && dayState) {
+          const { completed, expected } = dayState.progress.vitals;
           if (expected === 0) return undefined;
           return { text: `${completed}/${expected}`, done: completed >= expected };
         }
@@ -339,7 +400,7 @@ export default function RecordTab() {
     );
   };
 
-  if (loading || carePlanLoading) {
+  if (loading || carePlanLoading || instancesLoading) {
     return (
       <View style={styles.container}>
         <AuroraBackground variant="log" />
@@ -365,8 +426,21 @@ export default function RecordTab() {
           subtitle={MICROCOPY.RECORD_SUBTITLE}
         />
 
-        {/* Care Plan Panel - Shows routines and progress */}
-        {dayState && (
+        {/* Daily Instances Panel - NEW regimen-based system */}
+        {hasRegimenInstances && instancesState && (
+          <DailyInstancesPanel
+            groups={instancesState.groups}
+            nextPending={instancesState.nextPending}
+            allComplete={instancesState.allComplete}
+            stats={instancesState.stats}
+            onCompleteInstance={completeInstance}
+            onSkipInstance={skipInstance}
+            onSetupPress={initializeCarePlan}
+          />
+        )}
+
+        {/* OLD Care Plan Panel - Fallback for legacy routine-based system */}
+        {!hasRegimenInstances && dayState && (
           <CarePlanPanel
             dayState={dayState}
             onItemOverride={setItemOverride}
@@ -379,7 +453,7 @@ export default function RecordTab() {
         {integrityWarnings && integrityWarnings.length > 0 && (
           <DataIntegrityBanner
             issueCount={integrityWarnings.length}
-            onFix={() => router.push('/care-plan-settings' as any)}
+            onFix={() => router.push('/care-plan' as any)}
           />
         )}
 
@@ -389,12 +463,36 @@ export default function RecordTab() {
         )}
 
         {/* Group 1: Quick */}
+        {/* Filter items based on enabled buckets - show all if no buckets enabled */}
         <Text style={styles.groupHeader}>QUICK</Text>
-        {quickItems.map(renderLogItem)}
+        {quickItems
+          .filter(item => {
+            if (enabledBuckets.length === 0) return true;
+            const bucketMap: Record<string, BucketType> = {
+              mood: 'mood',
+              water: 'water',
+              meals: 'meals',
+            };
+            const bucket = bucketMap[item.id];
+            return !bucket || enabledBuckets.includes(bucket);
+          })
+          .map(renderLogItem)}
 
         {/* Group 2: More detail */}
         <Text style={styles.groupHeader}>MORE DETAIL</Text>
-        {momentItems.map(renderLogItem)}
+        {momentItems
+          .filter(item => {
+            if (enabledBuckets.length === 0) return true;
+            const bucketMap: Record<string, BucketType> = {
+              medications: 'meds',
+              vitals: 'vitals',
+              sleep: 'sleep',
+              appointment: 'appointments',
+            };
+            const bucket = bucketMap[item.id];
+            return !bucket || enabledBuckets.includes(bucket);
+          })
+          .map(renderLogItem)}
 
         {/* More items - Collapsed by default */}
         {!showMoreItems && (
