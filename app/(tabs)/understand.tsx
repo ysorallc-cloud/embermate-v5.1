@@ -50,6 +50,8 @@ import {
   Rhythm,
   DeviationAnalysis,
 } from '../../utils/rhythmStorage';
+import { useEnabledBuckets } from '../../hooks/useCarePlanConfig';
+import { BucketType } from '../../types/carePlanConfig';
 
 // Aurora Components
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
@@ -75,6 +77,7 @@ interface DataMetrics {
 
 export default function UnderstandScreen() {
   const router = useRouter();
+  const { enabledBuckets } = useEnabledBuckets();
   const [refreshing, setRefreshing] = useState(false);
   const [medications, setMedications] = useState<Medication[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -241,7 +244,14 @@ export default function UnderstandScreen() {
     setRefreshing(false);
   }, []);
 
-  // Generate "What's normal" items based on baselines
+  // Helper to check if a bucket is enabled (or no config exists = show all)
+  const isBucketEnabled = useCallback((bucket: BucketType): boolean => {
+    // If no buckets are enabled (no config), show all insights
+    if (enabledBuckets.length === 0) return true;
+    return enabledBuckets.includes(bucket);
+  }, [enabledBuckets]);
+
+  // Generate "What's normal" items based on baselines (filtered by enabled buckets)
   const getWhatsNormal = useMemo((): string[] => {
     if (!baselineData || !baselineData.hasAnyBaseline) return [];
 
@@ -249,28 +259,42 @@ export default function UnderstandScreen() {
     const confident = baselineData.daysOfData >= 5;
     const adverb = confident ? 'typically' : 'usually';
 
-    if (baselineData.meals && baselineData.meals.dailyCount > 0) {
+    // Only show meals insight if meals bucket is enabled
+    if (isBucketEnabled('meals') && baselineData.meals && baselineData.meals.dailyCount > 0) {
       items.push(`Meals are ${adverb} logged ${baselineData.meals.dailyCount} time${baselineData.meals.dailyCount !== 1 ? 's' : ''} per day`);
     }
 
-    if (baselineData.vitals && baselineData.vitals.dailyCount > 0) {
+    // Only show vitals insight if vitals bucket is enabled
+    if (isBucketEnabled('vitals') && baselineData.vitals && baselineData.vitals.dailyCount > 0) {
       items.push(`Vitals are ${adverb} checked ${baselineData.vitals.dailyCount === 1 ? 'once' : baselineData.vitals.dailyCount + ' times'} per day`);
     }
 
-    if (baselineData.meds && baselineData.meds.dailyCount > 0) {
+    // Only show meds insight if meds bucket is enabled
+    if (isBucketEnabled('meds') && baselineData.meds && baselineData.meds.dailyCount > 0) {
       items.push(`${baselineData.meds.dailyCount} medication${baselineData.meds.dailyCount !== 1 ? 's' : ''} ${adverb} taken daily`);
     }
 
     return items;
-  }, [baselineData]);
+  }, [baselineData, isBucketEnabled]);
 
-  // Generate "What's different today" items
+  // Generate "What's different today" items (filtered by enabled buckets)
   const getWhatsDifferent = useMemo((): string[] => {
     if (!baselineData || !baselineData.hasAnyBaseline || todayVsBaseline.length === 0) return [];
 
     const items: string[] = [];
 
+    // Map comparison categories to bucket types
+    const categoryToBucket: Record<string, BucketType> = {
+      meals: 'meals',
+      vitals: 'vitals',
+      meds: 'meds',
+    };
+
     for (const comparison of todayVsBaseline) {
+      // Skip if this bucket is not enabled
+      const bucket = categoryToBucket[comparison.category];
+      if (bucket && !isBucketEnabled(bucket)) continue;
+
       if (comparison.belowBaseline && comparison.today === 0) {
         switch (comparison.category) {
           case 'meals':
@@ -299,7 +323,7 @@ export default function UnderstandScreen() {
     }
 
     return items;
-  }, [baselineData, todayVsBaseline]);
+  }, [baselineData, todayVsBaseline, isBucketEnabled]);
 
   // Check if baseline is still forming
   const isBaselineForming = useMemo(() => {
@@ -486,8 +510,11 @@ export default function UnderstandScreen() {
             </View>
           </View>
 
-          {/* Deviation Insight Card - Only shows when significant deviation detected */}
+          {/* Deviation Insight Card - Only shows when significant deviation detected and relevant buckets enabled */}
           {deviation?.hasDeviation && (
+            (isBucketEnabled('vitals') && deviation.categories.vitals) ||
+            (isBucketEnabled('meals') && deviation.categories.meals)
+          ) && (
             <View style={[styles.insightCard, styles.deviationCard]}>
               <View style={styles.insightContent}>
                 <Text style={styles.insightAnchor}>
@@ -495,8 +522,8 @@ export default function UnderstandScreen() {
                 </Text>
                 <Text style={styles.insightSubText}>
                   This week looks different from your typical pattern.
-                  {deviation.categories.vitals && ' Vitals have been logged less often than usual.'}
-                  {deviation.categories.meals && ' Meals have been logged less frequently.'}
+                  {isBucketEnabled('vitals') && deviation.categories.vitals && ' Vitals have been logged less often than usual.'}
+                  {isBucketEnabled('meals') && deviation.categories.meals && ' Meals have been logged less frequently.'}
                   {' '}Something may have shifted.
                 </Text>
               </View>
