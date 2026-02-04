@@ -380,41 +380,128 @@ export default function NowScreen() {
     const eveningMeds = meds.filter(m => m.timeSlot === 'evening' || m.timeSlot === 'bedtime');
     const eveningMedsRemaining = eveningMeds.filter(m => !m.taken).length;
 
-    // Fix #4: Arbiter logic - Timeline-specific insights take priority when relevant
-    // If there are overdue items, that's the most urgent message
+    // ========================================================================
+    // SIGNAL OVER SENTIMENT: Action-oriented insights
+    // Title = what needs attention (the signal)
+    // Message = supporting context (secondary)
+    // ========================================================================
+
+    // REMINDER: Overdue items - highest priority, most urgent signal
     if (timelineOverdue > 0) {
       insights.push({
         icon: '⏰',
-        title: `${timelineOverdue} item${timelineOverdue > 1 ? 's' : ''} need attention`,
-        message: timelineOverdue === 1
-          ? "There's one item from your Care Plan that's past its scheduled time. Tap it above to log or adjust."
-          : `You have ${timelineOverdue} items from your Care Plan that are past their scheduled time. Work through them when you can.`,
+        title: timelineOverdue === 1
+          ? '1 item overdue'
+          : `${timelineOverdue} items overdue`,
+        message: 'Tap above to log or adjust.',
         type: 'reminder',
       });
     }
 
-    // CELEBRATION: All timeline items complete (Fix #4 - Timeline drives celebration)
+    // CELEBRATION: All timeline items complete
     if (timelineOverdue === 0 && timelineUpcoming === 0 && timelineCompleted > 0) {
       insights.push({
-        icon: '🎉',
-        title: 'All caught up!',
-        message: `${timelineCompleted} Care Plan item${timelineCompleted > 1 ? 's' : ''} logged today. Your consistent tracking helps you spot patterns and gives doctors better information during visits.`,
+        icon: '✓',
+        title: 'All done for today',
+        message: `${timelineCompleted} item${timelineCompleted > 1 ? 's' : ''} logged.`,
         type: 'celebration',
       });
     }
 
-    // CELEBRATION: Strong progress today (when not using timeline system)
+    // CELEBRATION: Strong progress (legacy system)
     if (timelineCompleted === 0 && stats.meds.completed === stats.meds.total && stats.meds.total > 0 &&
         stats.mood.completed > 0 && stats.meals.completed >= 3) {
       insights.push({
-        icon: '🌟',
-        title: 'Strong day of care',
-        message: `${stats.meds.completed} medications logged, mood tracked, and ${stats.meals.completed} meals recorded. Consistent tracking like this helps you spot patterns and gives doctors better information during visits. Keep it up!`,
+        icon: '✓',
+        title: 'All done for today',
+        message: 'Meds, mood, and meals logged.',
         type: 'celebration',
       });
     }
 
-    // REMINDER: Good progress but timeline items remain (Fix #4 - arbitrate conflict)
+    // REMINDER: Upcoming appointment - actionable context
+    if (todayAppointments.length > 0) {
+      const nextAppt = todayAppointments[0];
+      const apptTime = nextAppt.time ? ` at ${nextAppt.time}` : '';
+      insights.push({
+        icon: '📅',
+        title: `${nextAppt.specialty || 'Appointment'}${apptTime}`,
+        message: `With ${nextAppt.provider}. Recent logs help.`,
+        type: 'reminder',
+      });
+    }
+
+    // REMINDER: Evening medications
+    if (currentHour >= 16 && currentHour < 20 && eveningMedsRemaining > 0) {
+      insights.push({
+        icon: '💊',
+        title: `${eveningMedsRemaining} evening med${eveningMedsRemaining > 1 ? 's' : ''} remaining`,
+        message: 'Consistent timing helps effectiveness.',
+        type: 'reminder',
+      });
+    }
+
+    // POSITIVE: Medications complete
+    if (stats.meds.completed > 0 && stats.meds.completed === stats.meds.total && stats.meds.total > 0) {
+      insights.push({
+        icon: '💊',
+        title: 'Medications complete',
+        message: `All ${stats.meds.total} logged today.`,
+        type: 'positive',
+      });
+    }
+
+    // SUGGESTION: Morning medications pending
+    if (currentHour >= 6 && currentHour < 11 && medsRemaining > 0 && stats.meds.total > 0) {
+      insights.push({
+        icon: '💊',
+        title: `${medsRemaining} medication${medsRemaining > 1 ? 's' : ''} not logged`,
+        message: 'Tap Record to log.',
+        type: 'suggestion',
+      });
+    }
+
+    // SUGGESTION: Lunch not logged
+    if (currentHour >= 12 && currentHour < 15 && stats.meals.completed < 2) {
+      insights.push({
+        icon: '🍽️',
+        title: 'Lunch not logged yet',
+        message: 'Quick note helps track appetite.',
+        type: 'suggestion',
+      });
+    }
+
+    // SUGGESTION: Mood not logged (afternoon/evening)
+    if (currentHour >= 14 && stats.mood.completed === 0) {
+      insights.push({
+        icon: '😊',
+        title: 'Mood not logged yet',
+        message: 'A quick check-in helps spot patterns.',
+        type: 'suggestion',
+      });
+    }
+
+    // SUGGESTION: Vitals not logged
+    if (currentHour >= 10 && stats.vitals.completed === 0 && stats.vitals.total > 0) {
+      insights.push({
+        icon: '📊',
+        title: 'Vitals not logged yet',
+        message: 'Regular readings build a useful baseline.',
+        type: 'suggestion',
+      });
+    }
+
+    // SUGGESTION: No data yet today
+    if (totalLogged === 0 && currentHour >= 8) {
+      insights.push({
+        icon: '📋',
+        title: 'Nothing logged yet today',
+        message: 'Start with whatever feels natural.',
+        type: 'suggestion',
+      });
+    }
+
+    // POSITIVE: Good progress with items remaining
     const progressPercent = (stats.meds.total > 0 ? stats.meds.completed / stats.meds.total : 0) +
                            (stats.vitals.total > 0 ? stats.vitals.completed / stats.vitals.total : 0) +
                            (stats.mood.total > 0 ? stats.mood.completed / stats.mood.total : 0) +
@@ -423,162 +510,42 @@ export default function NowScreen() {
     if (avgProgress >= 0.5 && timelineUpcoming > 0 && timelineOverdue === 0) {
       insights.push({
         icon: '📋',
-        title: 'Making good progress',
-        message: `You're over halfway through today's Care Plan. ${timelineUpcoming} item${timelineUpcoming > 1 ? 's' : ''} still scheduled—check "What's left today" below.`,
+        title: `${timelineUpcoming} item${timelineUpcoming > 1 ? 's' : ''} left today`,
+        message: 'Over halfway done.',
         type: 'positive',
       });
     }
 
-    // REMINDER: Upcoming appointment today (future-looking with context)
-    if (todayAppointments.length > 0) {
-      const nextAppt = todayAppointments[0];
-      insights.push({
-        icon: '📅',
-        title: 'Appointment today',
-        message: `${nextAppt.specialty || 'Appointment'} with ${nextAppt.provider}${nextAppt.time ? ` at ${nextAppt.time}` : ''}. Having recent vitals and medication logs ready can make the visit more productive.`,
-        type: 'reminder',
-      });
-    }
-
-    // REMINDER: Evening medications coming up (future-looking with context)
-    if (currentHour >= 16 && currentHour < 20 && eveningMedsRemaining > 0) {
-      insights.push({
-        icon: '🌙',
-        title: 'Evening meds coming up',
-        message: `${eveningMedsRemaining} evening medication${eveningMedsRemaining > 1 ? 's' : ''} still to go. Taking medications at consistent times helps maintain stable levels in the body and can improve effectiveness.`,
-        type: 'reminder',
-      });
-    }
-
-    // POSITIVE: Medications complete with context
-    if (stats.meds.completed > 0 && stats.meds.completed === stats.meds.total && stats.meds.total > 0) {
-      insights.push({
-        icon: '💊',
-        title: 'Medications complete',
-        message: `All ${stats.meds.total} medication${stats.meds.total > 1 ? 's' : ''} logged today. Medication adherence is one of the most impactful things you can do for their health. Great work staying on top of it.`,
-        type: 'positive',
-      });
-    }
-
-    // POSITIVE: Mood insight with context
-    if (moodLevel) {
-      if (moodLevel >= 4) {
-        insights.push({
-          icon: '😊',
-          title: 'Positive mood today',
-          message: moodLevel === 5
-            ? "They're feeling great! Positive days are worth noting—tracking mood over time helps you see what activities or routines contribute to better days."
-            : "Good spirits logged. Noticing these moments helps you identify what's working well in their care routine.",
-          type: 'positive',
-        });
-      } else if (moodLevel <= 2) {
-        insights.push({
-          icon: '😔',
-          title: 'A harder day',
-          message: "Difficult days are part of the journey. Logging them helps you track patterns and share context with healthcare providers. Your presence matters more than you know.",
-          type: 'positive',
-        });
-      }
-    }
-
-    // POSITIVE: Meals tracking with context
+    // POSITIVE: Meals well tracked
     if (stats.meals.completed >= 3) {
       insights.push({
         icon: '🍽️',
-        title: 'Meals well tracked',
-        message: `${stats.meals.completed} meals logged. Tracking nutrition helps you notice appetite changes early—often one of the first signs of health shifts. You're building valuable data.`,
+        title: `${stats.meals.completed} meals logged`,
+        message: 'Helps track appetite patterns.',
         type: 'positive',
       });
     }
 
-    // POSITIVE: Vitals logged with context
+    // POSITIVE: Vitals captured
     if (stats.vitals.completed >= 2) {
       insights.push({
         icon: '📊',
-        title: 'Vitals captured',
-        message: `${stats.vitals.completed} vitals recorded today. Regular tracking creates a baseline that makes it easier to spot meaningful changes and have informed conversations with doctors.`,
+        title: `${stats.vitals.completed} vitals recorded`,
+        message: 'Building a useful baseline.',
         type: 'positive',
       });
     }
 
-    // SUGGESTION: Morning with pending meds
-    if (currentHour >= 6 && currentHour < 11 && medsRemaining > 0 && stats.meds.total > 0) {
-      insights.push({
-        icon: '🌅',
-        title: 'Morning medications',
-        message: `${medsRemaining} of ${stats.meds.total} medication${medsRemaining > 1 ? 's' : ''} still to log. Morning routines help establish consistency, which makes it easier to remember over time.`,
-        type: 'suggestion',
-      });
-    }
-
-    // SUGGESTION: Afternoon - check meals
-    if (currentHour >= 12 && currentHour < 15 && stats.meals.completed < 2) {
-      insights.push({
-        icon: '🍽️',
-        title: 'Lunchtime check-in',
-        message: `${stats.meals.completed} of 4 meals logged so far. Even quick notes about appetite help you track nutrition patterns that might be worth mentioning to their doctor.`,
-        type: 'suggestion',
-      });
-    }
-
-    // SUGGESTION: No data yet today
-    if (totalLogged === 0 && currentHour >= 8) {
-      insights.push({
-        icon: '✨',
-        title: 'Fresh start today',
-        message: "No logs yet—and that's okay. Start with whatever feels most natural. Even logging one thing builds the habit that makes caregiving easier over time.",
-        type: 'suggestion',
-      });
-    }
-
-    // SUGGESTION: Good progress mid-day
-    if (currentHour >= 11 && currentHour < 17 && totalLogged >= 2 && totalLogged < 6) {
-      insights.push({
-        icon: '👍',
-        title: 'Building momentum',
-        message: `${totalLogged} items logged so far. Each entry adds to a clearer picture of their health over time—helpful for you and for their care team.`,
-        type: 'suggestion',
-      });
-    }
-
-    // Return the most relevant insight (priority: celebration > reminder > positive > suggestion)
-    const priorityOrder = ['celebration', 'reminder', 'positive', 'suggestion'];
+    // Return the most relevant insight (priority: reminder > celebration > suggestion > positive)
+    // Reminders first (action needed), then celebrations, then suggestions, then passive positives
+    const priorityOrder = ['reminder', 'celebration', 'suggestion', 'positive'];
     for (const priority of priorityOrder) {
       const match = insights.find(i => i.type === priority);
       if (match) return match;
     }
 
-    // Default fallback - always show something
-    const hour = currentHour;
-    if (hour < 12) {
-      return {
-        icon: '🌅',
-        title: 'Good morning',
-        message: "A new day of caregiving begins. Every small action you take matters—even just being present makes a difference.",
-        type: 'suggestion',
-      };
-    } else if (hour < 17) {
-      return {
-        icon: '☀️',
-        title: 'Afternoon check-in',
-        message: "You're doing great. Caregiving is a marathon, not a sprint. Take a moment to appreciate your efforts today.",
-        type: 'suggestion',
-      };
-    } else if (hour < 21) {
-      return {
-        icon: '🌆',
-        title: 'Evening wind-down',
-        message: "The day is winding down. Reflect on what went well today—consistency over perfection is what matters most.",
-        type: 'suggestion',
-      };
-    } else {
-      return {
-        icon: '🌙',
-        title: 'Rest well',
-        message: "Another day of care complete. Rest is part of caregiving too—you can't pour from an empty cup.",
-        type: 'suggestion',
-      };
-    }
+    // No insight to show - return null instead of filler content
+    return null;
   }, []);
 
   const handleDismissBanner = async () => {
@@ -912,21 +879,27 @@ export default function NowScreen() {
     setRefreshing(false);
   }, []);
 
-  // Progress ring calculations
+  // ============================================================================
+  // CARE PLAN PROGRESS - Make Gaps Actionable
+  // Color semantics: gray = not applicable, amber = missing, green = complete
+  // ============================================================================
+
   const getProgressPercent = (completed: number, total: number) => {
     return total > 0 ? (completed / total) * 100 : 0;
   };
 
-  const getProgressStatus = (percent: number): 'complete' | 'partial' | 'empty' => {
-    if (percent >= 100) return 'complete';
-    if (percent > 0) return 'partial';
-    return 'empty';
+  // Status: 'complete' (green), 'missing' (amber), 'partial' (amber), 'inactive' (gray)
+  const getProgressStatus = (completed: number, total: number): 'complete' | 'partial' | 'missing' | 'inactive' => {
+    if (total === 0) return 'inactive';           // Not applicable today
+    if (completed === total) return 'complete';   // All done
+    if (completed > 0) return 'partial';          // Some done
+    return 'missing';                              // Expected but none logged
   };
 
   const getStrokeColor = (status: string) => {
-    if (status === 'complete') return '#10B981';
-    if (status === 'partial') return '#FFC107';
-    return 'rgba(255, 255, 255, 0.2)';
+    if (status === 'complete') return '#10B981';              // Green
+    if (status === 'partial' || status === 'missing') return '#F59E0B';  // Soft amber
+    return 'rgba(255, 255, 255, 0.15)';                       // Neutral gray
   };
 
   const calculateStrokeDashoffset = (percent: number) => {
@@ -934,11 +907,18 @@ export default function NowScreen() {
     return circumference * (1 - percent / 100);
   };
 
-  const handleQuickCheck = (type: 'meds' | 'vitals' | 'mood' | 'meals') => {
-    // Navigate to the appropriate canonical screen
+  // Check if there are upcoming (not yet due) instances for a category
+  const hasUpcomingForType = (itemType: string): boolean => {
+    if (!todayTimeline?.upcoming) return false;
+    return todayTimeline.upcoming.some(i => i.itemType === itemType);
+  };
+
+  // Route to Record tab with appropriate logging screen
+  const handleProgressTileTap = (type: 'meds' | 'vitals' | 'mood' | 'meals') => {
+    // Route directly to the logging screen for actionable context
     switch (type) {
       case 'meds':
-        router.push('/medications');  // Canonical Understand medications screen
+        router.push('/(tabs)/record');  // Record tab shows medication logging options
         break;
       case 'vitals':
         router.push('/log-vitals');
@@ -956,36 +936,57 @@ export default function NowScreen() {
     icon: string,
     label: string,
     stat: StatData,
-    onPress: () => void
+    onPress: () => void,
+    itemType?: string  // For checking upcoming schedule
   ) => {
     const percent = getProgressPercent(stat.completed, stat.total);
-    const status = getProgressStatus(percent);
+    const status = getProgressStatus(stat.completed, stat.total);
     const strokeColor = getStrokeColor(status);
     const dashoffset = calculateStrokeDashoffset(percent);
     const circumference = 2 * Math.PI * 21;
 
-    // Fix #1: Show completion status like "4/4 complete" or "0/2 due"
-    let statText = '--';
+    // Determine display text based on status
+    let statText = '';
     let statusLabel = '';
-    if (stat.total > 0) {
-      statText = `${stat.completed}/${stat.total}`;
-      if (stat.completed === stat.total) {
+
+    switch (status) {
+      case 'complete':
+        statText = `${stat.completed}/${stat.total}`;
         statusLabel = 'complete';
-      } else if (stat.completed > 0) {
+        break;
+      case 'partial':
+        statText = `${stat.completed}/${stat.total}`;
         statusLabel = 'logged';
-      } else {
-        statusLabel = 'due';
-      }
+        break;
+      case 'missing':
+        // Check if items are scheduled later today
+        const hasUpcoming = itemType && hasUpcomingForType(itemType);
+        if (hasUpcoming) {
+          statText = `0/${stat.total}`;
+          statusLabel = 'scheduled later';
+        } else {
+          statText = `0/${stat.total}`;
+          statusLabel = 'not logged yet';
+        }
+        break;
+      case 'inactive':
+        statText = '—';
+        statusLabel = 'not set up';
+        break;
     }
+
+    // Only make tappable if there's something to log
+    const isTappable = status !== 'inactive';
 
     return (
       <TouchableOpacity
-        style={styles.checkinItem}
-        onPress={onPress}
-        activeOpacity={0.7}
+        style={[styles.checkinItem, !isTappable && styles.checkinItemInactive]}
+        onPress={isTappable ? onPress : undefined}
+        activeOpacity={isTappable ? 0.7 : 1}
         accessible={true}
-        accessibilityRole="button"
+        accessibilityRole={isTappable ? "button" : "text"}
         accessibilityLabel={`${label}. ${statText} ${statusLabel}`}
+        accessibilityHint={isTappable ? `Tap to log ${label.toLowerCase()}` : undefined}
       >
         <View style={styles.ringContainer}>
           <Svg width={50} height={50} style={styles.progressRing}>
@@ -1017,11 +1018,9 @@ export default function NowScreen() {
         <Text style={[styles.checkinStat, styles[`stat_${status}`]]}>
           {statText}
         </Text>
-        {statusLabel !== '' && (
-          <Text style={[styles.checkinStatusLabel, styles[`stat_${status}`]]}>
-            {statusLabel}
-          </Text>
-        )}
+        <Text style={[styles.checkinStatusLabel, styles[`stat_${status}`]]}>
+          {statusLabel}
+        </Text>
       </TouchableOpacity>
     );
   };
@@ -1057,6 +1056,24 @@ export default function NowScreen() {
 
     return { overdue, upcoming, completed, nextUp };
   }, [instancesState?.instances]);
+
+  // ============================================================================
+  // SIGNAL OVER SENTIMENT: Auto-manage timeline expansion
+  // Auto-collapse when empty, auto-expand when overdue items appear
+  // ============================================================================
+  useEffect(() => {
+    const hasOverdue = todayTimeline.overdue.length > 0;
+    const hasUpcoming = todayTimeline.upcoming.length > 0;
+    const isEmpty = !hasOverdue && !hasUpcoming;
+
+    if (hasOverdue) {
+      // Auto-expand when items become overdue - needs attention
+      setTimelineExpanded(true);
+    } else if (isEmpty && hasRegimenInstances) {
+      // Auto-collapse when nothing left to do
+      setTimelineExpanded(false);
+    }
+  }, [todayTimeline.overdue.length, todayTimeline.upcoming.length, hasRegimenInstances]);
 
   // Handler for timeline item tap
   const handleTimelineItemPress = useCallback((instance: any) => {
@@ -1229,13 +1246,13 @@ export default function NowScreen() {
               <Text style={styles.sectionTitle}>CARE PLAN PROGRESS</Text>
               <View style={styles.progressGrid}>
                 {(enabledBuckets.length === 0 || enabledBuckets.includes('meds' as BucketType)) &&
-                  renderProgressRing('💊', 'Meds', todayStats.meds, () => handleQuickCheck('meds'))}
+                  renderProgressRing('💊', 'Meds', todayStats.meds, () => handleProgressTileTap('meds'), 'medication')}
                 {(enabledBuckets.length === 0 || enabledBuckets.includes('vitals' as BucketType)) &&
-                  renderProgressRing('📊', 'Vitals', todayStats.vitals, () => handleQuickCheck('vitals'))}
+                  renderProgressRing('📊', 'Vitals', todayStats.vitals, () => handleProgressTileTap('vitals'), 'vitals')}
                 {(enabledBuckets.length === 0 || enabledBuckets.includes('mood' as BucketType)) &&
-                  renderProgressRing('😊', 'Mood', todayStats.mood, () => handleQuickCheck('mood'))}
+                  renderProgressRing('😊', 'Mood', todayStats.mood, () => handleProgressTileTap('mood'), 'mood')}
                 {(enabledBuckets.length === 0 || enabledBuckets.includes('meals' as BucketType)) &&
-                  renderProgressRing('🍽️', 'Meals', todayStats.meals, () => handleQuickCheck('meals'))}
+                  renderProgressRing('🍽️', 'Meals', todayStats.meals, () => handleProgressTileTap('meals'), 'nutrition')}
               </View>
             </View>
 
@@ -1588,13 +1605,19 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   stat_complete: {
-    color: '#10B981',
+    color: '#10B981',  // Green - all done
   },
   stat_partial: {
-    color: '#FFC107',
+    color: '#F59E0B',  // Soft amber - some logged
   },
-  stat_empty: {
-    color: 'rgba(255, 255, 255, 0.4)',
+  stat_missing: {
+    color: '#F59E0B',  // Soft amber - expected but not logged
+  },
+  stat_inactive: {
+    color: 'rgba(255, 255, 255, 0.35)',  // Neutral gray - not applicable
+  },
+  checkinItemInactive: {
+    opacity: 0.6,
   },
 
   // AI Insight Card

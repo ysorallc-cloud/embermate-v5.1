@@ -192,8 +192,54 @@ export default function RecordTab() {
     return enabledBuckets.length > 0 ? enabledBuckets : DEFAULT_BUCKETS;
   }, [enabledBuckets]);
 
-  // Split items into priorities and more
-  const { priorityItems, moreItems } = useMemo(() => {
+  // ============================================================================
+  // REDUCE CHOICE FRICTION: Dynamic reordering based on status
+  // Overdue/expected items float to top, completed items sink
+  // ============================================================================
+
+  // Map bucket type to instance itemType for status lookup
+  const bucketToItemType: Record<string, string> = {
+    meds: 'medication',
+    vitals: 'vitals',
+    meals: 'nutrition',
+    mood: 'mood',
+    sleep: 'sleep',
+    water: 'hydration',
+    symptoms: 'symptoms',
+    activity: 'activity',
+    appointments: 'appointment',
+  };
+
+  // Get status for a bucket based on daily instances
+  const getBucketStatus = useCallback((bucket: BucketType): 'overdue' | 'pending' | 'complete' | 'none' => {
+    if (!dailyState?.instances) return 'none';
+
+    const itemType = bucketToItemType[bucket];
+    const bucketInstances = dailyState.instances.filter(i => i.itemType === itemType);
+
+    if (bucketInstances.length === 0) return 'none';
+
+    const now = new Date();
+    const hasOverdue = bucketInstances.some(i => {
+      if (i.status !== 'pending') return false;
+      const scheduled = new Date(i.scheduledTime);
+      const graceCutoff = new Date(scheduled.getTime() + 30 * 60 * 1000); // 30 min grace
+      return now > graceCutoff;
+    });
+
+    if (hasOverdue) return 'overdue';
+
+    const hasPending = bucketInstances.some(i => i.status === 'pending');
+    if (hasPending) return 'pending';
+
+    const allComplete = bucketInstances.every(i => i.status === 'completed' || i.status === 'skipped');
+    if (allComplete) return 'complete';
+
+    return 'none';
+  }, [dailyState?.instances]);
+
+  // Split items into priorities and more, with dynamic reordering
+  const { priorityItems, moreItems, allPrioritiesComplete } = useMemo(() => {
     const priority: LogItemData[] = [];
     const more: LogItemData[] = [];
 
@@ -205,12 +251,30 @@ export default function RecordTab() {
       }
     }
 
-    // Sort priority items by their priority number
-    priority.sort((a, b) => a.priority - b.priority);
+    // Dynamic sort: overdue first, then pending, then complete, then by priority
+    const statusOrder = { overdue: 0, pending: 1, none: 2, complete: 3 };
+    priority.sort((a, b) => {
+      const statusA = a.bucket ? getBucketStatus(a.bucket) : 'none';
+      const statusB = b.bucket ? getBucketStatus(b.bucket) : 'none';
+
+      // First sort by status
+      const statusDiff = statusOrder[statusA] - statusOrder[statusB];
+      if (statusDiff !== 0) return statusDiff;
+
+      // Then by priority number
+      return a.priority - b.priority;
+    });
+
     more.sort((a, b) => a.priority - b.priority);
 
-    return { priorityItems: priority, moreItems: more };
-  }, [activeBuckets]);
+    // Check if all priority items are complete
+    const allComplete = priority.length > 0 && priority.every(item => {
+      if (!item.bucket) return true;
+      return getBucketStatus(item.bucket) === 'complete';
+    });
+
+    return { priorityItems: priority, moreItems: more, allPrioritiesComplete: allComplete };
+  }, [activeBuckets, getBucketStatus]);
 
   // Calculate pending counts for insight
   const pendingMedCount = useMemo(() => {
@@ -238,26 +302,62 @@ export default function RecordTab() {
     );
   }, [activeBuckets, pendingMedCount, pendingVitalsCount, medications.length, dailyState?.stats]);
 
-  const renderLogItem = (item: LogItemData) => (
-    <TouchableOpacity
-      key={item.id}
-      style={styles.logItem}
-      onPress={() => router.push(item.route as any)}
-      activeOpacity={0.7}
-      accessible={true}
-      accessibilityRole="button"
-      accessibilityLabel={`${item.label}. ${item.hint}`}
-    >
-      <View style={styles.itemIcon}>
-        <Text style={styles.iconEmoji}>{item.emoji}</Text>
-      </View>
-      <View style={styles.itemContent}>
-        <Text style={styles.itemLabel}>{item.label}</Text>
-        <Text style={styles.itemHint}>{item.hint}</Text>
-      </View>
-      <Text style={styles.itemChevron}>›</Text>
-    </TouchableOpacity>
-  );
+  const renderLogItem = (item: LogItemData) => {
+    const status = item.bucket ? getBucketStatus(item.bucket) : 'none';
+    const isComplete = status === 'complete';
+    const isOverdue = status === 'overdue';
+
+    // Dynamic hint based on status
+    let displayHint = item.hint;
+    if (isOverdue) {
+      displayHint = 'Needs attention';
+    } else if (isComplete) {
+      displayHint = 'Done for today';
+    }
+
+    return (
+      <TouchableOpacity
+        key={item.id}
+        style={[
+          styles.logItem,
+          isComplete && styles.logItemComplete,
+          isOverdue && styles.logItemOverdue,
+        ]}
+        onPress={() => router.push(item.route as any)}
+        activeOpacity={0.7}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={`${item.label}. ${displayHint}`}
+      >
+        <View style={[
+          styles.itemIcon,
+          isComplete && styles.itemIconComplete,
+          isOverdue && styles.itemIconOverdue,
+        ]}>
+          <Text style={styles.iconEmoji}>{isComplete ? '✓' : item.emoji}</Text>
+        </View>
+        <View style={styles.itemContent}>
+          <Text style={[
+            styles.itemLabel,
+            isComplete && styles.itemLabelComplete,
+          ]}>
+            {item.label}
+          </Text>
+          <Text style={[
+            styles.itemHint,
+            isComplete && styles.itemHintComplete,
+            isOverdue && styles.itemHintOverdue,
+          ]}>
+            {displayHint}
+          </Text>
+        </View>
+        <Text style={[
+          styles.itemChevron,
+          isComplete && styles.itemChevronComplete,
+        ]}>›</Text>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading || configLoading) {
     return (
@@ -359,6 +459,16 @@ export default function RecordTab() {
         {/* TODAY'S PRIORITIES - Enabled Care Plan items */}
         {/* ============================================================ */}
         <Text style={styles.groupHeader}>TODAY'S PRIORITIES</Text>
+
+        {/* Show completion message when all priorities are done */}
+        {allPrioritiesComplete && (dailyState?.stats?.total ?? 0) > 0 && (
+          <View style={styles.allCompleteMessage}>
+            <Text style={styles.allCompleteText}>
+              Nothing required right now. Optional logs below.
+            </Text>
+          </View>
+        )}
+
         {priorityItems.map(renderLogItem)}
 
         {/* ============================================================ */}
@@ -369,6 +479,7 @@ export default function RecordTab() {
 
         {/* ============================================================ */}
         {/* MORE - Non-enabled categories */}
+        {/* Show specific names instead of vague count */}
         {/* ============================================================ */}
         {moreItems.length > 0 && (
           <>
@@ -378,7 +489,16 @@ export default function RecordTab() {
                 onPress={() => setShowMoreItems(true)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.moreItemsLink}>+ More ({moreItems.length} categories)</Text>
+                <Text style={styles.moreItemsLink}>
+                  + {(() => {
+                    // Show first 2-3 names, then +N for the rest
+                    const names = moreItems.map(i => i.label);
+                    if (names.length <= 3) {
+                      return names.join(', ');
+                    }
+                    return `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
+                  })()}
+                </Text>
               </TouchableOpacity>
             ) : (
               <>
@@ -611,6 +731,50 @@ const styles = StyleSheet.create({
   itemChevron: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.3)',
+  },
+
+  // Status-based item styles
+  logItemComplete: {
+    opacity: 0.6,
+    borderColor: 'rgba(16, 185, 129, 0.2)',
+  },
+  logItemOverdue: {
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+  },
+  itemIconComplete: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+  },
+  itemIconOverdue: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+  },
+  itemLabelComplete: {
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  itemHintComplete: {
+    color: 'rgba(16, 185, 129, 0.8)',
+  },
+  itemHintOverdue: {
+    color: '#F59E0B',
+    fontWeight: '500',
+  },
+  itemChevronComplete: {
+    color: 'rgba(255, 255, 255, 0.2)',
+  },
+
+  // All complete message
+  allCompleteMessage: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.2)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+  },
+  allCompleteText: {
+    fontSize: 13,
+    color: 'rgba(16, 185, 129, 0.9)',
+    textAlign: 'center',
   },
 
   // More Items Toggle

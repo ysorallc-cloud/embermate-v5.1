@@ -135,20 +135,16 @@ export function getRegulationPrompt(
   let reason: 'overdue' | 'low_mood' | 'rapid_nav' | 'long_gap';
   let messages: string[];
 
-  // Priority: low mood > overdue > rapid nav > long gap
+  // Signal Over Sentiment: Only trigger on meaningful care concerns (Yellow/Red states)
+  // Removed rapid_nav and long_gap triggers to reduce noise
   if (moodLevel !== null && moodLevel <= 2) {
     reason = 'low_mood';
     messages = REGULATION_MESSAGES.low_mood;
   } else if (overdueCount >= 2) {
     reason = 'overdue';
     messages = REGULATION_MESSAGES.overdue;
-  } else if (isRapidNavigation) {
-    reason = 'rapid_nav';
-    messages = REGULATION_MESSAGES.rapid_nav;
-  } else if (hoursSinceLastOpen > 72) {
-    reason = 'long_gap';
-    messages = REGULATION_MESSAGES.long_gap;
   } else {
+    // Don't trigger for rapid navigation or long gaps - those aren't care concerns
     return null;
   }
 
