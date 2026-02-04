@@ -848,7 +848,7 @@ export default function NowScreen() {
 
       // Compute prompts based on current state
       const currentMoodLevel = moodLog?.mood ?? null;
-      await computePrompts(newStats, currentMoodLevel);
+      await computePrompts(legacyStatsUpdate, currentMoodLevel);
 
       // Generate AI Insight - pass timeline data for arbitration (Fix #4)
       const todayAppts = appts.filter(appt => {
