@@ -35,6 +35,7 @@ import {
   loadUnderstandPageData,
   dismissSuggestion,
   dismissSampleData,
+  markConfidenceExplained,
   getRouteOrFallback,
   TimeRange,
   UnderstandPageData,
@@ -53,16 +54,18 @@ interface ConfidenceBadgeProps {
 }
 
 function ConfidenceBadge({ level }: ConfidenceBadgeProps) {
+  // Normalized pattern strength language: "Strong pattern" and "Emerging pattern"
   const config = {
     strong: { color: 'rgba(94, 234, 212, 0.8)', bg: 'rgba(94, 234, 212, 0.15)' },
     emerging: { color: 'rgba(251, 191, 36, 0.8)', bg: 'rgba(251, 191, 36, 0.15)' },
     early: { color: 'rgba(148, 163, 184, 0.8)', bg: 'rgba(148, 163, 184, 0.15)' },
   };
 
+  // Normalize labels: both emerging and early show as "Emerging pattern"
   const labels = {
     strong: 'Strong pattern',
     emerging: 'Emerging pattern',
-    early: 'Early signal',
+    early: 'Emerging pattern',  // Normalized from "Early signal"
   };
 
   const { color, bg } = config[level];
@@ -160,14 +163,19 @@ function PositiveRow({ observation }: PositiveRowProps) {
 interface CorrelationCardComponentProps {
   card: CorrelationCard;
   onDismissSuggestion: (cardId: string) => void;
+  onTrackThis?: (cardId: string, title: string) => void;
 }
 
-function CorrelationCardComponent({ card, onDismissSuggestion }: CorrelationCardComponentProps) {
+function CorrelationCardComponent({ card, onDismissSuggestion, onTrackThis }: CorrelationCardComponentProps) {
   const [suggestionHidden, setSuggestionHidden] = useState(card.suggestionDismissed);
 
   const handleDismiss = () => {
     setSuggestionHidden(true);
     onDismissSuggestion(card.id);
+  };
+
+  const handleTrackThis = () => {
+    onTrackThis?.(card.id, card.title);
   };
 
   return (
@@ -183,7 +191,7 @@ function CorrelationCardComponent({ card, onDismissSuggestion }: CorrelationCard
         Based on {card.dataPoints} days of data
       </Text>
 
-      {/* You Could Try Section */}
+      {/* You Could Try Section - Enhanced with Track This CTA */}
       {card.suggestion && !suggestionHidden && (
         <View style={styles.suggestionContainer}>
           <View style={styles.suggestionHeader}>
@@ -196,6 +204,15 @@ function CorrelationCardComponent({ card, onDismissSuggestion }: CorrelationCard
             </TouchableOpacity>
           </View>
           <Text style={styles.suggestionText}>{card.suggestion}</Text>
+
+          {/* Track This CTA - Allows follow-through */}
+          <TouchableOpacity
+            style={styles.trackThisButton}
+            onPress={handleTrackThis}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.trackThisText}>📝 Track this</Text>
+          </TouchableOpacity>
         </View>
       )}
     </GlassCard>
@@ -234,13 +251,31 @@ function PatternTool({ icon, title, subtitle, onPress }: PatternToolProps) {
 
 // ============================================================================
 // SAMPLE DATA BANNER COMPONENT
+// Shows smaller/demoted version after first dismissal
 // ============================================================================
 
 interface SampleDataBannerProps {
   onDismiss: () => void;
+  previouslySeen?: boolean;
 }
 
-function SampleDataBanner({ onDismiss }: SampleDataBannerProps) {
+function SampleDataBanner({ onDismiss, previouslySeen }: SampleDataBannerProps) {
+  // Demoted/smaller version after first viewing
+  if (previouslySeen) {
+    return (
+      <TouchableOpacity
+        style={styles.sampleBannerCompact}
+        onPress={onDismiss}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.sampleBannerCompactText}>
+          ✨ Preview mode — <Text style={styles.sampleBannerCompactLink}>start tracking for real patterns</Text>
+        </Text>
+      </TouchableOpacity>
+    );
+  }
+
+  // Full version for first-time viewers
   return (
     <View style={styles.sampleBanner}>
       <View style={styles.sampleBannerContent}>
@@ -259,6 +294,39 @@ function SampleDataBanner({ onDismiss }: SampleDataBannerProps) {
       >
         <Text style={styles.sampleBannerDismissText}>Got it</Text>
       </TouchableOpacity>
+    </View>
+  );
+}
+
+// ============================================================================
+// CONFIDENCE EXPLANATION COMPONENT
+// One-time global explanation for pattern confidence
+// ============================================================================
+
+interface ConfidenceExplanationProps {
+  onDismiss: () => void;
+}
+
+function ConfidenceExplanation({ onDismiss }: ConfidenceExplanationProps) {
+  return (
+    <View style={styles.confidenceExplanation}>
+      <View style={styles.confidenceExplanationHeader}>
+        <Text style={styles.confidenceExplanationTitle}>How patterns are detected</Text>
+        <TouchableOpacity
+          onPress={onDismiss}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={styles.confidenceExplanationDismiss}>×</Text>
+        </TouchableOpacity>
+      </View>
+      <Text style={styles.confidenceExplanationText}>
+        We look for connections in your tracking data. <Text style={styles.confidenceExplanationBold}>Strong patterns</Text> appear
+        consistently over 20+ days. <Text style={styles.confidenceExplanationBold}>Emerging patterns</Text> are
+        forming but need more data to confirm.
+      </Text>
+      <Text style={styles.confidenceExplanationNote}>
+        Patterns suggest connections, not causes. Discuss with your care team before making changes.
+      </Text>
     </View>
   );
 }
@@ -309,6 +377,24 @@ export default function UnderstandScreen() {
   const handleDismissSampleData = async () => {
     await dismissSampleData();
     await loadData();
+  };
+
+  const [confidenceExplanationDismissed, setConfidenceExplanationDismissed] = useState(false);
+
+  const handleDismissConfidenceExplanation = async () => {
+    setConfidenceExplanationDismissed(true);
+    await markConfidenceExplained();
+  };
+
+  const handleTrackThis = (cardId: string, title: string) => {
+    // Navigate to log-note with the pattern as context for tracking
+    router.push({
+      pathname: '/log-note',
+      params: {
+        prefillTitle: `Tracking: ${title}`,
+        prefillContext: 'experiment',
+      },
+    } as any);
   };
 
   const navigateToRoute = (route: string | undefined) => {
@@ -397,9 +483,17 @@ export default function UnderstandScreen() {
             <TimeRangeToggle value={timeRange} onChange={handleTimeRangeChange} />
           </View>
 
-          {/* Sample Data Banner */}
+          {/* Sample Data Banner - shows smaller version after first dismissal */}
           {pageData?.isSampleData && (
-            <SampleDataBanner onDismiss={handleDismissSampleData} />
+            <SampleDataBanner
+              onDismiss={handleDismissSampleData}
+              previouslySeen={pageData.sampleDataPreviouslySeen}
+            />
+          )}
+
+          {/* One-time confidence explanation */}
+          {pageData?.showConfidenceExplanation && !confidenceExplanationDismissed && (
+            <ConfidenceExplanation onDismiss={handleDismissConfidenceExplanation} />
           )}
 
           {/* What Stands Out Section */}
@@ -445,6 +539,7 @@ export default function UnderstandScreen() {
                     key={card.id}
                     card={card}
                     onDismissSuggestion={handleDismissSuggestion}
+                    onTrackThis={handleTrackThis}
                   />
                 ))}
               </View>
@@ -895,5 +990,79 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#A78BFA',
+  },
+
+  // Sample Data Banner - Compact version (after first dismissal)
+  sampleBannerCompact: {
+    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+  },
+  sampleBannerCompactText: {
+    fontSize: 12,
+    color: 'rgba(167, 139, 250, 0.7)',
+    textAlign: 'center',
+  },
+  sampleBannerCompactLink: {
+    color: '#A78BFA',
+    fontWeight: '500',
+  },
+
+  // Confidence Explanation (one-time)
+  confidenceExplanation: {
+    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(94, 234, 212, 0.2)',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 20,
+  },
+  confidenceExplanationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  confidenceExplanationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(94, 234, 212, 0.9)',
+  },
+  confidenceExplanationDismiss: {
+    fontSize: 18,
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontWeight: '300',
+  },
+  confidenceExplanationText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.75)',
+    lineHeight: 19,
+    marginBottom: 8,
+  },
+  confidenceExplanationBold: {
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  confidenceExplanationNote: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontStyle: 'italic',
+  },
+
+  // Track This Button
+  trackThisButton: {
+    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  trackThisText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(94, 234, 212, 0.9)',
   },
 });

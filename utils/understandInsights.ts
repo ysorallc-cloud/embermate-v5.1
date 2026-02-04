@@ -1,0 +1,716 @@
+// ============================================================================
+// UNDERSTAND INSIGHTS
+// Aggregates insights from multiple sources for the Understand page
+// Transforms analytics into human-readable, interpretive insights
+// ============================================================================
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { detectCorrelations, DetectedPattern, hasSufficientData } from './correlationDetector';
+import { getAllInsights, InsightData } from './insightEngine';
+import { getMedicationLogs } from './medicationStorage';
+import { getDailyTrackingLogs } from './dailyTrackingStorage';
+import { getAllBaselines } from './baselineStorage';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export type TimeRange = 7 | 14 | 30;
+
+export type ConfidenceLevel = 'strong' | 'emerging' | 'early';
+
+export interface StandOutInsight {
+  id: string;
+  text: string; // Human-readable, one sentence
+  confidence: ConfidenceLevel;
+  relatedTo?: 'now' | 'record' | 'care-plan';
+  linkRoute?: string;
+  linkLabel?: string;
+}
+
+export interface PositiveObservation {
+  id: string;
+  text: string; // Human-readable, one sentence
+}
+
+export interface CorrelationCard {
+  id: string;
+  title: string;
+  insight: string;
+  confidence: ConfidenceLevel;
+  dataPoints: number;
+  coefficient: number;
+  suggestion?: string; // "You Could Try" text
+  suggestionDismissed?: boolean;
+}
+
+export interface TimeRangeFraming {
+  label: string;
+  subtitle: string;
+  description: string;
+}
+
+export interface UnderstandPageData {
+  timeRange: TimeRange;
+  framing: TimeRangeFraming;
+  standOutInsights: StandOutInsight[];
+  positiveObservations: PositiveObservation[];
+  correlationCards: CorrelationCard[];
+  hasEnoughData: boolean;
+  daysOfData: number;
+  isSampleData?: boolean;
+  sampleDataPreviouslySeen?: boolean; // True if preview was dismissed before
+  showConfidenceExplanation?: boolean; // True if one-time explanation should show
+}
+
+const SUGGESTION_DISMISSALS_KEY = '@understand_suggestion_dismissals';
+const SAMPLE_DATA_DISMISSED_KEY = '@understand_sample_dismissed';
+const SAMPLE_DATA_SEEN_KEY = '@understand_sample_seen'; // Tracks if preview was ever shown
+const CONFIDENCE_EXPLAINED_KEY = '@understand_confidence_explained'; // One-time explanation
+
+// ============================================================================
+// SAMPLE DATA - Shows value immediately for new users
+// ============================================================================
+
+const SAMPLE_STAND_OUT_INSIGHTS: StandOutInsight[] = [
+  {
+    id: 'sample-sleep-mood',
+    text: 'Mood tends to be better on days after 7+ hours of sleep.',
+    confidence: 'strong',
+    relatedTo: 'record',
+    linkRoute: '/correlation-report',
+    linkLabel: 'View patterns',
+  },
+  {
+    id: 'sample-hydration-fatigue',
+    text: 'Fatigue levels are higher on days with less water intake.',
+    confidence: 'emerging',
+    relatedTo: 'record',
+  },
+  {
+    id: 'sample-med-timing',
+    text: 'Morning medications are taken more consistently than evening doses.',
+    confidence: 'emerging',
+    relatedTo: 'care-plan',
+  },
+];
+
+const SAMPLE_POSITIVE_OBSERVATIONS: PositiveObservation[] = [
+  {
+    id: 'sample-med-adherence',
+    text: 'Medication adherence has been excellent this week.',
+  },
+  {
+    id: 'sample-hydration',
+    text: 'Hydration targets are being met most days.',
+  },
+  {
+    id: 'sample-no-alerts',
+    text: 'No concerning patterns detected recently.',
+  },
+];
+
+const SAMPLE_CORRELATION_CARDS: CorrelationCard[] = [
+  {
+    id: 'sample-sleep-mood-card',
+    title: 'Sleep & Mood',
+    insight: 'Better sleep quality appears to correlate with improved mood the following day. This pattern has been consistent over the past two weeks.',
+    confidence: 'strong',
+    dataPoints: 14,
+    coefficient: 0.72,
+    suggestion: 'If approved by your care team, you could try aiming for consistent bedtimes for one week and note any mood changes.',
+    suggestionDismissed: false,
+  },
+  {
+    id: 'sample-hydration-energy-card',
+    title: 'Hydration & Energy',
+    insight: 'Days with higher water intake tend to show better energy levels. The connection appears moderate but consistent.',
+    confidence: 'emerging',
+    dataPoints: 10,
+    coefficient: -0.45,
+    suggestion: 'If approved by your care team, you could try tracking water intake more closely when fatigue is high.',
+    suggestionDismissed: false,
+  },
+];
+
+async function getSampleData(timeRange: TimeRange): Promise<UnderstandPageData> {
+  const previouslySeen = await hasSampleDataBeenSeen();
+  // Mark as seen now (for next time)
+  await markSampleDataSeen();
+
+  return {
+    timeRange,
+    framing: getTimeRangeFraming(timeRange),
+    standOutInsights: SAMPLE_STAND_OUT_INSIGHTS,
+    positiveObservations: SAMPLE_POSITIVE_OBSERVATIONS,
+    correlationCards: SAMPLE_CORRELATION_CARDS,
+    hasEnoughData: false,
+    daysOfData: 0,
+    isSampleData: true,
+    sampleDataPreviouslySeen: previouslySeen,
+  };
+}
+
+// ============================================================================
+// TIME RANGE FRAMING
+// ============================================================================
+
+export function getTimeRangeFraming(range: TimeRange): TimeRangeFraming {
+  switch (range) {
+    case 7:
+      return {
+        label: 'Last 7 days',
+        subtitle: "What's changed recently",
+        description: 'Recent shifts in patterns and behaviors',
+      };
+    case 14:
+      return {
+        label: 'Last 14 days',
+        subtitle: "What's stabilizing",
+        description: 'Patterns that are starting to settle',
+      };
+    case 30:
+      return {
+        label: 'Last 30 days',
+        subtitle: "What's becoming consistent",
+        description: 'Established patterns and trends',
+      };
+  }
+}
+
+// ============================================================================
+// CONFIDENCE CALCULATION
+// ============================================================================
+
+function calculateConfidence(dataPoints: number, daysOfData: number): ConfidenceLevel {
+  // Strong: 20+ data points with multiple signals
+  if (dataPoints >= 20 && daysOfData >= 20) return 'strong';
+  // Emerging: 10-19 data points
+  if (dataPoints >= 10 && daysOfData >= 10) return 'emerging';
+  // Early: borderline data
+  return 'early';
+}
+
+function correlationConfidenceToLevel(confidence: 'low' | 'moderate' | 'high'): ConfidenceLevel {
+  switch (confidence) {
+    case 'high': return 'strong';
+    case 'moderate': return 'emerging';
+    case 'low': return 'early';
+  }
+}
+
+// ============================================================================
+// STAND OUT INSIGHTS GENERATION
+// ============================================================================
+
+async function generateStandOutInsights(
+  correlations: DetectedPattern[],
+  engineInsights: InsightData[],
+  timeRange: TimeRange
+): Promise<StandOutInsight[]> {
+  const insights: StandOutInsight[] = [];
+
+  // Convert correlation patterns to stand-out insights
+  for (const pattern of correlations.slice(0, 2)) {
+    const text = generateHumanReadableCorrelation(pattern, timeRange);
+    insights.push({
+      id: `correlation-${pattern.id}`,
+      text,
+      confidence: correlationConfidenceToLevel(pattern.confidence),
+      relatedTo: 'record',
+      linkRoute: '/correlation-report',
+      linkLabel: 'View patterns',
+    });
+  }
+
+  // Add engine insights if they're meaningful
+  for (const insight of engineInsights.slice(0, 1)) {
+    const text = generateHumanReadableEngineInsight(insight, timeRange);
+    if (text) {
+      insights.push({
+        id: `engine-${insight.id}`,
+        text,
+        confidence: insight.severity === 'alert' ? 'strong' : 'emerging',
+        relatedTo: insight.type === 'medication' ? 'care-plan' : 'record',
+      });
+    }
+  }
+
+  // Return top 3
+  return insights.slice(0, 3);
+}
+
+function generateHumanReadableCorrelation(pattern: DetectedPattern, timeRange: TimeRange): string {
+  const { variable1, variable2, coefficient } = pattern;
+
+  // Map variable names to human-readable terms
+  const varNames: Record<string, string> = {
+    pain: 'pain levels',
+    fatigue: 'fatigue',
+    nausea: 'nausea',
+    hydration: 'hydration',
+    mood: 'mood',
+    sleep: 'sleep',
+    medicationAdherence: 'medication timing',
+    systolic: 'blood pressure',
+    heartRate: 'heart rate',
+  };
+
+  const v1 = varNames[variable1] || variable1;
+  const v2 = varNames[variable2] || variable2;
+
+  // Generate insight based on correlation direction
+  if (coefficient > 0.5) {
+    return `${capitalize(v1)} tends to be higher when ${v2} is higher.`;
+  } else if (coefficient < -0.5) {
+    return `${capitalize(v1)} tends to spike on low ${v2} days.`;
+  } else if (coefficient > 0.3) {
+    return `${capitalize(v1)} may be associated with ${v2}.`;
+  } else if (coefficient < -0.3) {
+    return `${capitalize(v1)} often increases when ${v2} decreases.`;
+  }
+
+  return `${capitalize(v1)} and ${v2} show a possible connection.`;
+}
+
+function generateHumanReadableEngineInsight(insight: InsightData, timeRange: TimeRange): string | null {
+  const { id, specificData, context } = insight;
+
+  switch (id) {
+    case 'medication-adherence':
+      if (specificData.percentage && specificData.percentage < 80) {
+        const pattern = insight.pattern;
+        if (pattern) {
+          return `${pattern.replace('Most missed on ', 'Evening medications are missed more often than morning doses.')}`;
+        }
+        return `Medication doses are being missed more often than usual.`;
+      }
+      return null;
+
+    case 'blood-pressure-elevated':
+      return `Blood pressure is running higher than target this ${timeRange === 7 ? 'week' : 'period'}.`;
+
+    case 'mood-pattern-low':
+      return `Mood has been lower on more days than usual recently.`;
+
+    case 'sleep-mood-correlation':
+      return `Lower sleep nights often lead to harder days.`;
+
+    case 'hydration-low':
+      return `Water intake has been below target.`;
+
+    default:
+      return null;
+  }
+}
+
+// ============================================================================
+// POSITIVE OBSERVATIONS GENERATION
+// ============================================================================
+
+async function generatePositiveObservations(
+  correlations: DetectedPattern[],
+  engineInsights: InsightData[],
+  timeRange: TimeRange
+): Promise<PositiveObservation[]> {
+  const observations: PositiveObservation[] = [];
+
+  try {
+    // Check medication adherence (positive if high)
+    const medLogs = await getMedicationLogs();
+    const daysAgo = new Date();
+    daysAgo.setDate(daysAgo.getDate() - timeRange);
+
+    const recentMedLogs = medLogs.filter(
+      log => new Date(log.timestamp) >= daysAgo
+    );
+
+    if (recentMedLogs.length > 0) {
+      const takenCount = recentMedLogs.filter(log => log.taken).length;
+      const adherenceRate = (takenCount / recentMedLogs.length) * 100;
+
+      if (adherenceRate >= 90) {
+        observations.push({
+          id: 'med-adherence-good',
+          text: 'Medication adherence has been excellent.',
+        });
+      } else if (adherenceRate >= 80) {
+        observations.push({
+          id: 'med-adherence-improving',
+          text: 'Medication timing is staying consistent.',
+        });
+      }
+    }
+
+    // Check hydration (positive if meeting target)
+    const endDate = new Date().toISOString().split('T')[0];
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - timeRange);
+    const startDateStr = startDate.toISOString().split('T')[0];
+
+    const tracking = await getDailyTrackingLogs(startDateStr, endDate);
+    const waterLogs = tracking.filter(t => t.hydration !== null && t.hydration !== undefined);
+
+    if (waterLogs.length >= 3) {
+      const avgWater = waterLogs.reduce((sum, t) => sum + (t.hydration || 0), 0) / waterLogs.length;
+      if (avgWater >= 7) {
+        observations.push({
+          id: 'hydration-good',
+          text: 'Hydration has stayed on track most days.',
+        });
+      }
+    }
+
+    // Check for no alerts/warnings in engine insights
+    const hasAlerts = engineInsights.some(i => i.severity === 'alert');
+    const hasWarnings = engineInsights.some(i => i.severity === 'warning');
+
+    if (!hasAlerts && !hasWarnings && engineInsights.length > 0) {
+      observations.push({
+        id: 'no-red-flags',
+        text: 'No red flags detected recently.',
+      });
+    } else if (!hasAlerts) {
+      observations.push({
+        id: 'no-critical',
+        text: 'Nothing critical flagged this period.',
+      });
+    }
+
+    // Check mood stability
+    const moodLogs = tracking.filter(t => t.mood !== null && t.mood !== undefined);
+    if (moodLogs.length >= 5) {
+      const avgMood = moodLogs.reduce((sum, t) => sum + (t.mood || 0), 0) / moodLogs.length;
+      if (avgMood >= 6) {
+        observations.push({
+          id: 'mood-stable',
+          text: 'Mood has been generally positive.',
+        });
+      }
+    }
+
+    // Return top 3 positive observations
+    return observations.slice(0, 3);
+  } catch (error) {
+    console.error('Error generating positive observations:', error);
+    return [{
+      id: 'default-positive',
+      text: 'Keep tracking to build a clearer picture.',
+    }];
+  }
+}
+
+// ============================================================================
+// CORRELATION CARDS WITH SUGGESTIONS
+// ============================================================================
+
+async function generateCorrelationCards(
+  correlations: DetectedPattern[],
+  timeRange: TimeRange
+): Promise<CorrelationCard[]> {
+  const dismissals = await getSuggestionDismissals();
+
+  return correlations.map(pattern => {
+    const suggestion = generateSuggestion(pattern);
+    const dismissalKey = `suggestion-${pattern.id}`;
+
+    return {
+      id: pattern.id,
+      title: generateCorrelationTitle(pattern),
+      insight: pattern.insight,
+      confidence: correlationConfidenceToLevel(pattern.confidence),
+      dataPoints: pattern.dataPoints,
+      coefficient: pattern.coefficient,
+      suggestion: suggestion,
+      suggestionDismissed: dismissals[dismissalKey] === true,
+    };
+  });
+}
+
+function generateCorrelationTitle(pattern: DetectedPattern): string {
+  const { variable1, variable2 } = pattern;
+
+  const titleParts: Record<string, string> = {
+    pain: 'Pain',
+    fatigue: 'Fatigue',
+    hydration: 'Hydration',
+    mood: 'Mood',
+    sleep: 'Sleep',
+    medicationAdherence: 'Medications',
+    systolic: 'Blood Pressure',
+    heartRate: 'Heart Rate',
+  };
+
+  const v1 = titleParts[variable1] || variable1;
+  const v2 = titleParts[variable2] || variable2;
+
+  return `${v1} & ${v2}`;
+}
+
+function generateSuggestion(pattern: DetectedPattern): string | undefined {
+  const { variable1, variable2, coefficient } = pattern;
+
+  // Only generate suggestions for moderate-high confidence patterns
+  if (pattern.confidence === 'low') return undefined;
+
+  // Pain-hydration correlation
+  if ((variable1 === 'pain' && variable2 === 'hydration') ||
+      (variable1 === 'hydration' && variable2 === 'pain')) {
+    if (coefficient < -0.3) {
+      return 'If approved by your care team, you could try increasing water intake on high-pain days and observe if it helps.';
+    }
+  }
+
+  // Sleep-mood correlation
+  if ((variable1 === 'sleep' && variable2 === 'mood') ||
+      (variable1 === 'mood' && variable2 === 'sleep')) {
+    if (coefficient > 0.3) {
+      return 'If approved by your care team, you could try aiming for consistent bedtimes for one week and note any mood changes.';
+    }
+  }
+
+  // Medication-mood correlation
+  if ((variable1 === 'medicationAdherence' && variable2 === 'mood') ||
+      (variable1 === 'mood' && variable2 === 'medicationAdherence')) {
+    if (coefficient > 0.3) {
+      return 'If approved by your care team, you could try setting medication reminders earlier in the day and observe energy levels.';
+    }
+  }
+
+  // Fatigue-hydration correlation
+  if ((variable1 === 'fatigue' && variable2 === 'hydration') ||
+      (variable1 === 'hydration' && variable2 === 'fatigue')) {
+    if (coefficient < -0.3) {
+      return 'If approved by your care team, you could try tracking water intake more closely when fatigue is high.';
+    }
+  }
+
+  // Generic suggestion for other patterns (already filtered out low confidence above)
+  if (Math.abs(coefficient) > 0.4) {
+    return `Consider discussing this pattern with your care team at your next visit.`;
+  }
+
+  return undefined;
+}
+
+// ============================================================================
+// SUGGESTION DISMISSAL MANAGEMENT
+// ============================================================================
+
+async function getSuggestionDismissals(): Promise<Record<string, boolean>> {
+  try {
+    const data = await AsyncStorage.getItem(SUGGESTION_DISMISSALS_KEY);
+    return data ? JSON.parse(data) : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function dismissSuggestion(suggestionId: string): Promise<void> {
+  try {
+    const dismissals = await getSuggestionDismissals();
+    dismissals[suggestionId] = true;
+    await AsyncStorage.setItem(SUGGESTION_DISMISSALS_KEY, JSON.stringify(dismissals));
+  } catch (error) {
+    console.error('Error dismissing suggestion:', error);
+  }
+}
+
+// ============================================================================
+// MAIN DATA LOADER
+// ============================================================================
+
+export async function loadUnderstandPageData(timeRange: TimeRange): Promise<UnderstandPageData> {
+  try {
+    // Load baseline data to check days of data
+    const baselines = await getAllBaselines();
+    const daysOfData = baselines?.daysOfData || 0;
+
+    // Check if we have sufficient data for correlations
+    const hasEnoughData = await hasSufficientData();
+
+    // If not enough data, check if we should show sample data
+    const sampleDismissed = await isSampleDataDismissed();
+    const shouldShowSample = !hasEnoughData && daysOfData < 5 && !sampleDismissed;
+
+    if (shouldShowSample) {
+      return await getSampleData(timeRange);
+    }
+
+    // Load correlations if we have enough data
+    const correlations = hasEnoughData ? await detectCorrelations() : [];
+
+    // Load engine insights
+    const engineInsights = await getAllInsights();
+
+    // Generate all sections
+    const [standOutInsights, positiveObservations, correlationCards] = await Promise.all([
+      generateStandOutInsights(correlations, engineInsights, timeRange),
+      generatePositiveObservations(correlations, engineInsights, timeRange),
+      generateCorrelationCards(correlations, timeRange),
+    ]);
+
+    // If no insights, provide empty state messages
+    const finalStandOut = standOutInsights.length > 0
+      ? standOutInsights
+      : [{
+          id: 'no-patterns',
+          text: 'No clear patterns yet. This is normal early on.',
+          confidence: 'early' as ConfidenceLevel,
+        }];
+
+    const finalPositive = positiveObservations.length > 0
+      ? positiveObservations
+      : [{
+          id: 'keep-tracking',
+          text: 'Keep logging to reveal what\'s going well.',
+        }];
+
+    // Check if confidence explanation should show (one-time)
+    const confidenceExplained = await hasConfidenceBeenExplained();
+    const shouldShowConfidenceExplanation = !confidenceExplained && correlationCards.length > 0;
+
+    return {
+      timeRange,
+      framing: getTimeRangeFraming(timeRange),
+      standOutInsights: finalStandOut,
+      positiveObservations: finalPositive,
+      correlationCards,
+      hasEnoughData,
+      daysOfData,
+      isSampleData: false,
+      showConfidenceExplanation: shouldShowConfidenceExplanation,
+    };
+  } catch (error) {
+    console.error('Error loading understand page data:', error);
+
+    // Return safe defaults
+    return {
+      timeRange,
+      framing: getTimeRangeFraming(timeRange),
+      standOutInsights: [{
+        id: 'error',
+        text: 'Unable to analyze patterns right now.',
+        confidence: 'early',
+      }],
+      positiveObservations: [{
+        id: 'default',
+        text: 'Keep tracking to build insights.',
+      }],
+      correlationCards: [],
+      hasEnoughData: false,
+      daysOfData: 0,
+      isSampleData: false,
+    };
+  }
+}
+
+// ============================================================================
+// SAMPLE DATA DISMISSAL
+// ============================================================================
+
+async function isSampleDataDismissed(): Promise<boolean> {
+  try {
+    const value = await AsyncStorage.getItem(SAMPLE_DATA_DISMISSED_KEY);
+    return value === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export async function dismissSampleData(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(SAMPLE_DATA_DISMISSED_KEY, 'true');
+  } catch (error) {
+    console.error('Error dismissing sample data:', error);
+  }
+}
+
+export async function resetSampleDataDismissal(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(SAMPLE_DATA_DISMISSED_KEY);
+  } catch (error) {
+    console.error('Error resetting sample data dismissal:', error);
+  }
+}
+
+// ============================================================================
+// PREVIEW MODE SEEN TRACKING
+// Allows showing a smaller version after first dismissal
+// ============================================================================
+
+export async function hasSampleDataBeenSeen(): Promise<boolean> {
+  try {
+    const value = await AsyncStorage.getItem(SAMPLE_DATA_SEEN_KEY);
+    return value === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export async function markSampleDataSeen(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(SAMPLE_DATA_SEEN_KEY, 'true');
+  } catch (error) {
+    console.error('Error marking sample data seen:', error);
+  }
+}
+
+// ============================================================================
+// CONFIDENCE EXPLANATION TRACKING
+// One-time global explanation for pattern confidence
+// ============================================================================
+
+export async function hasConfidenceBeenExplained(): Promise<boolean> {
+  try {
+    const value = await AsyncStorage.getItem(CONFIDENCE_EXPLAINED_KEY);
+    return value === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export async function markConfidenceExplained(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(CONFIDENCE_EXPLAINED_KEY, 'true');
+  } catch (error) {
+    console.error('Error marking confidence explained:', error);
+  }
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function capitalize(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// ============================================================================
+// ROUTE VALIDATION
+// ============================================================================
+
+const VALID_ROUTES = new Set([
+  '/correlation-report',
+  '/vitals',
+  '/hub/reports',
+  '/trends',
+  '/(tabs)/now',
+  '/(tabs)/record',
+  '/(tabs)/understand',
+  '/care-plan',
+  '/notification-settings',
+  '/medications',
+  '/log-note',
+  '/settings',
+  '/coming-soon',
+]);
+
+export function isValidRoute(route: string): boolean {
+  return VALID_ROUTES.has(route);
+}
+
+export function getRouteOrFallback(route: string | undefined): string | undefined {
+  if (!route) return undefined;
+  return isValidRoute(route) ? route : '/coming-soon';
+}
