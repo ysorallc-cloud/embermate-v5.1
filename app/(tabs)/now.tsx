@@ -90,6 +90,7 @@ import { useCarePlan } from '../../hooks/useCarePlan';
 import { useDailyCareInstances } from '../../hooks/useDailyCareInstances';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
+import { getTodayDateString } from '../../services/carePlanGenerator';
 import { BucketType } from '../../types/carePlanConfig';
 import {
   NoMedicationsBanner,
@@ -203,15 +204,21 @@ interface AIInsight {
 export default function NowScreen() {
   const router = useRouter();
 
+  // Track today's date - updates when screen gains focus to handle day changes
+  const [today, setToday] = useState(() => getTodayDateString());
+
   // NEW: Daily Care Instances hook - uses the regimen-based system
+  // Pass today as the date parameter so it reloads when the day changes
   const {
     state: instancesState,
     loading: instancesLoading,
     completeInstance,
-  } = useDailyCareInstances();
+    refresh: refreshInstances,
+  } = useDailyCareInstances(today);
 
   // CarePlan hook - provides progress, timeline, and schedule from derived state
-  const { dayState, carePlan, overrides, snoozeItem, setItemOverride, integrityWarnings } = useCarePlan();
+  // Pass today as the date parameter so it reloads when the day changes
+  const { dayState, carePlan, overrides, snoozeItem, setItemOverride, integrityWarnings } = useCarePlan(today);
 
   // Appointments hook - single source of truth for appointments
   const {
@@ -774,6 +781,10 @@ export default function NowScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      // Update today's date - handles day change when app was backgrounded overnight
+      const currentDate = getTodayDateString();
+      setToday(currentDate);
+
       loadData();
       // Check if notification prompt should show (after adding meds/appointments)
       checkNotificationPrompt();
