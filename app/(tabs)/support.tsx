@@ -143,13 +143,13 @@ export default function SupportScreen() {
     }
 
     // Check what they can do based on permissions
-    if (permissions?.canLogMedications) {
+    if (permissions?.canMarkMedications) {
       return 'Can log meds';
     }
-    if (permissions?.canLogVitals) {
-      return 'Can update vitals';
+    if (permissions?.canEdit) {
+      return 'Can edit';
     }
-    if (permissions?.canViewMedications || permissions?.canViewVitals) {
+    if (permissions?.canView && !permissions?.canEdit) {
       return 'View only';
     }
 
@@ -279,6 +279,45 @@ export default function SupportScreen() {
   const quickAction = getQuickActionContent();
   const teamInsight = getTeamInsight();
 
+  // Get last active time for a caregiver based on activities
+  const getLastActiveTime = useCallback((caregiverId: string, caregiverName: string): string | null => {
+    const caregiverActivity = activities.find(a =>
+      a.performedBy.toLowerCase() === caregiverName.toLowerCase() ||
+      (a as any).caregiverId === caregiverId
+    );
+    if (caregiverActivity) {
+      return getRelativeTime(caregiverActivity.timestamp);
+    }
+    return null;
+  }, [activities]);
+
+  // Get trusted permissions as tags
+  const getTrustedPermissions = (caregiver: CaregiverProfile): string[] => {
+    const permissions: string[] = [];
+    if (caregiver.permissions?.canMarkMedications) permissions.push('Meds');
+    if (caregiver.permissions?.canEdit) permissions.push('Edit');
+    if (caregiver.permissions?.canAddNotes) permissions.push('Notes');
+    return permissions;
+  };
+
+  // Handle request update action
+  const handleRequestUpdate = () => {
+    Alert.alert(
+      'Request Update',
+      'Send a gentle reminder to your care circle asking for updates on their observations.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Request',
+          onPress: () => {
+            // In future: integrate with actual messaging/notification
+            Alert.alert('Request Sent', 'Your care circle has been notified.');
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <AuroraBackground variant="care" />
@@ -335,6 +374,17 @@ export default function SupportScreen() {
               </Text>
             </TouchableOpacity>
             <Text style={styles.primaryActionHint}>{quickAction.hint}</Text>
+
+            {/* Secondary Quick Action */}
+            <TouchableOpacity
+              style={styles.secondaryActionButton}
+              onPress={handleRequestUpdate}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.secondaryActionButtonText}>
+                📥 Request update from care circle
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Privacy Reassurance - Moved higher (right after Quick Action) */}
@@ -360,63 +410,96 @@ export default function SupportScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionHeader}>YOUR CARE CIRCLE ({careCircleCount})</Text>
             <View style={styles.teamContainer}>
-              {caregivers.slice(0, 4).map((caregiver) => (
-                <TouchableOpacity
-                  key={caregiver.id}
-                  onPress={() => router.push(`/caregiver-management?id=${caregiver.id}`)}
-                  activeOpacity={0.7}
-                >
-                  <GlassCard style={styles.memberCard}>
-                    <View style={styles.memberContent}>
-                      <View
-                        style={[
-                          styles.memberAvatar,
-                          { backgroundColor: `${caregiver.avatarColor || Colors.accent}20` },
-                        ]}
-                      >
-                        <Text style={styles.memberAvatarText}>
-                          {caregiver.name.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                      <View style={styles.memberInfo}>
-                        <Text style={styles.memberName}>{caregiver.name}</Text>
-                        <Text style={styles.memberRole}>{getRoleLabel(caregiver)}</Text>
-                        {/* Capability tag */}
-                        <View style={styles.capabilityTag}>
-                          <Text style={styles.capabilityTagText}>
-                            {getCapabilityTag(caregiver)}
+              {caregivers.slice(0, 4).map((caregiver) => {
+                const lastActive = getLastActiveTime(caregiver.id, caregiver.name);
+                const trustedPermissions = getTrustedPermissions(caregiver);
+                const isEmergencyContact = (caregiver as any).emergencyContact;
+
+                return (
+                  <TouchableOpacity
+                    key={caregiver.id}
+                    onPress={() => router.push(`/caregiver-management?id=${caregiver.id}`)}
+                    activeOpacity={0.7}
+                  >
+                    <GlassCard style={styles.memberCard}>
+                      <View style={styles.memberContent}>
+                        <View
+                          style={[
+                            styles.memberAvatar,
+                            { backgroundColor: `${caregiver.avatarColor || Colors.accent}20` },
+                          ]}
+                        >
+                          <Text style={styles.memberAvatarText}>
+                            {caregiver.name.charAt(0).toUpperCase()}
                           </Text>
                         </View>
+                        <View style={styles.memberInfo}>
+                          <View style={styles.memberNameRow}>
+                            <Text style={styles.memberName}>{caregiver.name}</Text>
+                            {isEmergencyContact && (
+                              <Text style={styles.emergencyBadge}>⚠️</Text>
+                            )}
+                          </View>
+                          <Text style={styles.memberRole}>{getRoleLabel(caregiver)}</Text>
+
+                          {/* Status indicators row */}
+                          <View style={styles.statusRow}>
+                            {/* Last active */}
+                            {lastActive && (
+                              <View style={styles.statusIndicator}>
+                                <Text style={styles.statusDot}>●</Text>
+                                <Text style={styles.statusText}>{lastActive}</Text>
+                              </View>
+                            )}
+                            {!lastActive && (
+                              <View style={styles.statusIndicator}>
+                                <Text style={[styles.statusDot, styles.statusDotInactive]}>○</Text>
+                                <Text style={styles.statusText}>Not yet active</Text>
+                              </View>
+                            )}
+                          </View>
+
+                          {/* Trusted permissions tags */}
+                          {trustedPermissions.length > 0 && (
+                            <View style={styles.permissionTags}>
+                              {trustedPermissions.map((perm) => (
+                                <View key={perm} style={styles.permissionTag}>
+                                  <Text style={styles.permissionTagText}>{perm}</Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
+                        </View>
+                        <View style={styles.memberActions}>
+                          <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              const phone = (caregiver as any).phone || '';
+                              if (phone) Linking.openURL(`tel:${phone}`);
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.actionButtonIcon}>📞</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              const phone = (caregiver as any).phone || '';
+                              if (phone) Linking.openURL(`sms:${phone}`);
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.actionButtonIcon}>💬</Text>
+                          </TouchableOpacity>
+                          <Text style={styles.editChevron}>›</Text>
+                        </View>
                       </View>
-                      <View style={styles.memberActions}>
-                        <TouchableOpacity
-                          style={styles.actionButton}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            const phone = (caregiver as any).phone || '';
-                            if (phone) Linking.openURL(`tel:${phone}`);
-                          }}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={styles.actionButtonIcon}>📞</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.actionButton}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            const phone = (caregiver as any).phone || '';
-                            if (phone) Linking.openURL(`sms:${phone}`);
-                          }}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={styles.actionButtonIcon}>💬</Text>
-                        </TouchableOpacity>
-                        <Text style={styles.editChevron}>›</Text>
-                      </View>
-                    </View>
-                  </GlassCard>
-                </TouchableOpacity>
-              ))}
+                    </GlassCard>
+                  </TouchableOpacity>
+                );
+              })}
 
               {/* Manage team link - clearer copy */}
               <TouchableOpacity
@@ -436,20 +519,23 @@ export default function SupportScreen() {
               <Text style={styles.sectionSubtitle}>What others have done recently</Text>
               <View style={styles.activityContainer}>
                 {activities.slice(0, 3).map((activity, i) => (
-                  <TouchableOpacity
-                    key={activity.id || i}
-                    style={styles.activityItem}
-                    onPress={() => handleActivityPress(activity)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.activityTime}>
-                      {getRelativeTime(activity.timestamp)}
-                    </Text>
-                    <Text style={styles.activityText}>
-                      {activity.performedBy} {getActivityDescription(activity)}
-                    </Text>
-                    <Text style={styles.activityChevron}>›</Text>
-                  </TouchableOpacity>
+                  <View key={activity.id || i} style={styles.activityItem}>
+                    <View style={styles.activityMain}>
+                      <Text style={styles.activityTime}>
+                        {getRelativeTime(activity.timestamp)}
+                      </Text>
+                      <Text style={styles.activityText}>
+                        {activity.performedBy} {getActivityDescription(activity)}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.reviewButton}
+                      onPress={() => handleActivityPress(activity)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.reviewButtonText}>Review now</Text>
+                    </TouchableOpacity>
+                  </View>
                 ))}
 
                 <TouchableOpacity
@@ -606,6 +692,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
   },
+  secondaryActionButton: {
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  secondaryActionButtonText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+    textDecorationLine: 'underline',
+  },
 
   // Privacy Reassurance - Moved higher, horizontal layout
   privacyCard: {
@@ -710,16 +806,62 @@ const styles = StyleSheet.create({
   memberInfo: {
     flex: 1,
   },
+  memberNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
   memberName: {
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 2,
+  },
+  emergencyBadge: {
+    fontSize: 12,
   },
   memberRole: {
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: 4,
+    marginBottom: 6,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  statusIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statusDot: {
+    fontSize: 8,
+    color: '#5EEAD4',
+  },
+  statusDotInactive: {
+    color: 'rgba(255, 255, 255, 0.3)',
+  },
+  statusText: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+  permissionTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  permissionTag: {
+    backgroundColor: 'rgba(94, 234, 212, 0.12)',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  permissionTagText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: 'rgba(94, 234, 212, 0.9)',
+    letterSpacing: 0.3,
   },
   capabilityTag: {
     alignSelf: 'flex-start',
@@ -772,12 +914,18 @@ const styles = StyleSheet.create({
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: 'rgba(255, 255, 255, 0.02)',
     borderLeftWidth: 3,
     borderLeftColor: 'rgba(94, 234, 212, 0.3)',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
+  },
+  activityMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   activityTime: {
     fontSize: 10,
@@ -788,6 +936,20 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.8)',
+  },
+  reviewButton: {
+    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(94, 234, 212, 0.3)',
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginLeft: 8,
+  },
+  reviewButtonText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#5EEAD4',
   },
   activityChevron: {
     fontSize: 16,
