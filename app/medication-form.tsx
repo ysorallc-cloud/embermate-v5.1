@@ -20,7 +20,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Picker } from '@react-native-picker/picker';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import {
   createMedication,
@@ -41,7 +40,20 @@ import {
   getMedicationsFromPlan,
   getOrCreateCarePlanConfig,
 } from '../storage/carePlanConfigRepo';
-import { MedicationPlanItem, TimeOfDay, normalizeToHHmm } from '../types/carePlanConfig';
+import {
+  MedicationPlanItem,
+  TimeOfDay,
+  normalizeToHHmm,
+  ReminderTiming,
+  REMINDER_TIMING_OPTIONS,
+  FollowUpInterval,
+  FOLLOW_UP_OPTIONS,
+  ScheduleFrequency,
+  SCHEDULE_FREQUENCY_OPTIONS,
+  ScheduleEndCondition,
+  SCHEDULE_END_OPTIONS,
+  DAYS_OF_WEEK,
+} from '../types/carePlanConfig';
 import {
   CarePlanItem,
   TimeWindow,
@@ -143,7 +155,8 @@ async function syncMedicationToCarePlan(
     timeSlot: TimeSlot;
     notes: string;
     active: boolean;
-    repeatOption: string;
+    scheduleFrequency: ScheduleFrequency;
+    scheduleDaysOfWeek?: number[];
   }
 ): Promise<void> {
   const now = new Date().toISOString();
@@ -160,20 +173,23 @@ async function syncMedicationToCarePlan(
     item => item.type === 'medication' && item.medicationDetails?.medicationId === medicationId
   );
 
-  // Map repeat option to schedule frequency
+  // Map schedule frequency to CarePlanItem frequency
   let frequency: 'daily' | 'weekly' | 'custom' = 'daily';
   let daysOfWeek: number[] | undefined;
-  if (medData.repeatOption === 'weekdays') {
-    frequency = 'weekly';
-    daysOfWeek = [1, 2, 3, 4, 5]; // Monday-Friday
-  } else if (medData.repeatOption === 'weekly') {
-    frequency = 'weekly';
-    // Default to the current day of the week
-    daysOfWeek = [new Date().getDay()];
-  } else if (medData.repeatOption === 'custom') {
-    frequency = 'custom';
-    // For custom, default to daily
+
+  if (medData.scheduleFrequency === 'daily') {
+    frequency = 'daily';
     daysOfWeek = [0, 1, 2, 3, 4, 5, 6];
+  } else if (medData.scheduleFrequency === 'every_other_day') {
+    frequency = 'custom';
+    // Calculate alternating days starting from today
+    daysOfWeek = [0, 2, 4, 6]; // Sun, Tue, Thu, Sat
+  } else if (medData.scheduleFrequency === 'weekly') {
+    frequency = 'weekly';
+    daysOfWeek = medData.scheduleDaysOfWeek || [new Date().getDay()];
+  } else if (medData.scheduleFrequency === 'custom') {
+    frequency = 'custom';
+    daysOfWeek = medData.scheduleDaysOfWeek || [0, 1, 2, 3, 4, 5, 6];
   }
 
   const timeWindow = createTimeWindowForSlot(medData.timeSlot, medData.time);
@@ -219,9 +235,19 @@ export default function MedicationFormScreen() {
   const [customTimeDisplay, setCustomTimeDisplay] = useState('8:00 AM');
   const [notes, setNotes] = useState('');
   const [daysSupply, setDaysSupply] = useState('30');
+
+  // === REMINDERS STATE ===
   const [reminderEnabled, setReminderEnabled] = useState(true);
-  const [reminderMinutesBefore, setReminderMinutesBefore] = useState(0);
-  const [repeatOption, setRepeatOption] = useState('daily');
+  const [reminderTiming, setReminderTiming] = useState<ReminderTiming>('at_time');
+  const [reminderCustomMinutes, setReminderCustomMinutes] = useState('15');
+  const [followUpEnabled, setFollowUpEnabled] = useState(false);
+  const [followUpInterval, setFollowUpInterval] = useState<FollowUpInterval>(30);
+
+  // === SCHEDULE STATE ===
+  const [scheduleFrequency, setScheduleFrequency] = useState<ScheduleFrequency>('daily');
+  const [scheduleDaysOfWeek, setScheduleDaysOfWeek] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+  const [scheduleEndCondition, setScheduleEndCondition] = useState<ScheduleEndCondition>('ongoing');
+
   const [showMedSuggestions, setShowMedSuggestions] = useState(false);
   const [showDosageSuggestions, setShowDosageSuggestions] = useState(false);
   const [medSuggestions, setMedSuggestions] = useState<typeof COMMON_MEDICATIONS>([]);
@@ -250,8 +276,18 @@ export default function MedicationFormScreen() {
           setCustomTimeDisplay(displayTime);
           setNotes(med.instructions || '');
           setDaysSupply(med.daysSupply?.toString() || '30');
+
+          // Load reminder settings
           setReminderEnabled(med.notificationsEnabled !== false);
-          setReminderMinutesBefore(0);
+          setReminderTiming(med.reminderTiming || 'at_time');
+          setReminderCustomMinutes(med.reminderCustomMinutes?.toString() || '15');
+          setFollowUpEnabled(med.followUpEnabled || false);
+          setFollowUpInterval(med.followUpInterval || 30);
+
+          // Load schedule settings
+          setScheduleFrequency(med.scheduleFrequency || 'daily');
+          setScheduleDaysOfWeek(med.scheduleDaysOfWeek || [0, 1, 2, 3, 4, 5, 6]);
+          setScheduleEndCondition(med.scheduleEndCondition || 'ongoing');
 
           // Map TimeOfDay to TimeSlot
           const todToSlot: Record<TimeOfDay, TimeSlot> = {
@@ -278,7 +314,17 @@ export default function MedicationFormScreen() {
           setNotes(med.notes || '');
           setDaysSupply(med.daysSupply?.toString() || '30');
           setReminderEnabled(med.reminderEnabled !== false);
-          setReminderMinutesBefore(med.reminderMinutesBefore || 0);
+
+          // Map legacy reminderMinutesBefore to new reminderTiming
+          const mins = med.reminderMinutesBefore || 0;
+          if (mins === 0) setReminderTiming('at_time');
+          else if (mins <= 15) setReminderTiming('before_15');
+          else if (mins <= 30) setReminderTiming('before_30');
+          else if (mins <= 60) setReminderTiming('before_60');
+          else {
+            setReminderTiming('custom');
+            setReminderCustomMinutes(mins.toString());
+          }
 
           // Determine time slot from time
           const timeSlot = TIME_SLOTS.find(slot => slot.defaultTime === med.time);
@@ -410,8 +456,22 @@ export default function MedicationFormScreen() {
           supplyEnabled: true,
           daysSupply: parseInt(daysSupply) || 30,
           refillThresholdDays: 7,
-          notificationsEnabled: reminderEnabled,
           active: true,
+
+          // Reminder settings
+          notificationsEnabled: reminderEnabled,
+          reminderTiming: reminderEnabled ? reminderTiming : undefined,
+          reminderCustomMinutes: reminderTiming === 'custom' ? parseInt(reminderCustomMinutes) || 15 : undefined,
+          followUpEnabled: reminderEnabled ? followUpEnabled : false,
+          followUpInterval: followUpEnabled ? followUpInterval : undefined,
+          followUpMaxAttempts: followUpEnabled ? 3 : undefined,
+
+          // Schedule settings
+          scheduleFrequency,
+          scheduleDaysOfWeek: scheduleFrequency === 'custom' || scheduleFrequency === 'weekly'
+            ? scheduleDaysOfWeek
+            : undefined,
+          scheduleEndCondition,
         };
 
         if (isEditing && medId) {
@@ -419,6 +479,18 @@ export default function MedicationFormScreen() {
         } else {
           await addMedicationToPlan(DEFAULT_PATIENT_ID, planMedData);
         }
+
+        // Convert new reminderTiming to legacy reminderMinutesBefore
+        const getLegacyReminderMinutes = (): number => {
+          const timingMinutes: Record<ReminderTiming, number> = {
+            at_time: 0,
+            before_15: 15,
+            before_30: 30,
+            before_60: 60,
+            custom: parseInt(reminderCustomMinutes) || 15,
+          };
+          return timingMinutes[reminderTiming];
+        };
 
         // Also sync to legacy storage for backward compatibility
         const legacyData: Omit<Medication, 'id' | 'createdAt'> = {
@@ -429,7 +501,7 @@ export default function MedicationFormScreen() {
           notes: notes.trim(),
           daysSupply: parseInt(daysSupply) || 30,
           reminderEnabled: reminderEnabled,
-          reminderMinutesBefore: reminderEnabled ? reminderMinutesBefore : undefined,
+          reminderMinutesBefore: reminderEnabled ? getLegacyReminderMinutes() : undefined,
           active: true,
           taken: false,
         };
@@ -446,6 +518,18 @@ export default function MedicationFormScreen() {
         }
       } else {
         // Legacy flow - save to medicationStorage first
+        // Convert new reminderTiming to legacy reminderMinutesBefore
+        const getLegacyMinutes = (): number => {
+          const timingMinutes: Record<ReminderTiming, number> = {
+            at_time: 0,
+            before_15: 15,
+            before_30: 30,
+            before_60: 60,
+            custom: parseInt(reminderCustomMinutes) || 15,
+          };
+          return timingMinutes[reminderTiming];
+        };
+
         const medData: Omit<Medication, 'id' | 'createdAt'> = {
           name: name.trim(),
           dosage: dosage.trim(),
@@ -454,7 +538,7 @@ export default function MedicationFormScreen() {
           notes: notes.trim(),
           daysSupply: parseInt(daysSupply) || 30,
           reminderEnabled: reminderEnabled,
-          reminderMinutesBefore: reminderEnabled ? reminderMinutesBefore : undefined,
+          reminderMinutesBefore: reminderEnabled ? getLegacyMinutes() : undefined,
           active: true,
           taken: false,
         };
@@ -476,7 +560,8 @@ export default function MedicationFormScreen() {
           timeSlot: selectedTimeSlot,
           notes: notes.trim(),
           active: true,
-          repeatOption,
+          scheduleFrequency,
+          scheduleDaysOfWeek,
         });
       }
 
@@ -657,7 +742,9 @@ export default function MedicationFormScreen() {
             </Text>
           </View>
 
-          {/* Expandable Reminder Controls */}
+          {/* ============================================= */}
+          {/* REMINDERS SECTION - "When should we notify you?" */}
+          {/* ============================================= */}
           <View style={[
             styles.reminderContainer,
             reminderEnabled && styles.reminderContainerActive
@@ -671,9 +758,9 @@ export default function MedicationFormScreen() {
               <View style={styles.reminderToggleLeft}>
                 <Text style={styles.reminderIcon}>🔔</Text>
                 <View style={styles.reminderToggleInfo}>
-                  <Text style={styles.reminderToggleLabel}>Reminder</Text>
+                  <Text style={styles.reminderToggleLabel}>Reminders</Text>
                   <Text style={styles.reminderToggleDesc}>
-                    {reminderEnabled ? 'Notifications enabled' : 'Get notified when due'}
+                    {reminderEnabled ? 'When should we notify you?' : 'Dose still appears in Care Plan'}
                   </Text>
                 </View>
               </View>
@@ -686,46 +773,207 @@ export default function MedicationFormScreen() {
               />
             </TouchableOpacity>
 
-            {/* Picker Dropdowns - NOTIFY ME and REPEAT */}
+            {/* Reminder Options - Only show when enabled */}
             {reminderEnabled && (
-              <View style={styles.reminderDropdownsRow}>
-                {/* NOTIFY ME Dropdown */}
-                <View style={styles.reminderDropdownContainer}>
-                  <Text style={styles.reminderDropdownLabel}>NOTIFY ME</Text>
-                  <View style={styles.reminderPickerWrapper}>
-                    <Picker
-                      selectedValue={reminderMinutesBefore}
-                      onValueChange={(value) => setReminderMinutesBefore(value as number)}
-                      style={styles.reminderPicker}
-                      dropdownIconColor="#FBBF24"
+              <View style={styles.reminderOptionsContainer}>
+                {/* Timing Options */}
+                <Text style={styles.reminderSectionLabel}>Notify me</Text>
+                <View style={styles.timingOptionsGrid}>
+                  {REMINDER_TIMING_OPTIONS.map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.timingOption,
+                        reminderTiming === option.value && styles.timingOptionActive
+                      ]}
+                      onPress={() => setReminderTiming(option.value)}
+                      activeOpacity={0.7}
                     >
-                      <Picker.Item label="At scheduled time" value={0} color={Colors.textPrimary} />
-                      <Picker.Item label="5 min before" value={5} color={Colors.textPrimary} />
-                      <Picker.Item label="10 min before" value={10} color={Colors.textPrimary} />
-                      <Picker.Item label="15 min before" value={15} color={Colors.textPrimary} />
-                    </Picker>
-                  </View>
+                      <Text style={[
+                        styles.timingOptionText,
+                        reminderTiming === option.value && styles.timingOptionTextActive
+                      ]}>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
 
-                {/* REPEAT Dropdown */}
-                <View style={styles.reminderDropdownContainer}>
-                  <Text style={styles.reminderDropdownLabel}>REPEAT</Text>
-                  <View style={styles.reminderPickerWrapper}>
-                    <Picker
-                      selectedValue={repeatOption}
-                      onValueChange={(value) => setRepeatOption(value as string)}
-                      style={styles.reminderPicker}
-                      dropdownIconColor="#FBBF24"
-                    >
-                      <Picker.Item label="Daily" value="daily" color={Colors.textPrimary} />
-                      <Picker.Item label="Weekdays" value="weekdays" color={Colors.textPrimary} />
-                      <Picker.Item label="Weekly" value="weekly" color={Colors.textPrimary} />
-                      <Picker.Item label="Custom..." value="custom" color={Colors.textPrimary} />
-                    </Picker>
+                {/* Custom minutes input */}
+                {reminderTiming === 'custom' && (
+                  <View style={styles.customInputRow}>
+                    <TextInput
+                      style={styles.customMinutesInput}
+                      value={reminderCustomMinutes}
+                      onChangeText={setReminderCustomMinutes}
+                      keyboardType="numeric"
+                      placeholder="15"
+                      placeholderTextColor={Colors.textMuted}
+                    />
+                    <Text style={styles.customMinutesLabel}>minutes before</Text>
                   </View>
+                )}
+
+                {/* Follow-up reminder option */}
+                <View style={styles.followUpContainer}>
+                  <TouchableOpacity
+                    style={styles.followUpToggleRow}
+                    onPress={() => setFollowUpEnabled(!followUpEnabled)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.followUpInfo}>
+                      <Text style={styles.followUpLabel}>Remind again if not logged</Text>
+                      <Text style={styles.followUpDesc}>Stops after 3 attempts</Text>
+                    </View>
+                    <Switch
+                      value={followUpEnabled}
+                      onValueChange={setFollowUpEnabled}
+                      trackColor={{ false: Colors.textMuted, true: '#F59E0B' }}
+                      thumbColor={Colors.surface}
+                      ios_backgroundColor={Colors.textMuted}
+                    />
+                  </TouchableOpacity>
+
+                  {followUpEnabled && (
+                    <View style={styles.followUpIntervalRow}>
+                      <Text style={styles.followUpIntervalLabel}>Remind again after:</Text>
+                      <View style={styles.followUpIntervalOptions}>
+                        {FOLLOW_UP_OPTIONS.map((option) => (
+                          <TouchableOpacity
+                            key={option.value}
+                            style={[
+                              styles.followUpIntervalOption,
+                              followUpInterval === option.value && styles.followUpIntervalOptionActive
+                            ]}
+                            onPress={() => setFollowUpInterval(option.value)}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={[
+                              styles.followUpIntervalText,
+                              followUpInterval === option.value && styles.followUpIntervalTextActive
+                            ]}>
+                              {option.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
                 </View>
               </View>
             )}
+          </View>
+
+          {/* ============================================= */}
+          {/* SCHEDULE SECTION - "How often is this taken?" */}
+          {/* ============================================= */}
+          <View style={styles.scheduleContainer}>
+            <View style={styles.scheduleHeader}>
+              <Text style={styles.scheduleIcon}>📅</Text>
+              <View style={styles.scheduleHeaderInfo}>
+                <Text style={styles.scheduleHeaderLabel}>Schedule</Text>
+                <Text style={styles.scheduleHeaderDesc}>How often is this taken?</Text>
+              </View>
+            </View>
+
+            {/* Frequency Options */}
+            <View style={styles.frequencyOptionsGrid}>
+              {SCHEDULE_FREQUENCY_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.frequencyOption,
+                    scheduleFrequency === option.value && styles.frequencyOptionActive
+                  ]}
+                  onPress={() => {
+                    setScheduleFrequency(option.value);
+                    // Set default days for weekly
+                    if (option.value === 'weekly') {
+                      setScheduleDaysOfWeek([new Date().getDay()]);
+                    } else if (option.value === 'daily') {
+                      setScheduleDaysOfWeek([0, 1, 2, 3, 4, 5, 6]);
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.frequencyOptionText,
+                    scheduleFrequency === option.value && styles.frequencyOptionTextActive
+                  ]}>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Day Picker - for 'weekly' or 'custom' */}
+            {(scheduleFrequency === 'weekly' || scheduleFrequency === 'custom') && (
+              <View style={styles.dayPickerContainer}>
+                <Text style={styles.dayPickerLabel}>
+                  {scheduleFrequency === 'weekly' ? 'Which day?' : 'Which days?'}
+                </Text>
+                <View style={styles.dayPickerRow}>
+                  {DAYS_OF_WEEK.map((day) => {
+                    const isSelected = scheduleDaysOfWeek.includes(day.value);
+                    return (
+                      <TouchableOpacity
+                        key={day.value}
+                        style={[
+                          styles.dayButton,
+                          isSelected && styles.dayButtonActive
+                        ]}
+                        onPress={() => {
+                          if (scheduleFrequency === 'weekly') {
+                            // Single select for weekly
+                            setScheduleDaysOfWeek([day.value]);
+                          } else {
+                            // Multi-select for custom
+                            if (isSelected) {
+                              setScheduleDaysOfWeek(scheduleDaysOfWeek.filter(d => d !== day.value));
+                            } else {
+                              setScheduleDaysOfWeek([...scheduleDaysOfWeek, day.value].sort());
+                            }
+                          }
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[
+                          styles.dayButtonText,
+                          isSelected && styles.dayButtonTextActive
+                        ]}>
+                          {day.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            {/* End Condition */}
+            <View style={styles.endConditionContainer}>
+              <Text style={styles.endConditionLabel}>Until</Text>
+              <View style={styles.endConditionOptions}>
+                {SCHEDULE_END_OPTIONS.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.endConditionOption,
+                      scheduleEndCondition === option.value && styles.endConditionOptionActive
+                    ]}
+                    onPress={() => setScheduleEndCondition(option.value)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[
+                      styles.endConditionText,
+                      scheduleEndCondition === option.value && styles.endConditionTextActive
+                    ]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </View>
 
           {/* Notes */}
@@ -919,13 +1167,15 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Expandable Reminder Controls
+  // ============================================
+  // REMINDERS SECTION STYLES
+  // ============================================
   reminderContainer: {
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     overflow: 'hidden',
   },
   reminderContainerActive: {
@@ -952,7 +1202,7 @@ const styles = StyleSheet.create({
   },
   reminderToggleLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: Colors.textPrimary,
     marginBottom: 2,
   },
@@ -960,35 +1210,261 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textMuted,
   },
-  reminderDropdownsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
-    paddingTop: 14,
+  reminderOptionsContainer: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(245, 158, 11, 0.35)',
+    borderTopColor: 'rgba(245, 158, 11, 0.2)',
   },
-  reminderDropdownContainer: {
-    flex: 1,
-  },
-  reminderDropdownLabel: {
-    fontSize: 10,
+  reminderSectionLabel: {
+    fontSize: 11,
     fontWeight: '600',
     color: '#FBBF24',
-    marginBottom: 6,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
     letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  reminderPickerWrapper: {
+  timingOptionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  timingOption: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  timingOptionActive: {
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    borderColor: '#FBBF24',
+  },
+  timingOptionText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  timingOptionTextActive: {
+    color: '#FBBF24',
+    fontWeight: '600',
+  },
+  customInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: Spacing.sm,
+  },
+  customMinutesInput: {
+    width: 60,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.35)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
     borderRadius: 8,
-    overflow: 'hidden',
-  },
-  reminderPicker: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    fontSize: 14,
     color: Colors.textPrimary,
-    height: 40,
+    textAlign: 'center',
+  },
+  customMinutesLabel: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  followUpContainer: {
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(245, 158, 11, 0.15)',
+  },
+  followUpToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  followUpInfo: {
+    flex: 1,
+  },
+  followUpLabel: {
+    fontSize: 13,
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  followUpDesc: {
+    fontSize: 10,
+    color: Colors.textMuted,
+  },
+  followUpIntervalRow: {
+    marginTop: Spacing.md,
+  },
+  followUpIntervalLabel: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginBottom: Spacing.sm,
+  },
+  followUpIntervalOptions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  followUpIntervalOption: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  followUpIntervalOptionActive: {
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    borderColor: '#FBBF24',
+  },
+  followUpIntervalText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  followUpIntervalTextActive: {
+    color: '#FBBF24',
+    fontWeight: '600',
+  },
+
+  // ============================================
+  // SCHEDULE SECTION STYLES
+  // ============================================
+  scheduleContainer: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.xl,
+    padding: Spacing.lg,
+  },
+  scheduleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  scheduleIcon: {
+    fontSize: 20,
+  },
+  scheduleHeaderInfo: {
+    flex: 1,
+  },
+  scheduleHeaderLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  scheduleHeaderDesc: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  frequencyOptionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: Spacing.lg,
+  },
+  frequencyOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  frequencyOptionActive: {
+    backgroundColor: Colors.accentLight,
+    borderColor: Colors.accent,
+  },
+  frequencyOptionText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  frequencyOptionTextActive: {
+    color: Colors.accent,
+    fontWeight: '600',
+  },
+  dayPickerContainer: {
+    marginBottom: Spacing.lg,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  dayPickerLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.textMuted,
+    marginBottom: Spacing.sm,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  dayPickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  dayButton: {
+    flex: 1,
+    aspectRatio: 1,
+    maxWidth: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  dayButtonActive: {
+    backgroundColor: Colors.accentLight,
+    borderColor: Colors.accent,
+  },
+  dayButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  dayButtonTextActive: {
+    color: Colors.accent,
+  },
+  endConditionContainer: {
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  endConditionLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.textMuted,
+    marginBottom: Spacing.sm,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  endConditionOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  endConditionOption: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  endConditionOptionActive: {
+    backgroundColor: Colors.accentLight,
+    borderColor: Colors.accent,
+  },
+  endConditionText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  endConditionTextActive: {
+    color: Colors.accent,
+    fontWeight: '600',
   },
 });

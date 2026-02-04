@@ -68,14 +68,14 @@ export const BUCKET_META: Record<BucketType, BucketMeta> = {
     type: 'vitals',
     name: 'Vitals',
     emoji: '📊',
-    aiInsight: 'Makes trends visible over time, even when each reading seems normal.',
+    aiInsight: 'Makes trends visible over time, even when readings look fine day to day.',
     route: '/log-vitals',
   },
   meals: {
     type: 'meals',
     name: 'Meals',
     emoji: '🍽️',
-    aiInsight: 'Helps connect nutrition to mood, energy, and symptoms.',
+    aiInsight: 'Adds context to mood, energy, and symptoms.',
     route: '/log-meal',
   },
   water: {
@@ -89,7 +89,7 @@ export const BUCKET_META: Record<BucketType, BucketMeta> = {
     type: 'mood',
     name: 'Mood',
     emoji: '😊',
-    aiInsight: "Creates context for 'why today felt harder' without overthinking.",
+    aiInsight: 'Creates context for why today felt harder without overthinking.',
     route: '/log-mood',
   },
   sleep: {
@@ -192,6 +192,60 @@ export interface BucketConfig {
 // CATEGORY-SPECIFIC CONFIGS
 // ============================================================================
 
+// ============================================================================
+// MEDICATION REMINDER TYPES
+// ============================================================================
+
+export type ReminderTiming = 'at_time' | 'before_15' | 'before_30' | 'before_60' | 'custom';
+
+export const REMINDER_TIMING_OPTIONS: { value: ReminderTiming; label: string; minutes: number }[] = [
+  { value: 'at_time', label: 'At time of dose', minutes: 0 },
+  { value: 'before_15', label: '15 minutes before', minutes: 15 },
+  { value: 'before_30', label: '30 minutes before', minutes: 30 },
+  { value: 'before_60', label: '1 hour before', minutes: 60 },
+  { value: 'custom', label: 'Custom', minutes: 0 },
+];
+
+export type FollowUpInterval = 15 | 30 | 60;
+
+export const FOLLOW_UP_OPTIONS: { value: FollowUpInterval; label: string }[] = [
+  { value: 15, label: '15 min' },
+  { value: 30, label: '30 min' },
+  { value: 60, label: '1 hour' },
+];
+
+// ============================================================================
+// MEDICATION SCHEDULE TYPES
+// ============================================================================
+
+export type ScheduleFrequency = 'daily' | 'every_other_day' | 'weekly' | 'custom';
+
+export const SCHEDULE_FREQUENCY_OPTIONS: { value: ScheduleFrequency; label: string; description?: string }[] = [
+  { value: 'daily', label: 'Daily', description: 'Every day' },
+  { value: 'every_other_day', label: 'Every other day', description: 'Alternating days' },
+  { value: 'weekly', label: 'Weekly', description: 'Once per week' },
+  { value: 'custom', label: 'Custom', description: 'Select specific days' },
+];
+
+export type ScheduleEndCondition = 'ongoing' | 'until_supply' | 'end_date';
+
+export const SCHEDULE_END_OPTIONS: { value: ScheduleEndCondition; label: string }[] = [
+  { value: 'ongoing', label: 'Ongoing' },
+  { value: 'until_supply', label: 'Until supply runs out' },
+  { value: 'end_date', label: 'End date' },
+];
+
+// Day of week helpers (0 = Sunday, 6 = Saturday)
+export const DAYS_OF_WEEK = [
+  { value: 0, label: 'S', fullLabel: 'Sunday' },
+  { value: 1, label: 'M', fullLabel: 'Monday' },
+  { value: 2, label: 'T', fullLabel: 'Tuesday' },
+  { value: 3, label: 'W', fullLabel: 'Wednesday' },
+  { value: 4, label: 'T', fullLabel: 'Thursday' },
+  { value: 5, label: 'F', fullLabel: 'Friday' },
+  { value: 6, label: 'S', fullLabel: 'Saturday' },
+];
+
 // Medication Plan Item (individual medication)
 export interface MedicationPlanItem {
   id: string;
@@ -199,14 +253,30 @@ export interface MedicationPlanItem {
   dosage: string;
   instructions?: string; // "take with food"
   timesOfDay: TimeOfDay[];
-  customTimes?: string[]; // HH:mm format
+  customTimes?: string[]; // HH:mm format (legacy, prefer scheduledTimeHHmm)
+  scheduledTimeHHmm?: string | null; // CANONICAL: validated "HH:mm" or null if not set
   supplyEnabled?: boolean;
   daysSupply?: number;
   refillThresholdDays?: number; // Default 7
-  notificationsEnabled?: boolean;
   active: boolean;
   createdAt: string;
   updatedAt: string;
+
+  // ===== REMINDERS (Notify Me) =====
+  // Controls WHEN alerts fire, not the schedule itself
+  notificationsEnabled?: boolean; // Master toggle (default: true for meds)
+  reminderTiming?: ReminderTiming; // When to notify relative to dose time
+  reminderCustomMinutes?: number; // Only used when reminderTiming === 'custom'
+  followUpEnabled?: boolean; // Remind again if not logged
+  followUpInterval?: FollowUpInterval; // How often to follow up (15, 30, 60 min)
+  followUpMaxAttempts?: number; // Hard stop after X attempts (default: 3)
+
+  // ===== SCHEDULE (Repeat) =====
+  // Controls WHEN the dose occurs (which days it appears in Care Plan)
+  scheduleFrequency?: ScheduleFrequency; // How often (default: 'daily' for meds)
+  scheduleDaysOfWeek?: number[]; // For 'weekly' or 'custom': which days (0-6)
+  scheduleEndCondition?: ScheduleEndCondition; // When to stop
+  scheduleEndDate?: string; // ISO date for 'end_date' condition
 }
 
 // Meds Bucket extends base config with medication list
@@ -238,9 +308,22 @@ export interface MealsBucketConfig extends BucketConfig {
   trackingStyle?: TrackingStyle;
 }
 
+// Water reminder frequency options
+export type WaterReminderFrequency = 'none' | 'every_2h' | 'every_3h' | 'every_4h' | 'custom';
+
+export const WATER_REMINDER_OPTIONS: { value: WaterReminderFrequency; label: string; description: string }[] = [
+  { value: 'none', label: 'No reminders', description: 'Log when you remember' },
+  { value: 'every_2h', label: 'Every 2 hours', description: '8am - 8pm' },
+  { value: 'every_3h', label: 'Every 3 hours', description: '8am - 8pm' },
+  { value: 'every_4h', label: 'Every 4 hours', description: '8am - 8pm' },
+  { value: 'custom', label: 'Custom times', description: 'Set specific reminder times' },
+];
+
 export interface WaterBucketConfig extends BucketConfig {
   trackingStyle?: TrackingStyle;
   dailyGoalGlasses?: number; // Default 8
+  reminderFrequency?: WaterReminderFrequency; // Default 'none'
+  reminderTimes?: string[]; // HH:mm format for custom reminders
 }
 
 // ============================================================================
@@ -386,16 +469,26 @@ export function getBucketStatusText(config: CarePlanConfig, bucket: BucketType):
 }
 
 /**
- * Parse time string safely (handles HH:mm and various formats)
+ * Parse time string safely (handles HH:mm, ISO timestamps, and various formats)
  */
 export function parseTimeString(time: string): { hours: number; minutes: number } | null {
   if (!time || typeof time !== 'string') return null;
 
-  // Try HH:mm format
-  const match = time.match(/^(\d{1,2}):(\d{2})$/);
-  if (match) {
-    const hours = parseInt(match[1], 10);
-    const minutes = parseInt(match[2], 10);
+  const trimmed = time.trim();
+
+  // Try ISO timestamp format (e.g., "2026-02-02T08:00:00" or "2026-02-02T08:00")
+  if (trimmed.includes('T')) {
+    const date = new Date(trimmed);
+    if (!isNaN(date.getTime())) {
+      return { hours: date.getHours(), minutes: date.getMinutes() };
+    }
+  }
+
+  // Try HH:mm format (e.g., "08:00" or "8:00")
+  const matchHHmm = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+  if (matchHHmm) {
+    const hours = parseInt(matchHHmm[1], 10);
+    const minutes = parseInt(matchHHmm[2], 10);
     if (!isNaN(hours) && !isNaN(minutes) && hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
       return { hours, minutes };
     }
@@ -436,4 +529,75 @@ export function parseDisplayTimeToHHmm(displayTime: string): string | null {
   if (!isPM && hours === 12) hours = 0;
 
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Generate water reminder times based on frequency
+ * Returns array of HH:mm strings
+ */
+export function generateWaterReminderTimes(frequency: WaterReminderFrequency, customTimes?: string[]): string[] {
+  switch (frequency) {
+    case 'none':
+      return [];
+    case 'every_2h':
+      // 8am, 10am, 12pm, 2pm, 4pm, 6pm, 8pm
+      return ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
+    case 'every_3h':
+      // 8am, 11am, 2pm, 5pm, 8pm
+      return ['08:00', '11:00', '14:00', '17:00', '20:00'];
+    case 'every_4h':
+      // 8am, 12pm, 4pm, 8pm
+      return ['08:00', '12:00', '16:00', '20:00'];
+    case 'custom':
+      return customTimes || [];
+    default:
+      return [];
+  }
+}
+
+/**
+ * Normalize any valid time format to canonical HH:mm
+ * Accepts: HH:mm, ISO timestamp, 12-hour format (8:00 AM)
+ * Returns: "HH:mm" string or null if invalid
+ */
+export function normalizeToHHmm(time: string | undefined | null): string | null {
+  if (!time || typeof time !== 'string') return null;
+
+  const trimmed = time.trim();
+
+  // If already in HH:mm format, validate and return
+  const hhmmMatch = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+  if (hhmmMatch) {
+    const hours = parseInt(hhmmMatch[1], 10);
+    const minutes = parseInt(hhmmMatch[2], 10);
+    if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    }
+  }
+
+  // Try ISO timestamp format
+  if (trimmed.includes('T')) {
+    const date = new Date(trimmed);
+    if (!isNaN(date.getTime())) {
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    }
+  }
+
+  // Try 12-hour format (8:00 AM, 1:30 PM)
+  const ampmMatch = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (ampmMatch) {
+    let hours = parseInt(ampmMatch[1], 10);
+    const minutes = parseInt(ampmMatch[2], 10);
+    const isPM = ampmMatch[3].toUpperCase() === 'PM';
+
+    if (!isNaN(hours) && !isNaN(minutes) && hours >= 1 && hours <= 12 && minutes >= 0 && minutes < 60) {
+      if (isPM && hours !== 12) hours += 12;
+      if (!isPM && hours === 12) hours = 0;
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    }
+  }
+
+  return null;
 }
