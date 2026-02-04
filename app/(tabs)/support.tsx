@@ -324,7 +324,7 @@ export default function SupportScreen() {
                 styles.primaryActionButton,
                 todayState.hasConcerns && styles.primaryActionButtonConcern,
               ]}
-              onPress={() => router.push('/family-sharing')}
+              onPress={() => router.push('/daily-care-report')}
               activeOpacity={0.7}
             >
               <Text style={[
