@@ -201,6 +201,165 @@ interface AIInsight {
   type: 'positive' | 'suggestion' | 'reminder' | 'celebration';
 }
 
+// ============================================================================
+// URGENCY STATUS SYSTEM
+// Answers: "What is the next irreversible decision the caregiver must make?"
+// ============================================================================
+
+type UrgencyStatus = 'OVERDUE' | 'DUE_SOON' | 'LATER_TODAY' | 'COMPLETE' | 'NOT_APPLICABLE';
+
+interface UrgencyInfo {
+  status: UrgencyStatus;
+  label: string;
+  minutesUntil?: number;
+  minutesOverdue?: number;
+}
+
+// Time window definitions for grouping
+type TimeWindow = 'morning' | 'afternoon' | 'evening' | 'night';
+
+const TIME_WINDOW_HOURS: Record<TimeWindow, { start: number; end: number; label: string }> = {
+  morning: { start: 5, end: 12, label: 'Morning' },
+  afternoon: { start: 12, end: 17, label: 'Afternoon' },
+  evening: { start: 17, end: 21, label: 'Evening' },
+  night: { start: 21, end: 5, label: 'Night' },
+};
+
+// Calculate urgency status for a single task
+function getUrgencyStatus(scheduledTime: string, isCompleted: boolean): UrgencyInfo {
+  if (isCompleted) {
+    return { status: 'COMPLETE', label: 'Done' };
+  }
+
+  if (!scheduledTime) {
+    return { status: 'NOT_APPLICABLE', label: 'Not tracked today' };
+  }
+
+  const now = new Date();
+  const scheduled = new Date(scheduledTime);
+
+  if (isNaN(scheduled.getTime())) {
+    return { status: 'NOT_APPLICABLE', label: 'Not tracked today' };
+  }
+
+  const diffMs = scheduled.getTime() - now.getTime();
+  const diffMinutes = Math.round(diffMs / (1000 * 60));
+
+  // OVERDUE: currentTime > scheduledTime (past grace period)
+  if (diffMinutes < -OVERDUE_GRACE_MINUTES) {
+    const minutesOverdue = Math.abs(diffMinutes);
+    const hours = Math.floor(minutesOverdue / 60);
+    const mins = minutesOverdue % 60;
+    const label = hours > 0
+      ? `${hours}h ${mins}m overdue`
+      : `${mins} min overdue`;
+    return {
+      status: 'OVERDUE',
+      label: 'Due now',
+      minutesOverdue
+    };
+  }
+
+  // DUE_SOON: within next 2 hours (120 minutes)
+  if (diffMinutes <= 120) {
+    const label = diffMinutes <= 0
+      ? 'Due now'
+      : diffMinutes < 60
+        ? `Due in ${diffMinutes} min`
+        : `Due in ${Math.round(diffMinutes / 60)}h`;
+    return {
+      status: 'DUE_SOON',
+      label,
+      minutesUntil: Math.max(0, diffMinutes)
+    };
+  }
+
+  // LATER_TODAY: more than 2 hours away
+  return {
+    status: 'LATER_TODAY',
+    label: 'Scheduled later today',
+    minutesUntil: diffMinutes
+  };
+}
+
+// Get urgency status for a category (meds, vitals, etc.)
+function getCategoryUrgencyStatus(
+  instances: any[],
+  itemType: string,
+  stat: StatData
+): UrgencyStatus {
+  if (stat.total === 0) return 'NOT_APPLICABLE';
+  if (stat.completed === stat.total) return 'COMPLETE';
+
+  const pendingInstances = instances.filter(
+    i => i.itemType === itemType && i.status === 'pending'
+  );
+
+  if (pendingInstances.length === 0) return 'COMPLETE';
+
+  // Check if any are overdue
+  const hasOverdue = pendingInstances.some(i => {
+    const info = getUrgencyStatus(i.scheduledTime, false);
+    return info.status === 'OVERDUE';
+  });
+  if (hasOverdue) return 'OVERDUE';
+
+  // Check if any are due soon
+  const hasDueSoon = pendingInstances.some(i => {
+    const info = getUrgencyStatus(i.scheduledTime, false);
+    return info.status === 'DUE_SOON';
+  });
+  if (hasDueSoon) return 'DUE_SOON';
+
+  return 'LATER_TODAY';
+}
+
+// Get time window for a scheduled time
+function getTimeWindow(scheduledTime: string): TimeWindow {
+  const date = new Date(scheduledTime);
+  if (isNaN(date.getTime())) return 'morning';
+
+  const hour = date.getHours();
+
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
+}
+
+// Get current time window
+function getCurrentTimeWindow(): TimeWindow {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
+}
+
+// Group instances by time window
+function groupByTimeWindow(instances: any[]): Record<TimeWindow, any[]> {
+  const groups: Record<TimeWindow, any[]> = {
+    morning: [],
+    afternoon: [],
+    evening: [],
+    night: [],
+  };
+
+  instances.forEach(instance => {
+    const window = getTimeWindow(instance.scheduledTime);
+    groups[window].push(instance);
+  });
+
+  // Sort each group by scheduled time
+  Object.keys(groups).forEach(key => {
+    groups[key as TimeWindow].sort((a, b) =>
+      a.scheduledTime.localeCompare(b.scheduledTime)
+    );
+  });
+
+  return groups;
+}
+
 export default function NowScreen() {
   const router = useRouter();
 
@@ -218,7 +377,7 @@ export default function NowScreen() {
 
   // CarePlan hook - provides progress, timeline, and schedule from derived state
   // Pass today as the date parameter so it reloads when the day changes
-  const { dayState, carePlan, overrides, snoozeItem, setItemOverride, integrityWarnings } = useCarePlan(today);
+  const { dayState, carePlan, overrides, snoozeItem, setItemOverride, integrityWarnings, refresh: refreshCarePlan } = useCarePlan(today);
 
   // Appointments hook - single source of truth for appointments
   const {
@@ -243,6 +402,18 @@ export default function NowScreen() {
   const [timelineExpanded, setTimelineExpanded] = useState(true);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
 
+  // Time group expansion state for What's Left Today
+  // By default, only upcoming time window is expanded, future groups collapsed
+  const [expandedTimeGroups, setExpandedTimeGroups] = useState<Record<TimeWindow, boolean>>(() => {
+    const currentWindow = getCurrentTimeWindow();
+    return {
+      morning: currentWindow === 'morning',
+      afternoon: currentWindow === 'afternoon',
+      evening: currentWindow === 'evening',
+      night: currentWindow === 'night',
+    };
+  });
+
   // Prompt system state
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
@@ -264,8 +435,9 @@ export default function NowScreen() {
   // This ensures Progress cards and Timeline are always synchronized
   // ============================================================================
   const todayStats = useMemo((): TodayStats => {
-    // If we have regimen instances, derive stats directly from them
-    if (instancesState && instancesState.instances.length > 0) {
+    // If we have regimen instances for TODAY, derive stats directly from them
+    // Safety check: ensure instancesState is for today (not stale data from yesterday)
+    if (instancesState && instancesState.instances.length > 0 && instancesState.date === today) {
       const getTypeStats = (itemType: string): StatData => {
         const typeInstances = instancesState.instances.filter(i => i.itemType === itemType);
         const completed = typeInstances.filter(i => i.status === 'completed').length;
@@ -287,80 +459,17 @@ export default function NowScreen() {
       }
     }
 
-    // Fall back to legacy stats (from raw logs) when no instances
+    // Fall back to legacy stats (from raw logs) when no instances or date mismatch
     return legacyStats;
-  }, [instancesState, legacyStats]);
+  }, [instancesState, legacyStats, today]);
 
   // AI Insight
   const [aiInsight, setAiInsight] = useState<AIInsight | null>(null);
 
-  // Regenerate AI Insight when stats or timeline change (ensures sync with Progress cards)
-  useEffect(() => {
-    if (!medications) return;
-
-    // Get timeline counts from instancesState
-    let overdueCount = 0;
-    let upcomingCount = 0;
-    let completedCount = 0;
-    if (instancesState?.instances) {
-      overdueCount = instancesState.instances.filter(i => i.status === 'pending' && isOverdue(i.scheduledTime)).length;
-      upcomingCount = instancesState.instances.filter(i => i.status === 'pending' && !isOverdue(i.scheduledTime)).length;
-      completedCount = instancesState.instances.filter(i => i.status === 'completed' || i.status === 'skipped').length;
-    }
-
-    // Filter today's appointments
-    const todayAppts = appointments.filter(appt => {
-      const apptDate = new Date(appt.date);
-      return apptDate.toDateString() === new Date().toDateString();
-    });
-
-    // Get mood level from daily tracking
-    const moodLevel = dailyTracking?.mood ?? null;
-
-    const insight = generateAIInsight(
-      todayStats,
-      moodLevel,
-      todayAppts,
-      medications,
-      overdueCount,
-      upcomingCount,
-      completedCount
-    );
-    setAiInsight(insight);
-  }, [todayStats, instancesState, medications, appointments, dailyTracking, generateAIInsight]);
-
-  // Baseline state
-  const [baselineData, setBaselineData] = useState<BaselineData | null>(null);
-  const [todayVsBaseline, setTodayVsBaseline] = useState<TodayVsBaseline[]>([]);
-  const [baselineToConfirm, setBaselineToConfirm] = useState<{
-    category: BaselineCategory;
-    baseline: CategoryBaseline;
-  } | null>(null);
-
-  // Check for onboarding, notification prompt, and welcome banner on mount
-  useEffect(() => {
-    checkOnboarding();
-    checkNotificationPrompt();
-    checkWelcomeBanner();
-  }, []);
-
-  const checkOnboarding = async () => {
-    const complete = await isOnboardingComplete();
-    setShowOnboarding(!complete);
-  };
-
-  const checkNotificationPrompt = async () => {
-    const shouldShow = await shouldShowNotificationPrompt();
-    setShowNotificationPrompt(shouldShow);
-  };
-
-  const checkWelcomeBanner = async () => {
-    const shouldShow = await shouldShowWelcomeBanner();
-    setShowWelcomeBanner(shouldShow);
-  };
-
   // Fix #4: Generate AI Insight that arbitrates between Progress and Timeline
   // Considers both high-level progress AND specific timeline items
+  // IMPORTANT: All data must come from instancesState to ensure consistency with Progress cards and Timeline
+  // NOTE: Defined here BEFORE the useEffect that uses it to avoid declaration order issues
   const generateAIInsight = useCallback((
     stats: TodayStats,
     moodLevel: number | null,
@@ -368,31 +477,21 @@ export default function NowScreen() {
     meds: Medication[],
     timelineOverdue: number = 0,
     timelineUpcoming: number = 0,
-    timelineCompleted: number = 0
+    timelineCompleted: number = 0,
+    eveningMedsRemaining: number = 0
   ): AIInsight | null => {
     const now = new Date();
     const currentHour = now.getHours();
     const insights: AIInsight[] = [];
 
-    // Calculate actual data summaries
     const totalLogged = stats.meds.completed + stats.vitals.completed + stats.mood.completed + stats.meals.completed;
     const medsRemaining = stats.meds.total - stats.meds.completed;
-    const eveningMeds = meds.filter(m => m.timeSlot === 'evening' || m.timeSlot === 'bedtime');
-    const eveningMedsRemaining = eveningMeds.filter(m => !m.taken).length;
 
-    // ========================================================================
-    // SIGNAL OVER SENTIMENT: Action-oriented insights
-    // Title = what needs attention (the signal)
-    // Message = supporting context (secondary)
-    // ========================================================================
-
-    // REMINDER: Overdue items - highest priority, most urgent signal
+    // REMINDER: Overdue items - highest priority
     if (timelineOverdue > 0) {
       insights.push({
         icon: '⏰',
-        title: timelineOverdue === 1
-          ? '1 item overdue'
-          : `${timelineOverdue} items overdue`,
+        title: timelineOverdue === 1 ? '1 item overdue' : `${timelineOverdue} items overdue`,
         message: 'Tap above to log or adjust.',
         type: 'reminder',
       });
@@ -419,7 +518,7 @@ export default function NowScreen() {
       });
     }
 
-    // REMINDER: Upcoming appointment - actionable context
+    // REMINDER: Upcoming appointment
     if (todayAppointments.length > 0) {
       const nextAppt = todayAppointments[0];
       const apptTime = nextAppt.time ? ` at ${nextAppt.time}` : '';
@@ -436,7 +535,7 @@ export default function NowScreen() {
       insights.push({
         icon: '💊',
         title: `${eveningMedsRemaining} evening med${eveningMedsRemaining > 1 ? 's' : ''} remaining`,
-        message: 'Consistent timing helps effectiveness.',
+        message: 'Consistent timing helps.',
         type: 'reminder',
       });
     }
@@ -471,7 +570,7 @@ export default function NowScreen() {
       });
     }
 
-    // SUGGESTION: Mood not logged (afternoon/evening)
+    // SUGGESTION: Mood not logged
     if (currentHour >= 14 && stats.mood.completed === 0) {
       insights.push({
         icon: '😊',
@@ -486,7 +585,7 @@ export default function NowScreen() {
       insights.push({
         icon: '📊',
         title: 'Vitals not logged yet',
-        message: 'Regular readings build a useful baseline.',
+        message: 'Regular readings build a baseline.',
         type: 'suggestion',
       });
     }
@@ -536,17 +635,90 @@ export default function NowScreen() {
       });
     }
 
-    // Return the most relevant insight (priority: reminder > celebration > suggestion > positive)
-    // Reminders first (action needed), then celebrations, then suggestions, then passive positives
+    // Return the most relevant insight
     const priorityOrder = ['reminder', 'celebration', 'suggestion', 'positive'];
     for (const priority of priorityOrder) {
       const match = insights.find(i => i.type === priority);
       if (match) return match;
     }
-
-    // No insight to show - return null instead of filler content
     return null;
   }, []);
+
+  // Regenerate AI Insight when stats or timeline change (ensures sync with Progress cards)
+  useEffect(() => {
+    if (!medications) return;
+
+    // Get timeline counts from instancesState
+    let overdueCount = 0;
+    let upcomingCount = 0;
+    let completedCount = 0;
+    let eveningMedsRemaining = 0;
+
+    if (instancesState?.instances && instancesState.date === today) {
+      overdueCount = instancesState.instances.filter(i => i.status === 'pending' && isOverdue(i.scheduledTime)).length;
+      upcomingCount = instancesState.instances.filter(i => i.status === 'pending' && !isOverdue(i.scheduledTime)).length;
+      completedCount = instancesState.instances.filter(i => i.status === 'completed' || i.status === 'skipped').length;
+
+      // Calculate evening meds from instances (4PM-10PM = hours 16-22)
+      eveningMedsRemaining = instancesState.instances.filter(i => {
+        if (i.itemType !== 'medication' || i.status !== 'pending') return false;
+        const scheduledDate = new Date(i.scheduledTime);
+        const hour = scheduledDate.getHours();
+        return hour >= 16 && hour < 22;
+      }).length;
+    }
+
+    // Filter today's appointments
+    const todayAppts = appointments.filter(appt => {
+      const apptDate = new Date(appt.date);
+      return apptDate.toDateString() === new Date().toDateString();
+    });
+
+    // Get mood level from daily tracking
+    const moodLevel = dailyTracking?.mood ?? null;
+
+    const insight = generateAIInsight(
+      todayStats,
+      moodLevel,
+      todayAppts,
+      medications,
+      overdueCount,
+      upcomingCount,
+      completedCount,
+      eveningMedsRemaining
+    );
+    setAiInsight(insight);
+  }, [todayStats, instancesState, today, medications, appointments, dailyTracking, generateAIInsight]);
+
+  // Baseline state
+  const [baselineData, setBaselineData] = useState<BaselineData | null>(null);
+  const [todayVsBaseline, setTodayVsBaseline] = useState<TodayVsBaseline[]>([]);
+  const [baselineToConfirm, setBaselineToConfirm] = useState<{
+    category: BaselineCategory;
+    baseline: CategoryBaseline;
+  } | null>(null);
+
+  // Check for onboarding, notification prompt, and welcome banner on mount
+  useEffect(() => {
+    checkOnboarding();
+    checkNotificationPrompt();
+    checkWelcomeBanner();
+  }, []);
+
+  const checkOnboarding = async () => {
+    const complete = await isOnboardingComplete();
+    setShowOnboarding(!complete);
+  };
+
+  const checkNotificationPrompt = async () => {
+    const shouldShow = await shouldShowNotificationPrompt();
+    setShowNotificationPrompt(shouldShow);
+  };
+
+  const checkWelcomeBanner = async () => {
+    const shouldShow = await shouldShowWelcomeBanner();
+    setShowWelcomeBanner(shouldShow);
+  };
 
   const handleDismissBanner = async () => {
     await dismissWelcomeBanner();
@@ -750,14 +922,24 @@ export default function NowScreen() {
     useCallback(() => {
       // Update today's date - handles day change when app was backgrounded overnight
       const currentDate = getTodayDateString();
-      setToday(currentDate);
+
+      // Check if date has changed (e.g., midnight passed while app was backgrounded)
+      if (currentDate !== today) {
+        console.log('[NowScreen] Date changed from', today, 'to', currentDate);
+        setToday(currentDate);
+      }
+
+      // Always refresh all data when screen gains focus
+      // This ensures we have fresh data regardless of date change
+      refreshInstances();
+      refreshCarePlan();
 
       loadData();
       // Check if notification prompt should show (after adding meds/appointments)
       checkNotificationPrompt();
       // Record visit when screen loads
       recordVisit();
-    }, [])
+    }, [today, refreshInstances, refreshCarePlan])
   );
 
   const loadData = async () => {
@@ -838,11 +1020,21 @@ export default function NowScreen() {
       let overdueCount = 0;
       let upcomingCount = 0;
       let completedCount = 0;
-      if (instancesState?.instances) {
+      let eveningMedsRemaining = 0;
+
+      if (instancesState?.instances && instancesState.date === today) {
         const sorted = [...instancesState.instances];
         overdueCount = sorted.filter(i => i.status === 'pending' && isOverdue(i.scheduledTime)).length;
         upcomingCount = sorted.filter(i => i.status === 'pending' && !isOverdue(i.scheduledTime)).length;
         completedCount = sorted.filter(i => i.status === 'completed' || i.status === 'skipped').length;
+
+        // Calculate evening meds from instances (4PM-10PM = hours 16-22)
+        eveningMedsRemaining = sorted.filter(i => {
+          if (i.itemType !== 'medication' || i.status !== 'pending') return false;
+          const scheduledDate = new Date(i.scheduledTime);
+          const hour = scheduledDate.getHours();
+          return hour >= 16 && hour < 22;
+        }).length;
       }
 
       const insight = generateAIInsight(
@@ -852,7 +1044,8 @@ export default function NowScreen() {
         activeMeds,
         overdueCount,
         upcomingCount,
-        completedCount
+        completedCount,
+        eveningMedsRemaining
       );
       setAiInsight(insight);
 
@@ -941,13 +1134,30 @@ export default function NowScreen() {
   ) => {
     const percent = getProgressPercent(stat.completed, stat.total);
     const status = getProgressStatus(stat.completed, stat.total);
-    const strokeColor = getStrokeColor(status);
     const dashoffset = calculateStrokeDashoffset(percent);
     const circumference = 2 * Math.PI * 21;
 
-    // Determine display text based on status
+    // Get urgency status for this category
+    const instances = instancesState?.instances || [];
+    const urgencyStatus = itemType
+      ? getCategoryUrgencyStatus(instances, itemType, stat)
+      : 'NOT_APPLICABLE';
+
+    // Determine stroke color based on urgency
+    const getStrokeColorWithUrgency = () => {
+      if (status === 'complete') return '#10B981';  // Green
+      if (urgencyStatus === 'OVERDUE') return '#EF4444';  // Red
+      if (urgencyStatus === 'DUE_SOON') return '#F59E0B';  // Amber
+      if (status === 'partial' || status === 'missing') return '#F59E0B';  // Soft amber
+      return 'rgba(255, 255, 255, 0.15)';  // Neutral gray
+    };
+
+    const strokeColor = getStrokeColorWithUrgency();
+
+    // Determine display text based on status and urgency
     let statText = '';
     let statusLabel = '';
+    let statusStyle = `stat_${status}` as keyof typeof styles;
 
     switch (status) {
       case 'complete':
@@ -955,32 +1165,45 @@ export default function NowScreen() {
         statusLabel = 'complete';
         break;
       case 'partial':
-        statText = `${stat.completed}/${stat.total}`;
-        statusLabel = 'logged';
-        break;
       case 'missing':
-        // Check if items are scheduled later today
-        const hasUpcoming = itemType && hasUpcomingForType(itemType);
-        if (hasUpcoming) {
-          statText = `0/${stat.total}`;
-          statusLabel = 'scheduled later';
+        statText = `${stat.completed}/${stat.total}`;
+        // Use urgency-aware status labels
+        if (urgencyStatus === 'OVERDUE') {
+          statusLabel = 'overdue';
+          statusStyle = 'stat_overdue' as keyof typeof styles;
+        } else if (urgencyStatus === 'DUE_SOON') {
+          statusLabel = 'due soon';
+          statusStyle = 'stat_due_soon' as keyof typeof styles;
+        } else if (urgencyStatus === 'LATER_TODAY') {
+          statusLabel = 'later today';
+          statusStyle = 'stat_later' as keyof typeof styles;
         } else {
-          statText = `0/${stat.total}`;
-          statusLabel = 'not logged yet';
+          statusLabel = status === 'partial' ? 'logged' : 'not logged yet';
         }
         break;
       case 'inactive':
         statText = '—';
-        statusLabel = 'not set up';
+        statusLabel = 'not tracked today';  // Improved from "not set up"
         break;
     }
 
     // Only make tappable if there's something to log
     const isTappable = status !== 'inactive';
 
+    // Get urgency-based tile styling
+    const getTileUrgencyStyle = () => {
+      if (urgencyStatus === 'OVERDUE') return styles.checkinItemOverdue;
+      if (urgencyStatus === 'DUE_SOON') return styles.checkinItemDueSoon;
+      return null;
+    };
+
     return (
       <TouchableOpacity
-        style={[styles.checkinItem, !isTappable && styles.checkinItemInactive]}
+        style={[
+          styles.checkinItem,
+          !isTappable && styles.checkinItemInactive,
+          getTileUrgencyStyle(),
+        ]}
         onPress={isTappable ? onPress : undefined}
         activeOpacity={isTappable ? 0.7 : 1}
         accessible={true}
@@ -1015,10 +1238,10 @@ export default function NowScreen() {
           <Text style={styles.ringIcon}>{icon}</Text>
         </View>
         <Text style={styles.checkinLabel}>{label}</Text>
-        <Text style={[styles.checkinStat, styles[`stat_${status}`]]}>
+        <Text style={[styles.checkinStat, styles[statusStyle] || styles.stat_missing]}>
           {statText}
         </Text>
-        <Text style={[styles.checkinStatusLabel, styles[`stat_${status}`]]}>
+        <Text style={[styles.checkinStatusLabel, styles[statusStyle] || styles.stat_missing]}>
           {statusLabel}
         </Text>
       </TouchableOpacity>
@@ -1032,6 +1255,13 @@ export default function NowScreen() {
   // Compute timeline from DailyCareInstances sorted by scheduledTime
   const todayTimeline = useMemo(() => {
     if (!instancesState?.instances) {
+      return { overdue: [], upcoming: [], completed: [], nextUp: null };
+    }
+
+    // Safety check: ensure instancesState is for today
+    // This prevents showing stale data from a previous day
+    if (instancesState.date !== today) {
+      console.log('[NowScreen] Instance date mismatch:', instancesState.date, 'vs today:', today);
       return { overdue: [], upcoming: [], completed: [], nextUp: null };
     }
 
@@ -1055,7 +1285,7 @@ export default function NowScreen() {
     let nextUp = upcoming.find(i => isFuture(i.scheduledTime)) || upcoming[0] || overdue[0] || null;
 
     return { overdue, upcoming, completed, nextUp };
-  }, [instancesState?.instances]);
+  }, [instancesState?.instances, instancesState?.date, today]);
 
   // ============================================================================
   // SIGNAL OVER SENTIMENT: Auto-manage timeline expansion
@@ -1197,7 +1427,12 @@ export default function NowScreen() {
               </View>
             )}
 
-            {/* AI Insight Card - At top of content */}
+            {/* ============================================================ */}
+            {/* NEW LAYOUT HIERARCHY: AI Insight → Next Up → Progress → Timeline */}
+            {/* ============================================================ */}
+
+            {/* 1️⃣ AI INSIGHT CARD - Advisory Layer (reduced visual dominance) */}
+            {/* Must NOT compete with task execution. Informational only. */}
             {aiInsight && (
               <View style={[
                 styles.aiInsightCard,
@@ -1206,18 +1441,119 @@ export default function NowScreen() {
                 aiInsight.type === 'positive' && styles.aiInsightPositive,
               ]}>
                 <View style={styles.aiInsightHeader}>
-                  <Text style={styles.aiInsightDate}>{format(new Date(), 'EEEE, MMMM d')}</Text>
+                  <Text style={styles.aiInsightDate}>{format(new Date(), 'EEE, MMM d')}</Text>
                   <View style={styles.aiInsightBadge}>
-                    <Text style={styles.aiInsightBadgeText}>AI INSIGHT</Text>
+                    <Text style={styles.aiInsightBadgeText}>AI</Text>
                   </View>
                 </View>
                 <View style={styles.aiInsightBody}>
                   <Text style={styles.aiInsightIcon}>{aiInsight.icon}</Text>
                   <View style={styles.aiInsightContent}>
-                    <Text style={styles.aiInsightTitle}>{aiInsight.title}</Text>
-                    <Text style={styles.aiInsightMessage}>{aiInsight.message}</Text>
+                    <Text style={styles.aiInsightTitle} numberOfLines={1}>{aiInsight.title}</Text>
+                    <Text style={styles.aiInsightMessage} numberOfLines={2}>{aiInsight.message}</Text>
                   </View>
                 </View>
+              </View>
+            )}
+
+            {/* 2️⃣ NEXT UP CARD - Primary Decision Engine (visually dominant) */}
+            {/* Answers: "What is the next irreversible decision the caregiver must make?" */}
+            {hasRegimenInstances && todayTimeline.nextUp && (() => {
+              const nextUp = todayTimeline.nextUp;
+              const nextUpTime = parseTimeForDisplay(nextUp.scheduledTime);
+              const urgencyInfo = getUrgencyStatus(nextUp.scheduledTime, false);
+
+              // Determine card styles based on urgency
+              const getCardStyle = () => {
+                switch (urgencyInfo.status) {
+                  case 'OVERDUE': return styles.nextUpCardOverdue;
+                  case 'DUE_SOON': return styles.nextUpCardDueSoon;
+                  case 'LATER_TODAY': return styles.nextUpCardLater;
+                  default: return null;
+                }
+              };
+
+              const getIconStyle = () => {
+                switch (urgencyInfo.status) {
+                  case 'OVERDUE': return styles.nextUpIconOverdue;
+                  case 'DUE_SOON': return styles.nextUpIconDueSoon;
+                  case 'LATER_TODAY': return styles.nextUpIconLater;
+                  default: return null;
+                }
+              };
+
+              const getLabelStyle = () => {
+                switch (urgencyInfo.status) {
+                  case 'OVERDUE': return styles.nextUpLabelOverdue;
+                  case 'DUE_SOON': return styles.nextUpLabelDueSoon;
+                  case 'LATER_TODAY': return styles.nextUpLabelLater;
+                  default: return null;
+                }
+              };
+
+              const getUrgencyLabelStyle = () => {
+                switch (urgencyInfo.status) {
+                  case 'OVERDUE': return styles.nextUpUrgencyLabelOverdue;
+                  case 'DUE_SOON': return styles.nextUpUrgencyLabelDueSoon;
+                  case 'LATER_TODAY': return styles.nextUpUrgencyLabelLater;
+                  default: return null;
+                }
+              };
+
+              const getActionStyle = () => {
+                switch (urgencyInfo.status) {
+                  case 'OVERDUE': return styles.nextUpActionOverdue;
+                  case 'DUE_SOON': return styles.nextUpActionDueSoon;
+                  case 'LATER_TODAY': return styles.nextUpActionLater;
+                  default: return null;
+                }
+              };
+
+              return (
+                <TouchableOpacity
+                  style={[styles.nextUpCard, getCardStyle()]}
+                  onPress={() => handleTimelineItemPress(nextUp)}
+                  activeOpacity={0.7}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${nextUp.itemName}. ${urgencyInfo.label}. Tap to log.`}
+                >
+                  <View style={[styles.nextUpIcon, getIconStyle()]}>
+                    <Text style={styles.nextUpEmoji}>
+                      {nextUp.itemEmoji || '💊'}
+                    </Text>
+                  </View>
+                  <View style={styles.nextUpContent}>
+                    <Text style={[styles.nextUpLabel, getLabelStyle()]}>
+                      NEXT UP
+                    </Text>
+                    <Text style={styles.nextUpTitle}>
+                      {nextUp.itemName}
+                    </Text>
+                    {nextUp.instructions && (
+                      <Text style={styles.nextUpSubtitle} numberOfLines={1}>
+                        {nextUp.instructions}
+                      </Text>
+                    )}
+                    {/* Urgency Label - always shows text + color */}
+                    <Text style={[styles.nextUpUrgencyLabel, getUrgencyLabelStyle()]}>
+                      {urgencyInfo.label}
+                      {nextUpTime && urgencyInfo.status !== 'OVERDUE' ? ` • ${nextUpTime}` : ''}
+                    </Text>
+                  </View>
+                  <View style={[styles.nextUpAction, getActionStyle()]}>
+                    <Text style={styles.nextUpActionText}>Log</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })()}
+
+            {/* Empty state: All caught up - show when no tasks remain */}
+            {hasRegimenInstances && !todayTimeline.nextUp && todayTimeline.completed.length > 0 && (
+              <View style={styles.nextUpEmpty}>
+                <Text style={styles.nextUpEmptyEmoji}>✓</Text>
+                <Text style={styles.nextUpEmptyTitle}>All caught up!</Text>
+                <Text style={styles.nextUpEmptySubtitle}>No scheduled items remain today.</Text>
               </View>
             )}
 
@@ -1239,9 +1575,8 @@ export default function NowScreen() {
               <NoCarePlanBanner onSetup={() => router.push('/care-plan' as any)} />
             )}
 
-            {/* Care Plan Progress Section - Below AI Insight */}
-            {/* Fix #1: Renamed from "Progress" to "Care Plan Progress" */}
-            {/* Only show progress rings for enabled buckets, or all if no config exists */}
+            {/* 3️⃣ CARE PLAN PROGRESS - Orientation Dashboard */}
+            {/* Provides fast reassurance: "Are we generally okay?" */}
             <View style={styles.progressSection}>
               <Text style={styles.sectionTitle}>CARE PLAN PROGRESS</Text>
               <View style={styles.progressGrid}>
@@ -1255,52 +1590,6 @@ export default function NowScreen() {
                   renderProgressRing('🍽️', 'Meals', todayStats.meals, () => handleProgressTileTap('meals'), 'nutrition')}
               </View>
             </View>
-
-            {/* Next Up Card - First pending after now, or first overdue */}
-            {hasRegimenInstances && todayTimeline.nextUp && (() => {
-              const nextUpTime = parseTimeForDisplay(todayTimeline.nextUp.scheduledTime);
-              return (
-                <TouchableOpacity
-                  style={[
-                    styles.nextPendingCard,
-                    isOverdue(todayTimeline.nextUp.scheduledTime) && styles.nextPendingCardOverdue,
-                  ]}
-                  onPress={() => handleTimelineItemPress(todayTimeline.nextUp)}
-                  activeOpacity={0.7}
-                >
-                  <View style={[
-                    styles.nextPendingIcon,
-                    isOverdue(todayTimeline.nextUp.scheduledTime) && styles.nextPendingIconOverdue,
-                  ]}>
-                    <Text style={styles.nextPendingEmoji}>
-                      {todayTimeline.nextUp.itemEmoji || '🔔'}
-                    </Text>
-                  </View>
-                  <View style={styles.nextPendingContent}>
-                    <Text style={[
-                      styles.nextPendingLabel,
-                      isOverdue(todayTimeline.nextUp.scheduledTime) && styles.nextPendingLabelOverdue,
-                    ]}>
-                      {isOverdue(todayTimeline.nextUp.scheduledTime) ? 'OVERDUE' : 'NEXT UP'}
-                    </Text>
-                    <Text style={styles.nextPendingTitle}>
-                      {todayTimeline.nextUp.itemName}
-                    </Text>
-                    {nextUpTime && (
-                      <Text style={styles.nextPendingTime}>
-                        {nextUpTime}
-                      </Text>
-                    )}
-                  </View>
-                  <View style={[
-                    styles.nextPendingAction,
-                    isOverdue(todayTimeline.nextUp.scheduledTime) && styles.nextPendingActionOverdue,
-                  ]}>
-                    <Text style={styles.nextPendingActionText}>Log</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })()}
 
             {/* What's Left Today Section - Built from DailyCareInstances */}
             {/* Fix #2: Renamed from "Today Timeline" to "What's left today" with dynamic subtitle */}
@@ -1339,16 +1628,28 @@ export default function NowScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* 4️⃣ WHAT'S LEFT TODAY - Task Backlog with Time Grouping */}
             {timelineExpanded && hasRegimenInstances && (
               <>
-                {/* Overdue items - highest priority */}
+                {/* Overdue items - highest priority, always expanded */}
                 {todayTimeline.overdue.length > 0 && (
                   <View style={styles.overdueSection}>
-                    <Text style={styles.overdueHeader}>Overdue</Text>
+                    <View style={styles.timeGroupHeader}>
+                      <View style={styles.timeGroupHeaderTouchable}>
+                        <Text style={[styles.timeGroupTitle, styles.timeGroupTitleOverdue]}>
+                          ⚠️ Overdue
+                        </Text>
+                        <Text style={[styles.timeGroupCount, styles.timeGroupCountOverdue]}>
+                          ({todayTimeline.overdue.length})
+                        </Text>
+                      </View>
+                    </View>
                     {todayTimeline.overdue.map((instance) => {
                       const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
-                      // Fix #5: Show time if available, otherwise just "Overdue"
-                      const displayText = timeDisplay ? `${timeDisplay} • Overdue` : 'Overdue';
+                      const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false);
+                      const displayText = urgencyInfo.minutesOverdue
+                        ? `${Math.floor(urgencyInfo.minutesOverdue / 60)}h ${urgencyInfo.minutesOverdue % 60}m overdue`
+                        : 'Overdue';
                       return (
                         <TouchableOpacity
                           key={instance.id}
@@ -1361,7 +1662,7 @@ export default function NowScreen() {
                           </View>
                           <View style={styles.timelineDetails}>
                             <Text style={styles.timelineTimeOverdue}>
-                              {displayText}
+                              {timeDisplay ? `${timeDisplay} • ${displayText}` : displayText}
                             </Text>
                             <Text style={styles.timelineTitle}>{instance.itemName}</Text>
                             {instance.instructions && (
@@ -1379,46 +1680,86 @@ export default function NowScreen() {
                   </View>
                 )}
 
-                {/* Upcoming items */}
-                {todayTimeline.upcoming.map((instance) => {
-                  const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
-                  return (
-                    <TouchableOpacity
-                      key={instance.id}
-                      style={styles.timelineItem}
-                      onPress={() => handleTimelineItemPress(instance)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.timelineIcon}>
-                        <Text style={styles.timelineIconEmoji}>{instance.itemEmoji || '🔔'}</Text>
-                      </View>
-                      <View style={styles.timelineDetails}>
-                        {timeDisplay && (
-                          <Text style={styles.timelineTime}>
-                            {timeDisplay}
-                          </Text>
-                        )}
-                        <Text style={styles.timelineTitle}>{instance.itemName}</Text>
-                        {instance.instructions && (
-                          <Text style={styles.timelineSubtitle} numberOfLines={1}>
-                            {instance.instructions}
-                          </Text>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+                {/* Time-grouped upcoming items */}
+                {(() => {
+                  const currentWindow = getCurrentTimeWindow();
+                  const groupedUpcoming = groupByTimeWindow(todayTimeline.upcoming);
+                  const timeWindows: TimeWindow[] = ['morning', 'afternoon', 'evening', 'night'];
 
-                {/* Completed items - Fix #5: Cleaner display, recede visually */}
+                  return timeWindows.map((window) => {
+                    const items = groupedUpcoming[window];
+                    if (items.length === 0) return null;
+
+                    const isCurrentWindow = window === currentWindow;
+                    const isExpanded = expandedTimeGroups[window];
+
+                    return (
+                      <View key={window} style={styles.timeGroupSection}>
+                        <TouchableOpacity
+                          style={styles.timeGroupHeader}
+                          onPress={() => setExpandedTimeGroups(prev => ({
+                            ...prev,
+                            [window]: !prev[window]
+                          }))}
+                          activeOpacity={0.7}
+                        >
+                          <View style={styles.timeGroupHeaderTouchable}>
+                            <Text style={[
+                              styles.timeGroupTitle,
+                              isCurrentWindow && styles.timeGroupTitleCurrent
+                            ]}>
+                              {TIME_WINDOW_HOURS[window].label}
+                            </Text>
+                            <Text style={styles.timeGroupCount}>
+                              ({items.length})
+                            </Text>
+                          </View>
+                          <Text style={styles.timeGroupCollapseIcon}>
+                            {isExpanded ? '▼' : '▶'}
+                          </Text>
+                        </TouchableOpacity>
+
+                        {isExpanded && items.map((instance) => {
+                          const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
+                          const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false);
+                          return (
+                            <TouchableOpacity
+                              key={instance.id}
+                              style={styles.timelineItem}
+                              onPress={() => handleTimelineItemPress(instance)}
+                              activeOpacity={0.7}
+                            >
+                              <View style={styles.timelineIcon}>
+                                <Text style={styles.timelineIconEmoji}>{instance.itemEmoji || '🔔'}</Text>
+                              </View>
+                              <View style={styles.timelineDetails}>
+                                <Text style={styles.timelineTime}>
+                                  {timeDisplay || urgencyInfo.label}
+                                </Text>
+                                <Text style={styles.timelineTitle}>{instance.itemName}</Text>
+                                {instance.instructions && (
+                                  <Text style={styles.timelineSubtitle} numberOfLines={1}>
+                                    {instance.instructions}
+                                  </Text>
+                                )}
+                              </View>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    );
+                  });
+                })()}
+
+                {/* Completed items - minimized, collapsible */}
                 {todayTimeline.completed.length > 0 && (
                   <View style={styles.completedSection}>
                     <Text style={styles.completedHeader}>
-                      Completed ({todayTimeline.completed.length})
+                      ✓ Completed ({todayTimeline.completed.length})
                     </Text>
-                    {todayTimeline.completed.map((instance) => {
+                    {todayTimeline.completed.slice(0, 3).map((instance) => {
                       const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
                       const statusText = instance.status === 'skipped' ? 'Skipped' : 'Done';
-                      // Fix #5: Remove "Time not set" noise - just show status
                       const displayText = timeDisplay ? `${timeDisplay} • ${statusText}` : statusText;
 
                       return (
@@ -1438,6 +1779,11 @@ export default function NowScreen() {
                         </View>
                       );
                     })}
+                    {todayTimeline.completed.length > 3 && (
+                      <Text style={styles.completedMoreText}>
+                        +{todayTimeline.completed.length - 3} more completed
+                      </Text>
+                    )}
                   </View>
                 )}
               </>
@@ -1619,73 +1965,90 @@ const styles = StyleSheet.create({
   checkinItemInactive: {
     opacity: 0.6,
   },
+  // Urgency indicator styles for progress tiles
+  checkinItemOverdue: {
+    borderColor: 'rgba(239, 68, 68, 0.5)',
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+  },
+  checkinItemDueSoon: {
+    borderColor: 'rgba(251, 191, 36, 0.5)',
+    backgroundColor: 'rgba(251, 191, 36, 0.06)',
+  },
+  stat_overdue: {
+    color: '#EF4444',  // Red - overdue
+  },
+  stat_due_soon: {
+    color: '#F59E0B',  // Amber - due soon
+  },
+  stat_later: {
+    color: 'rgba(255, 255, 255, 0.5)',  // Muted - scheduled later
+  },
 
-  // AI Insight Card
+  // AI Insight Card - Advisory Layer (reduced visual dominance)
   aiInsightCard: {
-    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    backgroundColor: 'rgba(139, 92, 246, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.25)',
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 25,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,  // Reduced spacing - compact advisory layer
   },
   aiInsightCelebration: {
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    backgroundColor: 'rgba(16, 185, 129, 0.06)',
+    borderColor: 'rgba(16, 185, 129, 0.2)',
   },
   aiInsightReminder: {
-    backgroundColor: 'rgba(251, 191, 36, 0.08)',
-    borderColor: 'rgba(251, 191, 36, 0.25)',
+    backgroundColor: 'rgba(251, 191, 36, 0.06)',
+    borderColor: 'rgba(251, 191, 36, 0.2)',
   },
   aiInsightPositive: {
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
-    borderColor: 'rgba(59, 130, 246, 0.25)',
+    backgroundColor: 'rgba(59, 130, 246, 0.06)',
+    borderColor: 'rgba(59, 130, 246, 0.2)',
   },
   aiInsightHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 8,  // Reduced
   },
   aiInsightDate: {
-    fontSize: 13,
+    fontSize: 11,  // Reduced
     fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: 'rgba(255, 255, 255, 0.5)',
   },
   aiInsightBadge: {
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
   aiInsightBadgeText: {
-    fontSize: 10,
+    fontSize: 9,  // Reduced
     fontWeight: '700',
-    color: 'rgba(167, 139, 250, 0.9)',
-    letterSpacing: 1,
+    color: 'rgba(167, 139, 250, 0.8)',
+    letterSpacing: 0.8,
   },
   aiInsightBody: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 14,
+    alignItems: 'center',  // Changed from flex-start to center
+    gap: 10,  // Reduced
   },
   aiInsightIcon: {
-    fontSize: 28,
-    marginTop: 2,
+    fontSize: 22,  // Reduced from 28
   },
   aiInsightContent: {
     flex: 1,
   },
   aiInsightTitle: {
-    fontSize: 17,
+    fontSize: 14,  // Reduced from 17
     fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 6,
+    marginBottom: 2,  // Reduced
   },
   aiInsightMessage: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.75)',
-    lineHeight: 21,
+    fontSize: 12,  // Reduced from 14
+    color: 'rgba(255, 255, 255, 0.6)',
+    lineHeight: 17,
   },
 
   // Timeline Events
@@ -1938,6 +2301,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 8,
   },
+  completedMoreText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.35)',
+    textAlign: 'center',
+    paddingVertical: 8,
+  },
 
   // Conflict hints
   conflictHintContainer: {
@@ -2001,79 +2370,165 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Next Pending Card (from NEW regimen system)
-  nextPendingCard: {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.3)',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 20,
+  // ============================================================================
+  // NEXT UP CARD - Primary Decision Engine (visually dominant)
+  // This is the dominant task anchor. Must answer:
+  // "What is the next irreversible decision the caregiver must make?"
+  // ============================================================================
+  nextUpCard: {
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    borderWidth: 2,
+    borderColor: 'rgba(59, 130, 246, 0.4)',
+    borderRadius: 16,
+    padding: 18,  // Increased padding
+    marginBottom: 24,  // Increased spacing below
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
+    // Shadow for visual prominence
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  nextPendingIcon: {
-    width: 44,
-    height: 44,
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-    borderRadius: 12,
+  nextUpIcon: {
+    width: 52,  // Larger icon
+    height: 52,
+    backgroundColor: 'rgba(59, 130, 246, 0.25)',
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  nextPendingEmoji: {
-    fontSize: 22,
+  nextUpEmoji: {
+    fontSize: 26,  // Larger emoji
   },
-  nextPendingContent: {
+  nextUpContent: {
     flex: 1,
   },
-  nextPendingLabel: {
-    fontSize: 10,
+  nextUpLabel: {
+    fontSize: 11,
     fontWeight: '700',
     color: '#3B82F6',
-    letterSpacing: 1,
-    marginBottom: 2,
+    letterSpacing: 1.2,
+    marginBottom: 4,
   },
-  nextPendingTitle: {
-    fontSize: 15,
-    fontWeight: '600',
+  nextUpTitle: {
+    fontSize: 17,  // Larger title
+    fontWeight: '700',
     color: '#FFFFFF',
   },
-  nextPendingInstructions: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+  nextUpSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
     marginTop: 2,
   },
-  nextPendingAction: {
-    backgroundColor: '#3B82F6',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  nextPendingActionText: {
-    fontSize: 13,
+  nextUpUrgencyLabel: {
+    fontSize: 12,
     fontWeight: '600',
+    color: '#3B82F6',
+    marginTop: 4,
+  },
+  nextUpAction: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 20,  // Increased CTA size
+    paddingVertical: 12,
+    borderRadius: 12,
+    minHeight: 44,  // Accessibility: minimum 44pt
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nextUpActionText: {
+    fontSize: 15,  // Larger text
+    fontWeight: '700',
     color: '#FFFFFF',
   },
-  nextPendingTime: {
+  nextUpTime: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.5)',
     marginTop: 2,
   },
 
-  // Overdue variants
-  nextPendingCardOverdue: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+  // Due Soon variant (Amber)
+  nextUpCardDueSoon: {
+    backgroundColor: 'rgba(251, 191, 36, 0.12)',
+    borderColor: 'rgba(251, 191, 36, 0.4)',
+    shadowColor: '#F59E0B',
   },
-  nextPendingIconOverdue: {
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+  nextUpIconDueSoon: {
+    backgroundColor: 'rgba(251, 191, 36, 0.25)',
   },
-  nextPendingLabelOverdue: {
+  nextUpLabelDueSoon: {
+    color: '#F59E0B',
+  },
+  nextUpUrgencyLabelDueSoon: {
+    color: '#F59E0B',
+  },
+  nextUpActionDueSoon: {
+    backgroundColor: '#F59E0B',
+  },
+
+  // Overdue variant (Red - Strong Amber)
+  nextUpCardOverdue: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: 'rgba(239, 68, 68, 0.5)',
+    shadowColor: '#EF4444',
+  },
+  nextUpIconOverdue: {
+    backgroundColor: 'rgba(239, 68, 68, 0.25)',
+  },
+  nextUpLabelOverdue: {
     color: '#EF4444',
   },
-  nextPendingActionOverdue: {
+  nextUpUrgencyLabelOverdue: {
+    color: '#EF4444',
+  },
+  nextUpActionOverdue: {
     backgroundColor: '#EF4444',
+  },
+
+  // Later Today variant (Muted)
+  nextUpCardLater: {
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    borderColor: 'rgba(59, 130, 246, 0.25)',
+    borderWidth: 1,
+  },
+  nextUpIconLater: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+  },
+  nextUpLabelLater: {
+    color: 'rgba(59, 130, 246, 0.8)',
+  },
+  nextUpUrgencyLabelLater: {
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+  nextUpActionLater: {
+    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+  },
+
+  // Empty state when all caught up
+  nextUpEmpty: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  nextUpEmptyEmoji: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  nextUpEmptyTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#10B981',
+    marginBottom: 4,
+  },
+  nextUpEmptySubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.5)',
   },
 
   // Timeline items (new simplified version)
@@ -2182,6 +2637,55 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
+  },
+
+  // Time group sections for What's Left Today
+  timeGroupSection: {
+    marginBottom: 16,
+  },
+  timeGroupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    marginBottom: 8,
+  },
+  timeGroupHeaderTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  timeGroupTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.6)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  timeGroupTitleCurrent: {
+    color: '#3B82F6',
+  },
+  timeGroupTitleOverdue: {
+    color: '#EF4444',
+  },
+  timeGroupCount: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.4)',
+    marginLeft: 8,
+  },
+  timeGroupCountOverdue: {
+    color: '#EF4444',
+  },
+  timeGroupCollapseIcon: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.4)',
+    marginLeft: 8,
+  },
+  timeGroupDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginVertical: 12,
   },
 
   // All done message
