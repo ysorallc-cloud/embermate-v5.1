@@ -28,6 +28,26 @@ import {
   getMedications,
   Medication
 } from '../utils/medicationStorage';
+import {
+  getActiveCarePlan,
+  createCarePlan,
+  upsertCarePlanItem,
+  listCarePlanItems,
+  DEFAULT_PATIENT_ID,
+} from '../storage/carePlanRepo';
+import {
+  addMedicationToPlan,
+  updateMedicationInPlan,
+  getMedicationsFromPlan,
+  getOrCreateCarePlanConfig,
+} from '../storage/carePlanConfigRepo';
+import { MedicationPlanItem, TimeOfDay, normalizeToHHmm } from '../types/carePlanConfig';
+import {
+  CarePlanItem,
+  TimeWindow,
+  TimeWindowLabel,
+} from '../types/carePlan';
+import { generateUniqueId } from '../utils/idGenerator';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'bedtime';
 
@@ -53,9 +73,21 @@ const COMMON_MEDICATIONS = [
   { name: 'Warfarin', commonDosages: ['1mg', '2mg', '2.5mg', '5mg', '10mg'] },
 ].sort((a, b) => a.name.localeCompare(b.name));
 
-// Helper function to convert 24-hour to 12-hour format
+// Helper function to convert 24-hour to 12-hour format (with NaN protection)
 const convertTo12Hour = (time24: string): string => {
-  const [hours, minutes] = time24.split(':').map(Number);
+  if (!time24 || typeof time24 !== 'string') return 'Time not set';
+
+  const parts = time24.split(':');
+  if (parts.length < 2) return 'Time not set';
+
+  const hours = parseInt(parts[0], 10);
+  const minutes = parseInt(parts[1], 10);
+
+  // Validate to prevent NaN
+  if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return 'Time not set';
+  }
+
   const period = hours >= 12 ? 'PM' : 'AM';
   const hours12 = hours % 12 || 12;
   return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
@@ -82,10 +114,102 @@ const TIME_SLOTS: { key: TimeSlot; label: string; icon: string; time: string; de
   { key: 'bedtime', label: 'PM', icon: '🌙', time: '10:00', defaultTime: '22:00', displayTime: '10:00 PM' },
 ];
 
+// Map medication timeSlot to TimeWindowLabel for CarePlanItem
+const TIME_SLOT_TO_WINDOW: Record<TimeSlot, TimeWindowLabel> = {
+  morning: 'morning',
+  afternoon: 'afternoon',
+  evening: 'evening',
+  bedtime: 'night',
+};
+
+// Helper to create a TimeWindow for the CarePlanItem schedule
+function createTimeWindowForSlot(timeSlot: TimeSlot, customTime: string): TimeWindow {
+  const windowLabel = TIME_SLOT_TO_WINDOW[timeSlot];
+  return {
+    id: generateUniqueId(),
+    kind: 'exact',
+    label: windowLabel,
+    at: customTime, // HH:mm format
+  };
+}
+
+// Sync a medication to the CarePlan regimen system
+async function syncMedicationToCarePlan(
+  medicationId: string,
+  medData: {
+    name: string;
+    dosage: string;
+    time: string;
+    timeSlot: TimeSlot;
+    notes: string;
+    active: boolean;
+    repeatOption: string;
+  }
+): Promise<void> {
+  const now = new Date().toISOString();
+
+  // Get or create the active CarePlan
+  let carePlan = await getActiveCarePlan(DEFAULT_PATIENT_ID);
+  if (!carePlan) {
+    carePlan = await createCarePlan(DEFAULT_PATIENT_ID);
+  }
+
+  // Check if there's already a CarePlanItem for this medication
+  const existingItems = await listCarePlanItems(carePlan.id);
+  let existingItem = existingItems.find(
+    item => item.type === 'medication' && item.medicationDetails?.medicationId === medicationId
+  );
+
+  // Map repeat option to schedule frequency
+  let frequency: 'daily' | 'weekly' | 'custom' = 'daily';
+  let daysOfWeek: number[] | undefined;
+  if (medData.repeatOption === 'weekdays') {
+    frequency = 'weekly';
+    daysOfWeek = [1, 2, 3, 4, 5]; // Monday-Friday
+  } else if (medData.repeatOption === 'weekly') {
+    frequency = 'weekly';
+    // Default to the current day of the week
+    daysOfWeek = [new Date().getDay()];
+  } else if (medData.repeatOption === 'custom') {
+    frequency = 'custom';
+    // For custom, default to daily
+    daysOfWeek = [0, 1, 2, 3, 4, 5, 6];
+  }
+
+  const timeWindow = createTimeWindowForSlot(medData.timeSlot, medData.time);
+
+  const carePlanItem: CarePlanItem = {
+    id: existingItem?.id || generateUniqueId(),
+    carePlanId: carePlan.id,
+    type: 'medication',
+    name: `${medData.name} ${medData.dosage}`,
+    instructions: medData.notes || undefined,
+    priority: 'required',
+    active: medData.active,
+    schedule: {
+      frequency,
+      times: [timeWindow],
+      daysOfWeek,
+    },
+    medicationDetails: {
+      medicationId,
+      dose: medData.dosage,
+      instructions: medData.notes || undefined,
+    },
+    emoji: '💊',
+    createdAt: existingItem?.createdAt || now,
+    updatedAt: now,
+  };
+
+  await upsertCarePlanItem(carePlanItem);
+}
+
 export default function MedicationFormScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const medId = params.id as string | undefined;
+  const source = params.source as string | undefined; // 'careplan' when from Care Plan config
+  const isCarePlanSource = source === 'careplan';
   const isEditing = !!medId;
 
   const [name, setName] = useState('');
@@ -107,28 +231,60 @@ export default function MedicationFormScreen() {
     if (isEditing) {
       loadMedication();
     }
-  }, [medId]);
+  }, [medId, isCarePlanSource]);
 
   const loadMedication = async () => {
     if (!medId) return;
     try {
-      const meds = await getMedications();
-      const med = meds.find(m => m.id === medId);
-      if (med) {
-        setName(med.name);
-        setDosage(med.dosage);
-        const displayTime = convertTo12Hour(med.time);
-        setCustomTime(med.time);
-        setCustomTimeDisplay(displayTime);
-        setNotes(med.notes || '');
-        setDaysSupply(med.daysSupply?.toString() || '30');
-        setReminderEnabled(med.reminderEnabled !== false); // Default to true
-        setReminderMinutesBefore(med.reminderMinutesBefore || 0);
+      if (isCarePlanSource) {
+        // Load from CarePlanConfig
+        const planMeds = await getMedicationsFromPlan(DEFAULT_PATIENT_ID);
+        const med = planMeds.find(m => m.id === medId);
+        if (med) {
+          setName(med.name);
+          setDosage(med.dosage);
+          // Prefer canonical scheduledTimeHHmm, fall back to customTimes
+          const time = med.scheduledTimeHHmm || med.customTimes?.[0] || '08:00';
+          const displayTime = convertTo12Hour(time);
+          setCustomTime(time);
+          setCustomTimeDisplay(displayTime);
+          setNotes(med.instructions || '');
+          setDaysSupply(med.daysSupply?.toString() || '30');
+          setReminderEnabled(med.notificationsEnabled !== false);
+          setReminderMinutesBefore(0);
 
-        // Determine time slot from time
-        const timeSlot = TIME_SLOTS.find(slot => slot.defaultTime === med.time);
-        if (timeSlot) {
-          setSelectedTimeSlot(timeSlot.key);
+          // Map TimeOfDay to TimeSlot
+          const todToSlot: Record<TimeOfDay, TimeSlot> = {
+            morning: 'morning',
+            midday: 'afternoon',
+            evening: 'evening',
+            night: 'bedtime',
+            custom: 'morning',
+          };
+          if (med.timesOfDay?.[0]) {
+            setSelectedTimeSlot(todToSlot[med.timesOfDay[0]] || 'morning');
+          }
+        }
+      } else {
+        // Load from legacy medicationStorage
+        const meds = await getMedications();
+        const med = meds.find(m => m.id === medId);
+        if (med) {
+          setName(med.name);
+          setDosage(med.dosage);
+          const displayTime = convertTo12Hour(med.time);
+          setCustomTime(med.time);
+          setCustomTimeDisplay(displayTime);
+          setNotes(med.notes || '');
+          setDaysSupply(med.daysSupply?.toString() || '30');
+          setReminderEnabled(med.reminderEnabled !== false);
+          setReminderMinutesBefore(med.reminderMinutesBefore || 0);
+
+          // Determine time slot from time
+          const timeSlot = TIME_SLOTS.find(slot => slot.defaultTime === med.time);
+          if (timeSlot) {
+            setSelectedTimeSlot(timeSlot.key);
+          }
         }
       }
     } catch (error) {
@@ -231,23 +387,97 @@ export default function MedicationFormScreen() {
     }
 
     try {
-      const medData: Omit<Medication, 'id' | 'createdAt'> = {
-        name: name.trim(),
-        dosage: dosage.trim(),
-        time: customTime,
-        timeSlot: selectedTimeSlot,
-        notes: notes.trim(),
-        daysSupply: parseInt(daysSupply) || 30,
-        reminderEnabled: reminderEnabled,
-        reminderMinutesBefore: reminderEnabled ? reminderMinutesBefore : undefined,
-        active: true,
-        taken: false,
+      // Map TimeSlot to TimeOfDay for CarePlanConfig
+      const slotToTimeOfDay: Record<TimeSlot, TimeOfDay> = {
+        morning: 'morning',
+        afternoon: 'midday',
+        evening: 'evening',
+        bedtime: 'night',
       };
 
-      if (isEditing && medId) {
-        await updateMedication(medId, medData as Partial<Medication>);
+      if (isCarePlanSource) {
+        // Save to CarePlanConfig bucket system
+        // Normalize the time to canonical HH:mm format
+        const canonicalTime = normalizeToHHmm(customTime);
+
+        const planMedData: Omit<MedicationPlanItem, 'id' | 'createdAt' | 'updatedAt'> = {
+          name: name.trim(),
+          dosage: dosage.trim(),
+          instructions: notes.trim(),
+          timesOfDay: [slotToTimeOfDay[selectedTimeSlot]],
+          customTimes: canonicalTime ? [canonicalTime] : [],
+          scheduledTimeHHmm: canonicalTime, // CANONICAL: validated "HH:mm" or null
+          supplyEnabled: true,
+          daysSupply: parseInt(daysSupply) || 30,
+          refillThresholdDays: 7,
+          notificationsEnabled: reminderEnabled,
+          active: true,
+        };
+
+        if (isEditing && medId) {
+          await updateMedicationInPlan(DEFAULT_PATIENT_ID, medId, planMedData);
+        } else {
+          await addMedicationToPlan(DEFAULT_PATIENT_ID, planMedData);
+        }
+
+        // Also sync to legacy storage for backward compatibility
+        const legacyData: Omit<Medication, 'id' | 'createdAt'> = {
+          name: name.trim(),
+          dosage: dosage.trim(),
+          time: customTime,
+          timeSlot: selectedTimeSlot,
+          notes: notes.trim(),
+          daysSupply: parseInt(daysSupply) || 30,
+          reminderEnabled: reminderEnabled,
+          reminderMinutesBefore: reminderEnabled ? reminderMinutesBefore : undefined,
+          active: true,
+          taken: false,
+        };
+
+        if (isEditing && medId) {
+          // Try to update legacy, ignore if not found
+          try {
+            await updateMedication(medId, legacyData as Partial<Medication>);
+          } catch (e) {
+            // Legacy record may not exist, that's OK
+          }
+        } else {
+          await createMedication(legacyData);
+        }
       } else {
-        await createMedication(medData);
+        // Legacy flow - save to medicationStorage first
+        const medData: Omit<Medication, 'id' | 'createdAt'> = {
+          name: name.trim(),
+          dosage: dosage.trim(),
+          time: customTime,
+          timeSlot: selectedTimeSlot,
+          notes: notes.trim(),
+          daysSupply: parseInt(daysSupply) || 30,
+          reminderEnabled: reminderEnabled,
+          reminderMinutesBefore: reminderEnabled ? reminderMinutesBefore : undefined,
+          active: true,
+          taken: false,
+        };
+
+        let medicationId = medId;
+
+        if (isEditing && medId) {
+          await updateMedication(medId, medData as Partial<Medication>);
+        } else {
+          const createdMed = await createMedication(medData);
+          medicationId = createdMed.id;
+        }
+
+        // Also create/update corresponding CarePlanItem for regimen system
+        await syncMedicationToCarePlan(medicationId!, {
+          name: name.trim(),
+          dosage: dosage.trim(),
+          time: customTime,
+          timeSlot: selectedTimeSlot,
+          notes: notes.trim(),
+          active: true,
+          repeatOption,
+        });
       }
 
       router.back();

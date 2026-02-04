@@ -156,7 +156,7 @@ export default function LogMedicationPlanItemScreen() {
       Alert.alert('Error', 'Failed to log medication');
       setSaving(false);
     }
-  }, [medication, sideEffect, notes, instanceId, completeInstance, router]);
+  }, [medicationData, sideEffect, notes, instanceId, completeInstance, router]);
 
   // Handle Skip
   const handleSkip = useCallback(async () => {

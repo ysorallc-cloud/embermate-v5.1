@@ -14,12 +14,48 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { detectCorrelations, hasSufficientData, DetectedPattern } from '../utils/correlationDetector';
+import { BackButton } from '../components/common/BackButton';
+
+// Sample data for preview mode
+const SAMPLE_PATTERNS: DetectedPattern[] = [
+  {
+    id: 'sample-sleep-mood',
+    variable1: 'sleep',
+    variable2: 'mood',
+    coefficient: 0.72,
+    confidence: 'high',
+    dataPoints: 14,
+    insight: 'Days with 7+ hours of sleep appear to be followed by higher mood ratings. This pattern has been consistent over the tracking period.',
+    action: 'Continue tracking sleep and mood to see if this pattern holds.',
+  },
+  {
+    id: 'sample-hydration-fatigue',
+    variable1: 'hydration',
+    variable2: 'fatigue',
+    coefficient: -0.58,
+    confidence: 'moderate',
+    dataPoints: 12,
+    insight: 'Lower water intake days seem to correlate with higher fatigue levels. This relationship appears moderately consistent.',
+    action: 'Track water intake alongside energy levels to observe this connection.',
+  },
+  {
+    id: 'sample-med-energy',
+    variable1: 'medicationAdherence',
+    variable2: 'mood',
+    coefficient: 0.45,
+    confidence: 'moderate',
+    dataPoints: 10,
+    insight: 'Days with consistent medication timing may be associated with more stable mood. More data would strengthen this observation.',
+    action: 'Continue logging medication times to see if this pattern persists.',
+  },
+];
 
 export default function CorrelationReportScreen() {
   const router = useRouter();
   const [patterns, setPatterns] = useState<DetectedPattern[]>([]);
   const [sufficient, setSufficient] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showingSample, setShowingSample] = useState(false);
 
   useFocusEffect(useCallback(() => {
     loadCorrelations();
@@ -28,18 +64,26 @@ export default function CorrelationReportScreen() {
   const loadCorrelations = async () => {
     try {
       setLoading(true);
-      
+
       // Check data sufficiency
       const hasSufficient = await hasSufficientData();
       setSufficient(hasSufficient);
-      
+
       if (hasSufficient) {
         // Detect correlations (all local processing)
         const detected = await detectCorrelations();
         setPatterns(detected);
+        setShowingSample(false);
+      } else {
+        // Show sample data for new users
+        setPatterns(SAMPLE_PATTERNS);
+        setShowingSample(true);
       }
     } catch (error) {
       console.error('Error loading correlations:', error);
+      // Show sample data on error
+      setPatterns(SAMPLE_PATTERNS);
+      setShowingSample(true);
     } finally {
       setLoading(false);
     }
@@ -61,9 +105,7 @@ export default function CorrelationReportScreen() {
           
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <Text style={styles.backIcon}>←</Text>
-            </TouchableOpacity>
+            <BackButton />
             <View style={styles.headerContent}>
               <Text style={styles.headerTitle}>Correlation Report</Text>
               <Text style={styles.headerSubtitle}>Pattern analysis from tracked data</Text>
@@ -89,22 +131,23 @@ export default function CorrelationReportScreen() {
               </View>
             )}
 
-            {/* Insufficient Data State */}
-            {!loading && !sufficient && (
-              <View style={styles.insufficientData}>
-                <Ionicons name="calendar-outline" size={64} color={Colors.textMuted} style={{ opacity: 0.3, marginBottom: 16 }} />
-                <Text style={styles.insufficientTitle}>Insufficient Data</Text>
-                <Text style={styles.insufficientText}>
-                  Pattern analysis requires at least 14 days of consistent tracking across 2 or more categories.
-                </Text>
-                <Text style={styles.insufficientEncouragement}>
-                  Keep logging daily to unlock insights.
-                </Text>
+            {/* Sample Data Banner */}
+            {!loading && showingSample && (
+              <View style={styles.sampleBanner}>
+                <View style={styles.sampleBannerContent}>
+                  <Text style={styles.sampleBannerIcon}>✨</Text>
+                  <View style={styles.sampleBannerText}>
+                    <Text style={styles.sampleBannerTitle}>Preview Mode</Text>
+                    <Text style={styles.sampleBannerSubtitle}>
+                      This is sample data showing what patterns will look like. Track for 14+ days to see your real correlations.
+                    </Text>
+                  </View>
+                </View>
               </View>
             )}
 
             {/* Detected Patterns */}
-            {!loading && sufficient && patterns.length > 0 && (
+            {!loading && patterns.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>DETECTED PATTERNS</Text>
                 <Text style={styles.sectionSubtitle}>
@@ -158,7 +201,7 @@ export default function CorrelationReportScreen() {
             )}
 
             {/* No Patterns Detected */}
-            {!loading && sufficient && patterns.length === 0 && (
+            {!loading && !showingSample && patterns.length === 0 && (
               <View style={styles.noPatterns}>
                 <Ionicons name="checkmark-circle-outline" size={64} color={Colors.textMuted} style={{ opacity: 0.3, marginBottom: 16 }} />
                 <Text style={styles.noPatternsTitle}>No Strong Patterns Detected</Text>
@@ -169,7 +212,7 @@ export default function CorrelationReportScreen() {
             )}
 
             {/* Chart Placeholder */}
-            {!loading && sufficient && patterns.length > 0 && (
+            {!loading && patterns.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>TREND VISUALIZATION</Text>
                 <View style={styles.chartPlaceholder}>
@@ -236,6 +279,39 @@ const styles = StyleSheet.create({
   // Content
   content: {
     paddingBottom: Spacing.xxl,
+  },
+
+  // Sample Banner
+  sampleBanner: {
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: Spacing.lg,
+  },
+  sampleBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  sampleBannerIcon: {
+    fontSize: 18,
+    marginTop: 2,
+  },
+  sampleBannerText: {
+    flex: 1,
+  },
+  sampleBannerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#A78BFA',
+    marginBottom: 4,
+  },
+  sampleBannerSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 18,
   },
 
   // Disclaimer

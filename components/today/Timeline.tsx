@@ -93,8 +93,23 @@ export const Timeline: React.FC<TimelineProps> = ({ items, tomorrowCount = 0, on
   const handlePress = useCallback((item: TimelineItem) => {
     switch (item.type) {
       case 'medication':
-        const medIds = item.medicationIds?.join(',') || '';
-        router.push(`/medication-confirm?ids=${medIds}` as any);
+        // Route to contextual logging if we have Care Plan data
+        if (item.instanceId && item.medicationName) {
+          router.push({
+            pathname: '/log-medication-plan-item',
+            params: {
+              medicationId: item.medicationIds?.[0] || '',
+              instanceId: item.instanceId,
+              scheduledTime: item.scheduledTime || '',
+              itemName: item.medicationName,
+              itemDosage: item.dosage || '',
+            },
+          } as any);
+        } else {
+          // Fallback to manual logging only if no Care Plan context
+          const medIds = item.medicationIds?.join(',') || '';
+          router.push(`/medication-confirm?ids=${medIds}` as any);
+        }
         break;
       case 'wellness-morning':
         router.push('/log-morning-wellness' as any);

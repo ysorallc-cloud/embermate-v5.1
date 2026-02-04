@@ -159,7 +159,14 @@ export default function CarePlanSettingsScreen() {
 
   const formatTimeWindow = (timeWindow: { start: string; end: string }) => {
     const formatTime = (time24: string) => {
-      const [hours, minutes] = time24.split(':').map(Number);
+      if (!time24 || typeof time24 !== 'string') return 'Time not set';
+      const parts = time24.split(':');
+      if (parts.length < 2) return 'Time not set';
+      const hours = parseInt(parts[0], 10);
+      const minutes = parseInt(parts[1], 10);
+      if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        return 'Time not set';
+      }
       const ampm = hours >= 12 ? 'PM' : 'AM';
       const hour12 = hours % 12 || 12;
       return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;

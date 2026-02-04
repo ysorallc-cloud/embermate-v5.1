@@ -356,7 +356,7 @@ export default function SettingsScreen() {
           id: 'notification-settings',
           icon: '🔔',
           title: 'Notification Settings',
-          subtitle: 'Medication reminders, appointment alerts',
+          subtitle: 'Sound, quiet hours, escalation',
           onPress: () => router.push('/notification-settings'),
         },
       ],

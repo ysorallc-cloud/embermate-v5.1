@@ -1,10 +1,10 @@
 // ============================================================================
-// NOTIFICATION SETTINGS - Human-Focused Redesign
-// "Here's how often we're allowed to bother you, and about what."
-// Hierarchy: Status Summary → Critical → Helpful → Timing → Alerts → Quiet Mode
+// NOTIFICATION SETTINGS - Delivery Controls Only
+// Controls HOW alerts are delivered, not WHAT generates them.
+// Care Plan is the single source of truth for reminder configuration.
 // ============================================================================
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
-  Platform,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,8 +29,9 @@ import {
 import { getMedications } from '../utils/medicationStorage';
 import { scheduleMedicationNotifications } from '../utils/notificationService';
 
-// Aurora Components
+// Components
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
+import { BackButton } from '../components/common/BackButton';
 
 export default function NotificationSettingsScreen() {
   const router = useRouter();
@@ -50,12 +50,6 @@ export default function NotificationSettingsScreen() {
   const [hasPermission, setHasPermission] = useState(false);
   const [scheduledCount, setScheduledCount] = useState(0);
   const [loading, setLoading] = useState(true);
-
-  // New state for redesign
-  const [appointmentsEnabled, setAppointmentsEnabled] = useState(true);
-  const [vitalsEnabled, setVitalsEnabled] = useState(false);
-  const [timingExpanded, setTimingExpanded] = useState(false);
-  const [quietModeEnabled, setQuietModeEnabled] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -86,7 +80,7 @@ export default function NotificationSettingsScreen() {
     if (granted) {
       Alert.alert(
         'Permissions Granted',
-        'You will now receive medication reminders.'
+        'EmberMate can now send you reminders.'
       );
       const medications = await getMedications();
       await scheduleMedicationNotifications(medications);
@@ -99,71 +93,78 @@ export default function NotificationSettingsScreen() {
     }
   };
 
-  const handleToggleMedications = async (value: boolean) => {
-    const newSettings = { ...settings, enabled: value };
+  const updateSettings = async (updates: Partial<NotificationSettings>) => {
+    const newSettings = { ...settings, ...updates };
     setSettings(newSettings);
     await saveNotificationSettings(newSettings);
 
+    // Reschedule notifications with new delivery settings
     const medications = await getMedications();
     await scheduleMedicationNotifications(medications);
-    await loadSettings();
   };
 
   const handleToggleSound = async (value: boolean) => {
-    const newSettings = { ...settings, soundEnabled: value };
-    setSettings(newSettings);
-    await saveNotificationSettings(newSettings);
-
-    const medications = await getMedications();
-    await scheduleMedicationNotifications(medications);
+    await updateSettings({ soundEnabled: value });
   };
 
-  const handleReminderTimeChange = async (minutes: number) => {
-    const newSettings = { ...settings, reminderMinutesBefore: minutes };
-    setSettings(newSettings);
-    await saveNotificationSettings(newSettings);
-    setTimingExpanded(false);
-
-    const medications = await getMedications();
-    await scheduleMedicationNotifications(medications);
-    await loadSettings();
+  const handleToggleVibration = async (value: boolean) => {
+    await updateSettings({ vibrationEnabled: value });
   };
 
-  const handleQuietModeToggle = (enabled: boolean) => {
-    setQuietModeEnabled(enabled);
-    if (enabled) {
-      // Pause non-critical reminders
-      setVitalsEnabled(false);
-    }
+  const handleToggleQuietHours = async (value: boolean) => {
+    await updateSettings({ quietHoursEnabled: value });
   };
 
-  const reminderOptions = [
-    { label: 'At scheduled time', value: 0 },
-    { label: '5 minutes before', value: 5 },
-    { label: '10 minutes before', value: 10 },
-    { label: '15 minutes before', value: 15 },
-    { label: '30 minutes before', value: 30 },
+  const handleToggleOverdueAlerts = async (value: boolean) => {
+    await updateSettings({ overdueAlertsEnabled: value });
+  };
+
+  const handleChangeGracePeriod = async (minutes: number) => {
+    await updateSettings({ gracePeriodMinutes: minutes });
+  };
+
+  const handleChangeOverdueInterval = async (minutes: number) => {
+    await updateSettings({ overdueAlertMinutes: minutes });
+  };
+
+  // Format time for display
+  const formatTime = (time: string) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+  };
+
+  // Cycle through quiet hours start times
+  const cycleQuietHoursStart = () => {
+    const times = ['20:00', '21:00', '22:00', '23:00', '00:00'];
+    const currentIndex = times.indexOf(settings.quietHoursStart);
+    const nextIndex = (currentIndex + 1) % times.length;
+    updateSettings({ quietHoursStart: times[nextIndex] });
+  };
+
+  // Cycle through quiet hours end times
+  const cycleQuietHoursEnd = () => {
+    const times = ['05:00', '06:00', '07:00', '08:00', '09:00'];
+    const currentIndex = times.indexOf(settings.quietHoursEnd);
+    const nextIndex = (currentIndex + 1) % times.length;
+    updateSettings({ quietHoursEnd: times[nextIndex] });
+  };
+
+  // Grace period options
+  const gracePeriodOptions = [
+    { label: '5 minutes', value: 5 },
+    { label: '15 minutes', value: 15 },
+    { label: '30 minutes', value: 30 },
+    { label: '1 hour', value: 60 },
   ];
 
-  const currentTimingLabel = useMemo(() => {
-    const option = reminderOptions.find(o => o.value === settings.reminderMinutesBefore);
-    return option?.label || 'At scheduled time';
-  }, [settings.reminderMinutesBefore]);
-
-  // Generate status summary
-  const statusSummary = useMemo(() => {
-    const enabled = [];
-    if (settings.enabled && hasPermission) enabled.push('medications');
-    if (appointmentsEnabled) enabled.push('appointments');
-
-    if (enabled.length === 0) {
-      return 'No reminders are currently enabled.';
-    } else if (enabled.length === 1) {
-      return `You'll receive reminders for ${enabled[0]}.`;
-    } else {
-      return `You'll receive reminders for ${enabled.join(' and ')}.`;
-    }
-  }, [settings.enabled, hasPermission, appointmentsEnabled]);
+  // Overdue alert interval options
+  const overdueIntervalOptions = [
+    { label: '15 minutes', value: 15 },
+    { label: '30 minutes', value: 30 },
+    { label: '1 hour', value: 60 },
+  ];
 
   if (loading) {
     return (
@@ -184,17 +185,19 @@ export default function NotificationSettingsScreen() {
         <View style={styles.content}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-              <Text style={styles.backText}>← Back</Text>
-            </TouchableOpacity>
+            <BackButton variant="text" />
           </View>
 
           <Text style={styles.headerLabel}>NOTIFICATIONS</Text>
-          <Text style={styles.title}>Notification Settings</Text>
+          <Text style={styles.title}>How We Reach You</Text>
 
-          {/* Status Summary - Instant Orientation */}
-          <View style={styles.statusSummary}>
-            <Text style={styles.statusSummaryText}>{statusSummary}</Text>
+          {/* Explanation Card */}
+          <View style={styles.explanationCard}>
+            <Text style={styles.explanationIcon}>💡</Text>
+            <Text style={styles.explanationText}>
+              These settings control how reminders are delivered.{'\n'}
+              To change what generates reminders, edit your Care Plan.
+            </Text>
           </View>
 
           {/* Permission Required Warning */}
@@ -204,7 +207,7 @@ export default function NotificationSettingsScreen() {
               <View style={styles.warningContent}>
                 <Text style={styles.warningTitle}>Permissions Required</Text>
                 <Text style={styles.warningText}>
-                  Allow EmberMate to send notifications to receive reminders.
+                  Allow EmberMate to send notifications to receive any reminders.
                 </Text>
               </View>
               <TouchableOpacity
@@ -216,103 +219,30 @@ export default function NotificationSettingsScreen() {
             </View>
           )}
 
-          {/* CRITICAL Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionHeader}>CRITICAL</Text>
-
-            {/* Medications */}
-            <View style={styles.reminderItem}>
-              <View style={styles.reminderHeader}>
-                <Text style={styles.reminderTitle}>Medications</Text>
-                <Switch
-                  value={settings.enabled && hasPermission}
-                  onValueChange={handleToggleMedications}
-                  disabled={!hasPermission}
-                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(94,234,212,0.3)' }}
-                  thumbColor={settings.enabled && hasPermission ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
-                />
-              </View>
-              <Text style={styles.reminderSubtitle}>Daily reminders at scheduled times</Text>
+          {/* Permission Granted Indicator */}
+          {hasPermission && (
+            <View style={styles.permissionGranted}>
+              <Ionicons name="checkmark-circle" size={18} color={Colors.accent} />
+              <Text style={styles.permissionGrantedText}>
+                System notifications enabled
+              </Text>
             </View>
+          )}
 
-            {/* Appointments */}
-            <View style={styles.reminderItem}>
-              <View style={styles.reminderHeader}>
-                <Text style={styles.reminderTitle}>Appointments</Text>
-                <Switch
-                  value={appointmentsEnabled}
-                  onValueChange={setAppointmentsEnabled}
-                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(94,234,212,0.3)' }}
-                  thumbColor={appointmentsEnabled ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
-                />
-              </View>
-              <Text style={styles.reminderSubtitle}>1 day and 1 hour before</Text>
-            </View>
-          </View>
-
-          {/* HELPFUL Section */}
+          {/* SOUND & VIBRATION Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionHeader}>HELPFUL</Text>
+            <Text style={styles.sectionHeader}>SOUND & VIBRATION</Text>
+            <Text style={styles.sectionDescription}>
+              Control how alerts get your attention
+            </Text>
 
-            {/* Vitals */}
-            <View style={styles.reminderItem}>
-              <View style={styles.reminderHeader}>
-                <Text style={styles.reminderTitle}>Vitals</Text>
-                <Switch
-                  value={vitalsEnabled && !quietModeEnabled}
-                  onValueChange={setVitalsEnabled}
-                  disabled={quietModeEnabled}
-                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(94,234,212,0.3)' }}
-                  thumbColor={vitalsEnabled && !quietModeEnabled ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
-                />
-              </View>
-              <Text style={styles.reminderSubtitle}>Daily at 9:00 AM</Text>
-            </View>
-          </View>
-
-          {/* TIMING Section - Collapsed by Default */}
-          <View style={styles.section}>
-            <Text style={styles.sectionHeader}>TIMING</Text>
-
-            <TouchableOpacity
-              style={styles.timingSection}
-              onPress={() => setTimingExpanded(!timingExpanded)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.timingSelected}>
-                <Text style={styles.timingLabel}>Reminder timing</Text>
-                <Text style={styles.timingValue}>{currentTimingLabel} ›</Text>
-              </View>
-            </TouchableOpacity>
-
-            {timingExpanded && (
-              <View style={styles.timingOptions}>
-                {reminderOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={styles.timingOption}
-                    onPress={() => handleReminderTimeChange(option.value)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[
-                      styles.timingOptionText,
-                      settings.reminderMinutesBefore === option.value && styles.timingOptionSelected,
-                    ]}>
-                      {settings.reminderMinutesBefore === option.value ? '✓ ' : ''}{option.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* ALERTS Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionHeader}>ALERTS</Text>
-
-            <View style={styles.soundSection}>
-              <View style={styles.soundHeader}>
-                <Text style={styles.soundTitle}>Allow audible alerts</Text>
+            <View style={styles.settingCard}>
+              {/* Sound Toggle */}
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Sound</Text>
+                  <Text style={styles.settingHint}>Play audio for reminders</Text>
+                </View>
                 <Switch
                   value={settings.soundEnabled}
                   onValueChange={handleToggleSound}
@@ -320,31 +250,188 @@ export default function NotificationSettingsScreen() {
                   thumbColor={settings.soundEnabled ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
                 />
               </View>
-              <Text style={styles.soundHelper}>Recommended for medications</Text>
+
+              <View style={styles.settingDivider} />
+
+              {/* Vibration Toggle */}
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Vibration</Text>
+                  <Text style={styles.settingHint}>Haptic feedback for alerts</Text>
+                </View>
+                <Switch
+                  value={settings.vibrationEnabled}
+                  onValueChange={handleToggleVibration}
+                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(94,234,212,0.3)' }}
+                  thumbColor={settings.vibrationEnabled ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
+                />
+              </View>
             </View>
           </View>
 
-          {/* Quiet Mode - New */}
-          <View style={styles.quietMode}>
-            <View style={styles.quietModeHeader}>
-              <Text style={styles.quietModeTitle}>Quiet mode</Text>
-              <Switch
-                value={quietModeEnabled}
-                onValueChange={handleQuietModeToggle}
-                trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(139,92,246,0.3)' }}
-                thumbColor={quietModeEnabled ? '#A78BFA' : 'rgba(255,255,255,0.5)'}
-              />
+          {/* QUIET HOURS Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionHeader}>QUIET HOURS</Text>
+            <Text style={styles.sectionDescription}>
+              Pause non-critical reminders during rest time
+            </Text>
+
+            <View style={styles.settingCard}>
+              {/* Quiet Hours Toggle */}
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Enable quiet hours</Text>
+                  <Text style={styles.settingHint}>Only critical alerts during this window</Text>
+                </View>
+                <Switch
+                  value={settings.quietHoursEnabled}
+                  onValueChange={handleToggleQuietHours}
+                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(139,92,246,0.3)' }}
+                  thumbColor={settings.quietHoursEnabled ? '#A78BFA' : 'rgba(255,255,255,0.5)'}
+                />
+              </View>
+
+              {settings.quietHoursEnabled && (
+                <>
+                  <View style={styles.settingDivider} />
+
+                  {/* Time Range */}
+                  <View style={styles.timeRangeRow}>
+                    <TouchableOpacity
+                      style={styles.timeButton}
+                      onPress={cycleQuietHoursStart}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.timeLabel}>From</Text>
+                      <Text style={styles.timeValue}>{formatTime(settings.quietHoursStart)}</Text>
+                    </TouchableOpacity>
+
+                    <Text style={styles.timeArrow}>→</Text>
+
+                    <TouchableOpacity
+                      style={styles.timeButton}
+                      onPress={cycleQuietHoursEnd}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.timeLabel}>Until</Text>
+                      <Text style={styles.timeValue}>{formatTime(settings.quietHoursEnd)}</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={styles.quietHoursNote}>
+                    Tap times to adjust. Medications marked "critical" will still alert.
+                  </Text>
+                </>
+              )}
             </View>
-            <Text style={styles.quietModeSubtitle}>Pause non-critical reminders</Text>
           </View>
 
-          {/* Footer Message - Human, Not Warning */}
-          <View style={styles.footerMessage}>
-            <Text style={styles.footerIcon}>💬</Text>
-            <Text style={styles.footerText}>
+          {/* ESCALATION Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionHeader}>ESCALATION</Text>
+            <Text style={styles.sectionDescription}>
+              Follow-up alerts for missed items
+            </Text>
+
+            <View style={styles.settingCard}>
+              {/* Overdue Alerts Toggle */}
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Overdue alerts</Text>
+                  <Text style={styles.settingHint}>Re-alert if items aren't acknowledged</Text>
+                </View>
+                <Switch
+                  value={settings.overdueAlertsEnabled}
+                  onValueChange={handleToggleOverdueAlerts}
+                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(94,234,212,0.3)' }}
+                  thumbColor={settings.overdueAlertsEnabled ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
+                />
+              </View>
+
+              {settings.overdueAlertsEnabled && (
+                <>
+                  <View style={styles.settingDivider} />
+
+                  {/* Grace Period */}
+                  <View style={styles.optionSelector}>
+                    <Text style={styles.optionLabel}>Grace period before first alert</Text>
+                    <View style={styles.optionButtons}>
+                      {gracePeriodOptions.map((option) => (
+                        <TouchableOpacity
+                          key={option.value}
+                          style={[
+                            styles.optionButton,
+                            settings.gracePeriodMinutes === option.value && styles.optionButtonSelected,
+                          ]}
+                          onPress={() => handleChangeGracePeriod(option.value)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[
+                            styles.optionButtonText,
+                            settings.gracePeriodMinutes === option.value && styles.optionButtonTextSelected,
+                          ]}>
+                            {option.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.settingDivider} />
+
+                  {/* Overdue Interval */}
+                  <View style={styles.optionSelector}>
+                    <Text style={styles.optionLabel}>Time between follow-up alerts</Text>
+                    <View style={styles.optionButtons}>
+                      {overdueIntervalOptions.map((option) => (
+                        <TouchableOpacity
+                          key={option.value}
+                          style={[
+                            styles.optionButton,
+                            settings.overdueAlertMinutes === option.value && styles.optionButtonSelected,
+                          ]}
+                          onPress={() => handleChangeOverdueInterval(option.value)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[
+                            styles.optionButtonText,
+                            settings.overdueAlertMinutes === option.value && styles.optionButtonTextSelected,
+                          ]}>
+                            {option.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+
+          {/* Care Plan Link */}
+          <TouchableOpacity
+            style={styles.carePlanLink}
+            onPress={() => router.push('/care-plan' as any)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.carePlanLinkContent}>
+              <Text style={styles.carePlanLinkIcon}>📋</Text>
+              <View style={styles.carePlanLinkText}>
+                <Text style={styles.carePlanLinkTitle}>Edit Care Plan</Text>
+                <Text style={styles.carePlanLinkSubtitle}>
+                  Configure what generates reminders
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.carePlanLinkChevron}>›</Text>
+          </TouchableOpacity>
+
+          {/* Footer Status */}
+          <View style={styles.footerStatus}>
+            <Text style={styles.footerStatusText}>
               {scheduledCount > 0
-                ? `${scheduledCount} ${scheduledCount === 1 ? 'reminder' : 'reminders'} scheduled. Adjust anytime.`
-                : 'No medication reminders are active right now. You can turn these on anytime.'}
+                ? `${scheduledCount} ${scheduledCount === 1 ? 'reminder' : 'reminders'} currently scheduled`
+                : 'No reminders scheduled'}
             </Text>
           </View>
 
@@ -382,14 +469,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 16,
   },
-  backButton: {
-    paddingVertical: 8,
-  },
-  backText: {
-    fontSize: 14,
-    color: Colors.accent,
-    fontWeight: '500',
-  },
   headerLabel: {
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.5)',
@@ -404,19 +483,26 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
 
-  // Status Summary
-  statusSummary: {
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+  // Explanation Card
+  explanationCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.2)',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 20,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
   },
-  statusSummaryText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    lineHeight: 20,
+  explanationIcon: {
+    fontSize: 16,
+  },
+  explanationText: {
+    flex: 1,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 19,
   },
 
   // Permission Warning
@@ -427,7 +513,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(251, 191, 36, 0.1)',
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     borderWidth: 1,
     borderColor: 'rgba(251, 191, 36, 0.2)',
   },
@@ -457,6 +543,19 @@ const styles = StyleSheet.create({
     color: Colors.background,
   },
 
+  // Permission Granted
+  permissionGranted: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  permissionGrantedText: {
+    fontSize: 13,
+    color: Colors.accent,
+    fontWeight: '500',
+  },
+
   // Sections
   section: {
     marginBottom: 24,
@@ -467,140 +566,169 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
     letterSpacing: 1,
     textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  sectionDescription: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
     marginBottom: 12,
   },
 
-  // Reminder Items
-  reminderItem: {
+  // Setting Card
+  settingCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
+    overflow: 'hidden',
   },
-  reminderHeader: {
+  settingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    padding: 14,
   },
-  reminderTitle: {
+  settingInfo: {
+    flex: 1,
+    marginRight: Spacing.md,
+  },
+  settingLabel: {
     fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
+    marginBottom: 2,
   },
-  reminderSubtitle: {
+  settingHint: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
-
-  // Timing Section
-  timingSection: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 14,
-  },
-  timingSelected: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  timingLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  timingValue: {
-    fontSize: 13,
-    color: 'rgba(94, 234, 212, 0.8)',
-  },
-  timingOptions: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  timingOption: {
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  timingOptionText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  timingOptionSelected: {
-    color: '#5EEAD4',
-  },
-
-  // Sound Section
-  soundSection: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 14,
-  },
-  soundHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  soundTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  soundHelper: {
-    fontSize: 11,
     color: 'rgba(255, 255, 255, 0.5)',
   },
+  settingDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginHorizontal: 14,
+  },
 
-  // Quiet Mode
-  quietMode: {
-    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+  // Time Range
+  timeRangeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 14,
+    gap: 16,
+  },
+  timeButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(139, 92, 246, 0.2)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    minWidth: 100,
+  },
+  timeLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: 2,
+  },
+  timeValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#A78BFA',
+  },
+  timeArrow: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.3)',
+  },
+  quietHoursNote: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.4)',
+    textAlign: 'center',
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+  },
+
+  // Option Selector
+  optionSelector: {
+    padding: 14,
+  },
+  optionLabel: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 10,
+  },
+  optionButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  optionButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  optionButtonSelected: {
+    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    borderColor: 'rgba(94, 234, 212, 0.4)',
+  },
+  optionButtonText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  optionButtonTextSelected: {
+    color: '#5EEAD4',
+    fontWeight: '600',
+  },
+
+  // Care Plan Link
+  carePlanLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(94, 234, 212, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(94, 234, 212, 0.15)',
     borderRadius: 12,
     padding: 14,
     marginBottom: 20,
   },
-  quietModeHeader: {
+  carePlanLinkContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    gap: 12,
   },
-  quietModeTitle: {
+  carePlanLinkIcon: {
+    fontSize: 24,
+  },
+  carePlanLinkText: {
+    flex: 1,
+  },
+  carePlanLinkTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#A78BFA',
+    color: Colors.accent,
+    marginBottom: 2,
   },
-  quietModeSubtitle: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.6)',
+  carePlanLinkSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+  carePlanLinkChevron: {
+    fontSize: 20,
+    color: 'rgba(94, 234, 212, 0.5)',
+    fontWeight: '600',
   },
 
-  // Footer Message
-  footerMessage: {
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    borderRadius: 10,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
+  // Footer Status
+  footerStatus: {
+    alignItems: 'center',
+    paddingVertical: 12,
   },
-  footerIcon: {
-    fontSize: 16,
-  },
-  footerText: {
-    flex: 1,
+  footerStatusText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 18,
+    color: 'rgba(255, 255, 255, 0.4)',
   },
 });

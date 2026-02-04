@@ -1,9 +1,10 @@
 // ============================================================================
 // REPORTS HUB - Clinical & Wellness Reports
 // V3: Centralized reports access
+// Filters by enabled Care Plan buckets
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -12,38 +13,80 @@ import { GlassCard } from '../../components/aurora/GlassCard';
 import { PageHeader } from '../../components/aurora/PageHeader';
 import { SectionHeader } from '../../components/aurora/SectionHeader';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/theme-tokens';
+import { useEnabledBuckets } from '../../hooks/useCarePlanConfig';
+import { BucketType } from '../../types/carePlanConfig';
 
-const REPORT_CATEGORIES = [
+// Report definition with required buckets for filtering
+interface Report {
+  id: string;
+  icon: string;
+  name: string;
+  badge: string;
+  color: string;
+  route: string;
+  requiredBuckets?: BucketType[]; // If any of these enabled, show report. Empty/undefined = always show
+}
+
+interface ReportCategory {
+  title: string;
+  description: string;
+  reports: Report[];
+}
+
+const REPORT_CATEGORIES: ReportCategory[] = [
   {
     title: 'Clinical Reports',
     description: 'For healthcare providers',
     reports: [
-      { id: 'medication', icon: '💊', name: 'Medication Adherence', badge: '94%', color: Colors.amber, route: '/hub/reports/medication' },
-      { id: 'vitals', icon: '🫀', name: 'Vitals Stability', badge: '14 readings', color: Colors.rose, route: '/hub/reports/vitals' },
-      { id: 'symptoms', icon: '🩺', name: 'Symptom Timeline', badge: '3 this week', color: Colors.purple, route: '/hub/reports/symptoms' },
-      { id: 'nutrition', icon: '🥗', name: 'Hydration & Nutrition', badge: 'On track', color: Colors.green, route: '/hub/reports/nutrition' },
+      { id: 'medication', icon: '💊', name: 'Medication Adherence', badge: '94%', color: Colors.amber, route: '/hub/reports/medication', requiredBuckets: ['meds'] },
+      { id: 'vitals', icon: '🫀', name: 'Vitals Stability', badge: 'Coming soon', color: Colors.rose, route: '/coming-soon', requiredBuckets: ['vitals'] },
+      { id: 'symptoms', icon: '🩺', name: 'Symptom Timeline', badge: 'Coming soon', color: Colors.purple, route: '/coming-soon', requiredBuckets: ['symptoms'] },
+      { id: 'nutrition', icon: '🥗', name: 'Hydration & Nutrition', badge: 'Coming soon', color: Colors.green, route: '/coming-soon', requiredBuckets: ['meals', 'water'] },
     ],
   },
   {
     title: 'Wellness Reports',
     description: 'Mood, sleep & patterns',
     reports: [
-      { id: 'wellness', icon: '😊', name: 'Sleep, Energy & Mood', badge: '7-day view', color: Colors.purple, route: '/hub/reports/wellness' },
-      { id: 'correlation', icon: '🧠', name: 'Correlation Insights', badge: '6 patterns', color: Colors.sky, route: '/hub/reports/correlation' },
+      { id: 'wellness', icon: '😊', name: 'Sleep, Energy & Mood', badge: 'Coming soon', color: Colors.purple, route: '/coming-soon', requiredBuckets: ['mood', 'sleep'] },
+      { id: 'correlation', icon: '🧠', name: 'Correlation Insights', badge: 'View patterns', color: Colors.sky, route: '/hub/reports/correlation' }, // Always show - cross-bucket
     ],
   },
   {
     title: 'Care Reports',
     description: 'For visits & family',
     reports: [
-      { id: 'redflags', icon: '🚨', name: 'Red Flags & Alerts', badge: '1 active', color: Colors.red, route: '/hub/reports/redflags' },
-      { id: 'visitprep', icon: '📋', name: 'Visit Prep Report', badge: 'Ready', color: Colors.accent, route: '/hub/reports/visitprep' },
+      { id: 'redflags', icon: '🚨', name: 'Red Flags & Alerts', badge: 'Coming soon', color: Colors.red, route: '/coming-soon' }, // Always show
+      { id: 'visitprep', icon: '📋', name: 'Visit Prep Report', badge: 'Coming soon', color: Colors.accent, route: '/coming-soon' }, // Always show
     ],
   },
 ];
 
 export default function ReportsHub() {
   const router = useRouter();
+  const { enabledBuckets } = useEnabledBuckets();
+
+  // Filter reports by enabled buckets
+  // If no buckets enabled (no Care Plan), show all reports
+  // If requiredBuckets is empty/undefined, always show the report
+  // If requiredBuckets has values, show only if ANY of them are enabled
+  const filteredCategories = useMemo(() => {
+    return REPORT_CATEGORIES.map(category => ({
+      ...category,
+      reports: category.reports.filter(report => {
+        // No bucket filter configured - always show
+        if (!report.requiredBuckets || report.requiredBuckets.length === 0) {
+          return true;
+        }
+        // No buckets enabled in Care Plan - show all
+        if (enabledBuckets.length === 0) {
+          return true;
+        }
+        // Show if ANY required bucket is enabled
+        return report.requiredBuckets.some(bucket => enabledBuckets.includes(bucket));
+      }),
+    })).filter(category => category.reports.length > 0); // Remove empty categories
+  }, [enabledBuckets]);
 
   return (
     <View style={styles.container}>
@@ -70,8 +113,8 @@ export default function ReportsHub() {
             </Text>
           </GlassCard>
 
-          {/* Report Categories */}
-          {REPORT_CATEGORIES.map((category, ci) => (
+          {/* Report Categories - filtered by enabled Care Plan buckets */}
+          {filteredCategories.map((category, ci) => (
             <View key={ci} style={styles.section}>
               <SectionHeader title={category.title} />
               <Text style={styles.categoryDescription}>{category.description}</Text>

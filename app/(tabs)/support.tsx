@@ -1,7 +1,7 @@
 // ============================================================================
-// SUPPORT PAGE - Clear Modes Redesign
+// SUPPORT PAGE - Clear Modes Redesign V2
 // "Who's with me, and how do I reach them?"
-// Hierarchy: Primary Action → Care Team → Activity → Emergency → Privacy
+// Hierarchy: Quick Action → Privacy → Care Team → Activity → Emergency (isolated)
 // ============================================================================
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -31,6 +31,7 @@ import {
   getSampleCaregivers,
   getSampleActivities,
 } from '../../utils/sampleDataGenerator';
+import { getTodayLogStatus } from '../../utils/centralStorage';
 
 // Storage key for last viewed activity timestamp
 const LAST_VIEWED_KEY = '@embermate_care_last_viewed';
@@ -39,11 +40,23 @@ const LAST_VIEWED_KEY = '@embermate_care_last_viewed';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { GlassCard } from '../../components/aurora/GlassCard';
 
+// Types for today's activity state
+interface TodayState {
+  hasLogs: boolean;
+  hasConcerns: boolean;
+  logsDescription: string;
+}
+
 export default function SupportScreen() {
   const router = useRouter();
   const [caregivers, setCaregivers] = useState<CaregiverProfile[]>([]);
   const [activities, setActivities] = useState<CareActivity[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [todayState, setTodayState] = useState<TodayState>({
+    hasLogs: false,
+    hasConcerns: false,
+    logsDescription: '',
+  });
 
   useFocusEffect(
     useCallback(() => {
@@ -69,6 +82,31 @@ export default function SupportScreen() {
     }
 
     setActivities(acts);
+
+    // Load today's log status for contextual Quick Action
+    const status = await getTodayLogStatus();
+    const logTypes: string[] = [];
+    let hasConcerns = false;
+
+    if (status.medications.logged > 0) logTypes.push('medications');
+    if (status.vitals.logged) logTypes.push('vitals');
+    if (status.mood.logged) {
+      logTypes.push('mood');
+      // Check for concerning mood (if mood is 2 or less)
+      if (status.mood.value && status.mood.value <= 2) {
+        hasConcerns = true;
+      }
+    }
+    if (status.meals.logged > 0) logTypes.push('meals');
+    if (status.notes.logged > 0) logTypes.push('notes');
+
+    setTodayState({
+      hasLogs: logTypes.length > 0,
+      hasConcerns,
+      logsDescription: logTypes.length > 0
+        ? logTypes.slice(0, 3).join(', ') + (logTypes.length > 3 ? ', and more' : '') + ' from today'
+        : "Today's Care Plan items",
+    });
   };
 
   const onRefresh = useCallback(async () => {
@@ -95,6 +133,29 @@ export default function SupportScreen() {
     }
   };
 
+  // Get capability tag based on permissions and role
+  const getCapabilityTag = (caregiver: CaregiverProfile): string => {
+    const permissions = caregiver.permissions;
+    const isEmergencyContact = (caregiver as any).emergencyContact;
+
+    if (isEmergencyContact) {
+      return 'Emergency contact';
+    }
+
+    // Check what they can do based on permissions
+    if (permissions?.canLogMedications) {
+      return 'Can log meds';
+    }
+    if (permissions?.canLogVitals) {
+      return 'Can update vitals';
+    }
+    if (permissions?.canViewMedications || permissions?.canViewVitals) {
+      return 'View only';
+    }
+
+    return 'Care coordination';
+  };
+
   // Get activity description
   const getActivityDescription = (activity: CareActivity): string => {
     switch (activity.type) {
@@ -103,9 +164,9 @@ export default function SupportScreen() {
       case 'symptom_logged':
         return 'logged symptoms';
       case 'medication_taken':
-        return 'took medication';
+        return 'logged medication';
       case 'medication_missed':
-        return 'missed medication';
+        return 'noted missed medication';
       case 'note_added':
         if (activity.details?.action?.includes('shared')) {
           return `${activity.details.action}${activity.details.recipient ? ` with ${activity.details.recipient}` : ''}`;
@@ -122,6 +183,29 @@ export default function SupportScreen() {
     }
   };
 
+  // Handle activity item tap - navigate to relevant log or timeline
+  const handleActivityPress = (activity: CareActivity) => {
+    switch (activity.type) {
+      case 'vital_logged':
+        router.push('/log-vitals');
+        break;
+      case 'medication_taken':
+      case 'medication_missed':
+        router.push('/medications');
+        break;
+      case 'note_added':
+        router.push('/log-note');
+        break;
+      case 'appointment_scheduled':
+      case 'appointment_completed':
+        router.push('/appointments');
+        break;
+      default:
+        // Default to Now page timeline
+        router.push('/(tabs)/now');
+    }
+  };
+
   // Handle emergency alert with confirmation
   const handleEmergencyAlert = () => {
     Alert.alert(
@@ -130,7 +214,7 @@ export default function SupportScreen() {
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Alert Now',
+          text: 'Alert Everyone Now',
           style: 'destructive',
           onPress: () => {
             // Navigate to emergency screen
@@ -141,7 +225,59 @@ export default function SupportScreen() {
     );
   };
 
+  // Contextual Quick Action button text and label
+  const getQuickActionContent = () => {
+    if (todayState.hasConcerns) {
+      return {
+        label: 'SHARE UPDATE',
+        buttonText: '📤 Share important updates',
+        hint: todayState.logsDescription,
+      };
+    }
+    if (todayState.hasLogs) {
+      return {
+        label: 'QUICK ACTION',
+        buttonText: "📤 Share today's summary",
+        hint: todayState.logsDescription,
+      };
+    }
+    return {
+      label: 'QUICK ACTION',
+      buttonText: "📤 Share today's plan",
+      hint: "Today's Care Plan items",
+    };
+  };
+
+  // AI Insight for care coordination
+  const getTeamInsight = (): { text: string; icon: string } | null => {
+    // Check if any team member has recent activity
+    const recentActivity = activities.find(a => {
+      const activityTime = new Date(a.timestamp);
+      const hoursSince = (Date.now() - activityTime.getTime()) / (1000 * 60 * 60);
+      return hoursSince < 24;
+    });
+
+    if (recentActivity) {
+      return {
+        icon: '👥',
+        text: `${recentActivity.performedBy} ${getActivityDescription(recentActivity)} recently. Review before sharing.`,
+      };
+    }
+
+    // No recent activity
+    if (activities.length > 0) {
+      return {
+        icon: '📋',
+        text: "No recent updates from your care team. You're the primary coordinator today.",
+      };
+    }
+
+    return null;
+  };
+
   const careCircleCount = caregivers.length + 1; // +1 for current user
+  const quickAction = getQuickActionContent();
+  const teamInsight = getTeamInsight();
 
   return (
     <View style={styles.container}>
@@ -177,20 +313,50 @@ export default function SupportScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Primary Action (Dominant) */}
-          <View style={styles.primaryAction}>
-            <Text style={styles.primaryActionLabel}>QUICK ACTION</Text>
+          {/* Primary Action (Dominant) - Contextual */}
+          <View style={[
+            styles.primaryAction,
+            todayState.hasConcerns && styles.primaryActionConcern,
+          ]}>
+            <Text style={styles.primaryActionLabel}>{quickAction.label}</Text>
             <TouchableOpacity
-              style={styles.primaryActionButton}
+              style={[
+                styles.primaryActionButton,
+                todayState.hasConcerns && styles.primaryActionButtonConcern,
+              ]}
               onPress={() => router.push('/family-sharing')}
               activeOpacity={0.7}
             >
-              <Text style={styles.primaryActionButtonText}>📤 Share today's summary</Text>
+              <Text style={[
+                styles.primaryActionButtonText,
+                todayState.hasConcerns && styles.primaryActionButtonTextConcern,
+              ]}>
+                {quickAction.buttonText}
+              </Text>
             </TouchableOpacity>
-            <Text style={styles.primaryActionHint}>Send a snapshot of recent logs to your care team</Text>
+            <Text style={styles.primaryActionHint}>{quickAction.hint}</Text>
           </View>
 
-          {/* Care Team List */}
+          {/* Privacy Reassurance - Moved higher (right after Quick Action) */}
+          <View style={styles.privacyCard}>
+            <Text style={styles.privacyIcon}>🔒</Text>
+            <View style={styles.privacyContent}>
+              <Text style={styles.privacyTitle}>Nothing is shared without you</Text>
+              <Text style={styles.privacyText}>
+                Each person sees only what you allow. You control all access.
+              </Text>
+            </View>
+          </View>
+
+          {/* AI Insight for care coordination (optional) */}
+          {teamInsight && (
+            <View style={styles.teamInsightCard}>
+              <Text style={styles.teamInsightIcon}>{teamInsight.icon}</Text>
+              <Text style={styles.teamInsightText}>{teamInsight.text}</Text>
+            </View>
+          )}
+
+          {/* Care Team List with capability tags */}
           <View style={styles.section}>
             <Text style={styles.sectionHeader}>YOUR CARE CIRCLE ({careCircleCount})</Text>
             <View style={styles.teamContainer}>
@@ -215,6 +381,12 @@ export default function SupportScreen() {
                       <View style={styles.memberInfo}>
                         <Text style={styles.memberName}>{caregiver.name}</Text>
                         <Text style={styles.memberRole}>{getRoleLabel(caregiver)}</Text>
+                        {/* Capability tag */}
+                        <View style={styles.capabilityTag}>
+                          <Text style={styles.capabilityTagText}>
+                            {getCapabilityTag(caregiver)}
+                          </Text>
+                        </View>
                       </View>
                       <View style={styles.memberActions}>
                         <TouchableOpacity
@@ -246,31 +418,38 @@ export default function SupportScreen() {
                 </TouchableOpacity>
               ))}
 
-              {/* Manage team link */}
+              {/* Manage team link - clearer copy */}
               <TouchableOpacity
                 style={styles.manageTeamLink}
                 onPress={() => router.push('/caregiver-management')}
                 activeOpacity={0.7}
               >
-                <Text style={styles.manageTeamText}>Manage team →</Text>
+                <Text style={styles.manageTeamText}>Manage access & roles →</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Recent Coordination (limited to 3) */}
+          {/* Team Activity (renamed from Recent Coordination) */}
           {activities.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionHeader}>RECENT COORDINATION</Text>
+              <Text style={styles.sectionHeader}>TEAM ACTIVITY</Text>
+              <Text style={styles.sectionSubtitle}>What others have done recently</Text>
               <View style={styles.activityContainer}>
                 {activities.slice(0, 3).map((activity, i) => (
-                  <View key={activity.id || i} style={styles.activityItem}>
+                  <TouchableOpacity
+                    key={activity.id || i}
+                    style={styles.activityItem}
+                    onPress={() => handleActivityPress(activity)}
+                    activeOpacity={0.7}
+                  >
                     <Text style={styles.activityTime}>
                       {getRelativeTime(activity.timestamp)}
                     </Text>
                     <Text style={styles.activityText}>
                       {activity.performedBy} {getActivityDescription(activity)}
                     </Text>
-                  </View>
+                    <Text style={styles.activityChevron}>›</Text>
+                  </TouchableOpacity>
                 ))}
 
                 <TouchableOpacity
@@ -278,14 +457,20 @@ export default function SupportScreen() {
                   onPress={() => router.push('/family-activity')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.viewAllText}>View all →</Text>
+                  <Text style={styles.viewAllText}>View all activity →</Text>
                 </TouchableOpacity>
               </View>
             </View>
           )}
 
-          {/* Emergency Section (Visually Distinct) */}
+          {/* Spacer before Emergency */}
+          <View style={styles.emergencySpacer} />
+
+          {/* Emergency Section - Isolated at bottom with clear separation */}
           <View style={styles.emergencySection}>
+            <Text style={styles.emergencyQualifier}>
+              Use only if immediate medical or safety attention is needed.
+            </Text>
             <Text style={styles.emergencyHeader}>⚠️ EMERGENCY ONLY</Text>
             <TouchableOpacity
               style={styles.emergencyButton}
@@ -294,15 +479,6 @@ export default function SupportScreen() {
             >
               <Text style={styles.emergencyButtonText}>🆘 Alert care team now</Text>
             </TouchableOpacity>
-          </View>
-
-          {/* Privacy Reassurance */}
-          <View style={styles.privacyCard}>
-            <Text style={styles.privacyIcon}>🔒</Text>
-            <Text style={styles.privacyTitle}>Nothing is shared without you</Text>
-            <Text style={styles.privacyText}>
-              Each person sees only what you allow. You control all access.
-            </Text>
           </View>
 
           {/* Bottom spacing */}
@@ -382,15 +558,19 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
 
-  // Primary Action (Dominant)
+  // Primary Action (Dominant) - Contextual variants
   primaryAction: {
     backgroundColor: 'rgba(94, 234, 212, 0.15)',
     borderWidth: 2,
     borderColor: 'rgba(94, 234, 212, 0.4)',
     borderRadius: 16,
     padding: 20,
-    marginBottom: 24,
+    marginBottom: 16,
     alignItems: 'center',
+  },
+  primaryActionConcern: {
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+    borderColor: 'rgba(251, 191, 36, 0.4)',
   },
   primaryActionLabel: {
     fontSize: 13,
@@ -408,16 +588,76 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 24,
   },
+  primaryActionButtonConcern: {
+    backgroundColor: 'rgba(251, 191, 36, 0.2)',
+    borderColor: 'rgba(251, 191, 36, 0.4)',
+  },
   primaryActionButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#5EEAD4',
+  },
+  primaryActionButtonTextConcern: {
+    color: '#FBBF24',
   },
   primaryActionHint: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.5)',
     marginTop: 10,
     textAlign: 'center',
+  },
+
+  // Privacy Reassurance - Moved higher, horizontal layout
+  privacyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(94, 234, 212, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(94, 234, 212, 0.15)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 20,
+    gap: 12,
+  },
+  privacyContent: {
+    flex: 1,
+  },
+  privacyIcon: {
+    fontSize: 24,
+  },
+  privacyTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#5EEAD4',
+    marginBottom: 2,
+  },
+  privacyText: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.6)',
+    lineHeight: 15,
+  },
+
+  // Team Insight Card (AI)
+  teamInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 20,
+    gap: 10,
+  },
+  teamInsightIcon: {
+    fontSize: 16,
+    marginTop: 1,
+  },
+  teamInsightText: {
+    flex: 1,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 18,
   },
 
   // Sections
@@ -430,6 +670,12 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
     letterSpacing: 1,
     textTransform: 'uppercase',
+    marginBottom: 4,
+    paddingHorizontal: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.4)',
     marginBottom: 12,
     paddingHorizontal: 4,
   },
@@ -437,6 +683,7 @@ const styles = StyleSheet.create({
   // Care Team
   teamContainer: {
     gap: 10,
+    marginTop: 8,
   },
   memberCard: {
     padding: 14,
@@ -472,10 +719,25 @@ const styles = StyleSheet.create({
   memberRole: {
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: 4,
+  },
+  capabilityTag: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(94, 234, 212, 0.12)',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  capabilityTagText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: 'rgba(94, 234, 212, 0.9)',
+    letterSpacing: 0.3,
   },
   memberActions: {
     flexDirection: 'row',
     gap: 8,
+    alignItems: 'center',
   },
   actionButton: {
     width: 32,
@@ -499,14 +761,17 @@ const styles = StyleSheet.create({
   },
   manageTeamText: {
     fontSize: 12,
-    color: 'rgba(94, 234, 212, 0.7)',
+    color: 'rgba(94, 234, 212, 0.8)',
+    fontWeight: '500',
   },
 
-  // Recent Coordination
+  // Team Activity (renamed from Recent Coordination)
   activityContainer: {
     gap: 0,
   },
   activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.02)',
     borderLeftWidth: 3,
     borderLeftColor: 'rgba(94, 234, 212, 0.3)',
@@ -517,11 +782,17 @@ const styles = StyleSheet.create({
   activityTime: {
     fontSize: 10,
     color: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: 4,
+    width: 70,
   },
   activityText: {
+    flex: 1,
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.8)',
+  },
+  activityChevron: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.3)',
+    marginLeft: 8,
   },
   viewAllLink: {
     paddingVertical: 12,
@@ -532,15 +803,27 @@ const styles = StyleSheet.create({
     color: 'rgba(94, 234, 212, 0.7)',
   },
 
-  // Emergency Section (Visually Distinct - Red)
+  // Emergency Section - Isolated with more separation
+  emergencySpacer: {
+    height: 32,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    marginTop: 16,
+  },
   emergencySection: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
     borderWidth: 2,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: 'rgba(239, 68, 68, 0.25)',
     borderRadius: 14,
-    padding: 16,
+    padding: 20,
     marginTop: 8,
-    marginBottom: 16,
+  },
+  emergencyQualifier: {
+    fontSize: 11,
+    color: 'rgba(239, 68, 68, 0.7)',
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 15,
   },
   emergencyHeader: {
     fontSize: 12,
@@ -549,12 +832,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   emergencyButton: {
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderWidth: 2,
-    borderColor: 'rgba(239, 68, 68, 0.5)',
+    borderColor: 'rgba(239, 68, 68, 0.4)',
     borderRadius: 12,
     padding: 14,
     alignItems: 'center',
@@ -564,30 +847,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#EF4444',
-  },
-
-  // Privacy Reassurance
-  privacyCard: {
-    backgroundColor: 'rgba(94, 234, 212, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.15)',
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 8,
-  },
-  privacyIcon: {
-    fontSize: 20,
-    marginBottom: 6,
-  },
-  privacyTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#5EEAD4',
-    marginBottom: 4,
-  },
-  privacyText: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 16,
   },
 });

@@ -24,6 +24,7 @@ import {
   getTodayDateString,
   getCurrentWindowLabel,
 } from '../services/carePlanGenerator';
+import { useTodayScope } from './useTodayScope';
 
 // ============================================================================
 // TYPES
@@ -160,28 +161,42 @@ function createInstanceGroups(
  * Hook for accessing generated daily care instances
  * @param date Optional date string (YYYY-MM-DD). Defaults to today.
  * @param patientId Optional patient ID. Defaults to DEFAULT_PATIENT_ID.
+ * @param options.skipSuppressionFilter If true, returns all instances without filtering suppressed items (used by Today's Scope screen)
  */
 export function useDailyCareInstances(
   date?: string,
-  patientId: string = DEFAULT_PATIENT_ID
+  patientId: string = DEFAULT_PATIENT_ID,
+  options?: { skipSuppressionFilter?: boolean }
 ): UseDailyCareInstancesReturn {
   const targetDate = date || getTodayDateString();
+  const skipSuppression = options?.skipSuppressionFilter ?? false;
 
   const [instances, setInstances] = useState<DailyCareInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
+  // Today's Scope: filter out suppressed items (unless skipSuppressionFilter is set)
+  const { isSuppressed, loading: scopeLoading } = useTodayScope(targetDate);
 
   /**
    * Load instances for the target date
    * Ensures instances are generated if they don't exist
    */
   const loadInstances = useCallback(async () => {
+    if (__DEV__) {
+      console.log('[useDailyCareInstances] loadInstances called for', targetDate);
+    }
     try {
       setLoading(true);
       setError(null);
 
       // Ensure instances exist for this date (generates if needed)
       const dayInstances = await ensureDailyInstances(patientId, targetDate);
+      if (__DEV__) {
+        const pending = dayInstances.filter(i => i.status === 'pending').length;
+        const completed = dayInstances.filter(i => i.status === 'completed').length;
+        console.log('[useDailyCareInstances] loaded', dayInstances.length, 'instances (pending:', pending, 'completed:', completed, ')');
+      }
       setInstances(dayInstances);
     } catch (err) {
       console.error('Error loading daily care instances:', err);
@@ -197,55 +212,75 @@ export function useDailyCareInstances(
   }, [loadInstances]);
 
   // Listen for data updates
-  useDataListener(() => {
+  useDataListener((category) => {
+    if (__DEV__) {
+      console.log('[useDailyCareInstances] useDataListener received event:', category);
+    }
     loadInstances();
   });
 
   /**
    * Compute derived state from instances
+   * Filters out suppressed items from Today's Scope (unless skipSuppressionFilter is set)
    */
   const state = useMemo((): DailyInstancesState | null => {
-    if (loading && instances.length === 0) return null;
+    if ((loading || (!skipSuppression && scopeLoading)) && instances.length === 0) return null;
+
+    // Filter out suppressed items from Today's Scope (unless skipSuppressionFilter is set)
+    // Suppression uses windowLabel as routineId and carePlanItemId as itemId
+    const visibleInstances = skipSuppression
+      ? instances
+      : instances.filter(instance => {
+          // Map instance to suppression check: windowLabel acts as routineId, carePlanItemId as itemId
+          const routineId = instance.windowLabel;
+          const itemId = instance.carePlanItemId;
+          return !isSuppressed(routineId, itemId);
+        });
+
+    if (__DEV__) {
+      const suppCount = instances.length - visibleInstances.length;
+      console.log('[useDailyCareInstances] useMemo computing state, instances.length:', instances.length, 'visible:', visibleInstances.length, 'suppressed:', suppCount, 'skipSuppression:', skipSuppression);
+    }
 
     const currentWindow = getCurrentWindowLabel();
 
-    // Group by window
+    // Group by window (using visible instances only)
     const byWindow = {
-      morning: instances.filter(i => i.windowLabel === 'morning'),
-      afternoon: instances.filter(i => i.windowLabel === 'afternoon'),
-      evening: instances.filter(i => i.windowLabel === 'evening'),
-      night: instances.filter(i => i.windowLabel === 'night'),
-      custom: instances.filter(i => i.windowLabel === 'custom'),
+      morning: visibleInstances.filter(i => i.windowLabel === 'morning'),
+      afternoon: visibleInstances.filter(i => i.windowLabel === 'afternoon'),
+      evening: visibleInstances.filter(i => i.windowLabel === 'evening'),
+      night: visibleInstances.filter(i => i.windowLabel === 'night'),
+      custom: visibleInstances.filter(i => i.windowLabel === 'custom'),
     };
 
-    // Stats
+    // Stats (using visible instances only)
     const stats = {
-      total: instances.length,
-      pending: instances.filter(i => i.status === 'pending').length,
-      completed: instances.filter(i => i.status === 'completed').length,
-      skipped: instances.filter(i => i.status === 'skipped').length,
-      missed: instances.filter(i => i.status === 'missed').length,
+      total: visibleInstances.length,
+      pending: visibleInstances.filter(i => i.status === 'pending').length,
+      completed: visibleInstances.filter(i => i.status === 'completed').length,
+      skipped: visibleInstances.filter(i => i.status === 'skipped').length,
+      missed: visibleInstances.filter(i => i.status === 'missed').length,
     };
 
-    // Find next pending instance
-    const pendingInstances = instances
+    // Find next pending instance (from visible instances)
+    const pendingInstances = visibleInstances
       .filter(i => i.status === 'pending')
       .sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
     const nextPending = pendingInstances[0] || null;
 
-    // Create groups
-    const groups = createInstanceGroups(instances, currentWindow);
+    // Create groups (from visible instances)
+    const groups = createInstanceGroups(visibleInstances, currentWindow);
 
     return {
       date: targetDate,
-      instances,
+      instances: visibleInstances,
       byWindow,
       groups,
       stats,
       nextPending,
       allComplete: stats.pending === 0 && stats.total > 0,
     };
-  }, [instances, loading, targetDate]);
+  }, [instances, loading, scopeLoading, targetDate, isSuppressed, skipSuppression]);
 
   /**
    * Complete an instance

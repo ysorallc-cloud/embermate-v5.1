@@ -21,6 +21,8 @@ import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import {
   WaterBucketConfig,
   PRIORITY_OPTIONS,
+  WaterReminderFrequency,
+  WATER_REMINDER_OPTIONS,
 } from '../../types/carePlanConfig';
 
 // ============================================================================
@@ -58,6 +60,7 @@ export default function WaterBucketScreen() {
   const priority = waterConfig?.priority ?? 'recommended';
   const dailyGoalGlasses = waterConfig?.dailyGoalGlasses ?? 8;
   const units = waterConfig?.units ?? 'glasses';
+  const reminderFrequency = waterConfig?.reminderFrequency ?? 'none';
 
   const handleToggleEnabled = useCallback(async (value: boolean) => {
     await toggleBucket('water', value);
@@ -73,6 +76,10 @@ export default function WaterBucketScreen() {
 
   const handleChangeUnits = useCallback(async (newUnits: string) => {
     await updateBucket('water', { units: newUnits });
+  }, [updateBucket]);
+
+  const handleChangeReminderFrequency = useCallback(async (frequency: WaterReminderFrequency) => {
+    await updateBucket('water', { reminderFrequency: frequency } as Partial<WaterBucketConfig>);
   }, [updateBucket]);
 
   return (
@@ -203,6 +210,33 @@ export default function WaterBucketScreen() {
                       {option.label}
                     </Text>
                     <Text style={styles.unitSubtext}>{option.subtext}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Reminder Frequency */}
+              <Text style={styles.sectionLabel}>REMINDER FREQUENCY</Text>
+              <Text style={styles.sectionDescription}>
+                Get prompts to drink water throughout the day
+              </Text>
+              <View style={styles.reminderContainer}>
+                {WATER_REMINDER_OPTIONS.filter(o => o.value !== 'custom').map(option => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.reminderOption,
+                      reminderFrequency === option.value && styles.reminderOptionSelected,
+                    ]}
+                    onPress={() => handleChangeReminderFrequency(option.value)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[
+                      styles.reminderLabel,
+                      reminderFrequency === option.value && styles.reminderLabelSelected,
+                    ]}>
+                      {option.label}
+                    </Text>
+                    <Text style={styles.reminderDescription}>{option.description}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -460,5 +494,40 @@ const styles = StyleSheet.create({
   unitSubtext: {
     fontSize: 11,
     color: Colors.textMuted,
+  },
+
+  // Reminder Frequency
+  sectionDescription: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.md,
+    marginTop: -Spacing.sm,
+  },
+  reminderContainer: {
+    gap: Spacing.sm,
+  },
+  reminderOption: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+  },
+  reminderOptionSelected: {
+    borderColor: Colors.accent,
+    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+  },
+  reminderLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  reminderLabelSelected: {
+    color: Colors.accent,
+  },
+  reminderDescription: {
+    fontSize: 13,
+    color: Colors.textSecondary,
   },
 });

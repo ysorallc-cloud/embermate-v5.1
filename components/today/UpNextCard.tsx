@@ -19,7 +19,23 @@ export const UpNextCard: React.FC<UpNextCardProps> = ({ data }) => {
     // Navigate to appropriate screen based on type
     switch (data.type) {
       case 'medication':
-        router.push('/medication-confirm');
+        // Route to contextual logging if we have Care Plan data
+        const extData = data as any;
+        if (extData.instanceId && extData.medicationName) {
+          router.push({
+            pathname: '/log-medication-plan-item',
+            params: {
+              medicationId: extData.medicationId || extData.taskId,
+              instanceId: extData.instanceId,
+              scheduledTime: extData.scheduledTime || data.time,
+              itemName: extData.medicationName || data.title,
+              itemDosage: extData.dosage || '',
+            },
+          } as any);
+        } else {
+          // Fallback to manual logging only if no Care Plan context
+          router.push('/medication-confirm');
+        }
         break;
       case 'appointment':
         router.push('/calendar');

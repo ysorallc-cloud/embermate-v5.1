@@ -90,9 +90,16 @@ export default function AppointmentFormScreen() {
         const appointmentDate = new Date(year, month - 1, day);
         setDate(appointmentDate);
 
-        const [hours, minutes] = appt.time.split(':').map(Number);
+        // Parse time safely with NaN protection
+        const timeParts = appt.time?.split(':') || [];
+        const hours = parseInt(timeParts[0], 10);
+        const minutes = parseInt(timeParts[1], 10);
         const appointmentTime = new Date();
-        appointmentTime.setHours(hours, minutes, 0, 0);
+        if (!isNaN(hours) && !isNaN(minutes)) {
+          appointmentTime.setHours(hours, minutes, 0, 0);
+        } else {
+          appointmentTime.setHours(9, 0, 0, 0); // Default to 9:00 AM
+        }
         setTime(appointmentTime);
 
         setTitle(appt.title || '');

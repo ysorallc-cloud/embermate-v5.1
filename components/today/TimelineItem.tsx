@@ -20,9 +20,23 @@ export const TimelineItem: React.FC<Props> = ({ item, isLast }) => {
   const handlePress = () => {
     switch (item.type) {
       case 'medication':
-        // Pass medication IDs as URL params
-        const medIds = item.medicationIds?.join(',') || '';
-        router.push(`/medication-confirm?ids=${medIds}` as any);
+        // Route to contextual logging if we have instance data, otherwise fallback
+        if (item.instanceId && item.medicationName) {
+          router.push({
+            pathname: '/log-medication-plan-item',
+            params: {
+              medicationId: item.medicationIds?.[0] || '',
+              instanceId: item.instanceId,
+              scheduledTime: item.time ? format(item.time, 'HH:mm') : '',
+              itemName: item.medicationName,
+              itemDosage: item.dosage || '',
+            },
+          } as any);
+        } else {
+          // Fallback to manual logging only if no Care Plan context
+          const medIds = item.medicationIds?.join(',') || '';
+          router.push(`/medication-confirm?ids=${medIds}` as any);
+        }
         break;
       case 'appointment':
         router.push('/appointments' as any);

@@ -89,6 +89,7 @@ export function DailyInstancesPanel({
           instanceId: instance.id,
           scheduledTime: instance.scheduledTime,
           itemName: instance.itemName,
+          itemDosage: instance.itemDosage || '',
           itemInstructions: instance.instructions || '',
         },
       } as any);
@@ -186,15 +187,23 @@ export function DailyInstancesPanel({
         <View>
           <Text style={styles.title}>Care Plan</Text>
           <Text style={styles.subtitle}>
-            Today's items • {stats.completed}/{stats.total} completed
+            {stats.completed}/{stats.total} completed
           </Text>
         </View>
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={() => router.push('/care-plan' as any)}
-        >
-          <Text style={styles.settingsIcon}>⚙️</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.adjustTodayButton}
+            onPress={() => router.push('/today-scope' as any)}
+          >
+            <Text style={styles.adjustTodayText}>Adjust Today</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={() => router.push('/care-plan' as any)}
+          >
+            <Text style={styles.settingsIcon}>⚙️</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Next Up Row */}
@@ -501,6 +510,20 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.5)',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  adjustTodayButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  adjustTodayText: {
+    fontSize: 12,
+    color: Colors.accent,
+    fontWeight: '500',
   },
   settingsButton: {
     padding: 4,

@@ -1,16 +1,21 @@
 // ============================================================================
-// UNDERSTAND PAGE - Insight Hub (3-Layer Hierarchy)
-// Layer 1: Insight (dominant) - What your data suggests
-// Layer 2: Exploration Tools - How to explore
-// Layer 3: Reference - What's on file
+// UNDERSTAND PAGE - Interpretive Insight Layer
+// Purpose: Explain what matters and why, not just show data
 //
-// DATA STAGES:
-// - Early (1-3 days): Orientation, not insight
-// - Emerging (4-10 days): Directional signals
-// - Established (14+ days): Pattern confidence
+// Contains:
+// - What Stands Out (top insights at a glance)
+// - What's Going Well (positive observations)
+// - Correlation Cards (with optional suggestions)
+// - Find Patterns (deeper exploration tools)
+//
+// Explicit Non-Goals:
+// - No medical advice
+// - No duplication of Now, Record, or Care Plan content
+// - No alerts, reminders, or tasks
+// - No raw analytics without interpretation
 // ============================================================================
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,378 +23,338 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing, Typography, BorderRadius } from '../../theme/theme-tokens';
-import { getMedications, Medication, getMedicationLogs } from '../../utils/medicationStorage';
-import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
-import { getDailyTracking, getDailyTrackingLogs } from '../../utils/dailyTrackingStorage';
-import { getLatestVitalsByTypes, getVitalsInRange } from '../../utils/vitalsStorage';
-import { getMorningWellness, StoredMorningWellness } from '../../utils/wellnessCheckStorage';
-import {
-  getTodayMoodLog,
-  getTodayMealsLog,
-  getTodayVitalsLog,
-  getMedicationLogs as getCentralMedLogs,
-} from '../../utils/centralStorage';
-import {
-  getAllBaselines,
-  getAllTodayVsBaseline,
-  BaselineData,
-  TodayVsBaseline,
-  getBaselineLanguage,
-  MIN_DAYS_FOR_BASELINE,
-} from '../../utils/baselineStorage';
-import {
-  getRhythm,
-  detectDeviation,
-  Rhythm,
-  DeviationAnalysis,
-} from '../../utils/rhythmStorage';
-import { useEnabledBuckets } from '../../hooks/useCarePlanConfig';
-import { BucketType } from '../../types/carePlanConfig';
-
-// Aurora Components
+import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { GlassCard } from '../../components/aurora/GlassCard';
+import {
+  loadUnderstandPageData,
+  dismissSuggestion,
+  dismissSampleData,
+  getRouteOrFallback,
+  TimeRange,
+  UnderstandPageData,
+  StandOutInsight,
+  PositiveObservation,
+  CorrelationCard,
+  ConfidenceLevel,
+} from '../../utils/understandInsights';
 
-// Track first use date
-const FIRST_USE_KEY = '@embermate_first_use_date';
+// ============================================================================
+// CONFIDENCE BADGE COMPONENT
+// ============================================================================
 
-type DataStage = 'early' | 'emerging' | 'established';
-
-interface DataMetrics {
-  daysOfData: number;
-  stage: DataStage;
-  medAdherenceRate: number;
-  medConsistencyStreak: number;
-  vitalsLoggedDays: number;
-  moodLoggedDays: number;
-  mealsLoggedDays: number;
-  totalDataPoints: number;
-  hasEnoughData: boolean;
+interface ConfidenceBadgeProps {
+  level: ConfidenceLevel;
 }
 
+function ConfidenceBadge({ level }: ConfidenceBadgeProps) {
+  const config = {
+    strong: { color: 'rgba(94, 234, 212, 0.8)', bg: 'rgba(94, 234, 212, 0.15)' },
+    emerging: { color: 'rgba(251, 191, 36, 0.8)', bg: 'rgba(251, 191, 36, 0.15)' },
+    early: { color: 'rgba(148, 163, 184, 0.8)', bg: 'rgba(148, 163, 184, 0.15)' },
+  };
+
+  const labels = {
+    strong: 'Strong pattern',
+    emerging: 'Emerging pattern',
+    early: 'Early signal',
+  };
+
+  const { color, bg } = config[level];
+
+  return (
+    <View style={[styles.confidenceBadge, { backgroundColor: bg }]}>
+      <View style={[styles.confidenceDot, { backgroundColor: color }]} />
+      <Text style={[styles.confidenceText, { color }]}>{labels[level]}</Text>
+    </View>
+  );
+}
+
+// ============================================================================
+// TIME RANGE TOGGLE COMPONENT
+// ============================================================================
+
+interface TimeRangeToggleProps {
+  value: TimeRange;
+  onChange: (range: TimeRange) => void;
+}
+
+function TimeRangeToggle({ value, onChange }: TimeRangeToggleProps) {
+  const options: TimeRange[] = [7, 14, 30];
+
+  return (
+    <View style={styles.timeRangeContainer}>
+      {options.map((range) => (
+        <TouchableOpacity
+          key={range}
+          style={[
+            styles.timeRangeOption,
+            value === range && styles.timeRangeOptionSelected,
+          ]}
+          onPress={() => onChange(range)}
+          activeOpacity={0.7}
+        >
+          <Text style={[
+            styles.timeRangeText,
+            value === range && styles.timeRangeTextSelected,
+          ]}>
+            {range}d
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
+// ============================================================================
+// STAND OUT INSIGHT ROW COMPONENT
+// ============================================================================
+
+interface StandOutRowProps {
+  insight: StandOutInsight;
+  onLinkPress?: () => void;
+}
+
+function StandOutRow({ insight, onLinkPress }: StandOutRowProps) {
+  return (
+    <View style={styles.standOutRow}>
+      <View style={styles.standOutBullet} />
+      <View style={styles.standOutContent}>
+        <Text style={styles.standOutText}>{insight.text}</Text>
+        {insight.linkRoute && insight.linkLabel && (
+          <TouchableOpacity onPress={onLinkPress} activeOpacity={0.7}>
+            <Text style={styles.standOutLink}>{insight.linkLabel} →</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+}
+
+// ============================================================================
+// POSITIVE OBSERVATION ROW COMPONENT
+// ============================================================================
+
+interface PositiveRowProps {
+  observation: PositiveObservation;
+}
+
+function PositiveRow({ observation }: PositiveRowProps) {
+  return (
+    <View style={styles.positiveRow}>
+      <Text style={styles.positiveIcon}>✓</Text>
+      <Text style={styles.positiveText}>{observation.text}</Text>
+    </View>
+  );
+}
+
+// ============================================================================
+// CORRELATION CARD COMPONENT
+// ============================================================================
+
+interface CorrelationCardComponentProps {
+  card: CorrelationCard;
+  onDismissSuggestion: (cardId: string) => void;
+}
+
+function CorrelationCardComponent({ card, onDismissSuggestion }: CorrelationCardComponentProps) {
+  const [suggestionHidden, setSuggestionHidden] = useState(card.suggestionDismissed);
+
+  const handleDismiss = () => {
+    setSuggestionHidden(true);
+    onDismissSuggestion(card.id);
+  };
+
+  return (
+    <GlassCard style={styles.correlationCard}>
+      <View style={styles.correlationHeader}>
+        <Text style={styles.correlationTitle}>{card.title}</Text>
+        <ConfidenceBadge level={card.confidence} />
+      </View>
+
+      <Text style={styles.correlationInsight}>{card.insight}</Text>
+
+      <Text style={styles.correlationDataPoints}>
+        Based on {card.dataPoints} days of data
+      </Text>
+
+      {/* You Could Try Section */}
+      {card.suggestion && !suggestionHidden && (
+        <View style={styles.suggestionContainer}>
+          <View style={styles.suggestionHeader}>
+            <Text style={styles.suggestionLabel}>You could try</Text>
+            <TouchableOpacity
+              onPress={handleDismiss}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.suggestionDismiss}>×</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.suggestionText}>{card.suggestion}</Text>
+        </View>
+      )}
+    </GlassCard>
+  );
+}
+
+// ============================================================================
+// PATTERN TOOL COMPONENT
+// ============================================================================
+
+interface PatternToolProps {
+  icon: string;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+}
+
+function PatternTool({ icon, title, subtitle, onPress }: PatternToolProps) {
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+      <GlassCard style={styles.toolCard}>
+        <View style={styles.toolContent}>
+          <View style={styles.toolIcon}>
+            <Text style={styles.toolIconText}>{icon}</Text>
+          </View>
+          <View style={styles.toolText}>
+            <Text style={styles.toolTitle}>{title}</Text>
+            <Text style={styles.toolSubtitle}>{subtitle}</Text>
+          </View>
+          <Text style={styles.chevron}>›</Text>
+        </View>
+      </GlassCard>
+    </TouchableOpacity>
+  );
+}
+
+// ============================================================================
+// SAMPLE DATA BANNER COMPONENT
+// ============================================================================
+
+interface SampleDataBannerProps {
+  onDismiss: () => void;
+}
+
+function SampleDataBanner({ onDismiss }: SampleDataBannerProps) {
+  return (
+    <View style={styles.sampleBanner}>
+      <View style={styles.sampleBannerContent}>
+        <Text style={styles.sampleBannerIcon}>✨</Text>
+        <View style={styles.sampleBannerText}>
+          <Text style={styles.sampleBannerTitle}>Preview Mode</Text>
+          <Text style={styles.sampleBannerSubtitle}>
+            This is sample data showing what insights will look like. Start tracking to see your real patterns.
+          </Text>
+        </View>
+      </View>
+      <TouchableOpacity
+        style={styles.sampleBannerDismiss}
+        onPress={onDismiss}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text style={styles.sampleBannerDismissText}>Got it</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
 export default function UnderstandScreen() {
   const router = useRouter();
-  const { enabledBuckets } = useEnabledBuckets();
   const [refreshing, setRefreshing] = useState(false);
-  const [medications, setMedications] = useState<Medication[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [dailyTracking, setDailyTracking] = useState<any>(null);
-  const [wellnessCheck, setWellnessCheck] = useState<StoredMorningWellness | null>(null);
-  const [latestSystolic, setLatestSystolic] = useState<number | null>(null);
-  const [latestDiastolic, setLatestDiastolic] = useState<number | null>(null);
-  const [dataMetrics, setDataMetrics] = useState<DataMetrics>({
-    daysOfData: 0,
-    stage: 'early',
-    medAdherenceRate: 0,
-    medConsistencyStreak: 0,
-    vitalsLoggedDays: 0,
-    moodLoggedDays: 0,
-    mealsLoggedDays: 0,
-    totalDataPoints: 0,
-    hasEnoughData: false,
-  });
-  const [baselineData, setBaselineData] = useState<BaselineData | null>(null);
-  const [todayVsBaseline, setTodayVsBaseline] = useState<TodayVsBaseline[]>([]);
-  const [rhythm, setRhythm] = useState<Rhythm | null>(null);
-  const [deviation, setDeviation] = useState<DeviationAnalysis | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState<TimeRange>(14);
+  const [pageData, setPageData] = useState<UnderstandPageData | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [])
+    }, [timeRange])
   );
 
   const loadData = async () => {
     try {
-      // Track first use date
-      let firstUseDate = await AsyncStorage.getItem(FIRST_USE_KEY);
-      if (!firstUseDate) {
-        firstUseDate = new Date().toISOString();
-        await AsyncStorage.setItem(FIRST_USE_KEY, firstUseDate);
-      }
-
-      const daysSinceFirstUse = Math.floor(
-        (Date.now() - new Date(firstUseDate).getTime()) / (1000 * 60 * 60 * 24)
-      ) + 1; // +1 to include today
-
-      const meds = await getMedications();
-      const activeMeds = meds.filter((m) => m.active);
-      setMedications(activeMeds);
-
-      const appts = await getUpcomingAppointments();
-      setAppointments(appts);
-
-      const today = new Date().toISOString().split('T')[0];
-      const tracking = await getDailyTracking(today);
-      setDailyTracking(tracking);
-
-      const wellness = await getMorningWellness(today);
-      setWellnessCheck(wellness);
-
-      // Load BP vitals
-      const latestVitals = await getLatestVitalsByTypes(['systolic', 'diastolic']);
-      if (latestVitals.systolic) setLatestSystolic(latestVitals.systolic.value);
-      if (latestVitals.diastolic) setLatestDiastolic(latestVitals.diastolic.value);
-
-      // Calculate data metrics
-      const metrics = await calculateDataMetrics(daysSinceFirstUse, activeMeds);
-      setDataMetrics(metrics);
-
-      // Load baseline data
-      const baselines = await getAllBaselines();
-      setBaselineData(baselines);
-
-      if (baselines.hasAnyBaseline) {
-        const comparisons = await getAllTodayVsBaseline();
-        setTodayVsBaseline(comparisons);
-      } else {
-        setTodayVsBaseline([]);
-      }
-
-      // Load rhythm data for anchoring insights
-      const [rhythmData, deviationData] = await Promise.all([
-        getRhythm(),
-        detectDeviation(),
-      ]);
-      setRhythm(rhythmData);
-      setDeviation(deviationData);
+      setLoading(true);
+      const data = await loadUnderstandPageData(timeRange);
+      setPageData(data);
     } catch (error) {
       console.error('Error loading Understand data:', error);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const calculateDataMetrics = async (
-    daysSinceFirstUse: number,
-    activeMeds: Medication[]
-  ): Promise<DataMetrics> => {
-    // Determine stage
-    let stage: DataStage = 'early';
-    if (daysSinceFirstUse >= 14) stage = 'established';
-    else if (daysSinceFirstUse >= 4) stage = 'emerging';
-
-    // Get historical data for the period
-    const endDate = new Date().toISOString().split('T')[0];
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - Math.min(daysSinceFirstUse, 30));
-    const startDateStr = startDate.toISOString().split('T')[0];
-
-    // Get tracking logs
-    let trackingLogs: any[] = [];
-    try {
-      trackingLogs = await getDailyTrackingLogs(startDateStr, endDate);
-    } catch (e) {
-      trackingLogs = [];
-    }
-
-    // Calculate medication adherence
-    let medAdherenceRate = 100;
-    let medConsistencyStreak = 0;
-    if (activeMeds.length > 0) {
-      try {
-        const medLogs = await getMedicationLogs();
-        const recentLogs = medLogs.filter(
-          log => new Date(log.timestamp) >= startDate
-        );
-        const expectedDoses = activeMeds.length * daysSinceFirstUse;
-        const takenDoses = recentLogs.filter(log => log.taken).length;
-        medAdherenceRate = expectedDoses > 0 ? Math.round((takenDoses / expectedDoses) * 100) : 100;
-
-        // Calculate streak (simplified - consecutive days with all meds taken)
-        // This would need more complex logic for real streak calculation
-        medConsistencyStreak = medAdherenceRate >= 80 ? Math.min(daysSinceFirstUse, 7) : 0;
-      } catch (e) {
-        medAdherenceRate = 0;
-      }
-    }
-
-    // Count days with different types of logs
-    const vitalsLoggedDays = trackingLogs.filter(t =>
-      t.vitals?.systolic || t.vitals?.diastolic || t.vitals?.heartRate
-    ).length;
-    const moodLoggedDays = trackingLogs.filter(t =>
-      t.mood !== null && t.mood !== undefined
-    ).length;
-    const mealsLoggedDays = trackingLogs.filter(t =>
-      t.meals && t.meals.length > 0
-    ).length;
-
-    // Total data points
-    const totalDataPoints = vitalsLoggedDays + moodLoggedDays + mealsLoggedDays +
-      (activeMeds.length > 0 ? daysSinceFirstUse : 0);
-
-    return {
-      daysOfData: daysSinceFirstUse,
-      stage,
-      medAdherenceRate,
-      medConsistencyStreak,
-      vitalsLoggedDays,
-      moodLoggedDays,
-      mealsLoggedDays,
-      totalDataPoints,
-      hasEnoughData: totalDataPoints >= 3,
-    };
   };
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
-  }, []);
+  }, [timeRange]);
 
-  // Helper to check if a bucket is enabled (or no config exists = show all)
-  const isBucketEnabled = useCallback((bucket: BucketType): boolean => {
-    // If no buckets are enabled (no config), show all insights
-    if (enabledBuckets.length === 0) return true;
-    return enabledBuckets.includes(bucket);
-  }, [enabledBuckets]);
+  const handleTimeRangeChange = (range: TimeRange) => {
+    setTimeRange(range);
+  };
 
-  // Generate "What's normal" items based on baselines (filtered by enabled buckets)
-  const getWhatsNormal = useMemo((): string[] => {
-    if (!baselineData || !baselineData.hasAnyBaseline) return [];
+  const handleDismissSuggestion = async (cardId: string) => {
+    await dismissSuggestion(`suggestion-${cardId}`);
+  };
 
-    const items: string[] = [];
-    const confident = baselineData.daysOfData >= 5;
-    const adverb = confident ? 'typically' : 'usually';
+  const handleDismissSampleData = async () => {
+    await dismissSampleData();
+    await loadData();
+  };
 
-    // Only show meals insight if meals bucket is enabled
-    if (isBucketEnabled('meals') && baselineData.meals && baselineData.meals.dailyCount > 0) {
-      items.push(`Meals are ${adverb} logged ${baselineData.meals.dailyCount} time${baselineData.meals.dailyCount !== 1 ? 's' : ''} per day`);
+  const navigateToRoute = (route: string | undefined) => {
+    if (!route) return;
+    const validRoute = getRouteOrFallback(route);
+    if (validRoute) {
+      router.push(validRoute as any);
     }
+  };
 
-    // Only show vitals insight if vitals bucket is enabled
-    if (isBucketEnabled('vitals') && baselineData.vitals && baselineData.vitals.dailyCount > 0) {
-      items.push(`Vitals are ${adverb} checked ${baselineData.vitals.dailyCount === 1 ? 'once' : baselineData.vitals.dailyCount + ' times'} per day`);
-    }
-
-    // Only show meds insight if meds bucket is enabled
-    if (isBucketEnabled('meds') && baselineData.meds && baselineData.meds.dailyCount > 0) {
-      items.push(`${baselineData.meds.dailyCount} medication${baselineData.meds.dailyCount !== 1 ? 's' : ''} ${adverb} taken daily`);
-    }
-
-    return items;
-  }, [baselineData, isBucketEnabled]);
-
-  // Generate "What's different today" items (filtered by enabled buckets)
-  const getWhatsDifferent = useMemo((): string[] => {
-    if (!baselineData || !baselineData.hasAnyBaseline || todayVsBaseline.length === 0) return [];
-
-    const items: string[] = [];
-
-    // Map comparison categories to bucket types
-    const categoryToBucket: Record<string, BucketType> = {
-      meals: 'meals',
-      vitals: 'vitals',
-      meds: 'meds',
-    };
-
-    for (const comparison of todayVsBaseline) {
-      // Skip if this bucket is not enabled
-      const bucket = categoryToBucket[comparison.category];
-      if (bucket && !isBucketEnabled(bucket)) continue;
-
-      if (comparison.belowBaseline && comparison.today === 0) {
-        switch (comparison.category) {
-          case 'meals':
-            items.push("Meals haven't been logged yet today");
-            break;
-          case 'vitals':
-            items.push("Vitals haven't been logged yet today");
-            break;
-          case 'meds':
-            items.push("Medications haven't been logged yet today");
-            break;
-        }
-      } else if (comparison.belowBaseline) {
-        switch (comparison.category) {
-          case 'meals':
-            items.push(`Meals are lower than usual (${comparison.today} of ${comparison.baseline})`);
-            break;
-          case 'vitals':
-            items.push(`Vitals are lower than usual (${comparison.today} of ${comparison.baseline})`);
-            break;
-          case 'meds':
-            items.push(`Fewer medications logged than usual (${comparison.today} of ${comparison.baseline})`);
-            break;
-        }
-      }
-    }
-
-    return items;
-  }, [baselineData, todayVsBaseline, isBucketEnabled]);
-
-  // Check if baseline is still forming
-  const isBaselineForming = useMemo(() => {
-    return !baselineData || baselineData.daysOfData < MIN_DAYS_FOR_BASELINE || !baselineData.hasAnyBaseline;
-  }, [baselineData]);
-
-  // Calculate stats
-  const totalMeds = medications.length;
-
-  // Exploration tools (Layer 2)
-  const EXPLORATION_TOOLS = [
+  // Pattern exploration tools
+  const PATTERN_TOOLS = [
     {
       id: 'insights',
-      icon: '🧠',
-      title: 'Insights & Correlations',
-      subtitle: 'Pattern discovery',
+      icon: '🔍',
+      title: 'Deeper Patterns',
+      subtitle: 'Explore all correlations',
       route: '/correlation-report',
     },
     {
       id: 'trends',
       icon: '📈',
-      title: 'Trends',
-      subtitle: 'Time-based understanding',
-      route: '/vitals',
+      title: 'Trends Over Time',
+      subtitle: 'See how things change',
+      route: '/trends',
     },
     {
       id: 'reports',
       icon: '📋',
       title: 'Reports',
-      subtitle: 'Export & share',
+      subtitle: 'Shareable summaries',
       route: '/hub/reports',
     },
   ];
 
-  // Reference items (Layer 3 - demoted)
-  const REFERENCE_ITEMS = [
-    {
-      id: 'medications',
-      icon: '💊',
-      title: 'Medications',
-      route: '/medications',
-    },
-    {
-      id: 'appointments',
-      icon: '📅',
-      title: 'Appointments',
-      route: '/appointments',
-    },
-    {
-      id: 'contacts',
-      icon: '📞',
-      title: 'Emergency contacts',
-      route: '/emergency',
-    },
-  ];
-
-  // Get card style based on baseline status
-  const getInsightCardStyle = () => {
-    if (isBaselineForming) {
-      return styles.insightCardEarly;
-    }
-    if (getWhatsDifferent.length > 0) {
-      return styles.insightCardEmerging; // Amber for differences
-    }
-    return styles.insightCardEstablished; // Teal for normal
-  };
+  if (loading && !pageData) {
+    return (
+      <View style={styles.container}>
+        <AuroraBackground variant="hub" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.accent} />
+          <Text style={styles.loadingText}>Analyzing patterns...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -410,184 +375,140 @@ export default function UnderstandScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.headerText}>
-              <Text style={styles.headerTitle}>Understand</Text>
-              <Text style={styles.headerSubtitle}>What your data suggests</Text>
+            <View style={styles.headerTop}>
+              <View style={styles.headerText}>
+                <Text style={styles.headerTitle}>Understand</Text>
+                <Text style={styles.headerSubtitle}>
+                  {pageData?.framing.subtitle || "See what's forming"}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={() => router.push('/settings')}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Settings"
+              >
+                <Text style={styles.settingsIcon}>⚙️</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={() => router.push('/settings')}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Settings"
-            >
-              <Text style={styles.settingsIcon}>⚙️</Text>
-            </TouchableOpacity>
+
+            {/* Time Range Toggle */}
+            <TimeRangeToggle value={timeRange} onChange={handleTimeRangeChange} />
           </View>
 
-          {/* Layer 1: Insight Card (Dominant) */}
-          <View style={[styles.insightCard, getInsightCardStyle()]}>
-            {/* Gradient background - varies by state */}
-            <LinearGradient
-              colors={
-                isBaselineForming
-                  ? [
-                      'rgba(100, 116, 139, 0.2)',   // Slate
-                      'rgba(148, 163, 184, 0.15)',
-                      'rgba(71, 85, 105, 0.18)',
-                    ]
-                  : getWhatsDifferent.length > 0
-                  ? [
-                      'rgba(251, 191, 36, 0.2)',    // Amber
-                      'rgba(245, 158, 11, 0.15)',
-                      'rgba(217, 119, 6, 0.12)',
-                    ]
-                  : [
-                      'rgba(59, 130, 246, 0.2)',    // Blue → Purple → Teal
-                      'rgba(139, 92, 246, 0.18)',
-                      'rgba(94, 234, 212, 0.15)',
-                    ]
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.insightCardGradient}
-            />
-            <View style={styles.insightContent}>
-              {/* Baseline forming state */}
-              {isBaselineForming ? (
-                <>
-                  <Text style={styles.insightSectionTitle}>Building your routine</Text>
-                  <Text style={styles.insightSubText}>
-                    We're learning what a typical day looks like. Insights will improve as more data is recorded.
+          {/* Sample Data Banner */}
+          {pageData?.isSampleData && (
+            <SampleDataBanner onDismiss={handleDismissSampleData} />
+          )}
+
+          {/* What Stands Out Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionHeader}>WHAT STANDS OUT</Text>
+            <View style={styles.standOutCard}>
+              {pageData?.standOutInsights.map((insight) => (
+                <StandOutRow
+                  key={insight.id}
+                  insight={insight}
+                  onLinkPress={() => navigateToRoute(insight.linkRoute)}
+                />
+              ))}
+
+              {/* Data context badge */}
+              {pageData && pageData.daysOfData > 0 && (
+                <View style={styles.dataContextBadge}>
+                  <Text style={styles.dataContextText}>
+                    Based on {pageData.daysOfData} days of tracking
                   </Text>
-                  {baselineData && baselineData.daysOfData > 0 && (
-                    <View style={styles.dataContextBadge}>
-                      <Text style={styles.dataContextText}>
-                        Day {baselineData.daysOfData} of tracking
-                      </Text>
-                    </View>
-                  )}
-                </>
-              ) : (
-                <>
-                  {/* Rhythm anchor - shows when rhythm exists */}
-                  {rhythm && (
-                    <Text style={styles.insightAnchor}>
-                      Compared to your usual rhythm...
-                    </Text>
-                  )}
-
-                  {/* Section 1: What's normal */}
-                  {getWhatsNormal.length > 0 && (
-                    <View style={styles.insightSection}>
-                      <Text style={styles.insightSectionTitle}>What's normal</Text>
-                      {getWhatsNormal.map((item, index) => (
-                        <Text key={index} style={styles.insightBullet}>• {item}</Text>
-                      ))}
-                    </View>
-                  )}
-
-                  {/* Section 2: What's different (only if true) */}
-                  {getWhatsDifferent.length > 0 && (
-                    <View style={styles.insightSection}>
-                      <Text style={styles.insightSectionTitleDifferent}>What's different today</Text>
-                      {getWhatsDifferent.map((item, index) => (
-                        <Text key={index} style={styles.insightBulletDifferent}>• {item}</Text>
-                      ))}
-                    </View>
-                  )}
-
-                  {/* If nothing different, just show normal - no invented insight */}
-                  {getWhatsDifferent.length === 0 && getWhatsNormal.length > 0 && (
-                    <View style={styles.dataContextBadge}>
-                      <Text style={styles.dataContextText}>
-                        Based on {baselineData?.daysOfData || 0} days of data
-                      </Text>
-                    </View>
-                  )}
-                </>
+                </View>
               )}
             </View>
           </View>
 
-          {/* Deviation Insight Card - Only shows when significant deviation detected and relevant buckets enabled */}
-          {deviation?.hasDeviation && (
-            (isBucketEnabled('vitals') && deviation.categories.vitals) ||
-            (isBucketEnabled('meals') && deviation.categories.meals)
-          ) && (
-            <View style={[styles.insightCard, styles.deviationCard]}>
-              <View style={styles.insightContent}>
-                <Text style={styles.insightAnchor}>
-                  Compared to your usual rhythm...
-                </Text>
-                <Text style={styles.insightSubText}>
-                  This week looks different from your typical pattern.
-                  {isBucketEnabled('vitals') && deviation.categories.vitals && ' Vitals have been logged less often than usual.'}
-                  {isBucketEnabled('meals') && deviation.categories.meals && ' Meals have been logged less frequently.'}
-                  {' '}Something may have shifted.
-                </Text>
+          {/* What's Going Well Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionHeader}>WHAT'S GOING WELL</Text>
+            <View style={styles.positiveCard}>
+              {pageData?.positiveObservations.map((observation) => (
+                <PositiveRow key={observation.id} observation={observation} />
+              ))}
+            </View>
+          </View>
+
+          {/* Correlation Cards */}
+          {pageData && pageData.correlationCards.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionHeader}>PATTERNS DETECTED</Text>
+              <View style={styles.correlationsContainer}>
+                {pageData.correlationCards.slice(0, 3).map((card) => (
+                  <CorrelationCardComponent
+                    key={card.id}
+                    card={card}
+                    onDismissSuggestion={handleDismissSuggestion}
+                  />
+                ))}
               </View>
             </View>
           )}
 
-          {/* Layer 2: Exploration Tools */}
+          {/* Find Patterns Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionHeader}>EXPLORE YOUR DATA</Text>
+            <Text style={styles.sectionHeader}>EXPLORE MORE</Text>
             <View style={styles.toolsContainer}>
-              {EXPLORATION_TOOLS.map((tool) => (
-                <TouchableOpacity
+              {PATTERN_TOOLS.map((tool) => (
+                <PatternTool
                   key={tool.id}
-                  onPress={() => router.push(tool.route as any)}
-                  activeOpacity={0.7}
-                >
-                  <GlassCard style={styles.toolCard}>
-                    <View style={styles.toolContent}>
-                      <View style={styles.toolIcon}>
-                        <Text style={styles.toolIconText}>{tool.icon}</Text>
-                      </View>
-                      <View style={styles.toolText}>
-                        <Text style={styles.toolTitle}>{tool.title}</Text>
-                        <Text style={styles.toolSubtitle}>{tool.subtitle}</Text>
-                      </View>
-                      <Text style={styles.chevron}>›</Text>
-                    </View>
-                  </GlassCard>
-                </TouchableOpacity>
+                  icon={tool.icon}
+                  title={tool.title}
+                  subtitle={tool.subtitle}
+                  onPress={() => navigateToRoute(tool.route)}
+                />
               ))}
             </View>
           </View>
 
-          {/* Layer 3: Reference (Demoted) */}
-          <View style={styles.section}>
-            <Text style={styles.sectionHeader}>RECORDS & REFERENCE</Text>
-            <View style={styles.referenceContainer}>
-              {REFERENCE_ITEMS.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  onPress={() => router.push(item.route as any)}
-                  activeOpacity={0.7}
-                >
-                  <GlassCard style={styles.referenceCard}>
-                    <View style={styles.referenceContent}>
-                      <View style={styles.referenceIcon}>
-                        <Text style={styles.referenceIconText}>{item.icon}</Text>
-                      </View>
-                      <Text style={styles.referenceTitle}>{item.title}</Text>
-                      <Text style={styles.referenceChevron}>›</Text>
-                    </View>
-                  </GlassCard>
-                </TouchableOpacity>
-              ))}
-            </View>
+          {/* Cross-linking hints */}
+          <View style={styles.crossLinkSection}>
+            <TouchableOpacity
+              style={styles.crossLink}
+              onPress={() => router.push('/(tabs)/now')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.crossLinkText}>
+                Related to mornings? →{' '}
+                <Text style={styles.crossLinkAction}>View in Now</Text>
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.crossLink}
+              onPress={() => router.push('/care-plan' as any)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.crossLinkText}>
+                Want different reminders? →{' '}
+                <Text style={styles.crossLinkAction}>Edit Care Plan</Text>
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Bottom spacing */}
+          {/* Guiding question */}
+          <View style={styles.guidingSection}>
+            <Text style={styles.guidingText}>
+              What would you want to tell the doctor about this {timeRange === 7 ? 'week' : timeRange === 14 ? 'fortnight' : 'month'}?
+            </Text>
+          </View>
+
           <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>
     </View>
   );
 }
+
+// ============================================================================
+// STYLES
+// ============================================================================
 
 const styles = StyleSheet.create({
   container: {
@@ -603,16 +524,28 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.xl,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
 
   // Header
   header: {
     paddingTop: 60,
-    paddingHorizontal: 0,
     paddingBottom: 12,
+    marginBottom: 16,
+  },
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   headerText: {
     flex: 1,
@@ -643,101 +576,35 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
 
-  // Layer 1: Insight Card (Dominant)
-  insightCard: {
-    marginBottom: 28,
-    borderWidth: 1.5,
-    padding: 20,
-    borderRadius: 16,
-    overflow: 'hidden',
+  // Time Range Toggle
+  timeRangeContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 10,
+    padding: 4,
+    gap: 4,
   },
-  insightCardEarly: {
-    backgroundColor: 'transparent', // Use gradient
-    borderColor: 'rgba(148, 163, 184, 0.5)',
+  timeRangeOption: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 8,
   },
-  insightCardEmerging: {
-    backgroundColor: 'transparent', // Use gradient
-    borderColor: 'rgba(251, 191, 36, 0.5)',
+  timeRangeOptionSelected: {
+    backgroundColor: 'rgba(94, 234, 212, 0.2)',
   },
-  insightCardEstablished: {
-    backgroundColor: 'transparent', // Use gradient
-    borderColor: 'rgba(94, 234, 212, 0.5)',
-  },
-  insightCardGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    opacity: 1,
-  },
-  insightContent: {
-    gap: 14,
-  },
-  insightSection: {
-    gap: 6,
-  },
-  insightSectionTitle: {
+  timeRangeText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.85)',
-    marginBottom: 6,
-    letterSpacing: 0.3,
-  },
-  insightSectionTitleDifferent: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: 'rgba(251, 191, 36, 0.95)',
-    marginBottom: 6,
-    letterSpacing: 0.3,
-  },
-  insightBullet: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.75)',
-    lineHeight: 21,
-    paddingLeft: 4,
-  },
-  insightBulletDifferent: {
-    fontSize: 14,
-    color: 'rgba(251, 191, 36, 0.85)',
-    lineHeight: 21,
-    paddingLeft: 4,
-  },
-  dataContextBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    marginTop: 6,
-  },
-  dataContextText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.65)',
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-  insightSubText: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.75)',
-    lineHeight: 20,
-  },
-  insightAnchor: {
-    fontSize: 12,
-    color: 'rgba(74, 222, 128, 0.7)',
-    marginBottom: 8,
     fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.5)',
   },
-  deviationCard: {
-    backgroundColor: 'rgba(245, 158, 11, 0.05)',
-    borderColor: 'rgba(245, 158, 11, 0.15)',
-    marginBottom: 28,
+  timeRangeTextSelected: {
+    color: Colors.accent,
   },
 
   // Sections
   section: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   sectionHeader: {
     fontSize: 11,
@@ -749,17 +616,171 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
 
-  // Layer 2: Exploration Tools (More prominent with teal accent)
+  // What Stands Out Card
+  standOutCard: {
+    backgroundColor: 'rgba(94, 234, 212, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(94, 234, 212, 0.15)',
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+  },
+  standOutRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  standOutBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.accent,
+    marginTop: 7,
+  },
+  standOutContent: {
+    flex: 1,
+  },
+  standOutText: {
+    fontSize: 15,
+    color: Colors.textPrimary,
+    lineHeight: 22,
+  },
+  standOutLink: {
+    fontSize: 13,
+    color: Colors.accent,
+    marginTop: 4,
+  },
+  dataContextBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  dataContextText: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+
+  // What's Going Well Card
+  positiveCard: {
+    backgroundColor: 'rgba(34, 197, 94, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.15)',
+    borderRadius: 16,
+    padding: 16,
+    gap: 10,
+  },
+  positiveRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  positiveIcon: {
+    fontSize: 14,
+    color: 'rgba(34, 197, 94, 0.8)',
+    marginTop: 2,
+  },
+  positiveText: {
+    flex: 1,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 20,
+  },
+
+  // Correlation Cards
+  correlationsContainer: {
+    gap: 12,
+  },
+  correlationCard: {
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+  },
+  correlationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  correlationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  correlationInsight: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.75)',
+    lineHeight: 21,
+    marginBottom: 8,
+  },
+  correlationDataPoints: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.4)',
+  },
+
+  // Confidence Badge
+  confidenceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    gap: 5,
+  },
+  confidenceDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  confidenceText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+
+  // Suggestion Section
+  suggestionContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  suggestionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  suggestionLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(251, 191, 36, 0.8)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  suggestionDismiss: {
+    fontSize: 18,
+    color: 'rgba(255, 255, 255, 0.3)',
+    fontWeight: '300',
+  },
+  suggestionText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+    lineHeight: 19,
+    fontStyle: 'italic',
+  },
+
+  // Pattern Tools
   toolsContainer: {
     gap: 10,
   },
   toolCard: {
     padding: 14,
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
-    borderColor: 'rgba(94, 234, 212, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderLeftWidth: 3,
-    borderLeftColor: 'rgba(94, 234, 212, 0.5)',
   },
   toolContent: {
     flexDirection: 'row',
@@ -770,7 +791,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(94, 234, 212, 0.2)',
+    backgroundColor: 'rgba(94, 234, 212, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -790,51 +811,89 @@ const styles = StyleSheet.create({
   },
   toolSubtitle: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: 'rgba(255, 255, 255, 0.55)',
     marginTop: 2,
   },
   chevron: {
     fontSize: 18,
-    color: 'rgba(94, 234, 212, 0.6)',
+    color: 'rgba(94, 234, 212, 0.5)',
     fontWeight: '600',
   },
 
-  // Layer 3: Reference (Subtle with minimal borders)
-  referenceContainer: {
+  // Cross-linking
+  crossLinkSection: {
     gap: 8,
+    marginBottom: 20,
   },
-  referenceCard: {
-    padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderRadius: 12,
+  crossLink: {
+    paddingVertical: 8,
   },
-  referenceContent: {
-    flexDirection: 'row',
+  crossLinkText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+  crossLinkAction: {
+    color: Colors.accent,
+  },
+
+  // Guiding Section
+  guidingSection: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    gap: 12,
   },
-  referenceIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: 'rgba(148, 163, 184, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  referenceIconText: {
-    fontSize: 16,
-    opacity: 0.7,
-  },
-  referenceTitle: {
-    flex: 1,
+  guidingText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.75)',
-  },
-  referenceChevron: {
-    fontSize: 14,
+    fontWeight: '400',
+    fontStyle: 'italic',
     color: 'rgba(255, 255, 255, 0.4)',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+
+  // Sample Data Banner
+  sampleBanner: {
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 20,
+  },
+  sampleBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 10,
+  },
+  sampleBannerIcon: {
+    fontSize: 18,
+    marginTop: 2,
+  },
+  sampleBannerText: {
+    flex: 1,
+  },
+  sampleBannerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#A78BFA',
+    marginBottom: 4,
+  },
+  sampleBannerSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 18,
+  },
+  sampleBannerDismiss: {
+    alignSelf: 'flex-end',
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  sampleBannerDismissText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#A78BFA',
   },
 });

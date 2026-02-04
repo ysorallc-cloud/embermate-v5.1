@@ -156,7 +156,7 @@ export function NoCarePlanBanner({ onSetup }: { onSetup?: () => void }) {
       message="No Care Plan set up yet"
       actionLabel="Set up Care Plan"
       onAction={onSetup}
-      actionRoute={onSetup ? undefined : '/care-plan-settings'}
+      actionRoute={onSetup ? undefined : '/care-plan'}
     />
   );
 }
