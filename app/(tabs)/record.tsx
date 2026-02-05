@@ -1,7 +1,7 @@
 // ============================================================================
-// RECORD PAGE - Care Plan Driven Capture Tool
-// Entry points to log screens, driven by Care Plan configuration.
-// Prioritizes enabled plan items and provides contextual guidance.
+// RECORD PAGE - Fast, Personalized Care Logging
+// Entry points to log screens. Optimized for speed and muscle memory.
+// Prioritizes quick actions and frequently-used categories.
 // ============================================================================
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
@@ -24,6 +25,7 @@ import { useDataListener } from '../../lib/events';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import { useDailyCareInstances } from '../../hooks/useDailyCareInstances';
 import { BucketType, BUCKET_META } from '../../types/carePlanConfig';
+import { getTodayVitalsLog, getTodayMealsLog, getTodayWaterLog } from '../../utils/centralStorage';
 
 // ============================================================================
 // TYPES
@@ -39,30 +41,39 @@ interface LogItemData {
   priority: number; // lower = higher priority
 }
 
+interface QuickAction {
+  id: string;
+  emoji: string;
+  label: string;
+  action: () => void;
+  available: boolean;
+}
+
+interface CategoryStatus {
+  logged: number;
+  total: number;
+  lastLogged?: string; // "5 hours ago"
+  percentage?: number; // for water/goals
+  detail?: string; // "Breakfast logged"
+}
+
+// Storage key for usage frequency tracking
+const USAGE_FREQUENCY_KEY = '@embermate_category_usage';
+
 // ============================================================================
-// LOG ITEMS - Ordered by Care Plan priority
+// LOG ITEMS - Base definitions
 // ============================================================================
 
 const ALL_LOG_ITEMS: LogItemData[] = [
-  // Priority 1: Medications
   { id: 'medications', bucket: 'meds', emoji: '💊', label: 'Medications', hint: 'Log doses', route: '/medications', priority: 1 },
-  // Priority 2: Vitals
   { id: 'vitals', bucket: 'vitals', emoji: '📊', label: 'Vitals', hint: 'Record readings', route: '/log-vitals', priority: 2 },
-  // Priority 3: Appointments
   { id: 'appointments', bucket: 'appointments', emoji: '📅', label: 'Appointments', hint: 'View & manage', route: '/appointments', priority: 3 },
-  // Priority 4: Meals
   { id: 'meals', bucket: 'meals', emoji: '🍽️', label: 'Meals', hint: 'Log food & nutrition', route: '/log-meal', priority: 4 },
-  // Priority 5: Water
   { id: 'water', bucket: 'water', emoji: '💧', label: 'Water', hint: 'Log intake', route: '/log-water', priority: 5 },
-  // Priority 6+: Other enabled items
   { id: 'mood', bucket: 'mood', emoji: '😊', label: 'Mood', hint: 'Log how they feel', route: '/log-mood', priority: 6 },
   { id: 'sleep', bucket: 'sleep', emoji: '😴', label: 'Sleep', hint: 'Log hours & quality', route: '/log-sleep', priority: 7 },
   { id: 'symptoms', bucket: 'symptoms', emoji: '🩺', label: 'Symptoms', hint: 'Log concerns', route: '/log-symptom', priority: 8 },
   { id: 'activity', bucket: 'activity', emoji: '🚶', label: 'Activity', hint: 'Log movement', route: '/log-activity', priority: 9 },
-];
-
-// Items that always appear (not bucket-filtered)
-const OPTIONAL_ITEMS: LogItemData[] = [
   { id: 'notes', bucket: null, emoji: '📝', label: 'Notes', hint: 'Add observations', route: '/log-note', priority: 100 },
 ];
 
@@ -70,73 +81,45 @@ const OPTIONAL_ITEMS: LogItemData[] = [
 const DEFAULT_BUCKETS: BucketType[] = ['meds', 'vitals', 'appointments', 'meals', 'water'];
 
 // ============================================================================
-// AI INSIGHT GENERATOR
+// USAGE FREQUENCY TRACKING
 // ============================================================================
 
-interface InsightData {
-  message: string;
-  icon: string;
-  type: 'action' | 'info' | 'success';
+async function getUsageFrequency(): Promise<Record<string, number>> {
+  try {
+    const stored = await AsyncStorage.getItem(USAGE_FREQUENCY_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
 }
 
-function generateInsight(
-  enabledBuckets: BucketType[],
-  pendingMeds: number,
-  pendingVitals: number,
-  hasMedications: boolean,
-  todayStats: { pending: number; completed: number; total: number } | null
-): InsightData {
-  // If meds enabled but none configured
-  if (enabledBuckets.includes('meds') && !hasMedications) {
-    return {
-      message: 'Add medications to your Care Plan to start tracking doses.',
-      icon: '💊',
-      type: 'action',
-    };
+async function recordCategoryUsage(categoryId: string): Promise<void> {
+  try {
+    const frequency = await getUsageFrequency();
+    frequency[categoryId] = (frequency[categoryId] || 0) + 1;
+    await AsyncStorage.setItem(USAGE_FREQUENCY_KEY, JSON.stringify(frequency));
+  } catch (error) {
+    console.error('Error recording category usage:', error);
   }
+}
 
-  // If meds enabled and have pending
-  if (enabledBuckets.includes('meds') && pendingMeds > 0) {
-    return {
-      message: `${pendingMeds} medication ${pendingMeds === 1 ? 'dose' : 'doses'} due today. Logging now helps prevent missed doses.`,
-      icon: '💊',
-      type: 'action',
-    };
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+function getTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+  if (diffMins < 60) {
+    return diffMins <= 1 ? 'Just now' : `${diffMins} min ago`;
   }
-
-  // If vitals enabled and likely not logged today (simple heuristic)
-  if (enabledBuckets.includes('vitals') && pendingVitals > 0) {
-    return {
-      message: 'Care Plan includes vitals today. Recording now helps catch changes early.',
-      icon: '📊',
-      type: 'action',
-    };
+  if (diffHours < 24) {
+    return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
   }
-
-  // If we have stats and there are pending items
-  if (todayStats && todayStats.pending > 0) {
-    return {
-      message: `${todayStats.pending} Care Plan ${todayStats.pending === 1 ? 'item' : 'items'} remaining today. You're making progress.`,
-      icon: '📋',
-      type: 'info',
-    };
-  }
-
-  // If we have stats and all complete
-  if (todayStats && todayStats.total > 0 && todayStats.pending === 0) {
-    return {
-      message: 'Care Plan is complete for today. Great job staying on track!',
-      icon: '✅',
-      type: 'success',
-    };
-  }
-
-  // Default - on track
-  return {
-    message: 'Care Plan is on track. Meds and vitals are usually most important to log first.',
-    icon: '💡',
-    type: 'info',
-  };
+  return 'Yesterday';
 }
 
 // ============================================================================
@@ -147,7 +130,7 @@ export default function RecordTab() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [loading, setLoading] = useState(true);
-  const [showMoreItems, setShowMoreItems] = useState(false);
+  const [showOptionalLogs, setShowOptionalLogs] = useState(false);
 
   // Care Plan Config
   const { enabledBuckets, loading: configLoading } = useCarePlanConfig();
@@ -155,8 +138,18 @@ export default function RecordTab() {
   // Daily Care Instances for stats
   const { state: dailyState, loading: instancesLoading } = useDailyCareInstances();
 
-  // Medications for setup warning and insight
+  // Medications for quick actions
   const [medications, setMedications] = useState<Medication[]>([]);
+
+  // Usage frequency for personalized ordering
+  const [usageFrequency, setUsageFrequency] = useState<Record<string, number>>({});
+
+  // Category status for context
+  const [categoryStatus, setCategoryStatus] = useState<Record<string, CategoryStatus>>({});
+
+  // Last logged data for quick actions
+  const [lastVitals, setLastVitals] = useState<any>(null);
+  const [lastMedication, setLastMedication] = useState<Medication | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -171,15 +164,35 @@ export default function RecordTab() {
   // Handle navigation params to auto-expand sections
   useEffect(() => {
     if (params.expandSection) {
-      setShowMoreItems(true);
+      setShowOptionalLogs(true);
     }
   }, [params.expandSection]);
 
   const loadData = async () => {
     try {
       setLoading(true);
+
+      // Load medications
       const allMeds = await getMedications();
-      setMedications(allMeds.filter(m => m.active !== false));
+      const activeMeds = allMeds.filter(m => m.active !== false);
+      setMedications(activeMeds);
+
+      // Find last taken medication for quick action
+      const takenMeds = activeMeds.filter(m => m.taken);
+      if (takenMeds.length > 0) {
+        setLastMedication(takenMeds[takenMeds.length - 1]);
+      }
+
+      // Load usage frequency
+      const frequency = await getUsageFrequency();
+      setUsageFrequency(frequency);
+
+      // Load last vitals for quick action
+      const vitals = await getTodayVitalsLog();
+      setLastVitals(vitals);
+
+      // Load category status
+      await loadCategoryStatus();
     } catch (error) {
       console.error('Error loading Record data:', error);
     } finally {
@@ -187,15 +200,63 @@ export default function RecordTab() {
     }
   };
 
+  const loadCategoryStatus = async () => {
+    const status: Record<string, CategoryStatus> = {};
+
+    try {
+      // Vitals status
+      const vitals = await getTodayVitalsLog();
+      if (vitals) {
+        let logged = 0;
+        if (vitals.systolic) logged++;
+        if (vitals.heartRate) logged++;
+        if (vitals.temperature) logged++;
+        if (vitals.weight) logged++;
+        status['vitals'] = {
+          logged,
+          total: 4,
+          lastLogged: vitals.timestamp ? getTimeAgo(new Date(vitals.timestamp)) : undefined,
+        };
+      }
+
+      // Water status (default goal of 8 glasses)
+      const water = await getTodayWaterLog();
+      if (water && water.glasses !== undefined) {
+        const dailyGoal = 8; // Default daily water goal
+        status['water'] = {
+          logged: water.glasses,
+          total: dailyGoal,
+          percentage: Math.round((water.glasses / dailyGoal) * 100),
+        };
+      }
+
+      // Meals status
+      const meals = await getTodayMealsLog();
+      if (meals && meals.meals) {
+        const mealTypes = meals.meals.map((m: any) => m.mealType);
+        let detail = '';
+        if (mealTypes.includes('breakfast')) detail = 'Breakfast';
+        if (mealTypes.includes('lunch')) detail = detail ? `${detail}, lunch` : 'Lunch';
+        if (mealTypes.includes('dinner')) detail = detail ? `${detail}, dinner` : 'Dinner';
+        if (detail) detail += ' logged';
+
+        status['meals'] = {
+          logged: meals.meals.length,
+          total: 3,
+          detail: detail || undefined,
+        };
+      }
+    } catch (error) {
+      console.error('Error loading category status:', error);
+    }
+
+    setCategoryStatus(status);
+  };
+
   // Determine which buckets to use (enabled or default)
   const activeBuckets = useMemo(() => {
     return enabledBuckets.length > 0 ? enabledBuckets : DEFAULT_BUCKETS;
   }, [enabledBuckets]);
-
-  // ============================================================================
-  // REDUCE CHOICE FRICTION: Dynamic reordering based on status
-  // Overdue/expected items float to top, completed items sink
-  // ============================================================================
 
   // Map bucket type to instance itemType for status lookup
   const bucketToItemType: Record<string, string> = {
@@ -223,7 +284,7 @@ export default function RecordTab() {
     const hasOverdue = bucketInstances.some(i => {
       if (i.status !== 'pending') return false;
       const scheduled = new Date(i.scheduledTime);
-      const graceCutoff = new Date(scheduled.getTime() + 30 * 60 * 1000); // 30 min grace
+      const graceCutoff = new Date(scheduled.getTime() + 30 * 60 * 1000);
       return now > graceCutoff;
     });
 
@@ -238,126 +299,240 @@ export default function RecordTab() {
     return 'none';
   }, [dailyState?.instances]);
 
-  // Split items into priorities and more, with dynamic reordering
-  const { priorityItems, moreItems, allPrioritiesComplete } = useMemo(() => {
-    const priority: LogItemData[] = [];
-    const more: LogItemData[] = [];
+  // Get instance counts for a bucket
+  const getBucketCounts = useCallback((bucket: BucketType): { logged: number; total: number } => {
+    if (!dailyState?.instances) return { logged: 0, total: 0 };
+
+    const itemType = bucketToItemType[bucket];
+    const bucketInstances = dailyState.instances.filter(i => i.itemType === itemType);
+
+    const total = bucketInstances.length;
+    const logged = bucketInstances.filter(i => i.status === 'completed' || i.status === 'skipped').length;
+
+    return { logged, total };
+  }, [dailyState?.instances]);
+
+  // ============================================================================
+  // QUICK LOG SHORTCUTS
+  // ============================================================================
+
+  const quickActions = useMemo((): QuickAction[] => {
+    const actions: QuickAction[] = [];
+
+    // Last medication quick log
+    if (lastMedication) {
+      actions.push({
+        id: 'last-med',
+        emoji: '💊',
+        label: lastMedication.name.length > 12 ? lastMedication.name.substring(0, 12) + '...' : lastMedication.name,
+        action: () => {
+          recordCategoryUsage('medications');
+          router.push({
+            pathname: '/medication-confirm',
+            params: { medicationId: lastMedication.id },
+          } as any);
+        },
+        available: true,
+      });
+    }
+
+    // Repeat last vitals
+    if (lastVitals && (lastVitals.systolic || lastVitals.heartRate)) {
+      actions.push({
+        id: 'repeat-vitals',
+        emoji: '📊',
+        label: 'Repeat Vitals',
+        action: () => {
+          recordCategoryUsage('vitals');
+          router.push({
+            pathname: '/log-vitals',
+            params: { prefill: 'last' },
+          } as any);
+        },
+        available: true,
+      });
+    }
+
+    // Quick water +8oz
+    if (activeBuckets.includes('water')) {
+      actions.push({
+        id: 'water-quick',
+        emoji: '💧',
+        label: 'Water +8oz',
+        action: () => {
+          recordCategoryUsage('water');
+          router.push({
+            pathname: '/log-water',
+            params: { quickAdd: '1' },
+          } as any);
+        },
+        available: true,
+      });
+    }
+
+    return actions;
+  }, [lastMedication, lastVitals, activeBuckets, router]);
+
+  // ============================================================================
+  // SORT BY USAGE FREQUENCY
+  // ============================================================================
+
+  const { mainCategories, optionalCategories, allComplete } = useMemo(() => {
+    const main: LogItemData[] = [];
+    const optional: LogItemData[] = [];
 
     for (const item of ALL_LOG_ITEMS) {
+      // Notes always goes to optional
+      if (item.id === 'notes') {
+        optional.push(item);
+        continue;
+      }
+
       if (item.bucket && activeBuckets.includes(item.bucket)) {
-        priority.push(item);
+        main.push(item);
       } else if (item.bucket) {
-        more.push(item);
+        optional.push(item);
       }
     }
 
-    // Dynamic sort: overdue first, then pending, then complete, then by priority
-    const statusOrder = { overdue: 0, pending: 1, none: 2, complete: 3 };
-    priority.sort((a, b) => {
-      const statusA = a.bucket ? getBucketStatus(a.bucket) : 'none';
-      const statusB = b.bucket ? getBucketStatus(b.bucket) : 'none';
+    // Sort main categories by usage frequency (most used first)
+    // Fall back to default priority if no usage data
+    main.sort((a, b) => {
+      const usageA = usageFrequency[a.id] || 0;
+      const usageB = usageFrequency[b.id] || 0;
 
-      // First sort by status
-      const statusDiff = statusOrder[statusA] - statusOrder[statusB];
-      if (statusDiff !== 0) return statusDiff;
+      // If both have usage data, sort by usage (higher first)
+      if (usageA > 0 || usageB > 0) {
+        return usageB - usageA;
+      }
 
-      // Then by priority number
+      // Fall back to default priority
       return a.priority - b.priority;
     });
 
-    more.sort((a, b) => a.priority - b.priority);
-
-    // Check if all priority items are complete
-    const allComplete = priority.length > 0 && priority.every(item => {
+    // Check if all main categories are complete
+    const complete = main.length > 0 && main.every(item => {
       if (!item.bucket) return true;
       return getBucketStatus(item.bucket) === 'complete';
     });
 
-    return { priorityItems: priority, moreItems: more, allPrioritiesComplete: allComplete };
-  }, [activeBuckets, getBucketStatus]);
+    return { mainCategories: main, optionalCategories: optional, allComplete: complete };
+  }, [activeBuckets, usageFrequency, getBucketStatus]);
 
-  // Calculate pending counts for insight
-  const pendingMedCount = useMemo(() => {
-    if (!dailyState) return 0;
-    return dailyState.instances.filter(
-      i => i.itemType === 'medication' && i.status === 'pending'
-    ).length;
-  }, [dailyState]);
+  // ============================================================================
+  // RENDER HELPERS
+  // ============================================================================
 
-  const pendingVitalsCount = useMemo(() => {
-    if (!dailyState) return 0;
-    return dailyState.instances.filter(
-      i => i.itemType === 'vitals' && i.status === 'pending'
-    ).length;
-  }, [dailyState]);
+  const handleCategoryPress = useCallback((item: LogItemData) => {
+    recordCategoryUsage(item.id);
+    router.push(item.route as any);
+  }, [router]);
 
-  // Generate AI insight
-  const insight = useMemo(() => {
-    return generateInsight(
-      activeBuckets,
-      pendingMedCount,
-      pendingVitalsCount,
-      medications.length > 0,
-      dailyState?.stats || null
-    );
-  }, [activeBuckets, pendingMedCount, pendingVitalsCount, medications.length, dailyState?.stats]);
+  const getStatusText = (item: LogItemData): string | null => {
+    if (!item.bucket) return null;
 
-  const renderLogItem = (item: LogItemData) => {
+    const status = getBucketStatus(item.bucket);
+    const counts = getBucketCounts(item.bucket);
+    const catStatus = categoryStatus[item.bucket];
+
+    // Medication status
+    if (item.bucket === 'meds' && counts.total > 0) {
+      if (status === 'complete') return `✓ All ${counts.total} logged today`;
+      return `${counts.logged} of ${counts.total} logged today`;
+    }
+
+    // Vitals status
+    if (item.bucket === 'vitals') {
+      if (catStatus?.lastLogged) {
+        return `Last logged ${catStatus.lastLogged}`;
+      }
+      if (counts.total > 0) {
+        return `${counts.logged} of ${counts.total} logged today`;
+      }
+    }
+
+    // Water status
+    if (item.bucket === 'water' && catStatus?.percentage !== undefined) {
+      return `${catStatus.percentage}% of daily goal`;
+    }
+
+    // Meals status
+    if (item.bucket === 'meals') {
+      if (catStatus?.detail) {
+        return catStatus.detail;
+      }
+      if (counts.total > 0) {
+        return `${counts.logged} of ${counts.total} logged today`;
+      }
+    }
+
+    // Generic status based on instances
+    if (counts.total > 0) {
+      if (status === 'complete') return '✓ Done for today';
+      return `${counts.logged} of ${counts.total} logged`;
+    }
+
+    return null;
+  };
+
+  const renderCategoryCard = (item: LogItemData, isOptional: boolean = false) => {
     const status = item.bucket ? getBucketStatus(item.bucket) : 'none';
     const isComplete = status === 'complete';
     const isOverdue = status === 'overdue';
-
-    // Dynamic hint based on status
-    let displayHint = item.hint;
-    if (isOverdue) {
-      displayHint = 'Needs attention';
-    } else if (isComplete) {
-      displayHint = 'Done for today';
-    }
+    const statusText = getStatusText(item);
 
     return (
       <TouchableOpacity
         key={item.id}
         style={[
-          styles.logItem,
-          isComplete && styles.logItemComplete,
-          isOverdue && styles.logItemOverdue,
+          styles.categoryCard,
+          isComplete && styles.categoryCardComplete,
+          isOverdue && styles.categoryCardOverdue,
+          isOptional && styles.categoryCardOptional,
         ]}
-        onPress={() => router.push(item.route as any)}
+        onPress={() => handleCategoryPress(item)}
         activeOpacity={0.7}
         accessible={true}
         accessibilityRole="button"
-        accessibilityLabel={`${item.label}. ${displayHint}`}
+        accessibilityLabel={`${item.label}. ${statusText || item.hint}`}
       >
         <View style={[
-          styles.itemIcon,
-          isComplete && styles.itemIconComplete,
-          isOverdue && styles.itemIconOverdue,
+          styles.categoryIcon,
+          isComplete && styles.categoryIconComplete,
+          isOverdue && styles.categoryIconOverdue,
         ]}>
-          <Text style={styles.iconEmoji}>{isComplete ? '✓' : item.emoji}</Text>
+          <Text style={styles.categoryEmoji}>{isComplete ? '✓' : item.emoji}</Text>
         </View>
-        <View style={styles.itemContent}>
+        <View style={styles.categoryContent}>
           <Text style={[
-            styles.itemLabel,
-            isComplete && styles.itemLabelComplete,
+            styles.categoryLabel,
+            isComplete && styles.categoryLabelComplete,
           ]}>
             {item.label}
           </Text>
-          <Text style={[
-            styles.itemHint,
-            isComplete && styles.itemHintComplete,
-            isOverdue && styles.itemHintOverdue,
-          ]}>
-            {displayHint}
-          </Text>
+          {statusText ? (
+            <Text style={[
+              styles.categoryStatus,
+              isComplete && styles.categoryStatusComplete,
+              isOverdue && styles.categoryStatusOverdue,
+            ]}>
+              {statusText}
+            </Text>
+          ) : (
+            <Text style={styles.categoryHint}>{item.hint}</Text>
+          )}
         </View>
         <Text style={[
-          styles.itemChevron,
-          isComplete && styles.itemChevronComplete,
+          styles.categoryChevron,
+          isComplete && styles.categoryChevronComplete,
         ]}>›</Text>
       </TouchableOpacity>
     );
   };
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
 
   if (loading || configLoading) {
     return (
@@ -383,141 +558,101 @@ export default function RecordTab() {
         <ScreenHeader
           title="Record"
           subtitle={MICROCOPY.RECORD_SUBTITLE}
+          rightAction={
+            <TouchableOpacity
+              onPress={() => router.push('/care-plan' as any)}
+              style={styles.headerGear}
+              accessibilityLabel="Manage Care Plan"
+            >
+              <Text style={styles.headerGearIcon}>⚙️</Text>
+            </TouchableOpacity>
+          }
         />
 
         {/* ============================================================ */}
-        {/* CARE PLAN TODAY - Source of truth for what appears below */}
+        {/* QUICK LOG SHORTCUTS - Highest ROI for repeat entries */}
         {/* ============================================================ */}
-        <Text style={styles.groupHeader}>CARE PLAN TODAY</Text>
-        <TouchableOpacity
-          style={styles.carePlanCard}
-          onPress={() => router.push('/care-plan' as any)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.carePlanCardLeft}>
-            {enabledBuckets.length > 0 ? (
-              <View style={styles.carePlanStatus}>
-                <View style={styles.bucketIcons}>
-                  {enabledBuckets.slice(0, 6).map(bucket => (
-                    <Text key={bucket} style={styles.bucketIcon}>
-                      {BUCKET_META[bucket].emoji}
-                    </Text>
-                  ))}
-                  {enabledBuckets.length > 6 && (
-                    <Text style={styles.bucketIconMore}>+{enabledBuckets.length - 6}</Text>
-                  )}
-                </View>
-                <Text style={styles.carePlanStatusText}>
-                  {enabledBuckets.length} {enabledBuckets.length === 1 ? 'category' : 'categories'} enabled
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.carePlanStatus}>
-                <Text style={styles.carePlanStatusText}>Using default categories</Text>
-                <Text style={styles.carePlanHint}>Tap to customize your Care Plan</Text>
-              </View>
-            )}
+        {quickActions.length > 0 && (
+          <View style={styles.quickLogSection}>
+            <Text style={styles.quickLogLabel}>QUICK LOG</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.quickLogScroll}
+            >
+              {quickActions.map(action => (
+                <TouchableOpacity
+                  key={action.id}
+                  style={styles.quickLogButton}
+                  onPress={action.action}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.quickLogEmoji}>{action.emoji}</Text>
+                  <Text style={styles.quickLogText} numberOfLines={1}>{action.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
-          <Text style={styles.carePlanGear}>⚙️</Text>
-        </TouchableOpacity>
-
-        {/* ============================================================ */}
-        {/* AI INSIGHT - Contextual guidance */}
-        {/* ============================================================ */}
-        <View style={[
-          styles.insightCard,
-          insight.type === 'success' && styles.insightCardSuccess,
-          insight.type === 'action' && styles.insightCardAction,
-        ]}>
-          <Text style={styles.insightIcon}>{insight.icon}</Text>
-          <Text style={[
-            styles.insightText,
-            insight.type === 'success' && styles.insightTextSuccess,
-            insight.type === 'action' && styles.insightTextAction,
-          ]}>
-            {insight.message}
-          </Text>
-        </View>
-
-        {/* Setup Warning - meds enabled but none configured */}
-        {enabledBuckets.includes('meds') && medications.length === 0 && (
-          <TouchableOpacity
-            style={styles.setupWarning}
-            onPress={() => router.push('/medication-form' as any)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.setupWarningIcon}>💊</Text>
-            <View style={styles.setupWarningContent}>
-              <Text style={styles.setupWarningText}>Add medications to log doses</Text>
-              <Text style={styles.setupWarningHint}>Tap to configure</Text>
-            </View>
-            <Text style={styles.setupWarningChevron}>›</Text>
-          </TouchableOpacity>
         )}
 
         {/* ============================================================ */}
-        {/* TODAY'S PRIORITIES - Enabled Care Plan items */}
+        {/* MICRO COMPLETION FEEDBACK */}
         {/* ============================================================ */}
-        <Text style={styles.groupHeader}>TODAY'S PRIORITIES</Text>
-
-        {/* Show completion message when all priorities are done */}
-        {allPrioritiesComplete && (dailyState?.stats?.total ?? 0) > 0 && (
-          <View style={styles.allCompleteMessage}>
-            <Text style={styles.allCompleteText}>
-              Nothing required right now. Optional logs below.
+        {allComplete && (dailyState?.stats?.total ?? 0) > 0 && (
+          <View style={styles.completionFeedback}>
+            <Text style={styles.completionEmoji}>✓</Text>
+            <Text style={styles.completionText}>
+              All scheduled items logged for today.
             </Text>
           </View>
         )}
 
-        {priorityItems.map(renderLogItem)}
+        {/* ============================================================ */}
+        {/* MAIN CATEGORIES - Sorted by usage frequency */}
+        {/* ============================================================ */}
+        <View style={styles.categoriesSection}>
+          {mainCategories.map(item => renderCategoryCard(item))}
+        </View>
 
         {/* ============================================================ */}
-        {/* OPTIONAL - Always available */}
+        {/* OPTIONAL LOGS - Expandable, visible cluster */}
         {/* ============================================================ */}
-        <Text style={styles.groupHeader}>OPTIONAL</Text>
-        {OPTIONAL_ITEMS.map(renderLogItem)}
+        <View style={styles.optionalSection}>
+          <TouchableOpacity
+            style={styles.optionalHeader}
+            onPress={() => setShowOptionalLogs(!showOptionalLogs)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.optionalHeaderLeft}>
+              <Text style={styles.optionalTitle}>Optional Logs</Text>
+              <Text style={styles.optionalCount}>
+                {optionalCategories.length} available
+              </Text>
+            </View>
+            <Text style={styles.optionalChevron}>
+              {showOptionalLogs ? '▼' : '▶'}
+            </Text>
+          </TouchableOpacity>
+
+          {showOptionalLogs && (
+            <View style={styles.optionalContent}>
+              {optionalCategories.map(item => renderCategoryCard(item, true))}
+            </View>
+          )}
+        </View>
 
         {/* ============================================================ */}
-        {/* MORE - Non-enabled categories */}
-        {/* Show specific names instead of vague count */}
+        {/* FOOTER - Manage Care Plan link */}
         {/* ============================================================ */}
-        {moreItems.length > 0 && (
-          <>
-            {!showMoreItems ? (
-              <TouchableOpacity
-                style={styles.moreItemsToggle}
-                onPress={() => setShowMoreItems(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.moreItemsLink}>
-                  + {(() => {
-                    // Show first 2-3 names, then +N for the rest
-                    const names = moreItems.map(i => i.label);
-                    if (names.length <= 3) {
-                      return names.join(', ');
-                    }
-                    return `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
-                  })()}
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <>
-                <Text style={styles.groupHeader}>MORE</Text>
-                <Text style={styles.groupSubheader}>
-                  Not in your Care Plan, but available for manual logging
-                </Text>
-                {moreItems.map(renderLogItem)}
-                <TouchableOpacity
-                  style={styles.moreItemsToggle}
-                  onPress={() => setShowMoreItems(false)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.moreItemsLink}>− Less</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </>
-        )}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={styles.manageLink}
+            onPress={() => router.push('/care-plan' as any)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.manageLinkText}>Manage Care Plan</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Encouragement */}
         <View style={styles.encouragement}>
@@ -558,141 +693,83 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
 
-  // Group Headers
-  groupHeader: {
+  // Header Gear
+  headerGear: {
+    padding: 8,
+    marginRight: -8,
+  },
+  headerGearIcon: {
+    fontSize: 20,
+    opacity: 0.7,
+  },
+
+  // Quick Log Section
+  quickLogSection: {
+    marginBottom: 20,
+  },
+  quickLogLabel: {
     fontSize: 11,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.5)',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 10,
-    marginTop: 20,
   },
-  groupSubheader: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
-    marginBottom: 12,
-    marginTop: -6,
+  quickLogScroll: {
+    gap: 10,
   },
-
-  // Care Plan Card
-  carePlanCard: {
+  quickLogButton: {
+    backgroundColor: 'rgba(94, 234, 212, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(94, 234, 212, 0.25)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.2)',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
+    gap: 8,
+    minWidth: 120,
   },
-  carePlanCardLeft: {
-    flex: 1,
+  quickLogEmoji: {
+    fontSize: 18,
   },
-  carePlanStatus: {
-    gap: 4,
+  quickLogText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.accent,
+    maxWidth: 100,
   },
-  bucketIcons: {
+
+  // Completion Feedback
+  completionFeedback: {
     flexDirection: 'row',
-    gap: 6,
-    marginBottom: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 20,
+    gap: 10,
   },
-  bucketIcon: {
-    fontSize: 16,
+  completionEmoji: {
+    fontSize: 18,
+    color: '#10B981',
   },
-  bucketIconMore: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginLeft: 2,
-  },
-  carePlanStatusText: {
+  completionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.accent,
-  },
-  carePlanHint: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginTop: 2,
-  },
-  carePlanGear: {
-    fontSize: 20,
-    opacity: 0.6,
+    color: '#10B981',
   },
 
-  // AI Insight Card
-  insightCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-    gap: 10,
-  },
-  insightCardSuccess: {
-    backgroundColor: 'rgba(34, 197, 94, 0.08)',
-    borderColor: 'rgba(34, 197, 94, 0.2)',
-  },
-  insightCardAction: {
-    backgroundColor: 'rgba(251, 191, 36, 0.08)',
-    borderColor: 'rgba(251, 191, 36, 0.2)',
-  },
-  insightIcon: {
-    fontSize: 18,
-    marginTop: 1,
-  },
-  insightText: {
-    flex: 1,
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
-    lineHeight: 19,
-  },
-  insightTextSuccess: {
-    color: 'rgba(34, 197, 94, 0.9)',
-  },
-  insightTextAction: {
-    color: 'rgba(251, 191, 36, 0.9)',
+  // Categories Section
+  categoriesSection: {
+    marginBottom: 16,
   },
 
-  // Setup Warning
-  setupWarning: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(251, 191, 36, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.2)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-    gap: 10,
-  },
-  setupWarningIcon: {
-    fontSize: 18,
-  },
-  setupWarningContent: {
-    flex: 1,
-  },
-  setupWarningText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#FBBF24',
-  },
-  setupWarningHint: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
-    marginTop: 2,
-  },
-  setupWarningChevron: {
-    fontSize: 16,
-    color: 'rgba(251, 191, 36, 0.6)',
-  },
-
-  // Log Items
-  logItem: {
+  // Category Card
+  categoryCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
@@ -702,9 +779,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    minHeight: 68,
+    minHeight: 72,
   },
-  itemIcon: {
+  categoryCardComplete: {
+    opacity: 0.7,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+  },
+  categoryCardOverdue: {
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+  },
+  categoryCardOptional: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  categoryIcon: {
     width: 48,
     height: 48,
     backgroundColor: 'rgba(94, 234, 212, 0.15)',
@@ -712,88 +801,107 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconEmoji: {
+  categoryIconComplete: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+  },
+  categoryIconOverdue: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+  },
+  categoryEmoji: {
     fontSize: 24,
   },
-  itemContent: {
+  categoryContent: {
     flex: 1,
   },
-  itemLabel: {
+  categoryLabel: {
     fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 2,
+    marginBottom: 3,
   },
-  itemHint: {
-    fontSize: 11,
+  categoryLabelComplete: {
     color: 'rgba(255, 255, 255, 0.6)',
   },
-  itemChevron: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.3)',
+  categoryHint: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
   },
-
-  // Status-based item styles
-  logItemComplete: {
-    opacity: 0.6,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
-  },
-  logItemOverdue: {
-    borderColor: 'rgba(245, 158, 11, 0.4)',
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-  },
-  itemIconComplete: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-  },
-  itemIconOverdue: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-  },
-  itemLabelComplete: {
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
-  itemHintComplete: {
-    color: 'rgba(16, 185, 129, 0.8)',
-  },
-  itemHintOverdue: {
-    color: '#F59E0B',
+  categoryStatus: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
     fontWeight: '500',
   },
-  itemChevronComplete: {
+  categoryStatusComplete: {
+    color: 'rgba(16, 185, 129, 0.9)',
+  },
+  categoryStatusOverdue: {
+    color: '#F59E0B',
+  },
+  categoryChevron: {
+    fontSize: 18,
+    color: 'rgba(255, 255, 255, 0.3)',
+  },
+  categoryChevronComplete: {
     color: 'rgba(255, 255, 255, 0.2)',
   },
 
-  // All complete message
-  allCompleteMessage: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+  // Optional Section
+  optionalSection: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  optionalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 12,
     padding: 14,
-    marginBottom: 12,
   },
-  allCompleteText: {
-    fontSize: 13,
-    color: 'rgba(16, 185, 129, 0.9)',
-    textAlign: 'center',
-  },
-
-  // More Items Toggle
-  moreItemsToggle: {
+  optionalHeaderLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    gap: 10,
+  },
+  optionalTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  optionalCount: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.4)',
+  },
+  optionalChevron: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.4)',
+  },
+  optionalContent: {
     marginTop: 8,
   },
-  moreItemsLink: {
-    color: 'rgba(94, 234, 212, 0.7)',
+
+  // Footer
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  manageLink: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  manageLinkText: {
     fontSize: 13,
     fontWeight: '500',
+    color: 'rgba(94, 234, 212, 0.7)',
   },
 
   // Encouragement
   encouragement: {
     alignItems: 'center',
     paddingVertical: 24,
-    marginTop: 20,
+    marginTop: 8,
   },
   encouragementTitle: {
     fontSize: 18,
