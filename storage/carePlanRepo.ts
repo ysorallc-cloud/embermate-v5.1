@@ -300,6 +300,27 @@ export async function updateDailyInstanceStatus(
 }
 
 /**
+ * Remove instances that don't match valid item IDs (cleanup stale data)
+ * Called when Care Plan items are deleted or deactivated
+ */
+export async function removeStaleInstances(
+  patientId: string,
+  date: string,
+  validItemIds: Set<string>
+): Promise<number> {
+  const instances = await listDailyInstances(patientId, date);
+  const validInstances = instances.filter(i => validItemIds.has(i.carePlanItemId));
+  const removedCount = instances.length - validInstances.length;
+
+  if (removedCount > 0) {
+    await safeSetItem(KEYS.DAILY_INSTANCES(patientId, date), validInstances);
+    emitDataUpdate('dailyInstances');
+  }
+
+  return removedCount;
+}
+
+/**
  * Update instance index (tracks which dates have instances)
  */
 async function updateInstanceIndex(patientId: string, date: string): Promise<void> {

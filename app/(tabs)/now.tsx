@@ -699,6 +699,28 @@ export default function NowScreen() {
       });
     }
 
+    // GENERAL: Medications scheduled for today
+    if (stats.meds.total > 0 && stats.meds.completed === 0) {
+      insights.push({
+        icon: '💊',
+        title: 'Medications ready to log',
+        message: 'Tap Next Up or Record when you\'re ready to log today\'s medications.',
+        type: 'pattern',
+        confidence: 0.7,
+      });
+    }
+
+    // GENERAL: Care Plan is active
+    if (totalItems > 0 && totalCompleted === 0) {
+      insights.push({
+        icon: '📋',
+        title: 'Your care day is set',
+        message: `${totalItems} item${totalItems > 1 ? 's' : ''} scheduled. Take them at your own pace.`,
+        type: 'reinforcement',
+        confidence: 0.65,
+      });
+    }
+
     // PATTERN AWARENESS: Mood affects medication adherence
     if (stats.mood.total > 0 && stats.mood.completed > 0) {
       insights.push({
@@ -948,12 +970,8 @@ export default function NowScreen() {
 
   // Generate Care Insight when stats or instances change
   useEffect(() => {
-    if (!instancesState?.instances) {
-      setCareInsight(null);
-      return;
-    }
-
-    const completedCount = instancesState.instances.filter(
+    const instances = instancesState?.instances || [];
+    const completedCount = instances.filter(
       i => i.status === 'completed' || i.status === 'skipped'
     ).length;
 
@@ -962,7 +980,7 @@ export default function NowScreen() {
 
     const insight = generateCareInsight(
       todayStats,
-      instancesState.instances,
+      instances,
       completedCount,
       consecutiveLoggingDays
     );

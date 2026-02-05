@@ -18,6 +18,7 @@ import {
   listDailyInstances,
   upsertDailyInstances,
   updateDailyInstanceStatus,
+  removeStaleInstances,
   DEFAULT_PATIENT_ID,
 } from '../storage/carePlanRepo';
 import { generateUniqueId } from '../utils/idGenerator';
@@ -111,14 +112,13 @@ export async function ensureDailyInstances(
     await upsertDailyInstances(patientId, date, newInstances);
   }
 
-  // 6. Build set of valid item IDs for filtering
+  // 6. Build set of valid item IDs and remove stale instances from storage
   const validItemIds = new Set(items.map(item => item.id));
+  await removeStaleInstances(patientId, date, validItemIds);
 
-  // 7. Return instances that match active Care Plan items, sorted by time
-  // This filters out stale instances from items that were deleted or deactivated
+  // 7. Return all valid instances sorted by time
   const allInstances = await listDailyInstances(patientId, date);
-  const validInstances = allInstances.filter(instance => validItemIds.has(instance.carePlanItemId));
-  return validInstances.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
+  return allInstances.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
 }
 
 // ============================================================================
