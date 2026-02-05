@@ -27,6 +27,7 @@ import {
   SECONDARY_BUCKETS,
   OPTIONAL_BUCKETS,
 } from '../../types/carePlanConfig';
+import { InfoModal, InfoIconButton } from '../../components/common/InfoModal';
 
 // ============================================================================
 // BUCKET CARD COMPONENT
@@ -134,6 +135,7 @@ export default function CarePlanHomeScreen() {
 
   const [showMoreBuckets, setShowMoreBuckets] = useState(false);
   const [dismissedInsights, setDismissedInsights] = useState<string[]>([]);
+  const [showInfoModal, setShowInfoModal] = useState(false);
 
   // Ensure config exists on first load
   React.useEffect(() => {
@@ -306,11 +308,23 @@ export default function CarePlanHomeScreen() {
         >
           {/* Title Section */}
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Care Plan</Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>Care Plan</Text>
+              <InfoIconButton onPress={() => setShowInfoModal(true)} />
+            </View>
             <Text style={styles.subtitle}>
               Choose what to track and how reminders work.
             </Text>
           </View>
+
+          {/* Info Modal */}
+          <InfoModal
+            visible={showInfoModal}
+            onClose={() => setShowInfoModal(false)}
+            title="About Your Care Plan"
+            content="Your Care Plan sets the routine for typical days. Changes here update future schedules permanently."
+            hint="Use 'Adjust Today' from the Now screen for one-day changes that reset tomorrow."
+          />
 
           {/* How Your Care Plan Works - Explanatory Panel */}
           <View style={styles.howItWorksCard}>
@@ -471,11 +485,16 @@ const styles = StyleSheet.create({
   titleSection: {
     marginBottom: Spacing.xl,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
   title: {
     fontSize: 28,
     fontWeight: '300',
     color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
   },
   subtitle: {
     fontSize: 15,

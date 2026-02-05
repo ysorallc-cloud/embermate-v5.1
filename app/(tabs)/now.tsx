@@ -202,6 +202,20 @@ interface AIInsight {
 }
 
 // ============================================================================
+// CARE INSIGHT TYPES
+// Pattern-based, preventative, and supportive guidance
+// NOT: countdown reminders, urgency alerts, "not logged" warnings
+// ============================================================================
+
+interface CareInsight {
+  icon: string;
+  title: string;
+  message: string;
+  type: 'pattern' | 'preventative' | 'reinforcement' | 'dependency';
+  confidence: number; // 0-1, only show if >= 0.6
+}
+
+// ============================================================================
 // URGENCY STATUS & SCORING SYSTEM
 // Answers: "What is the next irreversible decision the caregiver must make?"
 // ============================================================================
@@ -565,8 +579,149 @@ export default function NowScreen() {
     return legacyStats;
   }, [instancesState, legacyStats, today]);
 
-  // AI Insight
+  // AI Insight (legacy - being replaced by Care Insight)
   const [aiInsight, setAiInsight] = useState<AIInsight | null>(null);
+
+  // Care Insight - pattern-based, supportive guidance (NEW)
+  const [careInsight, setCareInsight] = useState<CareInsight | null>(null);
+
+  // ============================================================================
+  // CARE INSIGHT GENERATOR
+  // Rules:
+  // ✅ Pattern awareness, preventative suggestions, positive reinforcement, dependency awareness
+  // ❌ Countdown reminders, "not logged" warnings, urgency alerts, fear-based language
+  // ============================================================================
+  const generateCareInsight = useCallback((
+    stats: TodayStats,
+    instances: any[],
+    completedCount: number,
+    consecutiveLoggingDays: number = 0  // Track logging streak
+  ): CareInsight | null => {
+    const insights: CareInsight[] = [];
+    const now = new Date();
+    const currentHour = now.getHours();
+
+    // Calculate some useful metrics
+    const totalItems = stats.meds.total + stats.vitals.total + stats.mood.total + stats.meals.total;
+    const totalCompleted = stats.meds.completed + stats.vitals.completed + stats.mood.completed + stats.meals.completed;
+    const completionRate = totalItems > 0 ? totalCompleted / totalItems : 0;
+
+    // Check for vitals + medication dependency pattern
+    const hasPendingMeds = instances.some(i => i.itemType === 'medication' && i.status === 'pending');
+    const hasVitalsNotLogged = stats.vitals.total > 0 && stats.vitals.completed === 0;
+    const hasBPMedication = instances.some(i =>
+      i.itemType === 'medication' &&
+      i.itemName.toLowerCase().includes('blood pressure') ||
+      i.itemName.toLowerCase().includes('lisinopril') ||
+      i.itemName.toLowerCase().includes('amlodipine') ||
+      i.itemName.toLowerCase().includes('metoprolol')
+    );
+
+    // DEPENDENCY AWARENESS: Vitals before BP medication
+    if (hasBPMedication && hasVitalsNotLogged && hasPendingMeds && currentHour >= 6 && currentHour < 12) {
+      insights.push({
+        icon: '📊',
+        title: 'A quick check first',
+        message: 'Logging vitals before blood pressure medication helps track how well it\'s working.',
+        type: 'dependency',
+        confidence: 0.8,
+      });
+    }
+
+    // PATTERN AWARENESS: Morning medication timing
+    if (stats.meds.total > 0 && stats.meds.completed === 0 && currentHour >= 9 && currentHour < 11) {
+      const morningMeds = instances.filter(i =>
+        i.itemType === 'medication' && i.status === 'pending' &&
+        new Date(i.scheduledTime).getHours() < 12
+      );
+      if (morningMeds.length > 0) {
+        insights.push({
+          icon: '💊',
+          title: 'Consistent timing helps',
+          message: 'Taking medications at the same time each day can improve their effectiveness.',
+          type: 'pattern',
+          confidence: 0.75,
+        });
+      }
+    }
+
+    // PREVENTATIVE: Logging vitals helps detect changes
+    if (stats.vitals.total > 0 && stats.vitals.completed > 0 && stats.meds.total > 0) {
+      insights.push({
+        icon: '📈',
+        title: 'Building your baseline',
+        message: 'Regular vitals logging helps detect dosage changes early.',
+        type: 'preventative',
+        confidence: 0.7,
+      });
+    }
+
+    // REINFORCEMENT: Consistent logging streak
+    if (consecutiveLoggingDays >= 3) {
+      insights.push({
+        icon: '✨',
+        title: 'Great consistency',
+        message: `You've logged consistently for ${consecutiveLoggingDays} days. That builds strong health baselines.`,
+        type: 'reinforcement',
+        confidence: 0.9,
+      });
+    }
+
+    // REINFORCEMENT: Good progress today
+    if (completionRate >= 0.5 && completionRate < 1.0 && totalCompleted >= 3) {
+      insights.push({
+        icon: '👍',
+        title: 'Solid progress today',
+        message: 'You\'re over halfway through today\'s care tasks.',
+        type: 'reinforcement',
+        confidence: 0.8,
+      });
+    }
+
+    // REINFORCEMENT: All complete celebration (soft version)
+    if (completionRate === 1.0 && totalItems > 0) {
+      insights.push({
+        icon: '✓',
+        title: 'Today\'s care complete',
+        message: 'All scheduled tasks are logged. Great work.',
+        type: 'reinforcement',
+        confidence: 1.0,
+      });
+    }
+
+    // PREVENTATIVE: Meal logging for medication absorption
+    if (stats.meals.total > 0 && stats.meals.completed === 0 && stats.meds.total > 0 && currentHour >= 12) {
+      insights.push({
+        icon: '🍽️',
+        title: 'Food and medication',
+        message: 'Some medications work better with food. Logging meals helps track this.',
+        type: 'preventative',
+        confidence: 0.65,
+      });
+    }
+
+    // PATTERN AWARENESS: Mood affects medication adherence
+    if (stats.mood.total > 0 && stats.mood.completed > 0) {
+      insights.push({
+        icon: '😊',
+        title: 'Mood tracking helps',
+        message: 'Mood patterns can reveal how medications are affecting daily life.',
+        type: 'pattern',
+        confidence: 0.7,
+      });
+    }
+
+    // Filter to only high-confidence insights (>= 0.6 threshold)
+    const highConfidenceInsights = insights.filter(i => i.confidence >= 0.6);
+
+    // Return the highest confidence insight
+    if (highConfidenceInsights.length > 0) {
+      highConfidenceInsights.sort((a, b) => b.confidence - a.confidence);
+      return highConfidenceInsights[0];
+    }
+
+    return null;
+  }, []);
 
   // Fix #4: Generate AI Insight that arbitrates between Progress and Timeline
   // Considers both high-level progress AND specific timeline items
@@ -791,6 +946,29 @@ export default function NowScreen() {
     );
     setAiInsight(insight);
   }, [todayStats, instancesState, today, medications, appointments, dailyTracking, generateAIInsight]);
+
+  // Generate Care Insight when stats or instances change
+  useEffect(() => {
+    if (!instancesState?.instances) {
+      setCareInsight(null);
+      return;
+    }
+
+    const completedCount = instancesState.instances.filter(
+      i => i.status === 'completed' || i.status === 'skipped'
+    ).length;
+
+    // TODO: Track consecutive logging days from storage for streak calculation
+    const consecutiveLoggingDays = 0; // Placeholder - could be enhanced with actual tracking
+
+    const insight = generateCareInsight(
+      todayStats,
+      instancesState.instances,
+      completedCount,
+      consecutiveLoggingDays
+    );
+    setCareInsight(insight);
+  }, [todayStats, instancesState, generateCareInsight]);
 
   // Baseline state
   const [baselineData, setBaselineData] = useState<BaselineData | null>(null);
@@ -1550,36 +1728,10 @@ export default function NowScreen() {
             )}
 
             {/* ============================================================ */}
-            {/* NEW LAYOUT HIERARCHY: AI Insight → Next Up → Progress → Timeline */}
+            {/* LAYOUT HIERARCHY: Next Up → Care Insight → Progress → Timeline */}
             {/* ============================================================ */}
 
-            {/* 1️⃣ AI INSIGHT CARD - Advisory Layer (conditional on safety relevance) */}
-            {/* Only shows when: safety-relevant items, overdue tasks, or celebrations */}
-            {/* Reduces noise by hiding generic suggestions when no urgent care concerns */}
-            {aiInsight && (todayTimeline.hasSafetyRelevant || aiInsight.type === 'reminder' || aiInsight.type === 'celebration') && (
-              <View style={[
-                styles.aiInsightCard,
-                aiInsight.type === 'celebration' && styles.aiInsightCelebration,
-                aiInsight.type === 'reminder' && styles.aiInsightReminder,
-                aiInsight.type === 'positive' && styles.aiInsightPositive,
-              ]}>
-                <View style={styles.aiInsightHeader}>
-                  <Text style={styles.aiInsightDate}>{format(new Date(), 'EEE, MMM d')}</Text>
-                  <View style={styles.aiInsightBadge}>
-                    <Text style={styles.aiInsightBadgeText}>AI</Text>
-                  </View>
-                </View>
-                <View style={styles.aiInsightBody}>
-                  <Text style={styles.aiInsightIcon}>{aiInsight.icon}</Text>
-                  <View style={styles.aiInsightContent}>
-                    <Text style={styles.aiInsightTitle} numberOfLines={1}>{aiInsight.title}</Text>
-                    <Text style={styles.aiInsightMessage} numberOfLines={2}>{aiInsight.message}</Text>
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {/* 2️⃣ NEXT UP CARD - Primary Decision Engine (visually dominant) */}
+            {/* 1️⃣ NEXT UP CARD - Primary Decision Engine (visually dominant) */}
             {/* Answers: "What is the next irreversible decision the caregiver must make?" */}
             {hasRegimenInstances && todayTimeline.nextUp && (() => {
               const nextUp = todayTimeline.nextUp;
@@ -1687,6 +1839,30 @@ export default function NowScreen() {
               </View>
             )}
 
+            {/* 2️⃣ CARE INSIGHT - Pattern-based supportive guidance */}
+            {/* Only displays when meaningful insight exists with high confidence */}
+            {/* NOT: countdown reminders, urgency alerts, "not logged" warnings */}
+            {careInsight && (
+              <View style={[
+                styles.careInsightCard,
+                careInsight.type === 'reinforcement' && styles.careInsightReinforcement,
+                careInsight.type === 'pattern' && styles.careInsightPattern,
+                careInsight.type === 'preventative' && styles.careInsightPreventative,
+                careInsight.type === 'dependency' && styles.careInsightDependency,
+              ]}>
+                <View style={styles.careInsightHeader}>
+                  <Text style={styles.careInsightLabel}>CARE INSIGHT</Text>
+                </View>
+                <View style={styles.careInsightBody}>
+                  <Text style={styles.careInsightIcon}>{careInsight.icon}</Text>
+                  <View style={styles.careInsightContent}>
+                    <Text style={styles.careInsightTitle}>{careInsight.title}</Text>
+                    <Text style={styles.careInsightMessage}>{careInsight.message}</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
             {/* Data Integrity Warning - Show if CarePlan has orphaned references */}
             {integrityWarnings && integrityWarnings.length > 0 && (
               <DataIntegrityBanner
@@ -1721,119 +1897,27 @@ export default function NowScreen() {
               </View>
             </View>
 
-            {/* ============================================================ */}
-            {/* TODAY'S PLAN - Planning Snapshot with Completion Context */}
-            {/* Helps caregivers mentally map their day and feel organized */}
-            {/* ============================================================ */}
-            {hasRegimenInstances && (
-              <View style={styles.todaysPlanSection}>
-                <View style={styles.todaysPlanHeader}>
-                  <Text style={styles.sectionTitle}>TODAY'S PLAN</Text>
-                  <TouchableOpacity
-                    onPress={() => router.push('/today-scope' as any)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.editPlanLink}>Edit Today's Plan</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Planning Snapshot - Time-based breakdown with completion status */}
-                <View style={styles.planningSnapshot}>
-                  {(() => {
-                    const allPending = [...todayTimeline.overdue, ...todayTimeline.upcoming];
-                    const completedItems = todayTimeline.completed;
-
-                    // Group all items (pending + completed) by time window
-                    const pendingGrouped = groupByTimeWindow(allPending);
-                    const completedGrouped = groupByTimeWindow(completedItems);
-
-                    const timeWindows: TimeWindow[] = ['morning', 'afternoon', 'evening', 'night'];
-                    const hasAnyItems = timeWindows.some(w =>
-                      pendingGrouped[w].length > 0 || completedGrouped[w].length > 0
-                    );
-
-                    if (!hasAnyItems && completedItems.length === 0 && allPending.length === 0) {
-                      return (
-                        <Text style={styles.planningSnapshotEmpty}>
-                          No scheduled items for today
-                        </Text>
-                      );
-                    }
-
-                    // All done state
-                    if (allPending.length === 0 && completedItems.length > 0) {
-                      return (
-                        <View style={styles.planningSnapshotComplete}>
-                          <Text style={styles.planningSnapshotCompleteEmoji}>✓</Text>
-                          <Text style={styles.planningSnapshotCompleteText}>
-                            All {completedItems.length} tasks complete
-                          </Text>
-                        </View>
-                      );
-                    }
-
-                    return timeWindows.map(window => {
-                      const pending = pendingGrouped[window].length;
-                      const completed = completedGrouped[window].length;
-                      const total = pending + completed;
-
-                      if (total === 0) return null;
-
-                      // Determine status text with completion context
-                      let statusText = '';
-                      if (completed > 0 && pending > 0) {
-                        statusText = `(${completed} done)`;
-                      } else if (completed > 0 && pending === 0) {
-                        statusText = '(complete)';
-                      } else {
-                        statusText = '(upcoming)';
-                      }
-
-                      const isComplete = pending === 0 && completed > 0;
-
-                      return (
-                        <View key={window} style={styles.planningSnapshotRow}>
-                          <Text style={[
-                            styles.planningSnapshotLabel,
-                            isComplete && styles.planningSnapshotLabelComplete,
-                          ]}>
-                            {TIME_WINDOW_HOURS[window].label}:
-                          </Text>
-                          <Text style={[
-                            styles.planningSnapshotCount,
-                            isComplete && styles.planningSnapshotCountComplete,
-                          ]}>
-                            {total} {total === 1 ? 'task' : 'tasks'}
-                          </Text>
-                          <Text style={[
-                            styles.planningSnapshotStatus,
-                            isComplete && styles.planningSnapshotStatusComplete,
-                          ]}>
-                            {statusText}
-                          </Text>
-                        </View>
-                      );
-                    });
-                  })()}
-                </View>
-
-                {/* Expand/Collapse Timeline Details Toggle */}
-                <TouchableOpacity
-                  style={styles.timelineToggle}
-                  onPress={() => setTimelineExpanded(!timelineExpanded)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.timelineToggleText}>
-                    {timelineExpanded ? 'Hide details' : 'Show details'}
-                  </Text>
-                  <Text style={styles.timelineToggleIcon}>
-                    {timelineExpanded ? '▲' : '▼'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+            {/* 4️⃣ TIMELINE - Task execution details */}
+            {/* Collapsible timeline showing scheduled items by time window */}
+            {hasRegimenInstances && (todayTimeline.overdue.length > 0 || todayTimeline.upcoming.length > 0) && (
+              <TouchableOpacity
+                style={styles.timelineToggle}
+                onPress={() => setTimelineExpanded(!timelineExpanded)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.timelineToggleText}>
+                  {timelineExpanded ? 'Hide timeline' : 'Show timeline'}
+                </Text>
+                <Text style={styles.timelineToggleCount}>
+                  ({todayTimeline.overdue.length + todayTimeline.upcoming.length} remaining)
+                </Text>
+                <Text style={styles.timelineToggleIcon}>
+                  {timelineExpanded ? '▲' : '▼'}
+                </Text>
+              </TouchableOpacity>
             )}
 
-            {/* 4️⃣ TIMELINE DETAILS - Task Backlog with Time Grouping */}
+            {/* TIMELINE DETAILS - Task Backlog with Time Grouping */}
             {timelineExpanded && hasRegimenInstances && (
               <>
                 {/* Overdue items - highest priority, always expanded */}
@@ -2074,93 +2158,25 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 
-  // Today's Plan Section
-  todaysPlanSection: {
-    marginBottom: 20,
-  },
-  todaysPlanHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  editPlanLink: {
-    fontSize: 12,
-    color: Colors.accent,
-    fontWeight: '500',
-  },
-
-  // Planning Snapshot
-  planningSnapshot: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-  },
-  planningSnapshotRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  planningSnapshotLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.8)',
-    width: 90,
-  },
-  planningSnapshotLabelComplete: {
-    color: 'rgba(16, 185, 129, 0.8)',
-  },
-  planningSnapshotCount: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginRight: 8,
-  },
-  planningSnapshotCountComplete: {
-    color: 'rgba(16, 185, 129, 0.7)',
-  },
-  planningSnapshotStatus: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
-  },
-  planningSnapshotStatusComplete: {
-    color: 'rgba(16, 185, 129, 0.6)',
-  },
-  planningSnapshotEmpty: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.4)',
-    textAlign: 'center',
-    paddingVertical: 8,
-  },
-  planningSnapshotComplete: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 4,
-  },
-  planningSnapshotCompleteEmoji: {
-    fontSize: 18,
-    color: '#10B981',
-  },
-  planningSnapshotCompleteText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#10B981',
-  },
-
   // Timeline Toggle
   timelineToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
+    gap: 8,
+    paddingVertical: 12,
+    marginBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 10,
   },
   timelineToggleText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
     fontWeight: '500',
+  },
+  timelineToggleCount: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.4)',
   },
   timelineToggleIcon: {
     fontSize: 10,
@@ -2331,6 +2347,67 @@ const styles = StyleSheet.create({
     fontSize: 12,  // Reduced from 14
     color: 'rgba(255, 255, 255, 0.6)',
     lineHeight: 17,
+  },
+
+  // ============================================================================
+  // CARE INSIGHT - Pattern-based supportive guidance
+  // Softer styling than Next Up, calm and supportive tone
+  // ============================================================================
+  careInsightCard: {
+    backgroundColor: 'rgba(139, 92, 246, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.15)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 20,
+  },
+  careInsightReinforcement: {
+    backgroundColor: 'rgba(16, 185, 129, 0.05)',
+    borderColor: 'rgba(16, 185, 129, 0.15)',
+  },
+  careInsightPattern: {
+    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+    borderColor: 'rgba(59, 130, 246, 0.15)',
+  },
+  careInsightPreventative: {
+    backgroundColor: 'rgba(251, 191, 36, 0.05)',
+    borderColor: 'rgba(251, 191, 36, 0.15)',
+  },
+  careInsightDependency: {
+    backgroundColor: 'rgba(94, 234, 212, 0.05)',
+    borderColor: 'rgba(94, 234, 212, 0.15)',
+  },
+  careInsightHeader: {
+    marginBottom: 10,
+  },
+  careInsightLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(139, 92, 246, 0.7)',
+    letterSpacing: 1,
+  },
+  careInsightBody: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  careInsightIcon: {
+    fontSize: 20,
+    marginTop: 2,
+  },
+  careInsightContent: {
+    flex: 1,
+  },
+  careInsightTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  careInsightMessage: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.65)',
+    lineHeight: 19,
   },
 
   // Timeline Events
