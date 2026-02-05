@@ -111,9 +111,14 @@ export async function ensureDailyInstances(
     await upsertDailyInstances(patientId, date, newInstances);
   }
 
-  // 6. Return all instances sorted by time
+  // 6. Build set of valid item IDs for filtering
+  const validItemIds = new Set(items.map(item => item.id));
+
+  // 7. Return instances that match active Care Plan items, sorted by time
+  // This filters out stale instances from items that were deleted or deactivated
   const allInstances = await listDailyInstances(patientId, date);
-  return allInstances.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
+  const validInstances = allInstances.filter(instance => validItemIds.has(instance.carePlanItemId));
+  return validInstances.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
 }
 
 // ============================================================================
@@ -250,6 +255,7 @@ function createInstance(
     itemEmoji: item.emoji,
     priority: item.priority,
     instructions: item.instructions,
+    itemDosage: item.medicationDetails?.dose, // For medications
 
     createdAt: now,
     updatedAt: now,

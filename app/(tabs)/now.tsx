@@ -515,7 +515,6 @@ export default function NowScreen() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [dailyTracking, setDailyTracking] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [timelineExpanded, setTimelineExpanded] = useState(true);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
 
   // Time group expansion state for What's Left Today
@@ -1587,24 +1586,6 @@ export default function NowScreen() {
     return { overdue, upcoming, completed, nextUp, hasSafetyRelevant };
   }, [instancesState?.instances, instancesState?.date, today]);
 
-  // ============================================================================
-  // SIGNAL OVER SENTIMENT: Auto-manage timeline expansion
-  // Auto-collapse when empty, auto-expand when overdue items appear
-  // ============================================================================
-  useEffect(() => {
-    const hasOverdue = todayTimeline.overdue.length > 0;
-    const hasUpcoming = todayTimeline.upcoming.length > 0;
-    const isEmpty = !hasOverdue && !hasUpcoming;
-
-    if (hasOverdue) {
-      // Auto-expand when items become overdue - needs attention
-      setTimelineExpanded(true);
-    } else if (isEmpty && hasRegimenInstances) {
-      // Auto-collapse when nothing left to do
-      setTimelineExpanded(false);
-    }
-  }, [todayTimeline.overdue.length, todayTimeline.upcoming.length, hasRegimenInstances]);
-
   // Handler for timeline item tap
   const handleTimelineItemPress = useCallback((instance: any) => {
     // For medications, route to contextual logging screen with pre-filled data
@@ -1839,9 +1820,43 @@ export default function NowScreen() {
               </View>
             )}
 
-            {/* 2️⃣ CARE INSIGHT - Pattern-based supportive guidance */}
+            {/* Data Integrity Warning - Show if CarePlan has orphaned references */}
+            {integrityWarnings && integrityWarnings.length > 0 && (
+              <DataIntegrityBanner
+                issueCount={integrityWarnings.length}
+                onFix={() => router.push('/care-plan' as any)}
+              />
+            )}
+
+            {/* Empty State: No Medications Set Up */}
+            {medications.length === 0 && !showOnboarding && (
+              <NoMedicationsBanner />
+            )}
+
+            {/* Empty State: No Care Plan Set Up */}
+            {!hasAnyCarePlan && !showOnboarding && !carePlanConfigLoading && (
+              <NoCarePlanBanner onSetup={() => router.push('/care-plan' as any)} />
+            )}
+
+            {/* 2️⃣ CARE PLAN PROGRESS - Orientation Dashboard */}
+            {/* Provides fast reassurance: "Are we generally okay?" */}
+            <View style={styles.progressSection}>
+              <Text style={styles.sectionTitle}>CARE PLAN PROGRESS</Text>
+              <View style={styles.progressGrid}>
+                {(enabledBuckets.length === 0 || enabledBuckets.includes('meds' as BucketType)) &&
+                  renderProgressRing('💊', 'Meds', todayStats.meds, () => handleProgressTileTap('meds'), 'medication')}
+                {(enabledBuckets.length === 0 || enabledBuckets.includes('vitals' as BucketType)) &&
+                  renderProgressRing('📊', 'Vitals', todayStats.vitals, () => handleProgressTileTap('vitals'), 'vitals')}
+                {(enabledBuckets.length === 0 || enabledBuckets.includes('mood' as BucketType)) &&
+                  renderProgressRing('😊', 'Mood', todayStats.mood, () => handleProgressTileTap('mood'), 'mood')}
+                {(enabledBuckets.length === 0 || enabledBuckets.includes('meals' as BucketType)) &&
+                  renderProgressRing('🍽️', 'Meals', todayStats.meals, () => handleProgressTileTap('meals'), 'nutrition')}
+              </View>
+            </View>
+
+            {/* 3️⃣ CARE INSIGHT - Pattern-based supportive guidance */}
+            {/* Replaces timeline toggle with meaningful AI-driven content */}
             {/* Only displays when meaningful insight exists with high confidence */}
-            {/* NOT: countdown reminders, urgency alerts, "not logged" warnings */}
             {careInsight && (
               <View style={[
                 styles.careInsightCard,
@@ -1863,62 +1878,9 @@ export default function NowScreen() {
               </View>
             )}
 
-            {/* Data Integrity Warning - Show if CarePlan has orphaned references */}
-            {integrityWarnings && integrityWarnings.length > 0 && (
-              <DataIntegrityBanner
-                issueCount={integrityWarnings.length}
-                onFix={() => router.push('/care-plan' as any)}
-              />
-            )}
-
-            {/* Empty State: No Medications Set Up */}
-            {medications.length === 0 && !showOnboarding && (
-              <NoMedicationsBanner />
-            )}
-
-            {/* Empty State: No Care Plan Set Up */}
-            {!hasAnyCarePlan && !showOnboarding && !carePlanConfigLoading && (
-              <NoCarePlanBanner onSetup={() => router.push('/care-plan' as any)} />
-            )}
-
-            {/* 3️⃣ CARE PLAN PROGRESS - Orientation Dashboard */}
-            {/* Provides fast reassurance: "Are we generally okay?" */}
-            <View style={styles.progressSection}>
-              <Text style={styles.sectionTitle}>CARE PLAN PROGRESS</Text>
-              <View style={styles.progressGrid}>
-                {(enabledBuckets.length === 0 || enabledBuckets.includes('meds' as BucketType)) &&
-                  renderProgressRing('💊', 'Meds', todayStats.meds, () => handleProgressTileTap('meds'), 'medication')}
-                {(enabledBuckets.length === 0 || enabledBuckets.includes('vitals' as BucketType)) &&
-                  renderProgressRing('📊', 'Vitals', todayStats.vitals, () => handleProgressTileTap('vitals'), 'vitals')}
-                {(enabledBuckets.length === 0 || enabledBuckets.includes('mood' as BucketType)) &&
-                  renderProgressRing('😊', 'Mood', todayStats.mood, () => handleProgressTileTap('mood'), 'mood')}
-                {(enabledBuckets.length === 0 || enabledBuckets.includes('meals' as BucketType)) &&
-                  renderProgressRing('🍽️', 'Meals', todayStats.meals, () => handleProgressTileTap('meals'), 'nutrition')}
-              </View>
-            </View>
-
-            {/* 4️⃣ TIMELINE - Task execution details */}
-            {/* Collapsible timeline showing scheduled items by time window */}
+            {/* 4️⃣ TIMELINE DETAILS - Task Backlog with Time Grouping */}
+            {/* Auto-shown when items exist */}
             {hasRegimenInstances && (todayTimeline.overdue.length > 0 || todayTimeline.upcoming.length > 0) && (
-              <TouchableOpacity
-                style={styles.timelineToggle}
-                onPress={() => setTimelineExpanded(!timelineExpanded)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.timelineToggleText}>
-                  {timelineExpanded ? 'Hide timeline' : 'Show timeline'}
-                </Text>
-                <Text style={styles.timelineToggleCount}>
-                  ({todayTimeline.overdue.length + todayTimeline.upcoming.length} remaining)
-                </Text>
-                <Text style={styles.timelineToggleIcon}>
-                  {timelineExpanded ? '▲' : '▼'}
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {/* TIMELINE DETAILS - Task Backlog with Time Grouping */}
-            {timelineExpanded && hasRegimenInstances && (
               <>
                 {/* Overdue items - highest priority, always expanded */}
                 {todayTimeline.overdue.length > 0 && (
@@ -2078,8 +2040,8 @@ export default function NowScreen() {
               </>
             )}
 
-            {/* Empty states */}
-            {timelineExpanded && !hasRegimenInstances && !hasBucketCarePlan && !carePlan && (
+            {/* Empty states - shown when no regimen instances */}
+            {!hasRegimenInstances && !hasBucketCarePlan && !carePlan && (
               <View style={styles.emptyTimeline}>
                 <Text style={styles.emptyTimelineText}>No Care Plan set up yet</Text>
                 <Text style={styles.emptyTimelineSubtext}>Add medications or items to see your timeline</Text>
@@ -2087,14 +2049,14 @@ export default function NowScreen() {
             )}
 
             {/* Care Plan exists but no instances generated yet */}
-            {timelineExpanded && !hasRegimenInstances && (hasBucketCarePlan || carePlan) && (
+            {!hasRegimenInstances && (hasBucketCarePlan || carePlan) && (
               <View style={styles.emptyTimeline}>
                 <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
                 <Text style={styles.emptyTimelineSubtext}>Check your Care Plan settings</Text>
               </View>
             )}
 
-            {timelineExpanded && hasRegimenInstances &&
+            {hasRegimenInstances &&
               todayTimeline.overdue.length === 0 &&
               todayTimeline.upcoming.length === 0 &&
               todayTimeline.completed.length === 0 && (
@@ -2103,7 +2065,7 @@ export default function NowScreen() {
               </View>
             )}
 
-            {timelineExpanded && hasRegimenInstances &&
+            {hasRegimenInstances &&
               todayTimeline.overdue.length === 0 &&
               todayTimeline.upcoming.length === 0 &&
               todayTimeline.completed.length > 0 && (
@@ -2156,31 +2118,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     marginTop: 12,
-  },
-
-  // Timeline Toggle
-  timelineToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    marginBottom: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 10,
-  },
-  timelineToggleText: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontWeight: '500',
-  },
-  timelineToggleCount: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
-  },
-  timelineToggleIcon: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.4)',
   },
 
   // Section Header (kept for compatibility)
