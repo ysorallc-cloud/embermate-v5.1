@@ -43,6 +43,11 @@ import {
 } from '../../storage/carePlanRepo';
 import { generateUniqueId } from '../../utils/idGenerator';
 import { emitDataUpdate } from '../../lib/events';
+import {
+  shouldPromptSampleDataClear,
+  markFirstCarePlanCreated,
+  clearSampleData,
+} from '../../utils/sampleDataManager';
 
 // ============================================================================
 // TYPES
@@ -186,6 +191,41 @@ export default function CarePlanManageScreen() {
       Alert.alert('Error', 'Please enter a name');
       return;
     }
+
+    // Check if we should prompt for sample data clearing (first care plan creation)
+    const shouldPrompt = await shouldPromptSampleDataClear();
+    if (shouldPrompt && !editingItem) {
+      // This is the first care plan item being created and sample data exists
+      Alert.alert(
+        'Ready to get started?',
+        'EmberMate has sample data loaded to help you explore. Would you like to remove it now and start fresh with your own data?',
+        [
+          {
+            text: 'Keep sample data',
+            style: 'cancel',
+            onPress: async () => {
+              await markFirstCarePlanCreated();
+              await performSave();
+            },
+          },
+          {
+            text: 'Remove sample data',
+            style: 'destructive',
+            onPress: async () => {
+              await clearSampleData();
+              await markFirstCarePlanCreated();
+              await performSave();
+            },
+          },
+        ]
+      );
+    } else {
+      await performSave();
+    }
+  };
+
+  const performSave = async () => {
+    if (!carePlan) return;
 
     try {
       const now = new Date().toISOString();

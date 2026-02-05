@@ -83,6 +83,7 @@ import * as Notifications from 'expo-notifications';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { WelcomeBackBanner } from '../../components/common/WelcomeBackBanner';
+import { SampleDataBanner } from '../../components/common/SampleDataBanner';
 import { format } from 'date-fns';
 
 // CarePlan System
@@ -1689,6 +1690,9 @@ export default function NowScreen() {
             {showWelcomeBanner && (
               <WelcomeBackBanner onDismiss={handleDismissBanner} />
             )}
+
+            {/* Sample Data Banner - Shows when demo data is present */}
+            <SampleDataBanner compact />
 
             {/* Notification Prompt - Contextual, after meds/appointments added */}
             {showNotificationPrompt && !showOnboarding && (

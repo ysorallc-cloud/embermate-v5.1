@@ -388,7 +388,11 @@ export default function SupportScreen() {
           </View>
 
           {/* Privacy Reassurance - Moved higher (right after Quick Action) */}
-          <View style={styles.privacyCard}>
+          <TouchableOpacity
+            style={styles.privacyCard}
+            onPress={() => router.push('/data-privacy-settings' as any)}
+            activeOpacity={0.7}
+          >
             <Text style={styles.privacyIcon}>🔒</Text>
             <View style={styles.privacyContent}>
               <Text style={styles.privacyTitle}>Nothing is shared without you</Text>
@@ -396,7 +400,8 @@ export default function SupportScreen() {
                 Each person sees only what you allow. You control all access.
               </Text>
             </View>
-          </View>
+            <Text style={styles.privacyChevron}>›</Text>
+          </TouchableOpacity>
 
           {/* AI Insight for care coordination (optional) */}
           {teamInsight && (
@@ -731,6 +736,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.6)',
     lineHeight: 15,
+  },
+  privacyChevron: {
+    fontSize: 18,
+    color: 'rgba(94, 234, 212, 0.5)',
+    fontWeight: '600',
+    marginLeft: 8,
   },
 
   // Team Insight Card (AI)
