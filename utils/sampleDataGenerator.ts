@@ -12,6 +12,19 @@ import { saveDailyTracking } from './dailyTrackingStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Medication } from './medicationStorage';
 import { DataOrigin } from './sampleDataManager';
+import {
+  CarePlan,
+  CarePlanItem,
+  CarePlanItemType,
+  TimeWindowLabel,
+  DEFAULT_TIME_WINDOWS,
+} from '../types/carePlan';
+import {
+  createCarePlan,
+  upsertCarePlanItem,
+  getActiveCarePlan,
+  DEFAULT_PATIENT_ID,
+} from '../storage/carePlanRepo';
 
 const SAMPLE_DATA_INITIALIZED_KEY = '@embermate_sample_data_initialized';
 
@@ -344,6 +357,163 @@ export const getSampleAppointments = () => {
 };
 
 // ============================================================================
+// SAMPLE CARE PLAN ITEMS (Mood, Meals, Vitals)
+// ============================================================================
+
+/**
+ * Create sample CarePlanItems for mood, meals, and vitals tracking
+ * This populates the Care Plan Progress rings on the Now page
+ */
+export async function createSampleCarePlanItems(): Promise<void> {
+  try {
+    // Check if there's already an active CarePlan
+    let carePlan = await getActiveCarePlan(DEFAULT_PATIENT_ID);
+
+    if (!carePlan) {
+      // Create a new CarePlan
+      carePlan = await createCarePlan(DEFAULT_PATIENT_ID);
+    }
+
+    const now = new Date().toISOString();
+    const carePlanId = carePlan.id;
+
+    // Define sample care plan items
+    const sampleItems: CarePlanItem[] = [
+      // Morning Mood Check
+      {
+        id: 'sample-mood-morning',
+        carePlanId,
+        type: 'mood',
+        name: 'Morning mood check',
+        instructions: 'How are you feeling this morning?',
+        priority: 'recommended',
+        active: true,
+        emoji: '😊',
+        schedule: {
+          frequency: 'daily',
+          times: [{
+            id: 'mood-morning-window',
+            kind: 'window',
+            label: 'morning' as TimeWindowLabel,
+            start: DEFAULT_TIME_WINDOWS.morning.start,
+            end: DEFAULT_TIME_WINDOWS.morning.end,
+          }],
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      // Breakfast
+      {
+        id: 'sample-meal-breakfast',
+        carePlanId,
+        type: 'nutrition',
+        name: 'Breakfast',
+        instructions: 'Log breakfast meal',
+        priority: 'recommended',
+        active: true,
+        emoji: '🍳',
+        nutritionDetails: { mealType: 'breakfast' },
+        schedule: {
+          frequency: 'daily',
+          times: [{
+            id: 'meal-breakfast-window',
+            kind: 'window',
+            label: 'morning' as TimeWindowLabel,
+            start: DEFAULT_TIME_WINDOWS.morning.start,
+            end: DEFAULT_TIME_WINDOWS.morning.end,
+          }],
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      // Lunch
+      {
+        id: 'sample-meal-lunch',
+        carePlanId,
+        type: 'nutrition',
+        name: 'Lunch',
+        instructions: 'Log lunch meal',
+        priority: 'recommended',
+        active: true,
+        emoji: '🥗',
+        nutritionDetails: { mealType: 'lunch' },
+        schedule: {
+          frequency: 'daily',
+          times: [{
+            id: 'meal-lunch-window',
+            kind: 'window',
+            label: 'afternoon' as TimeWindowLabel,
+            start: DEFAULT_TIME_WINDOWS.afternoon.start,
+            end: DEFAULT_TIME_WINDOWS.afternoon.end,
+          }],
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      // Dinner
+      {
+        id: 'sample-meal-dinner',
+        carePlanId,
+        type: 'nutrition',
+        name: 'Dinner',
+        instructions: 'Log dinner meal',
+        priority: 'recommended',
+        active: true,
+        emoji: '🍽️',
+        nutritionDetails: { mealType: 'dinner' },
+        schedule: {
+          frequency: 'daily',
+          times: [{
+            id: 'meal-dinner-window',
+            kind: 'window',
+            label: 'evening' as TimeWindowLabel,
+            start: DEFAULT_TIME_WINDOWS.evening.start,
+            end: DEFAULT_TIME_WINDOWS.evening.end,
+          }],
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      // Morning Vitals
+      {
+        id: 'sample-vitals-morning',
+        carePlanId,
+        type: 'vitals',
+        name: 'Morning vitals',
+        instructions: 'Check blood pressure and glucose',
+        priority: 'recommended',
+        active: true,
+        emoji: '📊',
+        vitalsDetails: { vitalTypes: ['bp', 'glucose', 'heartRate'] },
+        schedule: {
+          frequency: 'daily',
+          times: [{
+            id: 'vitals-morning-window',
+            kind: 'window',
+            label: 'morning' as TimeWindowLabel,
+            start: DEFAULT_TIME_WINDOWS.morning.start,
+            end: DEFAULT_TIME_WINDOWS.morning.end,
+          }],
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+    ];
+
+    // Save each item
+    for (const item of sampleItems) {
+      await upsertCarePlanItem(item);
+    }
+
+    if (__DEV__) {
+      console.log('[SampleDataGenerator] Created sample CarePlanItems:', sampleItems.length);
+    }
+  } catch (error) {
+    console.error('[SampleDataGenerator] Error creating sample CarePlanItems:', error);
+  }
+}
+
+// ============================================================================
 // INITIALIZE ALL SAMPLE DATA
 // ============================================================================
 
@@ -369,6 +539,9 @@ export const initializeSampleData = async (): Promise<boolean> => {
 
     // Save caregivers
     await AsyncStorage.setItem('@embermate_caregivers', JSON.stringify(getSampleCaregivers()));
+
+    // Create sample Care Plan items (mood, meals, vitals)
+    await createSampleCarePlanItems();
 
     // Mark as initialized
     await AsyncStorage.setItem(SAMPLE_DATA_INITIALIZED_KEY, 'true');

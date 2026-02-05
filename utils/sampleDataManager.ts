@@ -291,13 +291,27 @@ export async function clearSampleData(): Promise<{
       clearedCount += removed;
     }
 
-    // 9. Clear correlation cache (will be regenerated)
+    // 9. Clear sample CarePlan items (IDs starting with 'sample-')
+    const carePlanItemKeys = allKeys.filter(k => k.startsWith('@embermate_regimen_items_v2:'));
+    for (const key of carePlanItemKeys) {
+      const removed = await filterSampleFromArray(key, 'sample-');
+      clearedCount += removed;
+    }
+
+    // 10. Clear sample daily instances (generated from sample CarePlan items)
+    const instanceKeys = allKeys.filter(k => k.startsWith(SAMPLE_DATA_KEYS.prefixes.carePlanInstances));
+    for (const key of instanceKeys) {
+      const removed = await filterSampleFromArray(key, 'sample-');
+      clearedCount += removed;
+    }
+
+    // 12. Clear correlation cache (will be regenerated)
     await AsyncStorage.removeItem('@correlation_cache');
 
-    // 10. Mark sample data as cleared
+    // 13. Mark sample data as cleared
     await AsyncStorage.setItem(SAMPLE_DATA_KEYS.sampleDataCleared, 'true');
 
-    // 11. Emit global refresh event
+    // 14. Emit global refresh event
     emitDataUpdate('sampleDataCleared');
 
     if (__DEV__) console.log(`[SampleDataManager] Cleared ${clearedCount} sample records`);
