@@ -19,8 +19,11 @@ import {
   upsertDailyInstances,
   updateDailyInstanceStatus,
   removeStaleInstances,
+  upsertCarePlanItem,
   DEFAULT_PATIENT_ID,
 } from '../storage/carePlanRepo';
+import { getCarePlanConfig } from '../storage/carePlanConfigRepo';
+import { MedsBucketConfig } from '../types/carePlanConfig';
 import { generateUniqueId } from '../utils/idGenerator';
 
 // ============================================================================
@@ -29,6 +32,64 @@ import { generateUniqueId } from '../utils/idGenerator';
 
 // Grace period in minutes before marking as missed
 const MISSED_GRACE_PERIOD_MINUTES = 120; // 2 hours
+
+// ============================================================================
+// CARE PLAN CONFIG SYNC
+// Ensures CarePlanItems align with CarePlanConfig (bucket system) medications
+// This handles the case where migration created items that user later removed
+// ============================================================================
+
+/**
+ * Sync CarePlanItems with CarePlanConfig medications
+ * Deactivates medication-type CarePlanItems that aren't in the current config
+ * This fixes the issue where migrated medications persist after user removes them
+ */
+async function syncMedicationItemsWithConfig(
+  carePlanId: string,
+  patientId: string
+): Promise<void> {
+  try {
+    // Get current CarePlanConfig (user's actual selections)
+    const config = await getCarePlanConfig(patientId);
+
+    // If no config or meds bucket disabled, deactivate all medication items
+    const medsConfig = config?.meds as MedsBucketConfig | undefined;
+    const configMedications = medsConfig?.enabled ? (medsConfig.medications || []) : [];
+    const activeMedNames = new Set(
+      configMedications
+        .filter(m => m.active)
+        .map(m => m.name.toLowerCase().trim())
+    );
+
+    // Get all CarePlanItems (including inactive)
+    const allItems = await listCarePlanItems(carePlanId, { activeOnly: false });
+    const medicationItems = allItems.filter(item => item.type === 'medication');
+
+    // Check each medication item against config
+    for (const item of medicationItems) {
+      // Extract medication name from item name (format: "Name Dosage" e.g., "Lisinopril 10mg")
+      const itemNameLower = item.name.toLowerCase().trim();
+      // Check if any config medication name is contained in the item name
+      const hasMatchingConfig = Array.from(activeMedNames).some(configName =>
+        itemNameLower.includes(configName) || configName.includes(itemNameLower.split(' ')[0])
+      );
+
+      if (!hasMatchingConfig && item.active) {
+        // Deactivate this item - it's not in the current config
+        if (__DEV__) {
+          console.log('[syncMedicationItemsWithConfig] Deactivating stale medication item:', item.name);
+        }
+        await upsertCarePlanItem({
+          ...item,
+          active: false,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('[syncMedicationItemsWithConfig] Error syncing medications:', error);
+    // Don't throw - this is a cleanup operation, shouldn't block instance generation
+  }
+}
 
 // ============================================================================
 // MAIN GENERATION FUNCTION
@@ -56,7 +117,11 @@ export async function ensureDailyInstances(
     return [];
   }
 
-  // 2. Get active items
+  // 1.5 Sync medication items with CarePlanConfig
+  // This ensures items match what user has configured in the bucket system
+  await syncMedicationItemsWithConfig(carePlan.id, patientId);
+
+  // 2. Get active items (after sync to reflect current config)
   const items = await listCarePlanItems(carePlan.id, { activeOnly: true });
   if (items.length === 0) {
     return [];

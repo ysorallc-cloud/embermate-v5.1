@@ -1900,6 +1900,17 @@ export default function NowScreen() {
             {/* Auto-shown when items exist */}
             {hasRegimenInstances && (todayTimeline.overdue.length > 0 || todayTimeline.upcoming.length > 0) && (
               <>
+                {/* Timeline header with Adjust Today link */}
+                <View style={styles.timelineSectionHeader}>
+                  <Text style={styles.sectionTitle}>TODAY'S PLAN</Text>
+                  <TouchableOpacity
+                    onPress={() => router.push('/today-scope' as any)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.adjustTodayLink}>Adjust Today</Text>
+                  </TouchableOpacity>
+                </View>
+
                 {/* Overdue items - highest priority, always expanded */}
                 {todayTimeline.overdue.length > 0 && (
                   <View style={styles.overdueSection}>
@@ -2150,6 +2161,18 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  timelineSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  adjustTodayLink: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.accent,
   },
   collapseIcon: {
     fontSize: 16,
