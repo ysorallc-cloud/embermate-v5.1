@@ -1721,69 +1721,119 @@ export default function NowScreen() {
               </View>
             </View>
 
-            {/* What's Left Today Section - Built from DailyCareInstances */}
-            {/* Fix #2: Renamed from "Today Timeline" to "What's left today" with dynamic subtitle */}
-            <View style={styles.timelineHeaderContainer}>
-              <TouchableOpacity
-                style={styles.sectionHeaderRow}
-                onPress={() => setTimelineExpanded(!timelineExpanded)}
-                activeOpacity={0.7}
-              >
-                <View>
-                  <Text style={styles.sectionTitle}>WHAT'S LEFT TODAY</Text>
-                  {hasRegimenInstances && (
-                    <Text style={styles.sectionSubtitle}>
-                      {(() => {
-                        const itemsRemaining = todayTimeline.overdue.length + todayTimeline.upcoming.length;
-                        if (itemsRemaining === 0) {
-                          return 'All caught up!';
-                        } else if (itemsRemaining === 1) {
-                          return '1 item still needs attention';
-                        } else {
-                          return `${itemsRemaining} items still need attention`;
-                        }
-                      })()}
-                    </Text>
-                  )}
+            {/* ============================================================ */}
+            {/* TODAY'S PLAN - Planning Snapshot with Completion Context */}
+            {/* Helps caregivers mentally map their day and feel organized */}
+            {/* ============================================================ */}
+            {hasRegimenInstances && (
+              <View style={styles.todaysPlanSection}>
+                <View style={styles.todaysPlanHeader}>
+                  <Text style={styles.sectionTitle}>TODAY'S PLAN</Text>
+                  <TouchableOpacity
+                    onPress={() => router.push('/today-scope' as any)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.editPlanLink}>Edit Today's Plan</Text>
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.collapseIcon}>{timelineExpanded ? '▼' : '▶'}</Text>
-              </TouchableOpacity>
-              {/* Adjust Today Link */}
-              <TouchableOpacity
-                style={styles.adjustTodayLink}
-                onPress={() => router.push('/today-scope' as any)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.adjustTodayText}>Adjust Today</Text>
-              </TouchableOpacity>
-            </View>
 
-            {/* REMAINING TODAY PLANNING SUMMARY */}
-            {/* Quick glance at time distribution: "Morning: 2 • Afternoon: 3 • Evening: 1" */}
-            {hasRegimenInstances && todayTimeline.upcoming.length > 0 && (
-              <View style={styles.remainingSummary}>
-                {(() => {
-                  const allPending = [...todayTimeline.overdue, ...todayTimeline.upcoming];
-                  const grouped = groupByTimeWindow(allPending);
-                  const parts: string[] = [];
+                {/* Planning Snapshot - Time-based breakdown with completion status */}
+                <View style={styles.planningSnapshot}>
+                  {(() => {
+                    const allPending = [...todayTimeline.overdue, ...todayTimeline.upcoming];
+                    const completedItems = todayTimeline.completed;
 
-                  if (grouped.morning.length > 0) parts.push(`Morning: ${grouped.morning.length}`);
-                  if (grouped.afternoon.length > 0) parts.push(`Afternoon: ${grouped.afternoon.length}`);
-                  if (grouped.evening.length > 0) parts.push(`Evening: ${grouped.evening.length}`);
-                  if (grouped.night.length > 0) parts.push(`Night: ${grouped.night.length}`);
+                    // Group all items (pending + completed) by time window
+                    const pendingGrouped = groupByTimeWindow(allPending);
+                    const completedGrouped = groupByTimeWindow(completedItems);
 
-                  if (parts.length === 0) return null;
+                    const timeWindows: TimeWindow[] = ['morning', 'afternoon', 'evening', 'night'];
+                    const hasAnyItems = timeWindows.some(w =>
+                      pendingGrouped[w].length > 0 || completedGrouped[w].length > 0
+                    );
 
-                  return (
-                    <Text style={styles.remainingSummaryText}>
-                      {parts.join(' • ')}
-                    </Text>
-                  );
-                })()}
+                    if (!hasAnyItems && completedItems.length === 0 && allPending.length === 0) {
+                      return (
+                        <Text style={styles.planningSnapshotEmpty}>
+                          No scheduled items for today
+                        </Text>
+                      );
+                    }
+
+                    // All done state
+                    if (allPending.length === 0 && completedItems.length > 0) {
+                      return (
+                        <View style={styles.planningSnapshotComplete}>
+                          <Text style={styles.planningSnapshotCompleteEmoji}>✓</Text>
+                          <Text style={styles.planningSnapshotCompleteText}>
+                            All {completedItems.length} tasks complete
+                          </Text>
+                        </View>
+                      );
+                    }
+
+                    return timeWindows.map(window => {
+                      const pending = pendingGrouped[window].length;
+                      const completed = completedGrouped[window].length;
+                      const total = pending + completed;
+
+                      if (total === 0) return null;
+
+                      // Determine status text with completion context
+                      let statusText = '';
+                      if (completed > 0 && pending > 0) {
+                        statusText = `(${completed} done)`;
+                      } else if (completed > 0 && pending === 0) {
+                        statusText = '(complete)';
+                      } else {
+                        statusText = '(upcoming)';
+                      }
+
+                      const isComplete = pending === 0 && completed > 0;
+
+                      return (
+                        <View key={window} style={styles.planningSnapshotRow}>
+                          <Text style={[
+                            styles.planningSnapshotLabel,
+                            isComplete && styles.planningSnapshotLabelComplete,
+                          ]}>
+                            {TIME_WINDOW_HOURS[window].label}:
+                          </Text>
+                          <Text style={[
+                            styles.planningSnapshotCount,
+                            isComplete && styles.planningSnapshotCountComplete,
+                          ]}>
+                            {total} {total === 1 ? 'task' : 'tasks'}
+                          </Text>
+                          <Text style={[
+                            styles.planningSnapshotStatus,
+                            isComplete && styles.planningSnapshotStatusComplete,
+                          ]}>
+                            {statusText}
+                          </Text>
+                        </View>
+                      );
+                    });
+                  })()}
+                </View>
+
+                {/* Expand/Collapse Timeline Details Toggle */}
+                <TouchableOpacity
+                  style={styles.timelineToggle}
+                  onPress={() => setTimelineExpanded(!timelineExpanded)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.timelineToggleText}>
+                    {timelineExpanded ? 'Hide details' : 'Show details'}
+                  </Text>
+                  <Text style={styles.timelineToggleIcon}>
+                    {timelineExpanded ? '▲' : '▼'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
 
-            {/* 4️⃣ WHAT'S LEFT TODAY - Task Backlog with Time Grouping */}
+            {/* 4️⃣ TIMELINE DETAILS - Task Backlog with Time Grouping */}
             {timelineExpanded && hasRegimenInstances && (
               <>
                 {/* Overdue items - highest priority, always expanded */}
@@ -2024,27 +2074,104 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 
-  // Timeline Header Container
-  timelineHeaderContainer: {
-    marginBottom: 16,
+  // Today's Plan Section
+  todaysPlanSection: {
+    marginBottom: 20,
+  },
+  todaysPlanHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  editPlanLink: {
+    fontSize: 12,
+    color: Colors.accent,
+    fontWeight: '500',
   },
 
-  // Section Header
+  // Planning Snapshot
+  planningSnapshot: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+  },
+  planningSnapshotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  planningSnapshotLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.8)',
+    width: 90,
+  },
+  planningSnapshotLabelComplete: {
+    color: 'rgba(16, 185, 129, 0.8)',
+  },
+  planningSnapshotCount: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginRight: 8,
+  },
+  planningSnapshotCountComplete: {
+    color: 'rgba(16, 185, 129, 0.7)',
+  },
+  planningSnapshotStatus: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.4)',
+  },
+  planningSnapshotStatusComplete: {
+    color: 'rgba(16, 185, 129, 0.6)',
+  },
+  planningSnapshotEmpty: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.4)',
+    textAlign: 'center',
+    paddingVertical: 8,
+  },
+  planningSnapshotComplete: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  planningSnapshotCompleteEmoji: {
+    fontSize: 18,
+    color: '#10B981',
+  },
+  planningSnapshotCompleteText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#10B981',
+  },
+
+  // Timeline Toggle
+  timelineToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+  },
+  timelineToggleText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontWeight: '500',
+  },
+  timelineToggleIcon: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.4)',
+  },
+
+  // Section Header (kept for compatibility)
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-
-  // Adjust Today Link
-  adjustTodayLink: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
-  },
-  adjustTodayText: {
-    fontSize: 12,
-    color: Colors.accent,
-    fontWeight: '500',
   },
   sectionTitle: {
     fontSize: 13,
@@ -2847,22 +2974,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
     marginVertical: 12,
-  },
-
-  // Remaining Today Planning Summary
-  remainingSummary: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-  },
-  remainingSummaryText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.6)',
-    textAlign: 'center',
-    letterSpacing: 0.3,
   },
 
   // All done message
