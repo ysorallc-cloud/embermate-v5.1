@@ -202,7 +202,7 @@ interface AIInsight {
 }
 
 // ============================================================================
-// URGENCY STATUS SYSTEM
+// URGENCY STATUS & SCORING SYSTEM
 // Answers: "What is the next irreversible decision the caregiver must make?"
 // ============================================================================
 
@@ -211,8 +211,10 @@ type UrgencyStatus = 'OVERDUE' | 'DUE_SOON' | 'LATER_TODAY' | 'COMPLETE' | 'NOT_
 interface UrgencyInfo {
   status: UrgencyStatus;
   label: string;
+  proximityLabel?: string;  // "Next in 45 minutes"
   minutesUntil?: number;
   minutesOverdue?: number;
+  urgencyScore?: number;  // Dynamic ranking score
 }
 
 // Time window definitions for grouping
@@ -225,6 +227,105 @@ const TIME_WINDOW_HOURS: Record<TimeWindow, { start: number; end: number; label:
   night: { start: 21, end: 5, label: 'Night' },
 };
 
+// Medical dependency mappings (e.g., vitals needed before BP medication)
+const MEDICAL_DEPENDENCIES: Record<string, string[]> = {
+  'blood_pressure_med': ['vitals'],  // BP meds may need vitals first
+  'insulin': ['meals', 'vitals'],     // Insulin timing depends on meals
+  'pain_med': ['mood'],               // Pain assessment helps pain med decisions
+};
+
+// ============================================================================
+// URGENCY SCORING MODEL
+// Score = Time proximity + Medical dependency + Missed history + Risk confidence
+// ============================================================================
+interface UrgencyScoreFactors {
+  timeProximity: number;      // 0-40 points based on how soon
+  medicalDependency: number;  // 0-30 points if blocks other tasks
+  missedHistory: number;      // 0-20 points based on recent misses
+  riskConfidence: number;     // 0-10 points based on clinical importance
+}
+
+function calculateUrgencyScore(
+  instance: any,
+  allInstances: any[],
+  missedCount: number = 0
+): { score: number; factors: UrgencyScoreFactors; isSafetyRelevant: boolean } {
+  const factors: UrgencyScoreFactors = {
+    timeProximity: 0,
+    medicalDependency: 0,
+    missedHistory: 0,
+    riskConfidence: 0,
+  };
+
+  let isSafetyRelevant = false;
+
+  // TIME PROXIMITY (0-40 points)
+  const now = new Date();
+  const scheduled = new Date(instance.scheduledTime);
+  if (!isNaN(scheduled.getTime())) {
+    const diffMinutes = (scheduled.getTime() - now.getTime()) / (1000 * 60);
+
+    if (diffMinutes < -OVERDUE_GRACE_MINUTES) {
+      factors.timeProximity = 40;  // Overdue = max time urgency
+      isSafetyRelevant = true;
+    } else if (diffMinutes <= 0) {
+      factors.timeProximity = 35;  // Due now
+      isSafetyRelevant = true;
+    } else if (diffMinutes <= 30) {
+      factors.timeProximity = 30;  // Within 30 min
+    } else if (diffMinutes <= 60) {
+      factors.timeProximity = 25;  // Within 1 hour
+    } else if (diffMinutes <= 120) {
+      factors.timeProximity = 15;  // Within 2 hours
+    } else {
+      factors.timeProximity = Math.max(0, 10 - Math.floor(diffMinutes / 60));
+    }
+  }
+
+  // MEDICAL DEPENDENCY (0-30 points)
+  // Check if this task is a dependency for upcoming medications
+  if (instance.itemType === 'vitals') {
+    // Vitals may be required before certain medications
+    const upcomingMeds = allInstances.filter(
+      i => i.itemType === 'medication' && i.status === 'pending'
+    );
+    if (upcomingMeds.length > 0) {
+      factors.medicalDependency = 20;
+      isSafetyRelevant = true;
+    }
+  }
+  if (instance.itemType === 'medication') {
+    factors.medicalDependency = 25;  // Medications are high priority
+    isSafetyRelevant = true;
+  }
+
+  // MISSED HISTORY (0-20 points)
+  // Items frequently missed get priority
+  factors.missedHistory = Math.min(20, missedCount * 5);
+  if (missedCount >= 2) {
+    isSafetyRelevant = true;
+  }
+
+  // RISK CONFIDENCE (0-10 points)
+  // Based on item type clinical importance
+  const riskByType: Record<string, number> = {
+    medication: 10,
+    vitals: 8,
+    nutrition: 5,
+    mood: 4,
+    hydration: 3,
+    sleep: 3,
+    activity: 2,
+    custom: 1,
+  };
+  factors.riskConfidence = riskByType[instance.itemType] || 1;
+
+  const score = factors.timeProximity + factors.medicalDependency +
+                factors.missedHistory + factors.riskConfidence;
+
+  return { score, factors, isSafetyRelevant };
+}
+
 // Calculate urgency status for a single task
 function getUrgencyStatus(scheduledTime: string, isCompleted: boolean): UrgencyInfo {
   if (isCompleted) {
@@ -232,14 +333,14 @@ function getUrgencyStatus(scheduledTime: string, isCompleted: boolean): UrgencyI
   }
 
   if (!scheduledTime) {
-    return { status: 'NOT_APPLICABLE', label: 'Not tracked today' };
+    return { status: 'NOT_APPLICABLE', label: '' };  // No text, just indicator
   }
 
   const now = new Date();
   const scheduled = new Date(scheduledTime);
 
   if (isNaN(scheduled.getTime())) {
-    return { status: 'NOT_APPLICABLE', label: 'Not tracked today' };
+    return { status: 'NOT_APPLICABLE', label: '' };
   }
 
   const diffMs = scheduled.getTime() - now.getTime();
@@ -250,34 +351,35 @@ function getUrgencyStatus(scheduledTime: string, isCompleted: boolean): UrgencyI
     const minutesOverdue = Math.abs(diffMinutes);
     const hours = Math.floor(minutesOverdue / 60);
     const mins = minutesOverdue % 60;
-    const label = hours > 0
-      ? `${hours}h ${mins}m overdue`
-      : `${mins} min overdue`;
     return {
       status: 'OVERDUE',
-      label: 'Due now',
+      label: 'Overdue',
+      proximityLabel: hours > 0 ? `${hours}h ${mins}m overdue` : `${mins}m overdue`,
       minutesOverdue
     };
   }
 
   // DUE_SOON: within next 2 hours (120 minutes)
   if (diffMinutes <= 120) {
-    const label = diffMinutes <= 0
+    const proximityLabel = diffMinutes <= 0
       ? 'Due now'
       : diffMinutes < 60
-        ? `Due in ${diffMinutes} min`
-        : `Due in ${Math.round(diffMinutes / 60)}h`;
+        ? `Next in ${diffMinutes} min`
+        : `Next in ${Math.round(diffMinutes / 60)}h`;
     return {
       status: 'DUE_SOON',
-      label,
+      label: diffMinutes <= 0 ? 'Due now' : 'Coming up',
+      proximityLabel,
       minutesUntil: Math.max(0, diffMinutes)
     };
   }
 
   // LATER_TODAY: more than 2 hours away
+  const hours = Math.floor(diffMinutes / 60);
   return {
     status: 'LATER_TODAY',
-    label: 'Scheduled later today',
+    label: '',  // No text for later items
+    proximityLabel: `In ${hours}h`,
     minutesUntil: diffMinutes
   };
 }
@@ -1252,39 +1354,59 @@ export default function NowScreen() {
   // TODAY TIMELINE - Built from DailyCareInstances
   // ============================================================================
 
-  // Compute timeline from DailyCareInstances sorted by scheduledTime
+  // Compute timeline from DailyCareInstances sorted by urgency score (highest priority first)
   const todayTimeline = useMemo(() => {
     if (!instancesState?.instances) {
-      return { overdue: [], upcoming: [], completed: [], nextUp: null };
+      return { overdue: [], upcoming: [], completed: [], nextUp: null, hasSafetyRelevant: false };
     }
 
     // Safety check: ensure instancesState is for today
     // This prevents showing stale data from a previous day
     if (instancesState.date !== today) {
       console.log('[NowScreen] Instance date mismatch:', instancesState.date, 'vs today:', today);
-      return { overdue: [], upcoming: [], completed: [], nextUp: null };
+      return { overdue: [], upcoming: [], completed: [], nextUp: null, hasSafetyRelevant: false };
     }
 
-    const now = new Date();
-    const sorted = [...instancesState.instances].sort((a, b) =>
-      a.scheduledTime.localeCompare(b.scheduledTime)
-    );
+    const allInstances = instancesState.instances;
 
-    // Filter into categories
-    const overdue = sorted.filter(
-      i => i.status === 'pending' && isOverdue(i.scheduledTime)
-    );
-    const upcoming = sorted.filter(
-      i => i.status === 'pending' && !isOverdue(i.scheduledTime)
-    );
-    const completed = sorted.filter(
+    // Calculate urgency scores for all pending instances
+    const withScores = allInstances.map(instance => {
+      if (instance.status !== 'pending') {
+        return { instance, score: 0, factors: null, isSafetyRelevant: false };
+      }
+      // Count missed instances for this item type (for missed history scoring)
+      const missedCount = allInstances.filter(
+        i => i.itemType === instance.itemType && i.status === 'missed'
+      ).length;
+      const { score, factors, isSafetyRelevant } = calculateUrgencyScore(instance, allInstances, missedCount);
+      return { instance, score, factors, isSafetyRelevant };
+    });
+
+    // Check if any pending item is safety-relevant
+    const hasSafetyRelevant = withScores.some(w => w.isSafetyRelevant && w.instance.status === 'pending');
+
+    // Filter and sort by urgency score (highest first) for pending items
+    const pendingWithScores = withScores
+      .filter(w => w.instance.status === 'pending')
+      .sort((a, b) => b.score - a.score);
+
+    // Separate into overdue and upcoming (already sorted by urgency)
+    const overdue = pendingWithScores
+      .filter(w => isOverdue(w.instance.scheduledTime))
+      .map(w => ({ ...w.instance, urgencyScore: w.score }));
+
+    const upcoming = pendingWithScores
+      .filter(w => !isOverdue(w.instance.scheduledTime))
+      .map(w => ({ ...w.instance, urgencyScore: w.score }));
+
+    const completed = allInstances.filter(
       i => i.status === 'completed' || i.status === 'skipped'
-    );
+    ).sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
 
-    // "Next Up" = first pending after now, or first overdue if nothing upcoming
-    let nextUp = upcoming.find(i => isFuture(i.scheduledTime)) || upcoming[0] || overdue[0] || null;
+    // "Next Up" = highest urgency pending item (overdue first, then upcoming)
+    const nextUp = overdue[0] || upcoming[0] || null;
 
-    return { overdue, upcoming, completed, nextUp };
+    return { overdue, upcoming, completed, nextUp, hasSafetyRelevant };
   }, [instancesState?.instances, instancesState?.date, today]);
 
   // ============================================================================
@@ -1431,9 +1553,10 @@ export default function NowScreen() {
             {/* NEW LAYOUT HIERARCHY: AI Insight → Next Up → Progress → Timeline */}
             {/* ============================================================ */}
 
-            {/* 1️⃣ AI INSIGHT CARD - Advisory Layer (reduced visual dominance) */}
-            {/* Must NOT compete with task execution. Informational only. */}
-            {aiInsight && (
+            {/* 1️⃣ AI INSIGHT CARD - Advisory Layer (conditional on safety relevance) */}
+            {/* Only shows when: safety-relevant items, overdue tasks, or celebrations */}
+            {/* Reduces noise by hiding generic suggestions when no urgent care concerns */}
+            {aiInsight && (todayTimeline.hasSafetyRelevant || aiInsight.type === 'reminder' || aiInsight.type === 'celebration') && (
               <View style={[
                 styles.aiInsightCard,
                 aiInsight.type === 'celebration' && styles.aiInsightCelebration,
@@ -1535,11 +1658,18 @@ export default function NowScreen() {
                         {nextUp.instructions}
                       </Text>
                     )}
-                    {/* Urgency Label - always shows text + color */}
-                    <Text style={[styles.nextUpUrgencyLabel, getUrgencyLabelStyle()]}>
-                      {urgencyInfo.label}
-                      {nextUpTime && urgencyInfo.status !== 'OVERDUE' ? ` • ${nextUpTime}` : ''}
-                    </Text>
+                    {/* Time Proximity Indicator - shows when coming up */}
+                    {urgencyInfo.proximityLabel && (
+                      <Text style={[styles.nextUpProximityLabel, getUrgencyLabelStyle()]}>
+                        {urgencyInfo.proximityLabel}
+                      </Text>
+                    )}
+                    {/* Urgency Label - for overdue items */}
+                    {urgencyInfo.status === 'OVERDUE' && (
+                      <Text style={[styles.nextUpUrgencyLabel, getUrgencyLabelStyle()]}>
+                        {urgencyInfo.label}
+                      </Text>
+                    )}
                   </View>
                   <View style={[styles.nextUpAction, getActionStyle()]}>
                     <Text style={styles.nextUpActionText}>Log</Text>
@@ -1627,6 +1757,31 @@ export default function NowScreen() {
                 <Text style={styles.adjustTodayText}>Adjust Today</Text>
               </TouchableOpacity>
             </View>
+
+            {/* REMAINING TODAY PLANNING SUMMARY */}
+            {/* Quick glance at time distribution: "Morning: 2 • Afternoon: 3 • Evening: 1" */}
+            {hasRegimenInstances && todayTimeline.upcoming.length > 0 && (
+              <View style={styles.remainingSummary}>
+                {(() => {
+                  const allPending = [...todayTimeline.overdue, ...todayTimeline.upcoming];
+                  const grouped = groupByTimeWindow(allPending);
+                  const parts: string[] = [];
+
+                  if (grouped.morning.length > 0) parts.push(`Morning: ${grouped.morning.length}`);
+                  if (grouped.afternoon.length > 0) parts.push(`Afternoon: ${grouped.afternoon.length}`);
+                  if (grouped.evening.length > 0) parts.push(`Evening: ${grouped.evening.length}`);
+                  if (grouped.night.length > 0) parts.push(`Night: ${grouped.night.length}`);
+
+                  if (parts.length === 0) return null;
+
+                  return (
+                    <Text style={styles.remainingSummaryText}>
+                      {parts.join(' • ')}
+                    </Text>
+                  );
+                })()}
+              </View>
+            )}
 
             {/* 4️⃣ WHAT'S LEFT TODAY - Task Backlog with Time Grouping */}
             {timelineExpanded && hasRegimenInstances && (
@@ -2429,6 +2584,12 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
     marginTop: 4,
   },
+  nextUpProximityLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 4,
+  },
   nextUpAction: {
     backgroundColor: '#3B82F6',
     paddingHorizontal: 20,  // Increased CTA size
@@ -2686,6 +2847,22 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
     marginVertical: 12,
+  },
+
+  // Remaining Today Planning Summary
+  remainingSummary: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
+  remainingSummaryText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
+    letterSpacing: 0.3,
   },
 
   // All done message
