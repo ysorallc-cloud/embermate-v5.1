@@ -1,6 +1,7 @@
 // ============================================================================
 // SWIPEABLE TIMELINE ITEM
 // Swipe right to complete, tap to open details
+// Role: logging - Interactive capture of task completion
 // ============================================================================
 
 import React, { useRef, useState, useEffect } from 'react';
@@ -19,6 +20,7 @@ import * as Haptics from 'expo-haptics';
 import { Colors } from '../../theme/theme-tokens';
 import { TimelineItem as TimelineItemType } from '../../types/timeline';
 import { format } from 'date-fns';
+import { ComponentRole } from '../../types/componentRoles';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SWIPE_THRESHOLD = 100;
@@ -30,6 +32,8 @@ interface Props {
   onComplete: (item: TimelineItemType) => void;
   onPress: (item: TimelineItemType) => void;
   onUndo: (item: TimelineItemType) => void;
+  /** Component role - defaults to 'logging' for SwipeableTimelineItem */
+  __role?: ComponentRole;
 }
 
 export const SwipeableTimelineItem: React.FC<Props> = ({
@@ -38,7 +42,9 @@ export const SwipeableTimelineItem: React.FC<Props> = ({
   onComplete,
   onPress,
   onUndo,
+  __role = 'logging',
 }) => {
+  // __role is available for role-based styling/behavior if needed
   const translateX = useRef(new Animated.Value(0)).current;
   const [isRevealed, setIsRevealed] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);

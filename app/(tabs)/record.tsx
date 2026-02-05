@@ -24,7 +24,9 @@ import { getMedications, Medication } from '../../utils/medicationStorage';
 import { useDataListener } from '../../lib/events';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import { useDailyCareInstances } from '../../hooks/useDailyCareInstances';
+import { useCareTasks } from '../../hooks/useCareTasks';
 import { BucketType, BUCKET_META } from '../../types/carePlanConfig';
+import { CarePlanTask } from '../../types/carePlanTask';
 import { getTodayVitalsLog, getTodayMealsLog, getTodayWaterLog } from '../../utils/centralStorage';
 
 // ============================================================================
@@ -135,8 +137,11 @@ export default function RecordTab() {
   // Care Plan Config
   const { enabledBuckets, loading: configLoading } = useCarePlanConfig();
 
-  // Daily Care Instances for stats
+  // Daily Care Instances for stats (legacy - keeping for compatibility)
   const { state: dailyState, loading: instancesLoading } = useDailyCareInstances();
+
+  // NEW: useCareTasks - Single source of truth for task stats
+  const { state: careTasksState } = useCareTasks();
 
   // Medications for quick actions
   const [medications, setMedications] = useState<Medication[]>([]);
@@ -271,46 +276,47 @@ export default function RecordTab() {
     appointments: 'appointment',
   };
 
-  // Get status for a bucket based on daily instances
+  // Get status for a bucket based on useCareTasks (Single Source of Truth)
+  // Uses CarePlanTask model which has pre-computed isOverdue flag
   const getBucketStatus = useCallback((bucket: BucketType): 'overdue' | 'pending' | 'complete' | 'none' => {
-    if (!dailyState?.instances) return 'none';
+    // Prefer useCareTasks as single source of truth
+    if (!careTasksState?.tasks) return 'none';
 
     const itemType = bucketToItemType[bucket];
-    const bucketInstances = dailyState.instances.filter(i => i.itemType === itemType);
+    const bucketTasks = careTasksState.tasks.filter((t: CarePlanTask) => t.type === itemType);
 
-    if (bucketInstances.length === 0) return 'none';
+    if (bucketTasks.length === 0) return 'none';
 
-    const now = new Date();
-    const hasOverdue = bucketInstances.some(i => {
-      if (i.status !== 'pending') return false;
-      const scheduled = new Date(i.scheduledTime);
-      const graceCutoff = new Date(scheduled.getTime() + 30 * 60 * 1000);
-      return now > graceCutoff;
-    });
-
+    // isOverdue is pre-computed by taskTransform utility
+    const hasOverdue = bucketTasks.some((t: CarePlanTask) => t.isOverdue);
     if (hasOverdue) return 'overdue';
 
-    const hasPending = bucketInstances.some(i => i.status === 'pending');
+    const hasPending = bucketTasks.some((t: CarePlanTask) => t.status === 'pending');
     if (hasPending) return 'pending';
 
-    const allComplete = bucketInstances.every(i => i.status === 'completed' || i.status === 'skipped');
+    const allComplete = bucketTasks.every((t: CarePlanTask) =>
+      t.status === 'completed' || t.status === 'skipped'
+    );
     if (allComplete) return 'complete';
 
     return 'none';
-  }, [dailyState?.instances]);
+  }, [careTasksState?.tasks]);
 
-  // Get instance counts for a bucket
+  // Get task counts for a bucket from useCareTasks (Single Source of Truth)
   const getBucketCounts = useCallback((bucket: BucketType): { logged: number; total: number } => {
-    if (!dailyState?.instances) return { logged: 0, total: 0 };
+    // Prefer useCareTasks as single source of truth
+    if (!careTasksState?.tasks) return { logged: 0, total: 0 };
 
     const itemType = bucketToItemType[bucket];
-    const bucketInstances = dailyState.instances.filter(i => i.itemType === itemType);
+    const bucketTasks = careTasksState.tasks.filter((t: CarePlanTask) => t.type === itemType);
 
-    const total = bucketInstances.length;
-    const logged = bucketInstances.filter(i => i.status === 'completed' || i.status === 'skipped').length;
+    const total = bucketTasks.length;
+    const logged = bucketTasks.filter((t: CarePlanTask) =>
+      t.status === 'completed' || t.status === 'skipped'
+    ).length;
 
     return { logged, total };
-  }, [dailyState?.instances]);
+  }, [careTasksState?.tasks]);
 
   // ============================================================================
   // QUICK LOG SHORTCUTS
@@ -598,7 +604,7 @@ export default function RecordTab() {
         {/* ============================================================ */}
         {/* MICRO COMPLETION FEEDBACK */}
         {/* ============================================================ */}
-        {allComplete && (dailyState?.stats?.total ?? 0) > 0 && (
+        {allComplete && (careTasksState?.stats?.total ?? 0) > 0 && (
           <View style={styles.completionFeedback}>
             <Text style={styles.completionEmoji}>✓</Text>
             <Text style={styles.completionText}>

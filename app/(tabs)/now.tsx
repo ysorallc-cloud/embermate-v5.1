@@ -88,6 +88,7 @@ import { format } from 'date-fns';
 // CarePlan System
 import { useCarePlan } from '../../hooks/useCarePlan';
 import { useDailyCareInstances } from '../../hooks/useDailyCareInstances';
+import { useCareTasks } from '../../hooks/useCareTasks';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import { getTodayDateString } from '../../services/carePlanGenerator';
@@ -491,6 +492,10 @@ export default function NowScreen() {
     refresh: refreshInstances,
   } = useDailyCareInstances(today);
 
+  // NEW: useCareTasks - Single source of truth for task stats
+  // Wraps useDailyCareInstances and provides canonical CarePlanTask model
+  const { state: careTasksState } = useCareTasks(today);
+
   // CarePlan hook - provides progress, timeline, and schedule from derived state
   // Pass today as the date parameter so it reloads when the day changes
   const { dayState, carePlan, overrides, snoozeItem, setItemOverride, integrityWarnings, refresh: refreshCarePlan } = useCarePlan(today);
@@ -546,17 +551,17 @@ export default function NowScreen() {
   });
 
   // ============================================================================
-  // SINGLE SOURCE OF TRUTH: Compute stats from instancesState
+  // SINGLE SOURCE OF TRUTH: Compute stats from useCareTasks hook
   // This ensures Progress cards and Timeline are always synchronized
+  // The hook transforms DailyCareInstances into canonical CarePlanTask model
   // ============================================================================
   const todayStats = useMemo((): TodayStats => {
-    // If we have regimen instances for TODAY, derive stats directly from them
-    // Safety check: ensure instancesState is for today (not stale data from yesterday)
-    if (instancesState && instancesState.instances.length > 0 && instancesState.date === today) {
+    // Use useCareTasks as single source of truth when available
+    if (careTasksState && careTasksState.tasks.length > 0 && careTasksState.date === today) {
       const getTypeStats = (itemType: string): StatData => {
-        const typeInstances = instancesState.instances.filter(i => i.itemType === itemType);
-        const completed = typeInstances.filter(i => i.status === 'completed').length;
-        return { completed, total: typeInstances.length };
+        const typeTasks = careTasksState.tasks.filter(t => t.type === itemType);
+        const completed = typeTasks.filter(t => t.status === 'completed').length;
+        return { completed, total: typeTasks.length };
       };
 
       const stats: TodayStats = {
@@ -574,9 +579,9 @@ export default function NowScreen() {
       }
     }
 
-    // Fall back to legacy stats (from raw logs) when no instances or date mismatch
+    // Fall back to legacy stats (from raw logs) when no tasks or date mismatch
     return legacyStats;
-  }, [instancesState, legacyStats, today]);
+  }, [careTasksState, legacyStats, today]);
 
   // AI Insight (legacy - being replaced by Care Insight)
   const [aiInsight, setAiInsight] = useState<AIInsight | null>(null);

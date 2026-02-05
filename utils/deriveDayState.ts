@@ -4,6 +4,26 @@
 // No side effects, fully testable
 // Single "Today Engine" - all progress calculations flow through here
 // ============================================================================
+//
+// DEPRECATION NOTICE:
+// This file is being deprecated in favor of useCareTasks hook.
+// New code should use:
+//   - useCareTasks() for task data and stats
+//   - useDailyCareInstances() for raw instance access
+//
+// The new approach provides:
+//   - Canonical CarePlanTask interface
+//   - Automatic overdue/due-soon detection
+//   - Centralized stats via TaskStats
+//   - No duplicate calculations across pages
+//
+// Migration path:
+//   1. Import { useCareTasks } from '../hooks/useCareTasks'
+//   2. Replace deriveDayState calls with useCareTasks().state
+//   3. Access stats via state.stats, tasks via state.tasks
+//
+// This file will be removed in a future version.
+// ============================================================================
 
 import {
   CarePlan,
@@ -327,13 +347,14 @@ function calculateItemCompletion(
           'systolic', 'diastolic', 'glucose', 'heartRate', 'temperature', 'oxygen', 'weight'
         ];
 
+        // Track BP separately to avoid double counting (don't mutate input array!)
+        let bpCounted = false;
         for (const type of vitalTypes) {
           if (type === 'systolic' || type === 'diastolic') {
             // BP counts as one check if either is present
-            if ((vitalsLog.systolic || vitalsLog.diastolic) && !vitalTypes.includes('bp_counted')) {
+            if ((vitalsLog.systolic || vitalsLog.diastolic) && !bpCounted) {
               completed++;
-              // Hack to avoid double counting BP
-              (vitalTypes as any).push('bp_counted');
+              bpCounted = true;
             }
           } else if (vitalsLog[type as keyof VitalsLog]) {
             completed++;
