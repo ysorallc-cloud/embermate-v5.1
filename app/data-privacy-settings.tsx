@@ -22,6 +22,7 @@ import {
   clearSampleData,
   SampleDataStatus,
 } from '../utils/sampleDataManager';
+import { resetSampleDataBanner } from '../components/common/SampleDataBanner';
 
 // Components
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
@@ -270,6 +271,30 @@ export default function DataPrivacySettingsScreen() {
                 </View>
                 <Text style={styles.settingChevron}>›</Text>
               </TouchableOpacity>
+
+              {/* Reset Banner - only show if sample data exists */}
+              {sampleDataStatus?.hasSampleData && (
+                <>
+                  <View style={styles.settingDivider} />
+                  <TouchableOpacity
+                    style={styles.settingRow}
+                    onPress={async () => {
+                      await resetSampleDataBanner();
+                      Alert.alert('Banner Reset', 'The sample data banner will appear on the Now page again.');
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.settingInfo}>
+                      <View style={styles.settingTitleRow}>
+                        <Text style={styles.settingIcon}>📊</Text>
+                        <Text style={styles.settingLabel}>Show sample data banner</Text>
+                      </View>
+                      <Text style={styles.settingHint}>Re-enable the Now page banner if dismissed</Text>
+                    </View>
+                    <Text style={styles.settingChevron}>›</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
 

@@ -194,13 +194,7 @@ export async function hasSampleData(): Promise<boolean> {
       return false;
     }
 
-    // Check if initialized (sample data was created)
-    const initialized = await AsyncStorage.getItem(SAMPLE_DATA_KEYS.initialized);
-    if (initialized !== 'true') {
-      return false;
-    }
-
-    // Quick check - look for sample medications
+    // Quick check - look for sample medications (by origin tag or legacy ID pattern)
     const medsJson = await AsyncStorage.getItem(SAMPLE_DATA_KEYS.medications);
     if (medsJson) {
       const meds = JSON.parse(medsJson);
