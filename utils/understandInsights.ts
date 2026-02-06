@@ -10,6 +10,8 @@ import { getAllInsights, InsightData } from './insightEngine';
 import { getMedicationLogs } from './medicationStorage';
 import { getDailyTrackingLogs } from './dailyTrackingStorage';
 import { getAllBaselines } from './baselineStorage';
+import { listLogsInRange, listCarePlanItems, getActiveCarePlan, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
+import { LogEntry, CarePlanItem, CarePlanItemType } from '../types/carePlan';
 
 // ============================================================================
 // TYPES
@@ -517,6 +519,202 @@ export async function dismissSuggestion(suggestionId: string): Promise<void> {
 }
 
 // ============================================================================
+// CARE PLAN DATA HELPERS
+// ============================================================================
+
+interface CarePlanStats {
+  totalLogs: number;
+  medicationLogs: number;
+  vitalsLogs: number;
+  moodLogs: number;
+  mealLogs: number;
+  completedCount: number;
+  skippedCount: number;
+  adherenceRate: number;
+  uniqueDays: number;
+  carePlanItems: CarePlanItem[];
+}
+
+async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanStats> {
+  const endDate = new Date().toISOString().split('T')[0];
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - timeRange);
+  const startDateStr = startDate.toISOString().split('T')[0];
+
+  try {
+    // Get Care Plan logs
+    const logs = await listLogsInRange(DEFAULT_PATIENT_ID, startDateStr, endDate);
+
+    // Get Care Plan items to understand types
+    const carePlan = await getActiveCarePlan(DEFAULT_PATIENT_ID);
+    const items = carePlan ? await listCarePlanItems(carePlan.id) : [];
+    const itemTypeMap = new Map<string, CarePlanItemType>();
+    items.forEach(item => itemTypeMap.set(item.id, item.type));
+
+    // Categorize logs by type
+    let medicationLogs = 0;
+    let vitalsLogs = 0;
+    let moodLogs = 0;
+    let mealLogs = 0;
+    let completedCount = 0;
+    let skippedCount = 0;
+    const uniqueDays = new Set<string>();
+
+    for (const log of logs) {
+      uniqueDays.add(log.date);
+      const itemType = log.carePlanItemId ? itemTypeMap.get(log.carePlanItemId) : undefined;
+
+      if (log.outcome === 'taken' || log.outcome === 'completed') {
+        completedCount++;
+      } else if (log.outcome === 'skipped') {
+        skippedCount++;
+      }
+
+      switch (itemType) {
+        case 'medication':
+          medicationLogs++;
+          break;
+        case 'vitals':
+          vitalsLogs++;
+          break;
+        case 'mood':
+          moodLogs++;
+          break;
+        case 'nutrition':
+          mealLogs++;
+          break;
+      }
+    }
+
+    const total = completedCount + skippedCount;
+    const adherenceRate = total > 0 ? (completedCount / total) * 100 : 0;
+
+    return {
+      totalLogs: logs.length,
+      medicationLogs,
+      vitalsLogs,
+      moodLogs,
+      mealLogs,
+      completedCount,
+      skippedCount,
+      adherenceRate,
+      uniqueDays: uniqueDays.size,
+      carePlanItems: items,
+    };
+  } catch (error) {
+    console.error('Error getting Care Plan stats:', error);
+    return {
+      totalLogs: 0,
+      medicationLogs: 0,
+      vitalsLogs: 0,
+      moodLogs: 0,
+      mealLogs: 0,
+      completedCount: 0,
+      skippedCount: 0,
+      adherenceRate: 0,
+      uniqueDays: 0,
+      carePlanItems: [],
+    };
+  }
+}
+
+function generateCarePlanInsights(stats: CarePlanStats, timeRange: TimeRange): StandOutInsight[] {
+  const insights: StandOutInsight[] = [];
+
+  // Medication adherence insight
+  if (stats.medicationLogs > 0) {
+    if (stats.adherenceRate >= 90) {
+      insights.push({
+        id: 'careplan-med-excellent',
+        text: `Medication tracking has been ${Math.round(stats.adherenceRate)}% consistent over the last ${timeRange} days.`,
+        confidence: 'strong',
+        relatedTo: 'care-plan',
+      });
+    } else if (stats.adherenceRate >= 70) {
+      insights.push({
+        id: 'careplan-med-good',
+        text: `Medications are being logged consistently (${Math.round(stats.adherenceRate)}% of the time).`,
+        confidence: 'emerging',
+        relatedTo: 'care-plan',
+      });
+    } else if (stats.adherenceRate > 0) {
+      insights.push({
+        id: 'careplan-med-improving',
+        text: 'Medication logging is building up. Keep tracking for clearer patterns.',
+        confidence: 'early',
+        relatedTo: 'care-plan',
+      });
+    }
+  }
+
+  // Mood tracking insight
+  if (stats.moodLogs >= 3) {
+    insights.push({
+      id: 'careplan-mood',
+      text: `Mood has been tracked ${stats.moodLogs} times in the last ${timeRange} days.`,
+      confidence: stats.moodLogs >= 7 ? 'emerging' : 'early',
+      relatedTo: 'record',
+    });
+  }
+
+  // Vitals tracking insight
+  if (stats.vitalsLogs >= 3) {
+    insights.push({
+      id: 'careplan-vitals',
+      text: `Vitals have been logged ${stats.vitalsLogs} times — building a health baseline.`,
+      confidence: stats.vitalsLogs >= 7 ? 'emerging' : 'early',
+      relatedTo: 'record',
+    });
+  }
+
+  // Overall consistency insight
+  if (stats.uniqueDays >= timeRange * 0.5) {
+    insights.push({
+      id: 'careplan-consistency',
+      text: `Tracking happened on ${stats.uniqueDays} of the last ${timeRange} days — great consistency.`,
+      confidence: 'strong',
+      relatedTo: 'care-plan',
+    });
+  }
+
+  return insights.slice(0, 3);
+}
+
+function generateCarePlanPositives(stats: CarePlanStats, timeRange: TimeRange): PositiveObservation[] {
+  const observations: PositiveObservation[] = [];
+
+  if (stats.adherenceRate >= 85) {
+    observations.push({
+      id: 'careplan-adherence-positive',
+      text: 'Care Plan items are being completed reliably.',
+    });
+  }
+
+  if (stats.totalLogs >= 5) {
+    observations.push({
+      id: 'careplan-active',
+      text: 'Regular tracking is helping build a complete picture.',
+    });
+  }
+
+  if (stats.uniqueDays >= Math.min(7, timeRange)) {
+    observations.push({
+      id: 'careplan-days',
+      text: 'Logging has been consistent across multiple days.',
+    });
+  }
+
+  if (stats.carePlanItems.length > 0 && stats.totalLogs > 0) {
+    observations.push({
+      id: 'careplan-setup',
+      text: 'Your Care Plan is set up and being used.',
+    });
+  }
+
+  return observations.slice(0, 3);
+}
+
+// ============================================================================
 // MAIN DATA LOADER
 // ============================================================================
 
@@ -526,12 +724,18 @@ export async function loadUnderstandPageData(timeRange: TimeRange): Promise<Unde
     const baselines = await getAllBaselines();
     const daysOfData = baselines?.daysOfData || 0;
 
+    // Load Care Plan stats for the time range
+    const carePlanStats = await getCarePlanStatsForRange(timeRange);
+
     // Check if we have sufficient data for correlations
     const hasEnoughData = await hasSufficientData();
 
-    // If not enough data, check if we should show sample data
+    // Check if we have Care Plan data (newer system)
+    const hasCarePlanData = carePlanStats.totalLogs >= 3 || carePlanStats.carePlanItems.length > 0;
+
+    // If not enough data from either source, check if we should show sample data
     const sampleDismissed = await isSampleDataDismissed();
-    const shouldShowSample = !hasEnoughData && daysOfData < 5 && !sampleDismissed;
+    const shouldShowSample = !hasEnoughData && !hasCarePlanData && daysOfData < 5 && !sampleDismissed;
 
     if (shouldShowSample) {
       return await getSampleData(timeRange);
@@ -543,41 +747,52 @@ export async function loadUnderstandPageData(timeRange: TimeRange): Promise<Unde
     // Load engine insights
     const engineInsights = await getAllInsights();
 
-    // Generate all sections
+    // Generate all sections (combine old system + Care Plan data)
     const [standOutInsights, positiveObservations, correlationCards] = await Promise.all([
       generateStandOutInsights(correlations, engineInsights, timeRange),
       generatePositiveObservations(correlations, engineInsights, timeRange),
       generateCorrelationCards(correlations, timeRange),
     ]);
 
-    // If no insights, provide empty state messages
-    const finalStandOut = standOutInsights.length > 0
-      ? standOutInsights
-      : [{
-          id: 'no-patterns',
-          text: 'No clear patterns yet. This is normal early on.',
-          confidence: 'early' as ConfidenceLevel,
-        }];
+    // Add Care Plan insights
+    const carePlanInsights = generateCarePlanInsights(carePlanStats, timeRange);
+    const carePlanPositives = generateCarePlanPositives(carePlanStats, timeRange);
 
-    const finalPositive = positiveObservations.length > 0
-      ? positiveObservations
-      : [{
-          id: 'keep-tracking',
-          text: 'Keep logging to reveal what\'s going well.',
-        }];
+    // Combine insights, preferring Care Plan insights if no correlation insights
+    const combinedStandOut = standOutInsights.length > 0
+      ? [...standOutInsights, ...carePlanInsights].slice(0, 3)
+      : carePlanInsights.length > 0
+        ? carePlanInsights
+        : [{
+            id: 'no-patterns',
+            text: 'No clear patterns yet. Keep tracking to reveal insights.',
+            confidence: 'early' as ConfidenceLevel,
+          }];
+
+    const combinedPositive = positiveObservations.length > 0
+      ? [...positiveObservations, ...carePlanPositives].slice(0, 3)
+      : carePlanPositives.length > 0
+        ? carePlanPositives
+        : [{
+            id: 'keep-tracking',
+            text: 'Keep logging to reveal what\'s going well.',
+          }];
 
     // Check if confidence explanation should show (one-time)
     const confidenceExplained = await hasConfidenceBeenExplained();
     const shouldShowConfidenceExplanation = !confidenceExplained && correlationCards.length > 0;
 
+    // Update days of data to include Care Plan days
+    const effectiveDaysOfData = Math.max(daysOfData, carePlanStats.uniqueDays);
+
     return {
       timeRange,
       framing: getTimeRangeFraming(timeRange),
-      standOutInsights: finalStandOut,
-      positiveObservations: finalPositive,
+      standOutInsights: combinedStandOut,
+      positiveObservations: combinedPositive,
       correlationCards,
-      hasEnoughData,
-      daysOfData,
+      hasEnoughData: hasEnoughData || hasCarePlanData,
+      daysOfData: effectiveDaysOfData,
       isSampleData: false,
       showConfidenceExplanation: shouldShowConfidenceExplanation,
     };
