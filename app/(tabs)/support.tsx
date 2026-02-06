@@ -40,6 +40,9 @@ const LAST_VIEWED_KEY = '@embermate_care_last_viewed';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { GlassCard } from '../../components/aurora/GlassCard';
 
+// Support Components
+import { UpcomingNotifications } from '../../components/support/UpcomingNotifications';
+
 // Types for today's activity state
 interface TodayState {
   hasLogs: boolean;
@@ -403,6 +406,11 @@ export default function SupportScreen() {
             <Text style={styles.privacyChevron}>›</Text>
           </TouchableOpacity>
 
+          {/* Notifications Section */}
+          <View style={styles.notificationsSection}>
+            <UpcomingNotifications onRefresh={onRefresh} />
+          </View>
+
           {/* AI Insight for care coordination (optional) */}
           {teamInsight && (
             <View style={styles.teamInsightCard}>
@@ -742,6 +750,11 @@ const styles = StyleSheet.create({
     color: 'rgba(94, 234, 212, 0.5)',
     fontWeight: '600',
     marginLeft: 8,
+  },
+
+  // Notifications Section
+  notificationsSection: {
+    marginBottom: 20,
   },
 
   // Team Insight Card (AI)

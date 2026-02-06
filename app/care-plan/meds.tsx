@@ -25,6 +25,9 @@ import {
   PRIORITY_OPTIONS,
   formatTimeForDisplay,
 } from '../../types/carePlanConfig';
+import { NotificationConfigSheet } from '../../components/care-plan/NotificationConfigSheet';
+import type { NotificationConfig, NotificationTiming } from '../../types/notifications';
+import type { ReminderTiming } from '../../types/carePlanConfig';
 
 // ============================================================================
 // MEDICATION ITEM COMPONENT
@@ -35,12 +38,16 @@ interface MedicationItemProps {
   onEdit: () => void;
   onToggleActive: (active: boolean) => void;
   onRemove: () => void;
+  onNotificationPress: () => void;
 }
 
-function MedicationItem({ medication, onEdit, onToggleActive, onRemove }: MedicationItemProps) {
+function MedicationItem({ medication, onEdit, onToggleActive, onRemove, onNotificationPress }: MedicationItemProps) {
   const timeDisplay = medication.customTimes?.length
     ? medication.customTimes.map(t => formatTimeForDisplay(t)).join(', ')
     : medication.timesOfDay?.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ') || 'No time set';
+
+  // Check if notifications are enabled for this medication
+  const notificationsEnabled = medication.notificationsEnabled ?? true;
 
   return (
     <View style={[styles.medItem, !medication.active && styles.medItemInactive]}>
@@ -65,6 +72,17 @@ function MedicationItem({ medication, onEdit, onToggleActive, onRemove }: Medica
           </View>
         </View>
         <View style={styles.medItemRight}>
+          {/* Notification Bell Toggle */}
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={onNotificationPress}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel={notificationsEnabled ? 'Notifications on, tap to configure' : 'Notifications off, tap to configure'}
+          >
+            <Text style={[styles.notificationIcon, !notificationsEnabled && styles.notificationIconOff]}>
+              {notificationsEnabled ? '🔔' : '🔕'}
+            </Text>
+          </TouchableOpacity>
           <Switch
             value={medication.active}
             onValueChange={onToggleActive}
@@ -120,6 +138,10 @@ export default function MedsBucketScreen() {
   const enabled = medsConfig?.enabled ?? false;
   const priority = medsConfig?.priority ?? 'recommended';
 
+  // Notification config sheet state
+  const [notificationSheetVisible, setNotificationSheetVisible] = useState(false);
+  const [selectedMedForNotification, setSelectedMedForNotification] = useState<MedicationPlanItem | null>(null);
+
   const handleToggleEnabled = useCallback(async (value: boolean) => {
     await toggleBucket('meds', value);
   }, [toggleBucket]);
@@ -145,6 +167,30 @@ export default function MedsBucketScreen() {
     // Navigate to medication form to add new
     router.push('/medication-form?source=careplan' as any);
   }, [router]);
+
+  const handleNotificationPress = useCallback((med: MedicationPlanItem) => {
+    setSelectedMedForNotification(med);
+    setNotificationSheetVisible(true);
+  }, []);
+
+  const handleSaveNotificationConfig = useCallback(async (config: NotificationConfig) => {
+    if (!selectedMedForNotification) return;
+
+    // Convert NotificationTiming to ReminderTiming (they're compatible except before_5)
+    const timing = config.timing === 'before_5' ? 'at_time' : config.timing as ReminderTiming;
+
+    await updateMedication(selectedMedForNotification.id, {
+      notificationsEnabled: config.enabled,
+      reminderTiming: timing,
+      reminderCustomMinutes: config.customMinutesBefore,
+      followUpEnabled: config.followUp.enabled,
+      followUpInterval: config.followUp.intervalMinutes,
+      followUpMaxAttempts: config.followUp.maxAttempts,
+    });
+
+    setNotificationSheetVisible(false);
+    setSelectedMedForNotification(null);
+  }, [selectedMedForNotification, updateMedication]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -249,6 +295,7 @@ export default function MedsBucketScreen() {
                       onEdit={() => handleEditMed(med.id)}
                       onToggleActive={(active) => handleToggleMedActive(med.id, active)}
                       onRemove={() => handleRemoveMed(med.id)}
+                      onNotificationPress={() => handleNotificationPress(med)}
                     />
                   ))}
                   <TouchableOpacity
@@ -284,6 +331,31 @@ export default function MedsBucketScreen() {
           {/* Bottom spacing */}
           <View style={{ height: 40 }} />
         </ScrollView>
+
+        {/* Notification Config Sheet */}
+        {selectedMedForNotification && (
+          <NotificationConfigSheet
+            visible={notificationSheetVisible}
+            itemId={selectedMedForNotification.id}
+            itemName={selectedMedForNotification.name}
+            itemType="medication"
+            currentConfig={selectedMedForNotification.notificationsEnabled !== undefined ? {
+              enabled: selectedMedForNotification.notificationsEnabled,
+              timing: selectedMedForNotification.reminderTiming || 'at_time',
+              customMinutesBefore: selectedMedForNotification.reminderCustomMinutes,
+              followUp: {
+                enabled: selectedMedForNotification.followUpEnabled ?? true,
+                intervalMinutes: selectedMedForNotification.followUpInterval ?? 30,
+                maxAttempts: selectedMedForNotification.followUpMaxAttempts ?? 3,
+              },
+            } : undefined}
+            onSave={handleSaveNotificationConfig}
+            onClose={() => {
+              setNotificationSheetVisible(false);
+              setSelectedMedForNotification(null);
+            }}
+          />
+        )}
       </LinearGradient>
     </SafeAreaView>
   );
@@ -494,6 +566,18 @@ const styles = StyleSheet.create({
   },
   medItemRight: {
     paddingTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  notificationButton: {
+    padding: 4,
+  },
+  notificationIcon: {
+    fontSize: 20,
+  },
+  notificationIconOff: {
+    opacity: 0.5,
   },
   medItemActions: {
     flexDirection: 'row',

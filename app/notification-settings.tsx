@@ -326,19 +326,19 @@ export default function NotificationSettingsScreen() {
             </View>
           </View>
 
-          {/* ESCALATION Section */}
+          {/* FOLLOW-UP REMINDERS Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionHeader}>ESCALATION</Text>
+            <Text style={styles.sectionHeader}>FOLLOW-UP REMINDERS</Text>
             <Text style={styles.sectionDescription}>
-              Follow-up alerts for missed items
+              Re-alert when items aren't logged
             </Text>
 
             <View style={styles.settingCard}>
               {/* Overdue Alerts Toggle */}
               <View style={styles.settingRow}>
                 <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Overdue alerts</Text>
-                  <Text style={styles.settingHint}>Re-alert if items aren't acknowledged</Text>
+                  <Text style={styles.settingLabel}>Allow follow-up alerts</Text>
+                  <Text style={styles.settingHint}>Enable re-alerts for missed items</Text>
                 </View>
                 <Switch
                   value={settings.overdueAlertsEnabled}
@@ -351,57 +351,11 @@ export default function NotificationSettingsScreen() {
               {settings.overdueAlertsEnabled && (
                 <>
                   <View style={styles.settingDivider} />
-
-                  {/* Grace Period */}
-                  <View style={styles.optionSelector}>
-                    <Text style={styles.optionLabel}>Grace period before first alert</Text>
-                    <View style={styles.optionButtons}>
-                      {gracePeriodOptions.map((option) => (
-                        <TouchableOpacity
-                          key={option.value}
-                          style={[
-                            styles.optionButton,
-                            settings.gracePeriodMinutes === option.value && styles.optionButtonSelected,
-                          ]}
-                          onPress={() => handleChangeGracePeriod(option.value)}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={[
-                            styles.optionButtonText,
-                            settings.gracePeriodMinutes === option.value && styles.optionButtonTextSelected,
-                          ]}>
-                            {option.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-
-                  <View style={styles.settingDivider} />
-
-                  {/* Overdue Interval */}
-                  <View style={styles.optionSelector}>
-                    <Text style={styles.optionLabel}>Time between follow-up alerts</Text>
-                    <View style={styles.optionButtons}>
-                      {overdueIntervalOptions.map((option) => (
-                        <TouchableOpacity
-                          key={option.value}
-                          style={[
-                            styles.optionButton,
-                            settings.overdueAlertMinutes === option.value && styles.optionButtonSelected,
-                          ]}
-                          onPress={() => handleChangeOverdueInterval(option.value)}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={[
-                            styles.optionButtonText,
-                            settings.overdueAlertMinutes === option.value && styles.optionButtonTextSelected,
-                          ]}>
-                            {option.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
+                  <View style={styles.perItemNote}>
+                    <Text style={styles.perItemNoteIcon}>💡</Text>
+                    <Text style={styles.perItemNoteText}>
+                      Follow-up timing is set per item in your Care Plan. Tap the bell icon on any medication to configure its reminder settings.
+                    </Text>
                   </View>
                 </>
               )}
@@ -646,6 +600,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 14,
     paddingBottom: 12,
+  },
+
+  // Per-item note
+  perItemNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    padding: 14,
+    backgroundColor: 'rgba(59, 130, 246, 0.06)',
+  },
+  perItemNoteIcon: {
+    fontSize: 14,
+    marginTop: 1,
+  },
+  perItemNoteText: {
+    flex: 1,
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+    lineHeight: 17,
   },
 
   // Option Selector

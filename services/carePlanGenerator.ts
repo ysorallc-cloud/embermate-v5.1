@@ -125,11 +125,13 @@ function createCarePlanItemFromConfigMed(
  * Sync CarePlanItems with CarePlanConfig medications
  * - Creates CarePlanItems for config medications that don't have items
  * - Deactivates CarePlanItems that aren't in the current config
+ * @returns true if any changes were made
  */
 async function syncMedicationItemsWithConfig(
   carePlanId: string,
   patientId: string
-): Promise<void> {
+): Promise<boolean> {
+  let changed = false;
   try {
     // Get current CarePlanConfig (user's actual selections)
     const config = await getCarePlanConfig(patientId);
@@ -174,6 +176,7 @@ async function syncMedicationItemsWithConfig(
           console.log('[syncMedicationItemsWithConfig] Creating CarePlanItem for config med:', configMed.name);
         }
         await upsertCarePlanItem(newItem);
+        changed = true;
       }
     }
 
@@ -195,26 +198,30 @@ async function syncMedicationItemsWithConfig(
           ...item,
           active: false,
         });
+        changed = true;
       }
     }
   } catch (error) {
     console.error('[syncMedicationItemsWithConfig] Error syncing medications:', error);
     // Don't throw - this is a cleanup operation, shouldn't block instance generation
   }
+  return changed;
 }
 
 /**
  * Sync CarePlanItems with other bucket types (vitals, mood, meals)
  * Creates items when bucket is enabled, deactivates when disabled
  * IMPORTANT: Only creates items if NONE of that type exist (to prevent duplicates)
+ * @returns true if any changes were made
  */
 async function syncOtherBucketsWithConfig(
   carePlanId: string,
   patientId: string
-): Promise<void> {
+): Promise<boolean> {
+  let changed = false;
   try {
     const config = await getCarePlanConfig(patientId);
-    if (!config) return;
+    if (!config) return false;
 
     const allItems = await listCarePlanItems(carePlanId, { activeOnly: false });
     const now = new Date().toISOString();
@@ -257,11 +264,13 @@ async function syncOtherBucketsWithConfig(
         console.log('[syncOtherBucketsWithConfig] Creating vitals CarePlanItem');
       }
       await upsertCarePlanItem(vitalsItem);
+      changed = true;
     } else if (!vitalsEnabled && hasActiveVitalsItem) {
       // Deactivate all vitals items
       for (const item of existingVitalsItems) {
         if (item.active) {
           await upsertCarePlanItem({ ...item, active: false });
+          changed = true;
         }
       }
     }
@@ -299,11 +308,13 @@ async function syncOtherBucketsWithConfig(
         console.log('[syncOtherBucketsWithConfig] Creating mood CarePlanItem');
       }
       await upsertCarePlanItem(moodItem);
+      changed = true;
     } else if (!moodEnabled && hasActiveMoodItem) {
       // Deactivate all mood items
       for (const item of existingMoodItems) {
         if (item.active) {
           await upsertCarePlanItem({ ...item, active: false });
+          changed = true;
         }
       }
     }
@@ -350,12 +361,14 @@ async function syncOtherBucketsWithConfig(
           console.log('[syncOtherBucketsWithConfig] Creating meal CarePlanItem:', mealItem.name);
         }
         await upsertCarePlanItem(mealItem);
+        changed = true;
       }
     } else if (!mealsEnabled && existingMealItems.some(i => i.active)) {
       // Deactivate all meal items
       for (const item of existingMealItems) {
         if (item.active) {
           await upsertCarePlanItem({ ...item, active: false });
+          changed = true;
         }
       }
     }
@@ -363,6 +376,7 @@ async function syncOtherBucketsWithConfig(
   } catch (error) {
     console.error('[syncOtherBucketsWithConfig] Error syncing buckets:', error);
   }
+  return changed;
 }
 
 // ============================================================================
@@ -405,8 +419,22 @@ export async function ensureDailyInstances(
 
   // 1.5 Sync medication items with CarePlanConfig
   // This ensures items match what user has configured in the bucket system
-  await syncMedicationItemsWithConfig(carePlan.id, patientId);
-  await syncOtherBucketsWithConfig(carePlan.id, patientId);
+  const medsChanged = await syncMedicationItemsWithConfig(carePlan.id, patientId);
+  const bucketsChanged = await syncOtherBucketsWithConfig(carePlan.id, patientId);
+
+  // 1.6 Reschedule notifications if any items changed
+  if (medsChanged || bucketsChanged) {
+    // Import dynamically to avoid circular dependency
+    try {
+      const { rescheduleAllNotifications } = await import('../utils/notificationService');
+      await rescheduleAllNotifications(patientId);
+    } catch (error) {
+      // Notification rescheduling is not critical - log and continue
+      if (__DEV__) {
+        console.log('[ensureDailyInstances] Notification reschedule skipped:', error);
+      }
+    }
+  }
 
   // 2. Get active items (after sync to reflect current config)
   const items = await listCarePlanItems(carePlan.id, { activeOnly: true });

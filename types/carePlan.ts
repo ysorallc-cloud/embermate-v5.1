@@ -6,6 +6,8 @@
 // LogEntry = Immutable record of what happened
 // ============================================================================
 
+import type { NotificationConfig } from './notifications';
+
 // ============================================================================
 // TIME WINDOW
 // ============================================================================
@@ -118,6 +120,9 @@ export interface CarePlanItem {
   nutritionDetails?: NutritionDetails;
   hydrationDetails?: HydrationDetails;
 
+  // Notification configuration (per-item)
+  notification?: NotificationConfig;
+
   // Dependencies
   dependencies?: ItemDependency[];
 
@@ -153,6 +158,7 @@ export interface DailyCareInstance {
   itemEmoji?: string;
   priority: CarePlanItemPriority;
   instructions?: string;
+  itemDosage?: string; // For medications - denormalized from MedicationDetails.dose
 
   createdAt: string;
   updatedAt: string;

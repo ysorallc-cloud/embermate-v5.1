@@ -572,3 +572,331 @@ export async function isInQuietHours(): Promise<boolean> {
 
   return currentMinutes >= startMinutes && currentMinutes < endMinutes;
 }
+
+// ============================================================================
+// CARE PLAN-BASED SCHEDULING (NEW UNIFIED SYSTEM)
+// ============================================================================
+
+import type { CarePlanItem, DailyCareInstance } from '../types/carePlan';
+import type {
+  NotificationConfig,
+  DeliveryPreferences,
+  ScheduledNotificationV2,
+} from '../types/notifications';
+import {
+  getDefaultNotificationConfig,
+  timingToMinutes,
+} from './notificationDefaults';
+import {
+  saveScheduledNotifications,
+  clearAllScheduledNotifications,
+  replaceNotificationsForItem,
+  getScheduledNotifications as getRegistryNotifications,
+} from '../storage/notificationRegistry';
+
+/**
+ * Schedule notifications for all Care Plan items
+ * This is the NEW unified scheduling function that reads from CarePlanItems
+ */
+export async function scheduleCarePlanNotifications(
+  patientId: string,
+  items: CarePlanItem[],
+  instances: DailyCareInstance[],
+  deliveryPrefs: DeliveryPreferences
+): Promise<ScheduledNotificationV2[]> {
+  try {
+    // Check permissions
+    const hasPermission = await hasNotificationPermissions();
+    if (!hasPermission) {
+      if (__DEV__) console.log('No notification permissions, skipping scheduling');
+      return [];
+    }
+
+    // Check master toggle
+    if (!deliveryPrefs.masterEnabled) {
+      if (__DEV__) console.log('Notifications disabled in delivery preferences');
+      await clearAllScheduledNotifications(patientId);
+      await cancelAllNotifications();
+      return [];
+    }
+
+    // Cancel all existing Expo notifications
+    await cancelAllNotifications();
+
+    const scheduledNotifications: ScheduledNotificationV2[] = [];
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+
+    // Group instances by item ID
+    const instancesByItem = new Map<string, DailyCareInstance[]>();
+    for (const instance of instances) {
+      if (instance.date !== today) continue;
+      if (instance.status !== 'pending') continue;
+
+      const existing = instancesByItem.get(instance.carePlanItemId) || [];
+      existing.push(instance);
+      instancesByItem.set(instance.carePlanItemId, existing);
+    }
+
+    // Schedule notifications for each item
+    for (const item of items) {
+      if (!item.active) continue;
+
+      // Get notification config (use item-level or defaults)
+      const config = item.notification || getDefaultNotificationConfig(item.type);
+      if (!config.enabled) continue;
+
+      // Get pending instances for this item
+      const itemInstances = instancesByItem.get(item.id) || [];
+
+      for (const instance of itemInstances) {
+        const scheduled = await scheduleInstanceNotification(
+          patientId,
+          item,
+          instance,
+          config,
+          deliveryPrefs
+        );
+
+        if (scheduled) {
+          scheduledNotifications.push(scheduled);
+        }
+      }
+    }
+
+    // Save to registry
+    await saveScheduledNotifications(patientId, scheduledNotifications);
+
+    if (__DEV__) {
+      console.log(`Scheduled ${scheduledNotifications.length} Care Plan notifications`);
+    }
+
+    return scheduledNotifications;
+  } catch (error) {
+    console.error('Error scheduling Care Plan notifications:', error);
+    return [];
+  }
+}
+
+/**
+ * Schedule notification for a single daily instance
+ */
+async function scheduleInstanceNotification(
+  patientId: string,
+  item: CarePlanItem,
+  instance: DailyCareInstance,
+  config: NotificationConfig,
+  deliveryPrefs: DeliveryPreferences
+): Promise<ScheduledNotificationV2 | null> {
+  try {
+    // Calculate trigger time based on config timing
+    const minutesBefore = timingToMinutes(config.timing, config.customMinutesBefore);
+    const originalTime = parseScheduledTime(instance.scheduledTime, instance.date);
+    const triggerTime = new Date(originalTime.getTime() - minutesBefore * 60 * 1000);
+
+    // Skip if trigger time is in the past
+    if (triggerTime <= new Date()) {
+      return null;
+    }
+
+    // Check if in quiet hours
+    if (await isTimeInQuietHours(triggerTime, deliveryPrefs)) {
+      return null;
+    }
+
+    // Get emoji for item type
+    const emoji = getItemEmoji(item.type);
+
+    // Create notification content
+    const title = `${emoji} ${getNotificationTitle(item.type)}`;
+    const body = getNotificationBody(item, instance);
+
+    // Schedule with Expo
+    const expoNotificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data: {
+          carePlanItemId: item.id,
+          instanceId: instance.id,
+          itemType: item.type,
+          type: 'careplan_reminder',
+          title,
+          body,
+        },
+        sound: deliveryPrefs.soundEnabled ? 'default' : undefined,
+        badge: 1,
+        categoryIdentifier: item.type === 'medication' ? 'medication' : undefined,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: triggerTime,
+        channelId: Platform.OS === 'android' ? 'medication-reminders' : undefined,
+      },
+    });
+
+    // Create registry entry
+    const notification: ScheduledNotificationV2 = {
+      id: `${instance.id}_${Date.now()}`,
+      carePlanItemId: item.id,
+      itemType: item.type,
+      itemName: item.name,
+      scheduledFor: triggerTime.toISOString(),
+      originalTime: originalTime.toISOString(),
+      timing: config.timing,
+      status: 'pending',
+      expoNotificationId,
+      followUpAttempt: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    return notification;
+  } catch (error) {
+    console.error(`Error scheduling notification for ${item.name}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Reschedule all notifications for a patient
+ * Called when Care Plan changes
+ */
+export async function rescheduleAllNotifications(patientId: string): Promise<void> {
+  try {
+    // Import dynamically to avoid circular dependencies
+    const { ensureDailyInstances } = await import('../services/carePlanGenerator');
+    const { listCarePlanItems, getActiveCarePlan } = await import('../storage/carePlanRepo');
+    const { getDeliveryPreferences } = await import('../storage/notificationRegistry');
+
+    const carePlan = await getActiveCarePlan(patientId);
+    if (!carePlan) {
+      if (__DEV__) console.log('No active care plan, clearing notifications');
+      await clearAllScheduledNotifications(patientId);
+      await cancelAllNotifications();
+      return;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const items = await listCarePlanItems(carePlan.id, { activeOnly: true });
+    const instances = await ensureDailyInstances(patientId, today);
+    const deliveryPrefs = await getDeliveryPreferences();
+
+    await scheduleCarePlanNotifications(patientId, items, instances, deliveryPrefs);
+  } catch (error) {
+    console.error('Error rescheduling notifications:', error);
+  }
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Parse scheduled time string to Date object
+ */
+function parseScheduledTime(scheduledTime: string, date: string): Date {
+  // If it's already an ISO timestamp
+  if (scheduledTime.includes('T')) {
+    return new Date(scheduledTime);
+  }
+
+  // If it's HH:mm format
+  const [hours, minutes] = scheduledTime.split(':').map(Number);
+  const result = new Date(date);
+  result.setHours(hours, minutes, 0, 0);
+  return result;
+}
+
+/**
+ * Check if a time is in quiet hours
+ */
+async function isTimeInQuietHours(time: Date, prefs: DeliveryPreferences): Promise<boolean> {
+  if (!prefs.quietHours.enabled) return false;
+
+  const timeMinutes = time.getHours() * 60 + time.getMinutes();
+
+  const [startHour, startMin] = prefs.quietHours.start.split(':').map(Number);
+  const [endHour, endMin] = prefs.quietHours.end.split(':').map(Number);
+
+  const startMinutes = startHour * 60 + startMin;
+  const endMinutes = endHour * 60 + endMin;
+
+  // Handle overnight quiet hours (e.g., 22:00 to 07:00)
+  if (startMinutes > endMinutes) {
+    return timeMinutes >= startMinutes || timeMinutes < endMinutes;
+  }
+
+  return timeMinutes >= startMinutes && timeMinutes < endMinutes;
+}
+
+/**
+ * Get emoji for item type
+ */
+function getItemEmoji(type: CarePlanItem['type']): string {
+  const emojis: Record<string, string> = {
+    medication: '💊',
+    vitals: '❤️',
+    mood: '😊',
+    nutrition: '🍽️',
+    hydration: '💧',
+    activity: '🚶',
+    sleep: '😴',
+    appointment: '📅',
+    custom: '📋',
+  };
+  return emojis[type] || '📋';
+}
+
+/**
+ * Get notification title for item type
+ */
+function getNotificationTitle(type: CarePlanItem['type']): string {
+  const titles: Record<string, string> = {
+    medication: 'Medication Reminder',
+    vitals: 'Time to Check Vitals',
+    mood: 'How Are You Feeling?',
+    nutrition: 'Meal Time',
+    hydration: 'Stay Hydrated',
+    activity: 'Activity Reminder',
+    sleep: 'Sleep Reminder',
+    appointment: 'Appointment Reminder',
+    custom: 'Care Reminder',
+  };
+  return titles[type] || 'Care Reminder';
+}
+
+/**
+ * Get notification body for an item and instance
+ */
+function getNotificationBody(item: CarePlanItem, instance: DailyCareInstance): string {
+  switch (item.type) {
+    case 'medication':
+      const dose = item.medicationDetails?.dose || instance.itemDosage;
+      return dose
+        ? `Time to take ${item.name} (${dose})`
+        : `Time to take ${item.name}`;
+
+    case 'vitals':
+      const vitalTypes = item.vitalsDetails?.vitalTypes || [];
+      return vitalTypes.length > 0
+        ? `Time to check: ${vitalTypes.join(', ')}`
+        : 'Time to check your vitals';
+
+    case 'mood':
+      return 'Take a moment to check in with how you\'re feeling';
+
+    case 'nutrition':
+      const meal = item.nutritionDetails?.mealType || instance.itemName;
+      return `Time for ${meal}`;
+
+    case 'hydration':
+      return 'Remember to drink water';
+
+    case 'appointment':
+      return item.instructions || `Upcoming: ${item.name}`;
+
+    default:
+      return item.instructions || `Time for: ${item.name}`;
+  }
+}
