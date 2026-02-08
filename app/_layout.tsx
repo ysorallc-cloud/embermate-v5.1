@@ -15,6 +15,7 @@ import { useNotificationHandler } from '../utils/useNotificationHandler';
 import { ensureDailySnapshot, pruneOldOverrides } from '../utils/carePlanStorage';
 import { runMigrations } from '../services/migrationService';
 import { loadCustomThresholds } from '../utils/vitalThresholds';
+import { purgeIfNeeded } from '../utils/dataRetention';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 function WebContainer({ children }: { children: React.ReactNode }) {
@@ -72,6 +73,8 @@ export default function RootLayout() {
     pruneOldOverrides();
     // Load custom vital thresholds into cache
     loadCustomThresholds();
+    // Purge old log events based on retention policy (once per day)
+    purgeIfNeeded();
 
     // Cleanup timer on unmount
     return () => {

@@ -23,6 +23,14 @@ import {
   SampleDataStatus,
 } from '../utils/sampleDataManager';
 import { resetSampleDataBanner } from '../components/common/SampleDataBanner';
+import {
+  getRetentionPolicy,
+  setRetentionPolicy,
+  purgeOldData,
+  RetentionPolicy,
+  RETENTION_OPTIONS,
+  getRetentionLabel,
+} from '../utils/dataRetention';
 
 // Components
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
@@ -33,6 +41,7 @@ export default function DataPrivacySettingsScreen() {
   const [sampleDataStatus, setSampleDataStatus] = useState<SampleDataStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
+  const [retentionPolicy, setRetentionPolicyState] = useState<RetentionPolicy>('forever');
 
   useFocusEffect(
     useCallback(() => {
@@ -43,13 +52,49 @@ export default function DataPrivacySettingsScreen() {
   const loadStatus = async () => {
     setLoading(true);
     try {
-      const status = await detectSampleData();
+      const [status, policy] = await Promise.all([
+        detectSampleData(),
+        getRetentionPolicy(),
+      ]);
       setSampleDataStatus(status);
+      setRetentionPolicyState(policy);
     } catch (error) {
-      console.error('Error loading sample data status:', error);
+      console.error('Error loading settings:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetentionChange = (policy: RetentionPolicy) => {
+    if (policy === 'forever') {
+      // No warning needed for "keep forever"
+      setRetentionPolicy(policy);
+      setRetentionPolicyState(policy);
+      return;
+    }
+
+    const option = RETENTION_OPTIONS.find(o => o.value === policy);
+    const label = option?.label ?? `${policy} days`;
+
+    Alert.alert(
+      'Change Data Retention?',
+      `Events older than ${label.toLowerCase()} will be permanently deleted. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Apply',
+          style: 'destructive',
+          onPress: async () => {
+            await setRetentionPolicy(policy);
+            setRetentionPolicyState(policy);
+            const removed = await purgeOldData();
+            if (removed > 0) {
+              Alert.alert('Data Purged', `${removed} old event${removed === 1 ? '' : 's'} removed.`);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleClearSampleData = () => {
@@ -296,6 +341,51 @@ export default function DataPrivacySettingsScreen() {
                 </>
               )}
             </View>
+          </View>
+
+          {/* Data Retention Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionHeader}>DATA RETENTION</Text>
+            <Text style={styles.sectionDescription}>
+              How long to keep logged events
+            </Text>
+
+            <View style={styles.settingCard}>
+              {RETENTION_OPTIONS.map((option, index) => {
+                const isSelected = retentionPolicy === option.value;
+                return (
+                  <React.Fragment key={String(option.value)}>
+                    {index > 0 && <View style={styles.settingDivider} />}
+                    <TouchableOpacity
+                      style={styles.settingRow}
+                      onPress={() => handleRetentionChange(option.value)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.settingInfo}>
+                        <View style={styles.settingTitleRow}>
+                          <Text style={styles.retentionRadio}>
+                            {isSelected ? '\u25C9' : '\u25CB'}
+                          </Text>
+                          <Text style={[
+                            styles.settingLabel,
+                            isSelected && styles.retentionLabelActive,
+                          ]}>
+                            {option.label}
+                          </Text>
+                        </View>
+                        <Text style={styles.settingHint}>{option.description}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </React.Fragment>
+                );
+              })}
+            </View>
+
+            {retentionPolicy !== 'forever' && (
+              <Text style={styles.retentionWarning}>
+                Events older than {getRetentionLabel(retentionPolicy).toLowerCase()} are automatically removed on app launch.
+              </Text>
+            )}
           </View>
 
           {/* Footer */}
@@ -547,6 +637,23 @@ const styles = StyleSheet.create({
   noSampleDataText: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.5)',
+  },
+
+  // Retention
+  retentionRadio: {
+    fontSize: 18,
+    color: Colors.accent,
+    width: 20,
+    textAlign: 'center',
+  },
+  retentionLabelActive: {
+    color: Colors.accent,
+  },
+  retentionWarning: {
+    fontSize: 12,
+    color: Colors.amber,
+    marginTop: Spacing.sm,
+    lineHeight: 16,
   },
 
   // Footer
