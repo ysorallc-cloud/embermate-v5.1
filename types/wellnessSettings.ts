@@ -8,6 +8,7 @@ export interface WellnessCheckConfig {
   time: string;                 // "07:00" format
   checks: string[];             // What to log
   reminderEnabled: boolean;     // Push notification
+  optionalChecks: Record<string, boolean>; // Toggle-able extra fields
 }
 
 export interface VitalsCheckConfig {
@@ -30,12 +31,14 @@ export const DEFAULT_WELLNESS_SETTINGS: WellnessSettings = {
     time: '07:00',
     checks: ['sleep', 'mood', 'energy'],
     reminderEnabled: true,
+    optionalChecks: { orientation: false, decisionMaking: false },
   },
   evening: {
     enabled: true,              // Cannot be disabled — core feature
     time: '20:00',
     checks: ['mood', 'meals', 'dayRating', 'notes'],
     reminderEnabled: true,
+    optionalChecks: { painLevel: false, alertness: false, bowelMovement: false, bathingStatus: false, mobilityStatus: false },
   },
   vitals: {
     enabled: false,             // Optional — enable based on conditions

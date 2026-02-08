@@ -9,6 +9,7 @@ export default function CarePlanLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
+      <Stack.Screen name="wellness" />
       <Stack.Screen name="meds" />
       <Stack.Screen name="vitals" />
       <Stack.Screen name="meals" />

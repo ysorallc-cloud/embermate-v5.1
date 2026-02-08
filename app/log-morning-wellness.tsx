@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
+import { useWellnessSettings } from '../hooks/useWellnessSettings';
 import { saveMorningWellness, skipMorningWellness } from '../utils/wellnessCheckStorage';
 import { format } from 'date-fns';
 
@@ -43,11 +44,29 @@ const ENERGY_OPTIONS = [
   { value: 1, label: 'Exhausted' },
 ] as const;
 
+const ORIENTATION_OPTIONS = [
+  { value: 'alert-oriented', emoji: '🧠', label: 'Alert & Oriented' },
+  { value: 'confused-responsive', emoji: '😕', label: 'Confused but Responsive' },
+  { value: 'disoriented', emoji: '🌀', label: 'Disoriented' },
+  { value: 'unresponsive', emoji: '😶', label: 'Unresponsive' },
+] as const;
+
+const DECISION_MAKING_OPTIONS = [
+  { value: 'own-decisions', emoji: '✅', label: 'Making Own Decisions' },
+  { value: 'needs-guidance', emoji: '🤝', label: 'Needs Guidance' },
+  { value: 'unable-to-decide', emoji: '⚠️', label: 'Unable to Decide' },
+] as const;
+
 export default function LogMorningWellnessScreen() {
   const router = useRouter();
+  const { settings } = useWellnessSettings();
+  const showOrientation = settings.morning.optionalChecks?.orientation ?? false;
+  const showDecisionMaking = settings.morning.optionalChecks?.decisionMaking ?? false;
   const [sleepQuality, setSleepQuality] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
   const [mood, setMood] = useState<'struggling' | 'difficult' | 'managing' | 'good' | 'great' | null>(null);
   const [energyLevel, setEnergyLevel] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
+  const [orientation, setOrientation] = useState<'alert-oriented' | 'confused-responsive' | 'disoriented' | 'unresponsive' | null>(null);
+  const [decisionMaking, setDecisionMaking] = useState<'own-decisions' | 'needs-guidance' | 'unable-to-decide' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canSubmit = sleepQuality !== null && mood !== null && energyLevel !== null;
@@ -85,6 +104,8 @@ export default function LogMorningWellnessScreen() {
         sleepQuality: sleepQuality!,
         mood: mood!,
         energyLevel: energyLevel!,
+        ...(orientation && { orientation }),
+        ...(decisionMaking && { decisionMaking }),
         completedAt: new Date(),
       });
       router.back();
@@ -205,6 +226,66 @@ export default function LogMorningWellnessScreen() {
               ))}
             </View>
           </View>
+
+          {/* Orientation (Optional — shown if enabled in settings) */}
+          {showOrientation && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Orientation</Text>
+              <Text style={styles.sectionSubtitle}>Optional</Text>
+              <View style={styles.optionGrid}>
+                {ORIENTATION_OPTIONS.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.optionButton,
+                      orientation === option.value && styles.optionButtonSelected,
+                    ]}
+                    onPress={() => setOrientation(orientation === option.value ? null : option.value)}
+                  >
+                    <Text style={styles.optionEmoji}>{option.emoji}</Text>
+                    <Text
+                      style={[
+                        styles.optionLabel,
+                        orientation === option.value && styles.optionLabelSelected,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Decision Making (Optional — shown if enabled in settings) */}
+          {showDecisionMaking && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Decision Making</Text>
+              <Text style={styles.sectionSubtitle}>Optional</Text>
+              <View style={styles.optionGrid}>
+                {DECISION_MAKING_OPTIONS.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.optionButton,
+                      decisionMaking === option.value && styles.optionButtonSelected,
+                    ]}
+                    onPress={() => setDecisionMaking(decisionMaking === option.value ? null : option.value)}
+                  >
+                    <Text style={styles.optionEmoji}>{option.emoji}</Text>
+                    <Text
+                      style={[
+                        styles.optionLabel,
+                        decisionMaking === option.value && styles.optionLabelSelected,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
         </ScrollView>
 
         {/* Footer */}
@@ -277,6 +358,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.textPrimary,
     marginBottom: 16,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    marginTop: -12,
+    marginBottom: 12,
   },
   optionGrid: {
     flexDirection: 'row',

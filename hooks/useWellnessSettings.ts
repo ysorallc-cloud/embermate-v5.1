@@ -27,7 +27,33 @@ export const useWellnessSettings = () => {
     try {
       const saved = await AsyncStorage.getItem(STORAGE_KEY);
       if (saved) {
-        setSettings(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Migration merge: ensure optionalChecks defaults exist for old stored data
+        const merged: WellnessSettings = {
+          ...DEFAULT_WELLNESS_SETTINGS,
+          ...parsed,
+          morning: {
+            ...DEFAULT_WELLNESS_SETTINGS.morning,
+            ...(parsed.morning || {}),
+            optionalChecks: {
+              ...DEFAULT_WELLNESS_SETTINGS.morning.optionalChecks,
+              ...(parsed.morning?.optionalChecks || {}),
+            },
+          },
+          evening: {
+            ...DEFAULT_WELLNESS_SETTINGS.evening,
+            ...(parsed.evening || {}),
+            optionalChecks: {
+              ...DEFAULT_WELLNESS_SETTINGS.evening.optionalChecks,
+              ...(parsed.evening?.optionalChecks || {}),
+            },
+          },
+          vitals: {
+            ...DEFAULT_WELLNESS_SETTINGS.vitals,
+            ...(parsed.vitals || {}),
+          },
+        };
+        setSettings(merged);
       }
     } catch (error) {
       console.error('Failed to load wellness settings:', error);
@@ -46,6 +72,7 @@ export const useWellnessSettings = () => {
   };
 
   return {
+    settings,
     wellnessChecks: {
       morning: settings.morning,
       evening: settings.evening,

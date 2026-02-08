@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
+import { useWellnessSettings } from '../../hooks/useWellnessSettings';
 import {
   BucketType,
   BUCKET_META,
@@ -118,6 +119,31 @@ function AIInsightCard({ icon, title, message, onDismiss }: AIInsightCardProps) 
 }
 
 // ============================================================================
+// WELLNESS CARD COMPONENT
+// ============================================================================
+
+function WellnessCard({ onPress, activeFieldCount }: { onPress: () => void; activeFieldCount: number }) {
+  return (
+    <TouchableOpacity
+      style={styles.wellnessCard}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={styles.wellnessCardMain}>
+        <Text style={styles.wellnessEmoji}>☀️</Text>
+        <View style={styles.wellnessInfo}>
+          <Text style={styles.wellnessName}>Wellness Checks</Text>
+          <Text style={styles.wellnessSubtitle}>
+            Morning & evening check-in · {activeFieldCount} fields active
+          </Text>
+        </View>
+        <Text style={styles.wellnessChevron}>›</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -132,6 +158,15 @@ export default function CarePlanHomeScreen() {
     getBucketStatus,
     initializeConfig,
   } = useCarePlanConfig();
+
+  const { settings: wellnessSettings } = useWellnessSettings();
+
+  // Count active fields: core + enabled optional
+  const morningCoreCount = 3; // sleep, mood, energy
+  const eveningCoreCount = 4; // mood, meals, dayRating, notes
+  const morningOptionalCount = Object.values(wellnessSettings.morning.optionalChecks).filter(Boolean).length;
+  const eveningOptionalCount = Object.values(wellnessSettings.evening.optionalChecks).filter(Boolean).length;
+  const activeFieldCount = morningCoreCount + eveningCoreCount + morningOptionalCount + eveningOptionalCount;
 
   const [showMoreBuckets, setShowMoreBuckets] = useState(false);
   const [dismissedInsights, setDismissedInsights] = useState<string[]>([]);
@@ -357,6 +392,13 @@ export default function CarePlanHomeScreen() {
               onDismiss={() => dismissInsight(contextualInsight.id)}
             />
           )}
+
+          {/* Wellness Checks */}
+          <Text style={styles.sectionLabel}>DAILY CHECK-INS</Text>
+          <WellnessCard
+            onPress={() => router.push('/care-plan/wellness' as any)}
+            activeFieldCount={activeFieldCount}
+          />
 
           {/* Primary Buckets */}
           <Text style={styles.sectionLabel}>TRACKING CATEGORIES</Text>
@@ -636,6 +678,43 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textSecondary,
     lineHeight: 20,
+  },
+
+  // Wellness Card
+  wellnessCard: {
+    backgroundColor: 'rgba(94, 234, 212, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(94, 234, 212, 0.3)',
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.md,
+    overflow: 'hidden',
+  },
+  wellnessCardMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.lg,
+    gap: Spacing.md,
+  },
+  wellnessEmoji: {
+    fontSize: 28,
+  },
+  wellnessInfo: {
+    flex: 1,
+  },
+  wellnessName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.accent,
+    marginBottom: 4,
+  },
+  wellnessSubtitle: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+  wellnessChevron: {
+    fontSize: 22,
+    color: Colors.accent,
   },
 
   // How It Works Card

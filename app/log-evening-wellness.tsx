@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
+import { useWellnessSettings } from '../hooks/useWellnessSettings';
 import { saveEveningWellness, skipEveningWellness } from '../utils/wellnessCheckStorage';
 import { format } from 'date-fns';
 
@@ -36,13 +37,57 @@ const DAY_RATING_OPTIONS = [
   { value: 1, emoji: '⭐', label: 'Very Hard' },
 ] as const;
 
+const PAIN_LEVEL_OPTIONS = [
+  { value: 'none', label: 'None' },
+  { value: 'mild', label: 'Mild' },
+  { value: 'moderate', label: 'Moderate' },
+  { value: 'severe', label: 'Severe' },
+] as const;
+
+const ALERTNESS_OPTIONS = [
+  { value: 'alert', label: 'Alert' },
+  { value: 'confused', label: 'Confused' },
+  { value: 'drowsy', label: 'Drowsy' },
+  { value: 'unresponsive', label: 'Unresponsive' },
+] as const;
+
+const BOWEL_OPTIONS = [
+  { value: 'yes', label: 'Yes' },
+  { value: 'no', label: 'No' },
+  { value: 'unknown', label: 'Unknown' },
+] as const;
+
+const BATHING_OPTIONS = [
+  { value: 'independent', label: 'Independent' },
+  { value: 'partial-assist', label: 'Partial Assist' },
+  { value: 'full-assist', label: 'Full Assist' },
+  { value: 'not-today', label: 'Not Today' },
+] as const;
+
+const MOBILITY_OPTIONS = [
+  { value: 'independent', label: 'Independent' },
+  { value: 'walker', label: 'Walker' },
+  { value: 'cane', label: 'Cane' },
+  { value: 'wheelchair', label: 'Wheelchair' },
+  { value: 'bed-bound', label: 'Bed-bound' },
+] as const;
+
 export default function LogEveningWellnessScreen() {
   const router = useRouter();
+  const { settings } = useWellnessSettings();
+  const eveningOptional = settings.evening.optionalChecks ?? {};
+  const hasAnyOptionalEnabled = Object.values(eveningOptional).some(Boolean);
   const [mood, setMood] = useState<'struggling' | 'difficult' | 'managing' | 'good' | 'great' | null>(null);
   const [mealsLogged, setMealsLogged] = useState(false);
   const [dayRating, setDayRating] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
   const [highlights, setHighlights] = useState('');
   const [concerns, setConcerns] = useState('');
+  const [showCareDetails, setShowCareDetails] = useState(false);
+  const [painLevel, setPainLevel] = useState<'none' | 'mild' | 'moderate' | 'severe' | null>(null);
+  const [alertness, setAlertness] = useState<'alert' | 'confused' | 'drowsy' | 'unresponsive' | null>(null);
+  const [bowelMovement, setBowelMovement] = useState<'yes' | 'no' | 'unknown' | null>(null);
+  const [bathingStatus, setBathingStatus] = useState<'independent' | 'partial-assist' | 'full-assist' | 'not-today' | null>(null);
+  const [mobilityStatus, setMobilityStatus] = useState<'independent' | 'walker' | 'cane' | 'wheelchair' | 'bed-bound' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canSubmit = mood !== null && dayRating !== null;
@@ -82,6 +127,11 @@ export default function LogEveningWellnessScreen() {
         dayRating: dayRating!,
         highlights: highlights || undefined,
         concerns: concerns || undefined,
+        ...(painLevel && { painLevel }),
+        ...(alertness && { alertness }),
+        ...(bowelMovement && { bowelMovement }),
+        ...(bathingStatus && { bathingStatus }),
+        ...(mobilityStatus && { mobilityStatus }),
         completedAt: new Date(),
       });
       router.back();
@@ -227,6 +277,167 @@ export default function LogEveningWellnessScreen() {
               numberOfLines={3}
             />
           </View>
+
+          {/* Care Details (collapsible, only shown if any optional field is enabled) */}
+          {hasAnyOptionalEnabled && (
+            <View style={styles.section}>
+              <TouchableOpacity
+                style={styles.careDetailsToggle}
+                onPress={() => setShowCareDetails(!showCareDetails)}
+              >
+                <Text style={styles.careDetailsToggleText}>
+                  Add care details (optional)
+                </Text>
+                <Text style={styles.careDetailsToggleArrow}>
+                  {showCareDetails ? '▲' : '▼'}
+                </Text>
+              </TouchableOpacity>
+
+              {showCareDetails && (
+                <View style={styles.careDetailsContent}>
+                  {/* Pain Level */}
+                  {(eveningOptional.painLevel ?? false) && (
+                    <View style={styles.careDetailGroup}>
+                      <Text style={styles.careDetailLabel}>Pain Level</Text>
+                      <View style={styles.chipRow}>
+                        {PAIN_LEVEL_OPTIONS.map((option) => (
+                          <TouchableOpacity
+                            key={option.value}
+                            style={[
+                              styles.chip,
+                              painLevel === option.value && styles.chipSelected,
+                            ]}
+                            onPress={() => setPainLevel(painLevel === option.value ? null : option.value)}
+                          >
+                            <Text
+                              style={[
+                                styles.chipText,
+                                painLevel === option.value && styles.chipTextSelected,
+                              ]}
+                            >
+                              {option.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Alertness */}
+                  {(eveningOptional.alertness ?? false) && (
+                    <View style={styles.careDetailGroup}>
+                      <Text style={styles.careDetailLabel}>Alertness</Text>
+                      <View style={styles.chipRow}>
+                        {ALERTNESS_OPTIONS.map((option) => (
+                          <TouchableOpacity
+                            key={option.value}
+                            style={[
+                              styles.chip,
+                              alertness === option.value && styles.chipSelected,
+                            ]}
+                            onPress={() => setAlertness(alertness === option.value ? null : option.value)}
+                          >
+                            <Text
+                              style={[
+                                styles.chipText,
+                                alertness === option.value && styles.chipTextSelected,
+                              ]}
+                            >
+                              {option.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Bowel Movement */}
+                  {(eveningOptional.bowelMovement ?? false) && (
+                    <View style={styles.careDetailGroup}>
+                      <Text style={styles.careDetailLabel}>Bowel Movement</Text>
+                      <View style={styles.chipRow}>
+                        {BOWEL_OPTIONS.map((option) => (
+                          <TouchableOpacity
+                            key={option.value}
+                            style={[
+                              styles.chip,
+                              bowelMovement === option.value && styles.chipSelected,
+                            ]}
+                            onPress={() => setBowelMovement(bowelMovement === option.value ? null : option.value)}
+                          >
+                            <Text
+                              style={[
+                                styles.chipText,
+                                bowelMovement === option.value && styles.chipTextSelected,
+                              ]}
+                            >
+                              {option.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Bathing */}
+                  {(eveningOptional.bathingStatus ?? false) && (
+                    <View style={styles.careDetailGroup}>
+                      <Text style={styles.careDetailLabel}>Bathing</Text>
+                      <View style={styles.chipRow}>
+                        {BATHING_OPTIONS.map((option) => (
+                          <TouchableOpacity
+                            key={option.value}
+                            style={[
+                              styles.chip,
+                              bathingStatus === option.value && styles.chipSelected,
+                            ]}
+                            onPress={() => setBathingStatus(bathingStatus === option.value ? null : option.value)}
+                          >
+                            <Text
+                              style={[
+                                styles.chipText,
+                                bathingStatus === option.value && styles.chipTextSelected,
+                              ]}
+                            >
+                              {option.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Mobility */}
+                  {(eveningOptional.mobilityStatus ?? false) && (
+                    <View style={styles.careDetailGroup}>
+                      <Text style={styles.careDetailLabel}>Mobility</Text>
+                      <View style={styles.chipRow}>
+                        {MOBILITY_OPTIONS.map((option) => (
+                          <TouchableOpacity
+                            key={option.value}
+                            style={[
+                              styles.chip,
+                              mobilityStatus === option.value && styles.chipSelected,
+                            ]}
+                            onPress={() => setMobilityStatus(mobilityStatus === option.value ? null : option.value)}
+                          >
+                            <Text
+                              style={[
+                                styles.chipText,
+                                mobilityStatus === option.value && styles.chipTextSelected,
+                              ]}
+                            >
+                              {option.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
         </ScrollView>
 
         {/* Footer */}
@@ -432,6 +643,63 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
     marginTop: 12,
+  },
+  // Care Details collapsible section
+  careDetailsToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+  },
+  careDetailsToggleText: {
+    fontSize: 15,
+    color: Colors.textMuted,
+  },
+  careDetailsToggleArrow: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  careDetailsContent: {
+    marginTop: 16,
+    gap: 20,
+  },
+  careDetailGroup: {
+    gap: 8,
+  },
+  careDetailLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 20,
+  },
+  chipSelected: {
+    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accent,
+  },
+  chipText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  chipTextSelected: {
+    color: Colors.accent,
+    fontWeight: '600',
   },
   footer: {
     padding: 20,
