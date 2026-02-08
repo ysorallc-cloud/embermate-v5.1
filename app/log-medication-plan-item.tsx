@@ -84,7 +84,7 @@ export default function LogMedicationPlanItemScreen() {
   const [saving, setSaving] = useState(false);
   const [mode, setMode] = useState<'confirm' | 'skip'>('confirm');
   const [skipReason, setSkipReason] = useState<string | null>(null);
-  const [sideEffect, setSideEffect] = useState('none');
+  const [sideEffects, setSideEffects] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
 
   // Load medication data - try multiple sources
@@ -137,14 +137,13 @@ export default function LogMedicationPlanItemScreen() {
       await saveMedicationLog({
         timestamp: new Date().toISOString(),
         medicationIds: [medicationData.id],
-        sideEffects: sideEffect !== 'none' ? [sideEffect] : undefined,
-        notes: notes.trim() || undefined,
-      });
+        sideEffects: sideEffects.length > 0 ? sideEffects : undefined,
+      } as any);
 
       // Complete the care instance if we have an instance ID
       if (instanceId) {
         await completeInstance(instanceId, 'taken', {
-          sideEffect: sideEffect !== 'none' ? sideEffect : undefined,
+          sideEffect: sideEffects.length > 0 ? sideEffects.join(', ') : undefined,
           notes: notes.trim() || undefined,
         });
       }
@@ -156,7 +155,7 @@ export default function LogMedicationPlanItemScreen() {
       Alert.alert('Error', 'Failed to log medication');
       setSaving(false);
     }
-  }, [medicationData, sideEffect, notes, instanceId, completeInstance, router]);
+  }, [medicationData, sideEffects, notes, instanceId, completeInstance, router]);
 
   // Handle Skip
   const handleSkip = useCallback(async () => {
@@ -313,25 +312,50 @@ export default function LogMedicationPlanItemScreen() {
             <>
               <Text style={styles.sectionLabel}>SIDE EFFECTS (OPTIONAL)</Text>
               <View style={styles.sideEffectsGrid}>
-                {SIDE_EFFECTS.map((effect) => (
-                  <TouchableOpacity
-                    key={effect.id}
-                    style={[
-                      styles.sideEffectOption,
-                      sideEffect === effect.id && styles.sideEffectOptionSelected,
-                    ]}
-                    onPress={() => setSideEffect(effect.id)}
-                  >
-                    <Text style={styles.sideEffectEmoji}>{effect.emoji}</Text>
-                    <Text style={[
-                      styles.sideEffectLabel,
-                      sideEffect === effect.id && styles.sideEffectLabelSelected,
-                    ]}>
-                      {effect.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                {SIDE_EFFECTS.map((effect) => {
+                  const isNone = effect.id === 'none';
+                  const isSelected = isNone
+                    ? sideEffects.length === 0
+                    : sideEffects.includes(effect.id);
+
+                  return (
+                    <TouchableOpacity
+                      key={effect.id}
+                      style={[
+                        styles.sideEffectOption,
+                        isSelected && (isNone ? styles.sideEffectOptionNone : styles.sideEffectOptionSelected),
+                      ]}
+                      onPress={() => {
+                        if (isNone) {
+                          setSideEffects([]);
+                        } else {
+                          setSideEffects(prev =>
+                            prev.includes(effect.id)
+                              ? prev.filter(id => id !== effect.id)
+                              : [...prev, effect.id]
+                          );
+                        }
+                      }}
+                    >
+                      <Text style={styles.sideEffectEmoji}>{effect.emoji}</Text>
+                      <Text style={[
+                        styles.sideEffectLabel,
+                        isSelected && (isNone ? styles.sideEffectLabelNone : styles.sideEffectLabelSelected),
+                      ]}>
+                        {effect.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
+              {sideEffects.length > 0 && (
+                <View style={styles.selectedSummary}>
+                  <Text style={styles.selectedSummaryLabel}>Selected:</Text>
+                  <Text style={styles.selectedSummaryText}>
+                    {sideEffects.map(id => SIDE_EFFECTS.find(e => e.id === id)?.label).filter(Boolean).join(', ')}
+                  </Text>
+                </View>
+              )}
             </>
           )}
 
@@ -628,6 +652,10 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
   },
   sideEffectOptionSelected: {
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+  },
+  sideEffectOptionNone: {
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
     borderColor: 'rgba(16, 185, 129, 0.3)',
   },
@@ -639,8 +667,34 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   sideEffectLabelSelected: {
+    color: '#F59E0B',
+    fontWeight: '600',
+  },
+  sideEffectLabelNone: {
     color: '#10B981',
     fontWeight: '500',
+  },
+  selectedSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.25)',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: Spacing.xl,
+    gap: 6,
+  },
+  selectedSummaryLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#F59E0B',
+  },
+  selectedSummaryText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    flex: 1,
   },
 
   // Skip Reasons

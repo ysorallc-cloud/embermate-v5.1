@@ -161,6 +161,17 @@ export function getCurrentTimeWindow(): TimeWindow {
   return 'night';
 }
 
+// Format time window range for display (e.g., "8:00 AM – 12:00 PM")
+export function getTimeWindowDisplayRange(window: TimeWindow): string {
+  const { start, end } = TIME_WINDOW_HOURS[window];
+  const formatHour = (h: number) => {
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:00 ${ampm}`;
+  };
+  return `${formatHour(start)} \u2013 ${formatHour(end)}`;
+}
+
 // Group instances by time window
 export function groupByTimeWindow(instances: any[]): Record<TimeWindow, any[]> {
   const groups: Record<TimeWindow, any[]> = {

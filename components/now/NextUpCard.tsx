@@ -1,247 +1,133 @@
 // ============================================================================
-// NEXT UP CARD - Primary Decision Engine
-// Answers: "What is the next irreversible decision the caregiver must make?"
-// CALM URGENCY: Only clinical items 30+ min overdue show red
+// CURRENT BLOCK CARD - Time-block status overview
+// Shows current time window progress and next pending item
+// Always calm blue — no red/amber urgency colors on this card
 // ============================================================================
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { parseTimeForDisplay } from '../../utils/nowHelpers';
-import { getUrgencyStatus } from '../../utils/nowUrgency';
-import { getDetailedUrgencyLabel } from '../../utils/urgency';
+import { parseTimeForDisplay, getTimeWindowDisplayRange, TIME_WINDOW_HOURS, type TimeWindow } from '../../utils/nowHelpers';
 
-interface NextUpCardProps {
-  nextUp: any | null;
+interface CurrentBlockCardProps {
+  currentWindow: TimeWindow;
+  windowItems: any[];          // all pending + completed items in this block
+  nextPendingItem: any | null; // next pending item in this block
   hasRegimenInstances: boolean;
-  completedCount: number;
-  onPress: (instance: any) => void;
+  completedCount: number;      // total completed today (for empty state)
+  onViewTasks: (window: TimeWindow) => void;
 }
 
-export function NextUpCard({ nextUp, hasRegimenInstances, completedCount, onPress }: NextUpCardProps) {
+export function NextUpCard({
+  currentWindow,
+  windowItems,
+  nextPendingItem,
+  hasRegimenInstances,
+  completedCount,
+  onViewTasks,
+}: CurrentBlockCardProps) {
   // Empty state: All caught up
-  if (hasRegimenInstances && !nextUp && completedCount > 0) {
+  if (hasRegimenInstances && windowItems.length === 0 && completedCount > 0) {
     return (
-      <View style={styles.nextUpEmpty}>
-        <Text style={styles.nextUpEmptyEmoji}>✓</Text>
-        <Text style={styles.nextUpEmptyTitle}>All caught up!</Text>
-        <Text style={styles.nextUpEmptySubtitle}>No scheduled items remain today.</Text>
+      <View style={styles.emptyCard}>
+        <Text style={styles.emptyEmoji}>✓</Text>
+        <Text style={styles.emptyTitle}>All caught up!</Text>
+        <Text style={styles.emptySubtitle}>No scheduled items remain today.</Text>
       </View>
     );
   }
 
-  if (!hasRegimenInstances || !nextUp) return null;
+  if (!hasRegimenInstances || windowItems.length === 0) return null;
 
-  const nextUpTime = parseTimeForDisplay(nextUp.scheduledTime);
-  const urgencyInfo = getUrgencyStatus(nextUp.scheduledTime, false, nextUp.itemType);
+  const label = TIME_WINDOW_HOURS[currentWindow].label;
+  const timeRange = getTimeWindowDisplayRange(currentWindow);
+  const completedInBlock = windowItems.filter(i => i.status === 'completed' || i.status === 'skipped').length;
+  const totalInBlock = windowItems.length;
+  const pendingInBlock = totalInBlock - completedInBlock;
 
-  // Determine card styles based on Calm Urgency tier/tone
-  const getCardStyle = () => {
-    if (urgencyInfo.tone === 'danger') return styles.nextUpCardOverdue;
-    if (urgencyInfo.tone === 'warn') return styles.nextUpCardDueSoon;
-    if (urgencyInfo.tier === 'info' && urgencyInfo.status !== 'COMPLETE') return styles.nextUpCardLater;
-    return null;
-  };
+  const progressText = pendingInBlock === 0
+    ? 'All complete'
+    : `In progress \u2022 ${completedInBlock} of ${totalInBlock} complete`;
 
-  const getIconStyle = () => {
-    if (urgencyInfo.tone === 'danger') return styles.nextUpIconOverdue;
-    if (urgencyInfo.tone === 'warn') return styles.nextUpIconDueSoon;
-    if (urgencyInfo.tier === 'info' && urgencyInfo.status !== 'COMPLETE') return styles.nextUpIconLater;
-    return null;
-  };
-
-  const getLabelStyle = () => {
-    if (urgencyInfo.tone === 'danger') return styles.nextUpLabelOverdue;
-    if (urgencyInfo.tone === 'warn') return styles.nextUpLabelDueSoon;
-    if (urgencyInfo.tier === 'info' && urgencyInfo.status !== 'COMPLETE') return styles.nextUpLabelLater;
-    return null;
-  };
-
-  const getUrgencyLabelStyle = () => {
-    if (urgencyInfo.tone === 'danger') return styles.nextUpUrgencyLabelOverdue;
-    if (urgencyInfo.tone === 'warn') return styles.nextUpUrgencyLabelDueSoon;
-    if (urgencyInfo.tier === 'info' && urgencyInfo.status !== 'COMPLETE') return styles.nextUpUrgencyLabelLater;
-    return null;
-  };
-
-  const getActionStyle = () => {
-    if (urgencyInfo.tone === 'danger') return styles.nextUpActionOverdue;
-    if (urgencyInfo.tone === 'warn') return styles.nextUpActionDueSoon;
-    if (urgencyInfo.tier === 'info' && urgencyInfo.status !== 'COMPLETE') return styles.nextUpActionLater;
-    return null;
-  };
-
-  const displayLabel = urgencyInfo.itemUrgency
-    ? getDetailedUrgencyLabel(urgencyInfo.itemUrgency)
-    : urgencyInfo.label;
+  const nextItemTime = nextPendingItem ? parseTimeForDisplay(nextPendingItem.scheduledTime) : null;
+  const nextItemText = nextPendingItem
+    ? `Next: ${nextPendingItem.itemName}${nextItemTime ? ` at ${nextItemTime}` : ''}`
+    : null;
 
   return (
-    <TouchableOpacity
-      style={[styles.nextUpCard, getCardStyle()]}
-      onPress={() => onPress(nextUp)}
-      activeOpacity={0.7}
-      accessible={true}
-      accessibilityRole="button"
-      accessibilityLabel={`${nextUp.itemName}. ${urgencyInfo.label}. Tap to log.`}
-    >
-      <View style={[styles.nextUpIcon, getIconStyle()]}>
-        <Text style={styles.nextUpEmoji}>
-          {nextUp.itemEmoji || '💊'}
-        </Text>
-      </View>
-      <View style={styles.nextUpContent}>
-        <Text style={[styles.nextUpLabel, getLabelStyle()]}>
-          NEXT UP
-        </Text>
-        <Text style={styles.nextUpTitle}>
-          {nextUp.itemName}
-        </Text>
-        {nextUp.instructions && (
-          <Text style={styles.nextUpSubtitle} numberOfLines={1}>
-            {nextUp.instructions}
-          </Text>
-        )}
-        <Text style={[styles.nextUpProximityLabel, getUrgencyLabelStyle()]}>
-          {urgencyInfo.tier === 'critical' && urgencyInfo.proximityLabel
-            ? urgencyInfo.proximityLabel
-            : displayLabel}
-        </Text>
-      </View>
-      <View style={[styles.nextUpAction, getActionStyle()]}>
-        <Text style={styles.nextUpActionText}>Log</Text>
-      </View>
-    </TouchableOpacity>
+    <View style={styles.card}>
+      <Text style={styles.label}>CURRENT BLOCK</Text>
+      <Text style={styles.title}>{label} ({timeRange})</Text>
+      <Text style={styles.progress}>{progressText}</Text>
+      {nextItemText && (
+        <Text style={styles.nextItem} numberOfLines={1}>{nextItemText}</Text>
+      )}
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => onViewTasks(currentWindow)}
+        activeOpacity={0.7}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={`View ${label} tasks`}
+      >
+        <Text style={styles.buttonText}>View {label} Tasks</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Default (blue)
-  nextUpCard: {
+  card: {
     backgroundColor: 'rgba(59, 130, 246, 0.12)',
     borderWidth: 2,
     borderColor: 'rgba(59, 130, 246, 0.4)',
     borderRadius: 16,
     padding: 18,
     marginBottom: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
     shadowColor: '#3B82F6',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 6,
   },
-  nextUpIcon: {
-    width: 52,
-    height: 52,
-    backgroundColor: 'rgba(59, 130, 246, 0.25)',
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nextUpEmoji: {
-    fontSize: 26,
-  },
-  nextUpContent: {
-    flex: 1,
-  },
-  nextUpLabel: {
+  label: {
     fontSize: 11,
     fontWeight: '700',
     color: '#3B82F6',
     letterSpacing: 1.2,
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  nextUpTitle: {
+  title: {
     fontSize: 17,
     fontWeight: '700',
     color: '#FFFFFF',
+    marginBottom: 4,
   },
-  nextUpSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginTop: 2,
-  },
-  nextUpProximityLabel: {
+  progress: {
     fontSize: 13,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.7)',
-    marginTop: 4,
+    marginBottom: 4,
   },
-  nextUpAction: {
+  nextItem: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.55)',
+    marginBottom: 12,
+  },
+  button: {
     backgroundColor: '#3B82F6',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
-    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 44,
   },
-  nextUpActionText: {
+  buttonText: {
     fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
   },
-
-  // Due Soon variant (Amber)
-  nextUpCardDueSoon: {
-    backgroundColor: 'rgba(251, 191, 36, 0.12)',
-    borderColor: 'rgba(251, 191, 36, 0.4)',
-    shadowColor: '#F59E0B',
-  },
-  nextUpIconDueSoon: {
-    backgroundColor: 'rgba(251, 191, 36, 0.25)',
-  },
-  nextUpLabelDueSoon: {
-    color: '#F59E0B',
-  },
-  nextUpUrgencyLabelDueSoon: {
-    color: '#F59E0B',
-  },
-  nextUpActionDueSoon: {
-    backgroundColor: '#F59E0B',
-  },
-
-  // Overdue variant (Red)
-  nextUpCardOverdue: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderColor: 'rgba(239, 68, 68, 0.5)',
-    shadowColor: '#EF4444',
-  },
-  nextUpIconOverdue: {
-    backgroundColor: 'rgba(239, 68, 68, 0.25)',
-  },
-  nextUpLabelOverdue: {
-    color: '#EF4444',
-  },
-  nextUpUrgencyLabelOverdue: {
-    color: '#EF4444',
-  },
-  nextUpActionOverdue: {
-    backgroundColor: '#EF4444',
-  },
-
-  // Later Today variant (Muted)
-  nextUpCardLater: {
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
-    borderColor: 'rgba(59, 130, 246, 0.25)',
-    borderWidth: 1,
-  },
-  nextUpIconLater: {
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-  },
-  nextUpLabelLater: {
-    color: 'rgba(59, 130, 246, 0.8)',
-  },
-  nextUpUrgencyLabelLater: {
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
-  nextUpActionLater: {
-    backgroundColor: 'rgba(59, 130, 246, 0.6)',
-  },
-
-  // Empty state when all caught up
-  nextUpEmpty: {
+  emptyCard: {
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.3)',
@@ -250,17 +136,17 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     alignItems: 'center',
   },
-  nextUpEmptyEmoji: {
+  emptyEmoji: {
     fontSize: 32,
     marginBottom: 8,
   },
-  nextUpEmptyTitle: {
+  emptyTitle: {
     fontSize: 17,
     fontWeight: '600',
     color: '#10B981',
     marginBottom: 4,
   },
-  nextUpEmptySubtitle: {
+  emptySubtitle: {
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.5)',
   },

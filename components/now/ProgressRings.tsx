@@ -1,11 +1,11 @@
 // ============================================================================
-// PROGRESS RINGS - Care Plan Progress Dashboard
+// PROGRESS RINGS - Care Plan Progress Dashboard (View-Only)
 // Provides fast reassurance: "Are we generally okay?"
-// CALM URGENCY: Pass nextUp for above-fold constraint
+// Pure visual — no tap interaction
 // ============================================================================
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { Colors } from '../../theme/theme-tokens';
 import type { StatData, TodayStats } from '../../utils/nowHelpers';
@@ -18,10 +18,9 @@ interface ProgressRingsProps {
   enabledBuckets: BucketType[];
   nextUp: any | null;
   instances: any[];
-  onTileTap: (type: 'meds' | 'vitals' | 'mood' | 'meals') => void;
 }
 
-export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances, onTileTap }: ProgressRingsProps) {
+export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }: ProgressRingsProps) {
   // Track how many critical tiles we've rendered (for above-fold cap)
   let criticalTileCount = 0;
 
@@ -29,13 +28,14 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances, o
     icon: string,
     label: string,
     stat: StatData,
-    onPress: () => void,
     itemType?: string,
   ) => {
     const percent = getProgressPercent(stat.completed, stat.total);
     const status = getProgressStatus(stat.completed, stat.total);
-    const dashoffset = calculateStrokeDashoffset(percent);
-    const circumference = 2 * Math.PI * 21;
+    const radius = 24;
+    const strokeWidth = 5;
+    const circumference = 2 * Math.PI * radius;
+    const dashoffset = circumference * (1 - percent / 100);
 
     // Compute if Next Up is critical (for above-fold constraint)
     let nextUpIsCritical = false;
@@ -57,20 +57,17 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances, o
       criticalTileCount++;
     }
 
-    // Determine stroke color based on Calm Urgency tier/tone
-    const getStrokeColorWithUrgency = () => {
+    // Determine stroke color — always visible to reflect progress
+    const getStrokeColor = () => {
       if (status === 'complete') return Colors.green;
-      if (nextUp) {
-        if (status === 'partial' || status === 'missing') return Colors.toneNeutralBorder;
-        return Colors.toneNeutralBorder;
-      }
       if (urgencyResult.tone === 'danger') return Colors.toneDanger;
       if (urgencyResult.tone === 'warn') return Colors.toneWarn;
-      if (status === 'partial' || status === 'missing') return Colors.toneWarn;
-      return Colors.toneNeutralBorder;
+      if (status === 'partial') return '#3B82F6';          // blue for in-progress
+      if (status === 'missing') return 'rgba(255, 255, 255, 0.25)'; // dim but visible
+      return 'rgba(255, 255, 255, 0.25)';
     };
 
-    const strokeColor = getStrokeColorWithUrgency();
+    const strokeColor = getStrokeColor();
 
     // Determine display text based on status and Calm Urgency tier
     let statText = '';
@@ -102,12 +99,10 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances, o
         }
         break;
       case 'inactive':
-        statText = '—';
+        statText = '\u2014';
         statusLabel = 'not tracked';
         break;
     }
-
-    const isTappable = status !== 'inactive';
 
     // Get urgency-based tile styling
     const getTileUrgencyStyle = () => {
@@ -120,44 +115,46 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances, o
       return null;
     };
 
+    const svgSize = (radius + strokeWidth) * 2;
+    const center = svgSize / 2;
+
     return (
-      <TouchableOpacity
+      <View
         key={label}
         style={[
           styles.checkinItem,
-          !isTappable && styles.checkinItemInactive,
+          status === 'inactive' && styles.checkinItemInactive,
           getTileUrgencyStyle(),
         ]}
-        onPress={isTappable ? onPress : undefined}
-        activeOpacity={isTappable ? 0.7 : 1}
         accessible={true}
-        accessibilityRole={isTappable ? "button" : "text"}
+        accessibilityRole="text"
         accessibilityLabel={`${label}. ${statText} ${statusLabel}`}
-        accessibilityHint={isTappable ? `Tap to log ${label.toLowerCase()}` : undefined}
       >
-        <View style={styles.ringContainer}>
-          <Svg width={50} height={50} style={styles.progressRing}>
+        <View style={[styles.ringContainer, { width: svgSize, height: svgSize }]}>
+          <Svg width={svgSize} height={svgSize} style={styles.progressRing}>
             <Circle
-              cx={25}
-              cy={25}
-              r={21}
+              cx={center}
+              cy={center}
+              r={radius}
               stroke="rgba(255, 255, 255, 0.1)"
-              strokeWidth={4}
+              strokeWidth={strokeWidth}
               fill="none"
             />
-            <Circle
-              cx={25}
-              cy={25}
-              r={21}
-              stroke={strokeColor}
-              strokeWidth={4}
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={dashoffset}
-              fill="none"
-              rotation={-90}
-              origin="25, 25"
-            />
+            {percent > 0 && (
+              <Circle
+                cx={center}
+                cy={center}
+                r={radius}
+                stroke={strokeColor}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={dashoffset}
+                fill="none"
+                rotation={-90}
+                origin={`${center}, ${center}`}
+              />
+            )}
           </Svg>
           <Text style={styles.ringIcon}>{icon}</Text>
         </View>
@@ -168,7 +165,7 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances, o
         <Text style={[styles.checkinStatusLabel, styles[statusStyle] || styles.stat_missing]}>
           {statusLabel}
         </Text>
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -177,13 +174,13 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances, o
       <Text style={styles.sectionTitle}>CARE PLAN PROGRESS</Text>
       <View style={styles.progressGrid}>
         {(enabledBuckets.length === 0 || enabledBuckets.includes('meds' as BucketType)) &&
-          renderProgressRing('💊', 'Meds', todayStats.meds, () => onTileTap('meds'), 'medication')}
+          renderProgressRing('\uD83D\uDC8A', 'Meds', todayStats.meds, 'medication')}
         {(enabledBuckets.length === 0 || enabledBuckets.includes('vitals' as BucketType)) &&
-          renderProgressRing('📊', 'Vitals', todayStats.vitals, () => onTileTap('vitals'), 'vitals')}
+          renderProgressRing('\uD83D\uDCCA', 'Vitals', todayStats.vitals, 'vitals')}
         {(enabledBuckets.length === 0 || enabledBuckets.includes('mood' as BucketType)) &&
-          renderProgressRing('😊', 'Mood', todayStats.mood, () => onTileTap('mood'), 'mood')}
+          renderProgressRing('\uD83D\uDE0A', 'Mood', todayStats.mood, 'mood')}
         {(enabledBuckets.length === 0 || enabledBuckets.includes('meals' as BucketType)) &&
-          renderProgressRing('🍽️', 'Meals', todayStats.meals, () => onTileTap('meals'), 'nutrition')}
+          renderProgressRing('\uD83C\uDF7D\uFE0F', 'Meals', todayStats.meals, 'nutrition')}
       </View>
     </View>
   );
@@ -199,11 +196,6 @@ function getProgressStatus(completed: number, total: number): 'complete' | 'part
   if (completed === total) return 'complete';
   if (completed > 0) return 'partial';
   return 'missing';
-}
-
-function calculateStrokeDashoffset(percent: number) {
-  const circumference = 2 * Math.PI * 21;
-  return circumference * (1 - percent / 100);
 }
 
 const styles = StyleSheet.create({
@@ -244,8 +236,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(251, 191, 36, 0.06)',
   },
   ringContainer: {
-    width: 50,
-    height: 50,
     marginBottom: 8,
     position: 'relative',
     alignItems: 'center',
@@ -267,8 +257,8 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   checkinStat: {
-    fontSize: 10,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '700',
   },
   checkinStatusLabel: {
     fontSize: 9,

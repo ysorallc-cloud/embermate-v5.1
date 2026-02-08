@@ -1,6 +1,7 @@
 // ============================================================================
 // TIMELINE SECTION - Today's Plan with time grouping
-// Shows overdue, upcoming (grouped by time window), and completed items
+// All pending items (overdue + upcoming) grouped by time window
+// Log buttons on ALL pending items; urgency styling for overdue/due-now
 // ============================================================================
 
 import React from 'react';
@@ -11,30 +12,39 @@ import {
   getCurrentTimeWindow,
   groupByTimeWindow,
   TIME_WINDOW_HOURS,
+  isOverdue,
   type TimeWindow,
 } from '../../utils/nowHelpers';
 import { getUrgencyStatus } from '../../utils/nowUrgency';
 import { getDetailedUrgencyLabel, getTimeDeltaString } from '../../utils/urgency';
 
 interface TimelineSectionProps {
-  timeline: { overdue: any[]; upcoming: any[]; completed: any[] };
+  allPending: any[];        // ALL pending items (overdue + upcoming merged)
+  completed: any[];         // completed items
   hasRegimenInstances: boolean;
   expandedTimeGroups: Record<TimeWindow, boolean>;
   onToggleTimeGroup: (window: TimeWindow) => void;
   onItemPress: (instance: any) => void;
+  timeGroupRefs?: Record<TimeWindow, (node: any) => void>;
 }
 
 export function TimelineSection({
-  timeline,
+  allPending,
+  completed,
   hasRegimenInstances,
   expandedTimeGroups,
   onToggleTimeGroup,
   onItemPress,
+  timeGroupRefs,
 }: TimelineSectionProps) {
   const router = useRouter();
 
   if (!hasRegimenInstances) return null;
-  if (timeline.overdue.length === 0 && timeline.upcoming.length === 0) return null;
+  if (allPending.length === 0 && completed.length === 0) return null;
+
+  const currentWindow = getCurrentTimeWindow();
+  const groupedPending = groupByTimeWindow(allPending);
+  const timeWindows: TimeWindow[] = ['morning', 'afternoon', 'evening', 'night'];
 
   return (
     <>
@@ -49,46 +59,86 @@ export function TimelineSection({
         </TouchableOpacity>
       </View>
 
-      {/* Overdue items - highest priority, always expanded */}
-      {timeline.overdue.length > 0 && (() => {
-        const hasCriticalItem = timeline.overdue.some(instance => {
-          const urgency = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
-          return urgency.tier === 'critical';
-        });
-        const sectionEmoji = hasCriticalItem ? '⚠️' : '📋';
-        const sectionLabel = 'Needs attention';
-        const titleStyle = hasCriticalItem ? styles.timeGroupTitleOverdue : styles.timeGroupTitlePending;
-        const countStyle = hasCriticalItem ? styles.timeGroupCountOverdue : styles.timeGroupCountPending;
+      {/* Time-grouped items (overdue items appear in their scheduled time groups) */}
+      {timeWindows.map((window) => {
+        const items = groupedPending[window];
+        if (items.length === 0) return null;
+
+        const isCurrentWindow = window === currentWindow;
+        const isExpanded = expandedTimeGroups[window];
+
+        // Count overdue items in this group
+        const overdueCount = items.filter(i => isOverdue(i.scheduledTime)).length;
 
         return (
-          <View style={styles.overdueSection}>
-            <View style={styles.timeGroupHeader}>
+          <View
+            key={window}
+            style={styles.timeGroupSection}
+            ref={timeGroupRefs?.[window]}
+          >
+            <TouchableOpacity
+              style={styles.timeGroupHeader}
+              onPress={() => onToggleTimeGroup(window)}
+              activeOpacity={0.7}
+            >
               <View style={styles.timeGroupHeaderTouchable}>
-                <Text style={[styles.timeGroupTitle, titleStyle]}>
-                  {sectionEmoji} {sectionLabel}
+                <Text style={[
+                  styles.timeGroupTitle,
+                  isCurrentWindow && styles.timeGroupTitleCurrent,
+                  overdueCount > 0 && styles.timeGroupTitleOverdue,
+                ]}>
+                  {TIME_WINDOW_HOURS[window].label}
                 </Text>
-                <Text style={[styles.timeGroupCount, countStyle]}>
-                  ({timeline.overdue.length})
+                <Text style={[
+                  styles.timeGroupCount,
+                  overdueCount > 0 && styles.timeGroupCountOverdue,
+                ]}>
+                  ({items.length}{overdueCount > 0 ? ` \u2022 ${overdueCount} overdue` : ''})
                 </Text>
               </View>
-            </View>
-            {timeline.overdue.map((instance) => {
+              <Text style={styles.timeGroupCollapseIcon}>
+                {isExpanded ? '\u25BC' : '\u25B6'}
+              </Text>
+            </TouchableOpacity>
+
+            {isExpanded && items.map((instance) => {
               const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
               const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
+              const itemIsOverdue = isOverdue(instance.scheduledTime);
 
               const statusLabel = urgencyInfo.itemUrgency
                 ? getDetailedUrgencyLabel(urgencyInfo.itemUrgency)
-                : 'Due earlier today';
+                : urgencyInfo.label;
 
               const timeDelta = urgencyInfo.itemUrgency
                 ? getTimeDeltaString(urgencyInfo.itemUrgency)
                 : null;
 
+              // Determine urgency-based styles
               const isRed = urgencyInfo.tone === 'danger';
-              const itemStyle = isRed ? styles.timelineItemOverdue : styles.timelineItemPending;
-              const iconStyle = isRed ? styles.timelineIconOverdue : styles.timelineIconPending;
-              const timeStyle = isRed ? styles.timelineTimeOverdue : styles.timelineTimePending;
-              const actionStyle = isRed ? styles.timelineActionOverdue : styles.timelineActionPending;
+              const isDueSoon = urgencyInfo.tier === 'attention' && !urgencyInfo.itemUrgency?.isOverdue;
+
+              let itemStyle = null;
+              let iconStyle = null;
+              let timeStyle = styles.timelineTime;
+              let actionStyle = null;
+
+              if (itemIsOverdue && isRed) {
+                itemStyle = styles.timelineItemOverdue;
+                iconStyle = styles.timelineIconOverdue;
+                timeStyle = styles.timelineTimeOverdue;
+                actionStyle = styles.timelineActionOverdue;
+              } else if (itemIsOverdue) {
+                itemStyle = styles.timelineItemPending;
+                iconStyle = styles.timelineIconPending;
+                timeStyle = styles.timelineTimePending;
+                actionStyle = styles.timelineActionPending;
+              } else if (isDueSoon) {
+                itemStyle = styles.timelineItemDueSoon;
+                iconStyle = styles.timelineIconDueSoon;
+                timeStyle = styles.timelineTimeDueSoon;
+                actionStyle = null;
+              }
 
               return (
                 <TouchableOpacity
@@ -98,11 +148,11 @@ export function TimelineSection({
                   activeOpacity={0.7}
                 >
                   <View style={[styles.timelineIcon, iconStyle]}>
-                    <Text style={styles.timelineIconEmoji}>{instance.itemEmoji || '🔔'}</Text>
+                    <Text style={styles.timelineIconEmoji}>{instance.itemEmoji || '\uD83D\uDD14'}</Text>
                   </View>
                   <View style={styles.timelineDetails}>
                     <Text style={timeStyle}>
-                      {timeDisplay ? `${timeDisplay} • ${statusLabel}` : statusLabel}
+                      {timeDisplay ? `${timeDisplay} \u2022 ${statusLabel}` : statusLabel}
                     </Text>
                     <Text style={styles.timelineTitle}>{instance.itemName}</Text>
                     {timeDelta && (
@@ -122,96 +172,18 @@ export function TimelineSection({
             })}
           </View>
         );
-      })()}
-
-      {/* Time-grouped upcoming items */}
-      {(() => {
-        const currentWindow = getCurrentTimeWindow();
-        const groupedUpcoming = groupByTimeWindow(timeline.upcoming);
-        const timeWindows: TimeWindow[] = ['morning', 'afternoon', 'evening', 'night'];
-
-        return timeWindows.map((window) => {
-          const items = groupedUpcoming[window];
-          if (items.length === 0) return null;
-
-          const isCurrentWindow = window === currentWindow;
-          const isExpanded = expandedTimeGroups[window];
-
-          return (
-            <View key={window} style={styles.timeGroupSection}>
-              <TouchableOpacity
-                style={styles.timeGroupHeader}
-                onPress={() => onToggleTimeGroup(window)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.timeGroupHeaderTouchable}>
-                  <Text style={[
-                    styles.timeGroupTitle,
-                    isCurrentWindow && styles.timeGroupTitleCurrent
-                  ]}>
-                    {TIME_WINDOW_HOURS[window].label}
-                  </Text>
-                  <Text style={styles.timeGroupCount}>
-                    ({items.length})
-                  </Text>
-                </View>
-                <Text style={styles.timeGroupCollapseIcon}>
-                  {isExpanded ? '▼' : '▶'}
-                </Text>
-              </TouchableOpacity>
-
-              {isExpanded && items.map((instance) => {
-                const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
-                const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
-
-                const statusLabel = urgencyInfo.itemUrgency
-                  ? getDetailedUrgencyLabel(urgencyInfo.itemUrgency)
-                  : urgencyInfo.label;
-
-                const isDueSoon = urgencyInfo.tier === 'attention' && !urgencyInfo.itemUrgency?.isOverdue;
-                const itemStyle = isDueSoon ? styles.timelineItemDueSoon : null;
-                const iconStyle = isDueSoon ? styles.timelineIconDueSoon : null;
-                const timeStyle = isDueSoon ? styles.timelineTimeDueSoon : styles.timelineTime;
-
-                return (
-                  <TouchableOpacity
-                    key={instance.id}
-                    style={[styles.timelineItem, itemStyle]}
-                    onPress={() => onItemPress(instance)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[styles.timelineIcon, iconStyle]}>
-                      <Text style={styles.timelineIconEmoji}>{instance.itemEmoji || '🔔'}</Text>
-                    </View>
-                    <View style={styles.timelineDetails}>
-                      <Text style={timeStyle}>
-                        {timeDisplay ? `${timeDisplay} • ${statusLabel}` : statusLabel}
-                      </Text>
-                      <Text style={styles.timelineTitle}>{instance.itemName}</Text>
-                      {instance.instructions && (
-                        <Text style={styles.timelineSubtitle} numberOfLines={1}>
-                          {instance.instructions}
-                        </Text>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          );
-        });
-      })()}
+      })}
 
       {/* Completed items - minimized */}
-      {timeline.completed.length > 0 && (
+      {completed.length > 0 && (
         <View style={styles.completedSection}>
           <Text style={styles.completedHeader}>
-            ✓ Completed ({timeline.completed.length})
+            ✓ Completed ({completed.length})
           </Text>
-          {timeline.completed.slice(0, 3).map((instance) => {
+          {completed.slice(0, 3).map((instance) => {
             const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
             const statusText = instance.status === 'skipped' ? 'Skipped' : 'Done';
-            const displayText = timeDisplay ? `${timeDisplay} • ${statusText}` : statusText;
+            const displayText = timeDisplay ? `${timeDisplay} \u2022 ${statusText}` : statusText;
 
             return (
               <View
@@ -230,9 +202,9 @@ export function TimelineSection({
               </View>
             );
           })}
-          {timeline.completed.length > 3 && (
+          {completed.length > 3 && (
             <Text style={styles.completedMoreText}>
-              +{timeline.completed.length - 3} more completed
+              +{completed.length - 3} more completed
             </Text>
           )}
         </View>
@@ -388,9 +360,6 @@ const styles = StyleSheet.create({
   },
 
   // Sections
-  overdueSection: {
-    marginBottom: 12,
-  },
   timeGroupSection: {
     marginBottom: 16,
   },
@@ -418,9 +387,6 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
   },
   timeGroupTitleOverdue: {
-    color: '#EF4444',
-  },
-  timeGroupTitlePending: {
     color: '#F59E0B',
   },
   timeGroupCount: {
@@ -429,9 +395,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   timeGroupCountOverdue: {
-    color: '#EF4444',
-  },
-  timeGroupCountPending: {
     color: '#F59E0B',
   },
   timeGroupCollapseIcon: {

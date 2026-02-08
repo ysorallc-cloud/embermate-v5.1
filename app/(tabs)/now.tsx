@@ -3,7 +3,7 @@
 // "What's happening right now?" — Quick status and timeline
 // ============================================================================
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -63,6 +63,7 @@ import {
   isOverdue,
   getRouteForInstanceType,
   getCurrentTimeWindow,
+  getTimeWindow,
   OVERDUE_GRACE_MINUTES,
 } from '../../utils/nowHelpers';
 // Extracted hooks
@@ -116,6 +117,15 @@ export default function NowScreen() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [dailyTracking, setDailyTracking] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // ScrollView ref for scroll-to behavior
+  const scrollViewRef = useRef<ScrollView>(null);
+  const timeGroupPositions = useRef<Record<TimeWindow, number>>({
+    morning: 0,
+    afternoon: 0,
+    evening: 0,
+    night: 0,
+  });
 
   // Time group expansion state
   const [expandedTimeGroups, setExpandedTimeGroups] = useState<Record<TimeWindow, boolean>>(() => {
@@ -232,6 +242,34 @@ export default function NowScreen() {
     return { overdue, upcoming, completed, nextUp };
   }, [instancesState?.instances, instancesState?.date, today]);
 
+  // Merge overdue + upcoming into single allPending array for TimelineSection
+  const allPending = useMemo(() => {
+    return [...todayTimeline.overdue, ...todayTimeline.upcoming];
+  }, [todayTimeline.overdue, todayTimeline.upcoming]);
+
+  // Current block data for NextUpCard
+  const currentBlockData = useMemo(() => {
+    const currentWindow = getCurrentTimeWindow();
+    const pendingInBlock = allPending.filter(i => getTimeWindow(i.scheduledTime) === currentWindow);
+    const completedInBlock = todayTimeline.completed.filter(i => getTimeWindow(i.scheduledTime) === currentWindow);
+    const windowItems = [...pendingInBlock, ...completedInBlock];
+    const nextPendingInBlock = pendingInBlock[0] || null;
+    return { currentWindow, windowItems, nextPendingInBlock };
+  }, [allPending, todayTimeline.completed]);
+
+  // Scroll helpers
+  const scrollToTimeGroup = useCallback((window: TimeWindow) => {
+    // Ensure the target group is expanded
+    setExpandedTimeGroups(prev => ({ ...prev, [window]: true }));
+    // Scroll after a short delay to allow layout
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({
+        y: timeGroupPositions.current[window] || 0,
+        animated: true,
+      });
+    }, 100);
+  }, []);
+
   // Handler for timeline item tap
   const handleTimelineItemPress = useCallback((instance: any) => {
     if (instance.itemType === 'medication') {
@@ -251,24 +289,6 @@ export default function NowScreen() {
     const route = getRouteForInstanceType(instance.itemType);
     router.push(route as any);
   }, [router]);
-
-  // Route to Record tab with appropriate logging screen
-  const handleProgressTileTap = (type: 'meds' | 'vitals' | 'mood' | 'meals') => {
-    switch (type) {
-      case 'meds':
-        router.push('/(tabs)/record');
-        break;
-      case 'vitals':
-        router.push('/log-vitals');
-        break;
-      case 'mood':
-        router.push('/log-mood');
-        break;
-      case 'meals':
-        router.push('/log-meal');
-        break;
-    }
-  };
 
   // ============================================================================
   // DATA LOADING
@@ -320,23 +340,13 @@ export default function NowScreen() {
       const moodLog = await getTodayMoodLog();
       const moodLogged = moodLog?.mood !== null && moodLog?.mood !== undefined ? 1 : 0;
 
-      let legacyStatsUpdate: TodayStats;
-      if (carePlan && dayState?.progress) {
-        const dsProgress = dayState.progress;
-        legacyStatsUpdate = {
-          meds: { completed: dsProgress.meds.completed, total: dsProgress.meds.expected },
-          vitals: { completed: dsProgress.vitals.completed, total: dsProgress.vitals.expected },
-          mood: { completed: dsProgress.mood.completed, total: dsProgress.mood.expected },
-          meals: { completed: dsProgress.meals.completed, total: dsProgress.meals.expected },
-        };
-      } else {
-        legacyStatsUpdate = {
-          meds: { completed: takenMeds, total: totalMeds },
-          vitals: { completed: vitalsLogged, total: 4 },
-          mood: { completed: moodLogged, total: 1 },
-          meals: { completed: mealsLogged, total: 4 },
-        };
-      }
+      // Legacy stats fallback — only used when no regimen instances exist
+      const legacyStatsUpdate: TodayStats = {
+        meds: { completed: takenMeds, total: totalMeds },
+        vitals: { completed: vitalsLogged, total: 4 },
+        mood: { completed: moodLogged, total: 1 },
+        meals: { completed: mealsLogged, total: 4 },
+      };
       setLegacyStats(legacyStatsUpdate);
 
       const currentMoodLevel = moodLog?.mood ?? null;
@@ -363,6 +373,7 @@ export default function NowScreen() {
       <AuroraBackground variant="today" />
 
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -461,12 +472,14 @@ export default function NowScreen() {
             </View>
           )}
 
-          {/* 1. NEXT UP CARD */}
+          {/* 1. CURRENT BLOCK CARD */}
           <NextUpCard
-            nextUp={todayTimeline.nextUp}
+            currentWindow={currentBlockData.currentWindow}
+            windowItems={currentBlockData.windowItems}
+            nextPendingItem={currentBlockData.nextPendingInBlock}
             hasRegimenInstances={!!hasRegimenInstances}
             completedCount={todayTimeline.completed.length}
-            onPress={handleTimelineItemPress}
+            onViewTasks={scrollToTimeGroup}
           />
 
           {/* Data Integrity Warning */}
@@ -493,7 +506,6 @@ export default function NowScreen() {
             enabledBuckets={enabledBuckets}
             nextUp={todayTimeline?.nextUp}
             instances={instancesState?.instances || []}
-            onTileTap={handleProgressTileTap}
           />
 
           {/* 3. CARE INSIGHT */}
@@ -504,7 +516,8 @@ export default function NowScreen() {
 
           {/* 4. TIMELINE DETAILS */}
           <TimelineSection
-            timeline={todayTimeline}
+            allPending={allPending}
+            completed={todayTimeline.completed}
             hasRegimenInstances={!!hasRegimenInstances}
             expandedTimeGroups={expandedTimeGroups}
             onToggleTimeGroup={(window) => setExpandedTimeGroups(prev => ({
@@ -512,6 +525,12 @@ export default function NowScreen() {
               [window]: !prev[window]
             }))}
             onItemPress={handleTimelineItemPress}
+            timeGroupRefs={{
+              morning: (node: any) => { if (node) node.measureInWindow((_x: number, y: number) => { timeGroupPositions.current.morning = y; }); },
+              afternoon: (node: any) => { if (node) node.measureInWindow((_x: number, y: number) => { timeGroupPositions.current.afternoon = y; }); },
+              evening: (node: any) => { if (node) node.measureInWindow((_x: number, y: number) => { timeGroupPositions.current.evening = y; }); },
+              night: (node: any) => { if (node) node.measureInWindow((_x: number, y: number) => { timeGroupPositions.current.night = y; }); },
+            }}
           />
 
           {/* Empty states */}
@@ -530,8 +549,7 @@ export default function NowScreen() {
           )}
 
           {hasRegimenInstances &&
-            todayTimeline.overdue.length === 0 &&
-            todayTimeline.upcoming.length === 0 &&
+            allPending.length === 0 &&
             todayTimeline.completed.length === 0 && (
             <View style={styles.emptyTimeline}>
               <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
@@ -539,8 +557,7 @@ export default function NowScreen() {
           )}
 
           {hasRegimenInstances &&
-            todayTimeline.overdue.length === 0 &&
-            todayTimeline.upcoming.length === 0 &&
+            allPending.length === 0 &&
             todayTimeline.completed.length > 0 && (
             <View style={styles.allDoneMessage}>
               <Text style={styles.allDoneEmoji}>🎉</Text>
