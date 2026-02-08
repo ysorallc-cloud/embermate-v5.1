@@ -5,10 +5,34 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface Diagnosis {
+  condition: string;
+  diagnosedDate?: string;
+  status: 'active' | 'resolved';
+}
+
+export interface Surgery {
+  procedure: string;
+  date?: string;
+  notes?: string;
+}
+
+export interface Hospitalization {
+  reason: string;
+  date?: string;
+  duration?: string;
+}
+
 export interface MedicalInfo {
   bloodType?: string;
   allergies: string[];
-  conditions: string[];
+  diagnoses: Diagnosis[];
+  surgeries: Surgery[];
+  hospitalizations: Hospitalization[];
   currentMedications: Array<{
     name: string;
     dosage: string;
@@ -19,18 +43,49 @@ export interface MedicalInfo {
 
 const MEDICAL_INFO_KEY = 'medical_info';
 
+// ============================================================================
+// MIGRATION
+// ============================================================================
+
 /**
- * Get medical summary
+ * Migrate legacy data that used flat `conditions: string[]` to the new
+ * structured `diagnoses: Diagnosis[]` format. Runs transparently on read.
+ */
+function migrateLegacyInfo(raw: any): MedicalInfo {
+  // If the old `conditions` array exists but `diagnoses` does not, migrate
+  if (Array.isArray(raw.conditions) && !Array.isArray(raw.diagnoses)) {
+    raw.diagnoses = (raw.conditions as string[]).map((c: string) => ({
+      condition: c,
+      status: 'active' as const,
+    }));
+  }
+
+  return {
+    bloodType: raw.bloodType,
+    allergies: Array.isArray(raw.allergies) ? raw.allergies : [],
+    diagnoses: Array.isArray(raw.diagnoses) ? raw.diagnoses : [],
+    surgeries: Array.isArray(raw.surgeries) ? raw.surgeries : [],
+    hospitalizations: Array.isArray(raw.hospitalizations) ? raw.hospitalizations : [],
+    currentMedications: Array.isArray(raw.currentMedications) ? raw.currentMedications : [],
+    emergencyNotes: raw.emergencyNotes,
+    lastUpdated: raw.lastUpdated ? new Date(raw.lastUpdated) : new Date(),
+  };
+}
+
+// ============================================================================
+// CRUD OPERATIONS
+// ============================================================================
+
+/**
+ * Get medical summary (auto-migrates legacy data)
  */
 export async function getMedicalInfo(): Promise<MedicalInfo | null> {
   try {
     const data = await AsyncStorage.getItem(MEDICAL_INFO_KEY);
     if (!data) return null;
 
-    const info = JSON.parse(data);
-    info.lastUpdated = new Date(info.lastUpdated);
-
-    return info;
+    const raw = JSON.parse(data);
+    return migrateLegacyInfo(raw);
   } catch (error) {
     console.error('Error getting medical info:', error);
     return null;
@@ -56,6 +111,10 @@ export async function saveMedicalInfo(
   }
 }
 
+// ============================================================================
+// SUMMARY GENERATION
+// ============================================================================
+
 /**
  * Generate emergency summary text
  */
@@ -70,8 +129,28 @@ export function generateEmergencySummary(info: MedicalInfo): string {
     lines.push(`Allergies: ${info.allergies.join(', ')}`);
   }
 
-  if (info.conditions.length > 0) {
-    lines.push(`Conditions: ${info.conditions.join(', ')}`);
+  const activeDiagnoses = info.diagnoses.filter(d => d.status === 'active');
+  if (activeDiagnoses.length > 0) {
+    lines.push(`Active Conditions: ${activeDiagnoses.map(d => d.condition).join(', ')}`);
+  }
+
+  const resolvedDiagnoses = info.diagnoses.filter(d => d.status === 'resolved');
+  if (resolvedDiagnoses.length > 0) {
+    lines.push(`Past Conditions: ${resolvedDiagnoses.map(d => d.condition).join(', ')}`);
+  }
+
+  if (info.surgeries.length > 0) {
+    const surgs = info.surgeries
+      .map(s => (s.date ? `${s.procedure} (${s.date})` : s.procedure))
+      .join(', ');
+    lines.push(`Surgeries: ${surgs}`);
+  }
+
+  if (info.hospitalizations.length > 0) {
+    const hosps = info.hospitalizations
+      .map(h => (h.date ? `${h.reason} (${h.date})` : h.reason))
+      .join(', ');
+    lines.push(`Hospitalizations: ${hosps}`);
   }
 
   if (info.currentMedications.length > 0) {
@@ -95,7 +174,9 @@ export function hasCriticalInfo(info: MedicalInfo): boolean {
   return !!(
     info.bloodType ||
     info.allergies.length > 0 ||
-    info.conditions.length > 0 ||
+    info.diagnoses.length > 0 ||
+    info.surgeries.length > 0 ||
+    info.hospitalizations.length > 0 ||
     info.currentMedications.length > 0
   );
 }

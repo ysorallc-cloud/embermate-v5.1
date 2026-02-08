@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { getMedications, getMedicationLogs, Medication } from '../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../utils/appointmentStorage';
+import { getMedicalInfo, MedicalInfo } from '../utils/medicalInfo';
 import { generateComprehensiveReport, ComprehensiveReport } from '../utils/reportGenerator';
 import { generateAndSharePDF, ReportData, PatientInfo } from '../utils/pdfExport';
 
@@ -29,6 +30,7 @@ export default function CareBriefScreen() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [criticalContextExpanded, setCriticalContextExpanded] = useState(false);
   const [isFirstView, setIsFirstView] = useState(false);
+  const [medicalInfo, setMedicalInfo] = useState<MedicalInfo | null>(null);
 
   useFocusEffect(useCallback(() => { 
     loadData(); 
@@ -53,6 +55,10 @@ export default function CareBriefScreen() {
     try {
       const appts = await getUpcomingAppointments();
       setAppointments(appts);
+    } catch (e) {}
+    try {
+      const mi = await getMedicalInfo();
+      setMedicalInfo(mi);
     } catch (e) {}
     setSnapshotTime(new Date());
   };
@@ -583,19 +589,34 @@ export default function CareBriefScreen() {
                   <View style={styles.criticalContextContent}>
                     <View style={styles.contextField}>
                       <Text style={styles.contextLabel}>ALLERGIES</Text>
-                      <Text style={styles.contextValue}>None reported</Text>
+                      <Text style={styles.contextValue}>
+                        {medicalInfo && medicalInfo.allergies.length > 0
+                          ? medicalInfo.allergies.join(', ')
+                          : 'None reported'}
+                      </Text>
                     </View>
                     <View style={styles.contextField}>
-                      <Text style={styles.contextLabel}>KEY CONDITIONS</Text>
-                      <Text style={styles.contextValue}>Not specified</Text>
+                      <Text style={styles.contextLabel}>ACTIVE DIAGNOSES</Text>
+                      <Text style={styles.contextValue}>
+                        {medicalInfo && medicalInfo.diagnoses.filter(d => d.status === 'active').length > 0
+                          ? medicalInfo.diagnoses
+                              .filter(d => d.status === 'active')
+                              .map(d => d.condition)
+                              .join(', ')
+                          : 'Not specified'}
+                      </Text>
+                    </View>
+                    <View style={styles.contextField}>
+                      <Text style={styles.contextLabel}>SURGICAL HISTORY</Text>
+                      <Text style={styles.contextValue}>
+                        {medicalInfo && medicalInfo.surgeries.length > 0
+                          ? medicalInfo.surgeries.map(s => s.procedure).join(', ')
+                          : 'None recorded'}
+                      </Text>
                     </View>
                     <View style={styles.contextField}>
                       <Text style={styles.contextLabel}>EMERGENCY CONTACT</Text>
                       <Text style={styles.contextValue}>Not configured</Text>
-                    </View>
-                    <View style={styles.contextField}>
-                      <Text style={styles.contextLabel}>PREFERRED PHARMACY</Text>
-                      <Text style={styles.contextValue}>Not specified</Text>
                     </View>
                   </View>
                 )}
