@@ -27,7 +27,7 @@ export interface RecentEntry {
 // MAPPINGS
 // ============================================================================
 
-const EMOJI_MAP: Record<LogEventType, string> = {
+export const EMOJI_MAP: Record<LogEventType, string> = {
   medDose: '\u{1F48A}',
   vitals: '\u{1F4CA}',
   mood: '\u{1F60A}',
@@ -40,7 +40,7 @@ const EMOJI_MAP: Record<LogEventType, string> = {
   appointmentComplete: '\u{1F4C5}',
 };
 
-const LABEL_MAP: Record<LogEventType, string> = {
+export const LABEL_MAP: Record<LogEventType, string> = {
   medDose: 'Medication',
   vitals: 'Vitals',
   mood: 'Mood',
@@ -53,7 +53,7 @@ const LABEL_MAP: Record<LogEventType, string> = {
   appointmentComplete: 'Appointment',
 };
 
-const ROUTE_MAP: Record<LogEventType, string> = {
+export const ROUTE_MAP: Record<LogEventType, string> = {
   medDose: '/medications',
   vitals: '/log-vitals',
   mood: '/log-mood',
@@ -66,7 +66,7 @@ const ROUTE_MAP: Record<LogEventType, string> = {
   appointmentComplete: '/appointments',
 };
 
-const MOOD_LABELS: Record<number, string> = {
+export const MOOD_LABELS: Record<number, string> = {
   1: 'Struggling',
   2: 'Difficult',
   3: 'Managing',
@@ -78,7 +78,7 @@ const MOOD_LABELS: Record<number, string> = {
 // DETAIL EXTRACTION
 // ============================================================================
 
-function extractDetail(event: LogEvent): string {
+export function extractDetail(event: LogEvent): string {
   switch (event.type) {
     case 'medDose': {
       const e = event as MedDoseEvent;
@@ -154,7 +154,7 @@ function getDateString(daysAgo: number): string {
   return d.toISOString().split('T')[0];
 }
 
-function mapEventToEntry(event: LogEvent, dateGroup: 'Today' | 'Yesterday'): RecentEntry {
+export function mapEventToEntry(event: LogEvent, dateGroup: 'Today' | 'Yesterday'): RecentEntry {
   return {
     id: event.id,
     type: event.type,
