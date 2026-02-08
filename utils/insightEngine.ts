@@ -219,7 +219,7 @@ export async function analyzeBloodPressureTrends(): Promise<InsightData | null> 
           label: 'Log New Reading',
           icon: '📊',
           type: 'navigate',
-          destination: '/(tabs)/record',
+          destination: '/(tabs)/journal',
         },
         {
           id: 'prepare-visit',
@@ -382,7 +382,7 @@ export async function analyzeSleepMoodCorrelation(): Promise<InsightData | null>
           label: 'Log Sleep Tonight',
           icon: '📝',
           type: 'navigate',
-          destination: '/(tabs)/record',
+          destination: '/(tabs)/journal',
         },
       ],
       timestamp: new Date(),
@@ -443,7 +443,7 @@ export async function analyzeHydration(): Promise<InsightData | null> {
           label: 'Log Water Now',
           icon: '💧',
           type: 'navigate',
-          destination: '/(tabs)/record',
+          destination: '/(tabs)/journal',
         },
         {
           id: 'set-reminder',

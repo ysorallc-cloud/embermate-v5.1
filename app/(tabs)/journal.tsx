@@ -1,5 +1,5 @@
 // ============================================================================
-// RECORD PAGE - Fast, Personalized Care Logging
+// JOURNAL PAGE - Fast, Personalized Care Logging
 // Entry points to log screens. Optimized for speed and muscle memory.
 // Prioritizes quick actions and frequently-used categories.
 // ============================================================================
@@ -108,7 +108,7 @@ function getTimeAgo(date: Date): string {
 // MAIN COMPONENT
 // ============================================================================
 
-export default function RecordTab() {
+export default function JournalTab() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [loading, setLoading] = useState(true);
@@ -152,7 +152,7 @@ export default function RecordTab() {
       // Load last action for status bar
       await loadLastAction();
     } catch (error) {
-      console.error('Error loading Record data:', error);
+      console.error('Error loading Journal data:', error);
     } finally {
       setLoading(false);
     }
@@ -284,8 +284,8 @@ export default function RecordTab() {
         showsVerticalScrollIndicator={false}
       >
         <ScreenHeader
-          title="Record"
-          subtitle={MICROCOPY.RECORD_SUBTITLE}
+          title="Journal"
+          subtitle={MICROCOPY.JOURNAL_SUBTITLE}
           rightAction={
             <TouchableOpacity
               onPress={() => router.push('/care-plan' as any)}

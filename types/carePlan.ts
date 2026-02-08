@@ -170,7 +170,7 @@ export interface DailyCareInstance {
 
 export type LogOutcome = 'taken' | 'completed' | 'skipped' | 'partial' | 'missed';
 
-export type LogSource = 'record' | 'now' | 'notification' | 'widget' | 'auto';
+export type LogSource = 'record' | 'journal' | 'now' | 'notification' | 'widget' | 'auto';
 
 export interface LogEntry {
   id: string;
@@ -240,6 +240,9 @@ export interface NutritionLogData {
   type: 'nutrition';
   mealType: string;
   description?: string;
+  appetite?: 'good' | 'fair' | 'poor' | 'refused';
+  amountConsumed?: 'all' | 'most' | 'half' | 'little' | 'none';
+  assistanceLevel?: 'independent' | 'verbal' | 'partial' | 'full';
 }
 
 export interface HydrationLogData {

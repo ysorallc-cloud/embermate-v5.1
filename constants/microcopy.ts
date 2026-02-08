@@ -6,7 +6,7 @@
 export const MICROCOPY = {
   // Page subtitles
   NOW_SUBTITLE: 'What needs attention today',
-  RECORD_SUBTITLE: 'What did you come here to log?',
+  JOURNAL_SUBTITLE: 'What did you come here to log?',
   UNDERSTAND_SUBTITLE: 'What your data suggests',
   SUPPORT_SUBTITLE: "Who's with me, and how do I reach them",
 
@@ -98,7 +98,7 @@ export const MICROCOPY = {
   PRIVACY_CONTROL: 'Each person sees only what you allow. You control all access.',
 
   // Navigation links
-  OPEN_FULL_RECORD: 'Open Full Record',
+  OPEN_FULL_JOURNAL: 'Open Full Journal',
   MANAGE_TEAM: 'Manage team',
 };
 

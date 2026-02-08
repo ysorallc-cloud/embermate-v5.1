@@ -304,7 +304,7 @@ describe('Now → Record Flow Integration', () => {
       // No "All scheduled items logged" banner (removed in recent update)
       // No green checkmarks or completion styling on cards
       // Cards are always: icon + name + chevron, regardless of completion state
-      // This is verified by the absence of useCareTasks in record.tsx
+      // This is verified by the absence of useCareTasks in journal.tsx
     });
   });
 

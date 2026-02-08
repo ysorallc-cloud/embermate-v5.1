@@ -4,7 +4,7 @@
 // ============================================================================
 // Care Plan = configuration of what to track (NOT a daily checklist)
 // Now = reflection of plan status and what's due (status view)
-// Record = logging actions (input)
+// Journal = history review & handoff
 // Understand = insights, trends, reports (analysis)
 // ============================================================================
 

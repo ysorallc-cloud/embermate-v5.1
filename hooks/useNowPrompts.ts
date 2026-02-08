@@ -92,7 +92,7 @@ export function useNowPrompts(todayStats: TodayStats, dailyTracking: any) {
   const handleShowMeWhatMatters = async () => {
     await completeOnboarding();
     setShowOnboarding(false);
-    router.push('/(tabs)/record');
+    router.push('/(tabs)/journal');
   };
 
   const handleExploreOnMyOwn = async () => {

@@ -28,7 +28,8 @@ export type LogEventType =
 // Source tab where the event was logged from
 export type LogEventSource =
   | 'now'        // From Now tab schedule
-  | 'record'     // From Record tab quick log
+  | 'record'     // From Record tab quick log (legacy)
+  | 'journal'    // From Journal tab quick log
   | 'understand' // From Understand tab (medication management, etc.)
   | 'careplan'   // From CarePlan panel
   | 'widget'     // From iOS widget (future)
@@ -98,6 +99,9 @@ export interface MealEvent extends BaseLogEvent {
   type: 'meal';
   mealType: string;  // Breakfast, Lunch, Dinner, Snack
   description?: string;
+  appetite?: 'good' | 'fair' | 'poor' | 'refused';
+  amountConsumed?: 'all' | 'most' | 'half' | 'little' | 'none';
+  assistanceLevel?: 'independent' | 'verbal' | 'partial' | 'full';
 }
 
 export interface HydrationEvent extends BaseLogEvent {
@@ -356,6 +360,9 @@ export async function logMeal(
   mealType: string,
   options?: {
     description?: string;
+    appetite?: 'good' | 'fair' | 'poor' | 'refused';
+    amountConsumed?: 'all' | 'most' | 'half' | 'little' | 'none';
+    assistanceLevel?: 'independent' | 'verbal' | 'partial' | 'full';
     carePlanTaskId?: string;
     routineId?: string;
     audit?: LogEventAudit;
@@ -366,6 +373,9 @@ export async function logMeal(
     timestamp: new Date().toISOString(),
     mealType,
     description: options?.description,
+    appetite: options?.appetite,
+    amountConsumed: options?.amountConsumed,
+    assistanceLevel: options?.assistanceLevel,
     carePlanTaskId: options?.carePlanTaskId,
     routineId: options?.routineId,
     audit: options?.audit,

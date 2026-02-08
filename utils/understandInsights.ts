@@ -911,7 +911,7 @@ const VALID_ROUTES = new Set([
   '/hub/reports',
   '/trends',
   '/(tabs)/now',
-  '/(tabs)/record',
+  '/(tabs)/journal',
   '/(tabs)/understand',
   '/care-plan',
   '/notification-settings',

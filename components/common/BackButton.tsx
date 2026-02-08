@@ -65,7 +65,7 @@ export interface BackButtonProps {
  */
 const ROOT_ROUTES = new Set([
   '/(tabs)/now',
-  '/(tabs)/record',
+  '/(tabs)/journal',
   '/(tabs)/understand',
   '/(tabs)/family',
   '/(tabs)/support',

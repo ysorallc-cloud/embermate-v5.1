@@ -1,5 +1,5 @@
 // ============================================================================
-// TAB LAYOUT - 4 Tabs (Now, Record, Understand, Support)
+// TAB LAYOUT - 4 Tabs (Now, Journal, Understand, Support)
 // V4 with renamed navigation for clarity
 // ============================================================================
 
@@ -79,12 +79,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="record"
+        name="journal"
         options={{
-          title: 'Record',
-          tabBarIcon: ({ focused }) => <TabIcon icon="✏️" focused={focused} />,
-          tabBarAccessibilityLabel: 'Record tab. Record medications, vitals, and activities',
-          tabBarButtonTestID: 'tab-record',
+          title: 'Journal',
+          tabBarIcon: ({ focused }) => <TabIcon icon="📖" focused={focused} />,
+          tabBarAccessibilityLabel: 'Journal tab. Review care history and daily summary',
+          tabBarButtonTestID: 'tab-journal',
         }}
       />
       <Tabs.Screen
