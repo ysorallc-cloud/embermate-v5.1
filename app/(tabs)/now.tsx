@@ -162,6 +162,10 @@ export default function NowScreen() {
         vitals: getTypeStats('vitals'),
         mood: getTypeStats('mood'),
         meals: getTypeStats('nutrition'),
+        water: getTypeStats('hydration'),
+        sleep: getTypeStats('sleep'),
+        symptoms: getTypeStats('symptoms'),
+        activity: getTypeStats('activity'),
       };
 
       const hasAnyInstanceData = stats.meds.total > 0 || stats.vitals.total > 0 ||

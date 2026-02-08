@@ -2,16 +2,58 @@
 // PROGRESS RINGS - Care Plan Progress Dashboard (View-Only)
 // Provides fast reassurance: "Are we generally okay?"
 // Pure visual — no tap interaction
+// Paginated carousel when >4 items enabled
 // ============================================================================
 
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  LayoutChangeEvent,
+  TouchableOpacity,
+} from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { Colors } from '../../theme/theme-tokens';
 import type { StatData, TodayStats } from '../../utils/nowHelpers';
 import { getUrgencyStatus, getCategoryUrgencyStatus, type UrgencyStatus } from '../../utils/nowUrgency';
 import type { UrgencyTier, UrgencyTone } from '../../utils/urgency';
 import type { BucketType } from '../../types/carePlanConfig';
+
+// ============================================================================
+// BUCKET → RING MAPPING
+// ============================================================================
+
+interface RingItem {
+  bucket: BucketType;
+  icon: string;
+  label: string;
+  statKey: keyof TodayStats;
+  itemType: string; // care task itemType for urgency lookup
+}
+
+const BUCKET_RING_MAP: Record<string, Omit<RingItem, 'bucket'>> = {
+  meds:      { icon: '💊', label: 'Meds',     statKey: 'meds',     itemType: 'medication' },
+  vitals:    { icon: '📊', label: 'Vitals',   statKey: 'vitals',   itemType: 'vitals' },
+  mood:      { icon: '😊', label: 'Mood',     statKey: 'mood',     itemType: 'mood' },
+  meals:     { icon: '🍽️', label: 'Meals',    statKey: 'meals',    itemType: 'nutrition' },
+  water:     { icon: '💧', label: 'Water',    statKey: 'water',    itemType: 'hydration' },
+  sleep:     { icon: '😴', label: 'Sleep',    statKey: 'sleep',    itemType: 'sleep' },
+  symptoms:  { icon: '🩺', label: 'Symptoms', statKey: 'symptoms', itemType: 'symptoms' },
+  activity:  { icon: '🚶', label: 'Activity', statKey: 'activity', itemType: 'activity' },
+};
+
+// Default buckets shown when none are enabled (backwards compat)
+const DEFAULT_BUCKETS: BucketType[] = ['meds', 'vitals', 'mood', 'meals'];
+
+const ITEMS_PER_PAGE = 4;
+
+// ============================================================================
+// PROPS
+// ============================================================================
 
 interface ProgressRingsProps {
   todayStats: TodayStats;
@@ -20,16 +62,59 @@ interface ProgressRingsProps {
   instances: any[];
 }
 
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
 export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }: ProgressRingsProps) {
+  const scrollRef = useRef<ScrollView>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // Build dynamic ring items from enabled buckets
+  const ringItems: RingItem[] = useMemo(() => {
+    const buckets = enabledBuckets.length > 0 ? enabledBuckets : DEFAULT_BUCKETS;
+    return buckets
+      .filter(b => BUCKET_RING_MAP[b]) // skip appointments etc. that have no ring
+      .map(b => ({ bucket: b, ...BUCKET_RING_MAP[b] }));
+  }, [enabledBuckets]);
+
+  const totalPages = Math.ceil(ringItems.length / ITEMS_PER_PAGE);
+  const showCarousel = ringItems.length > ITEMS_PER_PAGE;
+
   // Track how many critical tiles we've rendered (for above-fold cap)
   let criticalTileCount = 0;
 
-  const renderProgressRing = (
-    icon: string,
-    label: string,
-    stat: StatData,
-    itemType?: string,
-  ) => {
+  // Compute if Next Up is critical (shared across all rings)
+  const nextUpIsCritical = useMemo(() => {
+    if (!nextUp) return false;
+    const nextUpUrgency = getUrgencyStatus(nextUp.scheduledTime, false, nextUp.itemType);
+    return nextUpUrgency.tier === 'critical';
+  }, [nextUp]);
+
+  const handleLayout = useCallback((e: LayoutChangeEvent) => {
+    setContainerWidth(e.nativeEvent.layout.width);
+  }, []);
+
+  const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (containerWidth === 0) return;
+    const page = Math.round(e.nativeEvent.contentOffset.x / containerWidth);
+    setCurrentPage(page);
+  }, [containerWidth]);
+
+  const goToPage = useCallback((page: number) => {
+    if (scrollRef.current && containerWidth > 0) {
+      scrollRef.current.scrollTo({ x: page * containerWidth, animated: true });
+      setCurrentPage(page);
+    }
+  }, [containerWidth]);
+
+  // ============================================================================
+  // RENDER SINGLE RING
+  // ============================================================================
+
+  const renderProgressRing = (item: RingItem) => {
+    const stat: StatData = todayStats[item.statKey] ?? { completed: 0, total: 0 };
     const percent = getProgressPercent(stat.completed, stat.total);
     const status = getProgressStatus(stat.completed, stat.total);
     const radius = 24;
@@ -37,39 +122,29 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }:
     const circumference = 2 * Math.PI * radius;
     const dashoffset = circumference * (1 - percent / 100);
 
-    // Compute if Next Up is critical (for above-fold constraint)
-    let nextUpIsCritical = false;
-    if (nextUp) {
-      const nextUpUrgency = getUrgencyStatus(nextUp.scheduledTime, false, nextUp.itemType);
-      nextUpIsCritical = nextUpUrgency.tier === 'critical';
-    }
-
     // Get urgency status using Calm Urgency system with above-fold constraint
-    const urgencyResult = itemType
-      ? getCategoryUrgencyStatus(instances, itemType, stat, {
-          hasCriticalNextUp: nextUpIsCritical,
-          criticalTileCount,
-        })
-      : { status: 'NOT_APPLICABLE' as UrgencyStatus, tier: 'info' as UrgencyTier, tone: 'neutral' as UrgencyTone, label: '', isCritical: false };
+    const urgencyResult = getCategoryUrgencyStatus(instances, item.itemType, stat, {
+      hasCriticalNextUp: nextUpIsCritical,
+      criticalTileCount,
+    });
 
     // Track critical tiles for above-fold constraint
     if (urgencyResult.isCritical) {
       criticalTileCount++;
     }
 
-    // Determine stroke color — always visible to reflect progress
+    // Determine stroke color
     const getStrokeColor = () => {
       if (status === 'complete') return Colors.green;
-      if (urgencyResult.tone === 'danger') return Colors.toneDanger;
-      if (urgencyResult.tone === 'warn') return Colors.toneWarn;
-      if (status === 'partial') return '#3B82F6';          // blue for in-progress
-      if (status === 'missing') return 'rgba(255, 255, 255, 0.25)'; // dim but visible
+      if (urgencyResult.tone === 'danger') return '#EF4444';
+      if (urgencyResult.tone === 'warn') return '#F59E0B';
+      if (status === 'partial') return '#3B82F6';
       return 'rgba(255, 255, 255, 0.25)';
     };
 
     const strokeColor = getStrokeColor();
 
-    // Determine display text based on status and Calm Urgency tier
+    // Determine display text
     let statText = '';
     let statusLabel = '';
     let statusStyle = `stat_${status}` as keyof typeof styles;
@@ -120,7 +195,7 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }:
 
     return (
       <View
-        key={label}
+        key={item.bucket}
         style={[
           styles.checkinItem,
           status === 'inactive' && styles.checkinItemInactive,
@@ -128,7 +203,7 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }:
         ]}
         accessible={true}
         accessibilityRole="text"
-        accessibilityLabel={`${label}. ${statText} ${statusLabel}`}
+        accessibilityLabel={`${item.label}. ${statText} ${statusLabel}`}
       >
         <View style={[styles.ringContainer, { width: svgSize, height: svgSize }]}>
           <Svg width={svgSize} height={svgSize} style={styles.progressRing}>
@@ -156,9 +231,9 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }:
               />
             )}
           </Svg>
-          <Text style={styles.ringIcon}>{icon}</Text>
+          <Text style={styles.ringIcon}>{item.icon}</Text>
         </View>
-        <Text style={styles.checkinLabel}>{label}</Text>
+        <Text style={styles.checkinLabel}>{item.label}</Text>
         <Text style={[styles.checkinStat, styles[statusStyle] || styles.stat_missing]}>
           {statText}
         </Text>
@@ -169,24 +244,92 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }:
     );
   };
 
+  // ============================================================================
+  // RENDER PAGE
+  // ============================================================================
+
+  const renderPage = (pageIndex: number) => {
+    const start = pageIndex * ITEMS_PER_PAGE;
+    const pageItems = ringItems.slice(start, start + ITEMS_PER_PAGE);
+
+    // Pad with empty flex spacers so items keep consistent width
+    const empties = ITEMS_PER_PAGE - pageItems.length;
+
+    return (
+      <View
+        key={pageIndex}
+        style={[styles.progressGrid, containerWidth > 0 && { width: containerWidth }]}
+      >
+        {pageItems.map(item => renderProgressRing(item))}
+        {empties > 0 && Array.from({ length: empties }).map((_, i) => (
+          <View key={`empty-${i}`} style={styles.checkinItemEmpty} />
+        ))}
+      </View>
+    );
+  };
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+
+  if (!showCarousel) {
+    // Simple layout — no carousel needed
+    return (
+      <View style={styles.progressSection}>
+        <Text style={styles.sectionTitle}>CARE PLAN PROGRESS</Text>
+        <View style={styles.progressGrid}>
+          {ringItems.map(item => renderProgressRing(item))}
+        </View>
+      </View>
+    );
+  }
+
+  // Carousel layout
   return (
     <View style={styles.progressSection}>
       <Text style={styles.sectionTitle}>CARE PLAN PROGRESS</Text>
-      <View style={styles.progressGrid}>
-        {(enabledBuckets.length === 0 || enabledBuckets.includes('meds' as BucketType)) &&
-          renderProgressRing('\uD83D\uDC8A', 'Meds', todayStats.meds, 'medication')}
-        {(enabledBuckets.length === 0 || enabledBuckets.includes('vitals' as BucketType)) &&
-          renderProgressRing('\uD83D\uDCCA', 'Vitals', todayStats.vitals, 'vitals')}
-        {(enabledBuckets.length === 0 || enabledBuckets.includes('mood' as BucketType)) &&
-          renderProgressRing('\uD83D\uDE0A', 'Mood', todayStats.mood, 'mood')}
-        {(enabledBuckets.length === 0 || enabledBuckets.includes('meals' as BucketType)) &&
-          renderProgressRing('\uD83C\uDF7D\uFE0F', 'Meals', todayStats.meals, 'nutrition')}
+      <View onLayout={handleLayout}>
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={handleScroll}
+          scrollEventThrottle={16}
+          decelerationRate="fast"
+        >
+          {Array.from({ length: totalPages }).map((_, i) => renderPage(i))}
+        </ScrollView>
+      </View>
+
+      {/* Dot Indicators */}
+      <View style={styles.dotsContainer}>
+        {Array.from({ length: totalPages }).map((_, i) => (
+          <TouchableOpacity
+            key={i}
+            onPress={() => goToPage(i)}
+            hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`Page ${i + 1} of ${totalPages}`}
+          >
+            <View
+              style={[
+                styles.dot,
+                i === currentPage && styles.dotActive,
+              ]}
+            />
+          </TouchableOpacity>
+        ))}
       </View>
     </View>
   );
 }
 
-// Helper functions
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
 function getProgressPercent(completed: number, total: number) {
   return total > 0 ? (completed / total) * 100 : 0;
 }
@@ -197,6 +340,10 @@ function getProgressStatus(completed: number, total: number): 'complete' | 'part
   if (completed > 0) return 'partial';
   return 'missing';
 }
+
+// ============================================================================
+// STYLES
+// ============================================================================
 
 const styles = StyleSheet.create({
   progressSection: {
@@ -223,6 +370,10 @@ const styles = StyleSheet.create({
     padding: 12,
     paddingHorizontal: 6,
     alignItems: 'center',
+  },
+  checkinItemEmpty: {
+    flex: 1,
+    // Invisible spacer to maintain 4-column layout on partial last page
   },
   checkinItemInactive: {
     opacity: 0.6,
@@ -285,5 +436,26 @@ const styles = StyleSheet.create({
   },
   stat_later: {
     color: 'rgba(255, 255, 255, 0.5)',
+  },
+
+  // Carousel dots
+  dotsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  dotActive: {
+    backgroundColor: Colors.accent,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
 });

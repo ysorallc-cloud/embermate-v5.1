@@ -25,6 +25,10 @@ export interface TodayStats {
   vitals: StatData;
   mood: StatData;
   meals: StatData;
+  water?: StatData;
+  sleep?: StatData;
+  symptoms?: StatData;
+  activity?: StatData;
 }
 
 export interface AIInsight {
