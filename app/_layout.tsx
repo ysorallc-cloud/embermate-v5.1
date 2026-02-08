@@ -14,6 +14,7 @@ import { initializeSampleData } from '../utils/sampleDataGenerator';
 import { useNotificationHandler } from '../utils/useNotificationHandler';
 import { ensureDailySnapshot, pruneOldOverrides } from '../utils/carePlanStorage';
 import { runMigrations } from '../services/migrationService';
+import { loadCustomThresholds } from '../utils/vitalThresholds';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 function WebContainer({ children }: { children: React.ReactNode }) {
@@ -69,6 +70,8 @@ export default function RootLayout() {
     ensureDailySnapshot();
     // Clean up old CarePlan overrides
     pruneOldOverrides();
+    // Load custom vital thresholds into cache
+    loadCustomThresholds();
 
     // Cleanup timer on unmount
     return () => {
@@ -145,6 +148,7 @@ export default function RootLayout() {
           <Stack.Screen name="care-plan-settings" />
           <Stack.Screen name="care-plan" />
           <Stack.Screen name="log-medication-plan-item" />
+          <Stack.Screen name="vital-threshold-settings" />
         </Stack>
       </WebContainer>
     </ErrorBoundary>

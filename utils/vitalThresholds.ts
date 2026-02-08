@@ -1,5 +1,9 @@
 // utils/vitalThresholds.ts
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const CUSTOM_THRESHOLDS_KEY = '@embermate_custom_vital_thresholds';
+
 export const VITAL_THRESHOLDS = {
   glucose: {
     low: 70,
@@ -53,8 +57,54 @@ export const VITAL_THRESHOLDS = {
 
 export type VitalType = keyof typeof VITAL_THRESHOLDS;
 
+// Cache for custom thresholds to avoid repeated AsyncStorage reads
+let cachedCustomThresholds: Partial<Record<VitalType, { low: number; high: number; criticalLow: number; criticalHigh: number }>> | null = null;
+let cacheLoaded = false;
+
+/** Load custom thresholds from storage into cache */
+export const loadCustomThresholds = async () => {
+  try {
+    const stored = await AsyncStorage.getItem(CUSTOM_THRESHOLDS_KEY);
+    if (stored) {
+      cachedCustomThresholds = JSON.parse(stored);
+    } else {
+      cachedCustomThresholds = null;
+    }
+    cacheLoaded = true;
+  } catch (error) {
+    console.error('Error loading custom thresholds:', error);
+    cachedCustomThresholds = null;
+    cacheLoaded = true;
+  }
+};
+
+/** Invalidate the cache so next getEffectiveThreshold re-reads storage */
+export const invalidateThresholdCache = () => {
+  cacheLoaded = false;
+  cachedCustomThresholds = null;
+};
+
+/** Get the effective threshold for a vital type (custom if set, otherwise default) */
+const getEffectiveThreshold = (type: VitalType) => {
+  const defaults = VITAL_THRESHOLDS[type];
+  if (!cacheLoaded || !cachedCustomThresholds) {
+    return defaults;
+  }
+  const custom = cachedCustomThresholds[type];
+  if (!custom) {
+    return defaults;
+  }
+  return {
+    ...defaults,
+    low: custom.low,
+    high: custom.high,
+    criticalLow: custom.criticalLow,
+    criticalHigh: custom.criticalHigh,
+  };
+};
+
 export const getVitalStatus = (type: VitalType, value: number) => {
-  const threshold = VITAL_THRESHOLDS[type];
+  const threshold = getEffectiveThreshold(type);
 
   if (value <= threshold.criticalLow || value >= threshold.criticalHigh) {
     return { status: 'critical', label: value < threshold.low ? '↓ Critical' : '↑ Critical', color: '#EF4444' };
@@ -69,7 +119,7 @@ export const getVitalStatus = (type: VitalType, value: number) => {
 };
 
 export const generateVitalAlert = (type: VitalType, value: number): string | null => {
-  const threshold = VITAL_THRESHOLDS[type];
+  const threshold = getEffectiveThreshold(type);
   const status = getVitalStatus(type, value);
 
   if (status.status === 'critical') {

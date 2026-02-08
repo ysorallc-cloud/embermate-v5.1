@@ -338,6 +338,13 @@ export default function SettingsScreen() {
           subtitle: 'Quick dial contacts',
           onPress: () => router.push('/emergency'),
         },
+        {
+          id: 'vital-thresholds',
+          icon: '📊',
+          title: 'Vital Sign Ranges',
+          subtitle: 'Custom alert thresholds',
+          onPress: () => router.push('/vital-threshold-settings' as any),
+        },
       ],
     },
     {
