@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { RecentEntriesFeed } from '../../components/journal/RecentEntriesFeed';
+import { HandoffCard } from '../../components/journal/HandoffCard';
 import { Colors } from '../../theme/theme-tokens';
 import { MICROCOPY } from '../../constants/microcopy';
 import { useRecentEntries } from '../../hooks/useRecentEntries';
@@ -74,6 +75,11 @@ export default function JournalTab() {
             </TouchableOpacity>
           }
         />
+
+        {/* ============================================================ */}
+        {/* TODAY'S SUMMARY HANDOFF CARD */}
+        {/* ============================================================ */}
+        <HandoffCard />
 
         {/* ============================================================ */}
         {/* RECENT ENTRIES FEED */}
