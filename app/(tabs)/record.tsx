@@ -18,14 +18,12 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { Colors } from '../../theme/theme-tokens';
 import { MICROCOPY } from '../../constants/microcopy';
 import { useDataListener } from '../../lib/events';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
-import { useCareTasks } from '../../hooks/useCareTasks';
-import { BucketType, BUCKET_META } from '../../types/carePlanConfig';
-import { CarePlanTask } from '../../types/carePlanTask';
-import { getTodayVitalsLog, getTodayMealsLog, getTodayWaterLog } from '../../utils/centralStorage';
+import { BucketType } from '../../types/carePlanConfig';
+import { getTodayVitalsLog } from '../../utils/centralStorage';
 
 // ============================================================================
 // TYPES
@@ -39,14 +37,6 @@ interface LogItemData {
   hint: string;
   route: string;
   priority: number; // lower = higher priority
-}
-
-interface CategoryStatus {
-  logged: number;
-  total: number;
-  lastLogged?: string; // "5 hours ago"
-  percentage?: number; // for water/goals
-  detail?: string; // "Breakfast logged"
 }
 
 // Storage key for usage frequency tracking
@@ -127,14 +117,8 @@ export default function RecordTab() {
   // Care Plan Config
   const { enabledBuckets, loading: configLoading } = useCarePlanConfig();
 
-  // useCareTasks - Single source of truth for task stats
-  const { state: careTasksState } = useCareTasks();
-
   // Usage frequency for personalized ordering
   const [usageFrequency, setUsageFrequency] = useState<Record<string, number>>({});
-
-  // Category status for context
-  const [categoryStatus, setCategoryStatus] = useState<Record<string, CategoryStatus>>({});
 
   // Last action bar
   const [lastAction, setLastAction] = useState<{ label: string; timeAgo: string } | null>(null);
@@ -165,8 +149,8 @@ export default function RecordTab() {
       const frequency = await getUsageFrequency();
       setUsageFrequency(frequency);
 
-      // Load category status
-      await loadCategoryStatus();
+      // Load last action for status bar
+      await loadLastAction();
     } catch (error) {
       console.error('Error loading Record data:', error);
     } finally {
@@ -174,63 +158,17 @@ export default function RecordTab() {
     }
   };
 
-  const loadCategoryStatus = async () => {
-    const status: Record<string, CategoryStatus> = {};
-
+  const loadLastAction = async () => {
     try {
-      // Vitals status
       const vitals = await getTodayVitalsLog();
-      if (vitals) {
-        let logged = 0;
-        if (vitals.systolic) logged++;
-        if (vitals.heartRate) logged++;
-        if (vitals.temperature) logged++;
-        if (vitals.weight) logged++;
-        status['vitals'] = {
-          logged,
-          total: 4,
-          lastLogged: vitals.timestamp ? getTimeAgo(new Date(vitals.timestamp)) : undefined,
-        };
-      }
-
-      // Water status (default goal of 8 glasses)
-      const water = await getTodayWaterLog();
-      if (water && water.glasses !== undefined) {
-        const dailyGoal = 8; // Default daily water goal
-        status['water'] = {
-          logged: water.glasses,
-          total: dailyGoal,
-          percentage: Math.round((water.glasses / dailyGoal) * 100),
-        };
-      }
-
-      // Meals status
-      const meals = await getTodayMealsLog();
-      if (meals && meals.meals) {
-        const mealTypes = meals.meals.map((m: any) => m.mealType);
-        let detail = '';
-        if (mealTypes.includes('breakfast')) detail = 'Breakfast';
-        if (mealTypes.includes('lunch')) detail = detail ? `${detail}, lunch` : 'Lunch';
-        if (mealTypes.includes('dinner')) detail = detail ? `${detail}, dinner` : 'Dinner';
-        if (detail) detail += ' logged';
-
-        status['meals'] = {
-          logged: meals.meals.length,
-          total: 3,
-          detail: detail || undefined,
-        };
+      if (vitals?.timestamp) {
+        setLastAction({ label: 'Logged Vitals', timeAgo: getTimeAgo(new Date(vitals.timestamp)) });
+        setLastActionDismissed(false);
+      } else {
+        setLastAction(null);
       }
     } catch (error) {
-      console.error('Error loading category status:', error);
-    }
-
-    setCategoryStatus(status);
-
-    // Compute last action from most recent timestamp
-    if (status['vitals']?.lastLogged) {
-      setLastAction({ label: 'Logged Vitals', timeAgo: status['vitals'].lastLogged });
-      setLastActionDismissed(false);
-    } else {
+      console.error('Error loading last action:', error);
       setLastAction(null);
     }
   };
@@ -240,66 +178,11 @@ export default function RecordTab() {
     return enabledBuckets.length > 0 ? enabledBuckets : DEFAULT_BUCKETS;
   }, [enabledBuckets]);
 
-  // Map bucket type to instance itemType for status lookup
-  const bucketToItemType: Record<string, string> = {
-    meds: 'medication',
-    vitals: 'vitals',
-    meals: 'nutrition',
-    mood: 'mood',
-    sleep: 'sleep',
-    water: 'hydration',
-    symptoms: 'symptoms',
-    activity: 'activity',
-    appointments: 'appointment',
-  };
-
-  // Get status for a bucket based on useCareTasks (Single Source of Truth)
-  // Uses CarePlanTask model which has pre-computed isOverdue flag
-  const getBucketStatus = useCallback((bucket: BucketType): 'overdue' | 'pending' | 'complete' | 'none' => {
-    // Prefer useCareTasks as single source of truth
-    if (!careTasksState?.tasks) return 'none';
-
-    const itemType = bucketToItemType[bucket];
-    const bucketTasks = careTasksState.tasks.filter((t: CarePlanTask) => t.type === itemType);
-
-    if (bucketTasks.length === 0) return 'none';
-
-    // isOverdue is pre-computed by taskTransform utility
-    const hasOverdue = bucketTasks.some((t: CarePlanTask) => t.isOverdue);
-    if (hasOverdue) return 'overdue';
-
-    const hasPending = bucketTasks.some((t: CarePlanTask) => t.status === 'pending');
-    if (hasPending) return 'pending';
-
-    const allComplete = bucketTasks.every((t: CarePlanTask) =>
-      t.status === 'completed' || t.status === 'skipped'
-    );
-    if (allComplete) return 'complete';
-
-    return 'none';
-  }, [careTasksState?.tasks]);
-
-  // Get task counts for a bucket from useCareTasks (Single Source of Truth)
-  const getBucketCounts = useCallback((bucket: BucketType): { logged: number; total: number } => {
-    // Prefer useCareTasks as single source of truth
-    if (!careTasksState?.tasks) return { logged: 0, total: 0 };
-
-    const itemType = bucketToItemType[bucket];
-    const bucketTasks = careTasksState.tasks.filter((t: CarePlanTask) => t.type === itemType);
-
-    const total = bucketTasks.length;
-    const logged = bucketTasks.filter((t: CarePlanTask) =>
-      t.status === 'completed' || t.status === 'skipped'
-    ).length;
-
-    return { logged, total };
-  }, [careTasksState?.tasks]);
-
   // ============================================================================
   // SORT BY USAGE FREQUENCY
   // ============================================================================
 
-  const { mainCategories, optionalCategories, allComplete } = useMemo(() => {
+  const { mainCategories, optionalCategories } = useMemo(() => {
     const main: LogItemData[] = [];
     const optional: LogItemData[] = [];
 
@@ -332,14 +215,8 @@ export default function RecordTab() {
       return a.priority - b.priority;
     });
 
-    // Check if all main categories are complete
-    const complete = main.length > 0 && main.every(item => {
-      if (!item.bucket) return true;
-      return getBucketStatus(item.bucket) === 'complete';
-    });
-
-    return { mainCategories: main, optionalCategories: optional, allComplete: complete };
-  }, [activeBuckets, usageFrequency, getBucketStatus]);
+    return { mainCategories: main, optionalCategories: optional };
+  }, [activeBuckets, usageFrequency]);
 
   // ============================================================================
   // RENDER HELPERS
@@ -350,106 +227,33 @@ export default function RecordTab() {
     router.push(item.route as any);
   }, [router]);
 
-  const getStatusInfo = (item: LogItemData): { text: string; isRecent?: boolean } | null => {
-    if (!item.bucket) return null;
-
-    const status = getBucketStatus(item.bucket);
-    const counts = getBucketCounts(item.bucket);
-    const catStatus = categoryStatus[item.bucket];
-
-    // Medication status
-    if (item.bucket === 'meds' && counts.total > 0) {
-      if (status === 'complete') return { text: `✓ All ${counts.total} logged today` };
-      return { text: `${counts.logged} of ${counts.total} logged today` };
-    }
-
-    // Vitals status
-    if (item.bucket === 'vitals') {
-      if (catStatus?.lastLogged) {
-        return { text: `Last logged ${catStatus.lastLogged}`, isRecent: true };
-      }
-      if (counts.total > 0) {
-        return { text: `${counts.logged} of ${counts.total} logged today` };
-      }
-    }
-
-    // Water status
-    if (item.bucket === 'water' && catStatus?.percentage !== undefined) {
-      return { text: `${catStatus.percentage}% of daily goal` };
-    }
-
-    // Meals status
-    if (item.bucket === 'meals') {
-      if (catStatus?.detail) {
-        return { text: catStatus.detail };
-      }
-      if (counts.total > 0) {
-        return { text: `${counts.logged} of ${counts.total} logged today` };
-      }
-    }
-
-    // Generic status based on instances
-    if (counts.total > 0) {
-      if (status === 'complete') return { text: '✓ Done for today' };
-      return { text: `${counts.logged} of ${counts.total} logged` };
-    }
-
-    return null;
-  };
-
   const renderCategoryCard = (item: LogItemData, isOptional: boolean = false) => {
-    const status = item.bucket ? getBucketStatus(item.bucket) : 'none';
-    const isComplete = status === 'complete';
-    const isOverdue = status === 'overdue';
-    const isPending = status === 'pending';
-    const statusInfo = getStatusInfo(item);
+    // Symptoms keeps its subtitle hint
+    const showHint = item.id === 'symptoms';
 
     return (
       <TouchableOpacity
         key={item.id}
         style={[
           styles.categoryCard,
-          isComplete && styles.categoryCardComplete,
-          (isOverdue || isPending) && styles.categoryCardOverdue,
           isOptional && styles.categoryCardOptional,
         ]}
         onPress={() => handleCategoryPress(item)}
         activeOpacity={0.7}
         accessible={true}
         accessibilityRole="button"
-        accessibilityLabel={`${item.label}. ${statusInfo?.text || item.hint}`}
+        accessibilityLabel={`${item.label}. ${item.hint}`}
       >
-        <View style={[
-          styles.categoryIcon,
-          isComplete && styles.categoryIconComplete,
-          (isOverdue || isPending) && styles.categoryIconOverdue,
-        ]}>
-          <Text style={styles.categoryEmoji}>{isComplete ? '✓' : item.emoji}</Text>
+        <View style={styles.categoryIcon}>
+          <Text style={styles.categoryEmoji}>{item.emoji}</Text>
         </View>
         <View style={styles.categoryContent}>
-          <Text style={[
-            styles.categoryLabel,
-            isComplete && styles.categoryLabelComplete,
-          ]}>
-            {item.label}
-          </Text>
-          {statusInfo ? (
-            <Text style={[
-              styles.categoryStatus,
-              isComplete && styles.categoryStatusComplete,
-              (isOverdue || isPending) && styles.categoryStatusOverdue,
-              statusInfo.isRecent && styles.categoryStatusRecent,
-            ]}>
-              {statusInfo.text}
-            </Text>
-          ) : (
+          <Text style={styles.categoryLabel}>{item.label}</Text>
+          {showHint && (
             <Text style={styles.categoryHint}>{item.hint}</Text>
           )}
         </View>
-        <Text style={[
-          styles.categoryChevron,
-          isComplete && styles.categoryChevronComplete,
-        ]}>›</Text>
+        <Text style={styles.categoryChevron}>›</Text>
       </TouchableOpacity>
     );
   };
@@ -507,18 +311,6 @@ export default function RecordTab() {
             >
               <Text style={styles.lastActionDismiss}>✕</Text>
             </TouchableOpacity>
-          </View>
-        )}
-
-        {/* ============================================================ */}
-        {/* MICRO COMPLETION FEEDBACK */}
-        {/* ============================================================ */}
-        {allComplete && (careTasksState?.stats?.total ?? 0) > 0 && (
-          <View style={styles.completionFeedback}>
-            <Text style={styles.completionEmoji}>✓</Text>
-            <Text style={styles.completionText}>
-              All scheduled items logged for today.
-            </Text>
           </View>
         )}
 
@@ -640,29 +432,6 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
   },
 
-  // Completion Feedback
-  completionFeedback: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 20,
-    gap: 10,
-  },
-  completionEmoji: {
-    fontSize: 18,
-    color: '#10B981',
-  },
-  completionText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#10B981',
-  },
-
   // Categories Section
   categoriesSection: {
     marginBottom: 16,
@@ -681,14 +450,6 @@ const styles = StyleSheet.create({
     gap: 12,
     minHeight: 72,
   },
-  categoryCardComplete: {
-    opacity: 0.7,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-  },
-  categoryCardOverdue: {
-    borderColor: 'rgba(245, 158, 11, 0.4)',
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-  },
   categoryCardOptional: {
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderColor: 'rgba(255, 255, 255, 0.08)',
@@ -700,12 +461,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  categoryIconComplete: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-  },
-  categoryIconOverdue: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
   },
   categoryEmoji: {
     fontSize: 24,
@@ -719,35 +474,14 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginBottom: 3,
   },
-  categoryLabelComplete: {
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
   categoryHint: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.5)',
-  },
-  categoryStatus: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontWeight: '500',
-  },
-  categoryStatusComplete: {
-    color: 'rgba(16, 185, 129, 0.9)',
-  },
-  categoryStatusOverdue: {
-    color: '#F59E0B',
-  },
-  categoryStatusRecent: {
-    color: '#14B8A6',
   },
   categoryChevron: {
     fontSize: 18,
     color: 'rgba(255, 255, 255, 0.3)',
   },
-  categoryChevronComplete: {
-    color: 'rgba(255, 255, 255, 0.2)',
-  },
-
   // Optional Section
   optionalSection: {
     marginTop: 8,
