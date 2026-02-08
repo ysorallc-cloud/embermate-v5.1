@@ -20,7 +20,6 @@ import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { MICROCOPY } from '../../constants/microcopy';
-import { getMedications, Medication } from '../../utils/medicationStorage';
 import { useDataListener } from '../../lib/events';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import { useCareTasks } from '../../hooks/useCareTasks';
@@ -40,14 +39,6 @@ interface LogItemData {
   hint: string;
   route: string;
   priority: number; // lower = higher priority
-}
-
-interface QuickAction {
-  id: string;
-  emoji: string;
-  label: string;
-  action: () => void;
-  available: boolean;
 }
 
 interface CategoryStatus {
@@ -139,18 +130,15 @@ export default function RecordTab() {
   // useCareTasks - Single source of truth for task stats
   const { state: careTasksState } = useCareTasks();
 
-  // Medications for quick actions
-  const [medications, setMedications] = useState<Medication[]>([]);
-
   // Usage frequency for personalized ordering
   const [usageFrequency, setUsageFrequency] = useState<Record<string, number>>({});
 
   // Category status for context
   const [categoryStatus, setCategoryStatus] = useState<Record<string, CategoryStatus>>({});
 
-  // Last logged data for quick actions
-  const [lastVitals, setLastVitals] = useState<any>(null);
-  const [lastMedication, setLastMedication] = useState<Medication | null>(null);
+  // Last action bar
+  const [lastAction, setLastAction] = useState<{ label: string; timeAgo: string } | null>(null);
+  const [lastActionDismissed, setLastActionDismissed] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -173,24 +161,9 @@ export default function RecordTab() {
     try {
       setLoading(true);
 
-      // Load medications
-      const allMeds = await getMedications();
-      const activeMeds = allMeds.filter(m => m.active !== false);
-      setMedications(activeMeds);
-
-      // Find last taken medication for quick action
-      const takenMeds = activeMeds.filter(m => m.taken);
-      if (takenMeds.length > 0) {
-        setLastMedication(takenMeds[takenMeds.length - 1]);
-      }
-
       // Load usage frequency
       const frequency = await getUsageFrequency();
       setUsageFrequency(frequency);
-
-      // Load last vitals for quick action
-      const vitals = await getTodayVitalsLog();
-      setLastVitals(vitals);
 
       // Load category status
       await loadCategoryStatus();
@@ -252,6 +225,14 @@ export default function RecordTab() {
     }
 
     setCategoryStatus(status);
+
+    // Compute last action from most recent timestamp
+    if (status['vitals']?.lastLogged) {
+      setLastAction({ label: 'Logged Vitals', timeAgo: status['vitals'].lastLogged });
+      setLastActionDismissed(false);
+    } else {
+      setLastAction(null);
+    }
   };
 
   // Determine which buckets to use (enabled or default)
@@ -315,67 +296,6 @@ export default function RecordTab() {
   }, [careTasksState?.tasks]);
 
   // ============================================================================
-  // QUICK LOG SHORTCUTS
-  // ============================================================================
-
-  const quickActions = useMemo((): QuickAction[] => {
-    const actions: QuickAction[] = [];
-
-    // Last medication quick log
-    if (lastMedication) {
-      actions.push({
-        id: 'last-med',
-        emoji: '💊',
-        label: lastMedication.name.length > 12 ? lastMedication.name.substring(0, 12) + '...' : lastMedication.name,
-        action: () => {
-          recordCategoryUsage('medications');
-          router.push({
-            pathname: '/medication-confirm',
-            params: { medicationId: lastMedication.id },
-          } as any);
-        },
-        available: true,
-      });
-    }
-
-    // Repeat last vitals
-    if (lastVitals && (lastVitals.systolic || lastVitals.heartRate)) {
-      actions.push({
-        id: 'repeat-vitals',
-        emoji: '📊',
-        label: 'Repeat Vitals',
-        action: () => {
-          recordCategoryUsage('vitals');
-          router.push({
-            pathname: '/log-vitals',
-            params: { prefill: 'last' },
-          } as any);
-        },
-        available: true,
-      });
-    }
-
-    // Quick water +8oz
-    if (activeBuckets.includes('water')) {
-      actions.push({
-        id: 'water-quick',
-        emoji: '💧',
-        label: 'Water +8oz',
-        action: () => {
-          recordCategoryUsage('water');
-          router.push({
-            pathname: '/log-water',
-            params: { quickAdd: '1' },
-          } as any);
-        },
-        available: true,
-      });
-    }
-
-    return actions;
-  }, [lastMedication, lastVitals, activeBuckets, router]);
-
-  // ============================================================================
   // SORT BY USAGE FREQUENCY
   // ============================================================================
 
@@ -430,7 +350,7 @@ export default function RecordTab() {
     router.push(item.route as any);
   }, [router]);
 
-  const getStatusText = (item: LogItemData): string | null => {
+  const getStatusInfo = (item: LogItemData): { text: string; isRecent?: boolean } | null => {
     if (!item.bucket) return null;
 
     const status = getBucketStatus(item.bucket);
@@ -439,39 +359,39 @@ export default function RecordTab() {
 
     // Medication status
     if (item.bucket === 'meds' && counts.total > 0) {
-      if (status === 'complete') return `✓ All ${counts.total} logged today`;
-      return `${counts.logged} of ${counts.total} logged today`;
+      if (status === 'complete') return { text: `✓ All ${counts.total} logged today` };
+      return { text: `${counts.logged} of ${counts.total} logged today` };
     }
 
     // Vitals status
     if (item.bucket === 'vitals') {
       if (catStatus?.lastLogged) {
-        return `Last logged ${catStatus.lastLogged}`;
+        return { text: `Last logged ${catStatus.lastLogged}`, isRecent: true };
       }
       if (counts.total > 0) {
-        return `${counts.logged} of ${counts.total} logged today`;
+        return { text: `${counts.logged} of ${counts.total} logged today` };
       }
     }
 
     // Water status
     if (item.bucket === 'water' && catStatus?.percentage !== undefined) {
-      return `${catStatus.percentage}% of daily goal`;
+      return { text: `${catStatus.percentage}% of daily goal` };
     }
 
     // Meals status
     if (item.bucket === 'meals') {
       if (catStatus?.detail) {
-        return catStatus.detail;
+        return { text: catStatus.detail };
       }
       if (counts.total > 0) {
-        return `${counts.logged} of ${counts.total} logged today`;
+        return { text: `${counts.logged} of ${counts.total} logged today` };
       }
     }
 
     // Generic status based on instances
     if (counts.total > 0) {
-      if (status === 'complete') return '✓ Done for today';
-      return `${counts.logged} of ${counts.total} logged`;
+      if (status === 'complete') return { text: '✓ Done for today' };
+      return { text: `${counts.logged} of ${counts.total} logged` };
     }
 
     return null;
@@ -481,7 +401,8 @@ export default function RecordTab() {
     const status = item.bucket ? getBucketStatus(item.bucket) : 'none';
     const isComplete = status === 'complete';
     const isOverdue = status === 'overdue';
-    const statusText = getStatusText(item);
+    const isPending = status === 'pending';
+    const statusInfo = getStatusInfo(item);
 
     return (
       <TouchableOpacity
@@ -489,19 +410,19 @@ export default function RecordTab() {
         style={[
           styles.categoryCard,
           isComplete && styles.categoryCardComplete,
-          isOverdue && styles.categoryCardOverdue,
+          (isOverdue || isPending) && styles.categoryCardOverdue,
           isOptional && styles.categoryCardOptional,
         ]}
         onPress={() => handleCategoryPress(item)}
         activeOpacity={0.7}
         accessible={true}
         accessibilityRole="button"
-        accessibilityLabel={`${item.label}. ${statusText || item.hint}`}
+        accessibilityLabel={`${item.label}. ${statusInfo?.text || item.hint}`}
       >
         <View style={[
           styles.categoryIcon,
           isComplete && styles.categoryIconComplete,
-          isOverdue && styles.categoryIconOverdue,
+          (isOverdue || isPending) && styles.categoryIconOverdue,
         ]}>
           <Text style={styles.categoryEmoji}>{isComplete ? '✓' : item.emoji}</Text>
         </View>
@@ -512,13 +433,14 @@ export default function RecordTab() {
           ]}>
             {item.label}
           </Text>
-          {statusText ? (
+          {statusInfo ? (
             <Text style={[
               styles.categoryStatus,
               isComplete && styles.categoryStatusComplete,
-              isOverdue && styles.categoryStatusOverdue,
+              (isOverdue || isPending) && styles.categoryStatusOverdue,
+              statusInfo.isRecent && styles.categoryStatusRecent,
             ]}>
-              {statusText}
+              {statusInfo.text}
             </Text>
           ) : (
             <Text style={styles.categoryHint}>{item.hint}</Text>
@@ -572,28 +494,19 @@ export default function RecordTab() {
         />
 
         {/* ============================================================ */}
-        {/* QUICK LOG SHORTCUTS - Highest ROI for repeat entries */}
+        {/* LAST ACTION BAR */}
         {/* ============================================================ */}
-        {quickActions.length > 0 && (
-          <View style={styles.quickLogSection}>
-            <Text style={styles.quickLogLabel}>QUICK LOG</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.quickLogScroll}
+        {lastAction && !lastActionDismissed && (
+          <View style={styles.lastActionBar}>
+            <Text style={styles.lastActionText}>
+              Last action: {lastAction.label} {lastAction.timeAgo}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setLastActionDismissed(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              {quickActions.map(action => (
-                <TouchableOpacity
-                  key={action.id}
-                  style={styles.quickLogButton}
-                  onPress={action.action}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.quickLogEmoji}>{action.emoji}</Text>
-                  <Text style={styles.quickLogText} numberOfLines={1}>{action.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+              <Text style={styles.lastActionDismiss}>✕</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -705,41 +618,26 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 
-  // Quick Log Section
-  quickLogSection: {
-    marginBottom: 20,
-  },
-  quickLogLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 10,
-  },
-  quickLogScroll: {
-    gap: 10,
-  },
-  quickLogButton: {
-    backgroundColor: 'rgba(94, 234, 212, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.25)',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+  // Last Action Bar
+  lastActionBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    minWidth: 120,
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 16,
   },
-  quickLogEmoji: {
-    fontSize: 18,
-  },
-  quickLogText: {
+  lastActionText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: Colors.accent,
-    maxWidth: 100,
+    color: 'rgba(255, 255, 255, 0.55)',
+    flex: 1,
+  },
+  lastActionDismiss: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.35)',
+    paddingLeft: 12,
   },
 
   // Completion Feedback
@@ -838,6 +736,9 @@ const styles = StyleSheet.create({
   },
   categoryStatusOverdue: {
     color: '#F59E0B',
+  },
+  categoryStatusRecent: {
+    color: '#14B8A6',
   },
   categoryChevron: {
     fontSize: 18,
