@@ -23,12 +23,14 @@ import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import { useWellnessSettings } from '../../hooks/useWellnessSettings';
 import {
   BucketType,
+  BucketConfig,
   BUCKET_META,
   PRIMARY_BUCKETS,
   SECONDARY_BUCKETS,
   OPTIONAL_BUCKETS,
 } from '../../types/carePlanConfig';
 import { InfoModal, InfoIconButton } from '../../components/common/InfoModal';
+import { CARE_PLAN_TEMPLATES, CarePlanTemplate } from '../../constants/carePlanTemplates';
 
 // ============================================================================
 // BUCKET CARD COMPONENT
@@ -144,6 +146,36 @@ function WellnessCard({ onPress, activeFieldCount }: { onPress: () => void; acti
 }
 
 // ============================================================================
+// TEMPLATE CARD COMPONENT
+// ============================================================================
+
+interface TemplateCardProps {
+  template: CarePlanTemplate;
+  onApply: () => void;
+}
+
+function TemplateCard({ template, onApply }: TemplateCardProps) {
+  const bucketNames = template.enabledBuckets
+    .map(b => BUCKET_META[b].name)
+    .join(', ');
+
+  return (
+    <TouchableOpacity
+      style={styles.templateCard}
+      onPress={onApply}
+      activeOpacity={0.7}
+    >
+      <View style={styles.templateHeader}>
+        <Text style={styles.templateEmoji}>{template.emoji}</Text>
+        <Text style={styles.templateName}>{template.name}</Text>
+      </View>
+      <Text style={styles.templateDescription}>{template.description}</Text>
+      <Text style={styles.templateBuckets}>Enables: {bucketNames}</Text>
+    </TouchableOpacity>
+  );
+}
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -155,6 +187,7 @@ export default function CarePlanHomeScreen() {
     hasCarePlan,
     enabledBuckets,
     toggleBucket,
+    updateBucket,
     getBucketStatus,
     initializeConfig,
   } = useCarePlanConfig();
@@ -221,6 +254,40 @@ export default function CarePlanHomeScreen() {
   const dismissInsight = useCallback((id: string) => {
     setDismissedInsights(prev => [...prev, id]);
   }, []);
+
+  const applyTemplate = useCallback(async (template: CarePlanTemplate) => {
+    // Ensure config exists
+    let currentConfig = config;
+    if (!currentConfig) {
+      currentConfig = await initializeConfig();
+    }
+
+    // Enable each bucket from the template and apply suggested settings
+    for (const bucket of template.enabledBuckets) {
+      const suggestion = template.suggestedSettings[bucket];
+      const updates: Partial<BucketConfig> = { enabled: true };
+
+      if (suggestion) {
+        if (suggestion.priority) updates.priority = suggestion.priority;
+        if (suggestion.timesOfDay) updates.timesOfDay = suggestion.timesOfDay;
+      }
+
+      await updateBucket(bucket, updates);
+
+      // Apply bucket-specific settings via updateConfig
+      if (suggestion) {
+        const bucketSpecific: Record<string, any> = {};
+        if (suggestion.vitalTypes) bucketSpecific.vitalTypes = suggestion.vitalTypes;
+        if (suggestion.frequency) bucketSpecific.frequency = suggestion.frequency;
+        if (suggestion.trackingStyle) bucketSpecific.trackingStyle = suggestion.trackingStyle;
+        if (suggestion.dailyGoalGlasses) bucketSpecific.dailyGoalGlasses = suggestion.dailyGoalGlasses;
+
+        if (Object.keys(bucketSpecific).length > 0) {
+          await updateBucket(bucket, bucketSpecific);
+        }
+      }
+    }
+  }, [config, initializeConfig, updateBucket]);
 
   // Determine which contextual insight to show (rule-based, non-LLM)
   const getContextualInsight = useCallback(() => {
@@ -382,6 +449,23 @@ export default function CarePlanHomeScreen() {
               Your data is saved on your device.
             </Text>
           </View>
+
+          {/* Quick Start Templates — shown when no buckets enabled */}
+          {!hasCarePlan && (
+            <>
+              <Text style={styles.sectionLabel}>QUICK START</Text>
+              <Text style={styles.templateIntro}>
+                Choose a template to get started, then customize as needed.
+              </Text>
+              {CARE_PLAN_TEMPLATES.map(template => (
+                <TemplateCard
+                  key={template.id}
+                  template={template}
+                  onApply={() => applyTemplate(template)}
+                />
+              ))}
+            </>
+          )}
 
           {/* Contextual AI Insight */}
           {contextualInsight && (
@@ -715,6 +799,47 @@ const styles = StyleSheet.create({
   wellnessChevron: {
     fontSize: 22,
     color: Colors.accent,
+  },
+
+  // Templates
+  templateIntro: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: Spacing.lg,
+  },
+  templateCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  templateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  templateEmoji: {
+    fontSize: 22,
+  },
+  templateName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  templateDescription: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: Spacing.sm,
+  },
+  templateBuckets: {
+    fontSize: 12,
+    color: Colors.accent,
+    fontWeight: '500',
   },
 
   // How It Works Card
