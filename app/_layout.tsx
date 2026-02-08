@@ -131,9 +131,9 @@ export default function RootLayout() {
           <Stack.Screen name="photos" />
           <Stack.Screen name="emergency" />
           <Stack.Screen name="vitals" />
-          <Stack.Screen name="vitals-log" />
+          <Stack.Screen name="log-vitals" />
           <Stack.Screen name="symptoms" />
-          <Stack.Screen name="symptoms-log" />
+          <Stack.Screen name="log-symptom" />
           <Stack.Screen name="care-brief" />
           <Stack.Screen name="care-summary-export" />
           <Stack.Screen name="family-sharing" />

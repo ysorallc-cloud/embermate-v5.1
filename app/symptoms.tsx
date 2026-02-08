@@ -2,5 +2,5 @@
 import { Redirect } from 'expo-router';
 
 export default function SymptomsPage() {
-  return <Redirect href="/symptoms-log" />;
+  return <Redirect href="/log-symptom" />;
 }

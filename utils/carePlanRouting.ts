@@ -51,7 +51,7 @@ const ITEM_TYPE_ROUTES: Record<CarePlanItemType, string> = {
   sleep: '/log-sleep',
   hydration: '/log-water',
   appointment: '/appointments',  // Route to canonical Understand appointments screen
-  custom: '/quick-checkin',
+  custom: '/daily-checkin',
 };
 
 /**
@@ -62,7 +62,7 @@ export function routeForCarePlanItem(
   itemType: CarePlanItemType,
   context: Omit<CarePlanNavigationContext, 'source' | 'kind'>
 ): CarePlanRoute {
-  const pathname = ITEM_TYPE_ROUTES[itemType] || '/quick-checkin';
+  const pathname = ITEM_TYPE_ROUTES[itemType] || '/daily-checkin';
 
   // Build params object - convert all values to strings for URL params
   const params: Record<string, string> = {

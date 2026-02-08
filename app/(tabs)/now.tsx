@@ -94,6 +94,24 @@ import { useAppointments } from '../../hooks/useAppointments';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import { getTodayDateString } from '../../services/carePlanGenerator';
 import { BucketType } from '../../types/carePlanConfig';
+
+// Calm Urgency System
+import {
+  calculateItemUrgency,
+  calculateCategoryUrgency,
+  applyAboveFoldConstraint,
+  createAboveFoldState,
+  getDetailedUrgencyLabel,
+  getTimeDeltaString,
+  shouldShowOverdueText,
+  isClinicalCritical,
+  type ItemUrgency,
+  type UrgencyTier,
+  type UrgencyTone,
+  CRITICAL_OVERDUE_MINUTES,
+  UPCOMING_WINDOW_MINUTES,
+} from '../../utils/urgency';
+import type { CarePlanItemType } from '../../types/carePlan';
 import {
   NoMedicationsBanner,
   NoCarePlanBanner,
@@ -222,6 +240,7 @@ interface CareInsight {
 // Answers: "What is the next irreversible decision the caregiver must make?"
 // ============================================================================
 
+// Legacy urgency status (for backward compatibility during transition)
 type UrgencyStatus = 'OVERDUE' | 'DUE_SOON' | 'LATER_TODAY' | 'COMPLETE' | 'NOT_APPLICABLE';
 
 interface UrgencyInfo {
@@ -230,7 +249,10 @@ interface UrgencyInfo {
   proximityLabel?: string;  // "Next in 45 minutes"
   minutesUntil?: number;
   minutesOverdue?: number;
-  urgencyScore?: number;  // Dynamic ranking score
+  // Calm Urgency additions
+  tier?: UrgencyTier;
+  tone?: UrgencyTone;
+  itemUrgency?: ItemUrgency;
 }
 
 // Time window definitions for grouping
@@ -243,193 +265,196 @@ const TIME_WINDOW_HOURS: Record<TimeWindow, { start: number; end: number; label:
   night: { start: 21, end: 5, label: 'Night' },
 };
 
-// Medical dependency mappings (e.g., vitals needed before BP medication)
-const MEDICAL_DEPENDENCIES: Record<string, string[]> = {
-  'blood_pressure_med': ['vitals'],  // BP meds may need vitals first
-  'insulin': ['meals', 'vitals'],     // Insulin timing depends on meals
-  'pain_med': ['mood'],               // Pain assessment helps pain med decisions
-};
-
 // ============================================================================
-// URGENCY SCORING MODEL
-// Score = Time proximity + Medical dependency + Missed history + Risk confidence
+// CALM URGENCY SYSTEM - Task Status Calculation
+// Uses 3-tier model: critical (red), attention (amber), info (neutral)
+// Key principle: Mood and non-clinical items NEVER show "Overdue" or red
 // ============================================================================
-interface UrgencyScoreFactors {
-  timeProximity: number;      // 0-40 points based on how soon
-  medicalDependency: number;  // 0-30 points if blocks other tasks
-  missedHistory: number;      // 0-20 points based on recent misses
-  riskConfidence: number;     // 0-10 points based on clinical importance
-}
 
-function calculateUrgencyScore(
-  instance: any,
-  allInstances: any[],
-  missedCount: number = 0
-): { score: number; factors: UrgencyScoreFactors; isSafetyRelevant: boolean } {
-  const factors: UrgencyScoreFactors = {
-    timeProximity: 0,
-    medicalDependency: 0,
-    missedHistory: 0,
-    riskConfidence: 0,
-  };
-
-  let isSafetyRelevant = false;
-
-  // TIME PROXIMITY (0-40 points)
-  const now = new Date();
-  const scheduled = new Date(instance.scheduledTime);
-  if (!isNaN(scheduled.getTime())) {
-    const diffMinutes = (scheduled.getTime() - now.getTime()) / (1000 * 60);
-
-    if (diffMinutes < -OVERDUE_GRACE_MINUTES) {
-      factors.timeProximity = 40;  // Overdue = max time urgency
-      isSafetyRelevant = true;
-    } else if (diffMinutes <= 0) {
-      factors.timeProximity = 35;  // Due now
-      isSafetyRelevant = true;
-    } else if (diffMinutes <= 30) {
-      factors.timeProximity = 30;  // Within 30 min
-    } else if (diffMinutes <= 60) {
-      factors.timeProximity = 25;  // Within 1 hour
-    } else if (diffMinutes <= 120) {
-      factors.timeProximity = 15;  // Within 2 hours
-    } else {
-      factors.timeProximity = Math.max(0, 10 - Math.floor(diffMinutes / 60));
-    }
-  }
-
-  // MEDICAL DEPENDENCY (0-30 points)
-  // Check if this task is a dependency for upcoming medications
-  if (instance.itemType === 'vitals') {
-    // Vitals may be required before certain medications
-    const upcomingMeds = allInstances.filter(
-      i => i.itemType === 'medication' && i.status === 'pending'
-    );
-    if (upcomingMeds.length > 0) {
-      factors.medicalDependency = 20;
-      isSafetyRelevant = true;
-    }
-  }
-  if (instance.itemType === 'medication') {
-    factors.medicalDependency = 25;  // Medications are high priority
-    isSafetyRelevant = true;
-  }
-
-  // MISSED HISTORY (0-20 points)
-  // Items frequently missed get priority
-  factors.missedHistory = Math.min(20, missedCount * 5);
-  if (missedCount >= 2) {
-    isSafetyRelevant = true;
-  }
-
-  // RISK CONFIDENCE (0-10 points)
-  // Based on item type clinical importance
-  const riskByType: Record<string, number> = {
-    medication: 10,
-    vitals: 8,
-    nutrition: 5,
-    mood: 4,
-    hydration: 3,
-    sleep: 3,
-    activity: 2,
-    custom: 1,
-  };
-  factors.riskConfidence = riskByType[instance.itemType] || 1;
-
-  const score = factors.timeProximity + factors.medicalDependency +
-                factors.missedHistory + factors.riskConfidence;
-
-  return { score, factors, isSafetyRelevant };
-}
-
-// Calculate urgency status for a single task
-function getUrgencyStatus(scheduledTime: string, isCompleted: boolean): UrgencyInfo {
+/**
+ * Calculate urgency status for a single task using Calm Urgency model
+ * @param scheduledTime - ISO timestamp or HH:mm time string
+ * @param isCompleted - Whether the task is already done
+ * @param itemType - Optional: the type of care item for clinical classification
+ */
+function getUrgencyStatus(
+  scheduledTime: string,
+  isCompleted: boolean,
+  itemType?: string
+): UrgencyInfo {
   if (isCompleted) {
-    return { status: 'COMPLETE', label: 'Done' };
+    return {
+      status: 'COMPLETE',
+      label: 'Done',
+      tier: 'info',
+      tone: 'neutral',
+    };
   }
 
   if (!scheduledTime) {
-    return { status: 'NOT_APPLICABLE', label: '' };  // No text, just indicator
+    return {
+      status: 'NOT_APPLICABLE',
+      label: '',
+      tier: 'info',
+      tone: 'neutral',
+    };
   }
 
   const now = new Date();
   const scheduled = new Date(scheduledTime);
 
   if (isNaN(scheduled.getTime())) {
-    return { status: 'NOT_APPLICABLE', label: '' };
+    return {
+      status: 'NOT_APPLICABLE',
+      label: '',
+      tier: 'info',
+      tone: 'neutral',
+    };
   }
+
+  // Use new Calm Urgency system
+  const category = (itemType || 'custom') as CarePlanItemType;
+  const itemUrgency = calculateItemUrgency({
+    category,
+    dueAt: scheduled,
+    now,
+    isCompleted: false,
+  });
 
   const diffMs = scheduled.getTime() - now.getTime();
   const diffMinutes = Math.round(diffMs / (1000 * 60));
 
-  // OVERDUE: currentTime > scheduledTime (past grace period)
-  if (diffMinutes < -OVERDUE_GRACE_MINUTES) {
-    const minutesOverdue = Math.abs(diffMinutes);
-    const hours = Math.floor(minutesOverdue / 60);
-    const mins = minutesOverdue % 60;
-    return {
-      status: 'OVERDUE',
-      label: 'Overdue',
-      proximityLabel: hours > 0 ? `${hours}h ${mins}m overdue` : `${mins}m overdue`,
-      minutesOverdue
-    };
+  // Map Calm Urgency tier to legacy UrgencyStatus
+  // NO time deltas in primary labels - keeps UI calm
+  let legacyStatus: UrgencyStatus;
+  let proximityLabel: string | undefined;
+
+  if (itemUrgency.tier === 'critical') {
+    legacyStatus = 'OVERDUE';
+    // Only critical items show time delta
+    const hours = Math.floor(itemUrgency.minutesLate / 60);
+    const mins = itemUrgency.minutesLate % 60;
+    proximityLabel = hours > 0 ? `${hours}h ${mins}m late` : `${mins}m late`;
+  } else if (itemUrgency.tier === 'attention') {
+    if (itemUrgency.isOverdue) {
+      // Non-critical overdue: NO time delta, just friendly label
+      legacyStatus = 'OVERDUE';
+      proximityLabel = undefined; // Don't show time in header for non-critical
+    } else {
+      legacyStatus = 'DUE_SOON';
+      const minutesUntil = Math.abs(diffMinutes);
+      // For upcoming items, show proximity without time pressure
+      proximityLabel = minutesUntil <= 0
+        ? 'Ready to log'
+        : minutesUntil < 60
+          ? `Coming up in ${minutesUntil} min`
+          : `Coming up in ${Math.round(minutesUntil / 60)}h`;
+    }
+  } else {
+    legacyStatus = 'LATER_TODAY';
+    const hours = Math.floor(Math.abs(diffMinutes) / 60);
+    proximityLabel = hours > 0 ? `In about ${hours}h` : 'Later today';
   }
 
-  // DUE_SOON: within next 2 hours (120 minutes)
-  if (diffMinutes <= 120) {
-    const proximityLabel = diffMinutes <= 0
-      ? 'Due now'
-      : diffMinutes < 60
-        ? `Next in ${diffMinutes} min`
-        : `Next in ${Math.round(diffMinutes / 60)}h`;
-    return {
-      status: 'DUE_SOON',
-      label: diffMinutes <= 0 ? 'Due now' : 'Coming up',
-      proximityLabel,
-      minutesUntil: Math.max(0, diffMinutes)
-    };
-  }
-
-  // LATER_TODAY: more than 2 hours away
-  const hours = Math.floor(diffMinutes / 60);
   return {
-    status: 'LATER_TODAY',
-    label: '',  // No text for later items
-    proximityLabel: `In ${hours}h`,
-    minutesUntil: diffMinutes
+    status: legacyStatus,
+    label: itemUrgency.label,
+    proximityLabel,
+    minutesUntil: diffMinutes > 0 ? diffMinutes : undefined,
+    minutesOverdue: itemUrgency.minutesLate || undefined,
+    tier: itemUrgency.tier,
+    tone: itemUrgency.tone,
+    itemUrgency,
   };
 }
 
-// Get urgency status for a category (meds, vitals, etc.)
+/**
+ * Get urgency status for a category (meds, vitals, etc.) using Calm Urgency
+ * Implements above-fold constraint: max 1 red element in top section
+ */
+interface CategoryUrgencyResult {
+  status: UrgencyStatus;
+  tier: UrgencyTier;
+  tone: UrgencyTone;
+  label: string;
+  isCritical: boolean;
+}
+
 function getCategoryUrgencyStatus(
   instances: any[],
   itemType: string,
-  stat: StatData
-): UrgencyStatus {
-  if (stat.total === 0) return 'NOT_APPLICABLE';
-  if (stat.completed === stat.total) return 'COMPLETE';
+  stat: StatData,
+  aboveFoldState?: { hasCriticalNextUp: boolean; criticalTileCount: number }
+): CategoryUrgencyResult {
+  const defaultResult: CategoryUrgencyResult = {
+    status: 'NOT_APPLICABLE',
+    tier: 'info',
+    tone: 'neutral',
+    label: '',
+    isCritical: false,
+  };
+
+  if (stat.total === 0) return defaultResult;
+
+  if (stat.completed === stat.total) {
+    return {
+      status: 'COMPLETE',
+      tier: 'info',
+      tone: 'neutral',
+      label: 'Complete',
+      isCritical: false,
+    };
+  }
 
   const pendingInstances = instances.filter(
     i => i.itemType === itemType && i.status === 'pending'
   );
 
-  if (pendingInstances.length === 0) return 'COMPLETE';
+  if (pendingInstances.length === 0) {
+    return {
+      status: 'COMPLETE',
+      tier: 'info',
+      tone: 'neutral',
+      label: 'Complete',
+      isCritical: false,
+    };
+  }
 
-  // Check if any are overdue
-  const hasOverdue = pendingInstances.some(i => {
-    const info = getUrgencyStatus(i.scheduledTime, false);
-    return info.status === 'OVERDUE';
+  // Calculate category urgency using Calm Urgency system
+  const category = itemType as CarePlanItemType;
+  const categoryUrgency = calculateCategoryUrgency({
+    category,
+    items: pendingInstances.map(i => ({
+      dueAt: i.scheduledTime,
+      isCompleted: false,
+    })),
   });
-  if (hasOverdue) return 'OVERDUE';
 
-  // Check if any are due soon
-  const hasDueSoon = pendingInstances.some(i => {
-    const info = getUrgencyStatus(i.scheduledTime, false);
-    return info.status === 'DUE_SOON';
-  });
-  if (hasDueSoon) return 'DUE_SOON';
+  // Apply above-fold constraint if provided
+  let finalUrgency = categoryUrgency;
+  if (aboveFoldState && categoryUrgency.tier === 'critical') {
+    const constraintState = createAboveFoldState(aboveFoldState.hasCriticalNextUp);
+    constraintState.criticalTileCount = aboveFoldState.criticalTileCount;
+    finalUrgency = applyAboveFoldConstraint(categoryUrgency, constraintState);
+  }
 
-  return 'LATER_TODAY';
+  // Map to legacy status
+  let legacyStatus: UrgencyStatus;
+  if (finalUrgency.tier === 'critical') {
+    legacyStatus = 'OVERDUE';
+  } else if (finalUrgency.tier === 'attention') {
+    legacyStatus = finalUrgency.isOverdue ? 'OVERDUE' : 'DUE_SOON';
+  } else {
+    legacyStatus = 'LATER_TODAY';
+  }
+
+  return {
+    status: legacyStatus,
+    tier: finalUrgency.tier,
+    tone: finalUrgency.tone,
+    label: finalUrgency.label,
+    isCritical: finalUrgency.tier === 'critical',
+  };
 }
 
 // Get time window for a scheduled time
@@ -705,27 +730,12 @@ export default function NowScreen() {
       });
     }
 
-    // GENERAL: Medications scheduled for today
-    if (stats.meds.total > 0 && stats.meds.completed === 0) {
-      insights.push({
-        icon: '💊',
-        title: 'Medications ready to log',
-        message: 'Tap Next Up or Record when you\'re ready to log today\'s medications.',
-        type: 'pattern',
-        confidence: 0.7,
-      });
-    }
+    // REMOVED: "Medications ready to log" - redundant with Next Up card
+    // The Next Up card already shows what to do next, so this insight
+    // adds no value and creates visual clutter
 
-    // GENERAL: Care Plan is active
-    if (totalItems > 0 && totalCompleted === 0) {
-      insights.push({
-        icon: '📋',
-        title: 'Your care day is set',
-        message: `${totalItems} item${totalItems > 1 ? 's' : ''} scheduled. Take them at your own pace.`,
-        type: 'reinforcement',
-        confidence: 0.65,
-      });
-    }
+    // REMOVED: "Your care day is set" - too generic, adds no value
+    // If Next Up exists, user already knows what to do
 
     // PATTERN AWARENESS: Mood affects medication adherence
     if (stats.mood.total > 0 && stats.mood.completed > 0) {
@@ -1428,36 +1438,70 @@ export default function NowScreen() {
     }
   };
 
+  // =========================================================================
+  // CALM URGENCY: Track above-fold constraint
+  // Rule: Max 1 red/danger element above the fold (Next Up OR one tile)
+  // Note: nextUpIsCritical is computed inline in renderProgressRing
+  // because todayTimeline is defined later in the render function
+  // =========================================================================
+
+  // Track how many critical tiles we've rendered (for above-fold cap)
+  let criticalTileCount = 0;
+
   const renderProgressRing = (
     icon: string,
     label: string,
     stat: StatData,
     onPress: () => void,
-    itemType?: string  // For checking upcoming schedule
+    itemType?: string,  // For checking upcoming schedule
+    nextUpInstance?: any  // Pass next up instance for above-fold constraint
   ) => {
     const percent = getProgressPercent(stat.completed, stat.total);
     const status = getProgressStatus(stat.completed, stat.total);
     const dashoffset = calculateStrokeDashoffset(percent);
     const circumference = 2 * Math.PI * 21;
 
-    // Get urgency status for this category
-    const instances = instancesState?.instances || [];
-    const urgencyStatus = itemType
-      ? getCategoryUrgencyStatus(instances, itemType, stat)
-      : 'NOT_APPLICABLE';
+    // Compute if Next Up is critical (for above-fold constraint)
+    let nextUpIsCritical = false;
+    if (nextUpInstance) {
+      const nextUpUrgency = getUrgencyStatus(nextUpInstance.scheduledTime, false, nextUpInstance.itemType);
+      nextUpIsCritical = nextUpUrgency.tier === 'critical';
+    }
 
-    // Determine stroke color based on urgency
+    // Get urgency status using Calm Urgency system with above-fold constraint
+    const instances = instancesState?.instances || [];
+    const urgencyResult = itemType
+      ? getCategoryUrgencyStatus(instances, itemType, stat, {
+          hasCriticalNextUp: nextUpIsCritical,
+          criticalTileCount,
+        })
+      : { status: 'NOT_APPLICABLE' as UrgencyStatus, tier: 'info' as UrgencyTier, tone: 'neutral' as UrgencyTone, label: '', isCritical: false };
+
+    // Track critical tiles for above-fold constraint
+    if (urgencyResult.isCritical) {
+      criticalTileCount++;
+    }
+
+    // Determine stroke color based on Calm Urgency tier/tone
+    // CALM URGENCY: Subdue ring colors when Next Up is present (one visual focus)
     const getStrokeColorWithUrgency = () => {
-      if (status === 'complete') return '#10B981';  // Green
-      if (urgencyStatus === 'OVERDUE') return '#EF4444';  // Red
-      if (urgencyStatus === 'DUE_SOON') return '#F59E0B';  // Amber
-      if (status === 'partial' || status === 'missing') return '#F59E0B';  // Soft amber
-      return 'rgba(255, 255, 255, 0.15)';  // Neutral gray
+      if (status === 'complete') return Colors.green;  // Green always shows
+      // When Next Up exists, use muted colors for non-complete tiles
+      if (nextUpInstance) {
+        if (status === 'partial' || status === 'missing') return Colors.toneNeutralBorder;
+        return Colors.toneNeutralBorder;
+      }
+      // No Next Up: show full urgency colors
+      if (urgencyResult.tone === 'danger') return Colors.toneDanger;  // Red (only clinical critical)
+      if (urgencyResult.tone === 'warn') return Colors.toneWarn;  // Amber
+      if (status === 'partial' || status === 'missing') return Colors.toneWarn;  // Soft amber
+      return Colors.toneNeutralBorder;  // Neutral gray
     };
 
     const strokeColor = getStrokeColorWithUrgency();
 
-    // Determine display text based on status and urgency
+    // Determine display text based on status and Calm Urgency tier
+    // Use friendly labels: NO "pending", "overdue", or time deltas
     let statText = '';
     let statusLabel = '';
     let statusStyle = `stat_${status}` as keyof typeof styles;
@@ -1470,33 +1514,46 @@ export default function NowScreen() {
       case 'partial':
       case 'missing':
         statText = `${stat.completed}/${stat.total}`;
-        // Use urgency-aware status labels
-        if (urgencyStatus === 'OVERDUE') {
-          statusLabel = 'overdue';
+        // CALM URGENCY: Friendly labels only
+        if (urgencyResult.tier === 'critical') {
+          statusLabel = 'late';  // Only critical clinical items say "late"
           statusStyle = 'stat_overdue' as keyof typeof styles;
-        } else if (urgencyStatus === 'DUE_SOON') {
-          statusLabel = 'due soon';
+        } else if (urgencyResult.tier === 'attention' && urgencyResult.status === 'OVERDUE') {
+          statusLabel = 'due earlier';  // Non-critical overdue: calm phrasing
           statusStyle = 'stat_due_soon' as keyof typeof styles;
-        } else if (urgencyStatus === 'LATER_TODAY') {
+        } else if (urgencyResult.tier === 'attention') {
+          statusLabel = 'still to do';  // Due soon: encouraging
+          statusStyle = 'stat_due_soon' as keyof typeof styles;
+        } else if (urgencyResult.tier === 'info') {
           statusLabel = 'later today';
           statusStyle = 'stat_later' as keyof typeof styles;
         } else {
-          statusLabel = status === 'partial' ? 'logged' : 'not logged yet';
+          statusLabel = status === 'partial' ? 'in progress' : 'available';
         }
         break;
       case 'inactive':
         statText = '—';
-        statusLabel = 'not tracked today';  // Improved from "not set up"
+        statusLabel = 'not tracked';
         break;
     }
 
     // Only make tappable if there's something to log
     const isTappable = status !== 'inactive';
 
-    // Get urgency-based tile styling
+    // Get urgency-based tile styling using Calm Urgency tones
+    // CALM URGENCY: Suppress strong styling when Next Up is present
+    // Only Next Up gets the dominant visual focus above the fold
     const getTileUrgencyStyle = () => {
-      if (urgencyStatus === 'OVERDUE') return styles.checkinItemOverdue;
-      if (urgencyStatus === 'DUE_SOON') return styles.checkinItemDueSoon;
+      // When Next Up exists, tiles use subdued styling (no strong borders/backgrounds)
+      if (nextUpInstance) {
+        // Complete tiles can still show green
+        if (status === 'complete') return null;
+        // All other tiles stay neutral - Next Up has the focus
+        return null;
+      }
+      // No Next Up: tiles can show urgency styling
+      if (urgencyResult.tone === 'danger') return styles.checkinItemOverdue;
+      if (urgencyResult.tone === 'warn') return styles.checkinItemDueSoon;
       return null;
     };
 
@@ -1558,56 +1615,84 @@ export default function NowScreen() {
   // Compute timeline from DailyCareInstances sorted by urgency score (highest priority first)
   const todayTimeline = useMemo(() => {
     if (!instancesState?.instances) {
-      return { overdue: [], upcoming: [], completed: [], nextUp: null, hasSafetyRelevant: false };
+      return { overdue: [], upcoming: [], completed: [], nextUp: null };
     }
 
     // Safety check: ensure instancesState is for today
     // This prevents showing stale data from a previous day
     if (instancesState.date !== today) {
       console.log('[NowScreen] Instance date mismatch:', instancesState.date, 'vs today:', today);
-      return { overdue: [], upcoming: [], completed: [], nextUp: null, hasSafetyRelevant: false };
+      return { overdue: [], upcoming: [], completed: [], nextUp: null };
     }
 
     const allInstances = instancesState.instances;
+    const now = new Date();
 
-    // Calculate urgency scores for all pending instances
+    // =========================================================================
+    // CALM URGENCY: Priority-based Next Up Selection
+    // Rule: Mood can NEVER be Next Up if meds or meals are late or due soon
+    //
+    // Priority order:
+    // 1. Late clinical-critical (meds, meals) - 30+ min overdue
+    // 2. Due-soon clinical-critical (within 60 min)
+    // 3. Late neutral (vitals)
+    // 4. Late non-clinical (mood, hydration, etc.)
+    // 5. Due-soon non-clinical
+    // 6. Later today items
+    // =========================================================================
+
+    const getPriorityScore = (instance: any): number => {
+      const scheduled = new Date(instance.scheduledTime);
+      if (isNaN(scheduled.getTime())) return 999;
+
+      const diffMs = now.getTime() - scheduled.getTime();
+      const minutesLate = Math.floor(diffMs / (1000 * 60));
+      const isLate = minutesLate > OVERDUE_GRACE_MINUTES;
+      const isDueSoon = !isLate && minutesLate > -UPCOMING_WINDOW_MINUTES;
+
+      const isClinical = isClinicalCritical(instance.itemType);
+      const isNeutral = instance.itemType === 'vitals';
+
+      // Priority tiers (lower = higher priority)
+      if (isClinical && isLate) return 100 - minutesLate; // Late clinical: highest priority, more late = more urgent
+      if (isClinical && isDueSoon) return 200 - minutesLate; // Due-soon clinical
+      if (isNeutral && isLate) return 300 - minutesLate; // Late vitals
+      if (!isClinical && !isNeutral && isLate) return 400 - minutesLate; // Late non-clinical (mood, etc.)
+      if (!isClinical && isDueSoon) return 500 - minutesLate; // Due-soon non-clinical
+      return 600 + Math.abs(minutesLate); // Later today (lower priority, further = even lower)
+    };
+
+    // Calculate priority scores for all pending instances
     const withScores = allInstances.map(instance => {
       if (instance.status !== 'pending') {
-        return { instance, score: 0, factors: null, isSafetyRelevant: false };
+        return { instance, priorityScore: 999 };
       }
-      // Count missed instances for this item type (for missed history scoring)
-      const missedCount = allInstances.filter(
-        i => i.itemType === instance.itemType && i.status === 'missed'
-      ).length;
-      const { score, factors, isSafetyRelevant } = calculateUrgencyScore(instance, allInstances, missedCount);
-      return { instance, score, factors, isSafetyRelevant };
+      const priorityScore = getPriorityScore(instance);
+      return { instance, priorityScore };
     });
 
-    // Check if any pending item is safety-relevant
-    const hasSafetyRelevant = withScores.some(w => w.isSafetyRelevant && w.instance.status === 'pending');
-
-    // Filter and sort by urgency score (highest first) for pending items
+    // Filter pending items and sort by PRIORITY SCORE
     const pendingWithScores = withScores
       .filter(w => w.instance.status === 'pending')
-      .sort((a, b) => b.score - a.score);
+      .sort((a, b) => a.priorityScore - b.priorityScore); // Lower priority score = higher priority
 
-    // Separate into overdue and upcoming (already sorted by urgency)
+    // Separate into overdue and upcoming (keep priority order)
     const overdue = pendingWithScores
       .filter(w => isOverdue(w.instance.scheduledTime))
-      .map(w => ({ ...w.instance, urgencyScore: w.score }));
+      .map(w => w.instance);
 
     const upcoming = pendingWithScores
       .filter(w => !isOverdue(w.instance.scheduledTime))
-      .map(w => ({ ...w.instance, urgencyScore: w.score }));
+      .map(w => w.instance);
 
     const completed = allInstances.filter(
       i => i.status === 'completed' || i.status === 'skipped'
     ).sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
 
-    // "Next Up" = highest urgency pending item (overdue first, then upcoming)
-    const nextUp = overdue[0] || upcoming[0] || null;
+    // "Next Up" = highest PRIORITY pending item (clinical items first when late/due-soon)
+    const nextUp = pendingWithScores[0]?.instance || null;
 
-    return { overdue, upcoming, completed, nextUp, hasSafetyRelevant };
+    return { overdue, upcoming, completed, nextUp };
   }, [instancesState?.instances, instancesState?.date, today]);
 
   // Handler for timeline item tap
@@ -1741,56 +1826,54 @@ export default function NowScreen() {
 
             {/* 1️⃣ NEXT UP CARD - Primary Decision Engine (visually dominant) */}
             {/* Answers: "What is the next irreversible decision the caregiver must make?" */}
+            {/* CALM URGENCY: Only clinical items 30+ min overdue show red */}
             {hasRegimenInstances && todayTimeline.nextUp && (() => {
               const nextUp = todayTimeline.nextUp;
               const nextUpTime = parseTimeForDisplay(nextUp.scheduledTime);
-              const urgencyInfo = getUrgencyStatus(nextUp.scheduledTime, false);
+              // Pass itemType for Calm Urgency classification
+              const urgencyInfo = getUrgencyStatus(nextUp.scheduledTime, false, nextUp.itemType);
 
-              // Determine card styles based on urgency
+              // Determine card styles based on Calm Urgency tier/tone
               const getCardStyle = () => {
-                switch (urgencyInfo.status) {
-                  case 'OVERDUE': return styles.nextUpCardOverdue;
-                  case 'DUE_SOON': return styles.nextUpCardDueSoon;
-                  case 'LATER_TODAY': return styles.nextUpCardLater;
-                  default: return null;
-                }
+                // Only show red for critical tier (clinical items 30+ min overdue)
+                if (urgencyInfo.tone === 'danger') return styles.nextUpCardOverdue;
+                if (urgencyInfo.tone === 'warn') return styles.nextUpCardDueSoon;
+                if (urgencyInfo.tier === 'info' && urgencyInfo.status !== 'COMPLETE') return styles.nextUpCardLater;
+                return null;
               };
 
               const getIconStyle = () => {
-                switch (urgencyInfo.status) {
-                  case 'OVERDUE': return styles.nextUpIconOverdue;
-                  case 'DUE_SOON': return styles.nextUpIconDueSoon;
-                  case 'LATER_TODAY': return styles.nextUpIconLater;
-                  default: return null;
-                }
+                if (urgencyInfo.tone === 'danger') return styles.nextUpIconOverdue;
+                if (urgencyInfo.tone === 'warn') return styles.nextUpIconDueSoon;
+                if (urgencyInfo.tier === 'info' && urgencyInfo.status !== 'COMPLETE') return styles.nextUpIconLater;
+                return null;
               };
 
               const getLabelStyle = () => {
-                switch (urgencyInfo.status) {
-                  case 'OVERDUE': return styles.nextUpLabelOverdue;
-                  case 'DUE_SOON': return styles.nextUpLabelDueSoon;
-                  case 'LATER_TODAY': return styles.nextUpLabelLater;
-                  default: return null;
-                }
+                if (urgencyInfo.tone === 'danger') return styles.nextUpLabelOverdue;
+                if (urgencyInfo.tone === 'warn') return styles.nextUpLabelDueSoon;
+                if (urgencyInfo.tier === 'info' && urgencyInfo.status !== 'COMPLETE') return styles.nextUpLabelLater;
+                return null;
               };
 
               const getUrgencyLabelStyle = () => {
-                switch (urgencyInfo.status) {
-                  case 'OVERDUE': return styles.nextUpUrgencyLabelOverdue;
-                  case 'DUE_SOON': return styles.nextUpUrgencyLabelDueSoon;
-                  case 'LATER_TODAY': return styles.nextUpUrgencyLabelLater;
-                  default: return null;
-                }
+                if (urgencyInfo.tone === 'danger') return styles.nextUpUrgencyLabelOverdue;
+                if (urgencyInfo.tone === 'warn') return styles.nextUpUrgencyLabelDueSoon;
+                if (urgencyInfo.tier === 'info' && urgencyInfo.status !== 'COMPLETE') return styles.nextUpUrgencyLabelLater;
+                return null;
               };
 
               const getActionStyle = () => {
-                switch (urgencyInfo.status) {
-                  case 'OVERDUE': return styles.nextUpActionOverdue;
-                  case 'DUE_SOON': return styles.nextUpActionDueSoon;
-                  case 'LATER_TODAY': return styles.nextUpActionLater;
-                  default: return null;
-                }
+                if (urgencyInfo.tone === 'danger') return styles.nextUpActionOverdue;
+                if (urgencyInfo.tone === 'warn') return styles.nextUpActionDueSoon;
+                if (urgencyInfo.tier === 'info' && urgencyInfo.status !== 'COMPLETE') return styles.nextUpActionLater;
+                return null;
               };
+
+              // Get display label - uses calm language for non-critical
+              const displayLabel = urgencyInfo.itemUrgency
+                ? getDetailedUrgencyLabel(urgencyInfo.itemUrgency)
+                : urgencyInfo.label;
 
               return (
                 <TouchableOpacity
@@ -1818,18 +1901,12 @@ export default function NowScreen() {
                         {nextUp.instructions}
                       </Text>
                     )}
-                    {/* Time Proximity Indicator - shows when coming up */}
-                    {urgencyInfo.proximityLabel && (
-                      <Text style={[styles.nextUpProximityLabel, getUrgencyLabelStyle()]}>
-                        {urgencyInfo.proximityLabel}
-                      </Text>
-                    )}
-                    {/* Urgency Label - for overdue items */}
-                    {urgencyInfo.status === 'OVERDUE' && (
-                      <Text style={[styles.nextUpUrgencyLabel, getUrgencyLabelStyle()]}>
-                        {urgencyInfo.label}
-                      </Text>
-                    )}
+                    {/* Single status label - CALM URGENCY: friendly language, no time deltas */}
+                    <Text style={[styles.nextUpProximityLabel, getUrgencyLabelStyle()]}>
+                      {urgencyInfo.tier === 'critical' && urgencyInfo.proximityLabel
+                        ? urgencyInfo.proximityLabel  // "1h 29m late" for critical only
+                        : displayLabel}               {/* "Due earlier today" for non-critical */}
+                    </Text>
                   </View>
                   <View style={[styles.nextUpAction, getActionStyle()]}>
                     <Text style={styles.nextUpActionText}>Log</Text>
@@ -1867,24 +1944,30 @@ export default function NowScreen() {
 
             {/* 2️⃣ CARE PLAN PROGRESS - Orientation Dashboard */}
             {/* Provides fast reassurance: "Are we generally okay?" */}
+            {/* CALM URGENCY: Pass nextUp for above-fold constraint */}
             <View style={styles.progressSection}>
               <Text style={styles.sectionTitle}>CARE PLAN PROGRESS</Text>
               <View style={styles.progressGrid}>
                 {(enabledBuckets.length === 0 || enabledBuckets.includes('meds' as BucketType)) &&
-                  renderProgressRing('💊', 'Meds', todayStats.meds, () => handleProgressTileTap('meds'), 'medication')}
+                  renderProgressRing('💊', 'Meds', todayStats.meds, () => handleProgressTileTap('meds'), 'medication', todayTimeline?.nextUp)}
                 {(enabledBuckets.length === 0 || enabledBuckets.includes('vitals' as BucketType)) &&
-                  renderProgressRing('📊', 'Vitals', todayStats.vitals, () => handleProgressTileTap('vitals'), 'vitals')}
+                  renderProgressRing('📊', 'Vitals', todayStats.vitals, () => handleProgressTileTap('vitals'), 'vitals', todayTimeline?.nextUp)}
                 {(enabledBuckets.length === 0 || enabledBuckets.includes('mood' as BucketType)) &&
-                  renderProgressRing('😊', 'Mood', todayStats.mood, () => handleProgressTileTap('mood'), 'mood')}
+                  renderProgressRing('😊', 'Mood', todayStats.mood, () => handleProgressTileTap('mood'), 'mood', todayTimeline?.nextUp)}
                 {(enabledBuckets.length === 0 || enabledBuckets.includes('meals' as BucketType)) &&
-                  renderProgressRing('🍽️', 'Meals', todayStats.meals, () => handleProgressTileTap('meals'), 'nutrition')}
+                  renderProgressRing('🍽️', 'Meals', todayStats.meals, () => handleProgressTileTap('meals'), 'nutrition', todayTimeline?.nextUp)}
               </View>
             </View>
 
             {/* 3️⃣ CARE INSIGHT - Pattern-based supportive guidance */}
-            {/* Replaces timeline toggle with meaningful AI-driven content */}
-            {/* Only displays when meaningful insight exists with high confidence */}
+            {/* Only show when it adds unique value beyond Next Up card */}
+            {/* Hide generic insights when Next Up already provides clear guidance */}
             {careInsight && (
+              !todayTimeline?.nextUp ||  // Show if no Next Up
+              careInsight.type === 'reinforcement' ||  // Always show positive reinforcement
+              careInsight.type === 'dependency' ||  // Always show dependency warnings
+              careInsight.confidence >= 0.8  // Show high-confidence insights
+            ) && (
               <View style={[
                 styles.careInsightCard,
                 careInsight.type === 'reinforcement' && styles.careInsightReinforcement,
@@ -1921,53 +2004,88 @@ export default function NowScreen() {
                 </View>
 
                 {/* Overdue items - highest priority, always expanded */}
-                {todayTimeline.overdue.length > 0 && (
+                {/* CALM URGENCY: Unified "Needs attention" header - never say "Overdue" */}
+                {todayTimeline.overdue.length > 0 && (() => {
+                  // Check if ANY overdue item is critical (clinical + 30+ min late)
+                  const hasCriticalItem = todayTimeline.overdue.some(instance => {
+                    const urgency = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
+                    return urgency.tier === 'critical';
+                  });
+                  // CALM URGENCY: Always "Needs attention" - consistent with item labels
+                  // Critical items get subtle visual distinction but same header
+                  const sectionEmoji = hasCriticalItem ? '⚠️' : '📋';
+                  const sectionLabel = 'Needs attention';
+                  const titleStyle = hasCriticalItem ? styles.timeGroupTitleOverdue : styles.timeGroupTitlePending;
+                  const countStyle = hasCriticalItem ? styles.timeGroupCountOverdue : styles.timeGroupCountPending;
+
+                  return (
                   <View style={styles.overdueSection}>
                     <View style={styles.timeGroupHeader}>
                       <View style={styles.timeGroupHeaderTouchable}>
-                        <Text style={[styles.timeGroupTitle, styles.timeGroupTitleOverdue]}>
-                          ⚠️ Overdue
+                        <Text style={[styles.timeGroupTitle, titleStyle]}>
+                          {sectionEmoji} {sectionLabel}
                         </Text>
-                        <Text style={[styles.timeGroupCount, styles.timeGroupCountOverdue]}>
+                        <Text style={[styles.timeGroupCount, countStyle]}>
                           ({todayTimeline.overdue.length})
                         </Text>
                       </View>
                     </View>
                     {todayTimeline.overdue.map((instance) => {
                       const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
-                      const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false);
-                      const displayText = urgencyInfo.minutesOverdue
-                        ? `${Math.floor(urgencyInfo.minutesOverdue / 60)}h ${urgencyInfo.minutesOverdue % 60}m overdue`
-                        : 'Overdue';
+                      // CALM URGENCY: Pass itemType for clinical classification
+                      const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
+
+                      // CALM URGENCY: Friendly status label (no time delta)
+                      const statusLabel = urgencyInfo.itemUrgency
+                        ? getDetailedUrgencyLabel(urgencyInfo.itemUrgency)
+                        : 'Due earlier today';
+
+                      // Time delta only shown as small secondary info
+                      const timeDelta = urgencyInfo.itemUrgency
+                        ? getTimeDeltaString(urgencyInfo.itemUrgency)
+                        : null;
+
+                      // CALM URGENCY: Only use red styling for critical tier
+                      const isRed = urgencyInfo.tone === 'danger';
+                      const itemStyle = isRed ? styles.timelineItemOverdue : styles.timelineItemPending;
+                      const iconStyle = isRed ? styles.timelineIconOverdue : styles.timelineIconPending;
+                      const timeStyle = isRed ? styles.timelineTimeOverdue : styles.timelineTimePending;
+                      const actionStyle = isRed ? styles.timelineActionOverdue : styles.timelineActionPending;
+
                       return (
                         <TouchableOpacity
                           key={instance.id}
-                          style={[styles.timelineItem, styles.timelineItemOverdue]}
+                          style={[styles.timelineItem, itemStyle]}
                           onPress={() => handleTimelineItemPress(instance)}
                           activeOpacity={0.7}
                         >
-                          <View style={[styles.timelineIcon, styles.timelineIconOverdue]}>
+                          <View style={[styles.timelineIcon, iconStyle]}>
                             <Text style={styles.timelineIconEmoji}>{instance.itemEmoji || '🔔'}</Text>
                           </View>
                           <View style={styles.timelineDetails}>
-                            <Text style={styles.timelineTimeOverdue}>
-                              {timeDisplay ? `${timeDisplay} • ${displayText}` : displayText}
+                            <Text style={timeStyle}>
+                              {timeDisplay ? `${timeDisplay} • ${statusLabel}` : statusLabel}
                             </Text>
                             <Text style={styles.timelineTitle}>{instance.itemName}</Text>
-                            {instance.instructions && (
+                            {/* Time delta shown as small secondary text only */}
+                            {timeDelta && (
+                              <Text style={styles.timelineSubtitle}>{timeDelta}</Text>
+                            )}
+                            {instance.instructions && !timeDelta && (
                               <Text style={styles.timelineSubtitle} numberOfLines={1}>
                                 {instance.instructions}
                               </Text>
                             )}
                           </View>
-                          <View style={[styles.timelineAction, styles.timelineActionOverdue]}>
+                          <View style={[styles.timelineAction, actionStyle]}>
                             <Text style={styles.timelineActionText}>Log</Text>
                           </View>
                         </TouchableOpacity>
                       );
                     })}
                   </View>
-                )}
+                  );
+                })()}
 
                 {/* Time-grouped upcoming items */}
                 {(() => {
@@ -2010,20 +2128,33 @@ export default function NowScreen() {
 
                         {isExpanded && items.map((instance) => {
                           const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
-                          const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false);
+                          // CALM URGENCY: Pass itemType for proper classification
+                          const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
+
+                          // CALM URGENCY: Friendly status label
+                          const statusLabel = urgencyInfo.itemUrgency
+                            ? getDetailedUrgencyLabel(urgencyInfo.itemUrgency)
+                            : urgencyInfo.label;
+
+                          // CALM URGENCY: Apply styling based on tier (amber for attention, neutral for info)
+                          const isDueSoon = urgencyInfo.tier === 'attention' && !urgencyInfo.itemUrgency?.isOverdue;
+                          const itemStyle = isDueSoon ? styles.timelineItemDueSoon : null;
+                          const iconStyle = isDueSoon ? styles.timelineIconDueSoon : null;
+                          const timeStyle = isDueSoon ? styles.timelineTimeDueSoon : styles.timelineTime;
+
                           return (
                             <TouchableOpacity
                               key={instance.id}
-                              style={styles.timelineItem}
+                              style={[styles.timelineItem, itemStyle]}
                               onPress={() => handleTimelineItemPress(instance)}
                               activeOpacity={0.7}
                             >
-                              <View style={styles.timelineIcon}>
+                              <View style={[styles.timelineIcon, iconStyle]}>
                                 <Text style={styles.timelineIconEmoji}>{instance.itemEmoji || '🔔'}</Text>
                               </View>
                               <View style={styles.timelineDetails}>
-                                <Text style={styles.timelineTime}>
-                                  {timeDisplay || urgencyInfo.label}
+                                <Text style={timeStyle}>
+                                  {timeDisplay ? `${timeDisplay} • ${statusLabel}` : statusLabel}
                                 </Text>
                                 <Text style={styles.timelineTitle}>{instance.itemName}</Text>
                                 {instance.instructions && (
@@ -2900,6 +3031,16 @@ const styles = StyleSheet.create({
     borderLeftColor: 'rgba(239, 68, 68, 0.5)',
     backgroundColor: 'rgba(239, 68, 68, 0.06)',
   },
+  // CALM URGENCY: Pending style for non-critical overdue items (amber, not red)
+  timelineItemPending: {
+    borderLeftColor: 'rgba(245, 158, 11, 0.5)',
+    backgroundColor: 'rgba(245, 158, 11, 0.06)',
+  },
+  // CALM URGENCY: Due soon style for upcoming items (soft amber highlight)
+  timelineItemDueSoon: {
+    borderLeftColor: 'rgba(245, 158, 11, 0.35)',
+    backgroundColor: 'rgba(245, 158, 11, 0.04)',
+  },
   // Fix #5: Make completed items visually recede more
   timelineItemCompleted: {
     borderLeftColor: 'rgba(16, 185, 129, 0.3)',
@@ -2918,6 +3059,16 @@ const styles = StyleSheet.create({
   timelineIconOverdue: {
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  // CALM URGENCY: Pending icon style (amber, not red)
+  timelineIconPending: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  // CALM URGENCY: Due soon icon style (soft amber)
+  timelineIconDueSoon: {
+    backgroundColor: 'rgba(245, 158, 11, 0.10)',
+    borderColor: 'rgba(245, 158, 11, 0.25)',
   },
   timelineIconCompleted: {
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
@@ -2938,6 +3089,20 @@ const styles = StyleSheet.create({
   timelineTimeOverdue: {
     fontSize: 12,
     color: '#EF4444',
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  // CALM URGENCY: Pending time style (amber, not red)
+  timelineTimePending: {
+    fontSize: 12,
+    color: '#F59E0B',
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  // CALM URGENCY: Due soon time style (softer amber for upcoming)
+  timelineTimeDueSoon: {
+    fontSize: 12,
+    color: 'rgba(245, 158, 11, 0.85)',
     fontWeight: '600',
     marginBottom: 3,
   },
@@ -2971,6 +3136,10 @@ const styles = StyleSheet.create({
   },
   timelineActionOverdue: {
     backgroundColor: 'rgba(239, 68, 68, 0.2)',
+  },
+  // CALM URGENCY: Pending action style (amber, not red)
+  timelineActionPending: {
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
   },
   timelineActionText: {
     fontSize: 12,
@@ -3021,6 +3190,10 @@ const styles = StyleSheet.create({
   timeGroupTitleOverdue: {
     color: '#EF4444',
   },
+  // CALM URGENCY: Pending section title (amber, not red)
+  timeGroupTitlePending: {
+    color: '#F59E0B',
+  },
   timeGroupCount: {
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.4)',
@@ -3028,6 +3201,10 @@ const styles = StyleSheet.create({
   },
   timeGroupCountOverdue: {
     color: '#EF4444',
+  },
+  // CALM URGENCY: Pending section count (amber, not red)
+  timeGroupCountPending: {
+    color: '#F59E0B',
   },
   timeGroupCollapseIcon: {
     fontSize: 12,

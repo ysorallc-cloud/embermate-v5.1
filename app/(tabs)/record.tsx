@@ -23,7 +23,6 @@ import { MICROCOPY } from '../../constants/microcopy';
 import { getMedications, Medication } from '../../utils/medicationStorage';
 import { useDataListener } from '../../lib/events';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
-import { useDailyCareInstances } from '../../hooks/useDailyCareInstances';
 import { useCareTasks } from '../../hooks/useCareTasks';
 import { BucketType, BUCKET_META } from '../../types/carePlanConfig';
 import { CarePlanTask } from '../../types/carePlanTask';
@@ -137,10 +136,7 @@ export default function RecordTab() {
   // Care Plan Config
   const { enabledBuckets, loading: configLoading } = useCarePlanConfig();
 
-  // Daily Care Instances for stats (legacy - keeping for compatibility)
-  const { state: dailyState, loading: instancesLoading } = useDailyCareInstances();
-
-  // NEW: useCareTasks - Single source of truth for task stats
+  // useCareTasks - Single source of truth for task stats
   const { state: careTasksState } = useCareTasks();
 
   // Medications for quick actions
