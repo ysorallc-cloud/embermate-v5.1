@@ -3,7 +3,7 @@
 // Shows chronological feed of logged events from the last 48 hours.
 // ============================================================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -18,9 +18,11 @@ import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { RecentEntriesFeed } from '../../components/journal/RecentEntriesFeed';
 import { HandoffCard } from '../../components/journal/HandoffCard';
+import { CategoryFilterBar } from '../../components/journal/CategoryFilterBar';
 import { Colors } from '../../theme/theme-tokens';
 import { MICROCOPY } from '../../constants/microcopy';
 import { useRecentEntries } from '../../hooks/useRecentEntries';
+import { LogEventType } from '../../utils/logEvents';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -28,7 +30,10 @@ import { useRecentEntries } from '../../hooks/useRecentEntries';
 
 export default function JournalTab() {
   const router = useRouter();
-  const { entries, loading: entriesLoading, refresh } = useRecentEntries();
+  const [filter, setFilter] = useState<LogEventType | 'all'>('all');
+  const { entries, loading: entriesLoading, refresh } = useRecentEntries(
+    filter === 'all' ? null : filter
+  );
 
   // ============================================================================
   // RENDER
@@ -80,6 +85,11 @@ export default function JournalTab() {
         {/* TODAY'S SUMMARY HANDOFF CARD */}
         {/* ============================================================ */}
         <HandoffCard />
+
+        {/* ============================================================ */}
+        {/* CATEGORY FILTER BAR */}
+        {/* ============================================================ */}
+        <CategoryFilterBar selectedFilter={filter} onFilterChange={setFilter} />
 
         {/* ============================================================ */}
         {/* RECENT ENTRIES FEED */}

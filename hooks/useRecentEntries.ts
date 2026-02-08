@@ -13,6 +13,7 @@ import { formatTimeAgo } from '../constants/microcopy';
 
 export interface RecentEntry {
   id: string;
+  type: LogEventType;
   emoji: string;
   label: string;
   detail: string;
@@ -156,6 +157,7 @@ function getDateString(daysAgo: number): string {
 function mapEventToEntry(event: LogEvent, dateGroup: 'Today' | 'Yesterday'): RecentEntry {
   return {
     id: event.id,
+    type: event.type,
     emoji: EMOJI_MAP[event.type],
     label: LABEL_MAP[event.type],
     detail: extractDetail(event),
@@ -166,7 +168,7 @@ function mapEventToEntry(event: LogEvent, dateGroup: 'Today' | 'Yesterday'): Rec
   };
 }
 
-export function useRecentEntries() {
+export function useRecentEntries(filterType?: LogEventType | null) {
   const [entries, setEntries] = useState<RecentEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -183,9 +185,13 @@ export function useRecentEntries() {
       const todayEntries = todayEvents.map(e => mapEventToEntry(e, 'Today'));
       const yesterdayEntries = yesterdayEvents.map(e => mapEventToEntry(e, 'Yesterday'));
 
-      const all = [...todayEntries, ...yesterdayEntries].sort(
+      let all = [...todayEntries, ...yesterdayEntries].sort(
         (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
+
+      if (filterType) {
+        all = all.filter(e => e.type === filterType);
+      }
 
       setEntries(all);
     } catch (error) {
@@ -193,7 +199,7 @@ export function useRecentEntries() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filterType]);
 
   useEffect(() => {
     fetchEntries();
