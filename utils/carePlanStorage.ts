@@ -356,6 +356,115 @@ export async function pruneOldOverrides(): Promise<void> {
 }
 
 // ============================================================================
+// TODAY'S SCOPE - Temporary suppressions (date-scoped, auto-expire tomorrow)
+// ============================================================================
+
+/**
+ * Suppress an item for today only (hide from Now/Record without editing Care Plan)
+ */
+export async function suppressItemForToday(
+  routineId: string,
+  itemId: string,
+  date?: string
+): Promise<void> {
+  const targetDate = date || new Date().toISOString().split('T')[0];
+  try {
+    const override: CarePlanOverride = {
+      date: targetDate,
+      routineId,
+      itemId,
+      done: false,
+      timestamp: new Date().toISOString(),
+      suppressed: true,
+    };
+    await setOverride(override);
+  } catch (error) {
+    console.error('Error suppressing item:', error);
+    throw error;
+  }
+}
+
+/**
+ * Unsuppress an item (restore to today's scope)
+ */
+export async function unsuppressItem(
+  routineId: string,
+  itemId: string,
+  date?: string
+): Promise<void> {
+  const targetDate = date || new Date().toISOString().split('T')[0];
+  try {
+    await removeOverride(targetDate, routineId, itemId);
+  } catch (error) {
+    console.error('Error unsuppressing item:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check if an item is suppressed for a given date
+ */
+export async function isItemSuppressed(
+  routineId: string,
+  itemId: string,
+  date?: string
+): Promise<boolean> {
+  const targetDate = date || new Date().toISOString().split('T')[0];
+  try {
+    const overrides = await getOverrides(targetDate);
+    const override = overrides.find(
+      o => o.routineId === routineId && o.itemId === itemId
+    );
+    return override?.suppressed === true;
+  } catch (error) {
+    console.error('Error checking suppression:', error);
+    return false;
+  }
+}
+
+/**
+ * Get all suppressed items for a date
+ */
+export async function getSuppressedItems(date?: string): Promise<Array<{ routineId: string; itemId: string }>> {
+  const targetDate = date || new Date().toISOString().split('T')[0];
+  try {
+    const overrides = await getOverrides(targetDate);
+    return overrides
+      .filter(o => o.suppressed === true)
+      .map(o => ({ routineId: o.routineId, itemId: o.itemId }));
+  } catch (error) {
+    console.error('Error getting suppressed items:', error);
+    return [];
+  }
+}
+
+/**
+ * Reset Today's Scope - clear all suppressions for a date (back to Care Plan defaults)
+ */
+export async function resetTodayScope(date?: string): Promise<void> {
+  const targetDate = date || new Date().toISOString().split('T')[0];
+  try {
+    const allOverrides = await getAllOverrides();
+    const dateOverrides = allOverrides[targetDate] || [];
+
+    // Keep non-suppression overrides (done, snooze), remove suppressions
+    const filtered = dateOverrides.filter(o => !o.suppressed);
+
+    if (filtered.length > 0) {
+      allOverrides[targetDate] = filtered;
+    } else {
+      delete allOverrides[targetDate];
+    }
+
+    await saveAllOverrides(allOverrides);
+    emitDataUpdate('carePlan');
+  } catch (error) {
+    console.error('Error resetting today scope:', error);
+    throw error;
+  }
+}
+
+// ============================================================================
 // ROUTINE MANAGEMENT
 // ============================================================================
 

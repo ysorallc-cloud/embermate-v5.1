@@ -1,0 +1,207 @@
+// ============================================================================
+// BACK BUTTON - Standardized Navigation Component
+// Provides consistent styling and safe fallback navigation
+// ============================================================================
+
+import React, { useCallback } from 'react';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  View,
+  AccessibilityProps,
+} from 'react-native';
+import { useRouter, usePathname } from 'expo-router';
+import { Colors, Spacing } from '../../theme/theme-tokens';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface BackButtonProps {
+  /**
+   * Display variant:
+   * - 'icon': Shows only the ← arrow (default, most common)
+   * - 'text': Shows "← Back" with text label
+   */
+  variant?: 'icon' | 'text';
+
+  /**
+   * Custom back handler. If provided, overrides default navigation.
+   * Useful for screens that need to save state before navigating.
+   */
+  onPress?: () => void;
+
+  /**
+   * Fallback route if router.back() would exit the app.
+   * Defaults to '/(tabs)/now' (the home screen).
+   */
+  fallbackRoute?: string;
+
+  /**
+   * Custom accessibility label.
+   * Defaults to "Go back" or "Back".
+   */
+  accessibilityLabel?: string;
+
+  /**
+   * Style override for the container.
+   */
+  style?: object;
+
+  /**
+   * Whether the button is disabled.
+   */
+  disabled?: boolean;
+}
+
+// ============================================================================
+// SAFE NAVIGATION LOGIC
+// ============================================================================
+
+/**
+ * Routes that are considered "root" routes where back should fallback
+ * instead of potentially exiting the app.
+ */
+const ROOT_ROUTES = new Set([
+  '/(tabs)/now',
+  '/(tabs)/record',
+  '/(tabs)/understand',
+  '/(tabs)/family',
+  '/(tabs)/support',
+  '/settings',
+  '/care-plan',
+]);
+
+/**
+ * Default fallback route when back navigation isn't safe.
+ */
+const DEFAULT_FALLBACK = '/(tabs)/now';
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
+
+export function BackButton({
+  variant = 'icon',
+  onPress,
+  fallbackRoute = DEFAULT_FALLBACK,
+  accessibilityLabel,
+  style,
+  disabled = false,
+}: BackButtonProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const handlePress = useCallback(() => {
+    // If custom handler provided, use it
+    if (onPress) {
+      onPress();
+      return;
+    }
+
+    // Check if we're at a root route where back might exit the app
+    const isAtRoot = ROOT_ROUTES.has(pathname);
+
+    if (isAtRoot) {
+      // At a root route - use fallback instead of back
+      router.replace(fallbackRoute as any);
+    } else {
+      // Try to go back, with fallback if needed
+      try {
+        // router.back() returns void but may throw or fail silently
+        // We use canGoBack() to check first if available
+        if (router.canGoBack && typeof router.canGoBack === 'function' && router.canGoBack()) {
+          router.back();
+        } else {
+          // Can't go back - use fallback
+          router.replace(fallbackRoute as any);
+        }
+      } catch {
+        // Navigation failed - use fallback
+        router.replace(fallbackRoute as any);
+      }
+    }
+  }, [onPress, pathname, router, fallbackRoute]);
+
+  const a11yLabel = accessibilityLabel || (variant === 'text' ? 'Back' : 'Go back');
+
+  if (variant === 'text') {
+    return (
+      <TouchableOpacity
+        style={[styles.textButton, style]}
+        onPress={handlePress}
+        disabled={disabled}
+        activeOpacity={0.7}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={a11yLabel}
+        accessibilityHint="Navigate to previous screen"
+      >
+        <Text style={[styles.textLabel, disabled && styles.disabled]}>← Back</Text>
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      style={[styles.iconButton, style, disabled && styles.iconButtonDisabled]}
+      onPress={handlePress}
+      disabled={disabled}
+      activeOpacity={0.7}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={a11yLabel}
+      accessibilityHint="Navigate to previous screen"
+    >
+      <Text style={[styles.icon, disabled && styles.disabled]}>←</Text>
+    </TouchableOpacity>
+  );
+}
+
+// ============================================================================
+// STYLES
+// ============================================================================
+
+const styles = StyleSheet.create({
+  // Icon-only variant (most common)
+  iconButton: {
+    width: 44,
+    height: 44,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconButtonDisabled: {
+    opacity: 0.5,
+  },
+  icon: {
+    fontSize: 24,
+    color: Colors.textPrimary,
+  },
+
+  // Text variant
+  textButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  textLabel: {
+    fontSize: 14,
+    color: Colors.accent,
+    fontWeight: '500',
+  },
+
+  // Disabled state
+  disabled: {
+    opacity: 0.5,
+  },
+});
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+export default BackButton;

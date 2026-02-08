@@ -304,6 +304,13 @@ export default function SettingsScreen() {
       title: 'Profile & Medical Info',
       items: [
         {
+          id: 'care-plan',
+          icon: '📋',
+          title: 'Care Plan',
+          subtitle: 'What to track daily',
+          onPress: () => router.push('/care-plan' as any),
+        },
+        {
           id: 'patient',
           icon: '👤',
           title: 'Patient Information',

@@ -64,6 +64,8 @@ export interface CarePlanOverride {
   timestamp: string;
   // Snooze support ("Later" action)
   snoozeUntilMin?: number;          // Minutes from midnight when snooze expires
+  // Today's Scope: temporarily hide from Now/Record without editing Care Plan
+  suppressed?: boolean;             // true = hidden from today's timeline
 }
 
 // ============================================================================

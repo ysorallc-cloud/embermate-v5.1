@@ -46,6 +46,34 @@ export const MICROCOPY = {
   THIS_MONTH: 'This month',
   JUST_NOW: 'Just now',
 
+  // =========================================================================
+  // CALM URGENCY STATUS LABELS
+  // Supportive, non-shaming language for task status
+  // =========================================================================
+
+  // Critical tier (clinical items 30+ min overdue) - only tier that says "Late"
+  STATUS_LATE: 'Late',
+  STATUS_OVERDUE: 'Overdue',  // Alternative to "Late"
+
+  // Attention tier (due soon, pending, or non-critical overdue)
+  STATUS_PENDING: 'Pending',
+  STATUS_NOT_YET: 'Not yet',
+  STATUS_STILL_TO_DO: 'Still to do',
+  STATUS_DUE_SOON: 'Due soon',
+  STATUS_DUE_NOW: 'Due now',
+
+  // Info tier (later today, flexible timing, optional)
+  STATUS_LATER_TODAY: 'Later today',
+  STATUS_WHENEVER_READY: "Whenever you're ready",
+  STATUS_ANYTIME_TODAY: 'Anytime today',
+  STATUS_OPTIONAL: 'Optional',
+
+  // Completed states
+  STATUS_DONE: 'Done',
+  STATUS_LOGGED: 'Logged',
+  STATUS_COMPLETE: 'Complete',
+  STATUS_SKIPPED: 'Skipped',
+
   // Care circle
   LOGGED_ON_BEHALF: 'logged on your behalf',
   SENT_UPDATE: 'sent an update',

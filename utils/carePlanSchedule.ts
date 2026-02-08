@@ -1,6 +1,6 @@
 // ============================================================================
 // CARE PLAN SCHEDULE
-// Pure function to derive Today's Schedule from CarePlan + Appointments
+// Pure function to derive Care Plan Schedule from CarePlan + Appointments
 // Single source of truth for the Now page timeline
 // ============================================================================
 
@@ -39,7 +39,7 @@ export interface ScheduleDerivationInputs {
 
 /**
  * Derive unified schedule entries from CarePlan dayState and appointments
- * This is the SINGLE SOURCE OF TRUTH for Today's Schedule
+ * This is the SINGLE SOURCE OF TRUTH for the Care Plan Schedule
  *
  * Rules:
  * - Uses dayState.routines as base for CarePlan entries
@@ -433,7 +433,7 @@ export function getConflictingRoutines(
 
 // ============================================================================
 // UNIFIED SCHEDULE BUILDER
-// Public API for building Today's Schedule
+// Public API for building the Care Plan Schedule
 // ============================================================================
 
 export interface BuildTodayScheduleInputs {
@@ -464,7 +464,7 @@ export interface TodayScheduleResult {
 }
 
 /**
- * Build Today's Schedule from CarePlan and Appointments
+ * Build the Care Plan Schedule from CarePlan and Appointments
  * This is the PRIMARY PUBLIC API for the unified schedule
  *
  * @param inputs - Care plan state, appointments, and overrides

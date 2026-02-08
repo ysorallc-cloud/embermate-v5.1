@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { saveMoodLog } from '../utils/centralStorage';
+import { logMood } from '../utils/logEvents';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { parseCarePlanContext, getCarePlanBannerText } from '../utils/carePlanRouting';
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
@@ -36,6 +37,7 @@ export default function LogMoodScreen() {
   const isFromCarePlan = carePlanContext !== null;
 
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cleanup timeout on unmount to prevent memory leaks
@@ -59,12 +61,25 @@ export default function LogMoodScreen() {
       'difficult': 1,
     };
 
+    const moodValue = moodValues[moodId] || 3;
+
     try {
+      // Save to legacy storage for backward compatibility
       await saveMoodLog({
         timestamp: new Date().toISOString(),
-        mood: moodValues[moodId] || 3,
+        mood: moodValue,
         energy: null,
         pain: null,
+      });
+
+      // Emit log event for CarePlan/Now page tracking
+      await logMood(moodValue, {
+        carePlanTaskId: carePlanContext?.carePlanItemId,
+        routineId: carePlanContext?.routineId,
+        audit: {
+          source: isFromCarePlan ? 'careplan' : 'record',
+          action: 'direct_tap',
+        },
       });
 
       // Track CarePlan progress if navigated from CarePlan
@@ -78,9 +93,12 @@ export default function LogMoodScreen() {
 
       await hapticSuccess();
 
+      // Show confirmation before navigating back
+      setShowConfirmation(true);
+
       navigationTimeoutRef.current = setTimeout(() => {
         router.back();
-      }, 300);
+      }, 800);
     } catch (error) {
       console.error('Error saving mood:', error);
       router.back();
@@ -128,12 +146,25 @@ export default function LogMoodScreen() {
                 ]}
                 onPress={() => handleMoodSelect(mood.id)}
                 activeOpacity={0.7}
+                disabled={showConfirmation}
               >
                 <Text style={styles.moodEmoji}>{mood.emoji}</Text>
                 <Text style={styles.moodLabel}>{mood.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Confirmation message */}
+          {showConfirmation && selectedMood && (
+            <View style={styles.confirmationContainer}>
+              <Text style={styles.confirmationEmoji}>
+                {MOODS.find(m => m.id === selectedMood)?.emoji}
+              </Text>
+              <Text style={styles.confirmationText}>
+                Mood logged: {MOODS.find(m => m.id === selectedMood)?.label}
+              </Text>
+            </View>
+          )}
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
@@ -235,5 +266,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '500',
     color: Colors.textPrimary,
+  },
+  confirmationContainer: {
+    alignItems: 'center',
+    marginTop: 32,
+    paddingVertical: 24,
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.3)',
+  },
+  confirmationEmoji: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  confirmationText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#22c55e',
   },
 });

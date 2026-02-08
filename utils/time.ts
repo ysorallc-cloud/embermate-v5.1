@@ -60,11 +60,53 @@ export function formatMinutesToTime(minutes: number): string {
 
 /**
  * Format a time string to 12-hour format
+ * Returns empty string if invalid (use safeFormatTime for user-facing display)
  */
 export function formatTimeTo12Hour(time: string | undefined | null): string {
   const minutes = parseTimeToMinutes(time);
   if (minutes === null) return '';
   return formatMinutesToTime(minutes);
+}
+
+/**
+ * CANONICAL SAFE TIME FORMATTER
+ * Use this for all user-facing time displays.
+ * Handles: HH:mm, H:mm, ISO timestamps, invalid values
+ * Returns 'Time not set' for any invalid input - never NaN or undefined
+ */
+export function safeFormatTime(time: string | undefined | null): string {
+  if (!time || typeof time !== 'string') return 'Time not set';
+
+  const trimmed = time.trim();
+
+  // Handle ISO timestamp format (contains 'T')
+  if (trimmed.includes('T')) {
+    const date = new Date(trimmed);
+    if (isNaN(date.getTime())) return 'Time not set';
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+    return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+  }
+
+  // Handle HH:mm or H:mm format
+  const minutes = parseTimeToMinutes(trimmed);
+  if (minutes === null) return 'Time not set';
+  return formatMinutesToTime(minutes);
+}
+
+/**
+ * Validate and normalize a time string to HH:mm format
+ * Returns null if invalid
+ */
+export function validateAndNormalizeTime(time: string | undefined | null): string | null {
+  const minutes = parseTimeToMinutes(time);
+  if (minutes === null) return null;
+
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 }
 
 /**
