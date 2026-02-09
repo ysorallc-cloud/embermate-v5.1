@@ -25,8 +25,8 @@ export function generateCareInsight(
   const currentHour = now.getHours();
 
   // Calculate some useful metrics
-  const totalItems = stats.meds.total + stats.vitals.total + stats.mood.total + stats.meals.total;
-  const totalCompleted = stats.meds.completed + stats.vitals.completed + stats.mood.completed + stats.meals.completed;
+  const totalItems = stats.meds.total + stats.vitals.total + (stats.wellness?.total ?? 0) + stats.meals.total;
+  const totalCompleted = stats.meds.completed + stats.vitals.completed + (stats.wellness?.completed ?? 0) + stats.meals.completed;
   const completionRate = totalItems > 0 ? totalCompleted / totalItems : 0;
 
   // Check for vitals + medication dependency pattern
@@ -124,7 +124,7 @@ export function generateCareInsight(
   }
 
   // PATTERN AWARENESS: Mood affects medication adherence
-  if (stats.mood.total > 0 && stats.mood.completed > 0) {
+  if ((stats.wellness?.total ?? 0) > 0 && (stats.wellness?.completed ?? 0) > 0) {
     insights.push({
       icon: '😊',
       title: 'Mood tracking helps',
@@ -166,7 +166,7 @@ export function generateAIInsight(
   const currentHour = now.getHours();
   const insights: AIInsight[] = [];
 
-  const totalLogged = stats.meds.completed + stats.vitals.completed + stats.mood.completed + stats.meals.completed;
+  const totalLogged = stats.meds.completed + stats.vitals.completed + (stats.wellness?.completed ?? 0) + stats.meals.completed;
   const medsRemaining = stats.meds.total - stats.meds.completed;
 
   // REMINDER: Overdue items - highest priority
@@ -191,7 +191,7 @@ export function generateAIInsight(
 
   // CELEBRATION: Strong progress (legacy system)
   if (timelineCompleted === 0 && stats.meds.completed === stats.meds.total && stats.meds.total > 0 &&
-      stats.mood.completed > 0 && stats.meals.completed >= 3) {
+      (stats.wellness?.completed ?? 0) > 0 && stats.meals.completed >= 3) {
     insights.push({
       icon: '✓',
       title: 'All done for today',
@@ -253,7 +253,7 @@ export function generateAIInsight(
   }
 
   // SUGGESTION: Mood not logged
-  if (currentHour >= 14 && stats.mood.completed === 0) {
+  if (currentHour >= 14 && (stats.wellness?.completed ?? 0) === 0) {
     insights.push({
       icon: '😊',
       title: 'Mood not logged yet',
@@ -285,7 +285,7 @@ export function generateAIInsight(
   // POSITIVE: Good progress with items remaining
   const progressPercent = (stats.meds.total > 0 ? stats.meds.completed / stats.meds.total : 0) +
                          (stats.vitals.total > 0 ? stats.vitals.completed / stats.vitals.total : 0) +
-                         (stats.mood.total > 0 ? stats.mood.completed / stats.mood.total : 0) +
+                         ((stats.wellness?.total ?? 0) > 0 ? (stats.wellness?.completed ?? 0) / (stats.wellness?.total ?? 0) : 0) +
                          (stats.meals.total > 0 ? stats.meals.completed / stats.meals.total : 0);
   const avgProgress = progressPercent / 4;
   if (avgProgress >= 0.5 && timelineUpcoming > 0 && timelineOverdue === 0) {

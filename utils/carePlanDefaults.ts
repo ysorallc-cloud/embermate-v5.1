@@ -22,7 +22,7 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplateInfo[] = [
   {
     id: 'basic',
     name: 'Basic Daily Care',
-    description: 'Morning & evening routines with meds, meals, and mood tracking',
+    description: 'Morning & evening routines with meds, meals, and wellness tracking',
     emoji: '🌟',
   },
   {
@@ -101,7 +101,7 @@ export function generateDefaultCarePlan(): CarePlan {
 
 /**
  * Morning routine (6 AM - 10 AM)
- * Covers: medications, vitals, breakfast, mood check-in
+ * Covers: medications, vitals, breakfast, wellness check
  */
 function generateMorningRoutine(): CarePlanRoutine {
   return {
@@ -150,13 +150,13 @@ function generateMorningRoutine(): CarePlanRoutine {
         },
       },
       {
-        id: 'morning-mood',
-        type: 'mood',
-        label: 'Mood check-in',
-        emoji: '😊',
+        id: 'morning-wellness',
+        type: 'wellness',
+        label: 'Morning wellness check',
+        emoji: '🌅',
         target: 1,
         completionRule: 'derived',
-        link: '/log-mood',
+        link: '/log-morning-wellness',
       },
     ],
   };
@@ -249,13 +249,13 @@ function generateEveningRoutine(): CarePlanRoutine {
         },
       },
       {
-        id: 'evening-symptoms',
-        type: 'custom',
-        label: 'Symptoms check',
-        emoji: '🩺',
+        id: 'evening-wellness',
+        type: 'wellness',
+        label: 'Evening wellness check',
+        emoji: '🌅',
         target: 1,
-        completionRule: 'manual',
-        link: '/log-symptom',
+        completionRule: 'derived',
+        link: '/log-evening-wellness',
       },
     ],
   };
@@ -405,15 +405,6 @@ function generateEveningRoutineVitalsFocused(): CarePlanRoutine {
         link: '/log-meal',
         metadata: { mealTypes: ['Dinner'] },
       },
-      {
-        id: 'evening-mood',
-        type: 'mood',
-        label: 'End of day check-in',
-        emoji: '😊',
-        target: 1,
-        completionRule: 'derived',
-        link: '/log-mood',
-      },
     ],
   };
 }
@@ -530,13 +521,13 @@ function generateEveningRoutineMedHeavy(): CarePlanRoutine {
         metadata: { mealTypes: ['Dinner'] },
       },
       {
-        id: 'evening-symptoms',
-        type: 'custom',
-        label: 'Side effects check',
-        emoji: '🩺',
+        id: 'evening-wellness',
+        type: 'wellness',
+        label: 'Evening wellness check',
+        emoji: '🌅',
         target: 1,
-        completionRule: 'manual',
-        link: '/log-symptom',
+        completionRule: 'derived',
+        link: '/log-evening-wellness',
       },
     ],
   };
@@ -633,15 +624,6 @@ export const ITEM_TYPE_OPTIONS: ItemTypeOption[] = [
     description: 'Breakfast, lunch, dinner, snacks',
   },
   {
-    type: 'mood',
-    label: 'Mood',
-    emoji: '😊',
-    defaultTarget: 1,
-    targetType: 'done',
-    link: '/log-mood',
-    description: 'How are they feeling?',
-  },
-  {
     type: 'hydration',
     label: 'Hydration',
     emoji: '💧',
@@ -651,13 +633,13 @@ export const ITEM_TYPE_OPTIONS: ItemTypeOption[] = [
     description: 'Water intake (glasses)',
   },
   {
-    type: 'custom',
-    label: 'Symptoms',
-    emoji: '🩺',
+    type: 'wellness',
+    label: 'Wellness',
+    emoji: '🌅',
     defaultTarget: 1,
     targetType: 'done',
-    link: '/log-symptom',
-    description: 'Track symptoms or side effects',
+    link: '/log-morning-wellness',
+    description: 'Morning or evening wellness check-in',
   },
   {
     type: 'custom',
@@ -759,7 +741,7 @@ export function getSuggestedRoutines(): { id: string; name: string; emoji: strin
       id: 'midday',
       name: 'Midday Check-in',
       emoji: '☀️',
-      description: 'Lunch, hydration, mood check',
+      description: 'Lunch, hydration, wellness check',
     },
     {
       id: 'evening',
@@ -801,11 +783,6 @@ export function getSuggestedItems(type: CarePlanItem['type']): Partial<CarePlanI
         { label: 'Lunch', emoji: '🥗', target: 1 },
         { label: 'Dinner', emoji: '🍽️', target: 1 },
         { label: 'Snack', emoji: '🍎', target: 1 },
-      ];
-    case 'mood':
-      return [
-        { label: 'Mood check-in', emoji: '😊', target: 1 },
-        { label: 'Energy level', emoji: '⚡', target: 1 },
       ];
     case 'hydration':
       return [

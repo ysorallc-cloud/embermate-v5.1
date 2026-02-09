@@ -60,9 +60,8 @@ function buildConfig(overrides: {
     config.meals.timesOfDay = ['morning', 'midday', 'evening'];
   }
 
-  if (overrides.mood) {
-    config.mood.enabled = true;
-    config.mood.timesOfDay = ['morning'];
+  if ((overrides as any).mood) {
+    (config as any).mood = { enabled: true, timesOfDay: ['morning'], priority: 'recommended' };
   }
 
   if (overrides.meds) {

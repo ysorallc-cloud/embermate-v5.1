@@ -38,17 +38,15 @@ interface RingItem {
 const BUCKET_RING_MAP: Record<string, Omit<RingItem, 'bucket'>> = {
   meds:      { icon: '💊', label: 'Meds',     statKey: 'meds',     itemType: 'medication' },
   vitals:    { icon: '📊', label: 'Vitals',   statKey: 'vitals',   itemType: 'vitals' },
-  mood:      { icon: '😊', label: 'Mood',     statKey: 'mood',     itemType: 'mood' },
   meals:     { icon: '🍽️', label: 'Meals',    statKey: 'meals',    itemType: 'nutrition' },
   water:     { icon: '💧', label: 'Water',    statKey: 'water',    itemType: 'hydration' },
   sleep:     { icon: '😴', label: 'Sleep',    statKey: 'sleep',    itemType: 'sleep' },
-  symptoms:  { icon: '🩺', label: 'Symptoms', statKey: 'symptoms', itemType: 'symptoms' },
   activity:  { icon: '🚶', label: 'Activity', statKey: 'activity', itemType: 'activity' },
   wellness:  { icon: '🌅', label: 'Wellness', statKey: 'wellness', itemType: 'wellness' },
 };
 
 // Default buckets shown when none are enabled (backwards compat)
-const DEFAULT_BUCKETS: BucketType[] = ['meds', 'vitals', 'mood', 'meals'];
+const DEFAULT_BUCKETS: BucketType[] = ['meds', 'vitals', 'meals', 'wellness'];
 
 const ITEMS_PER_PAGE = 4;
 

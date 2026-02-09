@@ -25,11 +25,11 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
     category: 'core',
   },
   {
-    id: 'mood',
-    icon: '😊',
-    label: 'Mood',
-    description: 'How are they feeling?',
-    screen: '/log-mood',
+    id: 'wellness',
+    icon: '🌅',
+    label: 'Wellness',
+    description: 'Morning or evening check-in',
+    screen: '/log-morning-wellness',
     isCore: true,
     category: 'core',
   },
@@ -44,15 +44,6 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
   },
 
   // MORE OPTIONS
-  {
-    id: 'symptom',
-    icon: '🩹',
-    label: 'Symptom',
-    description: 'Pain, nausea, dizziness...',
-    screen: '/log-symptom',
-    isCore: false,
-    category: 'health',
-  },
   {
     id: 'note',
     icon: '📝',

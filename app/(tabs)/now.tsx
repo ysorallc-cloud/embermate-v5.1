@@ -19,7 +19,6 @@ import { getUpcomingAppointments, Appointment } from '../../utils/appointmentSto
 import { getDailyTracking } from '../../utils/dailyTrackingStorage';
 import {
   getTodayVitalsLog,
-  getTodayMoodLog,
   getTodayMealsLog,
 } from '../../utils/centralStorage';
 import { recordVisit } from '../../utils/lastVisitTracker';
@@ -142,7 +141,6 @@ export default function NowScreen() {
   const [legacyStats, setLegacyStats] = useState<TodayStats>({
     meds: { completed: 0, total: 0 },
     vitals: { completed: 0, total: 4 },
-    mood: { completed: 0, total: 1 },
     meals: { completed: 0, total: 3 },
   });
 
@@ -160,17 +158,15 @@ export default function NowScreen() {
       const stats: TodayStats = {
         meds: getTypeStats('medication'),
         vitals: getTypeStats('vitals'),
-        mood: getTypeStats('mood'),
         meals: getTypeStats('nutrition'),
         water: getTypeStats('hydration'),
         sleep: getTypeStats('sleep'),
-        symptoms: getTypeStats('symptoms'),
         activity: getTypeStats('activity'),
         wellness: getTypeStats('wellness'),
       };
 
       const hasAnyInstanceData = stats.meds.total > 0 || stats.vitals.total > 0 ||
-                                  stats.mood.total > 0 || stats.meals.total > 0;
+                                  stats.meals.total > 0;
       if (hasAnyInstanceData) {
         return stats;
       }
@@ -342,20 +338,15 @@ export default function NowScreen() {
       const mealsLog = await getTodayMealsLog();
       const mealsLogged = mealsLog?.meals?.length || 0;
 
-      const moodLog = await getTodayMoodLog();
-      const moodLogged = moodLog?.mood !== null && moodLog?.mood !== undefined ? 1 : 0;
-
       // Legacy stats fallback — only used when no regimen instances exist
       const legacyStatsUpdate: TodayStats = {
         meds: { completed: takenMeds, total: totalMeds },
         vitals: { completed: vitalsLogged, total: 4 },
-        mood: { completed: moodLogged, total: 1 },
         meals: { completed: mealsLogged, total: 4 },
       };
       setLegacyStats(legacyStatsUpdate);
 
-      const currentMoodLevel = moodLog?.mood ?? null;
-      await prompts.computePrompts(legacyStatsUpdate, currentMoodLevel);
+      await prompts.computePrompts(legacyStatsUpdate, null);
 
       // Load baselines
       await prompts.loadBaselines();

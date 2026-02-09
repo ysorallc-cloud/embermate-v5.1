@@ -223,7 +223,6 @@ export function useNowPrompts(todayStats: TodayStats, dailyTracking: any) {
       const pendingCount =
         (stats.meds.total - stats.meds.completed) +
         (stats.vitals.total - stats.vitals.completed) +
-        (stats.mood.total - stats.mood.completed) +
         (stats.meals.total - stats.meals.completed);
 
       const overdueCount = pendingCount;
@@ -232,10 +231,9 @@ export function useNowPrompts(todayStats: TodayStats, dailyTracking: any) {
       const allComplete =
         stats.meds.completed >= stats.meds.total &&
         stats.vitals.completed >= stats.vitals.total &&
-        stats.mood.completed >= stats.mood.total &&
         stats.meals.completed >= stats.meals.total;
 
-      if (allComplete && stats.meds.total + stats.vitals.total + stats.mood.total + stats.meals.total > 0) {
+      if (allComplete && stats.meds.total + stats.vitals.total + stats.meals.total > 0) {
         const closure = getClosurePrompt();
         setClosureMessage(closure.message);
         setShowClosure(true);

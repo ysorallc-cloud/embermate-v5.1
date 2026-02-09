@@ -40,7 +40,7 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
     name: 'Aging in Place',
     description: 'Medication adherence, vitals monitoring, nutrition, and appointment tracking for elderly care.',
     emoji: '\u{1F3E0}',
-    enabledBuckets: ['meds', 'vitals', 'meals', 'mood', 'symptoms', 'appointments'],
+    enabledBuckets: ['meds', 'vitals', 'meals', 'wellness', 'appointments'],
     suggestedSettings: {
       meds: {
         priority: 'required',
@@ -57,12 +57,9 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
         timesOfDay: ['morning', 'midday', 'evening'],
         trackingStyle: 'quick',
       },
-      mood: {
+      wellness: {
         priority: 'recommended',
-        timesOfDay: ['morning'],
-      },
-      symptoms: {
-        priority: 'recommended',
+        timesOfDay: ['morning', 'evening'],
       },
       appointments: {
         priority: 'recommended',
@@ -74,7 +71,7 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
     name: 'Post-Surgical Recovery',
     description: 'Pain tracking, medication timing, activity progression, and vitals for post-op recovery.',
     emoji: '\u{1FA79}',
-    enabledBuckets: ['meds', 'vitals', 'symptoms', 'activity', 'meals'],
+    enabledBuckets: ['meds', 'vitals', 'wellness', 'activity', 'meals'],
     suggestedSettings: {
       meds: {
         priority: 'required',
@@ -86,7 +83,7 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
         vitalTypes: ['bp', 'hr', 'temp'],
         frequency: 'daily',
       },
-      symptoms: {
+      wellness: {
         priority: 'required',
         timesOfDay: ['morning', 'evening'],
       },
@@ -104,9 +101,9 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
   {
     id: 'chronic-illness',
     name: 'Chronic Illness',
-    description: 'Ongoing symptom patterns, medication management, mood tracking, and care team coordination.',
+    description: 'Medication management, vitals, wellness tracking, and care team coordination for chronic conditions.',
     emoji: '\u{1F4CB}',
-    enabledBuckets: ['meds', 'vitals', 'mood', 'symptoms', 'appointments'],
+    enabledBuckets: ['meds', 'vitals', 'wellness', 'appointments'],
     suggestedSettings: {
       meds: {
         priority: 'required',
@@ -118,12 +115,8 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
         vitalTypes: ['bp', 'hr'],
         frequency: 'daily',
       },
-      mood: {
+      wellness: {
         priority: 'recommended',
-        timesOfDay: ['morning', 'evening'],
-      },
-      symptoms: {
-        priority: 'required',
         timesOfDay: ['morning', 'evening'],
       },
       appointments: {
@@ -134,9 +127,9 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
   {
     id: 'general-wellness',
     name: 'General Wellness',
-    description: 'Balanced daily tracking for nutrition, hydration, mood, sleep, and activity.',
+    description: 'Balanced daily tracking for nutrition, hydration, wellness, sleep, and activity.',
     emoji: '\u{2728}',
-    enabledBuckets: ['meals', 'water', 'mood', 'sleep', 'activity'],
+    enabledBuckets: ['meals', 'water', 'wellness', 'sleep', 'activity'],
     suggestedSettings: {
       meals: {
         priority: 'recommended',
@@ -147,7 +140,7 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
         priority: 'recommended',
         dailyGoalGlasses: 8,
       },
-      mood: {
+      wellness: {
         priority: 'recommended',
         timesOfDay: ['morning', 'evening'],
       },

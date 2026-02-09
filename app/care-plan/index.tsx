@@ -231,14 +231,8 @@ export default function CarePlanHomeScreen() {
       case 'water':
         router.push('/care-plan/water' as any);
         break;
-      case 'mood':
-        router.push('/care-plan/mood' as any);
-        break;
       case 'sleep':
         router.push('/care-plan/sleep' as any);
-        break;
-      case 'symptoms':
-        router.push('/care-plan/symptoms' as any);
         break;
       case 'activity':
         router.push('/care-plan/activity' as any);

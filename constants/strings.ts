@@ -26,8 +26,7 @@ export const AppStrings = {
   categories: {
     meds: 'Meds',
     vitals: 'Vitals',
-    symptoms: 'Symptoms',
-    mood: 'Mood',
+    wellness: 'Wellness',
     sleep: 'Sleep',
     food: 'Food',
     water: 'Water',
@@ -66,7 +65,6 @@ export const AppStrings = {
   empty: {
     noMedications: 'No medications added yet',
     noVitals: 'No vitals recorded today',
-    noSymptoms: 'No symptoms logged',
     noInsights: 'Keep logging to discover patterns',
     noCareTeam: 'Invite family and healthcare providers',
   },

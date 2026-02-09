@@ -60,9 +60,10 @@ const ITEM_TYPE_ROUTES: Record<CarePlanItemType, string> = {
   meds: '/medications',  // Route to canonical medications screen
   vitals: '/log-vitals',
   meals: '/log-meal',
-  mood: '/log-mood',
+  mood: '/log-morning-wellness',  // Mood captured within wellness checks
   sleep: '/log-sleep',
   hydration: '/log-water',
+  wellness: '/log-morning-wellness',
   appointment: '/appointments',  // Route to canonical appointments screen
   custom: '/daily-checkin',
 };

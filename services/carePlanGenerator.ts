@@ -209,7 +209,7 @@ async function syncMedicationItemsWithConfig(
 }
 
 /**
- * Sync CarePlanItems with other bucket types (vitals, mood, meals)
+ * Sync CarePlanItems with other bucket types (vitals, meals, wellness)
  * Creates items when bucket is enabled, deactivates when disabled
  * IMPORTANT: Only creates items if NONE of that type exist (to prevent duplicates)
  * @returns true if any changes were made
@@ -275,47 +275,14 @@ async function syncOtherBucketsWithConfig(
       }
     }
 
-    // ===== MOOD SYNC =====
-    const moodConfig = config.mood as BucketConfig;
-    const moodEnabled = moodConfig?.enabled;
+    // ===== MOOD CLEANUP =====
+    // Mood check-ins are now captured within wellness checks (morning + evening).
+    // Deactivate any existing standalone mood items.
     const existingMoodItems = allItems.filter(i => i.type === 'mood');
-    const hasActiveMoodItem = existingMoodItems.some(i => i.active);
-
-    if (moodEnabled && existingMoodItems.length === 0) {
-      // Only create if NO mood items exist at all
-      const moodTimesOfDay = moodConfig.timesOfDay || ['morning'];
-      const times: TimeWindow[] = moodTimesOfDay.map(tod => ({
-        id: generateUniqueId(),
-        kind: 'exact' as const,
-        label: TIME_OF_DAY_TO_WINDOW[tod as TimeOfDay],
-        at: TIME_OF_DAY_DEFAULTS[tod as TimeOfDay] || '08:00',
-      }));
-
-      const moodItem: CarePlanItem = {
-        id: generateUniqueId(),
-        carePlanId,
-        type: 'mood',
-        name: 'Mood check-in',
-        priority: moodConfig.priority || 'recommended',
-        active: true,
-        schedule: { frequency: 'daily', times },
-        emoji: '😊',
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      if (__DEV__) {
-        console.log('[syncOtherBucketsWithConfig] Creating mood CarePlanItem');
-      }
-      await upsertCarePlanItem(moodItem);
-      changed = true;
-    } else if (!moodEnabled && hasActiveMoodItem) {
-      // Deactivate all mood items
-      for (const item of existingMoodItems) {
-        if (item.active) {
-          await upsertCarePlanItem({ ...item, active: false });
-          changed = true;
-        }
+    for (const item of existingMoodItems) {
+      if (item.active) {
+        await upsertCarePlanItem({ ...item, active: false });
+        changed = true;
       }
     }
 
@@ -377,12 +344,12 @@ async function syncOtherBucketsWithConfig(
     // Wellness is always-on — not gated by bucket enabled flag
     const existingWellnessItems = allItems.filter(i => i.type === 'wellness');
     if (existingWellnessItems.length === 0) {
-      // Create "Morning check-in" item
+      // Create "Morning wellness check" item
       const morningItem: CarePlanItem = {
         id: generateUniqueId(),
         carePlanId,
         type: 'wellness',
-        name: 'Morning check-in',
+        name: 'Morning wellness check',
         priority: 'recommended',
         active: true,
         schedule: {
@@ -399,12 +366,12 @@ async function syncOtherBucketsWithConfig(
         updatedAt: now,
       };
 
-      // Create "Evening check-in" item
+      // Create "Evening wellness check" item
       const eveningItem: CarePlanItem = {
         id: generateUniqueId(),
         carePlanId,
         type: 'wellness',
-        name: 'Evening check-in',
+        name: 'Evening wellness check',
         priority: 'recommended',
         active: true,
         schedule: {
@@ -427,6 +394,18 @@ async function syncOtherBucketsWithConfig(
       await upsertCarePlanItem(morningItem);
       await upsertCarePlanItem(eveningItem);
       changed = true;
+    } else {
+      // Migrate existing items from old names to standardized "wellness check" naming
+      for (const item of existingWellnessItems) {
+        const oldName = item.name.toLowerCase();
+        let newName: string | null = null;
+        if (oldName === 'morning check-in') newName = 'Morning wellness check';
+        else if (oldName === 'evening check-in') newName = 'Evening wellness check';
+        if (newName && item.name !== newName) {
+          await upsertCarePlanItem({ ...item, name: newName, updatedAt: now });
+          changed = true;
+        }
+      }
     }
 
   } catch (error) {

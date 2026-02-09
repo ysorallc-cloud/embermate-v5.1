@@ -17,9 +17,7 @@ export type BucketType =
   | 'vitals'
   | 'meals'
   | 'water'
-  | 'mood'
   | 'sleep'
-  | 'symptoms'
   | 'activity'
   | 'wellness'
   | 'appointments';
@@ -29,19 +27,17 @@ export const BUCKET_TYPES: BucketType[] = [
   'vitals',
   'meals',
   'water',
-  'mood',
   'sleep',
-  'symptoms',
   'activity',
   'wellness',
   'appointments',
 ];
 
 // Primary buckets shown by default
-export const PRIMARY_BUCKETS: BucketType[] = ['meds', 'vitals', 'meals', 'water', 'mood', 'wellness'];
+export const PRIMARY_BUCKETS: BucketType[] = ['meds', 'vitals', 'meals', 'water', 'wellness'];
 
 // Secondary buckets hidden behind "More" initially
-export const SECONDARY_BUCKETS: BucketType[] = ['sleep', 'symptoms', 'activity'];
+export const SECONDARY_BUCKETS: BucketType[] = ['sleep', 'activity'];
 
 // Appointments is optional/separate
 export const OPTIONAL_BUCKETS: BucketType[] = ['appointments'];
@@ -87,26 +83,12 @@ export const BUCKET_META: Record<BucketType, BucketMeta> = {
     aiInsight: 'Supports hydration goals and explains fatigue or headaches.',
     route: '/log-water',
   },
-  mood: {
-    type: 'mood',
-    name: 'Mood',
-    emoji: '😊',
-    aiInsight: 'Creates context for why today felt harder without overthinking.',
-    route: '/log-mood',
-  },
   sleep: {
     type: 'sleep',
     name: 'Sleep',
     emoji: '😴',
     aiInsight: 'Links rest quality to symptoms and energy.',
     route: '/log-sleep',
-  },
-  symptoms: {
-    type: 'symptoms',
-    name: 'Symptoms',
-    emoji: '🩺',
-    aiInsight: 'Captures patterns that help doctors understand the full picture.',
-    route: '/log-symptom',
   },
   activity: {
     type: 'activity',
@@ -351,9 +333,7 @@ export interface CarePlanConfig {
   vitals: VitalsBucketConfig;
   meals: MealsBucketConfig;
   water: WaterBucketConfig;
-  mood: BucketConfig;
   sleep: BucketConfig;
-  symptoms: BucketConfig;
   activity: BucketConfig;
   wellness: BucketConfig;
   appointments: BucketConfig;
@@ -406,9 +386,7 @@ export function createDefaultCarePlanConfig(patientId: string): CarePlanConfig {
     vitals: { ...DEFAULT_VITALS_CONFIG },
     meals: { ...DEFAULT_MEALS_CONFIG },
     water: { ...DEFAULT_WATER_CONFIG },
-    mood: { ...DEFAULT_BUCKET_CONFIG },
     sleep: { ...DEFAULT_BUCKET_CONFIG },
-    symptoms: { ...DEFAULT_BUCKET_CONFIG },
     activity: { ...DEFAULT_BUCKET_CONFIG },
     wellness: { ...DEFAULT_BUCKET_CONFIG, enabled: true, priority: 'recommended', timesOfDay: ['morning', 'evening'] },
     appointments: { ...DEFAULT_BUCKET_CONFIG },

@@ -23,11 +23,9 @@ export interface StatData {
 export interface TodayStats {
   meds: StatData;
   vitals: StatData;
-  mood: StatData;
   meals: StatData;
   water?: StatData;
   sleep?: StatData;
-  symptoms?: StatData;
   activity?: StatData;
   wellness?: StatData;
 }

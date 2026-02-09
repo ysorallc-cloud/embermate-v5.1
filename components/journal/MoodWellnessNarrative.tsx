@@ -16,37 +16,33 @@ export function MoodWellnessNarrative({ mood }: Props) {
   // Morning wellness
   if (mood.morningWellness) {
     const mw = mood.morningWellness;
-    let morningText = `Morning check-in: Sleep ${mw.sleepQuality}/5, Mood ${mw.mood}.`;
+    let morningText = `Morning wellness check: Sleep ${mw.sleepQuality}/5, Mood ${mw.mood}.`;
     if (mw.orientation && mw.orientation !== 'Alert & Oriented') {
-      morningText = `Morning check-in: Sleep ${mw.sleepQuality}/5, Mood ${mw.mood}. Orientation: ${mw.orientation}.`;
+      morningText = `Morning wellness check: Sleep ${mw.sleepQuality}/5, Mood ${mw.mood}. Orientation: ${mw.orientation}.`;
     }
     parts.push(
       <Text key="morning" style={styles.narrative}>{morningText}</Text>
     );
   }
 
-  // Mood entries (trajectory if multiple)
-  const nonWellnessEntries = mood.entries.filter(e => e.source === 'mood-log');
-  if (nonWellnessEntries.length === 1) {
-    parts.push(
-      <Text key="mood-single" style={styles.narrative}>
-        Mood check-in: <Text style={styles.bold}>{nonWellnessEntries[0].label}</Text>.
-      </Text>
-    );
-  } else if (nonWellnessEntries.length > 1) {
-    const first = nonWellnessEntries[0].label;
-    const last = nonWellnessEntries[nonWellnessEntries.length - 1].label;
-    parts.push(
-      <Text key="mood-multi" style={styles.narrative}>
-        Mood check-ins: <Text style={styles.bold}>{first} {'\u2192'} {last}</Text>.
-      </Text>
-    );
+  // Mood trajectory from wellness checks
+  const wellnessMoodEntries = mood.entries.filter(e => e.source === 'morning-wellness' || e.source === 'evening-wellness');
+  if (wellnessMoodEntries.length > 1) {
+    const first = wellnessMoodEntries[0].label;
+    const last = wellnessMoodEntries[wellnessMoodEntries.length - 1].label;
+    if (first !== last) {
+      parts.push(
+        <Text key="mood-arc" style={styles.narrative}>
+          Mood: <Text style={styles.bold}>{first} {'\u2192'} {last}</Text>.
+        </Text>
+      );
+    }
   }
 
   // Evening wellness
   if (mood.eveningWellness) {
     const ew = mood.eveningWellness;
-    let eveningText = `Evening check-in: Day rated ${ew.dayRating}/5.`;
+    let eveningText = `Evening wellness check: Day rated ${ew.dayRating}/5.`;
     if (ew.painLevel && ew.painLevel !== 'None') {
       eveningText += ` Pain: ${ew.painLevel}.`;
     }
@@ -56,7 +52,7 @@ export function MoodWellnessNarrative({ mood }: Props) {
   } else if (new Date().getHours() >= 20) {
     parts.push(
       <Text key="no-evening" style={[styles.narrative, styles.muted]}>
-        No evening check-in yet.
+        No evening wellness check yet.
       </Text>
     );
   }

@@ -92,9 +92,7 @@ const BUCKET_CONFIG_ROUTES: Record<BucketType, string> = {
   vitals: '/care-plan/vitals',
   meals: '/care-plan/meals',
   water: '/care-plan/water',
-  mood: '/care-plan/mood',
   sleep: '/care-plan/sleep',
-  symptoms: '/care-plan/symptoms',
   activity: '/care-plan/activity',
   wellness: '/log-morning-wellness',
   appointments: '/appointments',
@@ -299,33 +297,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
       }
     }
 
-    // 5. MOOD - Generate prompts based on timesOfDay
-    if (enabledBuckets.includes('mood')) {
-      const moodConfig = config.mood;
-      const times = moodConfig?.timesOfDay;
-
-      // Only add items if mood is configured (has times set)
-      if (times && times.length > 0) {
-        for (const tod of times) {
-          const time = TIME_OF_DAY_DEFAULTS[tod] || '08:00';
-          items.push({
-            id: `mood-${tod}`,
-            bucket: 'mood',
-            label: 'Mood check-in',
-            emoji: '😊',
-            time,
-            timeDisplay: formatTimeForDisplay(time),
-            timeOfDay: tod,
-            route: '/log-mood',
-            status: 'pending',
-            statusText: 'Tap to log',
-          });
-        }
-        bucketsWithItemsSet.add('mood');
-      }
-    }
-
-    // 6. Generate placeholders for enabled buckets that have no items
+    // 5. Generate placeholders for enabled buckets that have no items
     const placeholdersList: BucketPlaceholder[] = [];
     for (const bucket of enabledBuckets) {
       if (!bucketsWithItemsSet.has(bucket)) {
