@@ -4,28 +4,30 @@
 // ============================================================================
 
 import { buildTodaySummary, TodaySummary } from '../careSummaryBuilder';
-import { getMedications } from '../medicationStorage';
 import { getMorningWellness, getEveningWellness } from '../wellnessCheckStorage';
-import { getLogEventsByDate } from '../logEvents';
 import { getUpcomingAppointments } from '../appointmentStorage';
+import { getTodayVitalsLog, getMealsLogs } from '../centralStorage';
+import { listDailyInstances } from '../../storage/carePlanRepo';
 
-jest.mock('../medicationStorage');
 jest.mock('../wellnessCheckStorage');
-jest.mock('../logEvents');
 jest.mock('../appointmentStorage');
+jest.mock('../centralStorage');
+jest.mock('../../storage/carePlanRepo');
 
-const mockGetMedications = getMedications as jest.Mock;
 const mockGetMorningWellness = getMorningWellness as jest.Mock;
 const mockGetEveningWellness = getEveningWellness as jest.Mock;
-const mockGetLogEventsByDate = getLogEventsByDate as jest.Mock;
 const mockGetUpcomingAppointments = getUpcomingAppointments as jest.Mock;
+const mockGetTodayVitalsLog = getTodayVitalsLog as jest.Mock;
+const mockGetMealsLogs = getMealsLogs as jest.Mock;
+const mockListDailyInstances = listDailyInstances as jest.Mock;
 
 function setupDefaults() {
-  mockGetMedications.mockResolvedValue([]);
+  mockListDailyInstances.mockResolvedValue([]);
   mockGetMorningWellness.mockResolvedValue(null);
   mockGetEveningWellness.mockResolvedValue(null);
-  mockGetLogEventsByDate.mockResolvedValue([]);
   mockGetUpcomingAppointments.mockResolvedValue([]);
+  mockGetTodayVitalsLog.mockResolvedValue(null);
+  mockGetMealsLogs.mockResolvedValue([]);
 }
 
 describe('careSummaryBuilder — buildTodaySummary', () => {
@@ -40,17 +42,17 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
   });
 
   // ==========================================================================
-  // MEDICATION ADHERENCE
+  // MEDICATION ADHERENCE (from DailyCareInstances)
   // ==========================================================================
 
   describe('medsAdherence', () => {
-    it('should count taken vs total active medications', async () => {
-      mockGetMedications.mockResolvedValue([
-        { id: '1', name: 'Aspirin', active: true, taken: true },
-        { id: '2', name: 'Lisinopril', active: true, taken: false },
-        { id: '3', name: 'Metformin', active: true, taken: true },
-        { id: '4', name: 'Warfarin', active: true, taken: false },
-        { id: '5', name: 'Vitamin D', active: true, taken: true },
+    it('should count taken vs total medication instances', async () => {
+      mockListDailyInstances.mockResolvedValue([
+        { id: '1', itemType: 'medication', itemName: 'Aspirin', status: 'completed', scheduledTime: '2025-01-15T08:00:00.000Z' },
+        { id: '2', itemType: 'medication', itemName: 'Lisinopril', status: 'pending', scheduledTime: '2025-01-15T08:00:00.000Z' },
+        { id: '3', itemType: 'medication', itemName: 'Metformin', status: 'completed', scheduledTime: '2025-01-15T12:00:00.000Z' },
+        { id: '4', itemType: 'medication', itemName: 'Warfarin', status: 'pending', scheduledTime: '2025-01-15T18:00:00.000Z' },
+        { id: '5', itemType: 'medication', itemName: 'Vitamin D', status: 'completed', scheduledTime: '2025-01-15T08:00:00.000Z' },
       ]);
 
       const summary = await buildTodaySummary();
@@ -58,18 +60,19 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
       expect(summary.medsAdherence.total).toBe(5);
     });
 
-    it('should return 0/0 when no active medications', async () => {
-      mockGetMedications.mockResolvedValue([]);
+    it('should return 0/0 when no medication instances', async () => {
+      mockListDailyInstances.mockResolvedValue([]);
 
       const summary = await buildTodaySummary();
       expect(summary.medsAdherence.taken).toBe(0);
       expect(summary.medsAdherence.total).toBe(0);
     });
 
-    it('should exclude inactive medications', async () => {
-      mockGetMedications.mockResolvedValue([
-        { id: '1', name: 'Aspirin', active: true, taken: true },
-        { id: '2', name: 'OldMed', active: false, taken: false },
+    it('should exclude non-medication instances from med count', async () => {
+      mockListDailyInstances.mockResolvedValue([
+        { id: '1', itemType: 'medication', itemName: 'Aspirin', status: 'completed', scheduledTime: '2025-01-15T08:00:00.000Z' },
+        { id: '2', itemType: 'vitals', itemName: 'Blood Pressure', status: 'completed', scheduledTime: '2025-01-15T08:00:00.000Z' },
+        { id: '3', itemType: 'mood', itemName: 'Mood Check', status: 'pending', scheduledTime: '2025-01-15T12:00:00.000Z' },
       ]);
 
       const summary = await buildTodaySummary();
@@ -125,15 +128,15 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
     });
   });
 
-  describe('appetite from last meal', () => {
-    it('should use appetite from the last meal event', async () => {
-      mockGetLogEventsByDate.mockResolvedValue([
-        { type: 'meal', mealType: 'Breakfast', appetite: 'good' },
-        { type: 'meal', mealType: 'Lunch', appetite: 'poor' },
+  describe('appetite from last centralStorage meal', () => {
+    it('should use appetite from the most recent meal log today', async () => {
+      mockGetMealsLogs.mockResolvedValue([
+        { id: '1', timestamp: '2025-01-15T12:00:00.000Z', meals: ['Lunch'], appetite: 'poor' },
+        { id: '2', timestamp: '2025-01-15T08:00:00.000Z', meals: ['Breakfast'], appetite: 'good' },
       ]);
 
       const summary = await buildTodaySummary();
-      expect(summary.appetite).toBe('Poor'); // last meal
+      expect(summary.appetite).toBe('Poor'); // first in list (newest first)
     });
 
     it('should return null when no meals logged', async () => {
@@ -173,10 +176,10 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
 
   describe('flaggedItems', () => {
     it('should flag unlogged medications', async () => {
-      mockGetMedications.mockResolvedValue([
-        { id: '1', name: 'Aspirin', active: true, taken: false },
-        { id: '2', name: 'Lisinopril', active: true, taken: false },
-        { id: '3', name: 'Metformin', active: true, taken: true },
+      mockListDailyInstances.mockResolvedValue([
+        { id: '1', itemType: 'medication', itemName: 'Aspirin', status: 'pending', scheduledTime: '2025-01-15T08:00:00.000Z' },
+        { id: '2', itemType: 'medication', itemName: 'Lisinopril', status: 'pending', scheduledTime: '2025-01-15T08:00:00.000Z' },
+        { id: '3', itemType: 'medication', itemName: 'Metformin', status: 'completed', scheduledTime: '2025-01-15T08:00:00.000Z' },
       ]);
 
       const summary = await buildTodaySummary();
@@ -202,8 +205,8 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
     });
 
     it('should flag poor or refused appetite', async () => {
-      mockGetLogEventsByDate.mockResolvedValue([
-        { type: 'meal', mealType: 'Lunch', appetite: 'refused' },
+      mockGetMealsLogs.mockResolvedValue([
+        { id: '1', timestamp: '2025-01-15T12:00:00.000Z', meals: ['Lunch'], appetite: 'refused' },
       ]);
 
       const summary = await buildTodaySummary();
@@ -211,8 +214,8 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
     });
 
     it('should flag all issues when all are present', async () => {
-      mockGetMedications.mockResolvedValue([
-        { id: '1', name: 'Aspirin', active: true, taken: false },
+      mockListDailyInstances.mockResolvedValue([
+        { id: '1', itemType: 'medication', itemName: 'Aspirin', status: 'pending', scheduledTime: '2025-01-15T08:00:00.000Z' },
       ]);
       mockGetMorningWellness.mockResolvedValue({
         orientation: 'confused-responsive',
@@ -220,8 +223,8 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
       mockGetEveningWellness.mockResolvedValue({
         painLevel: 'severe',
       });
-      mockGetLogEventsByDate.mockResolvedValue([
-        { type: 'meal', mealType: 'Lunch', appetite: 'poor' },
+      mockGetMealsLogs.mockResolvedValue([
+        { id: '1', timestamp: '2025-01-15T12:00:00.000Z', meals: ['Lunch'], appetite: 'poor' },
       ]);
 
       const summary = await buildTodaySummary();
@@ -233,8 +236,8 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
     });
 
     it('should have empty flaggedItems when everything is normal', async () => {
-      mockGetMedications.mockResolvedValue([
-        { id: '1', name: 'Aspirin', active: true, taken: true },
+      mockListDailyInstances.mockResolvedValue([
+        { id: '1', itemType: 'medication', itemName: 'Aspirin', status: 'completed', scheduledTime: '2025-01-15T08:00:00.000Z' },
       ]);
       mockGetMorningWellness.mockResolvedValue({
         orientation: 'alert-oriented',
@@ -242,8 +245,8 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
       mockGetEveningWellness.mockResolvedValue({
         painLevel: 'mild',
       });
-      mockGetLogEventsByDate.mockResolvedValue([
-        { type: 'meal', mealType: 'Lunch', appetite: 'good' },
+      mockGetMealsLogs.mockResolvedValue([
+        { id: '1', timestamp: '2025-01-15T12:00:00.000Z', meals: ['Lunch'], appetite: 'good' },
       ]);
 
       const summary = await buildTodaySummary();

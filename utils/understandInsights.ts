@@ -7,7 +7,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { detectCorrelations, DetectedPattern, hasSufficientData } from './correlationDetector';
 import { getAllInsights, InsightData } from './insightEngine';
-import { getMedicationLogs } from './medicationStorage';
+
 import { getDailyTrackingLogs } from './dailyTrackingStorage';
 import { getAllBaselines } from './baselineStorage';
 import { listLogsInRange, listCarePlanItems, getActiveCarePlan, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
@@ -208,7 +208,8 @@ function correlationConfidenceToLevel(confidence: 'low' | 'moderate' | 'high'): 
 async function generateStandOutInsights(
   correlations: DetectedPattern[],
   engineInsights: InsightData[],
-  timeRange: TimeRange
+  timeRange: TimeRange,
+  daysOfData: number
 ): Promise<StandOutInsight[]> {
   const insights: StandOutInsight[] = [];
 
@@ -227,7 +228,7 @@ async function generateStandOutInsights(
 
   // Add engine insights if they're meaningful
   for (const insight of engineInsights.slice(0, 1)) {
-    const text = generateHumanReadableEngineInsight(insight, timeRange);
+    const text = generateHumanReadableEngineInsight(insight, timeRange, daysOfData);
     if (text) {
       insights.push({
         id: `engine-${insight.id}`,
@@ -275,17 +276,22 @@ function generateHumanReadableCorrelation(pattern: DetectedPattern, timeRange: T
   return `${capitalize(v1)} and ${v2} show a possible connection.`;
 }
 
-function generateHumanReadableEngineInsight(insight: InsightData, timeRange: TimeRange): string | null {
+function generateHumanReadableEngineInsight(insight: InsightData, timeRange: TimeRange, daysOfData: number = 0): string | null {
   const { id, specificData, context } = insight;
 
   switch (id) {
     case 'medication-adherence':
       if (specificData.percentage && specificData.percentage < 80) {
-        const pattern = insight.pattern;
-        if (pattern) {
-          return `${pattern.replace('Most missed on ', 'Evening medications are missed more often than morning doses.')}`;
+        // Require sufficient history before saying "more often than usual"
+        if (daysOfData >= 7) {
+          const pattern = insight.pattern;
+          if (pattern) {
+            return `${pattern.replace('Most missed on ', 'Evening medications are missed more often than morning doses.')}`;
+          }
+          return `Medication doses are being missed more often than usual.`;
         }
-        return `Medication doses are being missed more often than usual.`;
+        // With limited data, use softer baseline-building text
+        return `Medication adherence is at ${Math.round(specificData.percentage)}% \u2014 keep tracking to establish a baseline.`;
       }
       return null;
 
@@ -313,35 +319,23 @@ function generateHumanReadableEngineInsight(insight: InsightData, timeRange: Tim
 async function generatePositiveObservations(
   correlations: DetectedPattern[],
   engineInsights: InsightData[],
-  timeRange: TimeRange
+  timeRange: TimeRange,
+  carePlanStats: CarePlanStats
 ): Promise<PositiveObservation[]> {
   const observations: PositiveObservation[] = [];
 
   try {
-    // Check medication adherence (positive if high)
-    const medLogs = await getMedicationLogs();
-    const daysAgo = new Date();
-    daysAgo.setDate(daysAgo.getDate() - timeRange);
-
-    const recentMedLogs = medLogs.filter(
-      log => new Date(log.timestamp) >= daysAgo
-    );
-
-    if (recentMedLogs.length > 0) {
-      const takenCount = recentMedLogs.filter(log => log.taken).length;
-      const adherenceRate = (takenCount / recentMedLogs.length) * 100;
-
-      if (adherenceRate >= 90) {
-        observations.push({
-          id: 'med-adherence-good',
-          text: 'Medication adherence has been excellent.',
-        });
-      } else if (adherenceRate >= 80) {
-        observations.push({
-          id: 'med-adherence-improving',
-          text: 'Medication timing is staying consistent.',
-        });
-      }
+    // Check medication adherence using carePlanStats (same source as stand-out insights)
+    if (carePlanStats.medicationLogs > 0 && carePlanStats.adherenceRate >= 90) {
+      observations.push({
+        id: 'med-adherence-good',
+        text: 'Medication adherence has been excellent.',
+      });
+    } else if (carePlanStats.medicationLogs > 0 && carePlanStats.adherenceRate >= 80) {
+      observations.push({
+        id: 'med-adherence-improving',
+        text: 'Medication timing is staying consistent.',
+      });
     }
 
     // Check hydration (positive if meeting target)
@@ -619,6 +613,17 @@ async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanS
 }
 
 function generateCarePlanInsights(stats: CarePlanStats, timeRange: TimeRange): StandOutInsight[] {
+  // Require 3+ days for percentage claims
+  if (stats.uniqueDays < 3) {
+    return stats.totalLogs > 0
+      ? [{
+          id: 'careplan-building',
+          text: 'Keep tracking \u2014 patterns emerge after a few days.',
+          confidence: 'early' as ConfidenceLevel,
+        }]
+      : [];
+  }
+
   const insights: StandOutInsight[] = [];
 
   // Medication adherence insight
@@ -747,10 +752,13 @@ export async function loadUnderstandPageData(timeRange: TimeRange): Promise<Unde
     // Load engine insights
     const engineInsights = await getAllInsights();
 
+    // Compute effective days of data early (needed by insight generators)
+    const effectiveDaysOfData = Math.max(daysOfData, carePlanStats.uniqueDays);
+
     // Generate all sections (combine old system + Care Plan data)
     const [standOutInsights, positiveObservations, correlationCards] = await Promise.all([
-      generateStandOutInsights(correlations, engineInsights, timeRange),
-      generatePositiveObservations(correlations, engineInsights, timeRange),
+      generateStandOutInsights(correlations, engineInsights, timeRange, effectiveDaysOfData),
+      generatePositiveObservations(correlations, engineInsights, timeRange, carePlanStats),
       generateCorrelationCards(correlations, timeRange),
     ]);
 
@@ -758,18 +766,25 @@ export async function loadUnderstandPageData(timeRange: TimeRange): Promise<Unde
     const carePlanInsights = generateCarePlanInsights(carePlanStats, timeRange);
     const carePlanPositives = generateCarePlanPositives(carePlanStats, timeRange);
 
-    // Combine insights, preferring Care Plan insights if no correlation insights
+    // Combine insights with mutual exclusivity for medication insights:
+    // If engine has a medication insight, drop care plan medication insights (and vice versa).
+    // Prefer engine insights (more specific) when both exist.
+    const hasEngineMedInsight = standOutInsights.some(i => i.id.startsWith('engine-medication'));
+    const filteredCarePlanInsights = hasEngineMedInsight
+      ? carePlanInsights.filter(i => !i.id.startsWith('careplan-med'))
+      : carePlanInsights;
+
     const combinedStandOut = standOutInsights.length > 0
-      ? [...standOutInsights, ...carePlanInsights].slice(0, 3)
-      : carePlanInsights.length > 0
-        ? carePlanInsights
+      ? [...standOutInsights, ...filteredCarePlanInsights].slice(0, 3)
+      : filteredCarePlanInsights.length > 0
+        ? filteredCarePlanInsights
         : [{
             id: 'no-patterns',
             text: 'No clear patterns yet. Keep tracking to reveal insights.',
             confidence: 'early' as ConfidenceLevel,
           }];
 
-    const combinedPositive = positiveObservations.length > 0
+    const combinedPositiveRaw = positiveObservations.length > 0
       ? [...positiveObservations, ...carePlanPositives].slice(0, 3)
       : carePlanPositives.length > 0
         ? carePlanPositives
@@ -778,12 +793,17 @@ export async function loadUnderstandPageData(timeRange: TimeRange): Promise<Unde
             text: 'Keep logging to reveal what\'s going well.',
           }];
 
+    // Cross-check: remove positive medication observations if stand-out insights flag medication issues
+    const hasMedWarning = combinedStandOut.some(i =>
+      i.id.includes('medication') || i.id.includes('med-')
+    );
+    const combinedPositive = hasMedWarning
+      ? combinedPositiveRaw.filter(o => !o.id.includes('med-adherence'))
+      : combinedPositiveRaw;
+
     // Check if confidence explanation should show (one-time)
     const confidenceExplained = await hasConfidenceBeenExplained();
     const shouldShowConfidenceExplanation = !confidenceExplained && correlationCards.length > 0;
-
-    // Update days of data to include Care Plan days
-    const effectiveDaysOfData = Math.max(daysOfData, carePlanStats.uniqueDays);
 
     return {
       timeRange,

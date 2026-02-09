@@ -1,30 +1,35 @@
 // ============================================================================
 // HANDOFF DATA FLOW — INTEGRATION TESTS
 // Sprint 1 data flows through to Sprint 2 handoff card via buildTodaySummary
-// Uses real storage functions; mocks only medicationStorage and appointmentStorage
+// Uses real wellnessCheckStorage; mocks carePlanRepo, centralStorage, appointmentStorage
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { buildTodaySummary } from '../careSummaryBuilder';
-import { getMedications } from '../medicationStorage';
 import { getUpcomingAppointments } from '../appointmentStorage';
+import { getTodayVitalsLog, getMealsLogs } from '../centralStorage';
+import { listDailyInstances } from '../../storage/carePlanRepo';
 import { saveMorningWellness, saveEveningWellness } from '../wellnessCheckStorage';
-import { logMeal } from '../logEvents';
 import { MorningWellnessData, EveningWellnessData } from '../../types/timeline';
 
-// Mock only the modules that have complex setup requirements
-jest.mock('../medicationStorage');
+// Mock modules that careSummaryBuilder imports (except wellnessCheckStorage — used real)
 jest.mock('../appointmentStorage');
+jest.mock('../centralStorage');
+jest.mock('../../storage/carePlanRepo');
 
-const mockGetMedications = getMedications as jest.Mock;
 const mockGetUpcomingAppointments = getUpcomingAppointments as jest.Mock;
+const mockGetTodayVitalsLog = getTodayVitalsLog as jest.Mock;
+const mockGetMealsLogs = getMealsLogs as jest.Mock;
+const mockListDailyInstances = listDailyInstances as jest.Mock;
 
 describe('handoffDataFlow — integration', () => {
   beforeEach(async () => {
     await AsyncStorage.clear();
     jest.useFakeTimers().setSystemTime(new Date('2025-01-15T14:00:00.000Z'));
-    mockGetMedications.mockResolvedValue([]);
+    mockListDailyInstances.mockResolvedValue([]);
     mockGetUpcomingAppointments.mockResolvedValue([]);
+    mockGetTodayVitalsLog.mockResolvedValue(null);
+    mockGetMealsLogs.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -47,9 +52,6 @@ describe('handoffDataFlow — integration', () => {
     };
     await saveMorningWellness('2025-01-15', morningData);
 
-    // Log a meal with poor appetite
-    await logMeal('Lunch', { appetite: 'poor', amountConsumed: 'little' });
-
     // Evening wellness: severe pain
     const eveningData: EveningWellnessData = {
       mood: 'difficult',
@@ -64,12 +66,17 @@ describe('handoffDataFlow — integration', () => {
     };
     await saveEveningWellness('2025-01-15', eveningData);
 
-    // 2 of 4 meds taken
-    mockGetMedications.mockResolvedValue([
-      { id: '1', name: 'Aspirin', active: true, taken: true },
-      { id: '2', name: 'Lisinopril', active: true, taken: true },
-      { id: '3', name: 'Metformin', active: true, taken: false },
-      { id: '4', name: 'Warfarin', active: true, taken: false },
+    // 2 of 4 medication instances completed
+    mockListDailyInstances.mockResolvedValue([
+      { id: '1', itemType: 'medication', itemName: 'Aspirin', status: 'completed', scheduledTime: '2025-01-15T08:00:00.000Z' },
+      { id: '2', itemType: 'medication', itemName: 'Lisinopril', status: 'completed', scheduledTime: '2025-01-15T08:00:00.000Z' },
+      { id: '3', itemType: 'medication', itemName: 'Metformin', status: 'pending', scheduledTime: '2025-01-15T08:00:00.000Z' },
+      { id: '4', itemType: 'medication', itemName: 'Warfarin', status: 'pending', scheduledTime: '2025-01-15T08:00:00.000Z' },
+    ]);
+
+    // Meal with poor appetite from centralStorage
+    mockGetMealsLogs.mockResolvedValue([
+      { id: '1', timestamp: '2025-01-15T12:00:00.000Z', meals: ['Lunch'], appetite: 'poor' },
     ]);
 
     const summary = await buildTodaySummary();
@@ -94,10 +101,10 @@ describe('handoffDataFlow — integration', () => {
   // ==========================================================================
 
   it('should produce empty flaggedItems on a clean day', async () => {
-    // All meds taken
-    mockGetMedications.mockResolvedValue([
-      { id: '1', name: 'Aspirin', active: true, taken: true },
-      { id: '2', name: 'Lisinopril', active: true, taken: true },
+    // All meds completed
+    mockListDailyInstances.mockResolvedValue([
+      { id: '1', itemType: 'medication', itemName: 'Aspirin', status: 'completed', scheduledTime: '2025-01-15T08:00:00.000Z' },
+      { id: '2', itemType: 'medication', itemName: 'Lisinopril', status: 'completed', scheduledTime: '2025-01-15T08:00:00.000Z' },
     ]);
 
     // Normal morning
@@ -112,7 +119,9 @@ describe('handoffDataFlow — integration', () => {
     await saveMorningWellness('2025-01-15', morningData);
 
     // Good meal
-    await logMeal('Lunch', { appetite: 'good', amountConsumed: 'all' });
+    mockGetMealsLogs.mockResolvedValue([
+      { id: '1', timestamp: '2025-01-15T12:00:00.000Z', meals: ['Lunch'], appetite: 'good' },
+    ]);
 
     // Normal evening
     const eveningData: EveningWellnessData = {

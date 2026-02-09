@@ -94,7 +94,7 @@ export default function JournalTab() {
         {/* ============================================================ */}
         {/* RECENT ENTRIES FEED */}
         {/* ============================================================ */}
-        <RecentEntriesFeed entries={entries} loading={entriesLoading} />
+        <RecentEntriesFeed entries={entries} loading={entriesLoading} activeFilter={filter} />
 
         {/* ============================================================ */}
         {/* FOOTER - Manage Care Plan link */}

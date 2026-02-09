@@ -1,5 +1,6 @@
 // ============================================================================
 // HandoffCard — Today's Summary snapshot for the Journal tab
+// Vertical status lines layout — only shows rows with data
 // ============================================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -8,6 +9,17 @@ import { useRouter } from 'expo-router';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { buildTodaySummary, TodaySummary } from '../../utils/careSummaryBuilder';
 import { useDataListener } from '../../lib/events';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+interface StatusLine {
+  emoji: string;
+  label: string;
+  value: string;
+  flagged?: boolean;
+}
 
 // ============================================================================
 // COMPONENT
@@ -39,12 +51,64 @@ export function HandoffCard() {
 
   if (!summary) return null;
 
-  const { medsAdherence, orientation, painLevel, appetite, alertness, flaggedItems, nextAppointment } =
-    summary;
+  const {
+    medsAdherence, vitalsReading, mealsStatus, moodArc,
+    orientation, painLevel, appetite,
+    overdueItems, flaggedItems, nextAppointment,
+  } = summary;
 
+  // Build status lines — only include rows with data
+  const lines: StatusLine[] = [];
+
+  // Meds: always show (even 0/0)
   const hasMedFlag = medsAdherence.taken < medsAdherence.total;
-  const hasPainFlag = painLevel === 'Severe';
-  const hasAppetiteFlag = appetite === 'Poor' || appetite === 'Refused';
+  lines.push({
+    emoji: '\u{1F48A}',
+    label: 'Meds',
+    value: `${medsAdherence.taken} of ${medsAdherence.total} taken`,
+    flagged: hasMedFlag,
+  });
+
+  // Vitals
+  if (vitalsReading) {
+    lines.push({ emoji: '\u{1F4CA}', label: 'Vitals', value: vitalsReading });
+  }
+
+  // Meals
+  if (mealsStatus) {
+    let value = `${mealsStatus.logged} of ${mealsStatus.total}`;
+    if (mealsStatus.overdueNames.length > 0) {
+      value += ` (${mealsStatus.overdueNames[0]} overdue)`;
+    }
+    lines.push({
+      emoji: '\u{1F37D}\uFE0F',
+      label: 'Meals',
+      value,
+      flagged: mealsStatus.overdueNames.length > 0,
+    });
+  }
+
+  // Mood arc
+  if (moodArc) {
+    lines.push({ emoji: '\u{1F60A}', label: 'Mood', value: moodArc });
+  }
+
+  // Orientation
+  if (orientation) {
+    const orientationFlagged = orientation !== 'Alert & Oriented';
+    lines.push({ emoji: '\u{1F9E0}', label: 'Orientation', value: orientation, flagged: orientationFlagged });
+  }
+
+  // Pain
+  if (painLevel) {
+    lines.push({ emoji: '\u{1FA7A}', label: 'Pain', value: painLevel, flagged: painLevel === 'Severe' });
+  }
+
+  // Appetite
+  if (appetite) {
+    const appetiteFlagged = appetite === 'Poor' || appetite === 'Refused';
+    lines.push({ emoji: '\u{1F372}', label: 'Appetite', value: appetite, flagged: appetiteFlagged });
+  }
 
   const formatAppointmentDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -62,34 +126,21 @@ export function HandoffCard() {
           accessibilityLabel="Share care summary"
           accessibilityRole="button"
         >
-          <Text style={styles.shareIcon}>{'\u{1F4E4}'}</Text>
+          <Text style={styles.shareText}>Share {'\u2197'}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* 2x2 Metrics Grid */}
-      <View style={styles.grid}>
-        <View style={styles.cell}>
-          <Text style={styles.cellLabel}>MEDS</Text>
-          <Text style={[styles.cellValue, hasMedFlag && styles.cellValueFlagged]}>
-            {medsAdherence.taken}/{medsAdherence.total}
-          </Text>
-        </View>
-        <View style={styles.cell}>
-          <Text style={styles.cellLabel}>ORIENTATION</Text>
-          <Text style={styles.cellValue}>{orientation ?? '\u2014'}</Text>
-        </View>
-        <View style={styles.cell}>
-          <Text style={styles.cellLabel}>PAIN</Text>
-          <Text style={[styles.cellValue, hasPainFlag && styles.cellValueFlagged]}>
-            {painLevel ?? '\u2014'}
-          </Text>
-        </View>
-        <View style={styles.cell}>
-          <Text style={styles.cellLabel}>APPETITE</Text>
-          <Text style={[styles.cellValue, hasAppetiteFlag && styles.cellValueFlagged]}>
-            {appetite ?? '\u2014'}
-          </Text>
-        </View>
+      {/* Vertical Status Lines */}
+      <View style={styles.statusList}>
+        {lines.map((line) => (
+          <View key={line.label} style={styles.statusRow}>
+            <Text style={styles.statusEmoji}>{line.emoji}</Text>
+            <Text style={styles.statusLabel}>{line.label}:</Text>
+            <Text style={[styles.statusValue, line.flagged && styles.statusValueFlagged]}>
+              {line.value}
+            </Text>
+          </View>
+        ))}
       </View>
 
       {/* Next Appointment */}
@@ -103,11 +154,16 @@ export function HandoffCard() {
         </View>
       )}
 
-      {/* Flagged Items */}
-      {flaggedItems.length > 0 && (
+      {/* Overdue + Flagged Items */}
+      {(overdueItems.length > 0 || flaggedItems.length > 0) && (
         <View style={styles.flaggedRow}>
+          {overdueItems.map((item, i) => (
+            <View key={`overdue-${i}`} style={styles.flagPill}>
+              <Text style={styles.flagPillText}>{item} overdue</Text>
+            </View>
+          ))}
           {flaggedItems.map((item, i) => (
-            <View key={i} style={styles.flagPill}>
+            <View key={`flag-${i}`} style={styles.flagPill}>
               <Text style={styles.flagPillText}>{item}</Text>
             </View>
           ))}
@@ -158,36 +214,38 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: Colors.textMuted,
   },
-  shareIcon: {
-    fontSize: 18,
-    opacity: 0.6,
+  shareText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'rgba(94, 234, 212, 0.7)',
   },
 
-  // 2x2 Grid
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  // Vertical status lines
+  statusList: {
     marginBottom: Spacing.md,
   },
-  cell: {
-    width: '50%',
-    paddingVertical: Spacing.sm,
-    paddingRight: Spacing.sm,
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
   },
-  cellLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: Colors.textMuted,
-    marginBottom: 2,
-  },
-  cellValue: {
+  statusEmoji: {
     fontSize: 15,
-    fontWeight: '600',
-    color: Colors.textPrimary,
+    width: 24,
   },
-  cellValueFlagged: {
+  statusLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginRight: 6,
+  },
+  statusValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  statusValueFlagged: {
     color: Colors.amber,
   },
 

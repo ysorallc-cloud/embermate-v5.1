@@ -5,16 +5,31 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { RecentEntry } from '../../hooks/useRecentEntries';
+import { RecentEntry, LABEL_MAP } from '../../hooks/useRecentEntries';
 import { RecentEntryCard } from './RecentEntryCard';
 import { Colors } from '../../theme/theme-tokens';
+import { LogEventType } from '../../utils/logEvents';
 
 interface Props {
   entries: RecentEntry[];
   loading: boolean;
+  activeFilter?: LogEventType | 'all';
 }
 
-export function RecentEntriesFeed({ entries, loading }: Props) {
+const FILTER_EMPTY_MESSAGES: Partial<Record<LogEventType | 'all', string>> = {
+  all: 'Your recent care activities will appear here',
+  medDose: 'No medication logs in the last 48 hours',
+  vitals: 'No vitals recorded in the last 48 hours',
+  meal: 'No meals logged in the last 48 hours',
+  mood: 'No mood entries in the last 48 hours',
+  symptom: 'No symptoms logged in the last 48 hours',
+  note: 'No notes in the last 48 hours',
+  hydration: 'No water logs in the last 48 hours',
+  sleep: 'No sleep entries in the last 48 hours',
+  activity: 'No activity entries in the last 48 hours',
+};
+
+export function RecentEntriesFeed({ entries, loading, activeFilter }: Props) {
   const router = useRouter();
 
   const handlePress = (entry: RecentEntry) => {
@@ -30,13 +45,16 @@ export function RecentEntriesFeed({ entries, loading }: Props) {
   }
 
   if (entries.length === 0) {
+    const filter = activeFilter || 'all';
+    const isFiltered = filter !== 'all';
+    const title = isFiltered ? `No ${LABEL_MAP[filter as LogEventType] || filter} entries` : 'Nothing logged yet';
+    const subtitle = FILTER_EMPTY_MESSAGES[filter] || `No ${LABEL_MAP[filter as LogEventType]?.toLowerCase() || filter} entries in the last 48 hours`;
+
     return (
       <View style={styles.emptyState}>
         <Text style={styles.emptyEmoji}>{'\u{1F4D6}'}</Text>
-        <Text style={styles.emptyTitle}>Nothing logged yet</Text>
-        <Text style={styles.emptySubtitle}>
-          Your recent care activities will appear here
-        </Text>
+        <Text style={styles.emptyTitle}>{title}</Text>
+        <Text style={styles.emptySubtitle}>{subtitle}</Text>
       </View>
     );
   }
