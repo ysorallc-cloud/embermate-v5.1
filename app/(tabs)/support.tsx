@@ -1,10 +1,9 @@
 // ============================================================================
-// SUPPORT PAGE - Clear Modes Redesign V2
-// "Who's with me, and how do I reach them?"
-// Hierarchy: Quick Action → Privacy → Care Team → Activity → Emergency (isolated)
+// SUPPORT PAGE - Your Care Team
+// Hierarchy: Privacy → Care Team → Activity → Emergency (isolated)
 // ============================================================================
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,7 +17,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/theme-tokens';
 import {
   getCaregivers,
@@ -31,10 +29,6 @@ import {
   getSampleCaregivers,
   getSampleActivities,
 } from '../../utils/sampleDataGenerator';
-import { getTodayLogStatus } from '../../utils/centralStorage';
-
-// Storage key for last viewed activity timestamp
-const LAST_VIEWED_KEY = '@embermate_care_last_viewed';
 
 // Aurora Components
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
@@ -43,23 +37,11 @@ import { GlassCard } from '../../components/aurora/GlassCard';
 // Support Components
 import { UpcomingNotifications } from '../../components/support/UpcomingNotifications';
 
-// Types for today's activity state
-interface TodayState {
-  hasLogs: boolean;
-  hasConcerns: boolean;
-  logsDescription: string;
-}
-
 export default function SupportScreen() {
   const router = useRouter();
   const [caregivers, setCaregivers] = useState<CaregiverProfile[]>([]);
   const [activities, setActivities] = useState<CareActivity[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [todayState, setTodayState] = useState<TodayState>({
-    hasLogs: false,
-    hasConcerns: false,
-    logsDescription: '',
-  });
 
   useFocusEffect(
     useCallback(() => {
@@ -85,31 +67,6 @@ export default function SupportScreen() {
     }
 
     setActivities(acts);
-
-    // Load today's log status for contextual Quick Action
-    const status = await getTodayLogStatus();
-    const logTypes: string[] = [];
-    let hasConcerns = false;
-
-    if (status.medications.logged > 0) logTypes.push('medications');
-    if (status.vitals.logged) logTypes.push('vitals');
-    if (status.mood.logged) {
-      logTypes.push('mood');
-      // Check for concerning mood (if mood is 2 or less)
-      if (status.mood.value && status.mood.value <= 2) {
-        hasConcerns = true;
-      }
-    }
-    if (status.meals.logged > 0) logTypes.push('meals');
-    if (status.notes.logged > 0) logTypes.push('notes');
-
-    setTodayState({
-      hasLogs: logTypes.length > 0,
-      hasConcerns,
-      logsDescription: logTypes.length > 0
-        ? logTypes.slice(0, 3).join(', ') + (logTypes.length > 3 ? ', and more' : '') + ' from today'
-        : "Today's Care Plan items",
-    });
   };
 
   const onRefresh = useCallback(async () => {
@@ -228,29 +185,6 @@ export default function SupportScreen() {
     );
   };
 
-  // Contextual Quick Action button text and label
-  const getQuickActionContent = () => {
-    if (todayState.hasConcerns) {
-      return {
-        label: 'SHARE UPDATE',
-        buttonText: '📤 Share important updates',
-        hint: todayState.logsDescription,
-      };
-    }
-    if (todayState.hasLogs) {
-      return {
-        label: 'QUICK ACTION',
-        buttonText: "📤 Share today's summary",
-        hint: todayState.logsDescription,
-      };
-    }
-    return {
-      label: 'QUICK ACTION',
-      buttonText: "📤 Share today's plan",
-      hint: "Today's Care Plan items",
-    };
-  };
-
   // AI Insight for care coordination
   const getTeamInsight = (): { text: string; icon: string } | null => {
     // Check if any team member has recent activity
@@ -279,7 +213,6 @@ export default function SupportScreen() {
   };
 
   const careCircleCount = caregivers.length + 1; // +1 for current user
-  const quickAction = getQuickActionContent();
   const teamInsight = getTeamInsight();
 
   // Get last active time for a caregiver based on activities
@@ -342,7 +275,7 @@ export default function SupportScreen() {
           <View style={styles.header}>
             <View style={styles.headerText}>
               <Text style={styles.headerTitle}>Support</Text>
-              <Text style={styles.headerSubtitle}>Who's with me, and how do I reach them</Text>
+              <Text style={styles.headerSubtitle}>Your care team</Text>
             </View>
             <TouchableOpacity
               style={styles.settingsButton}
@@ -352,41 +285,6 @@ export default function SupportScreen() {
               accessibilityLabel="Notifications"
             >
               <Text style={styles.settingsIcon}>🔔</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Primary Action (Dominant) - Contextual */}
-          <View style={[
-            styles.primaryAction,
-            todayState.hasConcerns && styles.primaryActionConcern,
-          ]}>
-            <Text style={styles.primaryActionLabel}>{quickAction.label}</Text>
-            <TouchableOpacity
-              style={[
-                styles.primaryActionButton,
-                todayState.hasConcerns && styles.primaryActionButtonConcern,
-              ]}
-              onPress={() => router.push('/daily-care-report')}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                styles.primaryActionButtonText,
-                todayState.hasConcerns && styles.primaryActionButtonTextConcern,
-              ]}>
-                {quickAction.buttonText}
-              </Text>
-            </TouchableOpacity>
-            <Text style={styles.primaryActionHint}>{quickAction.hint}</Text>
-
-            {/* Secondary Quick Action */}
-            <TouchableOpacity
-              style={styles.secondaryActionButton}
-              onPress={handleRequestUpdate}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.secondaryActionButtonText}>
-                📥 Request update from care circle
-              </Text>
             </TouchableOpacity>
           </View>
 
@@ -421,7 +319,12 @@ export default function SupportScreen() {
 
           {/* Care Team List with capability tags */}
           <View style={styles.section}>
-            <Text style={styles.sectionHeader}>YOUR CARE CIRCLE ({careCircleCount})</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeader}>YOUR CARE CIRCLE ({careCircleCount})</Text>
+              <TouchableOpacity onPress={handleRequestUpdate} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.requestUpdateText}>{'\uD83D\uDCE5'} Request update</Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.teamContainer}>
               {caregivers.slice(0, 4).map((caregiver) => {
                 const lastActive = getLastActiveTime(caregiver.id, caregiver.name);
@@ -657,65 +560,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
 
-  // Primary Action (Dominant) - Contextual variants
-  primaryAction: {
-    backgroundColor: 'rgba(94, 234, 212, 0.15)',
-    borderWidth: 2,
-    borderColor: 'rgba(94, 234, 212, 0.4)',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  primaryActionConcern: {
-    backgroundColor: 'rgba(251, 191, 36, 0.15)',
-    borderColor: 'rgba(251, 191, 36, 0.4)',
-  },
-  primaryActionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.7)',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 12,
-  },
-  primaryActionButton: {
-    backgroundColor: 'rgba(94, 234, 212, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.4)',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-  },
-  primaryActionButtonConcern: {
-    backgroundColor: 'rgba(251, 191, 36, 0.2)',
-    borderColor: 'rgba(251, 191, 36, 0.4)',
-  },
-  primaryActionButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#5EEAD4',
-  },
-  primaryActionButtonTextConcern: {
-    color: '#FBBF24',
-  },
-  primaryActionHint: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  secondaryActionButton: {
-    marginTop: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  secondaryActionButtonText: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
-    textDecorationLine: 'underline',
-  },
-
   // Privacy Reassurance - Moved higher, horizontal layout
   privacyCard: {
     flexDirection: 'row',
@@ -784,14 +628,24 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
   sectionHeader: {
     fontSize: 11,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.5)',
     letterSpacing: 1,
     textTransform: 'uppercase',
-    marginBottom: 4,
     paddingHorizontal: 4,
+  },
+  requestUpdateText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'rgba(94, 234, 212, 0.7)',
   },
   sectionSubtitle: {
     fontSize: 12,

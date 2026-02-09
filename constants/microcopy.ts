@@ -6,7 +6,7 @@
 export const MICROCOPY = {
   // Page subtitles
   NOW_SUBTITLE: 'What needs attention today',
-  JOURNAL_SUBTITLE: 'Recent care activity',
+  JOURNAL_SUBTITLE: "Today's care summary",
   UNDERSTAND_SUBTITLE: 'What your data suggests',
   SUPPORT_SUBTITLE: "Who's with me, and how do I reach them",
 

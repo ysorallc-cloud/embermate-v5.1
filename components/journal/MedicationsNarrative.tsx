@@ -1,0 +1,110 @@
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import type { MedicationDetail } from '../../utils/careSummaryBuilder';
+
+interface Props {
+  medications: MedicationDetail[];
+}
+
+function formatTime(isoOrHHmm: string): string {
+  try {
+    const date = new Date(isoOrHHmm);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+  } catch { /* fall through */ }
+  return isoOrHHmm;
+}
+
+export function MedicationsNarrative({ medications }: Props) {
+  if (medications.length === 0) return null;
+
+  const completed = medications.filter(m => m.status === 'completed');
+  const pending = medications.filter(m => m.status === 'pending');
+  const skipped = medications.filter(m => m.status === 'skipped');
+  const missed = medications.filter(m => m.status === 'missed');
+  const allCompleted = completed.length === medications.length;
+
+  const parts: React.ReactNode[] = [];
+
+  if (allCompleted) {
+    const details = completed.map(m => {
+      const time = m.takenAt ? formatTime(m.takenAt) : formatTime(m.scheduledTime);
+      return `${m.name}${m.dosage ? ` ${m.dosage}` : ''} at ${time}`;
+    }).join(', ');
+    parts.push(
+      <Text key="all" style={styles.narrative}>
+        <Text style={styles.bold}>All medications taken today.</Text> {details}.
+      </Text>
+    );
+  } else {
+    for (const m of completed) {
+      const time = m.takenAt ? formatTime(m.takenAt) : formatTime(m.scheduledTime);
+      parts.push(
+        <Text key={`c-${m.name}`} style={styles.narrative}>
+          <Text style={styles.bold}>{m.name}</Text>
+          {m.dosage ? ` ${m.dosage}` : ''} taken at {time}.
+        </Text>
+      );
+    }
+    for (const m of pending) {
+      parts.push(
+        <Text key={`p-${m.name}`} style={styles.narrative}>
+          <Text style={styles.bold}>{m.name}</Text>
+          {m.dosage ? ` ${m.dosage}` : ''} scheduled for {formatTime(m.scheduledTime)}{' \u2014 '}
+          <Text style={styles.flagged}>not yet logged.</Text>
+        </Text>
+      );
+    }
+    for (const m of [...skipped, ...missed]) {
+      parts.push(
+        <Text key={`s-${m.name}`} style={styles.narrative}>
+          <Text style={styles.bold}>{m.name}</Text>
+          {m.dosage ? ` ${m.dosage}` : ''}{' \u2014 '}skipped.
+        </Text>
+      );
+    }
+  }
+
+  // Side effects
+  const withSideEffects = medications.filter(m => m.sideEffects && m.sideEffects.length > 0);
+  if (withSideEffects.length > 0) {
+    const effects = withSideEffects.flatMap(m => m.sideEffects!);
+    parts.push(
+      <Text key="effects" style={[styles.narrative, { marginTop: 4 }]}>
+        Side effects noted: {effects.join(', ')}.
+      </Text>
+    );
+  }
+
+  return (
+    <View style={styles.card}>
+      {parts}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  narrative: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 2,
+  },
+  bold: {
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  flagged: {
+    color: Colors.amber,
+  },
+});

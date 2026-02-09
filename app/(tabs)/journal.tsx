@@ -1,9 +1,9 @@
 // ============================================================================
-// JOURNAL PAGE - Recent Care Activity Feed
-// Shows chronological feed of logged events from the last 48 hours.
+// JOURNAL PAGE - Shift Handoff Report
+// Shows today's care summary as a narrative shift report.
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,13 +16,17 @@ import {
 import { useRouter } from 'expo-router';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { RecentEntriesFeed } from '../../components/journal/RecentEntriesFeed';
 import { HandoffCard } from '../../components/journal/HandoffCard';
-import { CategoryFilterBar } from '../../components/journal/CategoryFilterBar';
-import { Colors } from '../../theme/theme-tokens';
-import { MICROCOPY } from '../../constants/microcopy';
-import { useRecentEntries } from '../../hooks/useRecentEntries';
-import { LogEventType } from '../../utils/logEvents';
+import { ShiftSection } from '../../components/journal/ShiftSection';
+import { MedicationsNarrative } from '../../components/journal/MedicationsNarrative';
+import { VitalsNarrative } from '../../components/journal/VitalsNarrative';
+import { MoodWellnessNarrative } from '../../components/journal/MoodWellnessNarrative';
+import { MealsNarrative } from '../../components/journal/MealsNarrative';
+import { AttentionSection } from '../../components/journal/AttentionSection';
+import { ShareActions } from '../../components/journal/ShareActions';
+import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { buildShiftReport, ShiftReport } from '../../utils/careSummaryBuilder';
+import { useDataListener } from '../../lib/events';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -30,16 +34,28 @@ import { LogEventType } from '../../utils/logEvents';
 
 export default function JournalTab() {
   const router = useRouter();
-  const [filter, setFilter] = useState<LogEventType | 'all'>('all');
-  const { entries, loading: entriesLoading, refresh } = useRecentEntries(
-    filter === 'all' ? null : filter
-  );
+  const [report, setReport] = useState<ShiftReport | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadReport = useCallback(async () => {
+    try {
+      const data = await buildShiftReport();
+      setReport(data);
+    } catch (error) {
+      console.error('Error loading shift report:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadReport(); }, [loadReport]);
+  useDataListener(useCallback(() => { loadReport(); }, [loadReport]));
 
   // ============================================================================
   // RENDER
   // ============================================================================
 
-  if (entriesLoading && entries.length === 0) {
+  if (loading && !report) {
     return (
       <View style={styles.container}>
         <AuroraBackground variant="log" />
@@ -51,6 +67,13 @@ export default function JournalTab() {
     );
   }
 
+  const hasNarrativeContent = report && (
+    report.medications.length > 0 ||
+    report.vitals.scheduled || report.vitals.recorded ||
+    report.mood.entries.length > 0 || report.mood.morningWellness || report.mood.eveningWellness ||
+    report.meals.total > 0
+  );
+
   return (
     <View style={styles.container}>
       <AuroraBackground variant="log" />
@@ -60,16 +83,12 @@ export default function JournalTab() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={entriesLoading}
-            onRefresh={refresh}
-            tintColor={Colors.accent}
-          />
+          <RefreshControl refreshing={loading} onRefresh={loadReport} tintColor={Colors.accent} />
         }
       >
         <ScreenHeader
           title="Journal"
-          subtitle={MICROCOPY.JOURNAL_SUBTITLE}
+          subtitle="Today's care summary"
           rightAction={
             <TouchableOpacity
               onPress={() => router.push('/care-plan' as any)}
@@ -81,39 +100,44 @@ export default function JournalTab() {
           }
         />
 
-        {/* ============================================================ */}
-        {/* TODAY'S SUMMARY HANDOFF CARD */}
-        {/* ============================================================ */}
+        {/* STATUS AT A GLANCE */}
         <HandoffCard />
 
-        {/* ============================================================ */}
-        {/* CATEGORY FILTER BAR */}
-        {/* ============================================================ */}
-        <CategoryFilterBar selectedFilter={filter} onFilterChange={setFilter} />
+        {/* WHAT HAPPENED TODAY */}
+        {hasNarrativeContent && report && (
+          <ShiftSection title="WHAT HAPPENED TODAY">
+            <MedicationsNarrative medications={report.medications} />
+            <VitalsNarrative vitals={report.vitals} />
+            <MoodWellnessNarrative mood={report.mood} />
+            <MealsNarrative meals={report.meals} />
+          </ShiftSection>
+        )}
 
-        {/* ============================================================ */}
-        {/* RECENT ENTRIES FEED */}
-        {/* ============================================================ */}
-        <RecentEntriesFeed entries={entries} loading={entriesLoading} activeFilter={filter} />
+        {/* NEEDS ATTENTION */}
+        {report && (
+          <ShiftSection title="NEEDS ATTENTION">
+            <AttentionSection items={report.attentionItems} />
+          </ShiftSection>
+        )}
 
-        {/* ============================================================ */}
-        {/* FOOTER - Manage Care Plan link */}
-        {/* ============================================================ */}
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={styles.manageLink}
-            onPress={() => router.push('/care-plan' as any)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.manageLinkText}>Manage Care Plan</Text>
-          </TouchableOpacity>
-        </View>
+        {/* UPCOMING APPOINTMENT */}
+        {report?.nextAppointment && (
+          <ShiftSection title="UPCOMING">
+            <View style={styles.appointmentCard}>
+              <Text style={styles.appointmentText}>
+                {'\uD83D\uDCC5'} {report.nextAppointment.provider} ({report.nextAppointment.specialty}) — {
+                  new Date(report.nextAppointment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                }
+              </Text>
+            </View>
+          </ShiftSection>
+        )}
 
-        {/* Encouragement */}
-        <View style={styles.encouragement}>
-          <Text style={styles.encouragementTitle}>{MICROCOPY.ONE_STEP}</Text>
-          <Text style={styles.encouragementSubtitle}>{MICROCOPY.YOU_GOT_THIS}</Text>
-        </View>
+        {/* SHARE / EXPORT */}
+        <ShareActions
+          onShare={() => router.push('/care-summary-export' as any)}
+          onExport={() => router.push('/care-brief' as any)}
+        />
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -147,8 +171,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 80,
   },
-
-  // Header Gear
   headerGear: {
     padding: 8,
     marginRight: -8,
@@ -157,37 +179,17 @@ const styles = StyleSheet.create({
     fontSize: 20,
     opacity: 0.7,
   },
-
-  // Footer
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 16,
+  appointmentCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
   },
-  manageLink: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  manageLinkText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: 'rgba(94, 234, 212, 0.7)',
-  },
-
-  // Encouragement
-  encouragement: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    marginTop: 8,
-  },
-  encouragementTitle: {
-    fontSize: 18,
-    fontWeight: '300',
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginBottom: 4,
-  },
-  encouragementSubtitle: {
+  appointmentText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.4)',
-    fontWeight: '400',
+    fontWeight: '500',
+    color: Colors.textSecondary,
   },
 });
