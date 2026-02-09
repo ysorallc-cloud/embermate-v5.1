@@ -44,6 +44,7 @@ const BUCKET_RING_MAP: Record<string, Omit<RingItem, 'bucket'>> = {
   sleep:     { icon: '😴', label: 'Sleep',    statKey: 'sleep',    itemType: 'sleep' },
   symptoms:  { icon: '🩺', label: 'Symptoms', statKey: 'symptoms', itemType: 'symptoms' },
   activity:  { icon: '🚶', label: 'Activity', statKey: 'activity', itemType: 'activity' },
+  wellness:  { icon: '🌅', label: 'Wellness', statKey: 'wellness', itemType: 'wellness' },
 };
 
 // Default buckets shown when none are enabled (backwards compat)

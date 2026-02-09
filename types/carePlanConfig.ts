@@ -21,6 +21,7 @@ export type BucketType =
   | 'sleep'
   | 'symptoms'
   | 'activity'
+  | 'wellness'
   | 'appointments';
 
 export const BUCKET_TYPES: BucketType[] = [
@@ -32,11 +33,12 @@ export const BUCKET_TYPES: BucketType[] = [
   'sleep',
   'symptoms',
   'activity',
+  'wellness',
   'appointments',
 ];
 
 // Primary buckets shown by default
-export const PRIMARY_BUCKETS: BucketType[] = ['meds', 'vitals', 'meals', 'water', 'mood'];
+export const PRIMARY_BUCKETS: BucketType[] = ['meds', 'vitals', 'meals', 'water', 'mood', 'wellness'];
 
 // Secondary buckets hidden behind "More" initially
 export const SECONDARY_BUCKETS: BucketType[] = ['sleep', 'symptoms', 'activity'];
@@ -112,6 +114,13 @@ export const BUCKET_META: Record<BucketType, BucketMeta> = {
     emoji: '🚶',
     aiInsight: 'Shows how movement connects to energy, mood, and overall wellness.',
     route: '/log-activity',
+  },
+  wellness: {
+    type: 'wellness',
+    name: 'Wellness',
+    emoji: '🌅',
+    aiInsight: 'Morning and evening check-ins track sleep, mood, orientation, and pain over time.',
+    route: '/log-morning-wellness',
   },
   appointments: {
     type: 'appointments',
@@ -346,6 +355,7 @@ export interface CarePlanConfig {
   sleep: BucketConfig;
   symptoms: BucketConfig;
   activity: BucketConfig;
+  wellness: BucketConfig;
   appointments: BucketConfig;
 }
 
@@ -400,6 +410,7 @@ export function createDefaultCarePlanConfig(patientId: string): CarePlanConfig {
     sleep: { ...DEFAULT_BUCKET_CONFIG },
     symptoms: { ...DEFAULT_BUCKET_CONFIG },
     activity: { ...DEFAULT_BUCKET_CONFIG },
+    wellness: { ...DEFAULT_BUCKET_CONFIG, enabled: true, priority: 'recommended', timesOfDay: ['morning', 'evening'] },
     appointments: { ...DEFAULT_BUCKET_CONFIG },
   };
 }
@@ -419,7 +430,10 @@ export function hasAnyEnabledBucket(config: CarePlanConfig): boolean {
  * Get list of enabled bucket types
  */
 export function getEnabledBuckets(config: CarePlanConfig): BucketType[] {
-  return BUCKET_TYPES.filter(bucket => config[bucket]?.enabled === true);
+  const buckets = BUCKET_TYPES.filter(bucket => config[bucket]?.enabled === true);
+  // Wellness is always-on — force-include if missing
+  if (!buckets.includes('wellness')) buckets.push('wellness');
+  return buckets;
 }
 
 /**

@@ -45,6 +45,7 @@ const ITEM_EMOJIS: Record<CarePlanItemType, string> = {
   activity: '🚶',
   sleep: '😴',
   appointment: '📅',
+  wellness: '🌅',
   custom: '📋',
 };
 

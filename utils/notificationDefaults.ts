@@ -90,6 +90,15 @@ export const DEFAULT_NOTIFICATION_CONFIG: Record<CarePlanItemType, NotificationC
       maxAttempts: 1,
     },
   },
+  wellness: {
+    enabled: false,
+    timing: 'at_time',
+    followUp: {
+      enabled: false,
+      intervalMinutes: 30,
+      maxAttempts: 1,
+    },
+  },
   custom: {
     enabled: false,
     timing: 'at_time',

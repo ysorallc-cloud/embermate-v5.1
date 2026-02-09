@@ -166,6 +166,7 @@ export default function NowScreen() {
         sleep: getTypeStats('sleep'),
         symptoms: getTypeStats('symptoms'),
         activity: getTypeStats('activity'),
+        wellness: getTypeStats('wellness'),
       };
 
       const hasAnyInstanceData = stats.meds.total > 0 || stats.vitals.total > 0 ||

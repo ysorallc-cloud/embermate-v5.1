@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { useWellnessSettings } from '../hooks/useWellnessSettings';
 import { saveMorningWellness, skipMorningWellness } from '../utils/wellnessCheckStorage';
+import { listDailyInstances, logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { format } from 'date-fns';
 
 const SLEEP_OPTIONS = [
@@ -84,6 +85,16 @@ export default function LogMorningWellnessScreen() {
             try {
               const today = format(new Date(), 'yyyy-MM-dd');
               await skipMorningWellness(today);
+              // Bridge to care plan instance
+              try {
+                const instances = await listDailyInstances(DEFAULT_PATIENT_ID, today);
+                const inst = instances.find(i => i.itemType === 'wellness' && i.windowLabel === 'morning' && i.status === 'pending');
+                if (inst) {
+                  await logInstanceCompletion(DEFAULT_PATIENT_ID, today, inst.id, 'skipped');
+                }
+              } catch (e) {
+                console.warn('Could not update care plan instance:', e);
+              }
               router.back();
             } catch (error) {
               Alert.alert('Error', 'Failed to skip wellness check');
@@ -108,6 +119,16 @@ export default function LogMorningWellnessScreen() {
         ...(decisionMaking && { decisionMaking }),
         completedAt: new Date(),
       });
+      // Bridge to care plan instance
+      try {
+        const instances = await listDailyInstances(DEFAULT_PATIENT_ID, today);
+        const inst = instances.find(i => i.itemType === 'wellness' && i.windowLabel === 'morning' && i.status === 'pending');
+        if (inst) {
+          await logInstanceCompletion(DEFAULT_PATIENT_ID, today, inst.id, 'completed');
+        }
+      } catch (e) {
+        console.warn('Could not update care plan instance:', e);
+      }
       router.back();
     } catch (error) {
       Alert.alert('Error', 'Failed to save wellness check');

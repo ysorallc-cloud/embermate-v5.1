@@ -56,6 +56,7 @@ export type CarePlanItemType =
   | 'hydration'
   | 'mood'
   | 'sleep'
+  | 'wellness'
   | 'custom';
 
 export type CarePlanItemPriority = 'required' | 'recommended' | 'optional';

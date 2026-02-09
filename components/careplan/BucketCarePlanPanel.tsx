@@ -96,6 +96,7 @@ const BUCKET_CONFIG_ROUTES: Record<BucketType, string> = {
   sleep: '/care-plan/sleep',
   symptoms: '/care-plan/symptoms',
   activity: '/care-plan/activity',
+  wellness: '/log-morning-wellness',
   appointments: '/appointments',
 };
 

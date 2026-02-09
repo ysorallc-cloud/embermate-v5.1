@@ -139,6 +139,7 @@ export default function TodayScopeScreen() {
     sleep: { route: '/care-plan/sleep', label: 'Configure sleep' },
     symptoms: { route: '/care-plan/symptoms', label: 'Configure symptoms' },
     activity: { route: '/care-plan/activity', label: 'Configure activity' },
+    wellness: { route: '/log-morning-wellness', label: 'Wellness check-in' },
     appointments: { route: '/appointments', label: 'Manage appointments' },
   };
 

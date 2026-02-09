@@ -34,6 +34,7 @@ const TYPE_EMOJIS: Record<CarePlanItemType, string> = {
   hydration: '💧',
   mood: '😊',
   sleep: '😴',
+  wellness: '🌅',
   custom: '📋',
 };
 
@@ -54,6 +55,7 @@ const ACTION_LABELS: Record<CarePlanItemType, string> = {
   hydration: 'Log water',
   mood: 'Log mood',
   sleep: 'Log sleep',
+  wellness: 'Check in',
   custom: 'Complete',
 };
 

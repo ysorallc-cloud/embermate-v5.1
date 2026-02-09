@@ -694,8 +694,8 @@ async function scheduleInstanceNotification(
     const originalTime = parseScheduledTime(instance.scheduledTime, instance.date);
     const triggerTime = new Date(originalTime.getTime() - minutesBefore * 60 * 1000);
 
-    // Skip if trigger time is in the past
-    if (triggerTime <= new Date()) {
+    // Skip if trigger time is in the past (with 30s buffer for scheduling latency)
+    if (triggerTime.getTime() <= Date.now() + 30_000) {
       return null;
     }
 

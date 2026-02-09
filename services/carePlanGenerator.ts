@@ -373,6 +373,62 @@ async function syncOtherBucketsWithConfig(
       }
     }
 
+    // ===== WELLNESS SYNC =====
+    // Wellness is always-on — not gated by bucket enabled flag
+    const existingWellnessItems = allItems.filter(i => i.type === 'wellness');
+    if (existingWellnessItems.length === 0) {
+      // Create "Morning check-in" item
+      const morningItem: CarePlanItem = {
+        id: generateUniqueId(),
+        carePlanId,
+        type: 'wellness',
+        name: 'Morning check-in',
+        priority: 'recommended',
+        active: true,
+        schedule: {
+          frequency: 'daily',
+          times: [{
+            id: generateUniqueId(),
+            kind: 'exact' as const,
+            label: 'morning',
+            at: '07:00',
+          }],
+        },
+        emoji: '🌅',
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Create "Evening check-in" item
+      const eveningItem: CarePlanItem = {
+        id: generateUniqueId(),
+        carePlanId,
+        type: 'wellness',
+        name: 'Evening check-in',
+        priority: 'recommended',
+        active: true,
+        schedule: {
+          frequency: 'daily',
+          times: [{
+            id: generateUniqueId(),
+            kind: 'exact' as const,
+            label: 'evening',
+            at: '20:00',
+          }],
+        },
+        emoji: '🌙',
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      if (__DEV__) {
+        console.log('[syncOtherBucketsWithConfig] Creating wellness CarePlanItems (morning + evening)');
+      }
+      await upsertCarePlanItem(morningItem);
+      await upsertCarePlanItem(eveningItem);
+      changed = true;
+    }
+
   } catch (error) {
     console.error('[syncOtherBucketsWithConfig] Error syncing buckets:', error);
   }

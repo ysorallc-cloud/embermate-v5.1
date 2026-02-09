@@ -29,6 +29,7 @@ export interface TodayStats {
   sleep?: StatData;
   symptoms?: StatData;
   activity?: StatData;
+  wellness?: StatData;
 }
 
 export interface AIInsight {
@@ -136,6 +137,7 @@ export function getRouteForInstanceType(itemType: string): string {
     case 'sleep': return '/log-sleep';
     case 'hydration': return '/log-water';
     case 'activity': return '/log-activity';
+    case 'wellness': return '/log-morning-wellness';
     case 'appointment': return '/appointments';
     case 'custom':
     default:
