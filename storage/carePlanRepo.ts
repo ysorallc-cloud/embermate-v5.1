@@ -18,6 +18,10 @@ import {
   DailySchedule,
   TimeWindowLabel,
 } from '../types/carePlan';
+import { DEFAULT_PATIENT_ID } from '../types/patient';
+
+// Re-export for consumers that import from here
+export { DEFAULT_PATIENT_ID };
 
 // ============================================================================
 // STORAGE KEYS
@@ -37,9 +41,6 @@ const KEYS = {
   LOGS_INDEX: (patientId: string) => `@embermate_logs_index_v2:${patientId}`,
   ALL_LOGS: (patientId: string) => `@embermate_all_logs_v2:${patientId}`,
 };
-
-// Default patient ID for single-user mode
-export const DEFAULT_PATIENT_ID = 'default';
 
 // ============================================================================
 // CARE PLAN OPERATIONS

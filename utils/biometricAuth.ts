@@ -5,11 +5,12 @@
 
 import * as LocalAuthentication from 'expo-local-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { setKeychainItem, getKeychainItem } from './secureStorage';
+import { setKeychainItem, getKeychainItem, removeKeychainItem } from './secureStorage';
 
 const BIOMETRIC_ENABLED_KEY = '@embermate_biometric_enabled';
 const BIOMETRIC_ENROLLED_KEY = '@embermate_biometric_enrolled';
 const PIN_HASH_KEY = 'embermate_pin_hash';
+const PIN_SALT_KEY = 'embermate_pin_salt';
 const SESSION_TOKEN_KEY = 'embermate_session_token';
 const LAST_ACTIVITY_KEY = '@embermate_last_activity';
 
@@ -157,14 +158,28 @@ export async function setupPIN(pin: string): Promise<boolean> {
       throw new Error('PIN must be 4-6 digits');
     }
 
-    // Hash and store PIN
     const crypto = require('expo-crypto');
-    const pinHash = await crypto.digestStringAsync(
-      crypto.CryptoDigestAlgorithm.SHA256,
-      pin
-    );
 
-    await setKeychainItem(PIN_HASH_KEY, pinHash);
+    // Generate random salt to prevent rainbow table attacks
+    const saltBytes = await crypto.getRandomBytesAsync(16);
+    const salt = Array.from(saltBytes as Uint8Array)
+      .map((b: number) => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    // Iterated hash for key stretching (1000 rounds)
+    let hash = await crypto.digestStringAsync(
+      crypto.CryptoDigestAlgorithm.SHA256,
+      salt + pin
+    );
+    for (let i = 0; i < 1000; i++) {
+      hash = await crypto.digestStringAsync(
+        crypto.CryptoDigestAlgorithm.SHA256,
+        hash + salt
+      );
+    }
+
+    await setKeychainItem(PIN_SALT_KEY, salt);
+    await setKeychainItem(PIN_HASH_KEY, hash);
     return true;
   } catch (error) {
     console.error('Error setting up PIN:', error);
@@ -178,16 +193,34 @@ export async function setupPIN(pin: string): Promise<boolean> {
 export async function verifyPIN(pin: string): Promise<boolean> {
   try {
     const storedHash = await getKeychainItem(PIN_HASH_KEY);
+    const salt = await getKeychainItem(PIN_SALT_KEY);
 
     if (!storedHash) {
       return false;
     }
 
     const crypto = require('expo-crypto');
-    const pinHash = await crypto.digestStringAsync(
-      crypto.CryptoDigestAlgorithm.SHA256,
-      pin
-    );
+    let pinHash: string;
+
+    if (salt) {
+      // Salted + iterated hash (current format)
+      pinHash = await crypto.digestStringAsync(
+        crypto.CryptoDigestAlgorithm.SHA256,
+        salt + pin
+      );
+      for (let i = 0; i < 1000; i++) {
+        pinHash = await crypto.digestStringAsync(
+          crypto.CryptoDigestAlgorithm.SHA256,
+          pinHash + salt
+        );
+      }
+    } else {
+      // Legacy unsalted hash (will be upgraded on next setupPIN)
+      pinHash = await crypto.digestStringAsync(
+        crypto.CryptoDigestAlgorithm.SHA256,
+        pin
+      );
+    }
 
     if (pinHash === storedHash) {
       await updateLastActivity();
@@ -250,7 +283,7 @@ export async function hasActiveSession(): Promise<boolean> {
  */
 export async function clearSession(): Promise<void> {
   try {
-    await setKeychainItem(SESSION_TOKEN_KEY, '');
+    await removeKeychainItem(SESSION_TOKEN_KEY);
   } catch (error) {
     console.error('Error clearing session:', error);
   }

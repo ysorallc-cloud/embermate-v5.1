@@ -170,11 +170,11 @@ export default function LogEveningWellnessScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Evening Wellness Check</Text>
-          <TouchableOpacity onPress={handleSkip}>
+          <TouchableOpacity onPress={handleSkip} accessibilityLabel="Skip evening wellness check" accessibilityRole="button">
             <Text style={styles.skipText}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -196,6 +196,9 @@ export default function LogEveningWellnessScreen() {
                     mood === option.value && styles.optionButtonSelected,
                   ]}
                   onPress={() => setMood(option.value)}
+                  accessibilityLabel={option.label}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: mood === option.value }}
                 >
                   <Text style={styles.optionEmoji}>{option.emoji}</Text>
                   <Text
@@ -217,6 +220,9 @@ export default function LogEveningWellnessScreen() {
             <TouchableOpacity
               style={styles.toggleRow}
               onPress={() => setMealsLogged(!mealsLogged)}
+              accessibilityLabel="Meals were logged today"
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: mealsLogged }}
             >
               <View
                 style={[
@@ -244,6 +250,9 @@ export default function LogEveningWellnessScreen() {
                     dayRating === option.value && styles.ratingOptionSelected,
                   ]}
                   onPress={() => setDayRating(option.value)}
+                  accessibilityLabel={option.label}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: dayRating === option.value }}
                 >
                   <Text style={styles.ratingEmoji}>{option.emoji}</Text>
                   <Text
@@ -281,6 +290,7 @@ export default function LogEveningWellnessScreen() {
               placeholderTextColor={Colors.textMuted}
               multiline
               numberOfLines={3}
+              accessibilityLabel="Today's highlights"
             />
           </View>
 
@@ -296,6 +306,7 @@ export default function LogEveningWellnessScreen() {
               placeholderTextColor={Colors.textMuted}
               multiline
               numberOfLines={3}
+              accessibilityLabel="Today's concerns"
             />
           </View>
 
@@ -305,6 +316,9 @@ export default function LogEveningWellnessScreen() {
               <TouchableOpacity
                 style={styles.careDetailsToggle}
                 onPress={() => setShowCareDetails(!showCareDetails)}
+                accessibilityLabel="Add care details"
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showCareDetails }}
               >
                 <Text style={styles.careDetailsToggleText}>
                   Add care details (optional)
@@ -329,6 +343,9 @@ export default function LogEveningWellnessScreen() {
                               painLevel === option.value && styles.chipSelected,
                             ]}
                             onPress={() => setPainLevel(painLevel === option.value ? null : option.value)}
+                            accessibilityLabel={option.label}
+                            accessibilityRole="radio"
+                            accessibilityState={{ selected: painLevel === option.value }}
                           >
                             <Text
                               style={[
@@ -357,6 +374,9 @@ export default function LogEveningWellnessScreen() {
                               alertness === option.value && styles.chipSelected,
                             ]}
                             onPress={() => setAlertness(alertness === option.value ? null : option.value)}
+                            accessibilityLabel={option.label}
+                            accessibilityRole="radio"
+                            accessibilityState={{ selected: alertness === option.value }}
                           >
                             <Text
                               style={[
@@ -385,6 +405,9 @@ export default function LogEveningWellnessScreen() {
                               bowelMovement === option.value && styles.chipSelected,
                             ]}
                             onPress={() => setBowelMovement(bowelMovement === option.value ? null : option.value)}
+                            accessibilityLabel={option.label}
+                            accessibilityRole="radio"
+                            accessibilityState={{ selected: bowelMovement === option.value }}
                           >
                             <Text
                               style={[
@@ -413,6 +436,9 @@ export default function LogEveningWellnessScreen() {
                               bathingStatus === option.value && styles.chipSelected,
                             ]}
                             onPress={() => setBathingStatus(bathingStatus === option.value ? null : option.value)}
+                            accessibilityLabel={option.label}
+                            accessibilityRole="radio"
+                            accessibilityState={{ selected: bathingStatus === option.value }}
                           >
                             <Text
                               style={[
@@ -441,6 +467,9 @@ export default function LogEveningWellnessScreen() {
                               mobilityStatus === option.value && styles.chipSelected,
                             ]}
                             onPress={() => setMobilityStatus(mobilityStatus === option.value ? null : option.value)}
+                            accessibilityLabel={option.label}
+                            accessibilityRole="radio"
+                            accessibilityState={{ selected: mobilityStatus === option.value }}
                           >
                             <Text
                               style={[
@@ -467,6 +496,8 @@ export default function LogEveningWellnessScreen() {
             style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
             onPress={handleSubmit}
             disabled={!canSubmit || isSubmitting}
+            accessibilityLabel={isSubmitting ? 'Saving evening wellness check' : 'Complete evening wellness check'}
+            accessibilityRole="button"
           >
             <Text style={styles.submitButtonText}>
               {isSubmitting ? 'Saving...' : 'Complete Check'}

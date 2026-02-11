@@ -67,12 +67,19 @@ export default function AppointmentsScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
+            >
               <Text style={styles.backIcon}>←</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => router.push('/appointment-form' as any)}
+              accessibilityLabel="Add new appointment"
+              accessibilityRole="button"
             >
               <Text style={styles.addIcon}>+</Text>
             </TouchableOpacity>
@@ -99,6 +106,8 @@ export default function AppointmentsScreen() {
                   key={appt.id}
                   style={styles.appointmentCard}
                   onPress={() => router.push(`/appointment-form?id=${appt.id}` as any)}
+                  accessibilityLabel={`${appt.specialty} appointment with ${appt.provider} on ${month} ${day} at ${formatTime(appt.time)}, ${appt.location}`}
+                  accessibilityRole="button"
                 >
                   <View style={styles.dateBlock}>
                     <Text style={styles.dateDay}>{day}</Text>

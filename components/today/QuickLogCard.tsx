@@ -25,7 +25,11 @@ export const QuickLogCard: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerLabel}>QUICK LOG</Text>
-        <TouchableOpacity onPress={handleMorePress}>
+        <TouchableOpacity
+          onPress={handleMorePress}
+          accessibilityLabel="More quick log options"
+          accessibilityRole="link"
+        >
           <Text style={styles.moreLink}>More →</Text>
         </TouchableOpacity>
       </View>
@@ -38,6 +42,8 @@ export const QuickLogCard: React.FC = () => {
             style={styles.optionButton}
             onPress={() => handleOptionPress(option.screen)}
             activeOpacity={0.7}
+            accessibilityLabel={`Log ${option.label}`}
+            accessibilityRole="button"
           >
             <Text style={styles.optionIcon}>{option.icon}</Text>
             <Text style={styles.optionLabel}>{option.label}</Text>

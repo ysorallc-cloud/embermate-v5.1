@@ -113,6 +113,8 @@ export default function LogSleep() {
               <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => router.back()}
+                accessibilityLabel="Go back"
+                accessibilityRole="button"
               >
                 <Text style={styles.backIcon}>←</Text>
               </TouchableOpacity>
@@ -132,6 +134,7 @@ export default function LogSleep() {
                   value={hours}
                   onChangeText={setHours}
                   maxLength={4}
+                  accessibilityLabel="Hours slept"
                 />
                 <Text style={styles.hoursUnit}>hours</Text>
               </View>
@@ -150,6 +153,9 @@ export default function LogSleep() {
                       quality === value && styles.qualityButtonSelected,
                     ]}
                     onPress={() => setQuality(value)}
+                    accessibilityLabel={`Sleep quality ${QUALITY_LABELS[value - 1]}, ${value} out of 5`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: quality === value }}
                   >
                     <Text
                       style={[
@@ -184,6 +190,9 @@ export default function LogSleep() {
               style={[styles.saveButton, loading && styles.saveButtonDisabled]}
               onPress={handleSave}
               disabled={loading}
+              accessibilityLabel={loading ? 'Saving sleep data' : 'Log sleep'}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: loading }}
             >
               <Text style={styles.saveButtonText}>
                 {loading ? 'Saving...' : 'Log Sleep'}

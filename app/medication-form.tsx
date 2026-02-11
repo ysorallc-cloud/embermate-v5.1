@@ -580,7 +580,12 @@ export default function MedicationFormScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerLabel}>
@@ -637,6 +642,8 @@ export default function MedicationFormScreen() {
                     style={styles.suggestionItem}
                     onPress={() => handleSelectMedication(med)}
                     activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select ${med.name}, common dosages: ${med.commonDosages.join(', ')}`}
                   >
                     <Text style={styles.suggestionText}>{med.name}</Text>
                     <Text style={styles.suggestionSubtext}>
@@ -673,6 +680,8 @@ export default function MedicationFormScreen() {
                     style={styles.suggestionItem}
                     onPress={() => handleSelectDosage(dose)}
                     activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select dosage ${dose}`}
                   >
                     <Text style={styles.suggestionText}>{dose}</Text>
                   </TouchableOpacity>
@@ -694,6 +703,9 @@ export default function MedicationFormScreen() {
                   ]}
                   onPress={() => handleTimeSlotSelect(slot.key)}
                   activeOpacity={0.7}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`${slot.key}, ${slot.displayTime}`}
+                  accessibilityState={{ selected: selectedTimeSlot === slot.key }}
                 >
                   <Text style={styles.timeSlotIcon}>{slot.icon}</Text>
                   <Text style={[
@@ -722,6 +734,8 @@ export default function MedicationFormScreen() {
               onChangeText={handleCustomTimeChange}
               placeholder="e.g., 8:00 AM"
               placeholderTextColor={Colors.textMuted}
+              accessibilityLabel="Custom time"
+              accessibilityHint="Enter time in 12-hour format"
             />
             <Text style={styles.helpText}>Enter time in 12-hour format (e.g., 8:00 AM, 1:30 PM, 8:00 PM)</Text>
           </View>
@@ -736,6 +750,8 @@ export default function MedicationFormScreen() {
               placeholder="30"
               placeholderTextColor={Colors.textMuted}
               keyboardType="numeric"
+              accessibilityLabel="Days supply"
+              accessibilityHint="Number of days this supply will last"
             />
             <Text style={styles.helpText}>
               Alerts when supply drops below 7 days
@@ -754,6 +770,9 @@ export default function MedicationFormScreen() {
               style={styles.reminderToggleRow}
               onPress={() => setReminderEnabled(!reminderEnabled)}
               activeOpacity={0.7}
+              accessibilityRole="switch"
+              accessibilityLabel="Reminders"
+              accessibilityState={{ checked: reminderEnabled }}
             >
               <View style={styles.reminderToggleLeft}>
                 <Text style={styles.reminderIcon}>🔔</Text>
@@ -788,6 +807,9 @@ export default function MedicationFormScreen() {
                       ]}
                       onPress={() => setReminderTiming(option.value)}
                       activeOpacity={0.7}
+                      accessibilityRole="radio"
+                      accessibilityLabel={`Notify me ${option.label}`}
+                      accessibilityState={{ selected: reminderTiming === option.value }}
                     >
                       <Text style={[
                         styles.timingOptionText,
@@ -809,6 +831,8 @@ export default function MedicationFormScreen() {
                       keyboardType="numeric"
                       placeholder="15"
                       placeholderTextColor={Colors.textMuted}
+                      accessibilityLabel="Custom reminder minutes"
+                      accessibilityHint="Minutes before dose to send reminder"
                     />
                     <Text style={styles.customMinutesLabel}>minutes before</Text>
                   </View>
@@ -820,6 +844,9 @@ export default function MedicationFormScreen() {
                     style={styles.followUpToggleRow}
                     onPress={() => setFollowUpEnabled(!followUpEnabled)}
                     activeOpacity={0.7}
+                    accessibilityRole="switch"
+                    accessibilityLabel="Remind again if not logged"
+                    accessibilityState={{ checked: followUpEnabled }}
                   >
                     <View style={styles.followUpInfo}>
                       <Text style={styles.followUpLabel}>Remind again if not logged</Text>
@@ -847,6 +874,9 @@ export default function MedicationFormScreen() {
                             ]}
                             onPress={() => setFollowUpInterval(option.value)}
                             activeOpacity={0.7}
+                            accessibilityRole="radio"
+                            accessibilityLabel={`Remind again after ${option.label}`}
+                            accessibilityState={{ selected: followUpInterval === option.value }}
                           >
                             <Text style={[
                               styles.followUpIntervalText,
@@ -895,6 +925,9 @@ export default function MedicationFormScreen() {
                     }
                   }}
                   activeOpacity={0.7}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`Schedule frequency: ${option.label}`}
+                  accessibilityState={{ selected: scheduleFrequency === option.value }}
                 >
                   <Text style={[
                     styles.frequencyOptionText,
@@ -936,6 +969,9 @@ export default function MedicationFormScreen() {
                           }
                         }}
                         activeOpacity={0.7}
+                        accessibilityRole={scheduleFrequency === 'weekly' ? 'radio' : 'checkbox'}
+                        accessibilityLabel={day.label}
+                        accessibilityState={scheduleFrequency === 'weekly' ? { selected: isSelected } : { checked: isSelected }}
                       >
                         <Text style={[
                           styles.dayButtonText,
@@ -963,6 +999,9 @@ export default function MedicationFormScreen() {
                     ]}
                     onPress={() => setScheduleEndCondition(option.value)}
                     activeOpacity={0.7}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Schedule until: ${option.label}`}
+                    accessibilityState={{ selected: scheduleEndCondition === option.value }}
                   >
                     <Text style={[
                       styles.endConditionText,
@@ -987,6 +1026,7 @@ export default function MedicationFormScreen() {
               placeholderTextColor={Colors.textMuted}
               multiline
               numberOfLines={3}
+              accessibilityLabel="Medication notes"
             />
           </View>
 

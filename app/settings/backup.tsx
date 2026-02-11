@@ -290,6 +290,8 @@ export default function BackupSettingsScreen() {
           <TouchableOpacity
             style={CommonStyles.backButton}
             onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Text style={CommonStyles.backIcon}>←</Text>
           </TouchableOpacity>
@@ -323,6 +325,8 @@ export default function BackupSettingsScreen() {
                 value={password}
                 onChangeText={setPassword}
                 autoCapitalize="none"
+                accessibilityLabel="Backup password"
+                accessibilityHint="Minimum 6 characters"
               />
               <TextInput
                 style={styles.passwordInput}
@@ -332,6 +336,7 @@ export default function BackupSettingsScreen() {
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 autoCapitalize="none"
+                accessibilityLabel="Confirm backup password"
               />
               {password && confirmPassword && password !== confirmPassword && (
                 <Text style={styles.errorText}>Passwords do not match</Text>
@@ -344,6 +349,8 @@ export default function BackupSettingsScreen() {
                     setPassword('');
                     setConfirmPassword('');
                   }}
+                  accessibilityLabel="Cancel password setup"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.secondaryButtonText}>Cancel</Text>
                 </TouchableOpacity>
@@ -355,6 +362,8 @@ export default function BackupSettingsScreen() {
                   ]}
                   onPress={handleBackupNow}
                   disabled={!password || password.length < 6 || password !== confirmPassword}
+                  accessibilityLabel="Create backup"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.primaryButtonText}>Create Backup</Text>
                 </TouchableOpacity>
@@ -377,6 +386,7 @@ export default function BackupSettingsScreen() {
                 value={password}
                 onChangeText={setPassword}
                 autoCapitalize="none"
+                accessibilityLabel="Enter backup password to restore"
               />
               <View style={styles.buttonRow}>
                 <TouchableOpacity
@@ -386,6 +396,8 @@ export default function BackupSettingsScreen() {
                     setSelectedBackupPath(null);
                     setPassword('');
                   }}
+                  accessibilityLabel="Cancel restore"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.secondaryButtonText}>Cancel</Text>
                 </TouchableOpacity>
@@ -393,6 +405,8 @@ export default function BackupSettingsScreen() {
                   style={[styles.button, styles.primaryButton, !password && styles.buttonDisabled]}
                   onPress={handleRestoreWithPassword}
                   disabled={!password}
+                  accessibilityLabel="Restore from backup"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.primaryButtonText}>Restore</Text>
                 </TouchableOpacity>
@@ -409,6 +423,8 @@ export default function BackupSettingsScreen() {
                 <TouchableOpacity
                   style={styles.actionCard}
                   onPress={() => setShowPasswordSetup(true)}
+                  accessibilityLabel="Backup now"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.actionIcon}>💾</Text>
                   <View style={styles.actionContent}>
@@ -423,6 +439,8 @@ export default function BackupSettingsScreen() {
                 <TouchableOpacity
                   style={styles.actionCard}
                   onPress={handleImportBackup}
+                  accessibilityLabel="Restore from file"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.actionIcon}>📥</Text>
                   <View style={styles.actionContent}>
@@ -437,6 +455,8 @@ export default function BackupSettingsScreen() {
                 <TouchableOpacity
                   style={styles.actionCard}
                   onPress={handleExportPlain}
+                  accessibilityLabel="Export unencrypted backup"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.actionIcon}>📤</Text>
                   <View style={styles.actionContent}>
@@ -455,6 +475,8 @@ export default function BackupSettingsScreen() {
                 <TouchableOpacity
                   style={styles.toggleRow}
                   onPress={handleToggleAutoBackup}
+                  accessibilityLabel="Toggle daily auto-backup"
+                  accessibilityRole="button"
                 >
                   <View style={styles.toggleContent}>
                     <Text style={styles.toggleTitle}>Daily Auto-Backup</Text>
@@ -492,6 +514,8 @@ export default function BackupSettingsScreen() {
                       <TouchableOpacity
                         style={styles.deleteButton}
                         onPress={() => handleDeleteBackup(backup.filename)}
+                        accessibilityLabel="Delete backup"
+                        accessibilityRole="button"
                       >
                         <Text style={styles.deleteButtonText}>🗑</Text>
                       </TouchableOpacity>

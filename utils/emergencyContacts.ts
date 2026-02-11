@@ -5,7 +5,9 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
+import * as Localization from 'expo-localization';
 import { Alert } from 'react-native';
+import { generateUniqueId } from './idGenerator';
 
 export interface EmergencyContact {
   id: string;
@@ -51,7 +53,7 @@ export async function saveEmergencyContact(
 
     const newContact: EmergencyContact = {
       ...contact,
-      id: Date.now().toString(),
+      id: generateUniqueId(),
     };
 
     contacts.push(newContact);
@@ -141,11 +143,37 @@ export async function makePhoneCall(phoneNumber: string): Promise<void> {
 }
 
 /**
- * Call 911
+ * Emergency numbers by region code
  */
-export async function call911(): Promise<void> {
+const EMERGENCY_NUMBERS: Record<string, string> = {
+  US: '911', CA: '911', MX: '911',
+  GB: '999', IE: '999',
+  AU: '000', NZ: '111',
+  JP: '119', KR: '119', CN: '120',
+  IN: '112', BR: '190',
+  // EU/EEA countries use 112
+  DEFAULT: '112',
+};
+
+/**
+ * Get the emergency number for the user's region
+ */
+function getEmergencyNumber(): string {
+  try {
+    const regionCode = Localization.getLocales()?.[0]?.regionCode ?? '';
+    return EMERGENCY_NUMBERS[regionCode] || EMERGENCY_NUMBERS.DEFAULT;
+  } catch {
+    return '911'; // Safe fallback
+  }
+}
+
+/**
+ * Call emergency services (locale-aware)
+ */
+export async function callEmergencyServices(): Promise<void> {
+  const number = getEmergencyNumber();
   Alert.alert(
-    'Call 911',
+    `Call ${number}`,
     'This will call emergency services immediately.',
     [
       {
@@ -155,11 +183,16 @@ export async function call911(): Promise<void> {
       {
         text: 'Call Now',
         style: 'destructive',
-        onPress: () => makePhoneCall('911'),
+        onPress: () => makePhoneCall(number),
       },
     ]
   );
 }
+
+/**
+ * @deprecated Use callEmergencyServices() instead
+ */
+export const call911 = callEmergencyServices;
 
 /**
  * Format phone number for display

@@ -471,6 +471,9 @@ export default function TrendsScreen() {
                 ]}
                 onPress={() => setTimeRange(range)}
                 activeOpacity={0.7}
+                accessibilityLabel={`${range} day range`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: timeRange === range }}
               >
                 <Text style={[
                   styles.timeRangeText,

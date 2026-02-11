@@ -53,6 +53,9 @@ function BucketCard({ bucket, enabled, statusText, onToggle, onConfigure }: Buck
         style={styles.bucketCardMain}
         onPress={onConfigure}
         activeOpacity={0.7}
+        accessibilityLabel={`${meta.name}, ${enabled ? 'enabled' : 'disabled'}`}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: enabled }}
       >
         <View style={styles.bucketCardLeft}>
           <Text style={styles.bucketEmoji}>{meta.emoji}</Text>
@@ -83,6 +86,8 @@ function BucketCard({ bucket, enabled, statusText, onToggle, onConfigure }: Buck
           style={styles.configureButton}
           onPress={onConfigure}
           activeOpacity={0.7}
+          accessibilityLabel={`Configure ${meta.name}`}
+          accessibilityRole="button"
         >
           <Text style={styles.configureText}>Configure</Text>
           <Text style={styles.configureChevron}>›</Text>
@@ -110,7 +115,7 @@ function AIInsightCard({ icon, title, message, onDismiss }: AIInsightCardProps) 
         <Text style={styles.aiInsightIcon}>{icon}</Text>
         <Text style={styles.aiInsightTitle}>{title}</Text>
         {onDismiss && (
-          <TouchableOpacity onPress={onDismiss} style={styles.aiInsightDismiss}>
+          <TouchableOpacity onPress={onDismiss} style={styles.aiInsightDismiss} accessibilityLabel={`Dismiss ${title} insight`} accessibilityRole="button">
             <Text style={styles.aiInsightDismissText}>×</Text>
           </TouchableOpacity>
         )}
@@ -130,6 +135,8 @@ function WellnessCard({ onPress, activeFieldCount }: { onPress: () => void; acti
       style={styles.wellnessCard}
       onPress={onPress}
       activeOpacity={0.7}
+      accessibilityLabel={`Wellness Checks, ${activeFieldCount} fields active`}
+      accessibilityRole="button"
     >
       <View style={styles.wellnessCardMain}>
         <Text style={styles.wellnessEmoji}>☀️</Text>
@@ -164,6 +171,8 @@ function TemplateCard({ template, onApply }: TemplateCardProps) {
       style={styles.templateCard}
       onPress={onApply}
       activeOpacity={0.7}
+      accessibilityLabel={`Apply ${template.name} template`}
+      accessibilityRole="button"
     >
       <View style={styles.templateHeader}>
         <Text style={styles.templateEmoji}>{template.emoji}</Text>
@@ -390,7 +399,7 @@ export default function CarePlanHomeScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerLabel}>CARE PLAN</Text>
@@ -497,6 +506,8 @@ export default function CarePlanHomeScreen() {
               style={styles.showMoreButton}
               onPress={() => setShowMoreBuckets(true)}
               activeOpacity={0.7}
+              accessibilityLabel="Show more categories"
+              accessibilityRole="button"
             >
               <Text style={styles.showMoreText}>+ Show more categories</Text>
             </TouchableOpacity>
@@ -517,6 +528,8 @@ export default function CarePlanHomeScreen() {
                 style={styles.showMoreButton}
                 onPress={() => setShowMoreBuckets(false)}
                 activeOpacity={0.7}
+                accessibilityLabel="Hide extra categories"
+                accessibilityRole="button"
               >
                 <Text style={styles.showMoreText}>- Hide extra categories</Text>
               </TouchableOpacity>

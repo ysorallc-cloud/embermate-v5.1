@@ -129,6 +129,8 @@ export default function ReportsHub() {
                     ]}
                     onPress={() => router.push(report.route as any)}
                     activeOpacity={0.7}
+                    accessibilityLabel={`${report.name} report, ${report.badge}`}
+                    accessibilityRole="button"
                   >
                     <View style={[
                       styles.reportIcon,
@@ -157,7 +159,7 @@ export default function ReportsHub() {
           ))}
 
           {/* Export All */}
-          <TouchableOpacity style={styles.exportAllButton}>
+          <TouchableOpacity style={styles.exportAllButton} accessibilityLabel="Export all reports as PDF package" accessibilityRole="button">
             <GlassCard style={styles.exportAllCard}>
               <View style={styles.exportAllContent}>
                 <Text style={styles.exportAllIcon}>📦</Text>

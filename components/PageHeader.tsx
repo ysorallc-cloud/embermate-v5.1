@@ -23,9 +23,11 @@ export default function PageHeader({
   return (
     <View style={styles.headerWrapper}>
       {onBack && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={onBack}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
         >
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
@@ -40,9 +42,11 @@ export default function PageHeader({
       </View>
 
       {showSettings && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.settingsButton}
           onPress={() => router.push('/settings')}
+          accessibilityLabel="Open settings"
+          accessibilityRole="button"
         >
           <Text style={styles.settingsIcon}>⚙️</Text>
         </TouchableOpacity>

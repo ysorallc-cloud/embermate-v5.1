@@ -213,6 +213,8 @@ export default function NotificationSettingsScreen() {
               <TouchableOpacity
                 style={styles.permissionButton}
                 onPress={handleRequestPermissions}
+                accessibilityLabel="Enable notification permissions"
+                accessibilityRole="button"
               >
                 <Text style={styles.permissionButtonText}>Enable</Text>
               </TouchableOpacity>
@@ -248,6 +250,9 @@ export default function NotificationSettingsScreen() {
                   onValueChange={handleToggleSound}
                   trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(94,234,212,0.3)' }}
                   thumbColor={settings.soundEnabled ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
+                  accessibilityLabel="Sound"
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: settings.soundEnabled }}
                 />
               </View>
 
@@ -264,6 +269,9 @@ export default function NotificationSettingsScreen() {
                   onValueChange={handleToggleVibration}
                   trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(94,234,212,0.3)' }}
                   thumbColor={settings.vibrationEnabled ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
+                  accessibilityLabel="Vibration"
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: settings.vibrationEnabled }}
                 />
               </View>
             </View>
@@ -288,6 +296,9 @@ export default function NotificationSettingsScreen() {
                   onValueChange={handleToggleQuietHours}
                   trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(139,92,246,0.3)' }}
                   thumbColor={settings.quietHoursEnabled ? '#A78BFA' : 'rgba(255,255,255,0.5)'}
+                  accessibilityLabel="Enable quiet hours"
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: settings.quietHoursEnabled }}
                 />
               </View>
 
@@ -301,6 +312,8 @@ export default function NotificationSettingsScreen() {
                       style={styles.timeButton}
                       onPress={cycleQuietHoursStart}
                       activeOpacity={0.7}
+                      accessibilityLabel={`Quiet hours start time, ${formatTime(settings.quietHoursStart)}. Tap to change`}
+                      accessibilityRole="button"
                     >
                       <Text style={styles.timeLabel}>From</Text>
                       <Text style={styles.timeValue}>{formatTime(settings.quietHoursStart)}</Text>
@@ -312,6 +325,8 @@ export default function NotificationSettingsScreen() {
                       style={styles.timeButton}
                       onPress={cycleQuietHoursEnd}
                       activeOpacity={0.7}
+                      accessibilityLabel={`Quiet hours end time, ${formatTime(settings.quietHoursEnd)}. Tap to change`}
+                      accessibilityRole="button"
                     >
                       <Text style={styles.timeLabel}>Until</Text>
                       <Text style={styles.timeValue}>{formatTime(settings.quietHoursEnd)}</Text>
@@ -345,6 +360,9 @@ export default function NotificationSettingsScreen() {
                   onValueChange={handleToggleOverdueAlerts}
                   trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(94,234,212,0.3)' }}
                   thumbColor={settings.overdueAlertsEnabled ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
+                  accessibilityLabel="Allow follow-up alerts"
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: settings.overdueAlertsEnabled }}
                 />
               </View>
 
@@ -367,6 +385,8 @@ export default function NotificationSettingsScreen() {
             style={styles.carePlanLink}
             onPress={() => router.push('/care-plan' as any)}
             activeOpacity={0.7}
+            accessibilityLabel="Edit Care Plan, configure what generates reminders"
+            accessibilityRole="link"
           >
             <View style={styles.carePlanLinkContent}>
               <Text style={styles.carePlanLinkIcon}>📋</Text>

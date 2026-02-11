@@ -23,7 +23,12 @@ export const EmptyCard: React.FC = () => {
         Tap to add an appointment or medication.
       </Text>
 
-      <TouchableOpacity style={styles.button} onPress={handleAddSomething}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleAddSomething}
+        accessibilityLabel="Add an appointment or medication"
+        accessibilityRole="button"
+      >
         <Text style={styles.buttonText}>+ Add something</Text>
       </TouchableOpacity>
     </View>

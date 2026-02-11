@@ -99,8 +99,14 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({
         <Pressable
           style={styles.overlay}
           onPress={handleClose}
+          accessibilityLabel="Close tooltip"
+          accessibilityRole="button"
         >
-          <Pressable style={styles.tooltipContainer}>
+          <Pressable
+            style={styles.tooltipContainer}
+            accessibilityRole="none"
+            accessibilityLabel="Tooltip content"
+          >
             <View style={styles.tooltip}>
               {title && (
                 <Text style={styles.title}>{title}</Text>

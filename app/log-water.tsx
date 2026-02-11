@@ -70,6 +70,8 @@ export default function LogWaterScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
@@ -86,6 +88,8 @@ export default function LogWaterScreen() {
               style={styles.counterButton}
               onPress={handleDecrement}
               disabled={glasses === 0}
+              accessibilityLabel="Decrease water by one glass"
+              accessibilityRole="button"
             >
               <Text style={[styles.counterButtonText, glasses === 0 && styles.counterButtonDisabled]}>−</Text>
             </TouchableOpacity>
@@ -98,6 +102,8 @@ export default function LogWaterScreen() {
             <TouchableOpacity
               style={styles.counterButton}
               onPress={handleIncrement}
+              accessibilityLabel="Increase water by one glass"
+              accessibilityRole="button"
             >
               <Text style={styles.counterButtonText}>+</Text>
             </TouchableOpacity>
@@ -120,6 +126,8 @@ export default function LogWaterScreen() {
                 key={num}
                 style={styles.quickAddButton}
                 onPress={() => setGlasses(prev => Math.min(prev + num, WATER_GOAL + 4))}
+                accessibilityLabel={`Add ${num} glass${num !== 1 ? 'es' : ''}`}
+                accessibilityRole="button"
               >
                 <Text style={styles.quickAddText}>+{num}</Text>
               </TouchableOpacity>
@@ -133,6 +141,8 @@ export default function LogWaterScreen() {
             style={[styles.saveButton, saving && styles.saveButtonDisabled]}
             onPress={handleSave}
             disabled={saving}
+            accessibilityLabel={saving ? "Saving water intake" : "Save water intake"}
+            accessibilityRole="button"
           >
             <Text style={styles.saveButtonText}>
               {saving ? 'Saving...' : 'Done ✓'}

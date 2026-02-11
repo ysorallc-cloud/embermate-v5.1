@@ -84,7 +84,7 @@ export default function LogVitalsScreen() {
         <ScrollView style={styles.scrollView}>
           <View style={styles.content}>
             <View style={styles.header}>
-              <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
                 <Text style={styles.backText}>← Back</Text>
               </TouchableOpacity>
               <Text style={styles.icon}>❤️</Text>
@@ -120,9 +120,9 @@ export default function LogVitalsScreen() {
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Blood Pressure</Text>
                 <View style={styles.bpRow}>
-                  <TextInput style={[styles.input, styles.bpInput]} value={systolic} onChangeText={setSystolic} placeholder="120" keyboardType="numeric" placeholderTextColor={Colors.textMuted} />
+                  <TextInput style={[styles.input, styles.bpInput]} value={systolic} onChangeText={setSystolic} placeholder="120" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Systolic blood pressure" />
                   <Text style={styles.bpSlash}>/</Text>
-                  <TextInput style={[styles.input, styles.bpInput]} value={diastolic} onChangeText={setDiastolic} placeholder="80" keyboardType="numeric" placeholderTextColor={Colors.textMuted} />
+                  <TextInput style={[styles.input, styles.bpInput]} value={diastolic} onChangeText={setDiastolic} placeholder="80" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Diastolic blood pressure" />
                   <Text style={styles.unit}>mmHg</Text>
                 </View>
               </View>
@@ -130,7 +130,7 @@ export default function LogVitalsScreen() {
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Blood Glucose</Text>
                 <View style={styles.inputRow}>
-                  <TextInput style={[styles.input, styles.flex1]} value={glucose} onChangeText={setGlucose} placeholder="100" keyboardType="numeric" placeholderTextColor={Colors.textMuted} />
+                  <TextInput style={[styles.input, styles.flex1]} value={glucose} onChangeText={setGlucose} placeholder="100" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Blood glucose in milligrams per deciliter" />
                   <Text style={styles.unit}>mg/dL</Text>
                 </View>
               </View>
@@ -138,12 +138,12 @@ export default function LogVitalsScreen() {
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Weight</Text>
                 <View style={styles.inputRow}>
-                  <TextInput style={[styles.input, styles.flex1]} value={weight} onChangeText={setWeight} placeholder="150" keyboardType="numeric" placeholderTextColor={Colors.textMuted} />
+                  <TextInput style={[styles.input, styles.flex1]} value={weight} onChangeText={setWeight} placeholder="150" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Weight in pounds" />
                   <Text style={styles.unit}>lbs</Text>
                 </View>
               </View>
 
-              <TouchableOpacity style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSave} disabled={saving}>
+              <TouchableOpacity style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSave} disabled={saving} accessibilityLabel={saving ? 'Saving vitals' : 'Log vitals'} accessibilityRole="button" accessibilityState={{ disabled: saving }}>
                 <Text style={styles.saveButtonText}>{saving ? 'Saving...' : 'Log Vitals'}</Text>
               </TouchableOpacity>
             </View>

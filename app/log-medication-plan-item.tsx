@@ -222,7 +222,12 @@ export default function LogMedicationPlanItemScreen() {
         >
           <View style={styles.loadingContainer}>
             <Text style={styles.errorText}>Medication not found</Text>
-            <TouchableOpacity style={styles.backLink} onPress={() => router.back()}>
+            <TouchableOpacity
+              style={styles.backLink}
+              onPress={() => router.back()}
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
+            >
               <Text style={styles.backLinkText}>Go back</Text>
             </TouchableOpacity>
           </View>
@@ -245,7 +250,12 @@ export default function LogMedicationPlanItemScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Log Medication</Text>
@@ -292,6 +302,9 @@ export default function LogMedicationPlanItemScreen() {
             <TouchableOpacity
               style={[styles.modeButton, mode === 'confirm' && styles.modeButtonActive]}
               onPress={() => setMode('confirm')}
+              accessibilityLabel="Mark Taken"
+              accessibilityRole="button"
+              accessibilityState={{ selected: mode === 'confirm' }}
             >
               <Text style={[styles.modeButtonText, mode === 'confirm' && styles.modeButtonTextActive]}>
                 ✓ Mark Taken
@@ -300,6 +313,9 @@ export default function LogMedicationPlanItemScreen() {
             <TouchableOpacity
               style={[styles.modeButton, mode === 'skip' && styles.modeButtonSkip]}
               onPress={() => setMode('skip')}
+              accessibilityLabel="Skip"
+              accessibilityRole="button"
+              accessibilityState={{ selected: mode === 'skip' }}
             >
               <Text style={[styles.modeButtonText, mode === 'skip' && styles.modeButtonTextSkip]}>
                 Skip
@@ -336,6 +352,9 @@ export default function LogMedicationPlanItemScreen() {
                           );
                         }
                       }}
+                      accessibilityLabel={`${effect.label} side effect`}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: isSelected }}
                     >
                       <Text style={styles.sideEffectEmoji}>{effect.emoji}</Text>
                       <Text style={[
@@ -372,6 +391,9 @@ export default function LogMedicationPlanItemScreen() {
                       skipReason === reason.id && styles.skipReasonOptionSelected,
                     ]}
                     onPress={() => setSkipReason(reason.id)}
+                    accessibilityLabel={reason.label}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: skipReason === reason.id }}
                   >
                     <View style={[
                       styles.skipReasonRadio,
@@ -402,11 +424,17 @@ export default function LogMedicationPlanItemScreen() {
             multiline
             numberOfLines={3}
             textAlignVertical="top"
+            accessibilityLabel="Medication log notes"
           />
 
           {/* Snooze Option */}
           {mode === 'confirm' && (
-            <TouchableOpacity style={styles.snoozeButton} onPress={handleSnooze}>
+            <TouchableOpacity
+              style={styles.snoozeButton}
+              onPress={handleSnooze}
+              accessibilityLabel="Snooze for 30 minutes"
+              accessibilityRole="button"
+            >
               <Text style={styles.snoozeIcon}>⏰</Text>
               <Text style={styles.snoozeText}>Snooze for 30 minutes</Text>
             </TouchableOpacity>
@@ -422,6 +450,9 @@ export default function LogMedicationPlanItemScreen() {
               style={[styles.primaryButton, saving && styles.primaryButtonDisabled]}
               onPress={handleMarkTaken}
               disabled={saving}
+              accessibilityLabel={saving ? 'Saving medication' : 'Mark as taken'}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: saving }}
             >
               <Text style={styles.primaryButtonText}>
                 {saving ? 'Saving...' : '✓ Mark as Taken'}
@@ -435,6 +466,9 @@ export default function LogMedicationPlanItemScreen() {
               ]}
               onPress={handleSkip}
               disabled={!skipReason || saving}
+              accessibilityLabel={saving ? 'Saving skip' : 'Skip this dose'}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !skipReason || saving }}
             >
               <Text style={styles.skipButtonText}>
                 {saving ? 'Saving...' : 'Skip This Dose'}

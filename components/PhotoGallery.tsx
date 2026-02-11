@@ -28,6 +28,8 @@ export default function PhotoGallery({ photos, onPhotoPress, emptyMessage }: Pho
       style={styles.photoContainer}
       onPress={() => onPhotoPress?.(item)}
       activeOpacity={0.7}
+      accessibilityLabel={`Photo${item.caption ? `, ${item.caption}` : ''}`}
+      accessibilityRole="button"
     >
       <Image source={{ uri: item.uri }} style={styles.photo} />
       {item.caption && (

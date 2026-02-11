@@ -56,6 +56,9 @@ const SAMPLE_DATA_KEYS = {
   notes: '@embermate_notes',
   symptoms: '@embermate_symptoms',
 
+  // CarePlanConfig
+  carePlanConfig: '@embermate_careplan_config_v1:default',
+
   // Initialization flags
   initialized: '@embermate_sample_data_initialized',
   sampleDataCleared: '@embermate_sample_data_cleared',
@@ -298,6 +301,10 @@ export async function clearSampleData(): Promise<{
       const removed = await filterSampleFromArray(key, 'sample-');
       clearedCount += removed;
     }
+
+    // 11. Clear sample CarePlanConfig
+    await AsyncStorage.removeItem(SAMPLE_DATA_KEYS.carePlanConfig);
+    clearedCount++;
 
     // 12. Clear correlation cache (will be regenerated)
     await AsyncStorage.removeItem('@correlation_cache');

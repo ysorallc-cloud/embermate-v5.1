@@ -61,6 +61,9 @@ export const TimelineItem: React.FC<Props> = ({ item, isLast }) => {
       style={styles.container}
       onPress={handlePress}
       activeOpacity={0.7}
+      accessibilityLabel={`${item.title}, ${formatTime(item.scheduledTime)}, ${item.status === 'done' ? 'completed' : item.status}`}
+      accessibilityRole="button"
+      accessibilityState={{ checked: item.status === 'done' }}
     >
       {/* Timeline connector */}
       <View style={styles.connector}>

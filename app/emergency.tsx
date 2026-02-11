@@ -119,7 +119,7 @@ export default function EmergencyScreen() {
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
           <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
               <Text style={styles.backIcon}>←</Text>
             </TouchableOpacity>
             <Text style={styles.headerLabel}>EMERGENCY</Text>
@@ -134,6 +134,8 @@ export default function EmergencyScreen() {
               style={styles.emergencyModeButton}
               onPress={toggleEmergencyMode}
               activeOpacity={0.8}
+              accessibilityLabel="Enable emergency mode"
+              accessibilityRole="button"
             >
               <Text style={styles.emergencyModeIcon}>🚨</Text>
               <Text style={styles.emergencyModeText}>Enable Emergency Mode</Text>
@@ -150,6 +152,8 @@ export default function EmergencyScreen() {
                 <TouchableOpacity
                   style={styles.exitEmergencyButton}
                   onPress={toggleEmergencyMode}
+                  accessibilityLabel="Exit emergency mode"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.exitEmergencyText}>Exit</Text>
                 </TouchableOpacity>
@@ -162,6 +166,8 @@ export default function EmergencyScreen() {
             style={[styles.emergencyButton, emergencyMode && styles.emergencyButtonActive]}
             onPress={handleCall911}
             activeOpacity={0.8}
+            accessibilityLabel="Call 911 emergency services"
+            accessibilityRole="button"
           >
             <Ionicons name="call" size={28} color="#FFF" />
             <View style={styles.emergencyButtonText}>
@@ -181,6 +187,8 @@ export default function EmergencyScreen() {
               style={styles.quickActionButton}
               onPress={handleShareLocation}
               activeOpacity={0.7}
+              accessibilityLabel="Share location"
+              accessibilityRole="button"
             >
               <Text style={styles.quickActionIcon}>📍</Text>
               <Text style={styles.quickActionLabel}>Share Location</Text>
@@ -189,6 +197,8 @@ export default function EmergencyScreen() {
               style={styles.quickActionButton}
               onPress={handleViewMedicalInfo}
               activeOpacity={0.7}
+              accessibilityLabel="View medical info"
+              accessibilityRole="button"
             >
               <Text style={styles.quickActionIcon}>🩺</Text>
               <Text style={styles.quickActionLabel}>Medical Info</Text>
@@ -208,6 +218,8 @@ export default function EmergencyScreen() {
                   ]}
                   onPress={() => handleCall(contact.phone, contact.name)}
                   activeOpacity={0.7}
+                  accessibilityLabel={`Call ${contact.name}, ${contact.role}`}
+                  accessibilityRole="button"
                 >
                   <View style={styles.contactIcon}>
                     <Text style={styles.contactInitials}>
@@ -247,6 +259,8 @@ export default function EmergencyScreen() {
                   ]}
                   onPress={() => handleCall(contact.phone, contact.name)}
                   activeOpacity={0.7}
+                  accessibilityLabel={`Call ${contact.name}, ${contact.role}`}
+                  accessibilityRole="button"
                 >
                   <View style={[styles.contactIcon, styles.contactIconSecondary]}>
                     <Text style={styles.contactInitials}>

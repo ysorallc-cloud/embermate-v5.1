@@ -136,7 +136,12 @@ export default function CorrelationTestScreen() {
           
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButton}
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
+            >
               <Text style={styles.backIcon}>←</Text>
             </TouchableOpacity>
             <View style={styles.headerContent}>
@@ -165,6 +170,9 @@ export default function CorrelationTestScreen() {
                 style={[styles.actionButton, styles.primaryButton]}
                 onPress={handleGenerateData}
                 disabled={loading}
+                accessibilityLabel="Generate sample data"
+                accessibilityRole="button"
+                accessibilityState={{ disabled: loading }}
               >
                 {loading ? (
                   <ActivityIndicator size="small" color="#FFF" />
@@ -188,6 +196,9 @@ export default function CorrelationTestScreen() {
                 style={[styles.actionButton, styles.secondaryButton]}
                 onPress={handleTestCorrelations}
                 disabled={loading || !dataExists}
+                accessibilityLabel="Test correlation detection"
+                accessibilityRole="button"
+                accessibilityState={{ disabled: loading || !dataExists }}
               >
                 <Ionicons name="analytics" size={20} color={Colors.accent} />
                 <Text style={[styles.actionButtonText, { color: Colors.accent }]}>
@@ -207,6 +218,9 @@ export default function CorrelationTestScreen() {
                 style={[styles.actionButton, styles.dangerButton]}
                 onPress={handleClearData}
                 disabled={loading || !dataExists}
+                accessibilityLabel="Clear all sample data"
+                accessibilityRole="button"
+                accessibilityState={{ disabled: loading || !dataExists }}
               >
                 <Ionicons name="trash" size={20} color="#EF4444" />
                 <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>

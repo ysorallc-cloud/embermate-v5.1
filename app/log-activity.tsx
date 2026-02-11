@@ -68,6 +68,8 @@ export default function LogActivityScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
@@ -88,6 +90,9 @@ export default function LogActivityScreen() {
                   selectedActivities.includes(activity.id) && styles.activityCardSelected,
                 ]}
                 onPress={() => toggleActivity(activity.id)}
+                accessibilityLabel={`${activity.label}, ${selectedActivities.includes(activity.id) ? 'selected' : 'not selected'}`}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: selectedActivities.includes(activity.id) }}
               >
                 <Text style={styles.activityEmoji}>{activity.emoji}</Text>
                 <Text style={[
@@ -109,6 +114,7 @@ export default function LogActivityScreen() {
               placeholderTextColor="rgba(255, 255, 255, 0.3)"
               value={duration}
               onChangeText={setDuration}
+              accessibilityLabel="Activity duration"
             />
           </View>
 
@@ -123,6 +129,7 @@ export default function LogActivityScreen() {
               numberOfLines={3}
               value={notes}
               onChangeText={setNotes}
+              accessibilityLabel="Activity notes"
             />
           </View>
         </View>
@@ -133,6 +140,9 @@ export default function LogActivityScreen() {
             style={[styles.saveButton, saving && styles.saveButtonDisabled]}
             onPress={handleSave}
             disabled={saving}
+            accessibilityLabel={saving ? 'Saving activity' : 'Save activity'}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: saving }}
           >
             <Text style={styles.saveButtonText}>
               {saving ? 'Saving...' : 'Done ✓'}

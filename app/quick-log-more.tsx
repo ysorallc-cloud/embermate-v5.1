@@ -33,6 +33,8 @@ export default function QuickLogMoreScreen() {
       style={[styles.optionRow, !isLast && styles.optionBorder]}
       onPress={() => handleOptionPress(option)}
       activeOpacity={0.7}
+      accessibilityLabel={`${option.label}: ${option.description}`}
+      accessibilityRole="button"
     >
       <View style={styles.optionIconContainer}>
         <Text style={styles.optionIcon}>{option.icon}</Text>
@@ -56,6 +58,8 @@ export default function QuickLogMoreScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleBack}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>

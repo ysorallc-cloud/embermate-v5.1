@@ -348,6 +348,8 @@ export default function CarePlanManageScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
@@ -375,6 +377,8 @@ export default function CarePlanManageScreen() {
                 key={config.type}
                 style={styles.quickAddButton}
                 onPress={() => openAddModal(config.type)}
+                accessibilityLabel={`Quick add ${config.label}`}
+                accessibilityRole="button"
               >
                 <Text style={styles.quickAddEmoji}>{config.emoji}</Text>
                 <Text style={styles.quickAddLabel}>{config.label}</Text>
@@ -405,6 +409,9 @@ export default function CarePlanManageScreen() {
                       onPress={() => openEditModal(item)}
                       onLongPress={() => handleDelete(item)}
                       delayLongPress={500}
+                      accessibilityLabel={`${item.name}, ${formatTimeWindows(item)}, ${item.priority}, ${item.active ? 'active' : 'inactive'}. Double tap to edit, long press to delete`}
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: !item.active }}
                     >
                       <View style={styles.itemContent}>
                         <Text style={[styles.itemName, !item.active && styles.itemNameInactive]}>
@@ -443,6 +450,8 @@ export default function CarePlanManageScreen() {
         <TouchableOpacity
           style={styles.addCustomButton}
           onPress={() => openAddModal()}
+          accessibilityLabel="Add custom task"
+          accessibilityRole="button"
         >
           <Text style={styles.addCustomText}>+ Add Custom Task</Text>
         </TouchableOpacity>
@@ -463,7 +472,11 @@ export default function CarePlanManageScreen() {
               <Text style={styles.modalTitle}>
                 {editingItem ? 'Edit Task' : 'Add Task'}
               </Text>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
+              <TouchableOpacity
+                onPress={() => setShowAddModal(false)}
+                accessibilityLabel="Close modal"
+                accessibilityRole="button"
+              >
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -485,6 +498,9 @@ export default function CarePlanManageScreen() {
                           setFormType(config.type);
                           setFormPriority(config.defaultPriority);
                         }}
+                        accessibilityLabel={`${config.label} type`}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: formType === config.type }}
                       >
                         <Text style={styles.typeChipEmoji}>{config.emoji}</Text>
                         <Text style={[
@@ -508,6 +524,7 @@ export default function CarePlanManageScreen() {
                   onChangeText={setFormName}
                   placeholder="e.g., Sertraline, Morning vitals check"
                   placeholderTextColor="rgba(255,255,255,0.3)"
+                  accessibilityLabel="Care plan item name"
                 />
               </View>
 
@@ -522,6 +539,7 @@ export default function CarePlanManageScreen() {
                   placeholderTextColor="rgba(255,255,255,0.3)"
                   multiline
                   numberOfLines={2}
+                  accessibilityLabel="Care plan item instructions"
                 />
               </View>
 
@@ -537,6 +555,9 @@ export default function CarePlanManageScreen() {
                         formTimeWindows.has(tw.label) && styles.windowChipSelected,
                       ]}
                       onPress={() => toggleTimeWindow(tw.label)}
+                      accessibilityLabel={`${tw.display} time window`}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: formTimeWindows.has(tw.label) }}
                     >
                       <Text style={styles.windowEmoji}>{tw.emoji}</Text>
                       <Text style={[
@@ -562,6 +583,9 @@ export default function CarePlanManageScreen() {
                         formPriority === p && styles.priorityChipSelected,
                       ]}
                       onPress={() => setFormPriority(p)}
+                      accessibilityLabel={`${p.charAt(0).toUpperCase() + p.slice(1)} priority`}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: formPriority === p }}
                     >
                       <Text style={[
                         styles.priorityLabel,
@@ -591,7 +615,12 @@ export default function CarePlanManageScreen() {
               </View>
 
               {/* Save Button */}
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleSave}
+                accessibilityLabel={editingItem ? 'Save changes' : 'Add task'}
+                accessibilityRole="button"
+              >
                 <Text style={styles.saveButtonText}>
                   {editingItem ? 'Save Changes' : 'Add Task'}
                 </Text>
@@ -605,6 +634,8 @@ export default function CarePlanManageScreen() {
                     setShowAddModal(false);
                     handleDelete(editingItem);
                   }}
+                  accessibilityLabel={`Delete ${editingItem.name}`}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.deleteButtonText}>Delete Task</Text>
                 </TouchableOpacity>

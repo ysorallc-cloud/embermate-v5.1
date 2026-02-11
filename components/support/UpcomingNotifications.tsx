@@ -121,7 +121,8 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
           <TouchableOpacity
             onPress={() => onSnooze(notification.id)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel="Snooze 15 minutes"
+            accessibilityLabel={`Snooze ${notification.itemName} 15 minutes`}
+            accessibilityRole="button"
           >
             <Text style={styles.snoozeButton}>💤</Text>
           </TouchableOpacity>
@@ -214,7 +215,11 @@ export const UpcomingNotifications: React.FC<UpcomingNotificationsProps> = ({
         </View>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={loadNotifications}>
+          <TouchableOpacity
+            onPress={loadNotifications}
+            accessibilityLabel="Retry loading notifications"
+            accessibilityRole="button"
+          >
             <Text style={styles.retryText}>Tap to retry</Text>
           </TouchableOpacity>
         </View>
@@ -239,6 +244,8 @@ export const UpcomingNotifications: React.FC<UpcomingNotificationsProps> = ({
         <TouchableOpacity
           style={styles.manageButton}
           onPress={handleManagePress}
+          accessibilityLabel="Manage notifications in Settings"
+          accessibilityRole="link"
         >
           <Text style={styles.manageButtonText}>Manage in Settings</Text>
         </TouchableOpacity>
@@ -268,6 +275,8 @@ export const UpcomingNotifications: React.FC<UpcomingNotificationsProps> = ({
       <TouchableOpacity
         style={styles.manageButton}
         onPress={handleManagePress}
+        accessibilityLabel="Manage notifications in Settings"
+        accessibilityRole="link"
       >
         <Text style={styles.manageButtonText}>Manage in Settings</Text>
       </TouchableOpacity>

@@ -675,7 +675,7 @@ export default function DailyCareReportScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Unable to load report data</Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -687,7 +687,7 @@ export default function DailyCareReportScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.closeButton} onPress={() => router.back()} accessibilityLabel="Close report" accessibilityRole="button">
           <Text style={styles.closeIcon}>x</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Daily Care Report</Text>
@@ -849,14 +849,14 @@ export default function DailyCareReportScreen() {
 
       {/* Share Actions */}
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.primaryAction} onPress={handleSharePDF}>
+        <TouchableOpacity style={styles.primaryAction} onPress={handleSharePDF} accessibilityLabel="Share as PDF" accessibilityRole="button">
           <Text style={styles.primaryActionText}>Share as PDF</Text>
         </TouchableOpacity>
         <View style={styles.secondaryActions}>
-          <TouchableOpacity style={styles.secondaryAction} onPress={handleShareText}>
+          <TouchableOpacity style={styles.secondaryAction} onPress={handleShareText} accessibilityLabel="Share as text" accessibilityRole="button">
             <Text style={styles.secondaryActionText}>Share as Text</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryAction} onPress={handlePrint}>
+          <TouchableOpacity style={styles.secondaryAction} onPress={handlePrint} accessibilityLabel="Print report" accessibilityRole="button">
             <Text style={styles.secondaryActionText}>Print</Text>
           </TouchableOpacity>
         </View>

@@ -42,7 +42,7 @@ export default function LogNoteScreen() {
         <ScrollView style={styles.scrollView}>
           <View style={styles.content}>
             <View style={styles.header}>
-              <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
                 <Text style={styles.backText}>← Back</Text>
               </TouchableOpacity>
               <Text style={styles.icon}>📝</Text>
@@ -63,10 +63,11 @@ export default function LogNoteScreen() {
                   numberOfLines={10}
                   textAlignVertical="top"
                   autoFocus
+                  accessibilityLabel="Care note, required"
                 />
               </View>
 
-              <TouchableOpacity style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSave} disabled={saving}>
+              <TouchableOpacity style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSave} disabled={saving} accessibilityLabel={saving ? 'Saving note' : 'Save note'} accessibilityRole="button" accessibilityState={{ disabled: saving }}>
                 <Text style={styles.saveButtonText}>{saving ? 'Saving...' : 'Save Note'}</Text>
               </TouchableOpacity>
             </View>

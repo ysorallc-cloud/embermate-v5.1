@@ -63,7 +63,12 @@ export const DisclaimerModal: React.FC<Props> = ({ visible, onClose }) => {
                 </Text>
               </View>
 
-              <Pressable style={styles.closeButton} onPress={onClose}>
+              <Pressable
+                style={styles.closeButton}
+                onPress={onClose}
+                accessibilityLabel="Close disclaimer"
+                accessibilityRole="button"
+              >
                 <Text style={styles.closeButtonText}>Close</Text>
               </Pressable>
             </ScrollView>

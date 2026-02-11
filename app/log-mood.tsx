@@ -116,6 +116,8 @@ export default function LogMoodScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
@@ -147,6 +149,9 @@ export default function LogMoodScreen() {
                 onPress={() => handleMoodSelect(mood.id)}
                 activeOpacity={0.7}
                 disabled={showConfirmation}
+                accessibilityLabel={`${mood.label} mood`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: selectedMood === mood.id, disabled: showConfirmation }}
               >
                 <Text style={styles.moodEmoji}>{mood.emoji}</Text>
                 <Text style={styles.moodLabel}>{mood.label}</Text>

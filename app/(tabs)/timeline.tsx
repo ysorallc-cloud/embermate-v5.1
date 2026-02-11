@@ -72,6 +72,9 @@ export default function InsightsScreen() {
             <TouchableOpacity
               style={[styles.rangeBtn, timeRange === '7days' && styles.rangeBtnActive]}
               onPress={() => setTimeRange('7days')}
+              accessibilityLabel="7 days"
+              accessibilityRole="button"
+              accessibilityState={{ selected: timeRange === '7days' }}
             >
               <Text style={[styles.rangeBtnText, timeRange === '7days' && styles.rangeBtnTextActive]}>
                 7 days
@@ -80,6 +83,9 @@ export default function InsightsScreen() {
             <TouchableOpacity
               style={[styles.rangeBtn, timeRange === '30days' && styles.rangeBtnActive]}
               onPress={() => setTimeRange('30days')}
+              accessibilityLabel="30 days"
+              accessibilityRole="button"
+              accessibilityState={{ selected: timeRange === '30days' }}
             >
               <Text style={[styles.rangeBtnText, timeRange === '30days' && styles.rangeBtnTextActive]}>
                 30 days
@@ -88,6 +94,9 @@ export default function InsightsScreen() {
             <TouchableOpacity
               style={[styles.rangeBtn, timeRange === '3months' && styles.rangeBtnActive]}
               onPress={() => setTimeRange('3months')}
+              accessibilityLabel="3 months"
+              accessibilityRole="button"
+              accessibilityState={{ selected: timeRange === '3months' }}
             >
               <Text style={[styles.rangeBtnText, timeRange === '3months' && styles.rangeBtnTextActive]}>
                 3 months
@@ -123,9 +132,11 @@ export default function InsightsScreen() {
               </View>
 
               {/* Pattern Detection Banner */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.insightBanner}
                 onPress={() => router.push('/correlation-report')}
+                accessibilityLabel="Pattern detected: View correlation report"
+                accessibilityRole="button"
               >
                 <View style={styles.insightHeader}>
                   <Text style={styles.insightIcon}>💡</Text>
@@ -140,14 +151,20 @@ export default function InsightsScreen() {
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Vitals History</Text>
-                  <TouchableOpacity onPress={() => router.push('/vitals')}>
+                  <TouchableOpacity
+                    onPress={() => router.push('/vitals')}
+                    accessibilityLabel="View all vitals history"
+                    accessibilityRole="button"
+                  >
                     <Text style={styles.viewAll}>View all →</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={styles.historyCard}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.historyRow}
                     onPress={() => router.push('/vitals?type=blood-pressure')}
+                    accessibilityLabel="Blood Pressure, 120/80, Today at 8:00 AM"
+                    accessibilityRole="button"
                   >
                     <View style={styles.historyLeft}>
                       <Text style={styles.historyIcon}>💗</Text>
@@ -159,9 +176,11 @@ export default function InsightsScreen() {
                     <Text style={styles.historyArrow}>→</Text>
                   </TouchableOpacity>
                   
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.historyRow}
                     onPress={() => router.push('/vitals?type=temperature')}
+                    accessibilityLabel="Temperature, 98.6°F, Yesterday"
+                    accessibilityRole="button"
                   >
                     <View style={styles.historyLeft}>
                       <Text style={styles.historyIcon}>🌡️</Text>
@@ -173,9 +192,11 @@ export default function InsightsScreen() {
                     <Text style={styles.historyArrow}>→</Text>
                   </TouchableOpacity>
                   
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.historyRow}
                     onPress={() => router.push('/vitals?type=weight')}
+                    accessibilityLabel="Weight, 165 lbs, 2 days ago"
+                    accessibilityRole="button"
                   >
                     <View style={styles.historyLeft}>
                       <Text style={styles.historyIcon}>⚖️</Text>
@@ -193,14 +214,20 @@ export default function InsightsScreen() {
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Symptoms Log</Text>
-                  <TouchableOpacity onPress={() => router.push('/symptoms')}>
+                  <TouchableOpacity
+                    onPress={() => router.push('/symptoms')}
+                    accessibilityLabel="View all symptoms"
+                    accessibilityRole="button"
+                  >
                     <Text style={styles.viewAll}>View all →</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={styles.historyCard}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.historyRow}
                     onPress={() => router.push('/symptoms')}
+                    accessibilityLabel="Headache, Mild, Yesterday at 3:00 PM"
+                    accessibilityRole="button"
                   >
                     <View style={styles.historyLeft}>
                       <Text style={styles.historyIcon}>🤕</Text>
@@ -212,9 +239,11 @@ export default function InsightsScreen() {
                     <Text style={styles.historyArrow}>→</Text>
                   </TouchableOpacity>
                   
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.historyRow}
                     onPress={() => router.push('/symptoms')}
+                    accessibilityLabel="Fatigue, Moderate, 3 days ago"
+                    accessibilityRole="button"
                   >
                     <View style={styles.historyLeft}>
                       <Text style={styles.historyIcon}>😴</Text>
@@ -232,14 +261,20 @@ export default function InsightsScreen() {
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Medication Trends</Text>
-                  <TouchableOpacity onPress={() => router.push('/medications')}>
+                  <TouchableOpacity
+                    onPress={() => router.push('/medications')}
+                    accessibilityLabel="View all medication trends"
+                    accessibilityRole="button"
+                  >
                     <Text style={styles.viewAll}>View all →</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={styles.historyCard}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.historyRow}
                     onPress={() => router.push('/medications')}
+                    accessibilityLabel="Lisinopril, 95% adherence this week"
+                    accessibilityRole="button"
                   >
                     <View style={styles.historyLeft}>
                       <Text style={styles.historyIcon}>💊</Text>
@@ -251,9 +286,11 @@ export default function InsightsScreen() {
                     <Text style={styles.historyArrow}>→</Text>
                   </TouchableOpacity>
                   
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.historyRow}
                     onPress={() => router.push('/medications')}
+                    accessibilityLabel="Metformin, 78% adherence this week"
+                    accessibilityRole="button"
                   >
                     <View style={styles.historyLeft}>
                       <Text style={styles.historyIcon}>💊</Text>

@@ -1,14 +1,33 @@
 // ============================================================================
 // UNIQUE ID GENERATOR
-// Generates collision-resistant IDs without external dependencies
+// Generates collision-resistant IDs using cryptographic randomness
 // ============================================================================
 
+import * as Crypto from 'expo-crypto';
+
+// Pre-seeded crypto buffer for synchronous ID generation
+let cryptoBuffer: Uint8Array = new Uint8Array(256);
+let bufferOffset = 256; // Start exhausted to trigger first fill
+
 /**
- * Generate a unique ID using timestamp + random string
- * More collision-resistant than Date.now() alone
+ * Fill the crypto buffer with secure random bytes.
+ * Called lazily; IDs generated before first await use Math.random fallback.
+ */
+async function refillCryptoBuffer(): Promise<void> {
+  cryptoBuffer = await Crypto.getRandomBytesAsync(256);
+  bufferOffset = 0;
+}
+
+// Start filling the buffer on module load (non-blocking)
+refillCryptoBuffer();
+
+/**
+ * Generate a unique ID using timestamp + cryptographic random string.
+ * Synchronous for hot paths; uses pre-fetched crypto bytes when available,
+ * falls back to Math.random if the buffer is exhausted (refills async).
  *
  * Format: {timestamp}-{random}
- * Example: 1704326400000-k9x2p7f
+ * Example: 1704326400000-a3f9b2c
  */
 export function generateUniqueId(): string {
   const timestamp = Date.now();
@@ -17,16 +36,25 @@ export function generateUniqueId(): string {
 }
 
 /**
- * Generate a random alphanumeric string
- * Uses base36 for URL-safe characters
+ * Generate a random alphanumeric string using crypto bytes when available
  */
 function generateRandomString(length: number): string {
-  let result = '';
   const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
 
   for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * characters.length);
-    result += characters[randomIndex];
+    let randomByte: number;
+    if (bufferOffset < cryptoBuffer.length) {
+      randomByte = cryptoBuffer[bufferOffset++];
+      // Trigger async refill when running low
+      if (bufferOffset >= cryptoBuffer.length) {
+        refillCryptoBuffer();
+      }
+    } else {
+      // Fallback: Math.random (only before first crypto fill completes)
+      randomByte = Math.floor(Math.random() * 256);
+    }
+    result += characters[randomByte % characters.length];
   }
 
   return result;

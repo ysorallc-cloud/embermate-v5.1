@@ -47,6 +47,8 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
             { backgroundColor: colors.bg, borderColor: colors.border }
           ]}
           onPress={rightAction.onPress}
+          accessibilityLabel={rightAction.label || 'Action'}
+          accessibilityRole="button"
         >
           {rightAction.icon && (
             <Text style={styles.actionIcon}>{rightAction.icon}</Text>
@@ -65,6 +67,8 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
       <TouchableOpacity
         style={styles.iconButton}
         onPress={rightAction.onPress}
+        accessibilityLabel={rightAction.label || 'Menu'}
+        accessibilityRole="button"
       >
         <Text style={styles.iconButtonIcon}>{rightAction.icon}</Text>
       </TouchableOpacity>

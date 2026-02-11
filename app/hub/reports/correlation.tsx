@@ -120,6 +120,9 @@ export default function CorrelationReport() {
                 ]}
                 onPress={() => setTimeRange(range as '7' | '14' | '30')}
                 activeOpacity={0.7}
+                accessibilityLabel={`${range} day time range`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: timeRange === range }}
               >
                 <Text style={[
                   styles.timeRangeText,
@@ -165,6 +168,9 @@ export default function CorrelationReport() {
               key={corr.id}
               onPress={() => setExpandedId(expandedId === corr.id ? null : corr.id)}
               activeOpacity={0.7}
+              accessibilityLabel={`${corr.title}, ${corr.confidence}% confidence. ${corr.summary}`}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: expandedId === corr.id }}
             >
               <GlassCard style={styles.correlationCard}>
                 <View style={styles.correlationHeader}>

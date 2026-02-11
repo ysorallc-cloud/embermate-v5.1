@@ -263,6 +263,9 @@ export default function DataPrivacySettingsScreen() {
                     onPress={handleClearSampleData}
                     disabled={clearing}
                     activeOpacity={0.7}
+                    accessibilityLabel={clearing ? 'Removing sample data' : 'Remove sample data'}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: clearing }}
                   >
                     {clearing ? (
                       <ActivityIndicator size="small" color={Colors.error} />
@@ -306,6 +309,8 @@ export default function DataPrivacySettingsScreen() {
                 style={styles.settingRow}
                 onPress={() => router.push('/daily-care-report')}
                 activeOpacity={0.7}
+                accessibilityLabel="Export daily report, share a summary with your care team"
+                accessibilityRole="link"
               >
                 <View style={styles.settingInfo}>
                   <View style={styles.settingTitleRow}>
@@ -328,6 +333,8 @@ export default function DataPrivacySettingsScreen() {
                       Alert.alert('Banner Reset', 'The sample data banner will appear on the Now page again.');
                     }}
                     activeOpacity={0.7}
+                    accessibilityLabel="Show sample data banner, re-enable the Now page banner if dismissed"
+                    accessibilityRole="button"
                   >
                     <View style={styles.settingInfo}>
                       <View style={styles.settingTitleRow}>
@@ -360,6 +367,9 @@ export default function DataPrivacySettingsScreen() {
                       style={styles.settingRow}
                       onPress={() => handleRetentionChange(option.value)}
                       activeOpacity={0.7}
+                      accessibilityLabel={`${option.label}, ${option.description}`}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: isSelected }}
                     >
                       <View style={styles.settingInfo}>
                         <View style={styles.settingTitleRow}>

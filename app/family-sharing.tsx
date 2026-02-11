@@ -113,9 +113,11 @@ export default function FamilySharingScreen() {
         style={styles.gradient}
       >
         <View style={styles.headerWrapper}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
@@ -165,6 +167,8 @@ export default function FamilySharingScreen() {
                   style={styles.caregiverCard}
                   onPress={() => router.push(`/caregiver-management?id=${caregiver.id}`)}
                   activeOpacity={0.7}
+                  accessibilityLabel={`${caregiver.name}, ${caregiver.role}`}
+                  accessibilityRole="button"
                 >
                   <View 
                     style={[styles.caregiverAvatar, { backgroundColor: caregiver.avatarColor }]}
@@ -217,6 +221,8 @@ export default function FamilySharingScreen() {
                   <TouchableOpacity
                     onPress={() => copyToClipboard(invite.code)}
                     style={styles.copyButton}
+                    accessibilityLabel={`Copy invite code ${invite.code}`}
+                    accessibilityRole="button"
                   >
                     <Text style={styles.copyButtonText}>Copy</Text>
                   </TouchableOpacity>
@@ -230,6 +236,8 @@ export default function FamilySharingScreen() {
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={handleGenerateCode}
+              accessibilityLabel="Generate invite code"
+              accessibilityRole="button"
             >
               <Text style={styles.primaryButtonText}>+ Generate Invite Code</Text>
             </TouchableOpacity>
@@ -237,6 +245,8 @@ export default function FamilySharingScreen() {
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={() => router.push('/family-activity')}
+              accessibilityLabel="View family activity"
+              accessibilityRole="button"
             >
               <Text style={styles.secondaryButtonText}>View Family Activity →</Text>
             </TouchableOpacity>

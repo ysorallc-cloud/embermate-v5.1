@@ -83,7 +83,12 @@ export default function MealsBucketScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerLabel}>MEALS</Text>
@@ -134,6 +139,9 @@ export default function MealsBucketScreen() {
                     ]}
                     onPress={() => handleChangePriority(option.value)}
                     activeOpacity={0.7}
+                    accessibilityLabel={`${option.label} priority, ${option.description}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: priority === option.value }}
                   >
                     <Text style={[
                       styles.priorityLabel,
@@ -158,6 +166,9 @@ export default function MealsBucketScreen() {
                     ]}
                     onPress={() => handleToggleMealTime(timeOption.value)}
                     activeOpacity={0.7}
+                    accessibilityLabel={`${mealTimeLabels[timeOption.value] || timeOption.label}`}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: timesOfDay.includes(timeOption.value) }}
                   >
                     <Text style={styles.mealEmoji}>
                       {timeOption.value === 'morning' ? '🌅' :
@@ -192,6 +203,9 @@ export default function MealsBucketScreen() {
                   ]}
                   onPress={() => handleChangeTrackingStyle('quick')}
                   activeOpacity={0.7}
+                  accessibilityLabel="Quick Log, Just tap to log that you ate"
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: trackingStyle === 'quick' }}
                 >
                   <Text style={styles.styleEmoji}>⚡</Text>
                   <View style={styles.styleInfo}>
@@ -213,6 +227,9 @@ export default function MealsBucketScreen() {
                   ]}
                   onPress={() => handleChangeTrackingStyle('detailed')}
                   activeOpacity={0.7}
+                  accessibilityLabel="Detailed, Log what you ate and how much"
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: trackingStyle === 'detailed' }}
                 >
                   <Text style={styles.styleEmoji}>📝</Text>
                   <View style={styles.styleInfo}>

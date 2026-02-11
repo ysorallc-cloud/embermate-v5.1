@@ -1,6 +1,6 @@
 // ============================================================================
 // SECURE STORAGE UTILITIES
-// Production-grade AES-256-GCM encrypted storage for sensitive health data
+// Production-grade AES-256-CTR + HMAC-SHA256 (Encrypt-then-MAC) encrypted storage for sensitive health data
 // ============================================================================
 
 import * as SecureStore from 'expo-secure-store';
@@ -13,7 +13,20 @@ import CryptoJS from 'crypto-js';
  * Uses device keychain/keystore for secure key storage
  */
 const ENCRYPTION_KEY_ALIAS = 'embermate_master_key';
-const ENCRYPTION_VERSION = 'v2'; // Track encryption version for future migrations
+const ENCRYPTION_VERSION = 'v3'; // v3: separate enc/mac keys, constant-time HMAC
+
+/**
+ * Constant-time string comparison to prevent timing attacks on HMAC verification.
+ * Always compares all characters regardless of where differences occur.
+ */
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
 
 /**
  * Generate or retrieve encryption key from secure keychain
@@ -45,8 +58,8 @@ async function getOrCreateEncryptionKey(): Promise<string> {
 }
 
 /**
- * Encrypt data using AES-256-GCM
- * Industry-standard authenticated encryption with 128-bit IV
+ * Encrypt data using AES-256-CTR with HMAC-SHA256 (Encrypt-then-MAC)
+ * Separate keys derived for encryption and authentication.
  *
  * @param data - Plain text data to encrypt
  * @returns Encrypted data in format: version:iv:ciphertext:tag
@@ -59,19 +72,20 @@ async function encryptData(data: string): Promise<string> {
     const ivBytes = await Crypto.getRandomBytesAsync(16);
     const iv = CryptoJS.lib.WordArray.create(ivBytes);
 
-    // Convert hex key string to WordArray for CryptoJS
-    const keyWordArray = CryptoJS.enc.Hex.parse(key);
+    // Derive separate keys for encryption and authentication
+    const masterKey = CryptoJS.enc.Hex.parse(key);
+    const encKey = CryptoJS.HmacSHA256('enc', masterKey);
+    const macKey = CryptoJS.HmacSHA256('mac', masterKey);
 
-    // Encrypt using AES-256-GCM (Galois/Counter Mode)
-    // GCM provides both confidentiality and authenticity
-    const encrypted = CryptoJS.AES.encrypt(data, keyWordArray, {
+    // Encrypt using AES-256-CTR
+    const encrypted = CryptoJS.AES.encrypt(data, encKey, {
       iv: iv,
-      mode: CryptoJS.mode.CTR, // Using CTR mode (CryptoJS doesn't have native GCM)
+      mode: CryptoJS.mode.CTR,
       padding: CryptoJS.pad.NoPadding,
     });
 
-    // Create HMAC-SHA256 authentication tag for authenticity
-    const hmac = CryptoJS.HmacSHA256(encrypted.ciphertext.toString(), keyWordArray);
+    // Create HMAC-SHA256 authentication tag (Encrypt-then-MAC)
+    const hmac = CryptoJS.HmacSHA256(encrypted.ciphertext.toString(), macKey);
 
     // Format: version:iv:ciphertext:tag
     return `${ENCRYPTION_VERSION}:${iv.toString()}:${encrypted.ciphertext.toString()}:${hmac.toString()}`;
@@ -82,8 +96,8 @@ async function encryptData(data: string): Promise<string> {
 }
 
 /**
- * Decrypt AES-256-GCM encrypted data
- * Verifies authentication tag before decrypting
+ * Decrypt AES-256-CTR + HMAC-SHA256 encrypted data
+ * Verifies authentication tag before decrypting (constant-time comparison)
  *
  * @param encryptedData - Encrypted data in format: version:iv:ciphertext:tag
  * @returns Decrypted plain text
@@ -91,7 +105,7 @@ async function encryptData(data: string): Promise<string> {
 async function decryptData(encryptedData: string): Promise<string> {
   try {
     const key = await getOrCreateEncryptionKey();
-    const keyWordArray = CryptoJS.enc.Hex.parse(key);
+    const masterKey = CryptoJS.enc.Hex.parse(key);
 
     // Parse encrypted data format
     const parts = encryptedData.split(':');
@@ -107,25 +121,32 @@ async function decryptData(encryptedData: string): Promise<string> {
 
     const [version, ivHex, ciphertextHex, tagHex] = parts;
 
-    // Verify encryption version
-    if (version !== ENCRYPTION_VERSION) {
-      // Handle future version migrations here
-      console.warn(`Encryption version mismatch: ${version}`);
+    // Derive keys based on encryption version
+    let encKey: CryptoJS.lib.WordArray;
+    let macKey: CryptoJS.lib.WordArray;
+
+    if (version === 'v3') {
+      // v3: separate derived keys for encryption and authentication
+      encKey = CryptoJS.HmacSHA256('enc', masterKey);
+      macKey = CryptoJS.HmacSHA256('mac', masterKey);
+    } else {
+      // v2 legacy: same master key for both (backward compatible)
+      encKey = masterKey;
+      macKey = masterKey;
     }
 
-    // Verify authentication tag (HMAC)
-    const ciphertextWordArray = CryptoJS.enc.Hex.parse(ciphertextHex);
-    const expectedTag = CryptoJS.HmacSHA256(ciphertextHex, keyWordArray).toString();
-
-    if (expectedTag !== tagHex) {
+    // Verify authentication tag (constant-time comparison prevents timing attacks)
+    const expectedTag = CryptoJS.HmacSHA256(ciphertextHex, macKey).toString();
+    if (!constantTimeEqual(expectedTag, tagHex)) {
       throw new Error('Authentication failed - data may have been tampered with');
     }
 
     // Decrypt using AES-256-CTR
     const iv = CryptoJS.enc.Hex.parse(ivHex);
+    const ciphertextWordArray = CryptoJS.enc.Hex.parse(ciphertextHex);
     const decrypted = CryptoJS.AES.decrypt(
       { ciphertext: ciphertextWordArray } as any,
-      keyWordArray,
+      encKey,
       {
         iv: iv,
         mode: CryptoJS.mode.CTR,
@@ -141,12 +162,12 @@ async function decryptData(encryptedData: string): Promise<string> {
 }
 
 /**
- * Migrate legacy XOR-encrypted data to AES-256-GCM
+ * Migrate legacy XOR-encrypted data to AES-256-CTR + HMAC
  * Ensures backward compatibility with existing user data
  */
 async function migrateLegacyEncryption(legacyData: string): Promise<string> {
   try {
-    if (__DEV__) console.log('Migrating legacy encryption to AES-256-GCM...');
+    if (__DEV__) console.log('Migrating legacy encryption to AES-256-CTR+HMAC...');
     const key = await getOrCreateEncryptionKey();
 
     // Split legacy format (iv:encrypted)
@@ -170,22 +191,27 @@ async function migrateLegacyEncryption(legacyData: string): Promise<string> {
 /**
  * Legacy XOR decryption (for backward compatibility only)
  * DO NOT USE FOR NEW ENCRYPTION
+ * Uses Uint8Array instead of Buffer (Buffer is not available in React Native)
  */
 function xorDecrypt(encrypted: string, key: string): string {
-  const encoded = Buffer.from(encrypted, 'base64');
-  const keyBytes = Buffer.from(key, 'hex');
-  const result = Buffer.alloc(encoded.length);
+  const encoded = new Uint8Array(
+    atob(encrypted).split('').map(c => c.charCodeAt(0))
+  );
+  const keyBytes = new Uint8Array(
+    (key.match(/.{2}/g) || []).map(byte => parseInt(byte, 16))
+  );
+  const result = new Uint8Array(encoded.length);
 
   for (let i = 0; i < encoded.length; i++) {
     result[i] = encoded[i] ^ keyBytes[i % keyBytes.length];
   }
 
-  return result.toString('utf-8');
+  return new TextDecoder().decode(result);
 }
 
 /**
  * Store encrypted data in AsyncStorage
- * Uses AES-256-GCM encryption with authentication
+ * Uses AES-256-CTR + HMAC-SHA256 encryption with authentication
  *
  * @param key - Storage key
  * @param value - Data to encrypt and store (any JSON-serializable type)

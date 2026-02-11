@@ -105,6 +105,8 @@ export default function FamilyScreen() {
             <TouchableOpacity
               style={styles.notifButton}
               onPress={() => router.push('/notification-settings')}
+              accessibilityLabel="Notification settings"
+              accessibilityRole="button"
             >
               <Text style={styles.notifIcon}>🔔</Text>
             </TouchableOpacity>
@@ -173,6 +175,8 @@ export default function FamilyScreen() {
                 style={[styles.memberRow, styles.memberRowBorder]}
                 onPress={() => router.push('/settings')}
                 activeOpacity={0.7}
+                accessibilityLabel="You (Amber), Primary caregiver, Active now"
+                accessibilityRole="button"
               >
                 <View style={[
                   styles.memberAvatar,
@@ -206,6 +210,8 @@ export default function FamilyScreen() {
                   ]}
                   onPress={() => router.push('/caregiver-management')}
                   activeOpacity={0.7}
+                  accessibilityLabel={`${caregiver.name}, ${caregiver.role === 'family' ? 'Family' : caregiver.role === 'healthcare' ? 'Healthcare' : 'Team'} caregiver`}
+                  accessibilityRole="button"
                 >
                   <View style={[
                     styles.memberAvatar,
@@ -279,6 +285,8 @@ export default function FamilyScreen() {
                   style={styles.viewAllButton}
                   onPress={() => router.push('/family-activity')}
                   activeOpacity={0.7}
+                  accessibilityLabel="View all activity"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.viewAllText}>View all activity →</Text>
                 </TouchableOpacity>
@@ -297,6 +305,8 @@ export default function FamilyScreen() {
                   style={styles.quickShareButton}
                   onPress={action.onPress}
                   activeOpacity={0.7}
+                  accessibilityLabel={action.label}
+                  accessibilityRole="button"
                 >
                   <GlassCard style={styles.quickShareCard} padding={16}>
                     <Text style={styles.quickShareIcon}>{action.icon}</Text>

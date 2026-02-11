@@ -54,6 +54,8 @@ export function TimelineSection({
         <TouchableOpacity
           onPress={() => router.push('/today-scope' as any)}
           activeOpacity={0.7}
+          accessibilityLabel="Adjust today's plan"
+          accessibilityRole="link"
         >
           <Text style={styles.adjustTodayLink}>Adjust Today</Text>
         </TouchableOpacity>
@@ -80,6 +82,9 @@ export function TimelineSection({
               style={styles.timeGroupHeader}
               onPress={() => onToggleTimeGroup(window)}
               activeOpacity={0.7}
+              accessibilityLabel={`${TIME_WINDOW_HOURS[window].label}, ${items.length} item${items.length !== 1 ? 's' : ''}${overdueCount > 0 ? `, ${overdueCount} overdue` : ''}`}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: isExpanded }}
             >
               <View style={styles.timeGroupHeaderTouchable}>
                 <Text style={[
@@ -146,6 +151,8 @@ export function TimelineSection({
                   style={[styles.timelineItem, itemStyle]}
                   onPress={() => onItemPress(instance)}
                   activeOpacity={0.7}
+                  accessibilityLabel={`Log ${instance.itemName}${timeDisplay ? `, scheduled at ${timeDisplay}` : ''}${itemIsOverdue ? ', overdue' : ''}`}
+                  accessibilityRole="button"
                 >
                   <View style={[styles.timelineIcon, iconStyle]}>
                     <Text style={styles.timelineIconEmoji}>{instance.itemEmoji || '\uD83D\uDD14'}</Text>

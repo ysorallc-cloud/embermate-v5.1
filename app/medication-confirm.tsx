@@ -196,7 +196,12 @@ export default function MedicationLogScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Log Medication</Text>
@@ -244,6 +249,8 @@ export default function MedicationLogScreen() {
                   setSelectedMedication('');
                   setShowMedDropdown(true);
                 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Selected medication: ${selectedMedication}. Tap to change`}
               >
                 <Text style={styles.selectedFieldText}>{selectedMedication}</Text>
                 <Text style={styles.changeText}>Change</Text>
@@ -260,6 +267,7 @@ export default function MedicationLogScreen() {
                     setShowMedDropdown(true);
                   }}
                   onFocus={() => setShowMedDropdown(true)}
+                  accessibilityLabel="Search medication name"
                 />
 
                 {/* Dropdown */}
@@ -270,6 +278,8 @@ export default function MedicationLogScreen() {
                       <TouchableOpacity
                         style={styles.customOption}
                         onPress={handleAddCustomMedication}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Add custom medication: ${searchQuery.trim()}`}
                       >
                         <Text style={styles.customOptionText}>
                           Add "{searchQuery.trim()}"
@@ -283,6 +293,8 @@ export default function MedicationLogScreen() {
                         key={med}
                         style={styles.dropdownItem}
                         onPress={() => handleSelectMedication(med)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Select ${med}`}
                       >
                         <Text style={styles.dropdownItemText}>{med}</Text>
                       </TouchableOpacity>
@@ -308,6 +320,7 @@ export default function MedicationLogScreen() {
               }}
               onFocus={() => setShowDosageDropdown(true)}
               onBlur={() => setTimeout(() => setShowDosageDropdown(false), 200)}
+              accessibilityLabel="Medication dosage"
             />
 
             {/* Common dosages */}
@@ -321,6 +334,9 @@ export default function MedicationLogScreen() {
                       dosage === d && styles.dosageChipSelected,
                     ]}
                     onPress={() => handleSelectDosage(d)}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Dosage ${d}`}
+                    accessibilityState={{ selected: dosage === d }}
                   >
                     <Text style={[
                       styles.dosageChipText,
@@ -346,6 +362,9 @@ export default function MedicationLogScreen() {
                     sideEffect === effect.id && styles.sideEffectChipSelected,
                   ]}
                   onPress={() => setSideEffect(effect.id)}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`Side effect: ${effect.label}`}
+                  accessibilityState={{ selected: sideEffect === effect.id }}
                 >
                   <Text style={[
                     styles.sideEffectText,
@@ -386,6 +405,9 @@ export default function MedicationLogScreen() {
             ]}
             onPress={handleSave}
             disabled={!selectedMedication || !dosage || saving}
+            accessibilityRole="button"
+            accessibilityLabel={saving ? 'Saving medication log' : 'Log medication'}
+            accessibilityState={{ disabled: !selectedMedication || !dosage || saving }}
           >
             <Text style={styles.saveButtonText}>
               {saving ? 'Saving...' : 'Log Medication ✓'}

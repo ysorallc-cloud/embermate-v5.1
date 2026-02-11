@@ -185,6 +185,8 @@ export default function LogMeal() {
               <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => router.back()}
+                accessibilityLabel="Go back"
+                accessibilityRole="button"
               >
                 <Text style={styles.backIcon}>←</Text>
               </TouchableOpacity>
@@ -223,6 +225,9 @@ export default function LogMeal() {
                       selectedMeals.includes(meal.id) && styles.mealCardSelected,
                     ]}
                     onPress={() => toggleMealType(meal.id)}
+                    accessibilityLabel={`${meal.label}, ${selectedMeals.includes(meal.id) ? 'selected' : 'not selected'}`}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selectedMeals.includes(meal.id) }}
                   >
                     <Text style={styles.mealIcon}>{meal.icon}</Text>
                     <Text
@@ -256,6 +261,7 @@ export default function LogMeal() {
                 value={description}
                 onChangeText={setDescription}
                 textAlignVertical="top"
+                accessibilityLabel="Meal description"
               />
             </View>
 
@@ -272,6 +278,9 @@ export default function LogMeal() {
               ]}
               onPress={handleSave}
               disabled={loading || selectedMeals.length === 0}
+              accessibilityLabel={loading ? 'Saving meal' : 'Log meal'}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: loading || selectedMeals.length === 0 }}
             >
               <Text style={styles.saveButtonText}>
                 {loading ? 'Saving...' : 'Log Meal'}

@@ -34,7 +34,11 @@ export const TomorrowOnlyCard: React.FC<TomorrowOnlyCardProps> = ({
           <Text style={styles.label}>TOMORROW</Text>
         </View>
 
-        <TouchableOpacity onPress={handleViewDay}>
+        <TouchableOpacity
+          onPress={handleViewDay}
+          accessibilityLabel="View tomorrow's schedule"
+          accessibilityRole="link"
+        >
           <Text style={styles.viewDayLink}>View day →</Text>
         </TouchableOpacity>
       </View>

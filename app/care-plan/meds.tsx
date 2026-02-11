@@ -55,6 +55,8 @@ function MedicationItem({ medication, onEdit, onToggleActive, onRemove, onNotifi
         style={styles.medItemMain}
         onPress={onEdit}
         activeOpacity={0.7}
+        accessibilityLabel={`Edit ${medication.name}, ${medication.dosage}, ${timeDisplay}`}
+        accessibilityRole="button"
       >
         <View style={styles.medItemLeft}>
           <Text style={styles.medEmoji}>💊</Text>
@@ -77,7 +79,9 @@ function MedicationItem({ medication, onEdit, onToggleActive, onRemove, onNotifi
             style={styles.notificationButton}
             onPress={onNotificationPress}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel={notificationsEnabled ? 'Notifications on, tap to configure' : 'Notifications off, tap to configure'}
+            accessibilityLabel={notificationsEnabled ? `${medication.name} notifications on, tap to configure` : `${medication.name} notifications off, tap to configure`}
+            accessibilityRole="button"
+            accessibilityState={{ checked: notificationsEnabled }}
           >
             <Text style={[styles.notificationIcon, !notificationsEnabled && styles.notificationIconOff]}>
               {notificationsEnabled ? '🔔' : '🔕'}
@@ -93,7 +97,7 @@ function MedicationItem({ medication, onEdit, onToggleActive, onRemove, onNotifi
         </View>
       </TouchableOpacity>
       <View style={styles.medItemActions}>
-        <TouchableOpacity style={styles.medActionButton} onPress={onEdit}>
+        <TouchableOpacity style={styles.medActionButton} onPress={onEdit} accessibilityLabel={`Edit ${medication.name}`} accessibilityRole="button">
           <Text style={styles.medActionText}>Edit</Text>
         </TouchableOpacity>
         <View style={styles.medActionDivider} />
@@ -109,6 +113,8 @@ function MedicationItem({ medication, onEdit, onToggleActive, onRemove, onNotifi
               ]
             );
           }}
+          accessibilityLabel={`Remove ${medication.name}`}
+          accessibilityRole="button"
         >
           <Text style={[styles.medActionText, styles.medActionTextDanger]}>Remove</Text>
         </TouchableOpacity>
@@ -200,7 +206,7 @@ export default function MedsBucketScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerLabel}>MEDICATIONS</Text>
@@ -251,6 +257,9 @@ export default function MedsBucketScreen() {
                     ]}
                     onPress={() => handleChangePriority(option.value)}
                     activeOpacity={0.7}
+                    accessibilityLabel={`${option.label} priority, ${option.description}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: priority === option.value }}
                   >
                     <Text style={[
                       styles.priorityLabel,
@@ -266,7 +275,7 @@ export default function MedsBucketScreen() {
               {/* Medications List */}
               <View style={styles.medsHeaderRow}>
                 <Text style={styles.sectionLabel}>YOUR MEDICATIONS</Text>
-                <TouchableOpacity onPress={handleAddMed}>
+                <TouchableOpacity onPress={handleAddMed} accessibilityLabel="Add medication" accessibilityRole="button">
                   <Text style={styles.addButtonText}>+ Add</Text>
                 </TouchableOpacity>
               </View>
@@ -282,6 +291,8 @@ export default function MedsBucketScreen() {
                     style={styles.addButton}
                     onPress={handleAddMed}
                     activeOpacity={0.7}
+                    accessibilityLabel="Add medication"
+                    accessibilityRole="button"
                   >
                     <Text style={styles.addButtonTextLarge}>+ Add Medication</Text>
                   </TouchableOpacity>
@@ -302,6 +313,8 @@ export default function MedsBucketScreen() {
                     style={styles.addButtonOutline}
                     onPress={handleAddMed}
                     activeOpacity={0.7}
+                    accessibilityLabel="Add another medication"
+                    accessibilityRole="button"
                   >
                     <Text style={styles.addButtonText}>+ Add Another Medication</Text>
                   </TouchableOpacity>

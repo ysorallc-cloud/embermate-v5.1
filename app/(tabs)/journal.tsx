@@ -94,6 +94,7 @@ export default function JournalTab() {
               onPress={() => router.push('/care-plan' as any)}
               style={styles.headerGear}
               accessibilityLabel="Manage Care Plan"
+              accessibilityRole="button"
             >
               <Text style={styles.headerGearIcon}>{'\u2699\uFE0F'}</Text>
             </TouchableOpacity>

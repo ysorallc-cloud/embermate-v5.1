@@ -70,9 +70,11 @@ export function useTodayScope(date?: string): UseTodayScopeReturn {
     loadSuppressedItems();
   }, [loadSuppressedItems]);
 
-  // Listen for data updates
-  useDataListener(() => {
-    loadSuppressedItems();
+  // Listen for relevant data updates only
+  useDataListener((category) => {
+    if (['carePlanItems', 'dailyInstances', 'sampleDataCleared'].includes(category)) {
+      loadSuppressedItems();
+    }
   });
 
   /**

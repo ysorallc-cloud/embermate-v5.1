@@ -59,6 +59,8 @@ export default function AppointmentConfirmation() {
       <TouchableOpacity
         style={styles.primaryButton}
         onPress={() => router.replace('/appointments')}
+        accessibilityLabel="View all appointments"
+        accessibilityRole="button"
       >
         <Text style={styles.primaryButtonText}>View all appointments</Text>
       </TouchableOpacity>
@@ -66,6 +68,8 @@ export default function AppointmentConfirmation() {
       <TouchableOpacity
         style={styles.secondaryButton}
         onPress={() => router.replace('/appointment-form')}
+        accessibilityLabel="Add another appointment"
+        accessibilityRole="button"
       >
         <Text style={styles.secondaryButtonText}>+ Add another</Text>
       </TouchableOpacity>

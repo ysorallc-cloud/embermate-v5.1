@@ -90,7 +90,7 @@ export default function WaterBucketScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerLabel}>WATER</Text>
@@ -141,6 +141,9 @@ export default function WaterBucketScreen() {
                     ]}
                     onPress={() => handleChangePriority(option.value)}
                     activeOpacity={0.7}
+                    accessibilityLabel={`${option.label} priority, ${option.description}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: priority === option.value }}
                   >
                     <Text style={[
                       styles.priorityLabel,
@@ -171,6 +174,9 @@ export default function WaterBucketScreen() {
                       ]}
                       onPress={() => handleChangeGoal(option.value)}
                       activeOpacity={0.7}
+                      accessibilityLabel={`${option.label} daily goal`}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: dailyGoalGlasses === option.value }}
                     >
                       <Text style={[
                         styles.goalOptionLabel,
@@ -202,6 +208,9 @@ export default function WaterBucketScreen() {
                     ]}
                     onPress={() => handleChangeUnits(option.value)}
                     activeOpacity={0.7}
+                    accessibilityLabel={`${option.label}, ${option.subtext}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: units === option.value }}
                   >
                     <Text style={[
                       styles.unitLabel,
@@ -229,6 +238,9 @@ export default function WaterBucketScreen() {
                     ]}
                     onPress={() => handleChangeReminderFrequency(option.value)}
                     activeOpacity={0.7}
+                    accessibilityLabel={`${option.label}, ${option.description}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: reminderFrequency === option.value }}
                   >
                     <Text style={[
                       styles.reminderLabel,

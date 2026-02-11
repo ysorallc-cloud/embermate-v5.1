@@ -293,6 +293,8 @@ export default function SupportScreen() {
             style={styles.privacyCard}
             onPress={() => router.push('/data-privacy-settings' as any)}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Data privacy settings. Nothing is shared without you"
           >
             <Text style={styles.privacyIcon}>🔒</Text>
             <View style={styles.privacyContent}>
@@ -321,7 +323,7 @@ export default function SupportScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionHeader}>YOUR CARE CIRCLE ({careCircleCount})</Text>
-              <TouchableOpacity onPress={handleRequestUpdate} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <TouchableOpacity onPress={handleRequestUpdate} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Request update from care circle">
                 <Text style={styles.requestUpdateText}>{'\uD83D\uDCE5'} Request update</Text>
               </TouchableOpacity>
             </View>
@@ -336,6 +338,8 @@ export default function SupportScreen() {
                     key={caregiver.id}
                     onPress={() => router.push(`/caregiver-management?id=${caregiver.id}`)}
                     activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${caregiver.name}, ${getRoleLabel(caregiver)}. ${getCapabilityTag(caregiver)}`}
                   >
                     <GlassCard style={styles.memberCard}>
                       <View style={styles.memberContent}>
@@ -395,6 +399,8 @@ export default function SupportScreen() {
                               if (phone) Linking.openURL(`tel:${phone}`);
                             }}
                             activeOpacity={0.7}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Call ${caregiver.name}`}
                           >
                             <Text style={styles.actionButtonIcon}>📞</Text>
                           </TouchableOpacity>
@@ -406,6 +412,8 @@ export default function SupportScreen() {
                               if (phone) Linking.openURL(`sms:${phone}`);
                             }}
                             activeOpacity={0.7}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Message ${caregiver.name}`}
                           >
                             <Text style={styles.actionButtonIcon}>💬</Text>
                           </TouchableOpacity>
@@ -422,6 +430,8 @@ export default function SupportScreen() {
                 style={styles.manageTeamLink}
                 onPress={() => router.push('/caregiver-management')}
                 activeOpacity={0.7}
+                accessibilityRole="link"
+                accessibilityLabel="Manage access and roles"
               >
                 <Text style={styles.manageTeamText}>Manage access & roles →</Text>
               </TouchableOpacity>
@@ -448,6 +458,8 @@ export default function SupportScreen() {
                       style={styles.reviewButton}
                       onPress={() => handleActivityPress(activity)}
                       activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Review ${activity.performedBy} ${getActivityDescription(activity)}`}
                     >
                       <Text style={styles.reviewButtonText}>Review now</Text>
                     </TouchableOpacity>
@@ -458,6 +470,8 @@ export default function SupportScreen() {
                   style={styles.viewAllLink}
                   onPress={() => router.push('/family-activity')}
                   activeOpacity={0.7}
+                  accessibilityRole="link"
+                  accessibilityLabel="View all team activity"
                 >
                   <Text style={styles.viewAllText}>View all activity →</Text>
                 </TouchableOpacity>
@@ -478,6 +492,8 @@ export default function SupportScreen() {
               style={styles.emergencyButton}
               onPress={handleEmergencyAlert}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Alert care team now. Emergency only"
             >
               <Text style={styles.emergencyButtonText}>🆘 Alert care team now</Text>
             </TouchableOpacity>

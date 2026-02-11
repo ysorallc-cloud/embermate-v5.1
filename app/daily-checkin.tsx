@@ -196,6 +196,9 @@ export default function DailyCheckinScreen() {
                     mood === option.value && styles.moodButtonSelected,
                   ]}
                   onPress={() => setMood(option.value)}
+                  accessibilityLabel={`Mood: ${option.label}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: mood === option.value }}
                 >
                   <Text style={styles.moodEmoji}>{option.emoji}</Text>
                   <Text
@@ -227,6 +230,9 @@ export default function DailyCheckinScreen() {
                     energy === option.value && styles.energyOptionSelected,
                   ]}
                   onPress={() => setEnergy(option.value)}
+                  accessibilityLabel={`Energy: ${option.label}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: energy === option.value }}
                 >
                   <View
                     style={[
@@ -267,6 +273,9 @@ export default function DailyCheckinScreen() {
                     symptoms.includes(symptom) && styles.chipSelected,
                   ]}
                   onPress={() => toggleSymptom(symptom)}
+                  accessibilityLabel={symptom}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: symptoms.includes(symptom) }}
                 >
                   <Text
                     style={[
@@ -293,6 +302,9 @@ export default function DailyCheckinScreen() {
               <TouchableOpacity
                 style={styles.mealToggle}
                 onPress={() => setHadBreakfast(!hadBreakfast)}
+                accessibilityLabel="Breakfast"
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: hadBreakfast }}
               >
                 <View
                   style={[
@@ -308,6 +320,9 @@ export default function DailyCheckinScreen() {
               <TouchableOpacity
                 style={styles.mealToggle}
                 onPress={() => setHadLunch(!hadLunch)}
+                accessibilityLabel="Lunch"
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: hadLunch }}
               >
                 <View
                   style={[styles.checkbox, hadLunch && styles.checkboxChecked]}
@@ -320,6 +335,9 @@ export default function DailyCheckinScreen() {
               <TouchableOpacity
                 style={styles.mealToggle}
                 onPress={() => setHadDinner(!hadDinner)}
+                accessibilityLabel="Dinner"
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: hadDinner }}
               >
                 <View
                   style={[styles.checkbox, hadDinner && styles.checkboxChecked]}
@@ -336,6 +354,8 @@ export default function DailyCheckinScreen() {
                 <TouchableOpacity
                   style={styles.counterButton}
                   onPress={() => setWaterGlasses(Math.max(0, waterGlasses - 1))}
+                  accessibilityLabel="Decrease water glasses"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.counterButtonText}>−</Text>
                 </TouchableOpacity>
@@ -345,6 +365,8 @@ export default function DailyCheckinScreen() {
                 <TouchableOpacity
                   style={styles.counterButton}
                   onPress={() => setWaterGlasses(waterGlasses + 1)}
+                  accessibilityLabel="Increase water glasses"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.counterButtonText}>+</Text>
                 </TouchableOpacity>
@@ -370,6 +392,9 @@ export default function DailyCheckinScreen() {
                       sleepDuration === duration && styles.chipSelected,
                     ]}
                     onPress={() => setSleepDuration(duration)}
+                    accessibilityLabel={`Sleep duration: ${duration}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: sleepDuration === duration }}
                   >
                     <Text
                       style={[
@@ -396,6 +421,9 @@ export default function DailyCheckinScreen() {
                         styles.sleepQualityButtonSelected,
                     ]}
                     onPress={() => setSleepQuality(option.value)}
+                    accessibilityLabel={`Sleep quality: ${option.label}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: sleepQuality === option.value }}
                   >
                     <Text style={styles.sleepQualityEmoji}>
                       {option.emoji}
@@ -430,6 +458,7 @@ export default function DailyCheckinScreen() {
               placeholderTextColor="rgba(255, 255, 255, 0.3)"
               multiline
               numberOfLines={4}
+              accessibilityLabel="Daily check-in notes"
             />
 
             <View style={styles.tagsSection}>
@@ -443,6 +472,9 @@ export default function DailyCheckinScreen() {
                       noteTags.includes(tag) && styles.chipSelected,
                     ]}
                     onPress={() => toggleNoteTag(tag)}
+                    accessibilityLabel={tag}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: noteTags.includes(tag) }}
                   >
                     <Text
                       style={[
@@ -472,7 +504,7 @@ export default function DailyCheckinScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <TouchableOpacity style={styles.backButton} onPress={handleBack} accessibilityLabel="Go back" accessibilityRole="button">
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <View style={styles.headerCenter}>
@@ -481,7 +513,7 @@ export default function DailyCheckinScreen() {
               Step {step} of 6
             </Text>
           </View>
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity onPress={() => router.back()} accessibilityLabel="Cancel check-in" accessibilityRole="button">
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
         </View>
@@ -510,6 +542,9 @@ export default function DailyCheckinScreen() {
             style={[styles.nextButton, !canProceed() && styles.nextButtonDisabled]}
             onPress={handleNext}
             disabled={!canProceed()}
+            accessibilityLabel={step === 6 ? 'Complete check-in' : `Next step, step ${step} of 6`}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !canProceed() }}
           >
             <Text style={styles.nextButtonText}>
               {step === 6 ? 'Complete Check-In' : 'Next'}

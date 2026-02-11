@@ -160,6 +160,8 @@ export default function PatientScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Text style={styles.backIcon}>{'\u2190'}</Text>
           </TouchableOpacity>
@@ -198,10 +200,18 @@ export default function PatientScreen() {
                     <Text style={styles.listText}>{d.condition}</Text>
                     {editing && (
                       <View style={styles.itemActions}>
-                        <TouchableOpacity onPress={() => toggleDiagnosisStatus(realIdx)}>
+                        <TouchableOpacity
+                          onPress={() => toggleDiagnosisStatus(realIdx)}
+                          accessibilityLabel={`Resolve ${d.condition}`}
+                          accessibilityRole="button"
+                        >
                           <Text style={styles.resolveButton}>Resolve</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => removeDiagnosis(realIdx)}>
+                        <TouchableOpacity
+                          onPress={() => removeDiagnosis(realIdx)}
+                          accessibilityLabel={`Remove ${d.condition}`}
+                          accessibilityRole="button"
+                        >
                           <Text style={styles.removeButton}>{'\u2715'}</Text>
                         </TouchableOpacity>
                       </View>
@@ -219,8 +229,14 @@ export default function PatientScreen() {
                     onChangeText={setNewDiagnosis}
                     onSubmitEditing={addDiagnosis}
                     returnKeyType="done"
+                    accessibilityLabel="Add diagnosis"
                   />
-                  <TouchableOpacity style={styles.addButton} onPress={addDiagnosis}>
+                  <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={addDiagnosis}
+                    accessibilityLabel="Add diagnosis"
+                    accessibilityRole="button"
+                  >
                     <Text style={styles.addButtonText}>+</Text>
                   </TouchableOpacity>
                 </View>
@@ -241,10 +257,18 @@ export default function PatientScreen() {
                       <Text style={styles.resolvedText}>{d.condition}</Text>
                       {editing && (
                         <View style={styles.itemActions}>
-                          <TouchableOpacity onPress={() => toggleDiagnosisStatus(realIdx)}>
+                          <TouchableOpacity
+                            onPress={() => toggleDiagnosisStatus(realIdx)}
+                            accessibilityLabel={`Reactivate ${d.condition}`}
+                            accessibilityRole="button"
+                          >
                             <Text style={styles.reactivateButton}>Reactivate</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity onPress={() => removeDiagnosis(realIdx)}>
+                          <TouchableOpacity
+                            onPress={() => removeDiagnosis(realIdx)}
+                            accessibilityLabel={`Remove ${d.condition}`}
+                            accessibilityRole="button"
+                          >
                             <Text style={styles.removeButton}>{'\u2715'}</Text>
                           </TouchableOpacity>
                         </View>
@@ -286,7 +310,11 @@ export default function PatientScreen() {
                     {s.procedure}{s.date ? ` (${s.date})` : ''}{s.notes ? ` \u2014 ${s.notes}` : ''}
                   </Text>
                   {editing && (
-                    <TouchableOpacity onPress={() => removeSurgery(idx)}>
+                    <TouchableOpacity
+                      onPress={() => removeSurgery(idx)}
+                      accessibilityLabel={`Remove ${s.procedure}`}
+                      accessibilityRole="button"
+                    >
                       <Text style={styles.removeButton}>{'\u2715'}</Text>
                     </TouchableOpacity>
                   )}
@@ -302,8 +330,14 @@ export default function PatientScreen() {
                     onChangeText={setNewSurgery}
                     onSubmitEditing={addSurgery}
                     returnKeyType="done"
+                    accessibilityLabel="Add surgery"
                   />
-                  <TouchableOpacity style={styles.addButton} onPress={addSurgery}>
+                  <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={addSurgery}
+                    accessibilityLabel="Add surgery"
+                    accessibilityRole="button"
+                  >
                     <Text style={styles.addButtonText}>+</Text>
                   </TouchableOpacity>
                 </View>
@@ -325,7 +359,11 @@ export default function PatientScreen() {
                     {h.reason}{h.date ? ` (${h.date})` : ''}{h.duration ? ` \u2014 ${h.duration}` : ''}
                   </Text>
                   {editing && (
-                    <TouchableOpacity onPress={() => removeHospitalization(idx)}>
+                    <TouchableOpacity
+                      onPress={() => removeHospitalization(idx)}
+                      accessibilityLabel={`Remove ${h.reason}`}
+                      accessibilityRole="button"
+                    >
                       <Text style={styles.removeButton}>{'\u2715'}</Text>
                     </TouchableOpacity>
                   )}
@@ -341,8 +379,14 @@ export default function PatientScreen() {
                     onChangeText={setNewHospitalization}
                     onSubmitEditing={addHospitalization}
                     returnKeyType="done"
+                    accessibilityLabel="Add hospitalization"
                   />
-                  <TouchableOpacity style={styles.addButton} onPress={addHospitalization}>
+                  <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={addHospitalization}
+                    accessibilityLabel="Add hospitalization"
+                    accessibilityRole="button"
+                  >
                     <Text style={styles.addButtonText}>+</Text>
                   </TouchableOpacity>
                 </View>
@@ -354,6 +398,8 @@ export default function PatientScreen() {
           <TouchableOpacity
             style={[styles.editButton, editing && styles.editButtonDone]}
             onPress={() => setEditing(!editing)}
+            accessibilityLabel={editing ? 'Done editing' : 'Edit medical history'}
+            accessibilityRole="button"
           >
             <Text style={styles.editButtonText}>{editing ? 'Done Editing' : 'Edit Medical History'}</Text>
           </TouchableOpacity>

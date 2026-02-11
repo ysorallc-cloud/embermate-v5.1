@@ -96,7 +96,11 @@ export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
     await AsyncStorage.setItem(BANNER_DISMISSED_KEY, 'true');
   };
 
-  const handleManage = () => {
+  const handleSetup = () => {
+    router.push('/care-plan' as any);
+  };
+
+  const handleClearData = () => {
     router.push('/data-privacy-settings' as any);
   };
 
@@ -110,20 +114,24 @@ export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
         <View style={styles.compactContent}>
           <Text style={styles.compactIcon}>📊</Text>
           <Text style={styles.compactText}>
-            Sample data active ({sampleCount} items)
+            Demo data — Set up your care plan
           </Text>
         </View>
         <TouchableOpacity
           style={styles.compactAction}
-          onPress={handleManage}
+          onPress={handleSetup}
           activeOpacity={0.7}
+          accessibilityLabel="Start care plan setup"
+          accessibilityRole="button"
         >
-          <Text style={styles.compactActionText}>Manage</Text>
+          <Text style={styles.compactActionText}>Start</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.compactDismiss}
           onPress={handleDismiss}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel="Dismiss demo data banner"
+          accessibilityRole="button"
         >
           <Text style={styles.compactDismissText}>×</Text>
         </TouchableOpacity>
@@ -138,25 +146,38 @@ export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
           <Text style={styles.icon}>📊</Text>
         </View>
         <View style={styles.textContent}>
-          <Text style={styles.title}>Sample data detected</Text>
+          <Text style={styles.title}>Demo data loaded</Text>
           <Text style={styles.subtitle}>
-            {sampleCount} demo records are loaded to help you explore the app.
+            Set up your own care plan to replace demo data.
           </Text>
         </View>
       </View>
 
       <View style={styles.actions}>
         <TouchableOpacity
-          style={styles.manageButton}
-          onPress={handleManage}
+          style={styles.primaryButton}
+          onPress={handleSetup}
           activeOpacity={0.7}
+          accessibilityLabel="Set up your care plan"
+          accessibilityRole="button"
         >
-          <Text style={styles.manageButtonText}>Manage data</Text>
+          <Text style={styles.primaryButtonText}>Set up your care plan</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={handleClearData}
+          activeOpacity={0.7}
+          accessibilityLabel="Clear demo data"
+          accessibilityRole="button"
+        >
+          <Text style={styles.secondaryButtonText}>Clear demo data</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.dismissButton}
           onPress={handleDismiss}
           activeOpacity={0.7}
+          accessibilityLabel="Dismiss demo data banner"
+          accessibilityRole="button"
         >
           <Text style={styles.dismissButtonText}>Dismiss</Text>
         </TouchableOpacity>
@@ -215,18 +236,26 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 12,
   },
-  manageButton: {
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+  primaryButton: {
+    backgroundColor: 'rgba(139, 92, 246, 0.25)',
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
+    borderColor: 'rgba(139, 92, 246, 0.4)',
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 14,
   },
-  manageButtonText: {
+  primaryButtonText: {
     fontSize: 13,
     fontWeight: '600',
     color: '#A78BFA',
+  },
+  secondaryButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  secondaryButtonText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   dismissButton: {
     paddingVertical: 8,

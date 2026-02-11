@@ -18,7 +18,12 @@ export const WelcomeBackBanner: React.FC<WelcomeBackBannerProps> = ({
           <Text style={styles.message}>Good to see you again</Text>
         </View>
       </View>
-      <TouchableOpacity onPress={onDismiss} style={styles.dismissButton}>
+      <TouchableOpacity
+        onPress={onDismiss}
+        style={styles.dismissButton}
+        accessibilityLabel="Dismiss welcome banner"
+        accessibilityRole="button"
+      >
         <Text style={styles.dismissText}>×</Text>
       </TouchableOpacity>
     </View>

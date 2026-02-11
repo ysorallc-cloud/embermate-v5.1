@@ -247,6 +247,7 @@ export default function VitalThresholdSettings() {
         onBlur={() => handleValueBlur(vitalKey, field)}
         keyboardType="numeric"
         selectTextOnFocus
+        accessibilityLabel={`${label} threshold value`}
       />
     </View>
   );
@@ -274,6 +275,8 @@ export default function VitalThresholdSettings() {
             <TouchableOpacity
               style={styles.resetButton}
               onPress={() => handleResetVital(vitalKey)}
+              accessibilityLabel={`Reset ${defaults.name} to default`}
+              accessibilityRole="button"
             >
               <Text style={styles.resetButtonText}>Reset</Text>
             </TouchableOpacity>
@@ -325,6 +328,8 @@ export default function VitalThresholdSettings() {
                 router.back();
               }
             }}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Text style={CommonStyles.backIcon}>←</Text>
           </TouchableOpacity>
@@ -356,6 +361,9 @@ export default function VitalThresholdSettings() {
               style={[styles.saveButton, !hasChanges && styles.saveButtonDisabled]}
               onPress={handleSave}
               disabled={!hasChanges}
+              accessibilityLabel="Save changes"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !hasChanges }}
             >
               <Text style={[styles.saveButtonText, !hasChanges && styles.saveButtonTextDisabled]}>
                 Save Changes
@@ -365,6 +373,8 @@ export default function VitalThresholdSettings() {
             <TouchableOpacity
               style={styles.resetAllButton}
               onPress={handleResetAll}
+              accessibilityLabel="Reset all thresholds to defaults"
+              accessibilityRole="button"
             >
               <Text style={styles.resetAllButtonText}>Reset All to Defaults</Text>
             </TouchableOpacity>

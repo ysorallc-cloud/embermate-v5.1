@@ -163,10 +163,18 @@ export default function MedicationReport() {
 
           {/* Export Actions */}
           <View style={styles.exportRow}>
-            <TouchableOpacity style={styles.exportPrimary}>
+            <TouchableOpacity
+              style={styles.exportPrimary}
+              accessibilityLabel="Export report as PDF"
+              accessibilityRole="button"
+            >
               <Text style={styles.exportPrimaryText}>📄 Export PDF</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.exportSecondary}>
+            <TouchableOpacity
+              style={styles.exportSecondary}
+              accessibilityLabel="Email report"
+              accessibilityRole="button"
+            >
               <Text style={styles.exportSecondaryText}>📧 Email</Text>
             </TouchableOpacity>
           </View>

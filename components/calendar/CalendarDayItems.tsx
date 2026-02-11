@@ -56,6 +56,8 @@ export function CalendarDayItems({ date, items, isLoading, onItemPress }: Calend
                 key={item.data.id}
                 style={styles.itemCard}
                 onPress={() => onItemPress(item)}
+                accessibilityLabel={`${title}, ${formatTime(time)}${subtitle ? `, ${subtitle}` : ''}`}
+                accessibilityRole="button"
               >
                 <View style={styles.itemContent}>
                   <Text style={styles.itemIcon}>{icon}</Text>

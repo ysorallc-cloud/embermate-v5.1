@@ -103,7 +103,12 @@ export default function WellnessConfigScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerLabel}>WELLNESS</Text>
@@ -139,6 +144,9 @@ export default function WellnessConfigScreen() {
                 ]}
                 onPress={() => handleTimeChange('morning', time)}
                 activeOpacity={0.7}
+                accessibilityLabel={`Morning check time ${formatTime(time)}`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: settings.morning.time === time }}
               >
                 <Text style={[
                   styles.timeChipText,
@@ -175,6 +183,9 @@ export default function WellnessConfigScreen() {
                 trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
                 thumbColor={(settings.morning.optionalChecks[field.key] ?? false) ? '#FFFFFF' : '#F4F3F4'}
                 ios_backgroundColor="rgba(255,255,255,0.2)"
+                accessibilityLabel={`Morning ${field.label}`}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: settings.morning.optionalChecks[field.key] ?? false }}
               />
             </View>
           ))}
@@ -191,6 +202,9 @@ export default function WellnessConfigScreen() {
               trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
               thumbColor={settings.morning.reminderEnabled ? '#FFFFFF' : '#F4F3F4'}
               ios_backgroundColor="rgba(255,255,255,0.2)"
+              accessibilityLabel="Morning Reminder"
+              accessibilityRole="switch"
+              accessibilityState={{ checked: settings.morning.reminderEnabled }}
             />
           </View>
 
@@ -210,6 +224,9 @@ export default function WellnessConfigScreen() {
                 ]}
                 onPress={() => handleTimeChange('evening', time)}
                 activeOpacity={0.7}
+                accessibilityLabel={`Evening check time ${formatTime(time)}`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: settings.evening.time === time }}
               >
                 <Text style={[
                   styles.timeChipText,
@@ -246,6 +263,9 @@ export default function WellnessConfigScreen() {
                 trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
                 thumbColor={(settings.evening.optionalChecks[field.key] ?? false) ? '#FFFFFF' : '#F4F3F4'}
                 ios_backgroundColor="rgba(255,255,255,0.2)"
+                accessibilityLabel={`Evening ${field.label}`}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: settings.evening.optionalChecks[field.key] ?? false }}
               />
             </View>
           ))}
@@ -262,6 +282,9 @@ export default function WellnessConfigScreen() {
               trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
               thumbColor={settings.evening.reminderEnabled ? '#FFFFFF' : '#F4F3F4'}
               ios_backgroundColor="rgba(255,255,255,0.2)"
+              accessibilityLabel="Evening Reminder"
+              accessibilityRole="switch"
+              accessibilityState={{ checked: settings.evening.reminderEnabled }}
             />
           </View>
 

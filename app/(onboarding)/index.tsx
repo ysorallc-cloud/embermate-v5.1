@@ -129,7 +129,12 @@ export default function OnboardingFlow() {
       {/* Navigation footer - hidden on last screen */}
       {!isLastScreen && (
         <View style={styles.footer}>
-          <Pressable onPress={handleSkip} style={styles.skipButton}>
+          <Pressable
+            onPress={handleSkip}
+            style={styles.skipButton}
+            accessibilityLabel="Skip onboarding"
+            accessibilityRole="button"
+          >
             <Text style={styles.skipText}>Skip</Text>
           </Pressable>
 
@@ -139,7 +144,12 @@ export default function OnboardingFlow() {
             width={SCREEN_WIDTH}
           />
 
-          <Pressable onPress={handleNext} style={styles.nextButton}>
+          <Pressable
+            onPress={handleNext}
+            style={styles.nextButton}
+            accessibilityLabel="Next onboarding screen"
+            accessibilityRole="button"
+          >
             <Text style={styles.nextText}>Next</Text>
           </Pressable>
         </View>

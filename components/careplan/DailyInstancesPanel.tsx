@@ -172,7 +172,12 @@ export function DailyInstancesPanel({
           Create a Care Plan to track daily routines and medications
         </Text>
         {onSetupPress && (
-          <TouchableOpacity style={styles.setupButton} onPress={onSetupPress}>
+          <TouchableOpacity
+            style={styles.setupButton}
+            onPress={onSetupPress}
+            accessibilityLabel="Set up Care Plan"
+            accessibilityRole="button"
+          >
             <Text style={styles.setupButtonText}>Set up Care Plan</Text>
           </TouchableOpacity>
         )}
@@ -194,12 +199,16 @@ export function DailyInstancesPanel({
           <TouchableOpacity
             style={styles.adjustTodayButton}
             onPress={() => router.push('/today-scope' as any)}
+            accessibilityLabel="Adjust today's care plan"
+            accessibilityRole="button"
           >
             <Text style={styles.adjustTodayText}>Adjust Today</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.settingsButton}
             onPress={() => router.push('/care-plan' as any)}
+            accessibilityLabel="Care plan settings"
+            accessibilityRole="button"
           >
             <Text style={styles.settingsIcon}>⚙️</Text>
           </TouchableOpacity>
@@ -212,6 +221,8 @@ export function DailyInstancesPanel({
           style={styles.nextUpRow}
           onPress={() => handleInstancePress(nextPending)}
           activeOpacity={0.7}
+          accessibilityLabel={`Next up: ${nextPending.itemName}`}
+          accessibilityRole="button"
         >
           <Text style={styles.nextUpLabel}>Next:</Text>
           <Text style={styles.nextUpText}>
@@ -277,6 +288,9 @@ function WindowGroupSection({
         style={styles.groupHeader}
         onPress={onToggle}
         activeOpacity={0.7}
+        accessibilityLabel={`${group.displayName}, ${group.completedCount} of ${group.totalCount} items, ${expanded ? 'collapse' : 'expand'}`}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
       >
         <View style={styles.groupHeaderLeft}>
           <Text style={styles.groupEmoji}>{group.emoji}</Text>
@@ -307,6 +321,8 @@ function WindowGroupSection({
               style={styles.previewItem}
               onPress={() => onInstancePress(instance)}
               activeOpacity={0.7}
+              accessibilityLabel={`${instance.itemName}, ${getStatusText(instance)}`}
+              accessibilityRole="button"
             >
               <Text style={styles.previewEmoji}>{instance.itemEmoji || '•'}</Text>
               <Text style={styles.previewLabel} numberOfLines={1}>
@@ -318,7 +334,12 @@ function WindowGroupSection({
             </TouchableOpacity>
           ))}
           {remainingCount > 0 && (
-            <TouchableOpacity style={styles.previewMore} onPress={onToggle}>
+            <TouchableOpacity
+              style={styles.previewMore}
+              onPress={onToggle}
+              accessibilityLabel={`Show ${remainingCount} more items`}
+              accessibilityRole="button"
+            >
               <Text style={styles.previewMoreText}>
                 +{remainingCount} more
               </Text>
@@ -369,6 +390,9 @@ function InstanceRow({ instance, onPress, onLongPress }: InstanceRowProps) {
       onLongPress={onLongPress}
       delayLongPress={500}
       activeOpacity={0.7}
+      accessibilityLabel={`${instance.itemName}, ${getStatusText(instance)}`}
+      accessibilityRole="button"
+      accessibilityState={{ checked: instance.status === 'completed' }}
     >
       <View style={styles.instanceRowLeft}>
         <Text style={styles.instanceEmoji}>{instance.itemEmoji || '•'}</Text>

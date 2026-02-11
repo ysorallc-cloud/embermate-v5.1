@@ -30,7 +30,8 @@ export interface AlertResult {
   vital: VitalSign;
 }
 
-// Default clinical thresholds based on general medical guidelines
+// Default clinical thresholds — aligned with vitalThresholds.ts (single source of truth)
+// Values based on AHA/ACC general guidelines
 export const DEFAULT_THRESHOLDS: VitalThreshold[] = [
   {
     type: 'bp',
@@ -45,9 +46,9 @@ export const DEFAULT_THRESHOLDS: VitalThreshold[] = [
   {
     type: 'hr',
     label: 'Heart Rate',
-    criticalHigh: 120,
+    criticalHigh: 150,
     high: 100,
-    low: 50,
+    low: 60,
     criticalLow: 40,
     unit: 'bpm',
     enabled: true,
@@ -56,9 +57,9 @@ export const DEFAULT_THRESHOLDS: VitalThreshold[] = [
     type: 'temp',
     label: 'Temperature',
     criticalHigh: 103,
-    high: 100.4,
-    low: 95,
-    criticalLow: 94,
+    high: 99.5,
+    low: 97,
+    criticalLow: 95,
     unit: '°F',
     enabled: true,
   },
@@ -66,7 +67,7 @@ export const DEFAULT_THRESHOLDS: VitalThreshold[] = [
     type: 'glucose',
     label: 'Blood Glucose',
     criticalHigh: 250,
-    high: 180,
+    high: 140,
     low: 70,
     criticalLow: 54,
     unit: 'mg/dL',
@@ -75,8 +76,8 @@ export const DEFAULT_THRESHOLDS: VitalThreshold[] = [
   {
     type: 'o2sat',
     label: 'Oxygen Saturation',
-    low: 92,
-    criticalLow: 88,
+    low: 95,
+    criticalLow: 90,
     unit: '%',
     enabled: true,
   },

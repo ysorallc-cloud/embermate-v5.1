@@ -14,7 +14,12 @@ export const RegulationPrompt: React.FC<RegulationPromptProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.message}>{message}</Text>
-      <TouchableOpacity onPress={onDismiss} style={styles.dismissButton}>
+      <TouchableOpacity
+        onPress={onDismiss}
+        style={styles.dismissButton}
+        accessibilityLabel="Dismiss regulation prompt"
+        accessibilityRole="button"
+      >
         <Text style={styles.dismissText}>Dismiss</Text>
       </TouchableOpacity>
     </View>

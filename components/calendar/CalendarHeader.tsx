@@ -16,13 +16,23 @@ interface CalendarHeaderProps {
 export function CalendarHeader({ currentMonth, onPrevious, onNext }: CalendarHeaderProps) {
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.navButton} onPress={onPrevious}>
+      <TouchableOpacity
+        style={styles.navButton}
+        onPress={onPrevious}
+        accessibilityLabel="Previous month"
+        accessibilityRole="button"
+      >
         <Text style={styles.navButtonText}>‹</Text>
       </TouchableOpacity>
 
       <Text style={styles.monthYear}>{format(currentMonth, 'MMMM yyyy')}</Text>
 
-      <TouchableOpacity style={styles.navButton} onPress={onNext}>
+      <TouchableOpacity
+        style={styles.navButton}
+        onPress={onNext}
+        accessibilityLabel="Next month"
+        accessibilityRole="button"
+      >
         <Text style={styles.navButtonText}>›</Text>
       </TouchableOpacity>
     </View>

@@ -102,7 +102,12 @@ export default function CareSummaryExportScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <View style={styles.headerContent}>
@@ -129,6 +134,9 @@ export default function CareSummaryExportScreen() {
               ]}
               onPress={() => handleExport(option.id)}
               disabled={generating}
+              accessibilityLabel={`Export ${option.title}`}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: generating }}
             >
               {option.recommended && (
                 <View style={styles.recommendedBadge}>

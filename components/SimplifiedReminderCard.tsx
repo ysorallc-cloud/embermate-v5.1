@@ -33,6 +33,9 @@ export const SimplifiedReminderCard: React.FC<ReminderCardProps> = ({
           style={[styles.toggle, enabled && styles.toggleOn]}
           onPress={() => onToggle(!enabled)}
           activeOpacity={0.8}
+          accessibilityLabel={`Daily Reminder ${enabled ? 'on' : 'off'}`}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: enabled }}
         >
           <View style={[styles.toggleThumb, enabled && styles.toggleThumbOn]} />
         </TouchableOpacity>
@@ -49,6 +52,9 @@ export const SimplifiedReminderCard: React.FC<ReminderCardProps> = ({
                 selectedTime === time.id && styles.timeChipActive,
               ]}
               onPress={() => onTimeSelect(time.id)}
+              accessibilityLabel={`Set reminder time to ${time.label}`}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: selectedTime === time.id }}
             >
               <Text
                 style={[

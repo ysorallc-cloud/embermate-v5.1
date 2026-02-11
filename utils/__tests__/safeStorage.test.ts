@@ -173,16 +173,17 @@ describe('SafeStorage', () => {
       expect(JSON.parse(stored!)).toEqual(testData);
     });
 
-    it('should create backup of existing data before overwriting', async () => {
+    it('should not create backup on every write (performance optimization)', async () => {
       const originalData = { original: true };
       await AsyncStorage.setItem('backup_test', JSON.stringify(originalData));
 
       const newData = { new: true };
       await safeSetItem('backup_test', newData);
 
-      // Check backup was created
+      // Backup-on-write was removed to reduce I/O overhead
+      // Backups are handled by cloudBackup system on explicit user action
       const backup = await AsyncStorage.getItem('backup_test_backup');
-      expect(JSON.parse(backup!)).toEqual(originalData);
+      expect(backup).toBeNull();
     });
 
     it('should return false for unstringifiable data', async () => {

@@ -21,6 +21,8 @@ export const NudgePrompt: React.FC<NudgePromptProps> = ({
       style={styles.container}
       onPress={() => router.push(route as any)}
       activeOpacity={0.7}
+      accessibilityLabel={`${category} nudge: ${message}`}
+      accessibilityRole="link"
     >
       <Text style={styles.message}>{message}</Text>
       <Text style={styles.arrow}>→</Text>

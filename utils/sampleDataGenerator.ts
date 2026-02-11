@@ -23,8 +23,12 @@ import {
   createCarePlan,
   upsertCarePlanItem,
   getActiveCarePlan,
+  logInstanceCompletion,
   DEFAULT_PATIENT_ID,
 } from '../storage/carePlanRepo';
+import { saveCarePlanConfig } from '../storage/carePlanConfigRepo';
+import { createDefaultCarePlanConfig } from '../types/carePlanConfig';
+import { ensureDailyInstances } from '../services/carePlanGenerator';
 
 const SAMPLE_DATA_INITIALIZED_KEY = '@embermate_sample_data_initialized';
 
@@ -379,20 +383,135 @@ export async function createSampleCarePlanItems(): Promise<void> {
 
     // Define sample care plan items
     const sampleItems: CarePlanItem[] = [
-      // Morning Mood Check
+      // Morning Wellness Check
       {
-        id: 'sample-mood-morning',
+        id: 'sample-wellness-morning',
         carePlanId,
-        type: 'mood',
-        name: 'Morning mood check',
+        type: 'wellness',
+        name: 'Morning wellness check',
         instructions: 'How are you feeling this morning?',
         priority: 'recommended',
         active: true,
-        emoji: '😊',
+        emoji: '🌅',
         schedule: {
           frequency: 'daily',
           times: [{
-            id: 'mood-morning-window',
+            id: 'wellness-morning-window',
+            kind: 'window',
+            label: 'morning' as TimeWindowLabel,
+            start: DEFAULT_TIME_WINDOWS.morning.start,
+            end: DEFAULT_TIME_WINDOWS.morning.end,
+          }],
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      // Evening Wellness Check
+      {
+        id: 'sample-wellness-evening',
+        carePlanId,
+        type: 'wellness',
+        name: 'Evening wellness check',
+        instructions: 'How was your day overall?',
+        priority: 'recommended',
+        active: true,
+        emoji: '🌙',
+        schedule: {
+          frequency: 'daily',
+          times: [{
+            id: 'wellness-evening-window',
+            kind: 'window',
+            label: 'evening' as TimeWindowLabel,
+            start: DEFAULT_TIME_WINDOWS.evening.start,
+            end: DEFAULT_TIME_WINDOWS.evening.end,
+          }],
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      // Lisinopril 10mg (morning)
+      {
+        id: 'sample-med-lisinopril',
+        carePlanId,
+        type: 'medication',
+        name: 'Lisinopril 10mg',
+        instructions: 'Blood pressure medication',
+        priority: 'required',
+        active: true,
+        emoji: '💊',
+        schedule: {
+          frequency: 'daily',
+          times: [{
+            id: 'med-lisinopril-window',
+            kind: 'window',
+            label: 'morning' as TimeWindowLabel,
+            start: DEFAULT_TIME_WINDOWS.morning.start,
+            end: DEFAULT_TIME_WINDOWS.morning.end,
+          }],
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      // Metformin 500mg (morning)
+      {
+        id: 'sample-med-metformin',
+        carePlanId,
+        type: 'medication',
+        name: 'Metformin 500mg',
+        instructions: 'Take with breakfast',
+        priority: 'required',
+        active: true,
+        emoji: '💊',
+        schedule: {
+          frequency: 'daily',
+          times: [{
+            id: 'med-metformin-window',
+            kind: 'window',
+            label: 'morning' as TimeWindowLabel,
+            start: DEFAULT_TIME_WINDOWS.morning.start,
+            end: DEFAULT_TIME_WINDOWS.morning.end,
+          }],
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      // Atorvastatin 20mg (evening)
+      {
+        id: 'sample-med-atorvastatin',
+        carePlanId,
+        type: 'medication',
+        name: 'Atorvastatin 20mg',
+        instructions: 'Cholesterol medication',
+        priority: 'required',
+        active: true,
+        emoji: '💊',
+        schedule: {
+          frequency: 'daily',
+          times: [{
+            id: 'med-atorvastatin-window',
+            kind: 'window',
+            label: 'evening' as TimeWindowLabel,
+            start: DEFAULT_TIME_WINDOWS.evening.start,
+            end: DEFAULT_TIME_WINDOWS.evening.end,
+          }],
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      // Vitamin D3 2000 IU (morning)
+      {
+        id: 'sample-med-vitamind',
+        carePlanId,
+        type: 'medication',
+        name: 'Vitamin D3 2000 IU',
+        instructions: 'Take with breakfast',
+        priority: 'recommended',
+        active: true,
+        emoji: '💊',
+        schedule: {
+          frequency: 'daily',
+          times: [{
+            id: 'med-vitamind-window',
             kind: 'window',
             label: 'morning' as TimeWindowLabel,
             start: DEFAULT_TIME_WINDOWS.morning.start,
@@ -540,8 +659,35 @@ export const initializeSampleData = async (): Promise<boolean> => {
     // Save caregivers
     await AsyncStorage.setItem('@embermate_caregivers', JSON.stringify(getSampleCaregivers()));
 
-    // Create sample Care Plan items (mood, meals, vitals)
+    // Create sample Care Plan items (wellness, meds, meals, vitals)
     await createSampleCarePlanItems();
+
+    // Create sample CarePlanConfig with key buckets enabled
+    const config = createDefaultCarePlanConfig(DEFAULT_PATIENT_ID);
+    config.meds = { ...config.meds, enabled: true };
+    config.vitals = { ...config.vitals, enabled: true };
+    config.meals = { ...config.meals, enabled: true };
+    // wellness is already enabled by default in createDefaultCarePlanConfig
+    await saveCarePlanConfig(config);
+
+    // Pre-complete morning instances for a realistic mid-day demo look
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const instances = await ensureDailyInstances(DEFAULT_PATIENT_ID, today);
+
+      for (const inst of instances) {
+        if (inst.windowLabel === 'morning' && inst.status === 'pending') {
+          await logInstanceCompletion(DEFAULT_PATIENT_ID, today, inst.id, 'completed');
+        }
+      }
+
+      if (__DEV__) {
+        const morningCount = instances.filter(i => i.windowLabel === 'morning').length;
+        console.log(`[SampleDataGenerator] Pre-completed ${morningCount} morning instances`);
+      }
+    } catch (error) {
+      console.error('[SampleDataGenerator] Error pre-completing morning instances:', error);
+    }
 
     // Mark as initialized
     await AsyncStorage.setItem(SAMPLE_DATA_INITIALIZED_KEY, 'true');

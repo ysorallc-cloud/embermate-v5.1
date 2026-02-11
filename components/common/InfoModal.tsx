@@ -32,9 +32,9 @@ export function InfoModal({ visible, onClose, title, content, hint }: InfoModalP
       animationType="fade"
       onRequestClose={onClose}
     >
-      <TouchableWithoutFeedback onPress={onClose}>
+      <TouchableWithoutFeedback onPress={onClose} accessibilityLabel="Close modal" accessibilityRole="button">
         <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
+          <TouchableWithoutFeedback accessibilityLabel="Modal content" accessibilityRole="none">
             <View style={styles.modal}>
               <View style={styles.header}>
                 <Text style={styles.title}>{title}</Text>
@@ -42,6 +42,8 @@ export function InfoModal({ visible, onClose, title, content, hint }: InfoModalP
                   onPress={onClose}
                   style={styles.closeButton}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityLabel="Close"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.closeIcon}>×</Text>
                 </TouchableOpacity>
@@ -56,6 +58,8 @@ export function InfoModal({ visible, onClose, title, content, hint }: InfoModalP
                 style={styles.gotItButton}
                 onPress={onClose}
                 activeOpacity={0.7}
+                accessibilityLabel="Got it"
+                accessibilityRole="button"
               >
                 <Text style={styles.gotItText}>Got it</Text>
               </TouchableOpacity>

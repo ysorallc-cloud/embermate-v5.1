@@ -19,10 +19,20 @@ export const NotificationPrompt: React.FC<NotificationPromptProps> = ({
         Get gentle reminders for medications and appointments
       </Text>
       <View style={styles.buttons}>
-        <TouchableOpacity style={styles.enableButton} onPress={onEnable}>
+        <TouchableOpacity
+          style={styles.enableButton}
+          onPress={onEnable}
+          accessibilityLabel="Enable notifications"
+          accessibilityRole="button"
+        >
           <Text style={styles.enableText}>Enable</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.notNowButton} onPress={onNotNow}>
+        <TouchableOpacity
+          style={styles.notNowButton}
+          onPress={onNotNow}
+          accessibilityLabel="Not now, skip notifications"
+          accessibilityRole="button"
+        >
           <Text style={styles.notNowText}>Not now</Text>
         </TouchableOpacity>
       </View>

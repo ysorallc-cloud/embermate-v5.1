@@ -5,7 +5,7 @@
 // Level 3: Optional notes after marking (progressive disclosure)
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -46,6 +46,14 @@ export default function MedicationScheduleScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [undoAction, setUndoAction] = useState<{ medId: string; previousStatus: boolean } | null>(null);
   const [showUndo, setShowUndo] = useState(false);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear undo timer on unmount to prevent stale state updates
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -88,11 +96,13 @@ export default function MedicationScheduleScreen() {
       // Show undo toast (5-second window per intake model)
       setUndoAction({ medId: med.id, previousStatus });
       setShowUndo(true);
-      
-      // Auto-dismiss after 5 seconds
-      setTimeout(() => {
+
+      // Clear any previous timer and auto-dismiss after 5 seconds
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = setTimeout(() => {
         setShowUndo(false);
         setUndoAction(null);
+        undoTimerRef.current = null;
       }, 5000);
     } catch (error) {
       console.error('Error toggling medication:', error);
@@ -147,9 +157,11 @@ export default function MedicationScheduleScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton} 
+            <TouchableOpacity
+              style={styles.backButton}
               onPress={() => router.back()}
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
             >
               <Text style={styles.backIcon}>←</Text>
             </TouchableOpacity>
@@ -157,6 +169,8 @@ export default function MedicationScheduleScreen() {
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => router.push('/medication-form' as any)}
+              accessibilityLabel="Add medication"
+              accessibilityRole="button"
             >
               <Ionicons name="add" size={24} color={Colors.accent} />
             </TouchableOpacity>
@@ -196,6 +210,9 @@ export default function MedicationScheduleScreen() {
                     ]}
                     onPress={() => handleToggleTaken(med)}
                     activeOpacity={0.7}
+                    accessibilityLabel={`${med.name} ${med.dosage}, ${formatTime(med.time)}${med.taken ? ', taken' : ', not taken'}`}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: med.taken }}
                   >
                     <View style={styles.medInfo}>
                       <Text style={styles.medTime}>{formatTime(med.time)}</Text>
@@ -237,7 +254,12 @@ export default function MedicationScheduleScreen() {
         {showUndo && undoAction && (
           <View style={styles.undoToast}>
             <Text style={styles.undoText}>Medication marked taken</Text>
-            <TouchableOpacity onPress={handleUndo} style={styles.undoButton}>
+            <TouchableOpacity
+              onPress={handleUndo}
+              style={styles.undoButton}
+              accessibilityLabel="Undo medication taken"
+              accessibilityRole="button"
+            >
               <Text style={styles.undoButtonText}>UNDO</Text>
             </TouchableOpacity>
           </View>

@@ -63,12 +63,22 @@ export default function PhotoCapture({ type, onPhotoSaved, medicationId }: Photo
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.button} onPress={takePhoto}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={takePhoto}
+        accessibilityLabel={`Take ${type} photo with camera`}
+        accessibilityRole="button"
+      >
         <Text style={styles.buttonIcon}>📷</Text>
         <Text style={styles.buttonText}>Take Photo</Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.button} onPress={pickFromLibrary}>
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={pickFromLibrary}
+        accessibilityLabel={`Choose ${type} photo from library`}
+        accessibilityRole="button"
+      >
         <Text style={styles.buttonIcon}>🖼️</Text>
         <Text style={styles.buttonText}>Choose from Library</Text>
       </TouchableOpacity>

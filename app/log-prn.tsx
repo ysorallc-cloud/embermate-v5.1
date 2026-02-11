@@ -15,7 +15,12 @@ export default function LogPRNScreen() {
           <Text style={styles.icon}>💊</Text>
           <Text style={styles.title}>Log PRN Medication</Text>
           <Text style={styles.subtitle}>PRN medication logging coming soon</Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
         </View>

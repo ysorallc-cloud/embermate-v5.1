@@ -48,7 +48,7 @@ export default function RhythmEditScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Header with back button */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Daily Rhythm</Text>
@@ -68,6 +68,7 @@ export default function RhythmEditScreen() {
             onChangeText={setMedications}
             keyboardType="number-pad"
             placeholderTextColor={Colors.textSecondary}
+            accessibilityLabel="Medication doses per day"
           />
         </View>
 
@@ -80,6 +81,7 @@ export default function RhythmEditScreen() {
             onChangeText={setVitals}
             keyboardType="number-pad"
             placeholderTextColor={Colors.textSecondary}
+            accessibilityLabel="Vital checks per day"
           />
         </View>
 
@@ -92,10 +94,11 @@ export default function RhythmEditScreen() {
             onChangeText={setMeals}
             keyboardType="number-pad"
             placeholderTextColor={Colors.textSecondary}
+            accessibilityLabel="Meals per day"
           />
         </View>
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave} accessibilityLabel="Save rhythm" accessibilityRole="button">
           <Text style={styles.saveButtonText}>Save Rhythm</Text>
         </TouchableOpacity>
 

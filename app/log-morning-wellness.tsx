@@ -144,11 +144,20 @@ export default function LogMorningWellnessScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Morning Wellness Check</Text>
-          <TouchableOpacity onPress={handleSkip}>
+          <TouchableOpacity
+            onPress={handleSkip}
+            accessibilityLabel="Skip morning wellness check"
+            accessibilityRole="button"
+          >
             <Text style={styles.skipText}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -170,6 +179,9 @@ export default function LogMorningWellnessScreen() {
                     sleepQuality === option.value && styles.optionButtonSelected,
                   ]}
                   onPress={() => setSleepQuality(option.value)}
+                  accessibilityLabel={`Sleep quality: ${option.label}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: sleepQuality === option.value }}
                 >
                   <Text style={styles.optionEmoji}>{option.emoji}</Text>
                   <Text
@@ -197,6 +209,9 @@ export default function LogMorningWellnessScreen() {
                     mood === option.value && styles.optionButtonSelected,
                   ]}
                   onPress={() => setMood(option.value)}
+                  accessibilityLabel={`Mood: ${option.label}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: mood === option.value }}
                 >
                   <Text style={styles.optionEmoji}>{option.emoji}</Text>
                   <Text
@@ -224,6 +239,9 @@ export default function LogMorningWellnessScreen() {
                     energyLevel === option.value && styles.energyOptionSelected,
                   ]}
                   onPress={() => setEnergyLevel(option.value)}
+                  accessibilityLabel={`Energy level: ${option.label}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: energyLevel === option.value }}
                 >
                   <View
                     style={[
@@ -262,6 +280,9 @@ export default function LogMorningWellnessScreen() {
                       orientation === option.value && styles.optionButtonSelected,
                     ]}
                     onPress={() => setOrientation(orientation === option.value ? null : option.value)}
+                    accessibilityLabel={`Orientation: ${option.label}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: orientation === option.value }}
                   >
                     <Text style={styles.optionEmoji}>{option.emoji}</Text>
                     <Text
@@ -292,6 +313,9 @@ export default function LogMorningWellnessScreen() {
                       decisionMaking === option.value && styles.optionButtonSelected,
                     ]}
                     onPress={() => setDecisionMaking(decisionMaking === option.value ? null : option.value)}
+                    accessibilityLabel={`Decision making: ${option.label}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: decisionMaking === option.value }}
                   >
                     <Text style={styles.optionEmoji}>{option.emoji}</Text>
                     <Text
@@ -315,6 +339,9 @@ export default function LogMorningWellnessScreen() {
             style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
             onPress={handleSubmit}
             disabled={!canSubmit || isSubmitting}
+            accessibilityLabel={isSubmitting ? 'Saving wellness check' : 'Complete morning wellness check'}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !canSubmit || isSubmitting }}
           >
             <Text style={styles.submitButtonText}>
               {isSubmitting ? 'Saving...' : 'Complete Check'}

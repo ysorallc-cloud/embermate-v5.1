@@ -497,12 +497,14 @@ export default function NowScreen() {
           )}
 
           {/* 2. CARE PLAN PROGRESS */}
-          <ProgressRings
-            todayStats={todayStats}
-            enabledBuckets={enabledBuckets}
-            nextUp={todayTimeline?.nextUp}
-            instances={instancesState?.instances || []}
-          />
+          <View accessibilityLiveRegion="polite" accessibilityRole="summary">
+            <ProgressRings
+              todayStats={todayStats}
+              enabledBuckets={enabledBuckets}
+              nextUp={todayTimeline?.nextUp}
+              instances={instancesState?.instances || []}
+            />
+          </View>
 
           {/* 3. CARE INSIGHT */}
           <CareInsightCard
@@ -555,7 +557,13 @@ export default function NowScreen() {
           {hasRegimenInstances &&
             allPending.length === 0 &&
             todayTimeline.completed.length > 0 && (
-            <View style={styles.allDoneMessage}>
+            <View
+              style={styles.allDoneMessage}
+              accessible={true}
+              accessibilityRole="text"
+              accessibilityLabel="All caught up! All care plan items are complete for today."
+              accessibilityLiveRegion="polite"
+            >
               <Text style={styles.allDoneEmoji}>🎉</Text>
               <Text style={styles.allDoneText}>All caught up!</Text>
             </View>

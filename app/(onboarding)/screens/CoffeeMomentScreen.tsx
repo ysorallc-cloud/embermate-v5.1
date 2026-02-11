@@ -89,6 +89,9 @@ export const CoffeeMomentScreen: React.FC<Props> = ({ onAccept }) => {
           <Pressable
             style={styles.checkboxRow}
             onPress={() => setDisclaimerChecked(!disclaimerChecked)}
+            accessibilityLabel="I understand and accept these limitations"
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: disclaimerChecked }}
           >
             <View style={[styles.checkbox, disclaimerChecked && styles.checkboxChecked]}>
               {disclaimerChecked && <Text style={styles.checkmark}>✓</Text>}
@@ -102,6 +105,8 @@ export const CoffeeMomentScreen: React.FC<Props> = ({ onAccept }) => {
           <Pressable
             style={styles.readMoreButton}
             onPress={() => setShowDisclaimerModal(true)}
+            accessibilityLabel="Read full disclaimer"
+            accessibilityRole="link"
           >
             <Text style={styles.readMoreText}>Read Full Disclaimer</Text>
           </Pressable>
@@ -110,6 +115,9 @@ export const CoffeeMomentScreen: React.FC<Props> = ({ onAccept }) => {
           <Pressable
             style={styles.checkboxRow}
             onPress={() => setSampleDataChecked(!sampleDataChecked)}
+            accessibilityLabel="Add sample data to explore the app"
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: sampleDataChecked }}
           >
             <View style={[styles.checkbox, sampleDataChecked && styles.checkboxChecked]}>
               {sampleDataChecked && <Text style={styles.checkmark}>✓</Text>}
@@ -124,6 +132,9 @@ export const CoffeeMomentScreen: React.FC<Props> = ({ onAccept }) => {
             style={[styles.acceptButton, !disclaimerChecked && styles.acceptButtonDisabled]}
             onPress={() => onAccept(sampleDataChecked)}
             disabled={!disclaimerChecked}
+            accessibilityLabel="Accept and continue"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !disclaimerChecked }}
           >
             <Text style={[styles.acceptButtonText, !disclaimerChecked && styles.acceptButtonTextDisabled]}>
               Accept & Continue

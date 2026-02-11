@@ -371,7 +371,7 @@ export default function CareBriefScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="Go back" accessibilityRole="button">
                 <Text style={styles.backIcon}>←</Text>
               </TouchableOpacity>
               <View>
@@ -380,10 +380,12 @@ export default function CareBriefScreen() {
               </View>
             </View>
             <View style={styles.headerActions}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.actionButton}
                 onPress={handleGenerateFullReport}
                 disabled={isGeneratingReport}
+                accessibilityLabel={isGeneratingReport ? "Generating report" : "Export care report"}
+                accessibilityRole="button"
               >
                 <Ionicons 
                   name={isGeneratingReport ? "hourglass-outline" : "share-outline"} 
@@ -483,7 +485,8 @@ export default function CareBriefScreen() {
                 <View style={styles.groupCards}>
                   {/* Group 1: Medication Logging */}
                   {missedMeds.length > 0 && (
-                    <TouchableOpacity style={styles.groupCard} activeOpacity={0.7}>
+                    <TouchableOpacity style={styles.groupCard} activeOpacity={0.7} accessibilityLabel={`Medication logging, ${missedMeds.length} pending`} accessibilityRole="button">
+
                       <View style={styles.groupCardHeader}>
                         <Text style={styles.groupCardTitle}>Medication Logging</Text>
                         <Text style={styles.groupCardCount}>{missedMeds.length} pending</Text>
@@ -509,7 +512,7 @@ export default function CareBriefScreen() {
                     const daysUntil = Math.ceil((new Date(urgentAppt!.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
                     
                     return (
-                      <TouchableOpacity style={styles.groupCard} activeOpacity={0.7}>
+                      <TouchableOpacity style={styles.groupCard} activeOpacity={0.7} accessibilityLabel={`Upcoming appointment, ${daysUntil === 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`}`} accessibilityRole="button">
                         <View style={styles.groupCardHeader}>
                           <Text style={styles.groupCardTitle}>Upcoming Appointment</Text>
                           <Text style={styles.groupCardCount}>
@@ -536,7 +539,7 @@ export default function CareBriefScreen() {
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>UPCOMING (NEXT 7 DAYS)</Text>
                 {upcomingAppts.length > 3 && (
-                  <TouchableOpacity onPress={() => router.push('/appointments' as any)}>
+                  <TouchableOpacity onPress={() => router.push('/appointments' as any)} accessibilityLabel="View all appointments" accessibilityRole="link">
                     <Text style={styles.viewDetailsLink}>View all →</Text>
                   </TouchableOpacity>
                 )}
@@ -571,10 +574,13 @@ export default function CareBriefScreen() {
 
             {/* Critical Context (Collapsible) */}
             <View style={styles.section}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.criticalContext}
                 onPress={() => setCriticalContextExpanded(!criticalContextExpanded)}
                 activeOpacity={0.7}
+                accessibilityLabel={`Critical context, ${criticalContextExpanded ? 'collapse' : 'expand'}`}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: criticalContextExpanded }}
               >
                 <View style={styles.criticalContextToggle}>
                   <Text style={styles.sectionTitle}>CRITICAL CONTEXT</Text>

@@ -75,7 +75,12 @@ export function ConsistencyBanner({
   return (
     <View style={bannerStyle}>
       {dismissable && onDismiss && (
-        <TouchableOpacity style={styles.dismissButton} onPress={onDismiss}>
+        <TouchableOpacity
+          style={styles.dismissButton}
+          onPress={onDismiss}
+          accessibilityLabel="Dismiss banner"
+          accessibilityRole="button"
+        >
           <Text style={styles.dismissIcon}>×</Text>
         </TouchableOpacity>
       )}
@@ -95,6 +100,8 @@ export function ConsistencyBanner({
             ]}
             onPress={handlePrimaryAction}
             activeOpacity={0.7}
+            accessibilityLabel={actionLabel}
+            accessibilityRole="button"
           >
             <Text style={[
               styles.actionButtonText,
@@ -111,6 +118,8 @@ export function ConsistencyBanner({
             style={styles.secondaryButton}
             onPress={onSecondaryAction}
             activeOpacity={0.7}
+            accessibilityLabel={secondaryLabel}
+            accessibilityRole="button"
           >
             <Text style={styles.secondaryButtonText}>{secondaryLabel}</Text>
           </TouchableOpacity>

@@ -130,15 +130,15 @@ export const NotificationConfigSheet: React.FC<NotificationConfigSheetProps> = (
       animationType="slide"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+      <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel="Close reminder settings" accessibilityRole="button">
+        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()} accessibilityRole="none">
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityLabel="Cancel" accessibilityRole="button">
               <Text style={styles.cancelButton}>Cancel</Text>
             </TouchableOpacity>
             <Text style={styles.title}>Reminder Settings</Text>
-            <TouchableOpacity onPress={handleSave} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity onPress={handleSave} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityLabel="Save reminder settings" accessibilityRole="button">
               <Text style={styles.saveButton}>Save</Text>
             </TouchableOpacity>
           </View>
@@ -181,6 +181,9 @@ export const NotificationConfigSheet: React.FC<NotificationConfigSheetProps> = (
                           timing === option.value && styles.optionItemSelected,
                         ]}
                         onPress={() => setTiming(option.value)}
+                        accessibilityLabel={option.label}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: timing === option.value }}
                       >
                         <Text
                           style={[
@@ -229,6 +232,9 @@ export const NotificationConfigSheet: React.FC<NotificationConfigSheetProps> = (
                                 followUpInterval === interval && styles.chipSelected,
                               ]}
                               onPress={() => setFollowUpInterval(interval)}
+                              accessibilityLabel={`Remind every ${interval} minutes`}
+                              accessibilityRole="radio"
+                              accessibilityState={{ selected: followUpInterval === interval }}
                             >
                               <Text
                                 style={[
@@ -253,6 +259,9 @@ export const NotificationConfigSheet: React.FC<NotificationConfigSheetProps> = (
                                 maxAttempts === attempts && styles.chipSelected,
                               ]}
                               onPress={() => setMaxAttempts(attempts)}
+                              accessibilityLabel={`Maximum ${attempts} reminder${attempts === 1 ? '' : 's'}`}
+                              accessibilityRole="radio"
+                              accessibilityState={{ selected: maxAttempts === attempts }}
                             >
                               <Text
                                 style={[
@@ -276,6 +285,8 @@ export const NotificationConfigSheet: React.FC<NotificationConfigSheetProps> = (
             <TouchableOpacity
               style={styles.resetButton}
               onPress={handleReset}
+              accessibilityLabel="Reset to defaults"
+              accessibilityRole="button"
             >
               <Text style={styles.resetButtonText}>Reset to defaults</Text>
             </TouchableOpacity>

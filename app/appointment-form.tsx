@@ -261,13 +261,23 @@ export default function AppointmentFormScreen() {
       >
         {/* Header - Keep existing style */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerLabel}>
             {isEditing ? 'EDIT APPOINTMENT' : 'ADD APPOINTMENT'}
           </Text>
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={handleSave}
+            accessibilityRole="button"
+            accessibilityLabel={isEditing ? 'Save appointment changes' : 'Save new appointment'}
+          >
             <Text style={styles.saveButtonText}>Save</Text>
           </TouchableOpacity>
         </View>
@@ -286,6 +296,8 @@ export default function AppointmentFormScreen() {
                 <TouchableOpacity
                   style={styles.dateTimeButton}
                   onPress={() => setShowDatePicker(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Appointment date: ${formatDate(date)}. Tap to change`}
                 >
                   <Text style={styles.dateTimeIcon}>📅</Text>
                   <Text style={styles.dateTimeText}>{formatDate(date)}</Text>
@@ -297,6 +309,8 @@ export default function AppointmentFormScreen() {
                 <TouchableOpacity
                   style={styles.dateTimeButton}
                   onPress={() => setShowTimePicker(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Appointment time: ${formatTime(time)}. Tap to change`}
                 >
                   <Text style={styles.dateTimeIcon}>🕐</Text>
                   <Text style={styles.dateTimeText}>{formatTime(time)}</Text>
@@ -318,6 +332,9 @@ export default function AppointmentFormScreen() {
                       appointmentType === type.id && styles.typePillActive
                     ]}
                     onPress={() => setAppointmentType(type.id)}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Appointment type: ${type.label}`}
+                    accessibilityState={{ selected: appointmentType === type.id }}
                   >
                     <Text style={styles.typePillIcon}>{type.icon}</Text>
                     <Text
@@ -348,6 +365,7 @@ export default function AppointmentFormScreen() {
                 autoCorrect={false}
                 spellCheck={false}
                 textContentType="none"
+                accessibilityLabel="Appointment title, optional"
               />
             </View>
 
@@ -364,6 +382,7 @@ export default function AppointmentFormScreen() {
                 autoCorrect={false}
                 spellCheck={false}
                 textContentType="none"
+                accessibilityLabel="Provider name, required"
               />
             </View>
 
@@ -380,6 +399,7 @@ export default function AppointmentFormScreen() {
                 autoCorrect={false}
                 spellCheck={false}
                 textContentType="none"
+                accessibilityLabel="Appointment location"
               />
             </View>
 
@@ -393,6 +413,9 @@ export default function AppointmentFormScreen() {
                 style={styles.reminderToggleRow}
                 onPress={() => setReminderEnabled(!reminderEnabled)}
                 activeOpacity={0.7}
+                accessibilityRole="switch"
+                accessibilityLabel="Appointment reminder"
+                accessibilityState={{ checked: reminderEnabled }}
               >
                 <View style={styles.reminderToggleLeft}>
                   <Text style={styles.reminderIcon}>🔔</Text>
@@ -436,6 +459,8 @@ export default function AppointmentFormScreen() {
             <TouchableOpacity
               style={styles.addNotesButton}
               onPress={() => setShowNotesInput(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Add notes or reminders"
             >
               <Text style={styles.addNotesText}>+ Add notes or reminders</Text>
             </TouchableOpacity>
@@ -452,6 +477,7 @@ export default function AppointmentFormScreen() {
                 numberOfLines={3}
                 autoCorrect={false}
                 spellCheck={false}
+                accessibilityLabel="Appointment notes"
                 textContentType="none"
                 textAlignVertical="top"
               />

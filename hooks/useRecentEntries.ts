@@ -544,8 +544,10 @@ export function useRecentEntries(filterType?: LogEventType | null) {
     fetchEntries();
   }, [fetchEntries]);
 
-  useDataListener(() => {
-    fetchEntries();
+  useDataListener((category) => {
+    if (['dailyInstances', 'logs', 'logEvents', 'appointments', 'carePlan', 'carePlanItems', 'sampleDataCleared'].includes(category)) {
+      fetchEntries();
+    }
   });
 
   const refresh = useCallback(async () => {

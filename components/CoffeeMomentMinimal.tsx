@@ -130,7 +130,12 @@ export const CoffeeMomentMinimal: React.FC<CoffeeMomentMinimalProps> = ({
       animationType="fade"
       onRequestClose={handleExit}
     >
-      <Pressable style={styles.container} onPress={handleExit}>
+      <Pressable
+        style={styles.container}
+        onPress={handleExit}
+        accessibilityLabel="Dismiss coffee moment"
+        accessibilityRole="button"
+      >
         <LinearGradient
           colors={['#1a0f0a', '#0a0a0f']}
           style={styles.gradient}

@@ -104,7 +104,12 @@ export default function PhotosScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
+            >
               <Text style={styles.backIcon}>←</Text>
             </TouchableOpacity>
             <Text style={styles.headerLabel}>PHOTOS</Text>
@@ -144,6 +149,9 @@ export default function PhotosScreen() {
                 key={f.key}
                 style={[styles.filterChip, filter === f.key && styles.filterChipActive]}
                 onPress={() => setFilter(f.key)}
+                accessibilityLabel={`Filter by ${f.label}`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: filter === f.key }}
               >
                 <Ionicons
                   name={f.icon as any}

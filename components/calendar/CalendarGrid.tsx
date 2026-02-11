@@ -47,6 +47,9 @@ export const CalendarGrid: React.FC<Props> = ({ days, selectedDate, onDayPress }
               ]}
               onPress={() => onDayPress(day.date)}
               activeOpacity={0.7}
+              accessibilityLabel={`${day.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}${day.hasItems ? ', has events' : ''}${isToday ? ', today' : ''}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
             >
               <Text style={[
                 styles.dayNumber,

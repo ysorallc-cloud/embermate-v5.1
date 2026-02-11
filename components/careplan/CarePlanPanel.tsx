@@ -108,7 +108,12 @@ export function CarePlanPanel({
           Set up a Care Plan to track daily routines
         </Text>
         {onSetupPress && (
-          <TouchableOpacity style={styles.setupButton} onPress={onSetupPress}>
+          <TouchableOpacity
+            style={styles.setupButton}
+            onPress={onSetupPress}
+            accessibilityLabel="Set up Care Plan"
+            accessibilityRole="button"
+          >
             <Text style={styles.setupButtonText}>Set up Care Plan</Text>
           </TouchableOpacity>
         )}
@@ -128,12 +133,16 @@ export function CarePlanPanel({
           <TouchableOpacity
             style={styles.adjustTodayButton}
             onPress={() => router.push('/today-scope' as any)}
+            accessibilityLabel="Adjust today's care plan"
+            accessibilityRole="button"
           >
             <Text style={styles.adjustTodayText}>Adjust Today</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.settingsButton}
             onPress={() => router.push('/care-plan' as any)}
+            accessibilityLabel="Care plan settings"
+            accessibilityRole="button"
           >
             <Text style={styles.settingsIcon}>⚙️</Text>
           </TouchableOpacity>
@@ -149,6 +158,8 @@ export function CarePlanPanel({
               router.push(dayState.nextAction.link as any);
             }
           }}
+          accessibilityLabel={`Next action: ${dayState.nextAction.label}`}
+          accessibilityRole="button"
         >
           <Text style={styles.nextUpLabel}>Next:</Text>
           <Text style={styles.nextUpText}>
@@ -214,6 +225,9 @@ function RoutineSection({
         style={styles.routineHeader}
         onPress={onToggle}
         activeOpacity={0.7}
+        accessibilityLabel={`${routine.name}, ${routine.completedCount} of ${routine.totalCount} items complete`}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
       >
         <View style={styles.routineHeaderLeft}>
           <Text style={styles.routineEmoji}>{routine.emoji}</Text>
@@ -244,6 +258,8 @@ function RoutineSection({
               style={styles.previewItem}
               onPress={() => onItemPress(item)}
               activeOpacity={0.7}
+              accessibilityLabel={`${item.label}, ${item.statusText}`}
+              accessibilityRole="button"
             >
               <Text style={styles.previewEmoji}>{item.emoji || '•'}</Text>
               <Text style={styles.previewLabel} numberOfLines={1}>
@@ -253,7 +269,12 @@ function RoutineSection({
             </TouchableOpacity>
           ))}
           {remainingCount > 0 && (
-            <TouchableOpacity style={styles.previewMore} onPress={onToggle}>
+            <TouchableOpacity
+              style={styles.previewMore}
+              onPress={onToggle}
+              accessibilityLabel={`Show ${remainingCount} more items`}
+              accessibilityRole="button"
+            >
               <Text style={styles.previewMoreText}>
                 +{remainingCount} more
               </Text>
@@ -299,6 +320,10 @@ function RoutineItem({ item, onPress, onLongPress }: RoutineItemProps) {
       onLongPress={onLongPress}
       delayLongPress={500}
       activeOpacity={0.7}
+      accessibilityLabel={`${item.label}, ${item.statusText}${item.isOverridden ? ', manually overridden' : ''}`}
+      accessibilityRole="button"
+      accessibilityState={{ checked: isDone }}
+      accessibilityHint="Long press to toggle completion"
     >
       <View style={styles.routineItemLeft}>
         <Text style={styles.routineItemEmoji}>{item.emoji || '•'}</Text>

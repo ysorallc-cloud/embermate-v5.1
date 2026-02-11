@@ -52,13 +52,28 @@ export const BaselineConfirmPrompt: React.FC<BaselineConfirmPromptProps> = ({
         {getBaselineDescription(category, baseline.dailyCount)} Does this sound right?
       </Text>
       <View style={styles.buttons}>
-        <TouchableOpacity style={styles.yesButton} onPress={onYes}>
+        <TouchableOpacity
+          style={styles.yesButton}
+          onPress={onYes}
+          accessibilityLabel={`Yes, ${getCategoryLabel(category)} baseline is correct`}
+          accessibilityRole="button"
+        >
           <Text style={styles.yesText}>Yes</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.notReallyButton} onPress={onNotReally}>
+        <TouchableOpacity
+          style={styles.notReallyButton}
+          onPress={onNotReally}
+          accessibilityLabel={`No, ${getCategoryLabel(category)} baseline is not correct`}
+          accessibilityRole="button"
+        >
           <Text style={styles.notReallyText}>Not really</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.dismissButton} onPress={onDismiss}>
+        <TouchableOpacity
+          style={styles.dismissButton}
+          onPress={onDismiss}
+          accessibilityLabel={`Dismiss ${getCategoryLabel(category)} baseline prompt`}
+          accessibilityRole="button"
+        >
           <Text style={styles.dismissText}>Dismiss</Text>
         </TouchableOpacity>
       </View>

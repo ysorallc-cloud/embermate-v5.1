@@ -189,9 +189,11 @@ export default function MedicationsScreen() {
       >
         {/* Header */}
         <View style={styles.headerWrapper}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
@@ -202,9 +204,11 @@ export default function MedicationsScreen() {
             title="Medications"
           />
           
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.addButton}
             onPress={handleAddMedication}
+            accessibilityLabel="Add medication"
+            accessibilityRole="button"
           >
             <Text style={styles.addIcon}>+</Text>
           </TouchableOpacity>
@@ -218,9 +222,11 @@ export default function MedicationsScreen() {
         >
           {/* Interaction Warning */}
           {interactions.length > 0 && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.warningBanner}
               onPress={() => router.push('/medication-interactions')}
+              accessibilityLabel={`Interaction alert. ${interactions.length} potential interaction${interactions.length > 1 ? 's' : ''} detected. View details`}
+              accessibilityRole="button"
             >
               <Text style={styles.warningIcon}>⚠️</Text>
               <View style={styles.warningContent}>
@@ -252,6 +258,8 @@ export default function MedicationsScreen() {
               <TouchableOpacity
                 style={styles.emptyButton}
                 onPress={handleAddMedication}
+                accessibilityLabel="Add medication"
+                accessibilityRole="button"
               >
                 <Text style={styles.emptyButtonText}>Add Medication</Text>
               </TouchableOpacity>
@@ -265,6 +273,9 @@ export default function MedicationsScreen() {
                   onPress={handleTakeAll}
                   disabled={takingAll}
                   activeOpacity={0.7}
+                  accessibilityLabel={`Take all due medications. ${dueCount} medication${dueCount > 1 ? 's' : ''} due now`}
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: takingAll }}
                 >
                   <Text style={styles.takeAllIcon}>✓</Text>
                   <View style={styles.takeAllContent}>
@@ -290,10 +301,15 @@ export default function MedicationsScreen() {
                         <TouchableOpacity
                           style={styles.medHeader}
                           onPress={() => handleMedicationPress(medication)}
+                          accessibilityLabel={`Edit ${medication.name}, ${medication.dosage}`}
+                          accessibilityRole="button"
                         >
                           <TouchableOpacity
                             style={styles.medCheckbox}
                             onPress={() => handleTakeMedication(medication)}
+                            accessibilityLabel={`Mark ${medication.name} as taken`}
+                            accessibilityRole="checkbox"
+                            accessibilityState={{ checked: false }}
                           >
                             <View style={styles.checkbox} />
                           </TouchableOpacity>
@@ -347,6 +363,9 @@ export default function MedicationsScreen() {
                       key={medication.id}
                       style={[styles.medCard, styles.medCardTaken]}
                       onPress={() => handleMedicationPress(medication)}
+                      accessibilityLabel={`${medication.name}, ${medication.dosage}, taken`}
+                      accessibilityRole="button"
+                      accessibilityState={{ checked: true }}
                     >
                       <View style={styles.medHeader}>
                         <View style={styles.medCheckboxDone}>
@@ -379,6 +398,8 @@ export default function MedicationsScreen() {
                     key={medication.id}
                     style={styles.medCardCompact}
                     onPress={() => handleMedicationPress(medication)}
+                    accessibilityLabel={`${medication.name}, ${medication.dosage}, ${medication.timeSlot}${getAdherencePercent(medication) !== null ? `, ${getAdherencePercent(medication)}% adherence` : ''}`}
+                    accessibilityRole="button"
                   >
                     <View style={styles.medIconBox}>
                       <Text style={styles.medIcon}>💊</Text>

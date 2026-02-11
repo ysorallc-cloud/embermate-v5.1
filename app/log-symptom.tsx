@@ -73,7 +73,12 @@ export default function LogSymptomScreen() {
           <View style={styles.content}>
             {/* Header */}
             <View style={styles.header}>
-              <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => router.back()}
+                accessibilityLabel="Go back"
+                accessibilityRole="button"
+              >
                 <Text style={styles.backText}>← Back</Text>
               </TouchableOpacity>
               <Text style={styles.icon}>🩹</Text>
@@ -95,6 +100,9 @@ export default function LogSymptomScreen() {
                         selectedSymptom === symptom && styles.symptomChipSelected,
                       ]}
                       onPress={() => setSelectedSymptom(symptom)}
+                      accessibilityLabel={`${symptom} symptom`}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: selectedSymptom === symptom }}
                     >
                       <Text
                         style={[
@@ -119,6 +127,7 @@ export default function LogSymptomScreen() {
                     onChangeText={setCustomSymptom}
                     placeholder="Enter symptom name"
                     placeholderTextColor={Colors.textMuted}
+                    accessibilityLabel="Custom symptom name"
                   />
                 </View>
               )}
@@ -138,6 +147,9 @@ export default function LogSymptomScreen() {
                         severity === num && styles.severityButtonSelected,
                       ]}
                       onPress={() => setSeverity(num)}
+                      accessibilityLabel={`Severity ${num} out of 10`}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: severity === num }}
                     >
                       <Text
                         style={[
@@ -164,6 +176,7 @@ export default function LogSymptomScreen() {
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
+                  accessibilityLabel="Symptom notes"
                 />
               </View>
 
@@ -172,6 +185,9 @@ export default function LogSymptomScreen() {
                 style={[styles.saveButton, saving && styles.saveButtonDisabled]}
                 onPress={handleSave}
                 disabled={saving}
+                accessibilityLabel={saving ? 'Saving symptom' : 'Log symptom'}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: saving }}
               >
                 <Text style={styles.saveButtonText}>
                   {saving ? 'Saving...' : 'Log Symptom'}

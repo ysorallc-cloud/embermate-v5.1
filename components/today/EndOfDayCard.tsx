@@ -34,12 +34,22 @@ export const EndOfDayCard: React.FC<EndOfDayCardProps> = ({
       <Text style={styles.prompt}>How was {careRecipientName}'s day overall?</Text>
 
       <View style={styles.buttons}>
-        <TouchableOpacity style={styles.button} onPress={handleLogMood}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleLogMood}
+          accessibilityLabel={`Log mood for ${careRecipientName}`}
+          accessibilityRole="button"
+        >
           <Text style={styles.buttonIcon}>😊</Text>
           <Text style={styles.buttonText}>Log mood</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button} onPress={handleAddNote}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleAddNote}
+          accessibilityLabel={`Add note for ${careRecipientName}`}
+          accessibilityRole="button"
+        >
           <Text style={styles.buttonIcon}>📝</Text>
           <Text style={styles.buttonText}>Add note</Text>
         </TouchableOpacity>

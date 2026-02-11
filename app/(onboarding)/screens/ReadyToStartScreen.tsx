@@ -108,6 +108,9 @@ export const ReadyToStartScreen: React.FC<ReadyToStartScreenProps> = ({ onAccept
             style={styles.checkboxRow}
             onPress={() => setSeedData(!seedData)}
             activeOpacity={0.7}
+            accessibilityLabel="Add sample data to explore"
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: seedData }}
           >
             <View style={[styles.checkbox, seedData && styles.checkboxChecked]}>
               {seedData && <Text style={styles.checkmark}>✓</Text>}
@@ -127,6 +130,8 @@ export const ReadyToStartScreen: React.FC<ReadyToStartScreenProps> = ({ onAccept
             style={styles.ctaButton}
             onPress={() => onAccept(seedData)}
             activeOpacity={0.8}
+            accessibilityLabel="Accept and begin your journey"
+            accessibilityRole="button"
           >
             <Text style={styles.ctaText}>Accept & Begin Your Journey</Text>
           </TouchableOpacity>

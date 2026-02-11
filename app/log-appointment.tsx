@@ -87,6 +87,8 @@ export default function LogAppointmentScreen() {
               <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => router.back()}
+                accessibilityLabel="Go back"
+                accessibilityRole="button"
               >
                 <Text style={styles.backText}>← Back</Text>
               </TouchableOpacity>
@@ -108,6 +110,7 @@ export default function LogAppointmentScreen() {
                   onChangeText={setProvider}
                   placeholder="Dr. Smith"
                   placeholderTextColor={Colors.textMuted}
+                  accessibilityLabel="Provider name, required"
                 />
               </View>
 
@@ -120,6 +123,7 @@ export default function LogAppointmentScreen() {
                   onChangeText={setSpecialty}
                   placeholder="Cardiology, Primary Care, etc."
                   placeholderTextColor={Colors.textMuted}
+                  accessibilityLabel="Provider specialty"
                 />
               </View>
 
@@ -129,6 +133,8 @@ export default function LogAppointmentScreen() {
                 <TouchableOpacity
                   style={styles.dateButton}
                   onPress={() => setShowDatePicker(true)}
+                  accessibilityLabel={`Appointment date, ${date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. Tap to change`}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.dateButtonText}>
                     {date.toLocaleDateString('en-US', {
@@ -159,6 +165,7 @@ export default function LogAppointmentScreen() {
                   onChangeText={setTime}
                   placeholder="10:00 AM"
                   placeholderTextColor={Colors.textMuted}
+                  accessibilityLabel="Appointment time"
                 />
               </View>
 
@@ -171,6 +178,7 @@ export default function LogAppointmentScreen() {
                   onChangeText={setLocation}
                   placeholder="Valley Medical Center"
                   placeholderTextColor={Colors.textMuted}
+                  accessibilityLabel="Appointment location"
                 />
               </View>
 
@@ -183,6 +191,7 @@ export default function LogAppointmentScreen() {
                   onChangeText={setNotes}
                   placeholder="Follow-up for blood pressure..."
                   placeholderTextColor={Colors.textMuted}
+                  accessibilityLabel="Appointment notes"
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
@@ -194,6 +203,9 @@ export default function LogAppointmentScreen() {
                 style={[styles.saveButton, saving && styles.saveButtonDisabled]}
                 onPress={handleSave}
                 disabled={saving}
+                accessibilityLabel={saving ? 'Saving appointment' : 'Save appointment'}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: saving }}
               >
                 <Text style={styles.saveButtonText}>
                   {saving ? 'Saving...' : 'Save Appointment'}

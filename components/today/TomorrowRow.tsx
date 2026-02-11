@@ -28,6 +28,8 @@ export const TomorrowRow: React.FC<TomorrowRowProps> = ({ itemCount }) => {
       style={styles.container}
       onPress={handlePress}
       activeOpacity={0.7}
+      accessibilityLabel={`Tomorrow, ${itemCount} item${itemCount !== 1 ? 's' : ''} scheduled. View calendar`}
+      accessibilityRole="link"
     >
       {/* Timeline connector */}
       <View style={styles.connector}>

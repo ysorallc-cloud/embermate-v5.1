@@ -195,7 +195,7 @@ export default function CoffeeMoment() {
       <LinearGradient colors={['#0D1F1C', '#0A1412']} style={styles.gradient}>
         <View style={styles.header}>
           <Text style={styles.title}>Coffee Moment</Text>
-          <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.closeButton} accessibilityLabel="Close Coffee Moment" accessibilityRole="button">
             <Ionicons name="close" size={28} color="rgba(255,255,255,0.95)" />
           </TouchableOpacity>
         </View>
@@ -209,6 +209,8 @@ export default function CoffeeMoment() {
               style={styles.breathingContainer}
               onPress={!isBreathing ? startBreathing : stopBreathing}
               activeOpacity={0.8}
+              accessibilityLabel={isBreathing ? "Stop breathing exercise" : "Start breathing exercise"}
+              accessibilityRole="button"
             >
               <Animated.View
                 style={[
@@ -260,6 +262,8 @@ export default function CoffeeMoment() {
             style={styles.actionButton}
             onPress={() => setShowResourcesModal(true)}
             activeOpacity={0.7}
+            accessibilityLabel="Open resources"
+            accessibilityRole="button"
           >
             <Text style={styles.actionButtonIcon}>📚</Text>
             <Text style={styles.actionButtonText}>Resources</Text>
@@ -269,6 +273,8 @@ export default function CoffeeMoment() {
             style={styles.actionButton}
             onPress={() => setShowTemplatesModal(true)}
             activeOpacity={0.7}
+            accessibilityLabel="Open communication templates"
+            accessibilityRole="button"
           >
             <Text style={styles.actionButtonIcon}>💬</Text>
             <Text style={styles.actionButtonText}>Templates</Text>
@@ -286,7 +292,7 @@ export default function CoffeeMoment() {
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>📚 Helpful Resources</Text>
-                <TouchableOpacity onPress={() => setShowResourcesModal(false)}>
+                <TouchableOpacity onPress={() => setShowResourcesModal(false)} accessibilityLabel="Close resources" accessibilityRole="button">
                   <Ionicons name="close" size={28} color="rgba(255,255,255,0.95)" />
                 </TouchableOpacity>
               </View>
@@ -306,6 +312,8 @@ export default function CoffeeMoment() {
                         setShowResourcesModal(false);
                       }}
                       activeOpacity={0.7}
+                      accessibilityLabel={`Open ${resource.title}`}
+                      accessibilityRole="link"
                     >
                       <View style={styles.resourceIcon}>
                         <Ionicons name={resource.icon as any} size={20} color="rgba(79, 209, 197, 0.9)" />
@@ -331,7 +339,7 @@ export default function CoffeeMoment() {
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>💬 Communication Templates</Text>
-                <TouchableOpacity onPress={() => setShowTemplatesModal(false)}>
+                <TouchableOpacity onPress={() => setShowTemplatesModal(false)} accessibilityLabel="Close templates" accessibilityRole="button">
                   <Ionicons name="close" size={28} color="rgba(255,255,255,0.95)" />
                 </TouchableOpacity>
               </View>
@@ -354,6 +362,9 @@ export default function CoffeeMoment() {
                         )
                       }
                       activeOpacity={0.7}
+                      accessibilityLabel={`${template.title} templates`}
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded: expandedTemplate === template.id }}
                     >
                       <Ionicons
                         name={template.icon as any}

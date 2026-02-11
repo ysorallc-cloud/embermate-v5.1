@@ -1,12 +1,13 @@
 // ============================================================================
 // CLOUD BACKUP SERVICE
-// Encrypted backup using AES-256-GCM for native cloud sync (iCloud/Google Drive)
+// Encrypted backup using AES-256-CTR + HMAC-SHA256 for native cloud sync (iCloud/Google Drive)
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
+import CryptoJS from 'crypto-js';
 import { logAuditEvent, AuditEventType, AuditSeverity } from './auditLog';
 
 // ============================================================================
@@ -15,7 +16,7 @@ import { logAuditEvent, AuditEventType, AuditSeverity } from './auditLog';
 
 export interface EncryptedBackup {
   version: string;
-  algorithm: 'AES-256-GCM';
+  algorithm: 'AES-256-CTR-HMAC' | 'AES-256-GCM'; // GCM is legacy label
   timestamp: string;
   iv: string;
   salt: string;
@@ -41,10 +42,10 @@ export interface CloudBackupSettings {
 // Constants
 // ============================================================================
 
-const BACKUP_VERSION = '2.0.0';
+const BACKUP_VERSION = '3.0.0'; // v3: real AES-CTR encryption (replaces XOR)
 const BACKUP_DIR = 'EmberMate-Backups';
 const BACKUP_SETTINGS_KEY = '@embermate_cloud_backup_settings';
-const PBKDF2_ITERATIONS = 100000;
+const PBKDF2_ITERATIONS = 10000; // Balanced for mobile: sufficient brute-force resistance without UX lag
 const SALT_LENGTH = 32;
 const IV_LENGTH = 16;
 const KEY_LENGTH = 32; // 256 bits
@@ -97,13 +98,24 @@ function hexToBytes(hex: string): Uint8Array {
 }
 
 /**
- * Derive encryption key from password using PBKDF2-like approach
- * Note: React Native doesn't have native PBKDF2, so we use iterated hashing
- * Optimized: Reduced iterations and avoid string concatenation memory buildup
+ * Constant-time string comparison to prevent timing attacks on HMAC verification
+ */
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+/**
+ * Derive encryption key from password using PBKDF2-like iterated hashing.
+ * Note: React Native doesn't have native PBKDF2, so we use iterated SHA-256.
+ * Uses PBKDF2_ITERATIONS (10,000) rounds for brute-force resistance.
  */
 async function deriveKey(password: string, salt: Uint8Array): Promise<Uint8Array> {
   const saltHex = bytesToHex(salt);
-  const passwordSuffix = password.substring(0, 8);
 
   // Start with combined value
   let hash = await Crypto.digestStringAsync(
@@ -111,12 +123,11 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<Uint8Array
     password + saltHex
   );
 
-  // Reduced iterations (100 instead of 1000) to prevent memory pressure
-  // Each iteration reuses the same variable instead of concatenating
-  for (let i = 0; i < 100; i++) {
+  // Use the declared constant for iteration count
+  for (let i = 0; i < PBKDF2_ITERATIONS; i++) {
     hash = await Crypto.digestStringAsync(
       Crypto.CryptoDigestAlgorithm.SHA256,
-      hash + passwordSuffix
+      hash + saltHex
     );
   }
 
@@ -124,41 +135,56 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<Uint8Array
 }
 
 /**
- * Calculate HMAC for data integrity verification
+ * Encrypt data using AES-256-CTR with HMAC-SHA256 (Encrypt-then-MAC)
  */
-async function calculateHMAC(data: string, key: Uint8Array): Promise<string> {
-  const keyHex = bytesToHex(key);
-  const combined = keyHex + data;
+function aesEncrypt(data: string, key: Uint8Array, iv: Uint8Array): { ciphertext: string; hmac: string } {
+  const keyWordArray = CryptoJS.lib.WordArray.create(key);
+  const ivWordArray = CryptoJS.lib.WordArray.create(iv);
 
-  return await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    combined
-  );
+  const encrypted = CryptoJS.AES.encrypt(data, keyWordArray, {
+    iv: ivWordArray,
+    mode: CryptoJS.mode.CTR,
+    padding: CryptoJS.pad.NoPadding,
+  });
+
+  const ciphertextHex = encrypted.ciphertext.toString();
+  const hmac = CryptoJS.HmacSHA256(ciphertextHex, keyWordArray).toString();
+
+  return { ciphertext: ciphertextHex, hmac };
 }
 
 /**
- * XOR-based encryption (used as fallback since React Native
- * doesn't have native AES-GCM)
- *
- * Note: For production, consider using react-native-crypto or
- * expo-crypto-universal for proper AES-GCM implementation
+ * Decrypt data using AES-256-CTR with HMAC-SHA256 verification
  */
-function xorEncrypt(data: string, key: Uint8Array): string {
-  const dataBytes = new TextEncoder().encode(data);
-  const encrypted = new Uint8Array(dataBytes.length);
+function aesDecrypt(ciphertextHex: string, key: Uint8Array, ivHex: string, expectedHmac: string): string {
+  const keyWordArray = CryptoJS.lib.WordArray.create(key);
 
-  for (let i = 0; i < dataBytes.length; i++) {
-    encrypted[i] = dataBytes[i] ^ key[i % key.length];
+  // Verify HMAC before decryption (constant-time comparison)
+  const calculatedHmac = CryptoJS.HmacSHA256(ciphertextHex, keyWordArray).toString();
+  if (!constantTimeEqual(calculatedHmac, expectedHmac)) {
+    throw new Error('Invalid password or corrupted backup');
   }
 
-  // Convert to base64-safe string
-  return btoa(String.fromCharCode(...encrypted));
+  const ivWordArray = CryptoJS.enc.Hex.parse(ivHex);
+  const ciphertextWordArray = CryptoJS.enc.Hex.parse(ciphertextHex);
+
+  const decrypted = CryptoJS.AES.decrypt(
+    { ciphertext: ciphertextWordArray } as any,
+    keyWordArray,
+    {
+      iv: ivWordArray,
+      mode: CryptoJS.mode.CTR,
+      padding: CryptoJS.pad.NoPadding,
+    }
+  );
+
+  return decrypted.toString(CryptoJS.enc.Utf8);
 }
 
 /**
- * XOR-based decryption
+ * Legacy XOR-based decryption (for restoring v2.0.0 backups only)
  */
-function xorDecrypt(encryptedBase64: string, key: Uint8Array): string {
+function legacyXorDecrypt(encryptedBase64: string, key: Uint8Array): string {
   const encrypted = new Uint8Array(
     atob(encryptedBase64).split('').map(c => c.charCodeAt(0))
   );
@@ -169,6 +195,19 @@ function xorDecrypt(encryptedBase64: string, key: Uint8Array): string {
   }
 
   return new TextDecoder().decode(decrypted);
+}
+
+/**
+ * Legacy HMAC calculation (for verifying v2.0.0 backups)
+ */
+async function legacyCalculateHMAC(data: string, key: Uint8Array): Promise<string> {
+  const keyHex = bytesToHex(key);
+  const combined = keyHex + data;
+
+  return await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    combined
+  );
 }
 
 // ============================================================================
@@ -221,15 +260,12 @@ export async function createEncryptedBackup(password: string): Promise<Encrypted
     // Derive encryption key from password
     const key = await deriveKey(password, salt);
 
-    // Encrypt the data
-    const encryptedData = xorEncrypt(dataString, key);
-
-    // Calculate HMAC for integrity verification
-    const hmac = await calculateHMAC(encryptedData, key);
+    // Encrypt the data using AES-256-CTR + HMAC-SHA256
+    const { ciphertext: encryptedData, hmac } = aesEncrypt(dataString, key, iv);
 
     const backup: EncryptedBackup = {
       version: BACKUP_VERSION,
-      algorithm: 'AES-256-GCM',
+      algorithm: 'AES-256-CTR-HMAC',
       timestamp: new Date().toISOString(),
       iv: bytesToHex(iv),
       salt: bytesToHex(salt),
@@ -269,14 +305,19 @@ export async function restoreEncryptedBackup(
     const salt = hexToBytes(backup.salt);
     const key = await deriveKey(password, salt);
 
-    // Verify HMAC
-    const calculatedHmac = await calculateHMAC(backup.data, key);
-    if (calculatedHmac !== backup.hmac) {
-      throw new Error('Invalid password or corrupted backup');
+    // Decrypt based on backup version
+    let decryptedString: string;
+    if (backup.version === '3.0.0') {
+      // v3: AES-256-CTR + HMAC (verifies HMAC internally with constant-time comparison)
+      decryptedString = aesDecrypt(backup.data, key, backup.iv, backup.hmac);
+    } else {
+      // v2 legacy: XOR encryption with simple HMAC
+      const calculatedHmac = await legacyCalculateHMAC(backup.data, key);
+      if (!constantTimeEqual(calculatedHmac, backup.hmac)) {
+        throw new Error('Invalid password or corrupted backup');
+      }
+      decryptedString = legacyXorDecrypt(backup.data, key);
     }
-
-    // Decrypt the data
-    const decryptedString = xorDecrypt(backup.data, key);
     const data = JSON.parse(decryptedString);
 
     // Restore all data to AsyncStorage
@@ -670,7 +711,7 @@ export async function getBackupInfo(filePath: string): Promise<{
     return {
       version: backup.version,
       timestamp: backup.timestamp,
-      encrypted: backup.algorithm === 'AES-256-GCM',
+      encrypted: backup.algorithm === 'AES-256-CTR-HMAC' || backup.algorithm === 'AES-256-GCM',
     };
   } catch (error) {
     console.error('Error getting backup info:', error);

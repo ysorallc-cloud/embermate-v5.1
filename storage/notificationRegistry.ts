@@ -9,6 +9,7 @@ import { generateUniqueId } from '../utils/idGenerator';
 import { emitDataUpdate } from '../lib/events';
 import type { ScheduledNotificationV2, DeliveryPreferences, DEFAULT_DELIVERY_PREFERENCES } from '../types/notifications';
 import type { CarePlanItemType } from '../types/carePlan';
+import { DEFAULT_PATIENT_ID } from '../types/patient';
 
 // ============================================================================
 // STORAGE KEYS
@@ -24,9 +25,6 @@ const KEYS = {
   // Notification history (last 7 days)
   HISTORY: (patientId: string) => `@embermate_notification_history_v2:${patientId}`,
 };
-
-// Default patient ID for single-user mode
-const DEFAULT_PATIENT_ID = 'default';
 
 // ============================================================================
 // SCHEDULED NOTIFICATION OPERATIONS

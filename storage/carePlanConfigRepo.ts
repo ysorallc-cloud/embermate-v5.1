@@ -16,6 +16,7 @@ import {
   hasAnyEnabledBucket,
 } from '../types/carePlanConfig';
 import { generateUniqueId } from '../utils/idGenerator';
+import { DEFAULT_PATIENT_ID } from '../types/patient';
 
 // ============================================================================
 // STORAGE KEYS
@@ -24,9 +25,6 @@ import { generateUniqueId } from '../utils/idGenerator';
 const KEYS = {
   CONFIG: (patientId: string) => `@embermate_careplan_config_v1:${patientId}`,
 };
-
-// Default patient ID for single-user mode
-export const DEFAULT_PATIENT_ID = 'default';
 
 // ============================================================================
 // CARE PLAN CONFIG OPERATIONS

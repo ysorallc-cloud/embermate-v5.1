@@ -101,6 +101,9 @@ function TimeRangeToggle({ value, onChange }: TimeRangeToggleProps) {
           ]}
           onPress={() => onChange(range)}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`${range} day range`}
+          accessibilityState={{ selected: value === range }}
         >
           <Text style={[
             styles.timeRangeText,
@@ -130,7 +133,12 @@ function StandOutRow({ insight, onLinkPress }: StandOutRowProps) {
       <View style={styles.standOutContent}>
         <Text style={styles.standOutText}>{insight.text}</Text>
         {insight.linkRoute && insight.linkLabel && (
-          <TouchableOpacity onPress={onLinkPress} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={onLinkPress}
+            activeOpacity={0.7}
+            accessibilityRole="link"
+            accessibilityLabel={insight.linkLabel}
+          >
             <Text style={styles.standOutLink}>{insight.linkLabel} →</Text>
           </TouchableOpacity>
         )}
@@ -199,6 +207,8 @@ function CorrelationCardComponent({ card, onDismissSuggestion, onTrackThis }: Co
             <TouchableOpacity
               onPress={handleDismiss}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Dismiss suggestion for ${card.title}`}
             >
               <Text style={styles.suggestionDismiss}>×</Text>
             </TouchableOpacity>
@@ -210,6 +220,8 @@ function CorrelationCardComponent({ card, onDismissSuggestion, onTrackThis }: Co
             style={styles.trackThisButton}
             onPress={handleTrackThis}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Track ${card.title}`}
           >
             <Text style={styles.trackThisText}>📝 Track this</Text>
           </TouchableOpacity>
@@ -232,7 +244,12 @@ interface PatternToolProps {
 
 function PatternTool({ icon, title, subtitle, onPress }: PatternToolProps) {
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${subtitle}`}
+    >
       <GlassCard style={styles.toolCard}>
         <View style={styles.toolContent}>
           <View style={styles.toolIcon}>
@@ -267,6 +284,8 @@ function SampleDataBanner({ onDismiss, previouslySeen }: SampleDataBannerProps) 
         style={styles.sampleBannerCompact}
         onPress={onDismiss}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss preview mode banner"
       >
         <Text style={styles.sampleBannerCompactText}>
           ✨ Preview mode — <Text style={styles.sampleBannerCompactLink}>start tracking for real patterns</Text>
@@ -291,6 +310,8 @@ function SampleDataBanner({ onDismiss, previouslySeen }: SampleDataBannerProps) 
         style={styles.sampleBannerDismiss}
         onPress={onDismiss}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        accessibilityRole="button"
+        accessibilityLabel="Got it, dismiss preview mode"
       >
         <Text style={styles.sampleBannerDismissText}>Got it</Text>
       </TouchableOpacity>
@@ -315,6 +336,8 @@ function ConfidenceExplanation({ onDismiss }: ConfidenceExplanationProps) {
         <TouchableOpacity
           onPress={onDismiss}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss pattern explanation"
         >
           <Text style={styles.confidenceExplanationDismiss}>×</Text>
         </TouchableOpacity>
@@ -568,6 +591,8 @@ export default function UnderstandScreen() {
               style={styles.crossLink}
               onPress={() => router.push('/(tabs)/now')}
               activeOpacity={0.7}
+              accessibilityRole="link"
+              accessibilityLabel="View in Now"
             >
               <Text style={styles.crossLinkText}>
                 Related to mornings? →{' '}
@@ -579,6 +604,8 @@ export default function UnderstandScreen() {
               style={styles.crossLink}
               onPress={() => router.push('/care-plan' as any)}
               activeOpacity={0.7}
+              accessibilityRole="link"
+              accessibilityLabel="Edit Care Plan"
             >
               <Text style={styles.crossLinkText}>
                 Want different reminders? →{' '}

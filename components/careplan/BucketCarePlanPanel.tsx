@@ -377,6 +377,8 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
         <TouchableOpacity
           style={styles.setupButton}
           onPress={() => router.push('/care-plan' as any)}
+          accessibilityLabel="Set up Care Plan"
+          accessibilityRole="button"
         >
           <Text style={styles.setupButtonText}>Set up Care Plan</Text>
         </TouchableOpacity>
@@ -398,6 +400,8 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
           <TouchableOpacity
             style={styles.settingsButton}
             onPress={() => router.push('/care-plan' as any)}
+            accessibilityLabel="Care Plan settings"
+            accessibilityRole="button"
           >
             <Text style={styles.settingsIcon}>⚙️</Text>
           </TouchableOpacity>
@@ -415,6 +419,8 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
               style={[styles.bucketChip, hasItems && styles.bucketChipConfigured]}
               onPress={() => router.push(BUCKET_CONFIG_ROUTES[bucket] as any)}
               activeOpacity={0.7}
+              accessibilityLabel={`${meta.name}${hasItems ? '' : ', needs setup'}`}
+              accessibilityRole="button"
             >
               <Text style={styles.bucketChipEmoji}>{meta.emoji}</Text>
               {!hasItems && <Text style={styles.bucketChipBadge}>!</Text>}
@@ -431,6 +437,9 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
             style={styles.groupHeader}
             onPress={() => toggleGroup(group.timeOfDay)}
             activeOpacity={0.7}
+            accessibilityLabel={`${group.displayName}, ${group.completedCount} of ${group.totalCount} items completed`}
+            accessibilityRole="togglebutton"
+            accessibilityState={{ expanded: expandedGroups.has(group.timeOfDay) }}
           >
             <View style={styles.groupHeaderLeft}>
               <Text style={styles.groupEmoji}>{group.emoji}</Text>
@@ -455,6 +464,8 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
                   style={[styles.itemRow, item.status === 'done' && styles.itemRowDone]}
                   onPress={() => handleItemPress(item)}
                   activeOpacity={0.7}
+                  accessibilityLabel={`${item.label}, ${item.timeDisplay}, ${item.statusText}`}
+                  accessibilityRole="button"
                 >
                   <View style={styles.itemLeft}>
                     <Text style={styles.itemEmoji}>{item.emoji}</Text>
@@ -488,6 +499,8 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
               style={styles.placeholderRow}
               onPress={() => router.push(placeholder.route as any)}
               activeOpacity={0.7}
+              accessibilityLabel={`${placeholder.title}, ${placeholder.subtitle}`}
+              accessibilityRole="button"
             >
               <View style={styles.placeholderLeft}>
                 <Text style={styles.placeholderEmoji}>{placeholder.emoji}</Text>

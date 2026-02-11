@@ -41,6 +41,9 @@ function VitalTypeItem({ vital, selected, onToggle }: VitalTypeItemProps) {
       style={[styles.vitalItem, selected && styles.vitalItemSelected]}
       onPress={onToggle}
       activeOpacity={0.7}
+      accessibilityLabel={`${vital.label}, ${selected ? 'selected' : 'not selected'}`}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: selected }}
     >
       <Text style={styles.vitalEmoji}>{vital.emoji}</Text>
       <Text style={[styles.vitalLabel, selected && styles.vitalLabelSelected]}>
@@ -104,7 +107,12 @@ export default function VitalsBucketScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerLabel}>VITALS</Text>
@@ -138,6 +146,9 @@ export default function VitalsBucketScreen() {
               trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
               thumbColor={enabled ? '#FFFFFF' : '#F4F3F4'}
               ios_backgroundColor="rgba(255,255,255,0.2)"
+              accessibilityLabel="Track Vitals"
+              accessibilityRole="switch"
+              accessibilityState={{ checked: enabled }}
             />
           </View>
 
@@ -155,6 +166,9 @@ export default function VitalsBucketScreen() {
                     ]}
                     onPress={() => handleChangePriority(option.value)}
                     activeOpacity={0.7}
+                    accessibilityLabel={`${option.label} priority, ${option.description}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: priority === option.value }}
                   >
                     <Text style={[
                       styles.priorityLabel,
@@ -196,6 +210,9 @@ export default function VitalsBucketScreen() {
                     ]}
                     onPress={() => handleChangeFrequency(option.value as 'daily' | 'weekly' | 'as_needed')}
                     activeOpacity={0.7}
+                    accessibilityLabel={`${option.label} frequency, ${option.description}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: frequency === option.value }}
                   >
                     <Text style={[
                       styles.frequencyLabel,
@@ -223,6 +240,9 @@ export default function VitalsBucketScreen() {
                   trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
                   thumbColor={(vitalsConfig?.notificationsEnabled ?? false) ? '#FFFFFF' : '#F4F3F4'}
                   ios_backgroundColor="rgba(255,255,255,0.2)"
+                  accessibilityLabel="Vitals reminders"
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: vitalsConfig?.notificationsEnabled ?? false }}
                 />
               </View>
             </>

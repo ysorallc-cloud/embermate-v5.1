@@ -82,9 +82,11 @@ export function usePrepChecklist(appointment: Appointment | null): UsePrepCheckl
     loadData();
   }, [loadData]);
 
-  // Listen for data updates
-  useDataListener(() => {
-    loadData();
+  // Listen for relevant data updates only
+  useDataListener((category) => {
+    if (['prepChecklist', 'carePlanItems', 'sampleDataCleared'].includes(category)) {
+      loadData();
+    }
   });
 
   /**

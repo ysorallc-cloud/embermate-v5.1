@@ -46,7 +46,12 @@ export default function CalendarScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Calendar</Text>
@@ -56,7 +61,11 @@ export default function CalendarScreen() {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Month Header */}
           <View style={styles.monthHeader}>
-            <TouchableOpacity onPress={handlePrevMonth}>
+            <TouchableOpacity
+              onPress={handlePrevMonth}
+              accessibilityLabel="Previous month"
+              accessibilityRole="button"
+            >
               <Text style={styles.navArrow}>←</Text>
             </TouchableOpacity>
 
@@ -64,7 +73,11 @@ export default function CalendarScreen() {
               {format(currentMonth, 'MMMM yyyy')}
             </Text>
 
-            <TouchableOpacity onPress={handleNextMonth}>
+            <TouchableOpacity
+              onPress={handleNextMonth}
+              accessibilityLabel="Next month"
+              accessibilityRole="button"
+            >
               <Text style={styles.navArrow}>→</Text>
             </TouchableOpacity>
           </View>

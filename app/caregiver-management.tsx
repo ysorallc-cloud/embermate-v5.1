@@ -104,9 +104,11 @@ export default function CaregiverManagementScreen() {
         style={styles.gradient}
       >
         <View style={styles.headerWrapper}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
@@ -188,6 +190,9 @@ export default function CaregiverManagementScreen() {
                   onValueChange={() => handleTogglePermission('canMarkMedications')}
                   trackColor={{ false: Colors.borderMedium, true: Colors.accent }}
                   thumbColor={Colors.surface}
+                  accessibilityLabel="Mark Medications permission"
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: permissions.canMarkMedications }}
                 />
               </View>
 
@@ -207,6 +212,9 @@ export default function CaregiverManagementScreen() {
                   onValueChange={() => handleTogglePermission('canAddNotes')}
                   trackColor={{ false: Colors.borderMedium, true: Colors.accent }}
                   thumbColor={Colors.surface}
+                  accessibilityLabel="Add Notes permission"
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: permissions.canAddNotes }}
                 />
               </View>
 
@@ -226,6 +234,9 @@ export default function CaregiverManagementScreen() {
                   onValueChange={() => handleTogglePermission('canScheduleAppointments')}
                   trackColor={{ false: Colors.borderMedium, true: Colors.accent }}
                   thumbColor={Colors.surface}
+                  accessibilityLabel="Schedule Appointments permission"
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: permissions.canScheduleAppointments }}
                 />
               </View>
 
@@ -245,6 +256,9 @@ export default function CaregiverManagementScreen() {
                   onValueChange={() => handleTogglePermission('canEdit')}
                   trackColor={{ false: Colors.borderMedium, true: Colors.accent }}
                   thumbColor={Colors.surface}
+                  accessibilityLabel="Edit All Data permission"
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: permissions.canEdit }}
                 />
               </View>
 
@@ -264,6 +278,9 @@ export default function CaregiverManagementScreen() {
                   onValueChange={() => handleTogglePermission('canExport')}
                   trackColor={{ false: Colors.borderMedium, true: Colors.accent }}
                   thumbColor={Colors.surface}
+                  accessibilityLabel="Export Reports permission"
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: permissions.canExport }}
                 />
               </View>
             </View>
@@ -287,6 +304,8 @@ export default function CaregiverManagementScreen() {
               <TouchableOpacity
                 style={styles.viewActivityButton}
                 onPress={() => router.push('/family-activity')}
+                accessibilityLabel="View all activity"
+                accessibilityRole="link"
               >
                 <Text style={styles.viewActivityText}>View All Activity →</Text>
               </TouchableOpacity>
@@ -300,6 +319,8 @@ export default function CaregiverManagementScreen() {
             <TouchableOpacity
               style={styles.removeButton}
               onPress={handleRemove}
+              accessibilityLabel={`Remove ${caregiver.name} as caregiver`}
+              accessibilityRole="button"
             >
               <Text style={styles.removeButtonText}>Remove Caregiver</Text>
             </TouchableOpacity>

@@ -165,6 +165,9 @@ export const CoffeeMomentModal: React.FC<CoffeeMomentModalProps> = ({
                 onPress={handleStart}
                 disabled={isBreathing}
                 activeOpacity={0.8}
+                accessibilityLabel={isBreathing ? `Breathing exercise, ${getPhaseText()}` : 'Start breathing exercise'}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: isBreathing }}
               >
                 <Animated.View
                   style={[
@@ -200,13 +203,20 @@ export const CoffeeMomentModal: React.FC<CoffeeMomentModalProps> = ({
             )}
 
             {/* Actions */}
-            <TouchableOpacity style={styles.primaryButton} onPress={handleClose}>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={handleClose}
+              accessibilityLabel="I'm ready to continue"
+              accessibilityRole="button"
+            >
               <Text style={styles.primaryButtonText}>I'm ready to continue</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={handleSetReminder}
+              accessibilityLabel="Set a break reminder"
+              accessibilityRole="button"
             >
               <Text style={styles.secondaryButtonText}>Set a break reminder</Text>
             </TouchableOpacity>
@@ -219,6 +229,8 @@ export const CoffeeMomentModal: React.FC<CoffeeMomentModalProps> = ({
                   key={index}
                   style={styles.resourceCard}
                   activeOpacity={0.7}
+                  accessibilityLabel={`${resource.title}, ${resource.description}`}
+                  accessibilityRole="link"
                 >
                   <Text style={styles.resourceIcon}>{resource.icon}</Text>
                   <View style={styles.resourceContent}>

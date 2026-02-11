@@ -14,11 +14,13 @@ export interface DrugInteraction {
 
 /**
  * Common medication interactions database
- * This is a curated list of well-documented drug interactions
- * Data sourced from FDA and major drug interaction databases
- * 
- * Note: This is NOT comprehensive - users should always consult
- * healthcare providers for complete interaction screening
+ * This is a curated list of 22 well-documented drug interaction pairs.
+ *
+ * IMPORTANT LIMITATION: This list covers common interactions only and is
+ * NOT a comprehensive drug interaction database. Real databases (DrugBank,
+ * OpenFDA) contain 50,000+ interactions. Many common medication combinations
+ * are not represented here. Always consult a healthcare provider or pharmacist
+ * for complete interaction screening.
  */
 export const DRUG_INTERACTIONS: DrugInteraction[] = [
   // Blood Thinners (Warfarin) Interactions
@@ -298,6 +300,16 @@ export function getAllKnownMedications(): string[] {
   });
   
   return Array.from(medications).sort();
+}
+
+/**
+ * Get the user-facing interaction disclaimer text.
+ * Should be displayed prominently on any interaction screening UI.
+ */
+export function getInteractionDisclaimer(): string {
+  return 'This covers common interactions only and is NOT a comprehensive drug interaction database. ' +
+    'Many medication combinations are not represented. Always consult your healthcare provider or ' +
+    'pharmacist for complete interaction screening before starting, stopping, or changing medications.';
 }
 
 /**

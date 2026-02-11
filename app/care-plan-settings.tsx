@@ -215,6 +215,8 @@ export default function CarePlanSettingsScreen() {
             style={styles.backButton}
             onPress={() => router.back()}
             activeOpacity={0.7}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
@@ -248,6 +250,8 @@ export default function CarePlanSettingsScreen() {
                 key={template.id}
                 style={styles.templateCard}
                 onPress={() => handleTemplateSelect(template.id)}
+                accessibilityLabel={`Select ${template.name} care plan template`}
+                accessibilityRole="button"
               >
                 <Text style={styles.templateEmoji}>{template.emoji}</Text>
                 <View style={styles.templateContent}>
@@ -267,6 +271,9 @@ export default function CarePlanSettingsScreen() {
               style={styles.routineHeader}
               onPress={() => toggleRoutine(routine.id)}
               activeOpacity={0.7}
+              accessibilityLabel={`${routine.name} routine, ${routine.items.length} items, ${expandedRoutines.has(routine.id) ? 'collapse' : 'expand'}`}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: expandedRoutines.has(routine.id) }}
             >
               <View style={styles.routineHeaderLeft}>
                 <Text style={styles.routineEmoji}>{routine.emoji}</Text>
@@ -296,6 +303,8 @@ export default function CarePlanSettingsScreen() {
                     onLongPress={() => handleDeleteItem(routine.id, item.id, item.label)}
                     delayLongPress={500}
                     activeOpacity={0.7}
+                    accessibilityLabel={`${item.label}, target ${item.target}, long press to remove`}
+                    accessibilityRole="button"
                   >
                     <Text style={styles.itemIcon}>
                       {item.emoji || getItemTypeIcon(item.type)}
@@ -313,6 +322,8 @@ export default function CarePlanSettingsScreen() {
                 <TouchableOpacity
                   style={styles.addItemButton}
                   onPress={() => handleAddItemPress(routine.id)}
+                  accessibilityLabel={`Add item to ${routine.name} routine`}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.addItemIcon}>+</Text>
                   <Text style={styles.addItemText}>Add item</Text>
@@ -328,6 +339,8 @@ export default function CarePlanSettingsScreen() {
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={handleResetToDefaults}
+              accessibilityLabel="Reset care plan to defaults"
+              accessibilityRole="button"
             >
               <Text style={styles.secondaryButtonText}>Reset to Defaults</Text>
             </TouchableOpacity>
@@ -349,7 +362,11 @@ export default function CarePlanSettingsScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Item</Text>
-              <TouchableOpacity onPress={() => setShowAddItemModal(false)}>
+              <TouchableOpacity
+                onPress={() => setShowAddItemModal(false)}
+                accessibilityLabel="Close add item modal"
+                accessibilityRole="button"
+              >
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -367,6 +384,8 @@ export default function CarePlanSettingsScreen() {
                       setCustomLabel(option.label);
                       setCustomTarget(String(option.defaultTarget));
                     }}
+                    accessibilityLabel={`Select ${option.label} item type`}
+                    accessibilityRole="button"
                   >
                     <Text style={styles.typeEmoji}>{option.emoji}</Text>
                     <View style={styles.typeContent}>
@@ -383,6 +402,8 @@ export default function CarePlanSettingsScreen() {
                 <TouchableOpacity
                   style={styles.backLink}
                   onPress={() => setSelectedItemType(null)}
+                  accessibilityLabel="Change item type"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.backLinkText}>← Change type</Text>
                 </TouchableOpacity>
@@ -400,6 +421,7 @@ export default function CarePlanSettingsScreen() {
                     onChangeText={setCustomLabel}
                     placeholder="e.g., Morning medications"
                     placeholderTextColor="rgba(255,255,255,0.3)"
+                    accessibilityLabel="Care plan item label"
                   />
                 </View>
 
@@ -414,6 +436,7 @@ export default function CarePlanSettingsScreen() {
                     placeholder={String(selectedItemType.defaultTarget)}
                     placeholderTextColor="rgba(255,255,255,0.3)"
                     keyboardType="numeric"
+                    accessibilityLabel="Care plan item target"
                   />
                   {selectedItemType.targetType === 'count' && (
                     <Text style={styles.fieldHint}>
@@ -425,6 +448,8 @@ export default function CarePlanSettingsScreen() {
                 <TouchableOpacity
                   style={styles.addButton}
                   onPress={handleAddItem}
+                  accessibilityLabel="Add to routine"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.addButtonText}>Add to Routine</Text>
                 </TouchableOpacity>

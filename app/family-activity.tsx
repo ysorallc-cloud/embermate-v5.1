@@ -113,9 +113,11 @@ export default function FamilyActivityScreen() {
         style={styles.gradient}
       >
         <View style={styles.headerWrapper}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>

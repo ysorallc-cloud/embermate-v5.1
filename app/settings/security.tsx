@@ -204,6 +204,8 @@ export default function SecuritySettingsScreen() {
           <TouchableOpacity
             style={CommonStyles.backButton}
             onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Text style={CommonStyles.backIcon}>←</Text>
           </TouchableOpacity>
@@ -269,6 +271,8 @@ export default function SecuritySettingsScreen() {
             <TouchableOpacity
               style={styles.settingItem}
               onPress={pinExists ? handleChangePIN : handleSetupPIN}
+              accessibilityLabel={pinExists ? "Change PIN code" : "Set up PIN code"}
+              accessibilityRole="button"
             >
               <View style={styles.settingLeft}>
                 <Ionicons name="keypad" size={22} color={Colors.accent} />
@@ -283,7 +287,7 @@ export default function SecuritySettingsScreen() {
             </TouchableOpacity>
 
             {/* Auto-lock Timeout */}
-            <TouchableOpacity style={styles.settingItem}>
+            <TouchableOpacity style={styles.settingItem} accessibilityLabel={`Auto-lock timeout, lock after ${autoLockTimeout / 60} minutes`} accessibilityRole="button">
               <View style={styles.settingLeft}>
                 <Ionicons name="timer-outline" size={22} color={Colors.accent} />
                 <View style={styles.settingContent}>
@@ -315,6 +319,8 @@ export default function SecuritySettingsScreen() {
             <TouchableOpacity
               style={styles.settingItem}
               onPress={() => router.push('/settings')}
+              accessibilityLabel="Encrypted backups"
+              accessibilityRole="button"
             >
               <View style={styles.settingLeft}>
                 <Ionicons name="save-outline" size={22} color={Colors.accent} />
@@ -349,6 +355,8 @@ export default function SecuritySettingsScreen() {
             <TouchableOpacity
               style={styles.settingItem}
               onPress={handleExportAuditLogs}
+              accessibilityLabel="Export audit logs"
+              accessibilityRole="button"
             >
               <View style={styles.settingLeft}>
                 <Ionicons name="document-text-outline" size={22} color={Colors.accent} />

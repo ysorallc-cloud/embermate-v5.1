@@ -56,7 +56,12 @@ export default function ActivityBucketScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerLabel}>ACTIVITY</Text>
@@ -90,6 +95,9 @@ export default function ActivityBucketScreen() {
               trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
               thumbColor={enabled ? '#FFFFFF' : '#F4F3F4'}
               ios_backgroundColor="rgba(255,255,255,0.2)"
+              accessibilityLabel="Track Activity"
+              accessibilityRole="switch"
+              accessibilityState={{ checked: enabled }}
             />
           </View>
 
@@ -107,6 +115,9 @@ export default function ActivityBucketScreen() {
                     ]}
                     onPress={() => handleChangePriority(option.value)}
                     activeOpacity={0.7}
+                    accessibilityLabel={`${option.label} priority: ${option.description}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: priority === option.value }}
                   >
                     <Text style={[
                       styles.priorityLabel,
@@ -168,6 +179,9 @@ export default function ActivityBucketScreen() {
                   trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
                   thumbColor={(activityConfig?.notificationsEnabled ?? false) ? '#FFFFFF' : '#F4F3F4'}
                   ios_backgroundColor="rgba(255,255,255,0.2)"
+                  accessibilityLabel="Activity Reminders"
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: activityConfig?.notificationsEnabled ?? false }}
                 />
               </View>
             </>

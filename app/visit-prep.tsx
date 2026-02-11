@@ -188,7 +188,12 @@ ${questions.map((q) => `• ${q}`).join('\n')}
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Visit Prep Report</Text>
@@ -339,7 +344,12 @@ ${questions.map((q) => `• ${q}`).join('\n')}
 
         {/* Share Button */}
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+          <TouchableOpacity
+            style={styles.shareButton}
+            onPress={handleShare}
+            accessibilityLabel="Share report"
+            accessibilityRole="button"
+          >
             <Text style={styles.shareButtonText}>Share Report</Text>
           </TouchableOpacity>
         </View>

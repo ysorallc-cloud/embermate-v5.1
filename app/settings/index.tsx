@@ -485,6 +485,8 @@ export default function SettingsScreen() {
       style={[styles.settingItem, item.danger && styles.dangerItem]}
       onPress={item.onPress}
       activeOpacity={0.7}
+      accessibilityLabel={`${item.title}${item.subtitle ? `, ${item.subtitle}` : ''}`}
+      accessibilityRole="button"
     >
       <Text style={styles.settingIcon}>{item.icon}</Text>
       <View style={styles.settingContent}>
@@ -508,6 +510,9 @@ export default function SettingsScreen() {
           style={styles.categoryHeader}
           onPress={() => toggleCategory(category.id)}
           activeOpacity={0.7}
+          accessibilityLabel={`${category.title}, ${category.items.length} settings, ${isCollapsed ? 'collapsed' : 'expanded'}`}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: !isCollapsed }}
         >
           <Text style={styles.categoryIcon}>{category.icon}</Text>
           <View style={styles.categoryTitleContainer}>
@@ -536,6 +541,8 @@ export default function SettingsScreen() {
           <TouchableOpacity
             style={CommonStyles.backButton}
             onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Text style={CommonStyles.backIcon}>←</Text>
           </TouchableOpacity>
@@ -556,11 +563,14 @@ export default function SettingsScreen() {
               placeholderTextColor={Colors.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
+              accessibilityLabel="Search settings"
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity
                 style={styles.clearSearch}
                 onPress={() => setSearchQuery('')}
+                accessibilityLabel="Clear search"
+                accessibilityRole="button"
               >
                 <Text style={styles.clearSearchText}>✕</Text>
               </TouchableOpacity>

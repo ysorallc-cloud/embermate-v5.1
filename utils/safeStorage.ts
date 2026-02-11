@@ -61,7 +61,9 @@ export async function safeGetItem<T>(
 }
 
 /**
- * Safe set with automatic JSON stringification and backup
+ * Safe set with automatic JSON stringification.
+ * Backup-on-write removed to reduce I/O overhead (was tripling AsyncStorage operations).
+ * Backups are handled by the cloudBackup system on explicit user action.
  */
 export async function safeSetItem<T>(
   key: string,
@@ -74,17 +76,6 @@ export async function safeSetItem<T>(
     if (jsonString === null) {
       console.error(`[SafeStorage] Failed to stringify data for key: ${key}`);
       return false;
-    }
-
-    // Create a backup of the current value before overwriting
-    try {
-      const existingData = await AsyncStorage.getItem(key);
-      if (existingData) {
-        await AsyncStorage.setItem(`${key}_backup`, existingData);
-      }
-    } catch (backupError) {
-      // Continue even if backup fails
-      console.warn(`[SafeStorage] Backup failed for key: ${key}`, backupError);
     }
 
     // Save the new value

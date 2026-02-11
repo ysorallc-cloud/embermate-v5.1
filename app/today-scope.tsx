@@ -55,6 +55,9 @@ function ScopeItemRow({
       style={[styles.itemRow, isSuppressed && styles.itemRowSuppressed]}
       onPress={onToggle}
       activeOpacity={0.7}
+      accessibilityLabel={`${label}, ${routineName}${isSuppressed ? ', hidden from today' : ', showing today'}`}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: !isSuppressed }}
     >
       <View style={styles.itemLeft}>
         <Text style={styles.itemEmoji}>{emoji || '•'}</Text>
@@ -277,6 +280,8 @@ export default function TodayScopeScreen() {
                 onPress={dismissFirstTimeBanner}
                 style={styles.firstTimeBannerDismiss}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel="Dismiss helper banner"
+                accessibilityRole="button"
               >
                 <Text style={styles.firstTimeBannerDismissText}>×</Text>
               </TouchableOpacity>
@@ -305,6 +310,8 @@ export default function TodayScopeScreen() {
                       style={styles.quickAddButton}
                       onPress={() => router.push(quickAdd.route as any)}
                       activeOpacity={0.7}
+                      accessibilityLabel={quickAdd.label}
+                      accessibilityRole="button"
                     >
                       <Text style={styles.quickAddEmoji}>{meta.emoji}</Text>
                       <Text style={styles.quickAddText}>{quickAdd.label}</Text>
@@ -354,6 +361,8 @@ export default function TodayScopeScreen() {
               style={styles.resetButton}
               onPress={resetToDefaults}
               activeOpacity={0.7}
+              accessibilityLabel="Reset to Care Plan Defaults"
+              accessibilityRole="button"
             >
               <Text style={styles.resetButtonText}>Reset to Care Plan Defaults</Text>
             </TouchableOpacity>

@@ -15,10 +15,20 @@ export const OnboardingPrompt: React.FC<OnboardingPromptProps> = ({
     <View style={styles.container}>
       <Text style={styles.title}>Welcome to EmberMate</Text>
       <Text style={styles.subtitle}>How would you like to get started?</Text>
-      <TouchableOpacity style={styles.primaryButton} onPress={onShowMeWhatMatters}>
+      <TouchableOpacity
+        style={styles.primaryButton}
+        onPress={onShowMeWhatMatters}
+        accessibilityLabel="Show me what matters"
+        accessibilityRole="button"
+      >
         <Text style={styles.primaryButtonText}>Show me what matters</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.secondaryButton} onPress={onExploreOnMyOwn}>
+      <TouchableOpacity
+        style={styles.secondaryButton}
+        onPress={onExploreOnMyOwn}
+        accessibilityLabel="Explore on my own"
+        accessibilityRole="button"
+      >
         <Text style={styles.secondaryButtonText}>Explore on my own</Text>
       </TouchableOpacity>
     </View>

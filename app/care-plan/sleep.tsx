@@ -56,7 +56,12 @@ export default function SleepBucketScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerLabel}>SLEEP</Text>
@@ -90,6 +95,9 @@ export default function SleepBucketScreen() {
               trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
               thumbColor={enabled ? '#FFFFFF' : '#F4F3F4'}
               ios_backgroundColor="rgba(255,255,255,0.2)"
+              accessibilityLabel="Track Sleep"
+              accessibilityRole="switch"
+              accessibilityState={{ checked: enabled }}
             />
           </View>
 
@@ -107,6 +115,9 @@ export default function SleepBucketScreen() {
                     ]}
                     onPress={() => handleChangePriority(option.value)}
                     activeOpacity={0.7}
+                    accessibilityLabel={`${option.label} priority: ${option.description}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: priority === option.value }}
                   >
                     <Text style={[
                       styles.priorityLabel,
@@ -187,6 +198,9 @@ export default function SleepBucketScreen() {
                   trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
                   thumbColor={(sleepConfig?.notificationsEnabled ?? false) ? '#FFFFFF' : '#F4F3F4'}
                   ios_backgroundColor="rgba(255,255,255,0.2)"
+                  accessibilityLabel="Sleep Log Reminder"
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: sleepConfig?.notificationsEnabled ?? false }}
                 />
               </View>
             </>
