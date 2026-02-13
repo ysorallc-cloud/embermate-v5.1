@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
   },
   exportPrimaryText: {
     ...Typography.body,
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     fontWeight: '500',
   },
   exportSecondary: {

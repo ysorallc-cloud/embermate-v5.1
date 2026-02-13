@@ -5,6 +5,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { emitDataUpdate } from '../lib/events';
+import { devLog, logError } from './devLog';
 
 // ============================================================================
 // TYPES
@@ -174,7 +175,7 @@ export async function detectSampleData(): Promise<SampleDataStatus> {
     }
 
   } catch (error) {
-    console.error('[SampleDataManager] Error detecting sample data:', error);
+    logError('sampleDataManager.detectSampleData', error);
   }
 
   const totalSampleRecords = Object.values(counts).reduce((sum, count) => sum + count, 0);
@@ -209,7 +210,7 @@ export async function hasSampleData(): Promise<boolean> {
 
     return false;
   } catch (error) {
-    console.error('[SampleDataManager] Error checking sample data:', error);
+    logError('sampleDataManager.hasSampleData', error);
     return false;
   }
 }
@@ -231,7 +232,7 @@ export async function clearSampleData(): Promise<{
   let clearedCount = 0;
 
   try {
-    if (__DEV__) console.log('[SampleDataManager] Starting sample data cleanup...');
+    devLog('[SampleDataManager] Starting sample data cleanup...');
 
     // 1. Clear sample medications (preserve user medications)
     clearedCount += await filterSampleFromArray(SAMPLE_DATA_KEYS.medications, 'med-');
@@ -315,7 +316,7 @@ export async function clearSampleData(): Promise<{
     // 14. Emit global refresh event
     emitDataUpdate('sampleDataCleared');
 
-    if (__DEV__) console.log(`[SampleDataManager] Cleared ${clearedCount} sample records`);
+    devLog(`[SampleDataManager] Cleared ${clearedCount} sample records`);
 
     return {
       success: true,
@@ -325,7 +326,7 @@ export async function clearSampleData(): Promise<{
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     errors.push(errorMsg);
-    console.error('[SampleDataManager] Error clearing sample data:', error);
+    logError('sampleDataManager.clearSampleData', error);
 
     return {
       success: false,
@@ -376,7 +377,7 @@ async function filterSampleFromArray(key: string, sampleIdPrefix?: string): Prom
 
     return removedCount;
   } catch (error) {
-    console.error(`[SampleDataManager] Error filtering ${key}:`, error);
+    logError('sampleDataManager.filterSampleFromArray', error);
     return 0;
   }
 }

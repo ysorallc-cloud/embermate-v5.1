@@ -18,6 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing } from '../../theme/theme-tokens';
 import PageHeader from '../../components/PageHeader';
+import { logError } from '../../utils/devLog';
 
 type TimeRange = '7days' | '30days' | '3months';
 
@@ -36,7 +37,7 @@ export default function InsightsScreen() {
         // Only show sample data if user didn't decline AND data was actually seeded
         setShowSampleData(userDeclined !== 'true' && hasData === 'true');
       } catch (error) {
-        console.error('Error checking sample data status:', error);
+        logError('InsightsScreen.checkSampleDataStatus', error);
         setShowSampleData(false);
       }
     };

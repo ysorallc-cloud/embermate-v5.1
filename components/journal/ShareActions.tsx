@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   primaryButton: {
-    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    backgroundColor: Colors.sageBorder,
     borderWidth: 1,
     borderColor: Colors.accentBorder,
     borderRadius: BorderRadius.lg,
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.lg,
     paddingVertical: 14,
     alignItems: 'center',

@@ -4,6 +4,7 @@
 // ============================================================================
 
 import React, { useState, useCallback } from 'react';
+import { navigate } from '../../lib/navigate';
 import {
   View,
   Text,
@@ -25,7 +26,7 @@ import {
   PRIORITY_OPTIONS,
   formatTimeForDisplay,
 } from '../../types/carePlanConfig';
-import { NotificationConfigSheet } from '../../components/care-plan/NotificationConfigSheet';
+import { NotificationConfigSheet } from '../../components/careplan/NotificationConfigSheet';
 import type { NotificationConfig, NotificationTiming } from '../../types/notifications';
 import type { ReminderTiming } from '../../types/carePlanConfig';
 
@@ -90,9 +91,9 @@ function MedicationItem({ medication, onEdit, onToggleActive, onRemove, onNotifi
           <Switch
             value={medication.active}
             onValueChange={onToggleActive}
-            trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
-            thumbColor={medication.active ? '#FFFFFF' : '#F4F3F4'}
-            ios_backgroundColor="rgba(255,255,255,0.2)"
+            trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
+            thumbColor={medication.active ? Colors.textPrimary : Colors.switchThumbOff}
+            ios_backgroundColor={Colors.glassStrong}
           />
         </View>
       </TouchableOpacity>
@@ -166,12 +167,12 @@ export default function MedsBucketScreen() {
 
   const handleEditMed = useCallback((medId: string) => {
     // Navigate to medication form with edit mode
-    router.push(`/medication-form?id=${medId}&source=careplan` as any);
+    navigate(`/medication-form?id=${medId}&source=careplan`);
   }, [router]);
 
   const handleAddMed = useCallback(() => {
     // Navigate to medication form to add new
-    router.push('/medication-form?source=careplan' as any);
+    navigate('/medication-form?source=careplan');
   }, [router]);
 
   const handleNotificationPress = useCallback((med: MedicationPlanItem) => {
@@ -237,9 +238,9 @@ export default function MedsBucketScreen() {
             <Switch
               value={enabled}
               onValueChange={handleToggleEnabled}
-              trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
-              thumbColor={enabled ? '#FFFFFF' : '#F4F3F4'}
-              ios_backgroundColor="rgba(255,255,255,0.2)"
+              trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
+              thumbColor={enabled ? Colors.textPrimary : Colors.switchThumbOff}
+              ios_backgroundColor={Colors.glassStrong}
             />
           </View>
 
@@ -333,9 +334,9 @@ export default function MedsBucketScreen() {
                 <Switch
                   value={medsConfig?.notificationsEnabled ?? false}
                   onValueChange={(value) => updateBucket('meds', { notificationsEnabled: value })}
-                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
-                  thumbColor={(medsConfig?.notificationsEnabled ?? false) ? '#FFFFFF' : '#F4F3F4'}
-                  ios_backgroundColor="rgba(255,255,255,0.2)"
+                  trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
+                  thumbColor={(medsConfig?.notificationsEnabled ?? false) ? Colors.textPrimary : Colors.switchThumbOff}
+                  ios_backgroundColor={Colors.glassStrong}
                 />
               </View>
             </>
@@ -399,7 +400,7 @@ const styles = StyleSheet.create({
   backButton: {
     width: 44,
     height: 44,
-    backgroundColor: '#0d332e',
+    backgroundColor: Colors.backgroundElevated,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 12,
@@ -446,7 +447,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     letterSpacing: 1,
     marginBottom: Spacing.md,
     marginTop: Spacing.xl,
@@ -457,9 +458,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -484,15 +485,15 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   priorityOption: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
   },
   priorityOptionSelected: {
     borderColor: Colors.accent,
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+    backgroundColor: Colors.sageFaint,
   },
   priorityLabel: {
     fontSize: 15,
@@ -524,9 +525,9 @@ const styles = StyleSheet.create({
 
   // Medication Item
   medItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.md,
     overflow: 'hidden',
@@ -595,7 +596,7 @@ const styles = StyleSheet.create({
   medItemActions: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: Colors.border,
   },
   medActionButton: {
     flex: 1,
@@ -604,7 +605,7 @@ const styles = StyleSheet.create({
   },
   medActionDivider: {
     width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: Colors.border,
   },
   medActionText: {
     fontSize: 14,
@@ -612,7 +613,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   medActionTextDanger: {
-    color: '#EF4444',
+    color: Colors.red,
   },
 
   // Empty State
@@ -653,7 +654,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.3)',
+    borderColor: Colors.sageGlow,
     borderRadius: BorderRadius.md,
     borderStyle: 'dashed',
   },

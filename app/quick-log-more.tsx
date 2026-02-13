@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { navigate } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
 import { CORE_OPTIONS, MORE_OPTIONS, QuickLogOption } from '../constants/quickLogOptions';
 
@@ -20,7 +21,7 @@ export default function QuickLogMoreScreen() {
   const router = useRouter();
 
   const handleOptionPress = (option: QuickLogOption) => {
-    router.push(option.screen as any);
+    navigate(option.screen);
   };
 
   const handleBack = () => {

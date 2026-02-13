@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { saveNote } from '../utils/noteStorage';
+import { logError } from '../utils/devLog';
 
 export default function LogNoteScreen() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function LogNoteScreen() {
       Alert.alert('Success', 'Note saved successfully', [{ text: 'OK', onPress: () => router.back() }]);
     } catch (error) {
       Alert.alert('Error', 'Failed to save note');
-      console.error(error);
+      logError('LogNoteScreen.handleSave', error);
     } finally {
       setSaving(false);
     }
@@ -67,7 +68,7 @@ export default function LogNoteScreen() {
                 />
               </View>
 
-              <TouchableOpacity style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSave} disabled={saving} accessibilityLabel={saving ? 'Saving note' : 'Save note'} accessibilityRole="button" accessibilityState={{ disabled: saving }}>
+              <TouchableOpacity style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSave} disabled={saving} accessibilityLabel={saving ? 'Saving note' : 'Save note'} accessibilityHint="Saves the care observation note" accessibilityRole="button" accessibilityState={{ disabled: saving }}>
                 <Text style={styles.saveButtonText}>{saving ? 'Saving...' : 'Save Note'}</Text>
               </TouchableOpacity>
             </View>
@@ -96,5 +97,5 @@ const styles = StyleSheet.create({
   textArea: { minHeight: 200, paddingTop: 14 },
   saveButton: { backgroundColor: Colors.accent, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 12 },
   saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  saveButtonText: { color: Colors.textPrimary, fontSize: 15, fontWeight: '600' },
 });

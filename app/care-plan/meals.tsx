@@ -119,9 +119,9 @@ export default function MealsBucketScreen() {
             <Switch
               value={enabled}
               onValueChange={handleToggleEnabled}
-              trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
-              thumbColor={enabled ? '#FFFFFF' : '#F4F3F4'}
-              ios_backgroundColor="rgba(255,255,255,0.2)"
+              trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
+              thumbColor={enabled ? Colors.textPrimary : Colors.switchThumbOff}
+              ios_backgroundColor={Colors.glassStrong}
             />
           </View>
 
@@ -258,9 +258,9 @@ export default function MealsBucketScreen() {
                 <Switch
                   value={mealsConfig?.notificationsEnabled ?? false}
                   onValueChange={(value) => updateBucket('meals', { notificationsEnabled: value })}
-                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
-                  thumbColor={(mealsConfig?.notificationsEnabled ?? false) ? '#FFFFFF' : '#F4F3F4'}
-                  ios_backgroundColor="rgba(255,255,255,0.2)"
+                  trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
+                  thumbColor={(mealsConfig?.notificationsEnabled ?? false) ? Colors.textPrimary : Colors.switchThumbOff}
+                  ios_backgroundColor={Colors.glassStrong}
                 />
               </View>
             </>
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   backButton: {
     width: 44,
     height: 44,
-    backgroundColor: '#0d332e',
+    backgroundColor: Colors.backgroundElevated,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 12,
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     letterSpacing: 1,
     marginBottom: Spacing.md,
     marginTop: Spacing.xl,
@@ -357,9 +357,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -384,15 +384,15 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   priorityOption: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
   },
   priorityOptionSelected: {
     borderColor: Colors.accent,
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+    backgroundColor: Colors.sageFaint,
   },
   priorityLabel: {
     fontSize: 15,
@@ -415,16 +415,16 @@ const styles = StyleSheet.create({
   mealItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     gap: Spacing.md,
   },
   mealItemSelected: {
     borderColor: Colors.accent,
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+    backgroundColor: Colors.sageFaint,
   },
   mealEmoji: {
     fontSize: 24,
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: Colors.textPlaceholder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -464,16 +464,16 @@ const styles = StyleSheet.create({
   styleOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     gap: Spacing.md,
   },
   styleOptionSelected: {
     borderColor: Colors.accent,
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+    backgroundColor: Colors.sageFaint,
   },
   styleEmoji: {
     fontSize: 24,

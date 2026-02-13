@@ -11,6 +11,7 @@ import { hapticSuccess } from '../utils/hapticFeedback';
 import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage';
 import { parseCarePlanContext, getCarePlanBannerText, CarePlanNavigationContext } from '../utils/carePlanRouting';
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
+import { logError } from '../utils/devLog';
 
 export default function LogVitalsScreen() {
   const router = useRouter();
@@ -73,7 +74,7 @@ export default function LogVitalsScreen() {
       router.back();
     } catch (error) {
       Alert.alert('Error', 'Failed to log vitals');
-      console.error(error);
+      logError('LogVitalsScreen.handleSave', error);
       setSaving(false);
     }
   };
@@ -143,7 +144,7 @@ export default function LogVitalsScreen() {
                 </View>
               </View>
 
-              <TouchableOpacity style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSave} disabled={saving} accessibilityLabel={saving ? 'Saving vitals' : 'Log vitals'} accessibilityRole="button" accessibilityState={{ disabled: saving }}>
+              <TouchableOpacity style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSave} disabled={saving} accessibilityLabel={saving ? 'Saving vitals' : 'Log vitals'} accessibilityHint="Saves blood pressure, glucose, and weight readings" accessibilityRole="button" accessibilityState={{ disabled: saving }}>
                 <Text style={styles.saveButtonText}>{saving ? 'Saving...' : 'Log Vitals'}</Text>
               </TouchableOpacity>
             </View>
@@ -168,25 +169,25 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   carePlanBanner: {
-    backgroundColor: 'rgba(139, 92, 246, 0.08)',
-    borderColor: 'rgba(139, 92, 246, 0.2)',
+    backgroundColor: Colors.purpleFaint,
+    borderColor: Colors.purpleWash,
   },
   carePlanBannerLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: 'rgba(167, 139, 250, 0.9)',
+    color: Colors.violetBright,
     letterSpacing: 1,
     textAlign: 'center',
     marginBottom: 4,
   },
   contextText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
   progressText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     textAlign: 'center',
     marginTop: 4,
   },
@@ -208,5 +209,5 @@ const styles = StyleSheet.create({
   unit: { fontSize: 13, color: Colors.textMuted, minWidth: 50 },
   saveButton: { backgroundColor: Colors.accent, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 12 },
   saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  saveButtonText: { color: Colors.textPrimary, fontSize: 15, fontWeight: '600' },
 });

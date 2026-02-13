@@ -19,6 +19,7 @@ import { logMood } from '../utils/logEvents';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { parseCarePlanContext, getCarePlanBannerText } from '../utils/carePlanRouting';
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
+import { logError } from '../utils/devLog';
 
 const MOODS = [
   { id: 'great', emoji: '😊', label: 'Great' },
@@ -100,7 +101,7 @@ export default function LogMoodScreen() {
         router.back();
       }, 800);
     } catch (error) {
-      console.error('Error saving mood:', error);
+      logError('LogMoodScreen.handleMoodSelect', error);
       router.back();
     }
   };
@@ -150,6 +151,7 @@ export default function LogMoodScreen() {
                 activeOpacity={0.7}
                 disabled={showConfirmation}
                 accessibilityLabel={`${mood.label} mood`}
+                accessibilityHint="Logs this mood for the current check-in"
                 accessibilityRole="radio"
                 accessibilityState={{ selected: selectedMood === mood.id, disabled: showConfirmation }}
               >
@@ -218,9 +220,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   carePlanBanner: {
-    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    backgroundColor: Colors.purpleFaint,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.2)',
+    borderColor: Colors.purpleWash,
     borderRadius: 10,
     padding: 10,
     marginTop: 16,
@@ -228,14 +230,14 @@ const styles = StyleSheet.create({
   carePlanBannerLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: 'rgba(167, 139, 250, 0.9)',
+    color: Colors.violetBright,
     letterSpacing: 1,
     textAlign: 'center',
     marginBottom: 4,
   },
   carePlanBannerText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
   question: {
@@ -288,6 +290,6 @@ const styles = StyleSheet.create({
   confirmationText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#22c55e',
+    color: Colors.greenBright,
   },
 });

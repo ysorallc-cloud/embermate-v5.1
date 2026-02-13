@@ -49,14 +49,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 34,
     fontWeight: '300',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 8,
     letterSpacing: 0.5,
   },
   subtitle: {
     fontSize: 15,
     fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     letterSpacing: 0.3,
   },
   rightAction: {

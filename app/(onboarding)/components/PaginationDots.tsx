@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { Colors } from '../../../theme/theme-tokens';
 import Animated, {
   useAnimatedStyle,
   interpolate,
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
   dot: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.textPrimary,
   },
 });
 

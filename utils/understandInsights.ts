@@ -7,6 +7,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { detectCorrelations, DetectedPattern, hasSufficientData } from './correlationDetector';
 import { getAllInsights, InsightData } from './insightEngine';
+import { logError } from './devLog';
 
 import { getDailyTrackingLogs } from './dailyTrackingStorage';
 import { getAllBaselines } from './baselineStorage';
@@ -388,7 +389,7 @@ async function generatePositiveObservations(
     // Return top 3 positive observations
     return observations.slice(0, 3);
   } catch (error) {
-    console.error('Error generating positive observations:', error);
+    logError('understandInsights.generatePositiveObservations', error);
     return [{
       id: 'default-positive',
       text: 'Keep tracking to build a clearer picture.',
@@ -508,7 +509,7 @@ export async function dismissSuggestion(suggestionId: string): Promise<void> {
     dismissals[suggestionId] = true;
     await AsyncStorage.setItem(SUGGESTION_DISMISSALS_KEY, JSON.stringify(dismissals));
   } catch (error) {
-    console.error('Error dismissing suggestion:', error);
+    logError('understandInsights.dismissSuggestion', error);
   }
 }
 
@@ -596,7 +597,7 @@ async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanS
       carePlanItems: items,
     };
   } catch (error) {
-    console.error('Error getting Care Plan stats:', error);
+    logError('understandInsights.getCarePlanStatsForRange', error);
     return {
       totalLogs: 0,
       medicationLogs: 0,
@@ -817,7 +818,7 @@ export async function loadUnderstandPageData(timeRange: TimeRange): Promise<Unde
       showConfidenceExplanation: shouldShowConfidenceExplanation,
     };
   } catch (error) {
-    console.error('Error loading understand page data:', error);
+    logError('understandInsights.loadUnderstandPageData', error);
 
     // Return safe defaults
     return {
@@ -857,7 +858,7 @@ export async function dismissSampleData(): Promise<void> {
   try {
     await AsyncStorage.setItem(SAMPLE_DATA_DISMISSED_KEY, 'true');
   } catch (error) {
-    console.error('Error dismissing sample data:', error);
+    logError('understandInsights.dismissSampleData', error);
   }
 }
 
@@ -865,7 +866,7 @@ export async function resetSampleDataDismissal(): Promise<void> {
   try {
     await AsyncStorage.removeItem(SAMPLE_DATA_DISMISSED_KEY);
   } catch (error) {
-    console.error('Error resetting sample data dismissal:', error);
+    logError('understandInsights.resetSampleDataDismissal', error);
   }
 }
 
@@ -887,7 +888,7 @@ export async function markSampleDataSeen(): Promise<void> {
   try {
     await AsyncStorage.setItem(SAMPLE_DATA_SEEN_KEY, 'true');
   } catch (error) {
-    console.error('Error marking sample data seen:', error);
+    logError('understandInsights.markSampleDataSeen', error);
   }
 }
 
@@ -909,7 +910,7 @@ export async function markConfidenceExplained(): Promise<void> {
   try {
     await AsyncStorage.setItem(CONFIDENCE_EXPLAINED_KEY, 'true');
   } catch (error) {
-    console.error('Error marking confidence explained:', error);
+    logError('understandInsights.markConfidenceExplained', error);
   }
 }
 

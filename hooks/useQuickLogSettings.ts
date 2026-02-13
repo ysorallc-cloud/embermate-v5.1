@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { useState, useEffect } from 'react';
+import { logError } from '../utils/devLog';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MORE_OPTIONS, QuickLogOption } from '../constants/quickLogOptions';
 
@@ -39,7 +40,7 @@ export const useQuickLogSettings = (): UseQuickLogSettingsReturn => {
         setUserOptionIds(JSON.parse(saved));
       }
     } catch (error) {
-      console.error('Failed to load quick log settings:', error);
+      logError('useQuickLogSettings.loadSettings', error);
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +50,7 @@ export const useQuickLogSettings = (): UseQuickLogSettingsReturn => {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(userOptionIds));
     } catch (error) {
-      console.error('Failed to save quick log settings:', error);
+      logError('useQuickLogSettings.saveSettings', error);
     }
   };
 

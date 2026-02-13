@@ -8,6 +8,7 @@ import * as Linking from 'expo-linking';
 import * as Localization from 'expo-localization';
 import { Alert } from 'react-native';
 import { generateUniqueId } from './idGenerator';
+import { logError } from './devLog';
 
 export interface EmergencyContact {
   id: string;
@@ -37,7 +38,7 @@ export async function getEmergencyContacts(): Promise<EmergencyContact[]> {
       return a.name.localeCompare(b.name);
     });
   } catch (error) {
-    console.error('Error getting emergency contacts:', error);
+    logError('emergencyContacts.getEmergencyContacts', error);
     return [];
   }
 }
@@ -63,7 +64,7 @@ export async function saveEmergencyContact(
       JSON.stringify(contacts)
     );
   } catch (error) {
-    console.error('Error saving emergency contact:', error);
+    logError('emergencyContacts.saveEmergencyContact', error);
     throw error;
   }
 }
@@ -89,7 +90,7 @@ export async function updateEmergencyContact(
       JSON.stringify(contacts)
     );
   } catch (error) {
-    console.error('Error updating emergency contact:', error);
+    logError('emergencyContacts.updateEmergencyContact', error);
     throw error;
   }
 }
@@ -107,7 +108,7 @@ export async function deleteEmergencyContact(id: string): Promise<void> {
       JSON.stringify(filtered)
     );
   } catch (error) {
-    console.error('Error deleting emergency contact:', error);
+    logError('emergencyContacts.deleteEmergencyContact', error);
     throw error;
   }
 }
@@ -133,7 +134,7 @@ export async function makePhoneCall(phoneNumber: string): Promise<void> {
       );
     }
   } catch (error) {
-    console.error('Error making phone call:', error);
+    logError('emergencyContacts.makePhoneCall', error);
     Alert.alert(
       'Call Failed',
       'Unable to initiate call. Please dial manually.',
@@ -158,7 +159,7 @@ const EMERGENCY_NUMBERS: Record<string, string> = {
 /**
  * Get the emergency number for the user's region
  */
-function getEmergencyNumber(): string {
+export function getEmergencyNumber(): string {
   try {
     const regionCode = Localization.getLocales()?.[0]?.regionCode ?? '';
     return EMERGENCY_NUMBERS[regionCode] || EMERGENCY_NUMBERS.DEFAULT;

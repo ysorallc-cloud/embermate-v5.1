@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { Colors } from '../theme/theme-tokens';
 const AFFIRMATIONS = [
   { emoji: '🌟', text: 'You are doing an incredible job, even on the hard days.' },
   { emoji: '💪', text: 'Your strength and resilience make a profound difference.' },
@@ -192,11 +193,11 @@ export default function CoffeeMoment() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient colors={['#0D1F1C', '#0A1412']} style={styles.gradient}>
+      <LinearGradient colors={[Colors.backgroundDeep, '#0A1412']} style={styles.gradient}>
         <View style={styles.header}>
           <Text style={styles.title}>Coffee Moment</Text>
           <TouchableOpacity onPress={() => router.back()} style={styles.closeButton} accessibilityLabel="Close Coffee Moment" accessibilityRole="button">
-            <Ionicons name="close" size={28} color="rgba(255,255,255,0.95)" />
+            <Ionicons name="close" size={28} color={Colors.textNearFull} />
           </TouchableOpacity>
         </View>
 
@@ -293,7 +294,7 @@ export default function CoffeeMoment() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>📚 Helpful Resources</Text>
                 <TouchableOpacity onPress={() => setShowResourcesModal(false)} accessibilityLabel="Close resources" accessibilityRole="button">
-                  <Ionicons name="close" size={28} color="rgba(255,255,255,0.95)" />
+                  <Ionicons name="close" size={28} color={Colors.textNearFull} />
                 </TouchableOpacity>
               </View>
 
@@ -319,7 +320,7 @@ export default function CoffeeMoment() {
                         <Ionicons name={resource.icon as any} size={20} color="rgba(79, 209, 197, 0.9)" />
                       </View>
                       <Text style={styles.resourceTitle}>{resource.title}</Text>
-                      <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />
+                      <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -340,7 +341,7 @@ export default function CoffeeMoment() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>💬 Communication Templates</Text>
                 <TouchableOpacity onPress={() => setShowTemplatesModal(false)} accessibilityLabel="Close templates" accessibilityRole="button">
-                  <Ionicons name="close" size={28} color="rgba(255,255,255,0.95)" />
+                  <Ionicons name="close" size={28} color={Colors.textNearFull} />
                 </TouchableOpacity>
               </View>
 
@@ -380,7 +381,7 @@ export default function CoffeeMoment() {
                       <Ionicons
                         name={expandedTemplate === template.id ? "chevron-up" : "chevron-down"}
                         size={20}
-                        color="rgba(255,255,255,0.6)"
+                        color={Colors.textTertiary}
                       />
                     </TouchableOpacity>
 
@@ -407,7 +408,7 @@ export default function CoffeeMoment() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0D1F1C'
+    backgroundColor: Colors.backgroundDeep
   },
   gradient: {
     flex: 1
@@ -422,13 +423,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: Platform.OS === 'web' ? 36 : 28,
     fontWeight: '300',
-    color: 'rgba(255,255,255,0.95)'
+    color: Colors.textNearFull
   },
   closeButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -488,12 +489,12 @@ const styles = StyleSheet.create({
   orbReadyText: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.95)',
+    color: Colors.textNearFull,
     marginBottom: 4,
   },
   orbSubtext: {
     fontSize: 10,
-    color: 'rgba(255,255,255,0.7)',
+    color: Colors.textSecondary,
   },
   orbTimerText: {
     fontSize: 52,
@@ -584,7 +585,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#0D1F1C',
+    backgroundColor: Colors.backgroundDeep,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 20,
@@ -604,7 +605,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.95)',
+    color: Colors.textNearFull,
   },
   modalScroll: {
     paddingHorizontal: 20,
@@ -612,7 +613,7 @@ const styles = StyleSheet.create({
   },
   modalSubtitle: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
+    color: Colors.textSecondary,
     marginBottom: 16,
     lineHeight: 18,
   },
@@ -672,7 +673,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.75)',
   },
   templateToggleTextActive: {
-    color: 'rgba(255,255,255,0.95)',
+    color: Colors.textNearFull,
   },
   templatePhrases: {
     marginTop: 8,

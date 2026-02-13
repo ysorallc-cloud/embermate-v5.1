@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { markMedicationTaken } from './medicationStorage';
 import { hapticSuccess } from './hapticFeedback';
+import { devLog, logError } from './devLog';
 import { logActivity, getCurrentUser } from './collaborativeCare';
 
 /**
@@ -22,13 +23,13 @@ export function useNotificationHandler() {
   useEffect(() => {
     // Handler for notifications received while app is foregrounded
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      if (__DEV__) console.log('Notification received:', notification.request.identifier);
+      devLog('Notification received:', notification.request.identifier);
       // Optionally show an in-app banner or update badge
     });
 
     // Handler for notification taps and quick actions
     responseListener.current = Notifications.addNotificationResponseReceivedListener(async (response) => {
-      if (__DEV__) console.log('Notification action:', response.actionIdentifier);
+      devLog('Notification action:', response.actionIdentifier);
       
       const data = response.notification.request.content.data;
       const actionId = response.actionIdentifier;
@@ -91,7 +92,7 @@ async function handleMarkTaken(data: any): Promise<void> {
   try {
     const medicationId = data.medicationId;
     if (!medicationId) {
-      console.error('No medication ID in notification data');
+      logError('useNotificationHandler.handleMarkTaken', 'No medication ID in notification data');
       return;
     }
 
@@ -112,7 +113,7 @@ async function handleMarkTaken(data: any): Promise<void> {
       },
     });
     
-    if (__DEV__) console.log(`Marked medication ${medicationId} as taken via quick action`);
+    devLog(`Marked medication ${medicationId} as taken via quick action`);
 
     // Show a local notification to confirm
     await Notifications.scheduleNotificationAsync({
@@ -124,7 +125,7 @@ async function handleMarkTaken(data: any): Promise<void> {
       trigger: null, // Immediate
     });
   } catch (error) {
-    console.error('Error marking medication taken:', error);
+    logError('useNotificationHandler.handleMarkTaken', error);
   }
 }
 
@@ -148,7 +149,7 @@ async function handleSnooze(data: any): Promise<void> {
       },
     });
 
-    if (__DEV__) console.log('Snoozed medication reminder for 15 minutes');
+    devLog('Snoozed medication reminder for 15 minutes');
 
     // Show confirmation
     await Notifications.scheduleNotificationAsync({
@@ -160,7 +161,7 @@ async function handleSnooze(data: any): Promise<void> {
       trigger: null,
     });
   } catch (error) {
-    console.error('Error snoozing notification:', error);
+    logError('useNotificationHandler.handleSnooze', error);
   }
 }
 
@@ -184,8 +185,8 @@ async function handleSnoozeAppointment(data: any): Promise<void> {
       },
     });
 
-    if (__DEV__) console.log('Snoozed appointment reminder for 30 minutes');
+    devLog('Snoozed appointment reminder for 30 minutes');
   } catch (error) {
-    console.error('Error snoozing appointment:', error);
+    logError('useNotificationHandler.handleSnoozeAppointment', error);
   }
 }

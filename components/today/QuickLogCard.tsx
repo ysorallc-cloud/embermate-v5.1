@@ -6,6 +6,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
 import { CORE_OPTIONS } from '../../constants/quickLogOptions';
 
@@ -13,11 +14,11 @@ export const QuickLogCard: React.FC = () => {
   const router = useRouter();
 
   const handleOptionPress = (screen: string) => {
-    router.push(screen as any);
+    navigate(screen);
   };
 
   const handleMorePress = () => {
-    router.push('/quick-log-more' as any);
+    navigate('/quick-log-more');
   };
 
   return (

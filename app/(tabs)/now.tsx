@@ -12,6 +12,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../theme/theme-tokens';
 import { getMedications, Medication } from '../../utils/medicationStorage';
@@ -81,6 +82,7 @@ import {
   NoCarePlanBanner,
   DataIntegrityBanner,
 } from '../../components/common/ConsistencyBanner';
+import { logError } from '../../utils/devLog';
 
 export default function NowScreen() {
   const router = useRouter();
@@ -274,7 +276,7 @@ export default function NowScreen() {
   // Handler for timeline item tap
   const handleTimelineItemPress = useCallback((instance: any) => {
     if (instance.itemType === 'medication') {
-      router.push({
+      navigate({
         pathname: '/log-medication-plan-item',
         params: {
           medicationId: instance.carePlanItemId,
@@ -284,11 +286,11 @@ export default function NowScreen() {
           itemDosage: instance.itemDosage || '',
           itemInstructions: instance.instructions || '',
         },
-      } as any);
+      });
       return;
     }
     const route = getRouteForInstanceType(instance.itemType);
-    router.push(route as any);
+    navigate(route);
   }, [router]);
 
   // ============================================================================
@@ -351,7 +353,7 @@ export default function NowScreen() {
       // Load baselines
       await prompts.loadBaselines();
     } catch (error) {
-      console.error('Error loading Now data:', error);
+      logError('NowScreen.loadData', error);
     }
   };
 
@@ -482,7 +484,7 @@ export default function NowScreen() {
           {integrityWarnings && integrityWarnings.length > 0 && (
             <DataIntegrityBanner
               issueCount={integrityWarnings.length}
-              onFix={() => router.push('/care-plan' as any)}
+              onFix={() => navigate('/care-plan')}
             />
           )}
 
@@ -493,7 +495,7 @@ export default function NowScreen() {
 
           {/* Empty State: No Care Plan */}
           {!hasAnyCarePlan && !prompts.showOnboarding && !carePlanConfigLoading && (
-            <NoCarePlanBanner onSetup={() => router.push('/care-plan' as any)} />
+            <NoCarePlanBanner onSetup={() => navigate('/care-plan')} />
           )}
 
           {/* 2. CARE PLAN PROGRESS */}
@@ -607,11 +609,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: Colors.glass,
   },
   baselineStatusMatch: {
     borderLeftWidth: 3,
-    borderLeftColor: 'rgba(16, 185, 129, 0.4)',
+    borderLeftColor: Colors.greenGlow,
   },
   baselineStatusBelow: {
     borderLeftWidth: 3,
@@ -619,16 +621,16 @@ const styles = StyleSheet.create({
   },
   baselineStatusMain: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.textBright,
     lineHeight: 18,
   },
   baselineStatusSub: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     marginTop: 2,
   },
   emptyTimeline: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: Colors.glass,
     borderRadius: 8,
     padding: 20,
     alignItems: 'center',
@@ -636,7 +638,7 @@ const styles = StyleSheet.create({
   },
   emptyTimelineText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
   emptyTimelineSubtext: {
     fontSize: 12,
@@ -657,6 +659,6 @@ const styles = StyleSheet.create({
   allDoneText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#10B981',
+    color: Colors.green,
   },
 });

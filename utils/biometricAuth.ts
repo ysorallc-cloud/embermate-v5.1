@@ -6,6 +6,7 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setKeychainItem, getKeychainItem, removeKeychainItem } from './secureStorage';
+import { logError } from './devLog';
 
 const BIOMETRIC_ENABLED_KEY = '@embermate_biometric_enabled';
 const BIOMETRIC_ENROLLED_KEY = '@embermate_biometric_enrolled';
@@ -48,7 +49,7 @@ export async function checkBiometricCapabilities(): Promise<BiometricCapabilitie
       biometricName,
     };
   } catch (error) {
-    console.error('Error checking biometric capabilities:', error);
+    logError('biometricAuth.checkBiometricCapabilities', error);
     return {
       isAvailable: false,
       hasHardware: false,
@@ -88,7 +89,7 @@ export async function authenticateWithBiometrics(
 
     return false;
   } catch (error) {
-    console.error('Biometric authentication error:', error);
+    logError('biometricAuth.authenticateWithBiometrics', error);
     return false;
   }
 }
@@ -117,7 +118,7 @@ export async function enableBiometricAuth(): Promise<boolean> {
 
     return false;
   } catch (error) {
-    console.error('Error enabling biometric auth:', error);
+    logError('biometricAuth.enableBiometricAuth', error);
     return false;
   }
 }
@@ -130,7 +131,7 @@ export async function disableBiometricAuth(): Promise<boolean> {
     await AsyncStorage.setItem(BIOMETRIC_ENABLED_KEY, 'false');
     return true;
   } catch (error) {
-    console.error('Error disabling biometric auth:', error);
+    logError('biometricAuth.disableBiometricAuth', error);
     return false;
   }
 }
@@ -143,7 +144,7 @@ export async function isBiometricEnabled(): Promise<boolean> {
     const enabled = await AsyncStorage.getItem(BIOMETRIC_ENABLED_KEY);
     return enabled === 'true';
   } catch (error) {
-    console.error('Error checking biometric enabled status:', error);
+    logError('biometricAuth.isBiometricEnabled', error);
     return false;
   }
 }
@@ -182,7 +183,7 @@ export async function setupPIN(pin: string): Promise<boolean> {
     await setKeychainItem(PIN_HASH_KEY, hash);
     return true;
   } catch (error) {
-    console.error('Error setting up PIN:', error);
+    logError('biometricAuth.setupPIN', error);
     return false;
   }
 }
@@ -230,7 +231,7 @@ export async function verifyPIN(pin: string): Promise<boolean> {
 
     return false;
   } catch (error) {
-    console.error('Error verifying PIN:', error);
+    logError('biometricAuth.verifyPIN', error);
     return false;
   }
 }
@@ -243,7 +244,7 @@ export async function hasPIN(): Promise<boolean> {
     const pinHash = await getKeychainItem(PIN_HASH_KEY);
     return pinHash !== null;
   } catch (error) {
-    console.error('Error checking PIN status:', error);
+    logError('biometricAuth.hasPIN', error);
     return false;
   }
 }
@@ -261,7 +262,7 @@ async function createSession(): Promise<void> {
 
     await setKeychainItem(SESSION_TOKEN_KEY, token);
   } catch (error) {
-    console.error('Error creating session:', error);
+    logError('biometricAuth.createSession', error);
   }
 }
 
@@ -273,7 +274,7 @@ export async function hasActiveSession(): Promise<boolean> {
     const token = await getKeychainItem(SESSION_TOKEN_KEY);
     return token !== null;
   } catch (error) {
-    console.error('Error checking session:', error);
+    logError('biometricAuth.hasActiveSession', error);
     return false;
   }
 }
@@ -285,7 +286,7 @@ export async function clearSession(): Promise<void> {
   try {
     await removeKeychainItem(SESSION_TOKEN_KEY);
   } catch (error) {
-    console.error('Error clearing session:', error);
+    logError('biometricAuth.clearSession', error);
   }
 }
 
@@ -297,7 +298,7 @@ export async function updateLastActivity(): Promise<void> {
     const timestamp = new Date().toISOString();
     await AsyncStorage.setItem(LAST_ACTIVITY_KEY, timestamp);
   } catch (error) {
-    console.error('Error updating last activity:', error);
+    logError('biometricAuth.updateLastActivity', error);
   }
 }
 
@@ -316,7 +317,7 @@ export async function getTimeSinceLastActivity(): Promise<number> {
     const now = new Date().getTime();
     return (now - lastTime) / 1000; // Convert to seconds
   } catch (error) {
-    console.error('Error getting time since last activity:', error);
+    logError('biometricAuth.getTimeSinceLastActivity', error);
     return Infinity;
   }
 }
@@ -329,7 +330,7 @@ export async function shouldLockSession(timeoutSeconds: number = 300): Promise<b
     const timeSinceActivity = await getTimeSinceLastActivity();
     return timeSinceActivity > timeoutSeconds;
   } catch (error) {
-    console.error('Error checking lock status:', error);
+    logError('biometricAuth.shouldLockSession', error);
     return true; // Lock on error for security
   }
 }
@@ -360,7 +361,7 @@ export async function requireAuthentication(): Promise<boolean> {
     // PIN authentication handled by UI
     return false;
   } catch (error) {
-    console.error('Error requiring authentication:', error);
+    logError('biometricAuth.requireAuthentication', error);
     return false;
   }
 }

@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: Colors.textPlaceholder,
     marginRight: Spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -256,14 +256,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   acceptButtonDisabled: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.glassActive,
   },
   acceptButtonText: {
     ...Typography.label,
     color: Colors.textPrimary,
   },
   acceptButtonTextDisabled: {
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: Colors.textPlaceholder,
   },
 });
 

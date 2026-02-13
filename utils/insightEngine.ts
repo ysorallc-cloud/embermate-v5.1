@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMedications, getMedicationLogs, Medication, MedicationLog } from './medicationStorage';
 import { getVitalsInRange, VitalReading } from './vitalsStorage';
 import { getDailyTrackingLogs, DailyTrackingLog } from './dailyTrackingStorage';
+import { logError } from './devLog';
 
 // ============================================================================
 // TYPES
@@ -135,14 +136,14 @@ export async function analyzeMedicationAdherence(): Promise<InsightData | null> 
           label: 'Add to Doctor Visit Notes',
           icon: '👨‍⚕️',
           type: 'navigate',
-          destination: '/visit-prep',
+          destination: '/appointments',
           data: { topic: 'medication-schedule' },
         },
       ],
       timestamp: new Date(),
     };
   } catch (error) {
-    console.error('Error analyzing medication adherence:', error);
+    logError('insightEngine.analyzeMedicationAdherence', error);
     return null;
   }
 }
@@ -226,14 +227,14 @@ export async function analyzeBloodPressureTrends(): Promise<InsightData | null> 
           label: 'Prepare for Doctor Visit',
           icon: '📋',
           type: 'navigate',
-          destination: '/visit-prep',
+          destination: '/appointments',
           data: { topic: 'blood-pressure' },
         },
       ],
       timestamp: new Date(),
     };
   } catch (error) {
-    console.error('Error analyzing blood pressure trends:', error);
+    logError('insightEngine.analyzeBloodPressureTrends', error);
     return null;
   }
 }
@@ -305,14 +306,14 @@ export async function analyzeMoodPatterns(): Promise<InsightData | null> {
           label: 'Add to Doctor Visit Prep',
           icon: '👨‍⚕️',
           type: 'navigate',
-          destination: '/visit-prep',
+          destination: '/appointments',
           data: { topic: 'mood' },
         },
       ],
       timestamp: new Date(),
     };
   } catch (error) {
-    console.error('Error analyzing mood patterns:', error);
+    logError('insightEngine.analyzeMoodPatterns', error);
     return null;
   }
 }
@@ -388,7 +389,7 @@ export async function analyzeSleepMoodCorrelation(): Promise<InsightData | null>
       timestamp: new Date(),
     };
   } catch (error) {
-    console.error('Error analyzing sleep-mood correlation:', error);
+    logError('insightEngine.analyzeSleepMoodCorrelation', error);
     return null;
   }
 }
@@ -456,7 +457,7 @@ export async function analyzeHydration(): Promise<InsightData | null> {
       timestamp: new Date(),
     };
   } catch (error) {
-    console.error('Error analyzing hydration:', error);
+    logError('insightEngine.analyzeHydration', error);
     return null;
   }
 }
@@ -505,7 +506,7 @@ export async function dismissInsight(insightId: string): Promise<void> {
 
     await AsyncStorage.setItem(DISMISSED_INSIGHTS_KEY, JSON.stringify(dismissedList));
   } catch (error) {
-    console.error('Error dismissing insight:', error);
+    logError('insightEngine.dismissInsight', error);
   }
 }
 
@@ -526,7 +527,7 @@ export async function wasRecentlyDismissed(insightId: string): Promise<boolean> 
     const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
     return dismissedTime > sevenDaysAgo;
   } catch (error) {
-    console.error('Error checking dismissed insight:', error);
+    logError('insightEngine.wasRecentlyDismissed', error);
     return false;
   }
 }
@@ -538,6 +539,6 @@ export async function clearDismissedInsights(): Promise<void> {
   try {
     await AsyncStorage.removeItem(DISMISSED_INSIGHTS_KEY);
   } catch (error) {
-    console.error('Error clearing dismissed insights:', error);
+    logError('insightEngine.clearDismissedInsights', error);
   }
 }

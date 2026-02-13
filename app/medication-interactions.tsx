@@ -23,6 +23,7 @@ import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { checkMedicationInteractions } from '../utils/medicationStorage';
 import { DrugInteraction } from '../utils/drugInteractions';
 import InteractionWarnings from '../components/InteractionWarnings';
+import { logError } from '../utils/devLog';
 
 export default function InteractionsScreen() {
   const router = useRouter();
@@ -41,7 +42,7 @@ export default function InteractionsScreen() {
       const found = await checkMedicationInteractions();
       setInteractions(found);
     } catch (error) {
-      console.error('Error loading interactions:', error);
+      logError('InteractionsScreen.loadInteractions', error);
     } finally {
       setLoading(false);
     }
@@ -97,17 +98,17 @@ export default function InteractionsScreen() {
 
           {/* Summary Cards */}
           <View style={styles.summaryCards}>
-            <View style={[styles.summaryCard, { borderLeftColor: '#EF4444' }]}>
+            <View style={[styles.summaryCard, { borderLeftColor: Colors.red }]}>
               <Text style={styles.summaryValue}>{highRisk.length}</Text>
               <Text style={styles.summaryLabel}>High Risk</Text>
             </View>
 
-            <View style={[styles.summaryCard, { borderLeftColor: '#F59E0B' }]}>
+            <View style={[styles.summaryCard, { borderLeftColor: Colors.amber }]}>
               <Text style={styles.summaryValue}>{moderateRisk.length}</Text>
               <Text style={styles.summaryLabel}>Moderate</Text>
             </View>
 
-            <View style={[styles.summaryCard, { borderLeftColor: '#EAB308' }]}>
+            <View style={[styles.summaryCard, { borderLeftColor: Colors.gold }]}>
               <Text style={styles.summaryValue}>{lowRisk.length}</Text>
               <Text style={styles.summaryLabel}>Low Risk</Text>
             </View>

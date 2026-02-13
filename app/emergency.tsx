@@ -3,7 +3,7 @@
 // Quick access to care team contacts with Emergency Mode for 1-tap calling
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Linking, Alert, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,11 +12,18 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { getCareTeam, CareTeamMember } from '../utils/careTeamStorage';
+import { getEmergencyNumber } from '../utils/emergencyContacts';
+import { logError } from '../utils/devLog';
 
 export default function EmergencyScreen() {
   const router = useRouter();
   const [careTeam, setCareTeam] = useState<CareTeamMember[]>([]);
   const [emergencyMode, setEmergencyMode] = useState(false);
+  const [emergencyNumber, setEmergencyNumber] = useState('911');
+
+  useEffect(() => {
+    setEmergencyNumber(getEmergencyNumber());
+  }, []);
 
   useFocusEffect(useCallback(() => { loadData(); }, []));
 
@@ -25,7 +32,7 @@ export default function EmergencyScreen() {
       const team = await getCareTeam();
       setCareTeam(team);
     } catch (error) {
-      console.error('Error loading care team:', error);
+      logError('EmergencyScreen.loadData', error);
     }
   };
 
@@ -48,19 +55,19 @@ export default function EmergencyScreen() {
     );
   };
 
-  const handleCall911 = () => {
+  const handleCallEmergency = () => {
     // In emergency mode, call immediately
     if (emergencyMode) {
-      Linking.openURL('tel:911');
+      Linking.openURL(`tel:${emergencyNumber}`);
       return;
     }
 
     Alert.alert(
-      'Call 911?',
+      `Call ${emergencyNumber}?`,
       'This will dial emergency services.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Call 911', style: 'destructive', onPress: () => Linking.openURL('tel:911') },
+        { text: `Call ${emergencyNumber}`, style: 'destructive', onPress: () => Linking.openURL(`tel:${emergencyNumber}`) },
       ]
     );
   };
@@ -99,7 +106,7 @@ export default function EmergencyScreen() {
     if (!emergencyMode) {
       Alert.alert(
         'Enable Emergency Mode?',
-        'In Emergency Mode:\n\n• Tap any contact to call instantly (no confirmation)\n• 911 calls are immediate\n• Location sharing is quick access\n\nEnable for true emergencies only.',
+        `In Emergency Mode:\n\n• Tap any contact to call instantly (no confirmation)\n• ${emergencyNumber} calls are immediate\n• Location sharing is quick access\n\nEnable for true emergencies only.`,
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Enable', style: 'destructive', onPress: () => setEmergencyMode(true) },
@@ -161,17 +168,17 @@ export default function EmergencyScreen() {
             </View>
           )}
 
-          {/* 911 Button */}
+          {/* Emergency Call Button */}
           <TouchableOpacity
             style={[styles.emergencyButton, emergencyMode && styles.emergencyButtonActive]}
-            onPress={handleCall911}
+            onPress={handleCallEmergency}
             activeOpacity={0.8}
-            accessibilityLabel="Call 911 emergency services"
+            accessibilityLabel={`Call ${emergencyNumber} emergency services`}
             accessibilityRole="button"
           >
-            <Ionicons name="call" size={28} color="#FFF" />
+            <Ionicons name="call" size={28} color={Colors.textPrimary} />
             <View style={styles.emergencyButtonText}>
-              <Text style={styles.emergencyButtonTitle}>Call 911</Text>
+              <Text style={styles.emergencyButtonTitle}>Call {emergencyNumber}</Text>
               <Text style={styles.emergencyButtonSubtitle}>Emergency Services</Text>
             </View>
             {emergencyMode && (
@@ -318,7 +325,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: Colors.redMuted,
     borderWidth: 2,
     borderColor: Colors.error,
     borderRadius: BorderRadius.md,
@@ -334,7 +341,7 @@ const styles = StyleSheet.create({
     color: Colors.error,
   },
   emergencyModeActive: {
-    backgroundColor: 'rgba(239, 68, 68, 0.3)',
+    backgroundColor: Colors.redStrong,
     borderWidth: 2,
     borderColor: Colors.error,
     borderRadius: BorderRadius.md,
@@ -365,10 +372,10 @@ const styles = StyleSheet.create({
   exitEmergencyText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#fff',
+    color: Colors.textPrimary,
   },
 
-  // 911 Button
+  // Emergency Call Button
   emergencyButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -386,10 +393,10 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   emergencyButtonText: { flex: 1 },
-  emergencyButtonTitle: { fontSize: 20, fontWeight: '600', color: '#FFF' },
-  emergencyButtonSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
+  emergencyButtonTitle: { fontSize: 20, fontWeight: '600', color: Colors.textPrimary },
+  emergencyButtonSubtitle: { fontSize: 14, color: Colors.textBright },
   oneTapBadge: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: Colors.textPlaceholder,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
@@ -397,7 +404,7 @@ const styles = StyleSheet.create({
   oneTapBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#fff',
+    color: Colors.textPrimary,
   },
 
   // Quick Actions
@@ -408,9 +415,9 @@ const styles = StyleSheet.create({
   },
   quickActionButton: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: Colors.glass,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: Colors.border,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     alignItems: 'center',
@@ -434,7 +441,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: Colors.border,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     marginBottom: Spacing.sm,
@@ -475,6 +482,6 @@ const styles = StyleSheet.create({
   noConfirmText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#fff',
+    color: Colors.textPrimary,
   },
 });

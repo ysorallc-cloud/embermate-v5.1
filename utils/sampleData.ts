@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { devLog, logError } from './devLog';
 
 export interface SampleDataOptions {
   includeMeals?: boolean;
@@ -193,10 +194,10 @@ export const seedSampleData = async (options: SampleDataOptions = {}) => {
     // Mark that sample data has been seeded
     await AsyncStorage.setItem('sample_data_seeded', 'true');
 
-    if (__DEV__) console.log('Sample data seeded successfully');
+    devLog('Sample data seeded successfully');
     return true;
   } catch (error) {
-    console.error('Error seeding sample data:', error);
+    logError('sampleData.seedSampleData', error);
     return false;
   }
 };
@@ -208,10 +209,10 @@ export const clearSampleData = async () => {
     keysToRemove.push('sample_data_seeded');
 
     await AsyncStorage.multiRemove(keysToRemove);
-    if (__DEV__) console.log('Sample data cleared successfully');
+    devLog('Sample data cleared successfully');
     return true;
   } catch (error) {
-    console.error('Error clearing sample data:', error);
+    logError('sampleData.clearSampleData', error);
     return false;
   }
 };
@@ -221,7 +222,7 @@ export const hasSampleData = async (): Promise<boolean> => {
     const seeded = await AsyncStorage.getItem('sample_data_seeded');
     return seeded === 'true';
   } catch (error) {
-    console.error('Error checking sample data:', error);
+    logError('sampleData.hasSampleData', error);
     return false;
   }
 };
@@ -231,7 +232,7 @@ export const isOnboardingComplete = async (): Promise<boolean> => {
     const completed = await AsyncStorage.getItem('onboarding_completed');
     return completed === 'true';
   } catch (error) {
-    console.error('Error checking onboarding status:', error);
+    logError('sampleData.isOnboardingComplete', error);
     return false;
   }
 };

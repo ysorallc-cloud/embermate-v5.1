@@ -5,6 +5,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logError } from './devLog';
 
 export interface DailyTrackingLog {
   date: string; // ISO format YYYY-MM-DD
@@ -51,7 +52,7 @@ export async function saveDailyTracking(
     const updated = { ...existing, date, ...trackingData };
     await AsyncStorage.setItem(key, JSON.stringify(updated));
   } catch (error) {
-    console.error('Error saving daily tracking:', error);
+    logError('dailyTrackingStorage.saveDailyTracking', error);
     throw error;
   }
 }
@@ -65,7 +66,7 @@ export async function getDailyTracking(date: string): Promise<DailyTrackingLog |
     const data = await AsyncStorage.getItem(key);
     return data ? JSON.parse(data) : null;
   } catch (error) {
-    console.error('Error loading daily tracking:', error);
+    logError('dailyTrackingStorage.getDailyTracking', error);
     return null;
   }
 }
@@ -92,7 +93,7 @@ export async function getDailyTrackingLogs(
     
     return logs;
   } catch (error) {
-    console.error('Error loading daily tracking logs:', error);
+    logError('dailyTrackingStorage.getDailyTrackingLogs', error);
     return [];
   }
 }
@@ -105,7 +106,7 @@ export async function deleteDailyTracking(date: string): Promise<void> {
     const key = `${STORAGE_KEY_PREFIX}${date}`;
     await AsyncStorage.removeItem(key);
   } catch (error) {
-    console.error('Error deleting daily tracking:', error);
+    logError('dailyTrackingStorage.deleteDailyTracking', error);
     throw error;
   }
 }

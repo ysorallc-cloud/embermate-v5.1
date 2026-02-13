@@ -9,6 +9,7 @@ import { getMedicationLogs } from './medicationStorage';
 import { getSymptoms, SymptomLog } from './symptomStorage';
 import { getDailyTrackingLogs, DailyTrackingLog } from './dailyTrackingStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logError } from './devLog';
 
 export interface CorrelationDataPoint {
   date: string;
@@ -65,7 +66,7 @@ export async function hasSufficientData(): Promise<boolean> {
     
     return daysWithData.length >= 14;
   } catch (error) {
-    console.error('Error checking data sufficiency:', error);
+    logError('correlationDetector.hasSufficientData', error);
     return false;
   }
 }
@@ -158,7 +159,7 @@ async function loadCorrelationData(
     
     return Array.from(dataMap.values());
   } catch (error) {
-    console.error('Error loading correlation data:', error);
+    logError('correlationDetector.loadCorrelationData', error);
     return [];
   }
 }
@@ -200,7 +201,7 @@ function calculateCorrelation(
     
     return { coefficient, dataPoints: pairs.length };
   } catch (error) {
-    console.error(`Error calculating correlation for ${var1} vs ${var2}:`, error);
+    logError('correlationDetector.calculateCorrelation', error);
     return null;
   }
 }
@@ -313,7 +314,7 @@ export async function detectCorrelations(): Promise<DetectedPattern[]> {
     
     return patterns;
   } catch (error) {
-    console.error('Error detecting correlations:', error);
+    logError('correlationDetector.detectCorrelations', error);
     return [];
   }
 }
@@ -350,7 +351,7 @@ async function cacheCorrelations(patterns: DetectedPattern[]): Promise<void> {
     };
     await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(cache));
   } catch (error) {
-    console.error('Error caching correlations:', error);
+    logError('correlationDetector.cacheCorrelations', error);
   }
 }
 
@@ -361,6 +362,6 @@ export async function clearCorrelationCache(): Promise<void> {
   try {
     await AsyncStorage.removeItem(CACHE_KEY);
   } catch (error) {
-    console.error('Error clearing correlation cache:', error);
+    logError('correlationDetector.clearCorrelationCache', error);
   }
 }

@@ -1,6 +1,8 @@
 // utils/vitalThresholds.ts
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Colors } from '../theme/theme-tokens';
+import { logError } from './devLog';
 
 const CUSTOM_THRESHOLDS_KEY = '@embermate_custom_vital_thresholds';
 
@@ -72,7 +74,7 @@ export const loadCustomThresholds = async () => {
     }
     cacheLoaded = true;
   } catch (error) {
-    console.error('Error loading custom thresholds:', error);
+    logError('vitalThresholds.loadCustomThresholds', error);
     cachedCustomThresholds = null;
     cacheLoaded = true;
   }
@@ -107,15 +109,15 @@ export const getVitalStatus = (type: VitalType, value: number) => {
   const threshold = getEffectiveThreshold(type);
 
   if (value <= threshold.criticalLow || value >= threshold.criticalHigh) {
-    return { status: 'critical', label: value < threshold.low ? '↓ Critical' : '↑ Critical', color: '#EF4444' };
+    return { status: 'critical', label: value < threshold.low ? '↓ Critical' : '↑ Critical', color: Colors.red };
   }
   if (value < threshold.low) {
-    return { status: 'low', label: '↓ Low', color: '#F59E0B' };
+    return { status: 'low', label: '↓ Low', color: Colors.amber };
   }
   if (value > threshold.high) {
-    return { status: 'high', label: '↑ High', color: '#F59E0B' };
+    return { status: 'high', label: '↑ High', color: Colors.amber };
   }
-  return { status: 'normal', label: '✓ Normal', color: '#10B981' };
+  return { status: 'normal', label: '✓ Normal', color: Colors.green };
 };
 
 export const generateVitalAlert = (type: VitalType, value: number): string | null => {

@@ -51,21 +51,21 @@ export const SubCardRoleColors: Record<ComponentRole, {
     background: Colors.glass,
     border: Colors.glassBorder,
     accent: Colors.accent,
-    labelBackground: 'rgba(20, 184, 166, 0.15)',
+    labelBackground: Colors.accentHint,
     labelColor: Colors.accent,
   },
   logging: {
     background: Colors.glass,
     border: Colors.glassBorder,
     accent: Colors.green,
-    labelBackground: 'rgba(16, 185, 129, 0.15)',
+    labelBackground: Colors.greenHint,
     labelColor: Colors.green,
   },
   configuration: {
     background: Colors.glass,
     border: Colors.glassBorder,
     accent: Colors.purple,
-    labelBackground: 'rgba(139, 92, 246, 0.15)',
+    labelBackground: Colors.purpleHint,
     labelColor: Colors.purple,
   },
 };
@@ -77,32 +77,32 @@ export const SubCardStatusColors = {
   pending: {
     background: Colors.glass,
     border: Colors.glassBorder,
-    iconBackground: 'rgba(255, 255, 255, 0.05)',
+    iconBackground: Colors.surfaceElevated,
   },
   active: {
     background: Colors.goldLight,
     border: Colors.goldBorder,
-    iconBackground: 'rgba(255, 255, 255, 0.1)',
+    iconBackground: Colors.glassActive,
   },
   completed: {
     background: Colors.greenLight,
     border: Colors.greenBorder,
-    iconBackground: 'rgba(16, 185, 129, 0.2)',
+    iconBackground: Colors.greenMuted,
   },
   skipped: {
     background: Colors.glass,
     border: Colors.glassBorder,
-    iconBackground: 'rgba(255, 255, 255, 0.05)',
+    iconBackground: Colors.surfaceElevated,
   },
   overdue: {
     background: Colors.amberLight,
     border: Colors.amberBorder,
-    iconBackground: 'rgba(245, 158, 11, 0.2)',
+    iconBackground: Colors.amberMuted,
   },
   missed: {
     background: Colors.redLight,
     border: Colors.redBorder,
-    iconBackground: 'rgba(239, 68, 68, 0.2)',
+    iconBackground: Colors.redMuted,
   },
 } as const;
 

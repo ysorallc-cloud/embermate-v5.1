@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
 
 interface NudgePromptProps {
@@ -19,7 +20,7 @@ export const NudgePrompt: React.FC<NudgePromptProps> = ({
   return (
     <TouchableOpacity
       style={styles.container}
-      onPress={() => router.push(route as any)}
+      onPress={() => navigate(route)}
       activeOpacity={0.7}
       accessibilityLabel={`${category} nudge: ${message}`}
       accessibilityRole="link"
@@ -32,7 +33,7 @@ export const NudgePrompt: React.FC<NudgePromptProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(94, 234, 212, 0.1)',
+    backgroundColor: Colors.sageLight,
     borderRadius: 10,
     padding: 14,
     marginBottom: 16,

@@ -5,6 +5,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
+import { logError } from './devLog';
 
 export interface Photo {
   id: string;
@@ -33,7 +34,7 @@ async function ensurePhotosDirectory(): Promise<void> {
       await FileSystem.makeDirectoryAsync(PHOTOS_DIR, { intermediates: true });
     }
   } catch (error) {
-    console.error('Error creating photos directory:', error);
+    logError('photoStorage.ensurePhotosDirectory', error);
   }
 }
 
@@ -50,7 +51,7 @@ export async function getPhotos(): Promise<Photo[]> {
     if (!data) return [];
     return JSON.parse(data);
   } catch (error) {
-    console.error('Error getting photos:', error);
+    logError('photoStorage.getPhotos', error);
     return [];
   }
 }
@@ -63,7 +64,7 @@ export async function getPhotosByType(type: Photo['type']): Promise<Photo[]> {
     const photos = await getPhotos();
     return photos.filter(p => p.type === type);
   } catch (error) {
-    console.error('Error getting photos by type:', error);
+    logError('photoStorage.getPhotosByType', error);
     return [];
   }
 }
@@ -76,7 +77,7 @@ export async function getPhotosForEntity(relatedId: string): Promise<Photo[]> {
     const photos = await getPhotos();
     return photos.filter(p => p.relatedId === relatedId);
   } catch (error) {
-    console.error('Error getting photos for entity:', error);
+    logError('photoStorage.getPhotosForEntity', error);
     return [];
   }
 }
@@ -125,7 +126,7 @@ export async function savePhoto(
     
     return photo;
   } catch (error) {
-    console.error('Error saving photo:', error);
+    logError('photoStorage.savePhoto', error);
     throw error;
   }
 }
@@ -148,7 +149,7 @@ export async function updatePhoto(
     
     return photos[index];
   } catch (error) {
-    console.error('Error updating photo:', error);
+    logError('photoStorage.updatePhoto', error);
     return null;
   }
 }
@@ -176,7 +177,7 @@ export async function deletePhoto(id: string): Promise<boolean> {
     
     return true;
   } catch (error) {
-    console.error('Error deleting photo:', error);
+    logError('photoStorage.deletePhoto', error);
     return false;
   }
 }
@@ -196,7 +197,7 @@ export async function deletePhotosForEntity(relatedId: string): Promise<number> 
     
     return deletedCount;
   } catch (error) {
-    console.error('Error deleting photos for entity:', error);
+    logError('photoStorage.deletePhotosForEntity', error);
     return 0;
   }
 }
@@ -232,7 +233,7 @@ export async function getPhotoStats(): Promise<{
       sizeFormatted: `${sizeMB} MB`,
     };
   } catch (error) {
-    console.error('Error getting photo stats:', error);
+    logError('photoStorage.getPhotoStats', error);
     return {
       count: 0,
       sizeBytes: 0,
@@ -262,7 +263,7 @@ export async function clearAllPhotos(): Promise<boolean> {
     
     return true;
   } catch (error) {
-    console.error('Error clearing all photos:', error);
+    logError('photoStorage.clearAllPhotos', error);
     return false;
   }
 }

@@ -28,6 +28,7 @@ import {
   getPhotoStats,
   Photo,
 } from '../utils/photoStorage';
+import { logError } from '../utils/devLog';
 
 type PhotoFilter = 'all' | 'medication' | 'wound' | 'document' | 'other';
 
@@ -64,7 +65,7 @@ export default function PhotosScreen() {
       const photoStats = await getPhotoStats();
       setStats(photoStats);
     } catch (error) {
-      console.error('Error loading photos:', error);
+      logError('PhotosScreen.loadPhotos', error);
     }
   };
 

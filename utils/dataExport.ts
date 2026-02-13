@@ -8,6 +8,7 @@ import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import Constants from 'expo-constants';
+import { logError } from './devLog';
 
 /**
  * Export all data as JSON
@@ -66,7 +67,7 @@ export async function exportDataAsJSON(): Promise<void> {
       );
     }
   } catch (error) {
-    console.error('Error exporting data:', error);
+    logError('dataExport.exportDataAsJSON', error);
     Alert.alert('Export Failed', 'Unable to export data. Please try again.');
   }
 }
@@ -100,7 +101,7 @@ export async function exportDataAsCSV(): Promise<void> {
           csv += `Medication,${med.createdAt || ''},${med.name},${med.dosage},"${notes}"\n`;
         }
       } catch (e) {
-        console.error('Error parsing medications:', e);
+        logError('dataExport.exportDataAsCSV.parseMedications', e);
       }
     }
 
@@ -113,7 +114,7 @@ export async function exportDataAsCSV(): Promise<void> {
           csv += `Vital,${vital.timestamp || ''},${vital.type},${vital.value} ${vital.unit || ''},"${notes}"\n`;
         }
       } catch (e) {
-        console.error('Error parsing vitals:', e);
+        logError('dataExport.exportDataAsCSV.parseVitals', e);
       }
     }
 
@@ -151,7 +152,7 @@ export async function exportDataAsCSV(): Promise<void> {
       );
     }
   } catch (error) {
-    console.error('Error exporting CSV:', error);
+    logError('dataExport.exportDataAsCSV', error);
     Alert.alert('Export Failed', 'Unable to export data. Please try again.');
   }
 }
@@ -194,7 +195,7 @@ export async function generateHealthSummary(): Promise<{
       },
     };
   } catch (error) {
-    console.error('Error generating health summary:', error);
+    logError('dataExport.generateHealthSummary', error);
     return {
       medicationCount: 0,
       vitalCount: 0,

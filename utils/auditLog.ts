@@ -4,6 +4,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { devLog, logError } from './devLog';
 
 const AUDIT_LOG_KEY = '@embermate_audit_log';
 const MAX_LOG_ENTRIES = 1000; // Keep last 1000 entries
@@ -100,11 +101,9 @@ export async function logAuditEvent(
     await AsyncStorage.setItem(AUDIT_LOG_KEY, JSON.stringify(trimmedLogs));
 
     // Log to console in development
-    if (__DEV__) {
-      console.log(`[AUDIT] ${severity} - ${eventType}: ${description}`, metadata);
-    }
+    devLog(`[AUDIT] ${severity} - ${eventType}: ${description}`, metadata);
   } catch (error) {
-    console.error('Error logging audit event:', error);
+    logError('auditLog.logAuditEvent', error);
     // Don't throw - logging failure shouldn't break app
   }
 }
@@ -118,7 +117,7 @@ export async function getAuditLogs(): Promise<AuditLogEntry[]> {
     if (!stored) return [];
     return JSON.parse(stored) as AuditLogEntry[];
   } catch (error) {
-    console.error('Error retrieving audit logs:', error);
+    logError('auditLog.getAuditLogs', error);
     return [];
   }
 }
@@ -133,7 +132,7 @@ export async function getAuditLogsByType(
     const logs = await getAuditLogs();
     return logs.filter(log => log.eventType === eventType);
   } catch (error) {
-    console.error('Error filtering audit logs:', error);
+    logError('auditLog.getAuditLogsByType', error);
     return [];
   }
 }
@@ -148,7 +147,7 @@ export async function getAuditLogsBySeverity(
     const logs = await getAuditLogs();
     return logs.filter(log => log.severity === severity);
   } catch (error) {
-    console.error('Error filtering audit logs by severity:', error);
+    logError('auditLog.getAuditLogsBySeverity', error);
     return [];
   }
 }
@@ -167,7 +166,7 @@ export async function getAuditLogsByDateRange(
       return logDate >= startDate && logDate <= endDate;
     });
   } catch (error) {
-    console.error('Error filtering audit logs by date:', error);
+    logError('auditLog.getAuditLogsByDateRange', error);
     return [];
   }
 }
@@ -180,7 +179,7 @@ export async function getRecentAuditLogs(count: number = 50): Promise<AuditLogEn
     const logs = await getAuditLogs();
     return logs.slice(-count).reverse(); // Most recent first
   } catch (error) {
-    console.error('Error getting recent audit logs:', error);
+    logError('auditLog.getRecentAuditLogs', error);
     return [];
   }
 }
@@ -199,7 +198,7 @@ export async function clearAuditLogs(): Promise<boolean> {
     await AsyncStorage.removeItem(AUDIT_LOG_KEY);
     return true;
   } catch (error) {
-    console.error('Error clearing audit logs:', error);
+    logError('auditLog.clearAuditLogs', error);
     return false;
   }
 }
@@ -219,7 +218,7 @@ export async function exportAuditLogs(): Promise<string> {
 
     return JSON.stringify(logs, null, 2);
   } catch (error) {
-    console.error('Error exporting audit logs:', error);
+    logError('auditLog.exportAuditLogs', error);
     throw error;
   }
 }
@@ -259,7 +258,7 @@ export async function getAuditStatistics(): Promise<{
       recentActivity,
     };
   } catch (error) {
-    console.error('Error getting audit statistics:', error);
+    logError('auditLog.getAuditStatistics', error);
     return {
       total: 0,
       byType: {} as Record<AuditEventType, number>,

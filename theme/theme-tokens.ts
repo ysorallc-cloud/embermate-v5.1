@@ -17,6 +17,11 @@ export const Colors = {
   glassHover: 'rgba(255, 255, 255, 0.06)',
   glassBorder: 'rgba(255, 255, 255, 0.08)',
   glassActive: 'rgba(255, 255, 255, 0.1)',
+  glassDim: 'rgba(255, 255, 255, 0.04)',
+  glassFaint: 'rgba(255, 255, 255, 0.04)',
+  glassSubtle: 'rgba(255, 255, 255, 0.15)',
+  glassStrong: 'rgba(255, 255, 255, 0.2)',
+  glassBold: 'rgba(255, 255, 255, 0.3)',
 
   // Legacy surface support (map to glass)
   surface: 'rgba(255, 255, 255, 0.03)',
@@ -36,6 +41,11 @@ export const Colors = {
   accentLight: 'rgba(20, 184, 166, 0.12)',
   accentBorder: 'rgba(20, 184, 166, 0.25)',
   accentGlow: 'rgba(20, 184, 166, 0.4)',
+  accentFaint: 'rgba(20, 184, 166, 0.05)',
+  accentTint: 'rgba(20, 184, 166, 0.06)',
+  accentDim: 'rgba(20, 184, 166, 0.1)',
+  accentHint: 'rgba(20, 184, 166, 0.15)',
+  accentSubtle: 'rgba(20, 184, 166, 0.15)',
   accentMuted: 'rgba(94, 234, 212, 0.5)',
   accentGradientStart: '#14B8A6',
   accentGradientMid: '#0D9488',
@@ -43,26 +53,42 @@ export const Colors = {
 
   // Semantic Colors
   green: '#10B981',
+  greenTint: 'rgba(16, 185, 129, 0.1)',
   greenLight: 'rgba(16, 185, 129, 0.12)',
+  greenHint: 'rgba(16, 185, 129, 0.15)',
+  greenMuted: 'rgba(16, 185, 129, 0.2)',
   greenBorder: 'rgba(16, 185, 129, 0.25)',
+  greenStrong: 'rgba(16, 185, 129, 0.3)',
   greenGlow: 'rgba(16, 185, 129, 0.4)',
 
   amber: '#F59E0B',
+  amberFaint: 'rgba(245, 158, 11, 0.08)',
   amberLight: 'rgba(245, 158, 11, 0.12)',
+  amberHint: 'rgba(245, 158, 11, 0.15)',
+  amberMuted: 'rgba(245, 158, 11, 0.2)',
   amberBorder: 'rgba(245, 158, 11, 0.25)',
   amberGlow: 'rgba(245, 158, 11, 0.4)',
 
   red: '#EF4444',
+  redFaint: 'rgba(239, 68, 68, 0.08)',
   redLight: 'rgba(239, 68, 68, 0.12)',
+  redHint: 'rgba(239, 68, 68, 0.15)',
+  redMuted: 'rgba(239, 68, 68, 0.2)',
   redBorder: 'rgba(239, 68, 68, 0.25)',
+  redStrong: 'rgba(239, 68, 68, 0.3)',
 
   rose: '#F43F5E',
   roseLight: 'rgba(244, 63, 94, 0.12)',
   roseBorder: 'rgba(244, 63, 94, 0.25)',
 
   purple: '#8B5CF6',
+  purpleFaint: 'rgba(139, 92, 246, 0.08)',
+  purpleMuted: 'rgba(139, 92, 246, 0.1)',
   purpleLight: 'rgba(139, 92, 246, 0.12)',
+  purpleHint: 'rgba(139, 92, 246, 0.15)',
+  purpleWash: 'rgba(139, 92, 246, 0.2)',
   purpleBorder: 'rgba(139, 92, 246, 0.25)',
+  purpleStrong: 'rgba(139, 92, 246, 0.3)',
   purpleGlow: 'rgba(139, 92, 246, 0.4)',
 
   sky: '#0EA5E9',
@@ -73,8 +99,16 @@ export const Colors = {
   goldLight: 'rgba(234, 179, 8, 0.12)',
   goldBorder: 'rgba(234, 179, 8, 0.25)',
 
+  violet: '#A78BFA',
+  violetLight: 'rgba(167, 139, 250, 0.12)',
+  violetBorder: 'rgba(167, 139, 250, 0.25)',
+  violetBright: 'rgba(167, 139, 250, 0.9)',
+
   blue: '#3B82F6',
+  blueFaint: 'rgba(59, 130, 246, 0.08)',
+  blueTint: 'rgba(59, 130, 246, 0.1)',
   blueLight: 'rgba(59, 130, 246, 0.12)',
+  blueWash: 'rgba(59, 130, 246, 0.2)',
   blueBorder: 'rgba(59, 130, 246, 0.25)',
 
   indigo: '#6366F1',
@@ -91,8 +125,29 @@ export const Colors = {
 
   // Secondary teal tones
   sage: '#5EEAD4',
+  sageHint: 'rgba(94, 234, 212, 0.05)',
+  sageTint: 'rgba(94, 234, 212, 0.06)',
+  sageFaint: 'rgba(94, 234, 212, 0.08)',
+  sageLight: 'rgba(94, 234, 212, 0.1)',
+  sageSubtle: 'rgba(94, 234, 212, 0.12)',
+  sageBorder: 'rgba(94, 234, 212, 0.15)',
+  sageWash: 'rgba(94, 234, 212, 0.2)',
+  sageGlow: 'rgba(94, 234, 212, 0.3)',
   sageMuted: 'rgba(94, 234, 212, 0.4)',
+  sageSoft: 'rgba(94, 234, 212, 0.7)',
+  sageStrong: 'rgba(94, 234, 212, 0.8)',
+  sageBright: 'rgba(94, 234, 212, 0.9)',
   sageDim: 'rgba(20, 184, 166, 0.08)',
+
+  // Bright/chart hex variants
+  purpleBright: '#A78BFA',
+  amberBright: '#FBBF24',
+  amberBrightTint: 'rgba(251, 191, 36, 0.1)',
+  amberBrightStrong: 'rgba(251, 191, 36, 0.8)',
+  greenBright: '#22C55E',
+  redBright: '#F87171',
+  blueBright: '#60A5FA',
+  skyBright: '#38BDF8',
 
   // Status colors
   success: '#10B981',
@@ -105,8 +160,14 @@ export const Colors = {
   textPrimary: '#FFFFFF',
   textSecondary: 'rgba(255, 255, 255, 0.7)',
   textTertiary: 'rgba(255, 255, 255, 0.6)',
+  textSoft: 'rgba(255, 255, 255, 0.5)',
   textMuted: 'rgba(255, 255, 255, 0.4)',
   textDisabled: 'rgba(255, 255, 255, 0.25)',
+  textHalf: 'rgba(255, 255, 255, 0.5)',
+  textPlaceholder: 'rgba(255, 255, 255, 0.3)',
+  textBright: 'rgba(255, 255, 255, 0.8)',
+  textAlmostFull: 'rgba(255, 255, 255, 0.9)',
+  textNearFull: 'rgba(255, 255, 255, 0.95)',
 
   // Borders
   border: 'rgba(255, 255, 255, 0.08)',
@@ -134,6 +195,20 @@ export const Colors = {
   backgroundGradientStart: '#051614',
   backgroundGradientEnd: '#042420',
   cardBackground: '#0a1f1c',
+
+  // Background variants
+  backgroundDark: '#0a0a0a',
+  backgroundDeep: '#0D1F1C',
+  backgroundElevated: '#0d332e',
+
+  // Additional background/input
+  inputBackground: '#0D332E',
+
+  // Switch tokens
+  switchThumbOn: '#FFFFFF',
+  switchThumbOff: '#F4F3F4',
+  switchThumb: '#F4F3F4',
+  switchTrackOff: 'rgba(255, 255, 255, 0.2)',
 };
 
 export const Spacing = {
@@ -241,7 +316,7 @@ export const Shadows = {
     elevation: 4,
   }),
   soft: {
-    shadowColor: '#000',
+    shadowColor: Colors.background,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,

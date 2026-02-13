@@ -4,6 +4,7 @@
 // ============================================================================
 
 import * as Crypto from 'expo-crypto';
+import { logError } from './devLog';
 
 // Pre-seeded crypto buffer for synchronous ID generation
 let cryptoBuffer: Uint8Array = new Uint8Array(256);
@@ -112,6 +113,6 @@ export function generateUniqueIdWithCheck(existingIds: string[]): string {
 
   // If we somehow get 10 collisions, add extra entropy
   const fallbackId = `${Date.now()}-${Math.random().toString(36).substr(2, 12)}`;
-  console.error('[IDGenerator] Multiple collisions detected, using fallback ID');
+  logError('idGenerator.generateUniqueIdWithCheck', 'Multiple collisions detected, using fallback ID');
   return fallbackId;
 }

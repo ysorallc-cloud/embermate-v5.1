@@ -4,6 +4,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logError } from './devLog';
 
 export interface NoteLog {
   id: string;
@@ -24,7 +25,7 @@ export async function saveNote(note: Omit<NoteLog, 'id'>): Promise<void> {
     notes.push(newNote);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
   } catch (error) {
-    console.error('Error saving note:', error);
+    logError('noteStorage.saveNote', error);
     throw error;
   }
 }
@@ -34,7 +35,7 @@ export async function getNotes(): Promise<NoteLog[]> {
     const data = await AsyncStorage.getItem(STORAGE_KEY);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error loading notes:', error);
+    logError('noteStorage.getNotes', error);
     return [];
   }
 }
@@ -44,7 +45,7 @@ export async function getNotesByDate(date: string): Promise<NoteLog[]> {
     const notes = await getNotes();
     return notes.filter(n => n.date === date);
   } catch (error) {
-    console.error('Error getting notes by date:', error);
+    logError('noteStorage.getNotesByDate', error);
     return [];
   }
 }
@@ -59,7 +60,7 @@ export async function deleteNote(id: string): Promise<boolean> {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
     return true;
   } catch (error) {
-    console.error('Error deleting note:', error);
+    logError('noteStorage.deleteNote', error);
     return false;
   }
 }

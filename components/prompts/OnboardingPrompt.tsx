@@ -37,7 +37,7 @@ export const OnboardingPrompt: React.FC<OnboardingPromptProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+    backgroundColor: Colors.sageFaint,
     borderRadius: 16,
     padding: 24,
     marginHorizontal: 20,

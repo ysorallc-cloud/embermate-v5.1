@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { detectCorrelations, hasSufficientData, DetectedPattern } from '../utils/correlationDetector';
 import { BackButton } from '../components/common/BackButton';
+import { logError } from '../utils/devLog';
 
 // Sample data for preview mode
 const SAMPLE_PATTERNS: DetectedPattern[] = [
@@ -80,7 +81,7 @@ export default function CorrelationReportScreen() {
         setShowingSample(true);
       }
     } catch (error) {
-      console.error('Error loading correlations:', error);
+      logError('CorrelationReportScreen.loadCorrelations', error);
       // Show sample data on error
       setPatterns(SAMPLE_PATTERNS);
       setShowingSample(true);
@@ -91,8 +92,8 @@ export default function CorrelationReportScreen() {
 
   const getConfidenceBadgeColor = (confidence: string) => {
     switch (confidence) {
-      case 'high': return '#22C55E';
-      case 'moderate': return '#F59E0B';
+      case 'high': return Colors.greenBright;
+      case 'moderate': return Colors.amber;
       case 'low': return '#94A3B8';
       default: return '#94A3B8';
     }
@@ -117,7 +118,7 @@ export default function CorrelationReportScreen() {
 
             {/* Important Disclaimer (Always Visible) */}
             <View style={styles.disclaimer}>
-              <Ionicons name="information-circle" size={20} color="#3B82F6" style={{ marginRight: 8 }} />
+              <Ionicons name="information-circle" size={20} color={Colors.blue} style={{ marginRight: 8 }} />
               <Text style={styles.disclaimerText}>
                 Correlations show observations, not causes. Always discuss patterns with your care team before making decisions.
               </Text>
@@ -186,7 +187,7 @@ export default function CorrelationReportScreen() {
                             styles.strengthFill, 
                             { 
                               width: `${Math.abs(pattern.coefficient) * 100}%`,
-                              backgroundColor: Math.abs(pattern.coefficient) > 0.6 ? '#22C55E' : '#F59E0B'
+                              backgroundColor: Math.abs(pattern.coefficient) > 0.6 ? Colors.greenBright : Colors.amber
                             }
                           ]} 
                         />
@@ -283,9 +284,9 @@ const styles = StyleSheet.create({
 
   // Sample Banner
   sampleBanner: {
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+    backgroundColor: Colors.purpleLight,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
+    borderColor: Colors.purpleStrong,
     borderRadius: 14,
     padding: 14,
     marginBottom: Spacing.lg,
@@ -305,12 +306,12 @@ const styles = StyleSheet.create({
   sampleBannerTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#A78BFA',
+    color: Colors.purpleBright,
     marginBottom: 4,
   },
   sampleBannerSubtitle: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     lineHeight: 18,
   },
 
@@ -318,9 +319,9 @@ const styles = StyleSheet.create({
   disclaimer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    backgroundColor: Colors.blueTint,
     borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
+    borderLeftColor: Colors.blue,
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.xl,

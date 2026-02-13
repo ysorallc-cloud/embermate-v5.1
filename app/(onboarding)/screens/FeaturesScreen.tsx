@@ -12,10 +12,10 @@ import { Colors, Spacing } from '../../../theme/theme-tokens';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const FEATURES = [
-  { icon: '💊', title: 'Medication Tracking', desc: 'Never miss a dose', color: '#fbbf24' },
+  { icon: '💊', title: 'Medication Tracking', desc: 'Never miss a dose', color: Colors.amberBright },
   { icon: '🫀', title: 'Health Monitoring', desc: 'Vitals, symptoms, patterns', color: '#fb7185' },
-  { icon: '📊', title: 'AI Insights', desc: 'Understand what affects health', color: '#8b5cf6' },
-  { icon: '👥', title: 'Care Coordination', desc: 'Share with family & doctors', color: '#14B8A6' },
+  { icon: '📊', title: 'AI Insights', desc: 'Understand what affects health', color: Colors.purple },
+  { icon: '👥', title: 'Care Coordination', desc: 'Share with family & doctors', color: Colors.accent },
 ];
 
 export const FeaturesScreen: React.FC = () => {

@@ -66,12 +66,12 @@ export const CalendarGrid: React.FC<Props> = ({ days, selectedDate, onDayPress }
                   {day.hasAppointment && (
                     <View style={[
                       styles.dot,
-                      { backgroundColor: isSelected ? '#fff' : Colors.gold }
+                      { backgroundColor: isSelected ? Colors.textPrimary : Colors.gold }
                     ]} />
                   )}
                   <View style={[
                     styles.dot,
-                    { backgroundColor: isSelected ? '#fff' : Colors.accent }
+                    { backgroundColor: isSelected ? Colors.textPrimary : Colors.accent }
                   ]} />
                 </View>
               )}
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   selectedText: {
-    color: '#fff',
+    color: Colors.textPrimary,
     fontWeight: '600',
   },
   todayText: {

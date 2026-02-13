@@ -5,6 +5,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import { TimelineItem as TimelineItemType } from '../../types/timeline';
 import { Colors } from '../../theme/theme-tokens';
 import { format } from 'date-fns';
@@ -22,7 +23,7 @@ export const TimelineItem: React.FC<Props> = ({ item, isLast }) => {
       case 'medication':
         // Route to contextual logging if we have instance data, otherwise fallback
         if (item.instanceId && item.medicationName) {
-          router.push({
+          navigate({
             pathname: '/log-medication-plan-item',
             params: {
               medicationId: item.medicationIds?.[0] || '',
@@ -31,24 +32,24 @@ export const TimelineItem: React.FC<Props> = ({ item, isLast }) => {
               itemName: item.medicationName,
               itemDosage: item.dosage || '',
             },
-          } as any);
+          });
         } else {
           // Fallback to manual logging only if no Care Plan context
           const medIds = item.medicationIds?.join(',') || '';
-          router.push(`/medication-confirm?ids=${medIds}` as any);
+          navigate(`/medication-confirm?ids=${medIds}`);
         }
         break;
       case 'appointment':
-        router.push('/appointments' as any);
+        navigate('/appointments');
         break;
       case 'wellness-morning':
-        router.push('/log-morning-wellness' as any);
+        navigate('/log-morning-wellness');
         break;
       case 'wellness-evening':
-        router.push('/log-evening-wellness' as any);
+        navigate('/log-evening-wellness');
         break;
       case 'vitals':
-        router.push('/log-vitals' as any);
+        navigate('/log-vitals');
         break;
     }
   };
@@ -127,7 +128,7 @@ const getCircleStyles = (status: string) => {
       };
     case 'available':
       return {
-        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+        backgroundColor: Colors.amberBrightTint,
         borderColor: 'rgba(251, 191, 36, 0.4)',
       };
     default: // upcoming
@@ -154,7 +155,7 @@ const getStatusColors = (status: string) => {
       };
     case 'available':
       return {
-        time: 'rgba(251, 191, 36, 0.8)',
+        time: Colors.amberBrightStrong,
         subtitle: Colors.textMuted,
         line: Colors.border,
       };
@@ -184,14 +185,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkmark: {
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     fontSize: 10,
     fontWeight: '600',
   },
   availableIcon: {
     fontSize: 10,
     fontWeight: '700',
-    color: 'rgba(251, 191, 36, 0.8)',
+    color: Colors.amberBrightStrong,
   },
   line: {
     flex: 1,
@@ -215,7 +216,7 @@ const styles = StyleSheet.create({
   availableLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: 'rgba(251, 191, 36, 0.8)',
+    color: Colors.amberBrightStrong,
   },
   title: {
     fontSize: 14,

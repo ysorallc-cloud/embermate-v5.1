@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { scheduleOneTimeNotification } from './notificationService';
 import { safeGetItem, safeSetItem } from './safeStorage';
 import { generateUniqueId } from './idGenerator';
+import { devLog, logError } from './devLog';
 
 export interface Appointment {
   id: string;
@@ -47,7 +48,7 @@ export async function getAppointments(): Promise<Appointment[]> {
 
     return appointments;
   } catch (error) {
-    console.error('Error getting appointments:', error);
+    logError('appointmentStorage.getAppointments', error);
     return [];
   }
 }
@@ -60,7 +61,7 @@ export async function getAppointment(id: string): Promise<Appointment | null> {
     const appointments = await getAppointments();
     return appointments.find(a => a.id === id) || null;
   } catch (error) {
-    console.error('Error getting appointment:', error);
+    logError('appointmentStorage.getAppointment', error);
     return null;
   }
 }
@@ -78,7 +79,7 @@ export async function getUpcomingAppointments(): Promise<Appointment[]> {
       .filter(a => new Date(a.date) >= now)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   } catch (error) {
-    console.error('Error getting upcoming appointments:', error);
+    logError('appointmentStorage.getUpcomingAppointments', error);
     return [];
   }
 }
@@ -96,7 +97,7 @@ export async function getAppointmentsByDate(date: Date): Promise<Appointment[]> 
       return appointmentDate === targetDate && !a.cancelled;
     });
   } catch (error) {
-    console.error('Error getting appointments by date:', error);
+    logError('appointmentStorage.getAppointmentsByDate', error);
     return [];
   }
 }
@@ -127,7 +128,7 @@ export async function createAppointment(
 
     return newAppointment;
   } catch (error) {
-    console.error('Error creating appointment:', error);
+    logError('appointmentStorage.createAppointment', error);
     throw error;
   }
 }
@@ -151,7 +152,7 @@ export async function updateAppointment(
     await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(appointments));
     return appointments[index];
   } catch (error) {
-    console.error('Error updating appointment:', error);
+    logError('appointmentStorage.updateAppointment', error);
     return null;
   }
 }
@@ -163,7 +164,7 @@ export async function cancelAppointment(id: string): Promise<boolean> {
   try {
     return (await updateAppointment(id, { cancelled: true })) !== null;
   } catch (error) {
-    console.error('Error cancelling appointment:', error);
+    logError('appointmentStorage.cancelAppointment', error);
     return false;
   }
 }
@@ -175,7 +176,7 @@ export async function completeAppointment(id: string): Promise<boolean> {
   try {
     return (await updateAppointment(id, { completed: true })) !== null;
   } catch (error) {
-    console.error('Error completing appointment:', error);
+    logError('appointmentStorage.completeAppointment', error);
     return false;
   }
 }
@@ -195,7 +196,7 @@ export async function deleteAppointment(id: string): Promise<boolean> {
     await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(filtered));
     return true;
   } catch (error) {
-    console.error('Error deleting appointment:', error);
+    logError('appointmentStorage.deleteAppointment', error);
     return false;
   }
 }
@@ -222,7 +223,7 @@ export async function getNextAppointment(): Promise<Appointment | null> {
     const upcoming = await getUpcomingAppointments();
     return upcoming.length > 0 ? upcoming[0] : null;
   } catch (error) {
-    console.error('Error getting next appointment:', error);
+    logError('appointmentStorage.getNextAppointment', error);
     return null;
   }
 }
@@ -235,7 +236,7 @@ export async function countUpcomingAppointments(): Promise<number> {
     const upcoming = await getUpcomingAppointments();
     return upcoming.length;
   } catch (error) {
-    console.error('Error counting appointments:', error);
+    logError('appointmentStorage.countUpcomingAppointments', error);
     return 0;
   }
 }
@@ -252,7 +253,7 @@ export async function resetAppointments(): Promise<void> {
     const defaults = getDefaultAppointments();
     await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(defaults));
   } catch (error) {
-    console.error('Error resetting appointments:', error);
+    logError('appointmentStorage.resetAppointments', error);
   }
 }
 
@@ -391,9 +392,9 @@ async function scheduleAppointmentNotifications(appointment: Appointment): Promi
       );
     }
     
-    if (__DEV__) console.log(`Scheduled notifications for appointment: ${appointment.specialty}`);
+    devLog(`Scheduled notifications for appointment: ${appointment.specialty}`);
   } catch (error) {
-    console.error('Error scheduling appointment notifications:', error);
+    logError('appointmentStorage.scheduleAppointmentNotifications', error);
   }
 }
 
@@ -408,9 +409,9 @@ export async function scheduleAllAppointmentNotifications(): Promise<void> {
       await scheduleAppointmentNotifications(appointment);
     }
     
-    if (__DEV__) console.log(`Scheduled notifications for ${appointments.length} appointments`);
+    devLog(`Scheduled notifications for ${appointments.length} appointments`);
   } catch (error) {
-    console.error('Error scheduling all appointment notifications:', error);
+    logError('appointmentStorage.scheduleAllAppointmentNotifications', error);
   }
 }
 

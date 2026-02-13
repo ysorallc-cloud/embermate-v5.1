@@ -5,6 +5,7 @@
 // ============================================================================
 
 import React, { useMemo, useState } from 'react';
+import { devLog } from '../../utils/devLog';
 import {
   View,
   Text,
@@ -12,6 +13,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import { useDailyCareInstances } from '../../hooks/useDailyCareInstances';
@@ -115,10 +117,8 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<TimeOfDay>>(new Set(['morning', 'midday', 'evening']));
 
   // DEBUG: Log enabled buckets on render
-  if (__DEV__) {
-    console.log('[BucketCarePlanPanel] enabledBuckets:', enabledBuckets);
-    console.log('[BucketCarePlanPanel] config:', config ? Object.keys(config) : 'null');
-  }
+  devLog('[BucketCarePlanPanel] enabledBuckets:', enabledBuckets);
+  devLog('[BucketCarePlanPanel] config:', config ? Object.keys(config) : 'null');
 
   // Generate schedule items from all enabled buckets
   const { scheduleItems, timeGroups, stats, bucketsWithItems, placeholders } = useMemo(() => {
@@ -360,9 +360,9 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
 
   const handleItemPress = (item: ScheduleItem) => {
     if (item.routeParams) {
-      router.push({ pathname: item.route as any, params: item.routeParams });
+      navigate({ pathname: item.route, params: item.routeParams });
     } else {
-      router.push(item.route as any);
+      navigate(item.route);
     }
   };
 
@@ -376,7 +376,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
         </Text>
         <TouchableOpacity
           style={styles.setupButton}
-          onPress={() => router.push('/care-plan' as any)}
+          onPress={() => navigate('/care-plan')}
           accessibilityLabel="Set up Care Plan"
           accessibilityRole="button"
         >
@@ -399,7 +399,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.settingsButton}
-            onPress={() => router.push('/care-plan' as any)}
+            onPress={() => navigate('/care-plan')}
             accessibilityLabel="Care Plan settings"
             accessibilityRole="button"
           >
@@ -417,7 +417,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
             <TouchableOpacity
               key={bucket}
               style={[styles.bucketChip, hasItems && styles.bucketChipConfigured]}
-              onPress={() => router.push(BUCKET_CONFIG_ROUTES[bucket] as any)}
+              onPress={() => navigate(BUCKET_CONFIG_ROUTES[bucket])}
               activeOpacity={0.7}
               accessibilityLabel={`${meta.name}${hasItems ? '' : ', needs setup'}`}
               accessibilityRole="button"
@@ -497,7 +497,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
             <TouchableOpacity
               key={placeholder.bucket}
               style={styles.placeholderRow}
-              onPress={() => router.push(placeholder.route as any)}
+              onPress={() => navigate(placeholder.route)}
               activeOpacity={0.7}
               accessibilityLabel={`${placeholder.title}, ${placeholder.subtitle}`}
               accessibilityRole="button"
@@ -535,9 +535,9 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
 
 const styles = StyleSheet.create({
   panel: {
-    backgroundColor: 'rgba(94, 234, 212, 0.06)',
+    backgroundColor: Colors.sageTint,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.15)',
+    borderColor: Colors.sageBorder,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -545,9 +545,9 @@ const styles = StyleSheet.create({
 
   // Empty State
   emptyPanel: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
@@ -556,12 +556,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -595,12 +595,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
   headerActions: {
     flexDirection: 'row',
@@ -645,23 +645,23 @@ const styles = StyleSheet.create({
   groupName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   groupProgress: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     marginTop: 2,
   },
   expandIcon: {
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
   },
 
   // Items List
   itemsList: {
     marginLeft: 30,
     borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255, 255, 255, 0.1)',
+    borderLeftColor: Colors.glassActive,
     paddingLeft: 12,
   },
   itemRow: {
@@ -670,7 +670,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: Colors.surfaceElevated,
   },
   itemRowDone: {
     opacity: 0.6,
@@ -691,15 +691,15 @@ const styles = StyleSheet.create({
   },
   itemLabel: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: Colors.textAlmostFull,
   },
   itemLabelDone: {
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     textDecorationLine: 'line-through',
   },
   itemTime: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     marginTop: 2,
   },
   itemRight: {
@@ -709,14 +709,14 @@ const styles = StyleSheet.create({
   },
   itemStatus: {
     fontSize: 11,
-    color: 'rgba(94, 234, 212, 0.8)',
+    color: Colors.sageStrong,
   },
   itemStatusDone: {
-    color: '#10B981',
+    color: Colors.green,
   },
   itemChevron: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: Colors.textPlaceholder,
   },
 
   // Bucket Chips Strip
@@ -727,22 +727,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: Colors.border,
   },
   bucketChip: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.glassSubtle,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   bucketChipConfigured: {
-    backgroundColor: 'rgba(94, 234, 212, 0.1)',
-    borderColor: 'rgba(94, 234, 212, 0.3)',
+    backgroundColor: Colors.sageLight,
+    borderColor: Colors.sageGlow,
   },
   bucketChipEmoji: {
     fontSize: 16,
@@ -754,7 +754,7 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#F59E0B',
+    backgroundColor: Colors.amber,
     color: '#000',
     fontSize: 10,
     fontWeight: '700',
@@ -768,12 +768,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: Colors.border,
   },
   placeholdersHeader: {
     fontSize: 10,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     letterSpacing: 1,
     marginBottom: 8,
   },
@@ -785,7 +785,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     backgroundColor: 'rgba(245, 158, 11, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.15)',
+    borderColor: Colors.amberHint,
     borderRadius: 10,
     marginBottom: 8,
   },
@@ -806,11 +806,11 @@ const styles = StyleSheet.create({
   placeholderTitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#F59E0B',
+    color: Colors.amber,
   },
   placeholderSubtitle: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     marginTop: 2,
   },
   placeholderRight: {
@@ -818,12 +818,12 @@ const styles = StyleSheet.create({
   },
   placeholderTime: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     marginBottom: 2,
   },
   placeholderCta: {
     fontSize: 12,
-    color: '#F59E0B',
+    color: Colors.amber,
     fontWeight: '500',
   },
 
@@ -842,7 +842,7 @@ const styles = StyleSheet.create({
   completeText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#10B981',
+    color: Colors.green,
   },
 });
 

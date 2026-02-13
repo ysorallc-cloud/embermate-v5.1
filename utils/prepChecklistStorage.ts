@@ -12,6 +12,7 @@ import {
 import { Appointment } from './appointmentStorage';
 import { getMedications } from './medicationStorage';
 import { getTodayVitalsLog } from './centralStorage';
+import { logError } from './devLog';
 
 const PREP_CHECKLIST_KEY = '@embermate_prep_checklists';
 
@@ -27,7 +28,7 @@ async function getAllChecklists(): Promise<Record<string, AppointmentPrepCheckli
     const data = await AsyncStorage.getItem(PREP_CHECKLIST_KEY);
     return data ? JSON.parse(data) : {};
   } catch (error) {
-    console.error('Error getting prep checklists:', error);
+    logError('prepChecklistStorage.getAllChecklists', error);
     return {};
   }
 }
@@ -41,7 +42,7 @@ async function saveAllChecklists(
   try {
     await AsyncStorage.setItem(PREP_CHECKLIST_KEY, JSON.stringify(checklists));
   } catch (error) {
-    console.error('Error saving prep checklists:', error);
+    logError('prepChecklistStorage.saveAllChecklists', error);
   }
 }
 
@@ -259,7 +260,7 @@ async function generateSmartPrepItems(
     }
 
   } catch (error) {
-    console.error('Error generating smart prep items:', error);
+    logError('prepChecklistStorage.generateSmartPrepItems', error);
   }
 
   return items;

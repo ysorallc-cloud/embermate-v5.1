@@ -64,8 +64,8 @@ export async function saveCarePlanConfig(config: CarePlanConfig): Promise<void> 
     updatedAt: new Date().toISOString(),
     version: (config.version || 0) + 1,
   };
-  await safeSetItem(KEYS.CONFIG(config.patientId), updated);
-  emitDataUpdate('carePlanConfig');
+  const ok = await safeSetItem(KEYS.CONFIG(config.patientId), updated);
+  if (ok) emitDataUpdate('carePlanConfig');
 }
 
 /**

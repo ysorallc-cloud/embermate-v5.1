@@ -22,6 +22,7 @@ import PageHeader from '../components/PageHeader';
 import { MedicationCardSkeleton } from '../components/LoadingSkeleton';
 import { getMedications, deleteMedication, calculateAdherence, Medication, markMedicationTaken } from '../utils/medicationStorage';
 import { checkInteraction } from '../utils/drugInteractions';
+import { logError } from '../utils/devLog';
 
 export default function MedicationsScreen() {
   const router = useRouter();
@@ -63,7 +64,7 @@ export default function MedicationsScreen() {
       }
       setInteractions(interactionResults);
     } catch (error) {
-      console.error('Error loading medications:', error);
+      logError('MedicationsScreen.loadData', error);
     } finally {
       setLoading(false);
     }
@@ -137,7 +138,7 @@ export default function MedicationsScreen() {
               await loadData();
               Alert.alert('Done', `${dueMeds.length} medications marked as taken.`);
             } catch (error) {
-              console.error('Error taking all medications:', error);
+              logError('MedicationsScreen.handleTakeAll', error);
               Alert.alert('Error', 'Failed to mark medications as taken.');
             } finally {
               setTakingAll(false);
@@ -154,7 +155,7 @@ export default function MedicationsScreen() {
       await markMedicationTaken(medication.id, true);
       await loadData();
     } catch (error) {
-      console.error('Error marking medication as taken:', error);
+      logError('MedicationsScreen.handleTakeMedication', error);
       Alert.alert('Error', 'Failed to mark medication as taken.');
     }
   };
@@ -534,7 +535,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: Colors.greenMuted,
     borderWidth: 2,
     borderColor: Colors.success,
     borderRadius: 12,
@@ -597,8 +598,8 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: Colors.glassStrong,
+    backgroundColor: Colors.surfaceElevated,
   },
   medCheckboxDone: {
     width: 24,
@@ -610,7 +611,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   checkmarkIcon: {
-    color: '#fff',
+    color: Colors.textPrimary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -660,15 +661,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   timeBadge: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.glassActive,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: Colors.glassStrong,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
   timeBadgeNow: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: Colors.greenMuted,
     borderColor: 'rgba(16, 185, 129, 0.5)',
   },
   timeBadgeText: {
@@ -682,7 +683,7 @@ const styles = StyleSheet.create({
 
   // REFILL WARNING
   refillWarning: {
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    backgroundColor: Colors.amberMuted,
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.5)',
     borderRadius: 6,
@@ -692,13 +693,13 @@ const styles = StyleSheet.create({
   },
   refillWarningText: {
     fontSize: 12,
-    color: '#F59E0B',
+    color: Colors.amber,
     fontWeight: '600',
   },
 
   // ADHERENCE BADGE
   adherenceBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: Colors.greenHint,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,

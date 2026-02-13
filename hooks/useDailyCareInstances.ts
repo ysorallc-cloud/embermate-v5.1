@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { devLog, logError } from '../utils/devLog';
 import { useDataListener } from '../lib/events';
 import {
   DailyCareInstance,
@@ -183,9 +184,7 @@ export function useDailyCareInstances(
    * Ensures instances are generated if they don't exist
    */
   const loadInstances = useCallback(async () => {
-    if (__DEV__) {
-      console.log('[useDailyCareInstances] loadInstances called for', targetDate);
-    }
+    devLog('[useDailyCareInstances] loadInstances called for', targetDate);
     try {
       setLoading(true);
       setError(null);
@@ -195,11 +194,11 @@ export function useDailyCareInstances(
       if (__DEV__) {
         const pending = dayInstances.filter(i => i.status === 'pending').length;
         const completed = dayInstances.filter(i => i.status === 'completed').length;
-        console.log('[useDailyCareInstances] loaded', dayInstances.length, 'instances (pending:', pending, 'completed:', completed, ')');
+        devLog('[useDailyCareInstances] loaded', dayInstances.length, 'instances (pending:', pending, 'completed:', completed, ')');
       }
       setInstances(dayInstances);
     } catch (err) {
-      console.error('Error loading daily care instances:', err);
+      logError('useDailyCareInstances.loadInstances', err);
       setError(err instanceof Error ? err : new Error('Failed to load instances'));
     } finally {
       setLoading(false);
@@ -211,12 +210,12 @@ export function useDailyCareInstances(
     loadInstances();
   }, [loadInstances]);
 
-  // Listen for data updates
+  // Listen for relevant data updates only (prevents cascade reloads)
   useDataListener((category) => {
-    if (__DEV__) {
-      console.log('[useDailyCareInstances] useDataListener received event:', category);
+    if (['dailyInstances', 'carePlanItems', 'carePlan', 'logs', 'sampleDataCleared'].includes(category)) {
+      devLog('[useDailyCareInstances] useDataListener received event:', category);
+      loadInstances();
     }
-    loadInstances();
   });
 
   /**
@@ -239,7 +238,7 @@ export function useDailyCareInstances(
 
     if (__DEV__) {
       const suppCount = instances.length - visibleInstances.length;
-      console.log('[useDailyCareInstances] useMemo computing state, instances.length:', instances.length, 'visible:', visibleInstances.length, 'suppressed:', suppCount, 'skipSuppression:', skipSuppression);
+      devLog('[useDailyCareInstances] useMemo computing state, instances.length:', instances.length, 'visible:', visibleInstances.length, 'suppressed:', suppCount, 'skipSuppression:', skipSuppression);
     }
 
     const currentWindow = getCurrentWindowLabel();
@@ -303,7 +302,7 @@ export function useDailyCareInstances(
       // Data will refresh via listener
       return result;
     } catch (err) {
-      console.error('Error completing instance:', err);
+      logError('useDailyCareInstances.completeInstance', err);
       throw err;
     }
   }, [patientId, targetDate]);
@@ -323,7 +322,7 @@ export function useDailyCareInstances(
       );
       // Data will refresh via listener
     } catch (err) {
-      console.error('Error skipping instance:', err);
+      logError('useDailyCareInstances.skipInstance', err);
       throw err;
     }
   }, [patientId, targetDate]);
@@ -336,7 +335,7 @@ export function useDailyCareInstances(
       await updateDailyInstanceStatus(patientId, targetDate, instanceId, 'missed');
       // Data will refresh via listener
     } catch (err) {
-      console.error('Error marking instance as missed:', err);
+      logError('useDailyCareInstances.markMissed', err);
       throw err;
     }
   }, [patientId, targetDate]);

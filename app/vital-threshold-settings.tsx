@@ -21,6 +21,7 @@ import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { CommonStyles } from '../theme/commonStyles';
 import PageHeader from '../components/PageHeader';
 import { VITAL_THRESHOLDS, VitalType, loadCustomThresholds } from '../utils/vitalThresholds';
+import { logError } from '../utils/devLog';
 
 const STORAGE_KEY = '@embermate_custom_vital_thresholds';
 
@@ -59,7 +60,7 @@ export default function VitalThresholdSettings() {
         setCustomThresholds(JSON.parse(stored));
       }
     } catch (error) {
-      console.error('Error loading custom thresholds:', error);
+      logError('VitalThresholdSettings.loadCustomThresholds', error);
     }
   };
 
@@ -226,7 +227,7 @@ export default function VitalThresholdSettings() {
       setHasChanges(false);
       Alert.alert('Saved', 'Custom vital thresholds saved successfully.');
     } catch (error) {
-      console.error('Error saving thresholds:', error);
+      logError('VitalThresholdSettings.handleSave', error);
       Alert.alert('Error', 'Could not save thresholds. Please try again.');
     }
   };
@@ -292,10 +293,10 @@ export default function VitalThresholdSettings() {
         </View>
 
         <View style={styles.fieldsGrid}>
-          {renderThresholdField(vitalKey, 'criticalLow', 'Critical Low', '#EF4444')}
-          {renderThresholdField(vitalKey, 'low', 'Low', '#F59E0B')}
-          {renderThresholdField(vitalKey, 'high', 'High', '#F59E0B')}
-          {renderThresholdField(vitalKey, 'criticalHigh', 'Critical High', '#EF4444')}
+          {renderThresholdField(vitalKey, 'criticalLow', 'Critical Low', Colors.red)}
+          {renderThresholdField(vitalKey, 'low', 'Low', Colors.amber)}
+          {renderThresholdField(vitalKey, 'high', 'High', Colors.amber)}
+          {renderThresholdField(vitalKey, 'criticalHigh', 'Critical High', Colors.red)}
         </View>
 
         <Text style={styles.rangePreview}>
@@ -403,9 +404,9 @@ const styles = StyleSheet.create({
 
   // Info Banner
   infoBanner: {
-    backgroundColor: 'rgba(20, 184, 166, 0.06)',
+    backgroundColor: Colors.accentTint,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accentHint,
     borderRadius: 10,
     padding: 14,
     marginBottom: 20,
@@ -418,9 +419,9 @@ const styles = StyleSheet.create({
 
   // Vital Card
   vitalCard: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: Colors.glass,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: Colors.border,
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
@@ -473,10 +474,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(239, 68, 68, 0.4)',
   },
   warningSegment: {
-    backgroundColor: 'rgba(245, 158, 11, 0.4)',
+    backgroundColor: Colors.amberGlow,
   },
   normalSegment: {
-    backgroundColor: 'rgba(16, 185, 129, 0.4)',
+    backgroundColor: Colors.greenGlow,
     flex: 2,
   },
 
@@ -500,9 +501,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   fieldInput: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: Colors.glassHover,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: Colors.glassActive,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -524,9 +525,9 @@ const styles = StyleSheet.create({
 
   // Reset Button
   resetButton: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: Colors.glassHover,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -549,7 +550,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonDisabled: {
-    backgroundColor: 'rgba(20, 184, 166, 0.2)',
+    backgroundColor: Colors.borderMedium,
   },
   saveButtonText: {
     fontSize: 16,
@@ -557,11 +558,11 @@ const styles = StyleSheet.create({
     color: Colors.background,
   },
   saveButtonTextDisabled: {
-    color: 'rgba(255,255,255,0.3)',
+    color: Colors.textPlaceholder,
   },
   resetAllButton: {
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.lg,
     alignItems: 'center',

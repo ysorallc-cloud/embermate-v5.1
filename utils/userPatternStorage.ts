@@ -4,6 +4,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logError } from './devLog';
 
 export interface UserPattern {
   id: string;
@@ -100,7 +101,7 @@ export async function getUserPatterns(): Promise<UserPattern[]> {
     }
     return JSON.parse(data);
   } catch (error) {
-    console.error('Error loading user patterns:', error);
+    logError('userPatternStorage.getUserPatterns', error);
     return DEFAULT_PATTERNS;
   }
 }
@@ -122,7 +123,7 @@ export async function createUserPattern(
     await AsyncStorage.setItem(PATTERNS_KEY, JSON.stringify(patterns));
     return newPattern;
   } catch (error) {
-    console.error('Error creating user pattern:', error);
+    logError('userPatternStorage.createUserPattern', error);
     throw error;
   }
 }
@@ -140,7 +141,7 @@ export async function updatePatternUsage(patternId: string): Promise<void> {
       await AsyncStorage.setItem(PATTERNS_KEY, JSON.stringify(patterns));
     }
   } catch (error) {
-    console.error('Error updating pattern usage:', error);
+    logError('userPatternStorage.updatePatternUsage', error);
   }
 }
 
@@ -171,7 +172,7 @@ export async function suggestPatternsForTime(time: Date = new Date()): Promise<U
       return b.usageCount - a.usageCount;
     });
   } catch (error) {
-    console.error('Error suggesting patterns:', error);
+    logError('userPatternStorage.suggestPatternsForTime', error);
     return [];
   }
 }
@@ -188,7 +189,7 @@ export async function getUserPreferences(): Promise<UserPreferences> {
     }
     return JSON.parse(data);
   } catch (error) {
-    console.error('Error loading user preferences:', error);
+    logError('userPatternStorage.getUserPreferences', error);
     return DEFAULT_PREFERENCES;
   }
 }
@@ -205,7 +206,7 @@ export async function updateUserPreferences(
     await AsyncStorage.setItem(PREFERENCES_KEY, JSON.stringify(updated));
     return updated;
   } catch (error) {
-    console.error('Error updating user preferences:', error);
+    logError('userPatternStorage.updateUserPreferences', error);
     throw error;
   }
 }
@@ -219,7 +220,7 @@ export async function deleteUserPattern(patternId: string): Promise<void> {
     const filtered = patterns.filter(p => p.id !== patternId);
     await AsyncStorage.setItem(PATTERNS_KEY, JSON.stringify(filtered));
   } catch (error) {
-    console.error('Error deleting user pattern:', error);
+    logError('userPatternStorage.deleteUserPattern', error);
     throw error;
   }
 }

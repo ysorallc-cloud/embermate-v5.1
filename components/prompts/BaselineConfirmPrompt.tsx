@@ -83,16 +83,16 @@ export const BaselineConfirmPrompt: React.FC<BaselineConfirmPromptProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: Colors.border,
     borderRadius: 10,
     padding: 12,
     marginBottom: 12,
   },
   message: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     lineHeight: 18,
     marginBottom: 10,
   },
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   yesButton: {
-    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    backgroundColor: Colors.sageBorder,
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 14,
@@ -112,14 +112,14 @@ const styles = StyleSheet.create({
     color: Colors.accent,
   },
   notReallyButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 14,
   },
   notReallyText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
   },
   dismissButton: {
     paddingVertical: 6,
@@ -127,6 +127,6 @@ const styles = StyleSheet.create({
   },
   dismissText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
   },
 });

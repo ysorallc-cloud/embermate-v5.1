@@ -4,6 +4,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { devLog, logError } from './devLog';
 
 const INSIGHT_ACTIONS_KEY = '@embermate_insight_actions';
 
@@ -34,11 +35,9 @@ export async function logInsightAction(
 
     await AsyncStorage.setItem(INSIGHT_ACTIONS_KEY, JSON.stringify(trimmedLogs));
 
-    if (__DEV__) {
-      console.log(`Insight action logged: ${actionId} for insight ${insightId}`);
-    }
+    devLog(`Insight action logged: ${actionId} for insight ${insightId}`);
   } catch (error) {
-    console.error('Error logging insight action:', error);
+    logError('insightActions.logInsightAction', error);
   }
 }
 
@@ -50,7 +49,7 @@ export async function getInsightActionLogs(): Promise<InsightActionLog[]> {
     const logs = await AsyncStorage.getItem(INSIGHT_ACTIONS_KEY);
     return logs ? JSON.parse(logs) : [];
   } catch (error) {
-    console.error('Error getting insight action logs:', error);
+    logError('insightActions.getInsightActionLogs', error);
     return [];
   }
 }
@@ -83,7 +82,7 @@ export async function calculateActionRate(): Promise<{
       actionRate,
     };
   } catch (error) {
-    console.error('Error calculating action rate:', error);
+    logError('insightActions.calculateActionRate', error);
     return {
       totalInsightsSeen: 0,
       totalActionsTaken: 0,
@@ -100,7 +99,7 @@ export async function getActionsForInsight(insightId: string): Promise<InsightAc
     const logs = await getInsightActionLogs();
     return logs.filter(l => l.insightId === insightId);
   } catch (error) {
-    console.error('Error getting actions for insight:', error);
+    logError('insightActions.getActionsForInsight', error);
     return [];
   }
 }
@@ -134,7 +133,7 @@ export async function getRecentActionStats(): Promise<{
       actionRate: `${actionRate}%`,
     };
   } catch (error) {
-    console.error('Error getting recent action stats:', error);
+    logError('insightActions.getRecentActionStats', error);
     return {
       insightsShown: 0,
       actionsTaken: 0,
@@ -151,6 +150,6 @@ export async function clearInsightActionLogs(): Promise<void> {
   try {
     await AsyncStorage.removeItem(INSIGHT_ACTIONS_KEY);
   } catch (error) {
-    console.error('Error clearing insight action logs:', error);
+    logError('insightActions.clearInsightActionLogs', error);
   }
 }

@@ -5,6 +5,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import { SwipeableTimelineItem } from './SwipeableTimelineItem';
 import { TomorrowRow } from './TomorrowRow';
 import { UndoToast } from '../common/UndoToast';
@@ -13,6 +14,7 @@ import { Colors } from '../../theme/theme-tokens';
 import { markMedicationTaken } from '../../utils/medicationStorage';
 import { saveMorningWellness, saveEveningWellness } from '../../utils/wellnessCheckStorage';
 import { format } from 'date-fns';
+import { logError } from '../../utils/devLog';
 
 interface TimelineProps {
   items: TimelineItem[];
@@ -62,7 +64,7 @@ export const Timeline: React.FC<TimelineProps> = ({ items, tomorrowCount = 0, on
         onRefresh();
       }
     } catch (error) {
-      console.error('Error completing item:', error);
+      logError('Timeline.handleComplete', error);
     }
   }, [onRefresh]);
 
@@ -86,7 +88,7 @@ export const Timeline: React.FC<TimelineProps> = ({ items, tomorrowCount = 0, on
         onRefresh();
       }
     } catch (error) {
-      console.error('Error undoing:', error);
+      logError('Timeline.handleUndo', error);
     }
   }, [undoItem, onRefresh]);
 
@@ -95,7 +97,7 @@ export const Timeline: React.FC<TimelineProps> = ({ items, tomorrowCount = 0, on
       case 'medication':
         // Route to contextual logging if we have Care Plan data
         if (item.instanceId && item.medicationName) {
-          router.push({
+          navigate({
             pathname: '/log-medication-plan-item',
             params: {
               medicationId: item.medicationIds?.[0] || '',
@@ -104,24 +106,24 @@ export const Timeline: React.FC<TimelineProps> = ({ items, tomorrowCount = 0, on
               itemName: item.medicationName,
               itemDosage: item.dosage || '',
             },
-          } as any);
+          });
         } else {
           // Fallback to manual logging only if no Care Plan context
           const medIds = item.medicationIds?.join(',') || '';
-          router.push(`/medication-confirm?ids=${medIds}` as any);
+          navigate(`/medication-confirm?ids=${medIds}`);
         }
         break;
       case 'wellness-morning':
-        router.push('/log-morning-wellness' as any);
+        navigate('/log-morning-wellness');
         break;
       case 'wellness-evening':
-        router.push('/log-evening-wellness' as any);
+        navigate('/log-evening-wellness');
         break;
       case 'appointment':
-        router.push('/appointments' as any);
+        navigate('/appointments');
         break;
       case 'vitals':
-        router.push('/log-vitals' as any);
+        navigate('/log-vitals');
         break;
       default:
         break;

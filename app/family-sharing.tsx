@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   },
   betaNotice: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    backgroundColor: Colors.blueTint,
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.3)',
     borderRadius: BorderRadius.lg,
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   betaTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#60A5FA',
+    color: Colors.blueBright,
     marginBottom: 4,
   },
   betaText: {
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   caregiverInitial: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   caregiverInfo: {
     flex: 1,

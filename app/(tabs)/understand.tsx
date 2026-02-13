@@ -27,6 +27,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
@@ -44,6 +45,7 @@ import {
   CorrelationCard,
   ConfidenceLevel,
 } from '../../utils/understandInsights';
+import { logError } from '../../utils/devLog';
 
 // ============================================================================
 // CONFIDENCE BADGE COMPONENT
@@ -56,8 +58,8 @@ interface ConfidenceBadgeProps {
 function ConfidenceBadge({ level }: ConfidenceBadgeProps) {
   // Normalized pattern strength language: "Strong pattern" and "Emerging pattern"
   const config = {
-    strong: { color: 'rgba(94, 234, 212, 0.8)', bg: 'rgba(94, 234, 212, 0.15)' },
-    emerging: { color: 'rgba(251, 191, 36, 0.8)', bg: 'rgba(251, 191, 36, 0.15)' },
+    strong: { color: Colors.sageStrong, bg: Colors.sageBorder },
+    emerging: { color: Colors.amberBrightStrong, bg: 'rgba(251, 191, 36, 0.15)' },
     early: { color: 'rgba(148, 163, 184, 0.8)', bg: 'rgba(148, 163, 184, 0.15)' },
   };
 
@@ -377,7 +379,7 @@ export default function UnderstandScreen() {
       const data = await loadUnderstandPageData(timeRange);
       setPageData(data);
     } catch (error) {
-      console.error('Error loading Understand data:', error);
+      logError('UnderstandScreen.loadData', error);
     } finally {
       setLoading(false);
     }
@@ -424,7 +426,7 @@ export default function UnderstandScreen() {
     if (!route) return;
     const validRoute = getRouteOrFallback(route);
     if (validRoute) {
-      router.push(validRoute as any);
+      navigate(validRoute);
     }
   };
 
@@ -602,7 +604,7 @@ export default function UnderstandScreen() {
 
             <TouchableOpacity
               style={styles.crossLink}
-              onPress={() => router.push('/care-plan' as any)}
+              onPress={() => navigate('/care-plan')}
               activeOpacity={0.7}
               accessibilityRole="link"
               accessibilityLabel="Edit Care Plan"
@@ -675,20 +677,20 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 34,
     fontWeight: '300',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 8,
     letterSpacing: 0.5,
   },
   headerSubtitle: {
     fontSize: 15,
     fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     letterSpacing: 0.3,
   },
   settingsButton: {
     width: 44,
     height: 44,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.glassActive,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
@@ -701,7 +703,7 @@ const styles = StyleSheet.create({
   // Time Range Toggle
   timeRangeContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     borderRadius: 10,
     padding: 4,
     gap: 4,
@@ -713,12 +715,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   timeRangeOptionSelected: {
-    backgroundColor: 'rgba(94, 234, 212, 0.2)',
+    backgroundColor: Colors.sageWash,
   },
   timeRangeText: {
     fontSize: 14,
     fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
   timeRangeTextSelected: {
     color: Colors.accent,
@@ -731,7 +733,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 11,
     fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginBottom: 12,
@@ -740,9 +742,9 @@ const styles = StyleSheet.create({
 
   // What Stands Out Card
   standOutCard: {
-    backgroundColor: 'rgba(94, 234, 212, 0.06)',
+    backgroundColor: Colors.sageTint,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.15)',
+    borderColor: Colors.sageBorder,
     borderRadius: 16,
     padding: 16,
     gap: 12,
@@ -774,7 +776,7 @@ const styles = StyleSheet.create({
   },
   dataContextBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: Colors.border,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
@@ -782,7 +784,7 @@ const styles = StyleSheet.create({
   },
   dataContextText: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
 
   // What's Going Well Card
@@ -807,7 +809,7 @@ const styles = StyleSheet.create({
   positiveText: {
     flex: 1,
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.textBright,
     lineHeight: 20,
   },
 
@@ -817,8 +819,8 @@ const styles = StyleSheet.create({
   },
   correlationCard: {
     padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.glassFaint,
+    borderColor: Colors.glassActive,
     borderWidth: 1,
   },
   correlationHeader: {
@@ -840,7 +842,7 @@ const styles = StyleSheet.create({
   },
   correlationDataPoints: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
   },
 
   // Confidence Badge
@@ -867,7 +869,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: Colors.border,
   },
   suggestionHeader: {
     flexDirection: 'row',
@@ -878,18 +880,18 @@ const styles = StyleSheet.create({
   suggestionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(251, 191, 36, 0.8)',
+    color: Colors.amberBrightStrong,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   suggestionDismiss: {
     fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: Colors.textPlaceholder,
     fontWeight: '300',
   },
   suggestionText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     lineHeight: 19,
     fontStyle: 'italic',
   },
@@ -900,8 +902,8 @@ const styles = StyleSheet.create({
   },
   toolCard: {
     padding: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.glassFaint,
+    borderColor: Colors.glassActive,
     borderWidth: 1,
   },
   toolContent: {
@@ -913,7 +915,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(94, 234, 212, 0.12)',
+    backgroundColor: Colors.sageSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -938,7 +940,7 @@ const styles = StyleSheet.create({
   },
   chevron: {
     fontSize: 18,
-    color: 'rgba(94, 234, 212, 0.5)',
+    color: Colors.accentMuted,
     fontWeight: '600',
   },
 
@@ -952,7 +954,7 @@ const styles = StyleSheet.create({
   },
   crossLinkText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
   crossLinkAction: {
     color: Colors.accent,
@@ -968,16 +970,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '400',
     fontStyle: 'italic',
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     textAlign: 'center',
     lineHeight: 20,
   },
 
   // Sample Data Banner
   sampleBanner: {
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+    backgroundColor: Colors.purpleLight,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
+    borderColor: Colors.purpleStrong,
     borderRadius: 14,
     padding: 14,
     marginBottom: 20,
@@ -998,17 +1000,17 @@ const styles = StyleSheet.create({
   sampleBannerTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#A78BFA',
+    color: Colors.purpleBright,
     marginBottom: 4,
   },
   sampleBannerSubtitle: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     lineHeight: 18,
   },
   sampleBannerDismiss: {
     alignSelf: 'flex-end',
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    backgroundColor: Colors.purpleWash,
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 8,
@@ -1016,12 +1018,12 @@ const styles = StyleSheet.create({
   sampleBannerDismissText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#A78BFA',
+    color: Colors.purpleBright,
   },
 
   // Sample Data Banner - Compact version (after first dismissal)
   sampleBannerCompact: {
-    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    backgroundColor: Colors.purpleFaint,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -1033,15 +1035,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   sampleBannerCompactLink: {
-    color: '#A78BFA',
+    color: Colors.purpleBright,
     fontWeight: '500',
   },
 
   // Confidence Explanation (one-time)
   confidenceExplanation: {
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+    backgroundColor: Colors.sageFaint,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.2)',
+    borderColor: Colors.sageWash,
     borderRadius: 14,
     padding: 16,
     marginBottom: 20,
@@ -1055,11 +1057,11 @@ const styles = StyleSheet.create({
   confidenceExplanationTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'rgba(94, 234, 212, 0.9)',
+    color: Colors.sageBright,
   },
   confidenceExplanationDismiss: {
     fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     fontWeight: '300',
   },
   confidenceExplanationText: {
@@ -1070,17 +1072,17 @@ const styles = StyleSheet.create({
   },
   confidenceExplanationBold: {
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: Colors.textAlmostFull,
   },
   confidenceExplanationNote: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     fontStyle: 'italic',
   },
 
   // Track This Button
   trackThisButton: {
-    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    backgroundColor: Colors.sageBorder,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -1090,6 +1092,6 @@ const styles = StyleSheet.create({
   trackThisText: {
     fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(94, 234, 212, 0.9)',
+    color: Colors.sageBright,
   },
 });

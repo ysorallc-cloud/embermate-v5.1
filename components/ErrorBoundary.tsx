@@ -12,6 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Colors } from '../theme/theme-tokens';
+import { reportError } from '../utils/errorReporting';
 
 interface Props {
   children: ReactNode;
@@ -41,12 +42,10 @@ class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ errorInfo });
 
-    // Log error to console for debugging
-    console.error('ErrorBoundary caught an error:', error);
-    console.error('Component stack:', errorInfo.componentStack);
-
-    // Here you could also send to an error reporting service
-    // e.g., Sentry, Bugsnag, etc.
+    reportError(error, {
+      component: 'ErrorBoundary',
+      componentStack: errorInfo.componentStack || 'unknown',
+    });
   }
 
   handleRetry = (): void => {
@@ -149,7 +148,7 @@ const styles = StyleSheet.create({
   debugContainer: {
     maxHeight: 200,
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.surfaceElevated,
     borderRadius: 8,
     padding: 12,
     marginTop: 16,

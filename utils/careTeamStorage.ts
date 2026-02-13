@@ -4,6 +4,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logError } from './devLog';
 
 export interface CareTeamMember {
   id: string;
@@ -36,7 +37,7 @@ export async function getCareTeam(): Promise<CareTeamMember[]> {
     }
     return JSON.parse(data);
   } catch (error) {
-    console.error('Error getting care team:', error);
+    logError('careTeamStorage.getCareTeam', error);
     return getDefaultCareTeam();
   }
 }
@@ -49,7 +50,7 @@ export async function getCareTeamMember(id: string): Promise<CareTeamMember | nu
     const team = await getCareTeam();
     return team.find(m => m.id === id) || null;
   } catch (error) {
-    console.error('Error getting care team member:', error);
+    logError('careTeamStorage.getCareTeamMember', error);
     return null;
   }
 }
@@ -64,7 +65,7 @@ export async function getEmergencyContacts(): Promise<CareTeamMember[]> {
       .filter(m => m.isEmergencyContact && m.phone)
       .sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
-    console.error('Error getting emergency contacts:', error);
+    logError('careTeamStorage.getEmergencyContacts', error);
     return [];
   }
 }
@@ -87,7 +88,7 @@ export async function createCareTeamMember(
     await AsyncStorage.setItem(CARE_TEAM_KEY, JSON.stringify(team));
     return newMember;
   } catch (error) {
-    console.error('Error creating care team member:', error);
+    logError('careTeamStorage.createCareTeamMember', error);
     throw error;
   }
 }
@@ -111,7 +112,7 @@ export async function updateCareTeamMember(
     await AsyncStorage.setItem(CARE_TEAM_KEY, JSON.stringify(team));
     return team[index];
   } catch (error) {
-    console.error('Error updating care team member:', error);
+    logError('careTeamStorage.updateCareTeamMember', error);
     return null;
   }
 }
@@ -131,7 +132,7 @@ export async function deleteCareTeamMember(id: string): Promise<boolean> {
     await AsyncStorage.setItem(CARE_TEAM_KEY, JSON.stringify(filtered));
     return true;
   } catch (error) {
-    console.error('Error deleting care team member:', error);
+    logError('careTeamStorage.deleteCareTeamMember', error);
     return false;
   }
 }
@@ -153,7 +154,7 @@ export async function reorderCareTeam(orderedIds: string[]): Promise<boolean> {
     await AsyncStorage.setItem(CARE_TEAM_KEY, JSON.stringify(final));
     return true;
   } catch (error) {
-    console.error('Error reordering care team:', error);
+    logError('careTeamStorage.reorderCareTeam', error);
     return false;
   }
 }
@@ -213,7 +214,7 @@ export async function resetCareTeam(): Promise<void> {
     const defaults = getDefaultCareTeam();
     await AsyncStorage.setItem(CARE_TEAM_KEY, JSON.stringify(defaults));
   } catch (error) {
-    console.error('Error resetting care team:', error);
+    logError('careTeamStorage.resetCareTeam', error);
   }
 }
 
@@ -272,7 +273,7 @@ export async function countEmergencyContacts(): Promise<number> {
     const contacts = await getEmergencyContacts();
     return contacts.length;
   } catch (error) {
-    console.error('Error counting emergency contacts:', error);
+    logError('careTeamStorage.countEmergencyContacts', error);
     return 0;
   }
 }

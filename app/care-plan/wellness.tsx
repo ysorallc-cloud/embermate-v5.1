@@ -180,9 +180,9 @@ export default function WellnessConfigScreen() {
               <Switch
                 value={settings.morning.optionalChecks[field.key] ?? false}
                 onValueChange={(value) => handleToggleOptional('morning', field.key, value)}
-                trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
-                thumbColor={(settings.morning.optionalChecks[field.key] ?? false) ? '#FFFFFF' : '#F4F3F4'}
-                ios_backgroundColor="rgba(255,255,255,0.2)"
+                trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
+                thumbColor={(settings.morning.optionalChecks[field.key] ?? false) ? Colors.textPrimary : Colors.switchThumbOff}
+                ios_backgroundColor={Colors.glassStrong}
                 accessibilityLabel={`Morning ${field.label}`}
                 accessibilityRole="switch"
                 accessibilityState={{ checked: settings.morning.optionalChecks[field.key] ?? false }}
@@ -199,9 +199,9 @@ export default function WellnessConfigScreen() {
             <Switch
               value={settings.morning.reminderEnabled}
               onValueChange={(value) => handleToggleReminder('morning', value)}
-              trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
-              thumbColor={settings.morning.reminderEnabled ? '#FFFFFF' : '#F4F3F4'}
-              ios_backgroundColor="rgba(255,255,255,0.2)"
+              trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
+              thumbColor={settings.morning.reminderEnabled ? Colors.textPrimary : Colors.switchThumbOff}
+              ios_backgroundColor={Colors.glassStrong}
               accessibilityLabel="Morning Reminder"
               accessibilityRole="switch"
               accessibilityState={{ checked: settings.morning.reminderEnabled }}
@@ -260,9 +260,9 @@ export default function WellnessConfigScreen() {
               <Switch
                 value={settings.evening.optionalChecks[field.key] ?? false}
                 onValueChange={(value) => handleToggleOptional('evening', field.key, value)}
-                trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
-                thumbColor={(settings.evening.optionalChecks[field.key] ?? false) ? '#FFFFFF' : '#F4F3F4'}
-                ios_backgroundColor="rgba(255,255,255,0.2)"
+                trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
+                thumbColor={(settings.evening.optionalChecks[field.key] ?? false) ? Colors.textPrimary : Colors.switchThumbOff}
+                ios_backgroundColor={Colors.glassStrong}
                 accessibilityLabel={`Evening ${field.label}`}
                 accessibilityRole="switch"
                 accessibilityState={{ checked: settings.evening.optionalChecks[field.key] ?? false }}
@@ -279,9 +279,9 @@ export default function WellnessConfigScreen() {
             <Switch
               value={settings.evening.reminderEnabled}
               onValueChange={(value) => handleToggleReminder('evening', value)}
-              trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
-              thumbColor={settings.evening.reminderEnabled ? '#FFFFFF' : '#F4F3F4'}
-              ios_backgroundColor="rgba(255,255,255,0.2)"
+              trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
+              thumbColor={settings.evening.reminderEnabled ? Colors.textPrimary : Colors.switchThumbOff}
+              ios_backgroundColor={Colors.glassStrong}
               accessibilityLabel="Evening Reminder"
               accessibilityRole="switch"
               accessibilityState={{ checked: settings.evening.reminderEnabled }}
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   backButton: {
     width: 44,
     height: 44,
-    backgroundColor: '#0d332e',
+    backgroundColor: Colors.backgroundElevated,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 12,
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     letterSpacing: 1,
     marginBottom: Spacing.md,
     marginTop: Spacing.xl,
@@ -396,15 +396,15 @@ const styles = StyleSheet.create({
   timeChip: {
     flex: 1,
     paddingVertical: Spacing.sm,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
   },
   timeChipSelected: {
     borderColor: Colors.accent,
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+    backgroundColor: Colors.sageFaint,
   },
   timeChipText: {
     fontSize: 13,
@@ -420,15 +420,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    backgroundColor: Colors.surfaceAlt,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: Colors.glassHover,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.sm,
   },
   coreBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: Colors.border,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
@@ -445,9 +445,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -470,9 +470,9 @@ const styles = StyleSheet.create({
   // Info Card
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    backgroundColor: Colors.purpleMuted,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
+    borderColor: Colors.purpleStrong,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginTop: Spacing.xl,
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#A78BFA',
+    color: Colors.purpleBright,
     marginBottom: 4,
   },
   infoText: {

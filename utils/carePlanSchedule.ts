@@ -256,7 +256,7 @@ function getItemAction(item: DayStateItem): {
       return {
         actionLabel: 'Details',
         actionType: 'open',
-        actionRoute: '/log-appointment',
+        actionRoute: '/appointment-form',
       };
     case 'custom':
     default:

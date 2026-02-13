@@ -17,7 +17,7 @@ export const ClosurePrompt: React.FC<ClosurePromptProps> = ({ message }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: Colors.greenTint,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',

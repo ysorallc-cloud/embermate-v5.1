@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: Colors.border,
     borderWidth: 1,
     borderColor: Colors.purpleBorder,
     borderRadius: 8,

@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   icon: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   message: {
     flex: 1,

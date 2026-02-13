@@ -7,6 +7,7 @@ import { getMedications, Medication } from './medicationStorage';
 import { getVitalsForDate, VitalReading } from './vitalsStorage';
 import { getDailyTracking } from './dailyTrackingStorage';
 import { UserPattern, suggestPatternsForTime } from './userPatternStorage';
+import { logError } from './devLog';
 
 export interface CheckinDefaults {
   systolic?: number;
@@ -45,7 +46,7 @@ export async function getScheduledMedications(
 
     return activeMeds.filter(m => m.timeSlot === timeSlot);
   } catch (error) {
-    console.error('Error getting scheduled medications:', error);
+    logError('smartDefaultsEngine.getScheduledMedications', error);
     return [];
   }
 }
@@ -82,7 +83,7 @@ export async function getRecentVitals(): Promise<Partial<CheckinDefaults>> {
 
     return result;
   } catch (error) {
-    console.error('Error getting recent vitals:', error);
+    logError('smartDefaultsEngine.getRecentVitals', error);
     return {};
   }
 }
@@ -130,7 +131,7 @@ export async function getDefaultsForCheckIn(
 
     return defaults;
   } catch (error) {
-    console.error('Error getting check-in defaults:', error);
+    logError('smartDefaultsEngine.getDefaultsForCheckIn', error);
     return defaults;
   }
 }
@@ -166,7 +167,7 @@ export async function getDefaultsForPattern(
 
     return defaults;
   } catch (error) {
-    console.error('Error getting pattern defaults:', error);
+    logError('smartDefaultsEngine.getDefaultsForPattern', error);
     return defaults;
   }
 }
@@ -213,7 +214,7 @@ export async function getSuggestedSections(
 
     return suggestions;
   } catch (error) {
-    console.error('Error getting section suggestions:', error);
+    logError('smartDefaultsEngine.getSuggestedSections', error);
     return [];
   }
 }
@@ -226,7 +227,7 @@ export async function getSuggestedPattern(): Promise<UserPattern | null> {
     const patterns = await suggestPatternsForTime(new Date());
     return patterns.length > 0 ? patterns[0] : null;
   } catch (error) {
-    console.error('Error getting suggested pattern:', error);
+    logError('smartDefaultsEngine.getSuggestedPattern', error);
     return null;
   }
 }
@@ -239,7 +240,7 @@ export async function getPendingMedicationCount(): Promise<number> {
     const meds = await getMedications();
     return meds.filter(m => m.active && !m.taken).length;
   } catch (error) {
-    console.error('Error getting pending med count:', error);
+    logError('smartDefaultsEngine.getPendingMedicationCount', error);
     return 0;
   }
 }
@@ -253,7 +254,7 @@ export async function hasLoggedVitalsToday(): Promise<boolean> {
     const vitals = await getVitalsForDate(today);
     return vitals.length > 0;
   } catch (error) {
-    console.error('Error checking vitals:', error);
+    logError('smartDefaultsEngine.hasLoggedVitalsToday', error);
     return false;
   }
 }
@@ -267,7 +268,7 @@ export async function hasLoggedMoodToday(): Promise<boolean> {
     const tracking = await getDailyTracking(today);
     return tracking?.mood !== null && tracking?.mood !== undefined;
   } catch (error) {
-    console.error('Error checking mood:', error);
+    logError('smartDefaultsEngine.hasLoggedMoodToday', error);
     return false;
   }
 }

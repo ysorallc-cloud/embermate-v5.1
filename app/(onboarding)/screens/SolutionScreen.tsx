@@ -183,15 +183,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: Colors.greenTint,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: Colors.greenStrong,
     borderRadius: 12,
     padding: 16,
   },
   benefitIcon: {
     fontSize: 20,
-    color: '#10B981',
+    color: Colors.green,
     fontWeight: '600',
   },
   benefitContent: {

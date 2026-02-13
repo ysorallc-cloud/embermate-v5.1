@@ -21,6 +21,7 @@ import { GlassCard } from '../components/aurora/GlassCard';
 import { BackButton } from '../components/common/BackButton';
 import { getDailyTrackingLogs } from '../utils/dailyTrackingStorage';
 import { getMedicationLogs } from '../utils/medicationStorage';
+import { logError } from '../utils/devLog';
 
 // ============================================================================
 // TYPES
@@ -55,7 +56,7 @@ const SAMPLE_TRENDS: TrendData[] = [
     id: 'mood',
     title: 'Mood',
     emoji: '😊',
-    color: '#A78BFA',
+    color: Colors.purpleBright,
     unit: '/10',
     points: [
       { date: '2024-01-10', label: 'Wed', value: 6 },
@@ -74,7 +75,7 @@ const SAMPLE_TRENDS: TrendData[] = [
     id: 'energy',
     title: 'Energy',
     emoji: '⚡',
-    color: '#FBBF24',
+    color: Colors.amberBright,
     unit: '/10',
     points: [
       { date: '2024-01-10', label: 'Wed', value: 5 },
@@ -93,7 +94,7 @@ const SAMPLE_TRENDS: TrendData[] = [
     id: 'pain',
     title: 'Pain Level',
     emoji: '🩹',
-    color: '#F87171',
+    color: Colors.redBright,
     unit: '/10',
     points: [
       { date: '2024-01-10', label: 'Wed', value: 4 },
@@ -112,7 +113,7 @@ const SAMPLE_TRENDS: TrendData[] = [
     id: 'hydration',
     title: 'Hydration',
     emoji: '💧',
-    color: '#38BDF8',
+    color: Colors.skyBright,
     unit: ' glasses',
     points: [
       { date: '2024-01-10', label: 'Wed', value: 6 },
@@ -131,7 +132,7 @@ const SAMPLE_TRENDS: TrendData[] = [
     id: 'medAdherence',
     title: 'Medication',
     emoji: '💊',
-    color: '#5EEAD4',
+    color: Colors.sage,
     unit: '%',
     points: [
       { date: '2024-01-10', label: 'Wed', value: 100 },
@@ -203,8 +204,8 @@ function TrendCard({ trend }: TrendCardProps) {
   // For pain, negative change is good
   const isPainMetric = trend.id === 'pain';
   const changeColor = isPainMetric
-    ? (isNegative ? '#22C55E' : isPositive ? '#F87171' : Colors.textMuted)
-    : (isPositive ? '#22C55E' : isNegative ? '#F87171' : Colors.textMuted);
+    ? (isNegative ? Colors.greenBright : isPositive ? Colors.redBright : Colors.textMuted)
+    : (isPositive ? Colors.greenBright : isNegative ? Colors.redBright : Colors.textMuted);
 
   return (
     <GlassCard style={styles.trendCard}>
@@ -285,7 +286,7 @@ export default function TrendsScreen() {
         setShowingSample(realTrends.length === 0);
       }
     } catch (error) {
-      console.error('Error loading trends:', error);
+      logError('TrendsScreen.loadTrends', error);
       setTrends(SAMPLE_TRENDS);
       setShowingSample(true);
     } finally {
@@ -324,7 +325,7 @@ export default function TrendsScreen() {
         id: 'mood',
         title: 'Mood',
         emoji: '😊',
-        color: '#A78BFA',
+        color: Colors.purpleBright,
         unit: '/10',
         points,
         average: avg,
@@ -350,7 +351,7 @@ export default function TrendsScreen() {
         id: 'energy',
         title: 'Energy',
         emoji: '⚡',
-        color: '#FBBF24',
+        color: Colors.amberBright,
         unit: '/10',
         points,
         average: avg,
@@ -376,7 +377,7 @@ export default function TrendsScreen() {
         id: 'pain',
         title: 'Pain Level',
         emoji: '🩹',
-        color: '#F87171',
+        color: Colors.redBright,
         unit: '/10',
         points,
         average: avg,
@@ -402,7 +403,7 @@ export default function TrendsScreen() {
         id: 'hydration',
         title: 'Hydration',
         emoji: '💧',
-        color: '#38BDF8',
+        color: Colors.skyBright,
         unit: ' glasses',
         points,
         average: avg,
@@ -559,9 +560,9 @@ const styles = StyleSheet.create({
 
   // Sample Banner
   sampleBanner: {
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+    backgroundColor: Colors.purpleLight,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
+    borderColor: Colors.purpleStrong,
     borderRadius: 14,
     padding: 14,
     marginBottom: Spacing.xl,
@@ -581,19 +582,19 @@ const styles = StyleSheet.create({
   sampleBannerTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#A78BFA',
+    color: Colors.purpleBright,
     marginBottom: 4,
   },
   sampleBannerSubtitle: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     lineHeight: 18,
   },
 
   // Time Range
   timeRangeRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     borderRadius: 10,
     padding: 4,
     gap: 4,
@@ -606,12 +607,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   timeRangeButtonActive: {
-    backgroundColor: 'rgba(94, 234, 212, 0.2)',
+    backgroundColor: Colors.sageWash,
   },
   timeRangeText: {
     fontSize: 14,
     fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
   timeRangeTextActive: {
     color: Colors.accent,
@@ -625,8 +626,8 @@ const styles = StyleSheet.create({
   // Trend Card
   trendCard: {
     padding: Spacing.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.glassFaint,
+    borderColor: Colors.glassActive,
     borderWidth: 1,
   },
   trendHeader: {
@@ -712,9 +713,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    backgroundColor: Colors.blueFaint,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)',
+    borderColor: Colors.blueWash,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginTop: Spacing.xl,
@@ -725,7 +726,7 @@ const styles = StyleSheet.create({
   insightText: {
     flex: 1,
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     lineHeight: 18,
   },
 });

@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { TodayData, StatusResult } from './types';
+import { Colors } from '../theme/theme-tokens';
 
 export const getMedicationStatus = (data: TodayData): StatusResult => {
   const { taken, total } = data.medications;
@@ -131,9 +132,9 @@ export const getNotesStatus = (data: TodayData): StatusResult => {
 };
 
 export const getStrokeColor = (status: 'complete' | 'partial' | 'empty'): string => {
-  if (status === 'complete') return '#10B981';
+  if (status === 'complete') return Colors.green;
   if (status === 'partial') return '#FFC107';
-  return 'rgba(255, 255, 255, 0.2)';
+  return Colors.glassStrong;
 };
 
 export const calculateStrokeDashoffset = (percent: number, circumference: number): number => {

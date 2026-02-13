@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { useState, useEffect, useCallback } from 'react';
+import { logError } from '../utils/devLog';
 import { useDataListener, emitDataUpdate } from '../lib/events';
 import {
   AppointmentPrepChecklist,
@@ -70,7 +71,7 @@ export function usePrepChecklist(appointment: Appointment | null): UsePrepCheckl
       const data = await getPrepChecklist(appointment);
       setChecklist(data);
     } catch (err) {
-      console.error('Error loading prep checklist:', err);
+      logError('usePrepChecklist.loadData', err);
       setError(err instanceof Error ? err : new Error('Failed to load checklist'));
     } finally {
       setLoading(false);
@@ -116,7 +117,7 @@ export function usePrepChecklist(appointment: Appointment | null): UsePrepCheckl
         emitDataUpdate('prepChecklist');
       }
     } catch (err) {
-      console.error('Error toggling prep item:', err);
+      logError('usePrepChecklist.toggleItem', err);
     }
   }, [checklist, appointment?.id]);
 
@@ -133,7 +134,7 @@ export function usePrepChecklist(appointment: Appointment | null): UsePrepCheckl
         emitDataUpdate('prepChecklist');
       }
     } catch (err) {
-      console.error('Error adding prep item:', err);
+      logError('usePrepChecklist.addItem', err);
     }
   }, [appointment?.id]);
 
@@ -150,7 +151,7 @@ export function usePrepChecklist(appointment: Appointment | null): UsePrepCheckl
         emitDataUpdate('prepChecklist');
       }
     } catch (err) {
-      console.error('Error removing prep item:', err);
+      logError('usePrepChecklist.removeItem', err);
     }
   }, [appointment?.id]);
 

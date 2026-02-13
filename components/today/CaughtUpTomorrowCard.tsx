@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.glassActive,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   bottomSection: {
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     padding: 12,
     paddingHorizontal: 14,
     borderTopWidth: 1,

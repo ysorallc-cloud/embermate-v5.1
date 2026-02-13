@@ -36,6 +36,7 @@ import {
   exportAuditLogs,
   AuditLogEntry,
 } from '../../utils/auditLog';
+import { logError } from '../../utils/devLog';
 
 export default function SecuritySettingsScreen() {
   const router = useRouter();
@@ -78,7 +79,7 @@ export default function SecuritySettingsScreen() {
         setLastActivity('Never');
       }
     } catch (error) {
-      console.error('Error loading security status:', error);
+      logError('SecuritySettingsScreen.loadSecurityStatus', error);
     }
   };
 
@@ -90,7 +91,7 @@ export default function SecuritySettingsScreen() {
       setRecentActivity(recent);
       setAuditStats(stats);
     } catch (error) {
-      console.error('Error loading audit data:', error);
+      logError('SecuritySettingsScreen.loadAuditData', error);
     }
   };
 
@@ -111,7 +112,7 @@ export default function SecuritySettingsScreen() {
         Alert.alert('Disabled', 'Biometric authentication has been disabled');
       }
     } catch (error) {
-      console.error('Error toggling biometric:', error);
+      logError('SecuritySettingsScreen.handleToggleBiometric', error);
       Alert.alert('Error', 'Failed to change biometric setting');
     }
   };
@@ -597,10 +598,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accentLight,
   },
   severityCritical: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: Colors.redHint,
   },
   severityWarning: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    backgroundColor: Colors.amberHint,
   },
   severityText: {
     fontSize: 10,

@@ -42,7 +42,7 @@ export const NotificationPrompt: React.FC<NotificationPromptProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    backgroundColor: Colors.amberBrightTint,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,

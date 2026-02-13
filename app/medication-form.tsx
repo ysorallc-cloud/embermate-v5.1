@@ -60,6 +60,7 @@ import {
   TimeWindowLabel,
 } from '../types/carePlan';
 import { generateUniqueId } from '../utils/idGenerator';
+import { logError } from '../utils/devLog';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'bedtime';
 
@@ -334,7 +335,7 @@ export default function MedicationFormScreen() {
         }
       }
     } catch (error) {
-      console.error('Error loading medication:', error);
+      logError('MedicationFormScreen.loadMedication', error);
     }
   };
 
@@ -567,7 +568,7 @@ export default function MedicationFormScreen() {
 
       router.back();
     } catch (error) {
-      console.error('Error saving medication:', error);
+      logError('MedicationFormScreen.handleSave', error);
       Alert.alert('Error', 'Failed to save medication');
     }
   };
@@ -786,7 +787,7 @@ export default function MedicationFormScreen() {
               <Switch
                 value={reminderEnabled}
                 onValueChange={setReminderEnabled}
-                trackColor={{ false: Colors.textMuted, true: '#F59E0B' }}
+                trackColor={{ false: Colors.textMuted, true: Colors.amber }}
                 thumbColor={Colors.surface}
                 ios_backgroundColor={Colors.textMuted}
               />
@@ -855,7 +856,7 @@ export default function MedicationFormScreen() {
                     <Switch
                       value={followUpEnabled}
                       onValueChange={setFollowUpEnabled}
-                      trackColor={{ false: Colors.textMuted, true: '#F59E0B' }}
+                      trackColor={{ false: Colors.textMuted, true: Colors.amber }}
                       thumbColor={Colors.surface}
                       ios_backgroundColor={Colors.textMuted}
                     />
@@ -1056,7 +1057,7 @@ const styles = StyleSheet.create({
     backButton: {
     width: 44,
     height: 44,
-    backgroundColor: '#0d332e',
+    backgroundColor: Colors.backgroundElevated,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 12,
@@ -1179,7 +1180,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     marginTop: 4,
-    backgroundColor: '#0d332e',
+    backgroundColor: Colors.backgroundElevated,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: BorderRadius.md,
@@ -1219,8 +1220,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   reminderContainerActive: {
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    backgroundColor: Colors.amberFaint,
+    borderColor: Colors.warningBorder,
   },
   reminderToggleRow: {
     flexDirection: 'row',
@@ -1254,12 +1255,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(245, 158, 11, 0.2)',
+    borderTopColor: Colors.amberMuted,
   },
   reminderSectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#FBBF24',
+    color: Colors.amberBright,
     marginTop: Spacing.md,
     marginBottom: Spacing.sm,
     letterSpacing: 0.5,
@@ -1275,19 +1276,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderColor: Colors.warningBorder,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
   timingOptionActive: {
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    borderColor: '#FBBF24',
+    backgroundColor: Colors.amberMuted,
+    borderColor: Colors.amberBright,
   },
   timingOptionText: {
     fontSize: 13,
     color: Colors.textSecondary,
   },
   timingOptionTextActive: {
-    color: '#FBBF24',
+    color: Colors.amberBright,
     fontWeight: '600',
   },
   customInputRow: {
@@ -1300,7 +1301,7 @@ const styles = StyleSheet.create({
     width: 60,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderColor: Colors.warningBorder,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -1316,7 +1317,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(245, 158, 11, 0.15)',
+    borderTopColor: Colors.amberHint,
   },
   followUpToggleRow: {
     flexDirection: 'row',
@@ -1352,19 +1353,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderColor: Colors.warningBorder,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
   followUpIntervalOptionActive: {
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    borderColor: '#FBBF24',
+    backgroundColor: Colors.amberMuted,
+    borderColor: Colors.amberBright,
   },
   followUpIntervalText: {
     fontSize: 12,
     color: Colors.textSecondary,
   },
   followUpIntervalTextActive: {
-    color: '#FBBF24',
+    color: Colors.amberBright,
     fontWeight: '600',
   },
 

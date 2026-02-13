@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { navigate } from '../lib/navigate';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import {
@@ -28,6 +29,7 @@ import {
 } from '../utils/notificationService';
 import { getMedications } from '../utils/medicationStorage';
 import { scheduleMedicationNotifications } from '../utils/notificationService';
+import { logError } from '../utils/devLog';
 
 // Components
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
@@ -67,7 +69,7 @@ export default function NotificationSettingsScreen() {
       setHasPermission(permission);
       setScheduledCount(scheduled.length);
     } catch (error) {
-      console.error('Error loading notification settings:', error);
+      logError('NotificationSettingsScreen.loadSettings', error);
     } finally {
       setLoading(false);
     }
@@ -248,8 +250,8 @@ export default function NotificationSettingsScreen() {
                 <Switch
                   value={settings.soundEnabled}
                   onValueChange={handleToggleSound}
-                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(94,234,212,0.3)' }}
-                  thumbColor={settings.soundEnabled ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
+                  trackColor={{ false: Colors.glassStrong, true: Colors.sageGlow }}
+                  thumbColor={settings.soundEnabled ? Colors.sage : Colors.textHalf}
                   accessibilityLabel="Sound"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: settings.soundEnabled }}
@@ -267,8 +269,8 @@ export default function NotificationSettingsScreen() {
                 <Switch
                   value={settings.vibrationEnabled}
                   onValueChange={handleToggleVibration}
-                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(94,234,212,0.3)' }}
-                  thumbColor={settings.vibrationEnabled ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
+                  trackColor={{ false: Colors.glassStrong, true: Colors.sageGlow }}
+                  thumbColor={settings.vibrationEnabled ? Colors.sage : Colors.textHalf}
                   accessibilityLabel="Vibration"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: settings.vibrationEnabled }}
@@ -294,8 +296,8 @@ export default function NotificationSettingsScreen() {
                 <Switch
                   value={settings.quietHoursEnabled}
                   onValueChange={handleToggleQuietHours}
-                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(139,92,246,0.3)' }}
-                  thumbColor={settings.quietHoursEnabled ? '#A78BFA' : 'rgba(255,255,255,0.5)'}
+                  trackColor={{ false: Colors.glassStrong, true: Colors.purpleStrong }}
+                  thumbColor={settings.quietHoursEnabled ? Colors.purpleBright : Colors.textHalf}
                   accessibilityLabel="Enable quiet hours"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: settings.quietHoursEnabled }}
@@ -358,8 +360,8 @@ export default function NotificationSettingsScreen() {
                 <Switch
                   value={settings.overdueAlertsEnabled}
                   onValueChange={handleToggleOverdueAlerts}
-                  trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(94,234,212,0.3)' }}
-                  thumbColor={settings.overdueAlertsEnabled ? '#5EEAD4' : 'rgba(255,255,255,0.5)'}
+                  trackColor={{ false: Colors.glassStrong, true: Colors.sageGlow }}
+                  thumbColor={settings.overdueAlertsEnabled ? Colors.sage : Colors.textHalf}
                   accessibilityLabel="Allow follow-up alerts"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: settings.overdueAlertsEnabled }}
@@ -383,7 +385,7 @@ export default function NotificationSettingsScreen() {
           {/* Care Plan Link */}
           <TouchableOpacity
             style={styles.carePlanLink}
-            onPress={() => router.push('/care-plan' as any)}
+            onPress={() => navigate('/care-plan')}
             activeOpacity={0.7}
             accessibilityLabel="Edit Care Plan, configure what generates reminders"
             accessibilityRole="link"
@@ -445,7 +447,7 @@ const styles = StyleSheet.create({
   },
   headerLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     letterSpacing: 1,
     fontWeight: '600',
     marginBottom: 8,
@@ -453,7 +455,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '300',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: Spacing.lg,
   },
 
@@ -462,9 +464,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    backgroundColor: Colors.blueFaint,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)',
+    borderColor: Colors.blueWash,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.lg,
@@ -475,7 +477,7 @@ const styles = StyleSheet.create({
   explanationText: {
     flex: 1,
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.textBright,
     lineHeight: 19,
   },
 
@@ -484,7 +486,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    backgroundColor: Colors.amberBrightTint,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     marginBottom: Spacing.lg,
@@ -497,12 +499,12 @@ const styles = StyleSheet.create({
   warningTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 4,
   },
   warningText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     lineHeight: 18,
   },
   permissionButton: {
@@ -537,22 +539,22 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 4,
   },
   sectionDescription: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     marginBottom: 12,
   },
 
   // Setting Card
   settingCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -569,16 +571,16 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 2,
   },
   settingHint: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
   settingDivider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     marginHorizontal: 14,
   },
 
@@ -592,9 +594,9 @@ const styles = StyleSheet.create({
   },
   timeButton: {
     alignItems: 'center',
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    backgroundColor: Colors.purpleMuted,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.2)',
+    borderColor: Colors.purpleWash,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -602,21 +604,21 @@ const styles = StyleSheet.create({
   },
   timeLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     marginBottom: 2,
   },
   timeValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#A78BFA',
+    color: Colors.purpleBright,
   },
   timeArrow: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: Colors.textPlaceholder,
   },
   quietHoursNote: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     textAlign: 'center',
     paddingHorizontal: 14,
     paddingBottom: 12,
@@ -637,7 +639,7 @@ const styles = StyleSheet.create({
   perItemNoteText: {
     flex: 1,
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     lineHeight: 17,
   },
 
@@ -647,7 +649,7 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     marginBottom: 10,
   },
   optionButtons: {
@@ -656,23 +658,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   optionButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
   },
   optionButtonSelected: {
-    backgroundColor: 'rgba(94, 234, 212, 0.15)',
-    borderColor: 'rgba(94, 234, 212, 0.4)',
+    backgroundColor: Colors.sageBorder,
+    borderColor: Colors.sageMuted,
   },
   optionButtonText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
   },
   optionButtonTextSelected: {
-    color: '#5EEAD4',
+    color: Colors.sage,
     fontWeight: '600',
   },
 
@@ -681,9 +683,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(94, 234, 212, 0.06)',
+    backgroundColor: Colors.sageTint,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.15)',
+    borderColor: Colors.sageBorder,
     borderRadius: 12,
     padding: 14,
     marginBottom: 20,
@@ -707,11 +709,11 @@ const styles = StyleSheet.create({
   },
   carePlanLinkSubtitle: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
   carePlanLinkChevron: {
     fontSize: 20,
-    color: 'rgba(94, 234, 212, 0.5)',
+    color: Colors.accentMuted,
     fontWeight: '600',
   },
 
@@ -722,6 +724,6 @@ const styles = StyleSheet.create({
   },
   footerStatusText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
   },
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
+import { Colors } from '../theme/theme-tokens';
 interface ReminderCardProps {
   enabled: boolean;
   onToggle: (enabled: boolean) => void;
@@ -74,15 +75,15 @@ export const SimplifiedReminderCard: React.FC<ReminderCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(13, 148, 136, 0.06)',
+    backgroundColor: Colors.sageDim,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accentHint,
     borderRadius: 14,
     padding: 14,
   },
   cardActive: {
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    backgroundColor: Colors.amberLight,
+    borderColor: Colors.warningBorder,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   toggle: {
     width: 44,
@@ -111,16 +112,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   toggleOn: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: Colors.amber,
   },
   toggleThumb: {
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: Colors.textPlaceholder,
   },
   toggleThumbOn: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.textPrimary,
     alignSelf: 'flex-end',
   },
   timeRow: {
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(245, 158, 11, 0.3)',
+    borderTopColor: Colors.warningBorder,
   },
   timeChip: {
     flex: 1,
@@ -137,20 +138,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderColor: Colors.warningBorder,
     borderRadius: 8,
     alignItems: 'center',
   },
   timeChipActive: {
-    backgroundColor: 'rgba(245, 158, 11, 0.25)',
-    borderColor: '#F59E0B',
+    backgroundColor: Colors.amberBorder,
+    borderColor: Colors.amber,
   },
   timeChipText: {
     fontSize: 12,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
   },
   timeChipTextActive: {
-    color: '#F59E0B',
+    color: Colors.amber,
   },
 });

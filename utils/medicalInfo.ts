@@ -4,6 +4,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logError } from './devLog';
 
 // ============================================================================
 // TYPES
@@ -87,7 +88,7 @@ export async function getMedicalInfo(): Promise<MedicalInfo | null> {
     const raw = JSON.parse(data);
     return migrateLegacyInfo(raw);
   } catch (error) {
-    console.error('Error getting medical info:', error);
+    logError('medicalInfo.getMedicalInfo', error);
     return null;
   }
 }
@@ -106,7 +107,7 @@ export async function saveMedicalInfo(
 
     await AsyncStorage.setItem(MEDICAL_INFO_KEY, JSON.stringify(medicalInfo));
   } catch (error) {
-    console.error('Error saving medical info:', error);
+    logError('medicalInfo.saveMedicalInfo', error);
     throw error;
   }
 }

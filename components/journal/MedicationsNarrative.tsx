@@ -39,32 +39,32 @@ export function MedicationsNarrative({ medications }: Props) {
       </Text>
     );
   } else {
-    for (const m of completed) {
+    completed.forEach((m, i) => {
       const time = m.takenAt ? formatTime(m.takenAt) : formatTime(m.scheduledTime);
       parts.push(
-        <Text key={`c-${m.name}`} style={styles.narrative}>
+        <Text key={`c-${i}-${m.name}`} style={styles.narrative}>
           <Text style={styles.bold}>{m.name}</Text>
           {m.dosage ? ` ${m.dosage}` : ''} taken at {time}.
         </Text>
       );
-    }
-    for (const m of pending) {
+    });
+    pending.forEach((m, i) => {
       parts.push(
-        <Text key={`p-${m.name}`} style={styles.narrative}>
+        <Text key={`p-${i}-${m.name}`} style={styles.narrative}>
           <Text style={styles.bold}>{m.name}</Text>
           {m.dosage ? ` ${m.dosage}` : ''} scheduled for {formatTime(m.scheduledTime)}{' \u2014 '}
           <Text style={styles.flagged}>not yet logged.</Text>
         </Text>
       );
-    }
-    for (const m of [...skipped, ...missed]) {
+    });
+    [...skipped, ...missed].forEach((m, i) => {
       parts.push(
-        <Text key={`s-${m.name}`} style={styles.narrative}>
+        <Text key={`s-${i}-${m.name}`} style={styles.narrative}>
           <Text style={styles.bold}>{m.name}</Text>
           {m.dosage ? ` ${m.dosage}` : ''}{' \u2014 '}skipped.
         </Text>
       );
-    }
+    });
   }
 
   // Side effects
@@ -87,9 +87,9 @@ export function MedicationsNarrative({ medications }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: Colors.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,

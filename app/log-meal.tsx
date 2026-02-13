@@ -25,6 +25,7 @@ import { hapticSuccess } from '../utils/hapticFeedback';
 import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage';
 import { parseCarePlanContext, getCarePlanBannerText, getPreSelectionHints } from '../utils/carePlanRouting';
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
+import { logError } from '../utils/devLog';
 
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Breakfast', icon: '🌅' },
@@ -89,7 +90,7 @@ export default function LogMeal() {
         }
       }
     } catch (error) {
-      console.error('Error loading existing meal data:', error);
+      logError('LogMeal.loadExistingData', error);
     }
   };
 
@@ -158,7 +159,7 @@ export default function LogMeal() {
       await hapticSuccess();
       router.back();
     } catch (error) {
-      console.error('Error saving meal:', error);
+      logError('LogMeal.handleSave', error);
       Alert.alert('Error', 'Failed to save meal data');
     } finally {
       setLoading(false);
@@ -279,6 +280,7 @@ export default function LogMeal() {
               onPress={handleSave}
               disabled={loading || selectedMeals.length === 0}
               accessibilityLabel={loading ? 'Saving meal' : 'Log meal'}
+              accessibilityHint="Saves the selected meals and notes"
               accessibilityRole="button"
               accessibilityState={{ disabled: loading || selectedMeals.length === 0 }}
             >
@@ -317,9 +319,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: BorderRadius.md,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.12)',
+    borderColor: Colors.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -344,20 +346,20 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   carePlanBanner: {
-    backgroundColor: 'rgba(139, 92, 246, 0.08)',
-    borderColor: 'rgba(139, 92, 246, 0.2)',
+    backgroundColor: Colors.purpleFaint,
+    borderColor: Colors.purpleWash,
   },
   carePlanBannerLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: 'rgba(167, 139, 250, 0.9)',
+    color: Colors.violetBright,
     letterSpacing: 1,
     textAlign: 'center',
     marginBottom: 4,
   },
   contextText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
 
@@ -387,16 +389,16 @@ const styles = StyleSheet.create({
   },
   mealCard: {
     width: '47%',
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accentHint,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     alignItems: 'center',
     position: 'relative',
   },
   mealCardSelected: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: Colors.greenLight,
     borderColor: Colors.green,
   },
   mealIcon: {
@@ -431,9 +433,9 @@ const styles = StyleSheet.create({
 
   // Description Input
   descriptionInput: {
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accentHint,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     color: Colors.textPrimary,
@@ -446,7 +448,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     paddingBottom: Spacing.xxl,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(20, 184, 166, 0.15)',
+    borderTopColor: Colors.accentHint,
     backgroundColor: Colors.background,
   },
   saveButton: {

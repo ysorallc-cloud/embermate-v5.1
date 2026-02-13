@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMedications } from './medicationStorage';
 import { emitDataUpdate } from '../lib/events';
+import { logError } from './devLog';
 
 const STORAGE_KEY = '@embermate_rhythm';
 const FIRST_USE_KEY = '@embermate_first_use_date';
@@ -41,7 +42,7 @@ export async function getFirstUseDate(): Promise<string | null> {
   try {
     return await AsyncStorage.getItem(FIRST_USE_KEY);
   } catch (error) {
-    console.error('Error getting first use date:', error);
+    logError('rhythmStorage.getFirstUseDate', error);
     return null;
   }
 }
@@ -53,7 +54,7 @@ export async function setFirstUseDate(): Promise<void> {
       await AsyncStorage.setItem(FIRST_USE_KEY, new Date().toISOString());
     }
   } catch (error) {
-    console.error('Error setting first use date:', error);
+    logError('rhythmStorage.setFirstUseDate', error);
   }
 }
 
@@ -68,7 +69,7 @@ export async function getDaysSinceFirstUse(): Promise<number> {
 
     return daysSince;
   } catch (error) {
-    console.error('Error calculating days since first use:', error);
+    logError('rhythmStorage.getDaysSinceFirstUse', error);
     return 0;
   }
 }
@@ -105,7 +106,7 @@ export async function inferRhythmFromBehavior(): Promise<Rhythm | null> {
       daysObserved: 3,
     };
   } catch (error) {
-    console.error('Error inferring rhythm:', error);
+    logError('rhythmStorage.inferRhythmFromBehavior', error);
     return null;
   }
 }
@@ -142,7 +143,7 @@ export async function getRhythm(): Promise<Rhythm | null> {
     };
     return defaultRhythm;
   } catch (error) {
-    console.error('Error getting rhythm:', error);
+    logError('rhythmStorage.getRhythm', error);
     return null;
   }
 }
@@ -152,7 +153,7 @@ export async function saveRhythm(rhythm: Rhythm): Promise<void> {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(rhythm));
     emitDataUpdate('rhythm');
   } catch (error) {
-    console.error('Error saving rhythm:', error);
+    logError('rhythmStorage.saveRhythm', error);
     throw error;
   }
 }
@@ -168,7 +169,7 @@ export async function updateRhythm(updates: Partial<Rhythm>): Promise<void> {
     };
     await saveRhythm(updated);
   } catch (error) {
-    console.error('Error updating rhythm:', error);
+    logError('rhythmStorage.updateRhythm', error);
     throw error;
   }
 }
@@ -178,7 +179,7 @@ export async function clearRhythm(): Promise<void> {
     await AsyncStorage.removeItem(STORAGE_KEY);
     emitDataUpdate('rhythm');
   } catch (error) {
-    console.error('Error clearing rhythm:', error);
+    logError('rhythmStorage.clearRhythm', error);
     throw error;
   }
 }
@@ -232,7 +233,7 @@ export async function getTodayProgress(): Promise<TodayProgress> {
       },
     };
   } catch (error) {
-    console.error('Error getting today progress:', error);
+    logError('rhythmStorage.getTodayProgress', error);
     return {
       medications: { completed: 0, expected: 0 },
       vitals: { completed: 0, expected: 0 },
@@ -273,7 +274,7 @@ export async function detectDeviation(): Promise<DeviationAnalysis> {
       categories: {},
     };
   } catch (error) {
-    console.error('Error detecting deviation:', error);
+    logError('rhythmStorage.detectDeviation', error);
     return { hasDeviation: false, daysOfDeviation: 0, categories: {} };
   }
 }

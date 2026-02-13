@@ -10,6 +10,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Refresh
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { navigate } from '../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,6 +20,7 @@ import { getUpcomingAppointments, Appointment } from '../utils/appointmentStorag
 import { getMedicalInfo, MedicalInfo } from '../utils/medicalInfo';
 import { generateComprehensiveReport, ComprehensiveReport } from '../utils/reportGenerator';
 import { generateAndSharePDF, ReportData, PatientInfo } from '../utils/pdfExport';
+import { logError } from '../utils/devLog';
 
 export default function CareBriefScreen() {
   const router = useRouter();
@@ -75,7 +77,7 @@ export default function CareBriefScreen() {
         await AsyncStorage.setItem('@care_brief_viewed', 'true');
       }
     } catch (e) {
-      console.error('Error checking first view:', e);
+      logError('CareBriefScreen.checkFirstView', e);
     }
   };
 
@@ -238,7 +240,7 @@ export default function CareBriefScreen() {
       const briefText = `Care Brief for ${patientName}\nSnapshot: ${snapshotTime.toLocaleString()}\n\n${generateClinicalSentence()}`;
       await Share.share({ message: briefText });
     } catch (error) {
-      console.error('Error sharing:', error);
+      logError('CareBriefScreen.handleShare', error);
     }
   };
 
@@ -355,7 +357,7 @@ export default function CareBriefScreen() {
         Alert.alert('Success', 'Care report generated and ready to share');
       }
     } catch (error) {
-      console.error('Report generation error:', error);
+      logError('CareBriefScreen.handleGenerateFullReport', error);
       Alert.alert('Error', 'Failed to generate report. Please try again.');
     } finally {
       setIsGeneratingReport(false);
@@ -539,7 +541,7 @@ export default function CareBriefScreen() {
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>UPCOMING (NEXT 7 DAYS)</Text>
                 {upcomingAppts.length > 3 && (
-                  <TouchableOpacity onPress={() => router.push('/appointments' as any)} accessibilityLabel="View all appointments" accessibilityRole="link">
+                  <TouchableOpacity onPress={() => navigate('/appointments')} accessibilityLabel="View all appointments" accessibilityRole="link">
                     <Text style={styles.viewDetailsLink}>View all →</Text>
                   </TouchableOpacity>
                 )}
@@ -739,15 +741,15 @@ const styles = StyleSheet.create({
   },
   statusBannerStable: {
     backgroundColor: 'rgba(240, 253, 244, 0.15)',
-    borderLeftColor: '#22C55E',
+    borderLeftColor: Colors.greenBright,
   },
   statusBannerAttention: {
     backgroundColor: 'rgba(254, 243, 199, 0.15)',
-    borderLeftColor: '#F59E0B',
+    borderLeftColor: Colors.amber,
   },
   statusBannerConcerning: {
     backgroundColor: 'rgba(254, 242, 242, 0.15)', // REDUCED saturation
-    borderLeftColor: '#EF4444',
+    borderLeftColor: Colors.red,
   },
   statusIcon: {
     fontSize: 28,
@@ -815,7 +817,7 @@ const styles = StyleSheet.create({
   },
   viewDetailsLink: {
     fontSize: 13,
-    color: '#3B82F6',
+    color: Colors.blue,
     fontWeight: '600',
   },
 
@@ -852,7 +854,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(212, 165, 116, 0.3)',
     borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
+    borderLeftColor: Colors.amber,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
   },
@@ -911,7 +913,7 @@ const styles = StyleSheet.create({
   upcomingDate: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#3B82F6',
+    color: Colors.blue,
     textTransform: 'uppercase',
     marginBottom: 6,
   },

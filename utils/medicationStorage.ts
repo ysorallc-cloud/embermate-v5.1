@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { checkMultipleInteractions, DrugInteraction } from './drugInteractions';
 import { safeGetItem, safeSetItem } from './safeStorage';
 import { generateUniqueId } from './idGenerator';
+import { logError } from './devLog';
 
 export interface Medication {
   id: string;
@@ -76,7 +77,7 @@ export async function getMedications(): Promise<Medication[]> {
 
     return medications;
   } catch (error) {
-    console.error('Error getting medications:', error);
+    logError('medicationStorage.getMedications', error);
     return [];
   }
 }
@@ -95,7 +96,7 @@ async function checkAndResetDaily(): Promise<void> {
       await AsyncStorage.setItem(LAST_RESET_DATE_KEY, today);
     }
   } catch (error) {
-    console.error('Error checking daily reset:', error);
+    logError('medicationStorage.checkAndResetDaily', error);
   }
 }
 
@@ -107,7 +108,7 @@ export async function getMedication(id: string): Promise<Medication | null> {
     const medications = await getMedications();
     return medications.find(m => m.id === id) || null;
   } catch (error) {
-    console.error('Error getting medication:', error);
+    logError('medicationStorage.getMedication', error);
     return null;
   }
 }
@@ -145,7 +146,7 @@ export async function createMedication(
 
     return newMedication;
   } catch (error) {
-    console.error('Error creating medication:', error);
+    logError('medicationStorage.createMedication', error);
     throw error;
   }
 }
@@ -171,13 +172,13 @@ export async function updateMedication(
     const success = await safeSetItem(MEDICATIONS_KEY, medications);
 
     if (!success) {
-      console.error('Failed to save updated medication');
+      logError('medicationStorage.updateMedication', 'Failed to save updated medication');
       return null;
     }
 
     return medications[index];
   } catch (error) {
-    console.error('Error updating medication:', error);
+    logError('medicationStorage.updateMedication', error);
     return null;
   }
 }
@@ -189,7 +190,7 @@ export async function deleteMedication(id: string): Promise<boolean> {
   try {
     return (await updateMedication(id, { active: false })) !== null;
   } catch (error) {
-    console.error('Error deleting medication:', error);
+    logError('medicationStorage.deleteMedication', error);
     return false;
   }
 }
@@ -220,7 +221,7 @@ export async function markMedicationTaken(
     
     return true;
   } catch (error) {
-    console.error('Error marking medication taken:', error);
+    logError('medicationStorage.markMedicationTaken', error);
     return false;
   }
 }
@@ -252,7 +253,7 @@ export async function logMedicationEvent(
 
     await safeSetItem(MEDICATION_LOGS_KEY, trimmedLogs);
   } catch (error) {
-    console.error('Error logging medication event:', error);
+    logError('medicationStorage.logMedicationEvent', error);
   }
 }
 
@@ -271,7 +272,7 @@ export async function getMedicationLogsById(medicationId: string): Promise<Medic
     const logs = await getMedicationLogs();
     return logs.filter(log => log.medicationId === medicationId);
   } catch (error) {
-    console.error('Error getting medication logs:', error);
+    logError('medicationStorage.getMedicationLogsById', error);
     return [];
   }
 }
@@ -307,7 +308,7 @@ export async function calculateAdherence(
 
     return Math.round((takenDoses / expectedDoses) * 100);
   } catch (error) {
-    console.error('Error calculating adherence:', error);
+    logError('medicationStorage.calculateAdherence', error);
     return 0;
   }
 }
@@ -345,7 +346,7 @@ export async function calculateAdherenceByName(
 
     return Math.round((takenDoses / expectedDoses) * 100);
   } catch (error) {
-    console.error('Error calculating adherence by name:', error);
+    logError('medicationStorage.calculateAdherenceByName', error);
     return 0;
   }
 }
@@ -362,7 +363,7 @@ export async function resetMedications(): Promise<void> {
     const defaults = getDefaultMedications();
     await safeSetItem(MEDICATIONS_KEY, defaults);
   } catch (error) {
-    console.error('Error resetting medications:', error);
+    logError('medicationStorage.resetMedications', error);
   }
 }
 
@@ -381,7 +382,7 @@ export async function resetDailyMedicationStatus(): Promise<void> {
     const reset = medications.map(med => ({ ...med, taken: false }));
     await safeSetItem(MEDICATIONS_KEY, reset);
   } catch (error) {
-    console.error('Error resetting daily medication status:', error);
+    logError('medicationStorage.resetDailyMedicationStatus', error);
   }
 }
 
@@ -488,7 +489,7 @@ export async function getMedicationsNeedingRefill(
       m.daysSupply <= daysWarning
     );
   } catch (error) {
-    console.error('Error getting medications needing refill:', error);
+    logError('medicationStorage.getMedicationsNeedingRefill', error);
     return [];
   }
 }
@@ -525,7 +526,7 @@ export async function updateMedicationSupply(
     
     return await updateMedication(id, updates);
   } catch (error) {
-    console.error('Error updating medication supply:', error);
+    logError('medicationStorage.updateMedicationSupply', error);
     return null;
   }
 }
@@ -553,7 +554,7 @@ export async function addMedicationRefill(
     
     return await updateMedication(id, updates);
   } catch (error) {
-    console.error('Error adding medication refill:', error);
+    logError('medicationStorage.addMedicationRefill', error);
     return null;
   }
 }
@@ -610,7 +611,7 @@ export async function checkDuplicateMedication(
       m.name.toLowerCase().includes(normalized)
     ) || null;
   } catch (error) {
-    console.error('Error checking duplicate medication:', error);
+    logError('medicationStorage.checkDuplicateMedication', error);
     return null;
   }
 }
@@ -627,7 +628,7 @@ export async function checkMedicationInteractions(): Promise<DrugInteraction[]> 
     
     return checkMultipleInteractions(activeMedicationNames);
   } catch (error) {
-    console.error('Error checking medication interactions:', error);
+    logError('medicationStorage.checkMedicationInteractions', error);
     return [];
   }
 }

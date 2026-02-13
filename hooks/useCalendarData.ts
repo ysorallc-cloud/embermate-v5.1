@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { useMemo, useEffect, useState } from 'react';
+import { logError } from '../utils/devLog';
 import {
   startOfMonth,
   endOfMonth,
@@ -44,7 +45,7 @@ export const useCalendarData = (currentMonth: Date, selectedDate: Date) => {
         const appts = await getUpcomingAppointments();
         setAppointments(appts);
       } catch (error) {
-        console.error('Error loading calendar data:', error);
+        logError('useCalendarData.loadData', error);
       }
     };
 

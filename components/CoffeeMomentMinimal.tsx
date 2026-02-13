@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { Colors } from '../theme/theme-tokens';
 interface CoffeeMomentMinimalProps {
   visible: boolean;
   onClose: () => void;
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
   },
   microcopy: {
     fontSize: 18,
-    color: 'rgba(255,255,255,0.7)',
+    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 28,
   },
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 100,
     fontSize: 14,
-    color: 'rgba(255,255,255,0.4)',
+    color: Colors.textMuted,
   },
 });
 

@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MorningWellnessData, EveningWellnessData } from '../types/timeline';
 import { updateStreak } from './streakStorage';
+import { logError } from './devLog';
 
 const MORNING_WELLNESS_KEY = '@embermate_morning_wellness';
 const EVENING_WELLNESS_KEY = '@embermate_evening_wellness';
@@ -43,7 +44,7 @@ export const saveMorningWellness = async (
     // Update wellness check streak
     await updateStreak('wellnessCheck');
   } catch (error) {
-    console.error('Error saving morning wellness:', error);
+    logError('wellnessCheckStorage.saveMorningWellness', error);
     throw error;
   }
 };
@@ -69,7 +70,7 @@ export const skipMorningWellness = async (date: string): Promise<void> => {
 
     await AsyncStorage.setItem(MORNING_WELLNESS_KEY, JSON.stringify(updated));
   } catch (error) {
-    console.error('Error skipping morning wellness:', error);
+    logError('wellnessCheckStorage.skipMorningWellness', error);
     throw error;
   }
 };
@@ -89,7 +90,7 @@ export const getMorningWellness = async (date: string): Promise<StoredMorningWel
 
     return wellness;
   } catch (error) {
-    console.error('Error getting morning wellness:', error);
+    logError('wellnessCheckStorage.getMorningWellness', error);
     return null;
   }
 };
@@ -106,7 +107,7 @@ export const getAllMorningWellness = async (): Promise<StoredMorningWellness[]> 
       completedAt: w.completedAt ? new Date(w.completedAt) : w.completedAt,
     }));
   } catch (error) {
-    console.error('Error getting all morning wellness:', error);
+    logError('wellnessCheckStorage.getAllMorningWellness', error);
     return [];
   }
 };
@@ -144,7 +145,7 @@ export const saveEveningWellness = async (
     // Update wellness check streak
     await updateStreak('wellnessCheck');
   } catch (error) {
-    console.error('Error saving evening wellness:', error);
+    logError('wellnessCheckStorage.saveEveningWellness', error);
     throw error;
   }
 };
@@ -170,7 +171,7 @@ export const skipEveningWellness = async (date: string): Promise<void> => {
 
     await AsyncStorage.setItem(EVENING_WELLNESS_KEY, JSON.stringify(updated));
   } catch (error) {
-    console.error('Error skipping evening wellness:', error);
+    logError('wellnessCheckStorage.skipEveningWellness', error);
     throw error;
   }
 };
@@ -190,7 +191,7 @@ export const getEveningWellness = async (date: string): Promise<StoredEveningWel
 
     return wellness;
   } catch (error) {
-    console.error('Error getting evening wellness:', error);
+    logError('wellnessCheckStorage.getEveningWellness', error);
     return null;
   }
 };
@@ -207,7 +208,7 @@ export const getAllEveningWellness = async (): Promise<StoredEveningWellness[]> 
       completedAt: w.completedAt ? new Date(w.completedAt) : w.completedAt,
     }));
   } catch (error) {
-    console.error('Error getting all evening wellness:', error);
+    logError('wellnessCheckStorage.getAllEveningWellness', error);
     return [];
   }
 };

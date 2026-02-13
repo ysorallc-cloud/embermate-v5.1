@@ -5,6 +5,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
+import { devLog, logError } from './devLog';
 
 /**
  * Get count of people in care circle
@@ -17,7 +18,7 @@ export async function getCareCircleCount(): Promise<number> {
     const members = JSON.parse(careCircle);
     return Array.isArray(members) ? members.length : 0;
   } catch (error) {
-    console.error('Error getting care circle count:', error);
+    logError('privacyUtils.getCareCircleCount', error);
     return 0;
   }
 }
@@ -129,11 +130,9 @@ export async function deleteAllUserData(): Promise<void> {
     // Delete all user data
     await AsyncStorage.multiRemove(userDataKeys);
 
-    if (__DEV__) {
-      console.log(`Deleted ${userDataKeys.length} data items`);
-    }
+    devLog(`Deleted ${userDataKeys.length} data items`);
   } catch (error) {
-    console.error('Error deleting data:', error);
+    logError('privacyUtils.deleteAllUserData', error);
     throw error;
   }
 }
@@ -174,7 +173,7 @@ export async function getDataSize(): Promise<{
       sizeFormatted,
     };
   } catch (error) {
-    console.error('Error calculating data size:', error);
+    logError('privacyUtils.getDataSize', error);
     return {
       items: 0,
       sizeKB: 0,

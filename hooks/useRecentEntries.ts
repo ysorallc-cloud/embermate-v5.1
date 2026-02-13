@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { useState, useEffect, useCallback } from 'react';
+import { logError } from '../utils/devLog';
 import { getLogEventsByDate, LogEvent, LogEventType, MedDoseEvent, VitalsEvent, MoodEvent, MealEvent, HydrationEvent, SleepEvent, SymptomEvent, ActivityEvent, NoteEvent } from '../utils/logEvents';
 import { getVitalsLogs, getMealsLogs, getWaterLogs, getSleepLogs, getSymptomLogs, getNotesLogs, getMedicationLogs as getCentralMedicationLogs } from '../utils/centralStorage';
 import type { VitalsLog, MealsLog, WaterLog, SleepLog as CentralSleepLog, SymptomLog as CentralSymptomLog, NotesLog, MedicationLog as CentralMedicationLog } from '../utils/centralStorage';
@@ -534,7 +535,7 @@ export function useRecentEntries(filterType?: LogEventType | null) {
 
       setEntries(sorted);
     } catch (error) {
-      console.error('Error fetching recent entries:', error);
+      logError('useRecentEntries.fetchEntries', error);
     } finally {
       setLoading(false);
     }

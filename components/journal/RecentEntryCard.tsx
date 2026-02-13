@@ -6,6 +6,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { RecentEntry } from '../../hooks/useRecentEntries';
 
+import { Colors } from '../../theme/theme-tokens';
 interface Props {
   entry: RecentEntry;
   onPress: (entry: RecentEntry) => void;
@@ -35,7 +36,7 @@ export function RecentEntryCard({ entry, onPress }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 14,
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
   emojiCircle: {
     width: 40,
     height: 40,
-    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    backgroundColor: Colors.sageBorder,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -62,7 +63,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 2,
   },
   detail: {
@@ -71,6 +72,6 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
   },
 });

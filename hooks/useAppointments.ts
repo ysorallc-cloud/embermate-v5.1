@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { useState, useEffect, useCallback } from 'react';
+import { logError } from '../utils/devLog';
 import { useDataListener, emitDataUpdate } from '../lib/events';
 import {
   Appointment,
@@ -79,7 +80,7 @@ export function useAppointments(): UseAppointmentsReturn {
       setUpcomingAppointments(upcoming);
       setNextAppointment(next);
     } catch (err) {
-      console.error('Error loading appointments:', err);
+      logError('useAppointments.loadData', err);
       setError(err instanceof Error ? err : new Error('Failed to load appointments'));
     } finally {
       setLoading(false);
@@ -91,9 +92,11 @@ export function useAppointments(): UseAppointmentsReturn {
     loadData();
   }, [loadData]);
 
-  // Listen for data updates
-  useDataListener(() => {
-    loadData();
+  // Listen for relevant data updates only
+  useDataListener((category) => {
+    if (['appointments', 'sampleDataCleared'].includes(category)) {
+      loadData();
+    }
   });
 
   /**

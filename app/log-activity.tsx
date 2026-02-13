@@ -3,6 +3,7 @@
 // ============================================================================
 
 import React, { useState } from 'react';
+import { devLog, logError } from '../utils/devLog';
 import {
   View,
   Text,
@@ -49,10 +50,10 @@ export default function LogActivityScreen() {
     try {
       setSaving(true);
       // For now, just log to console - can be connected to storage later
-      console.log('Activity logged:', { selectedActivities, duration, notes });
+      devLog('Activity logged:', { selectedActivities, duration, notes });
       router.back();
     } catch (error) {
-      console.error('Error saving activity:', error);
+      logError('LogActivityScreen.handleSave', error);
       Alert.alert('Error', 'Failed to save activity');
     } finally {
       setSaving(false);
@@ -111,7 +112,7 @@ export default function LogActivityScreen() {
             <TextInput
               style={styles.textInput}
               placeholder="e.g., 30 minutes"
-              placeholderTextColor="rgba(255, 255, 255, 0.3)"
+              placeholderTextColor={Colors.textPlaceholder}
               value={duration}
               onChangeText={setDuration}
               accessibilityLabel="Activity duration"
@@ -124,7 +125,7 @@ export default function LogActivityScreen() {
             <TextInput
               style={[styles.textInput, styles.textArea]}
               placeholder="Any observations..."
-              placeholderTextColor="rgba(255, 255, 255, 0.3)"
+              placeholderTextColor={Colors.textPlaceholder}
               multiline
               numberOfLines={3}
               value={notes}
@@ -141,6 +142,7 @@ export default function LogActivityScreen() {
             onPress={handleSave}
             disabled={saving}
             accessibilityLabel={saving ? 'Saving activity' : 'Save activity'}
+            accessibilityHint="Saves the selected activities and details"
             accessibilityRole="button"
             accessibilityState={{ disabled: saving }}
           >
@@ -208,16 +210,16 @@ const styles = StyleSheet.create({
   activityCard: {
     width: '30%',
     aspectRatio: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   activityCardSelected: {
-    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    backgroundColor: Colors.sageBorder,
     borderColor: Colors.accent,
   },
   activityEmoji: {
@@ -243,9 +245,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   textInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 10,
     padding: 14,
     color: Colors.textPrimary,
@@ -260,7 +262,7 @@ const styles = StyleSheet.create({
   bottomActions: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    borderTopColor: Colors.glassHover,
   },
   saveButton: {
     backgroundColor: Colors.accent,

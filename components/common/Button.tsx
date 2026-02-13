@@ -139,10 +139,10 @@ const getVariantStyles = (variant: ButtonVariant, disabled: boolean) => {
         borderWidth: 0,
       };
       styles.text = {
-        color: '#FFFFFF',
+        color: Colors.textPrimary,
         fontWeight: '600',
       };
-      styles.loaderColor = '#FFFFFF';
+      styles.loaderColor = Colors.textPrimary;
       break;
 
     case 'secondary':
@@ -177,10 +177,10 @@ const getVariantStyles = (variant: ButtonVariant, disabled: boolean) => {
         borderWidth: 0,
       };
       styles.text = {
-        color: '#FFFFFF',
+        color: Colors.textPrimary,
         fontWeight: '600',
       };
-      styles.loaderColor = '#FFFFFF';
+      styles.loaderColor = Colors.textPrimary;
       break;
 
     case 'success':
@@ -189,10 +189,10 @@ const getVariantStyles = (variant: ButtonVariant, disabled: boolean) => {
         borderWidth: 0,
       };
       styles.text = {
-        color: '#FFFFFF',
+        color: Colors.textPrimary,
         fontWeight: '600',
       };
-      styles.loaderColor = '#FFFFFF';
+      styles.loaderColor = Colors.textPrimary;
       break;
 
     case 'ghost':

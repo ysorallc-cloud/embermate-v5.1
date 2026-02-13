@@ -340,6 +340,7 @@ export default function LogMorningWellnessScreen() {
             onPress={handleSubmit}
             disabled={!canSubmit || isSubmitting}
             accessibilityLabel={isSubmitting ? 'Saving wellness check' : 'Complete morning wellness check'}
+            accessibilityHint="Saves morning wellness check answers"
             accessibilityRole="button"
             accessibilityState={{ disabled: !canSubmit || isSubmitting }}
           >
@@ -430,7 +431,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   optionButtonSelected: {
-    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+    backgroundColor: Colors.accentHint,
     borderColor: Colors.accent,
   },
   optionEmoji: {
@@ -458,7 +459,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   energyOptionSelected: {
-    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+    backgroundColor: Colors.accentHint,
     borderColor: Colors.accent,
   },
   radio: {
@@ -501,11 +502,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitButtonDisabled: {
-    backgroundColor: 'rgba(13, 148, 136, 0.3)',
+    backgroundColor: Colors.borderStrong,
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
 });

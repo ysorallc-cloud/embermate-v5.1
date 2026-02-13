@@ -13,10 +13,12 @@ import {
   Alert,
   Share,
   TextInput,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { navigate, navigateReplace } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../theme/theme-tokens';
@@ -28,6 +30,8 @@ import { getMedications } from '../../utils/medicationStorage';
 import { getAppointments, getUpcomingAppointments } from '../../utils/appointmentStorage';
 import { getCaregivers } from '../../utils/collaborativeCare';
 import { exportBackup, clearAllData } from '../../utils/dataBackup';
+import { AppStrings } from '../../constants/strings';
+import { logError } from '../../utils/devLog';
 
 // Settings category definitions
 interface SettingItem {
@@ -89,7 +93,7 @@ export default function SettingsScreen() {
       const caregivers = await getCaregivers();
       setCaregiverCount(caregivers.length);
     } catch (error) {
-      console.error('Error loading counts:', error);
+      logError('SettingsScreen.loadCounts', error);
     }
   };
 
@@ -101,7 +105,7 @@ export default function SettingsScreen() {
         setLastModified(date.toLocaleDateString());
       }
     } catch (error) {
-      console.error('Error loading last modified:', error);
+      logError('SettingsScreen.loadLastModified', error);
     }
   };
 
@@ -110,7 +114,7 @@ export default function SettingsScreen() {
       await AsyncStorage.setItem('@EmberMate:settings_modified', new Date().toISOString());
       await loadLastModified();
     } catch (error) {
-      console.error('Error updating last modified:', error);
+      logError('SettingsScreen.updateLastModified', error);
     }
   };
 
@@ -119,7 +123,7 @@ export default function SettingsScreen() {
       const preference = await AsyncStorage.getItem('@EmberMate:use_24_hour_time');
       setUse24HourTime(preference === 'true');
     } catch (error) {
-      console.error('Error loading time preference:', error);
+      logError('SettingsScreen.loadTimePreference', error);
     }
   };
 
@@ -130,7 +134,7 @@ export default function SettingsScreen() {
       await AsyncStorage.setItem('@EmberMate:use_24_hour_time', newValue.toString());
       await updateLastModified();
     } catch (error) {
-      console.error('Error saving time preference:', error);
+      logError('SettingsScreen.toggleTimeFormat', error);
     }
   };
 
@@ -144,7 +148,7 @@ export default function SettingsScreen() {
       const name = await AsyncStorage.getItem(StorageKeys.PATIENT_NAME);
       if (name) setPatientName(name);
     } catch (error) {
-      console.error('Error loading patient name:', error);
+      logError('SettingsScreen.loadPatientName', error);
     }
   };
 
@@ -176,7 +180,7 @@ export default function SettingsScreen() {
         );
       }
     } catch (error) {
-      console.error('Error backing up data:', error);
+      logError('SettingsScreen.handleBackupData', error);
       Alert.alert('Backup Failed', 'Could not create backup. Please try again.');
     }
   };
@@ -198,7 +202,7 @@ export default function SettingsScreen() {
                   text: 'OK',
                   onPress: () => {
                     // Reload the app or navigate to onboarding
-                    router.replace('/(onboarding)' as any);
+                    navigateReplace('/(onboarding)');
                   },
                 },
               ]);
@@ -247,7 +251,7 @@ export default function SettingsScreen() {
                 [
                   {
                     text: 'Reload Now',
-                    onPress: () => router.replace('/(onboarding)' as any),
+                    onPress: () => navigateReplace('/(onboarding)'),
                   },
                   {
                     text: 'Later',
@@ -256,7 +260,7 @@ export default function SettingsScreen() {
                 ]
               );
             } catch (error) {
-              console.error('Error resetting onboarding:', error);
+              logError('SettingsScreen.handleResetOnboarding', error);
               Alert.alert('Error', 'Could not reset onboarding. Please try again.');
             }
           },
@@ -284,7 +288,7 @@ export default function SettingsScreen() {
         title: 'EmberMate Export'
       });
     } catch (error) {
-      console.error('Export error:', error);
+      logError('SettingsScreen.handleExportData', error);
       Alert.alert('Error', 'Export failed. Please try again.');
     }
   };
@@ -308,7 +312,7 @@ export default function SettingsScreen() {
           icon: '📋',
           title: 'Care Plan',
           subtitle: 'What to track daily',
-          onPress: () => router.push('/care-plan' as any),
+          onPress: () => navigate('/care-plan'),
         },
         {
           id: 'patient',
@@ -343,7 +347,7 @@ export default function SettingsScreen() {
           icon: '📊',
           title: 'Vital Sign Ranges',
           subtitle: 'Custom alert thresholds',
-          onPress: () => router.push('/vital-threshold-settings' as any),
+          onPress: () => navigate('/vital-threshold-settings'),
         },
       ],
     },
@@ -423,6 +427,20 @@ export default function SettingsScreen() {
       title: 'About & Support',
       items: [
         {
+          id: 'privacy-policy',
+          icon: '📄',
+          title: 'Privacy Policy',
+          subtitle: 'How we handle your data',
+          onPress: () => Linking.openURL('https://ysorallc.org/privacy'),
+        },
+        {
+          id: 'terms-of-service',
+          icon: '📋',
+          title: 'Terms of Service',
+          subtitle: 'Usage terms and conditions',
+          onPress: () => Linking.openURL('https://ysorallc.org/terms'),
+        },
+        {
           id: 'reset-onboarding',
           icon: '🔄',
           title: 'Reset Onboarding',
@@ -449,7 +467,13 @@ export default function SettingsScreen() {
           title: 'Clear Sample Data',
           subtitle: 'Remove demo data only',
           onPress: handleClearSample,
-        }] : []),
+        }] : [{
+          id: 'generate-sample',
+          icon: '📊',
+          title: 'Generate Sample Data',
+          subtitle: 'Load demo data to explore the app',
+          onPress: handleGenerateSample,
+        }]),
         {
           id: 'clear-data',
           icon: '⚠️',
@@ -600,6 +624,12 @@ export default function SettingsScreen() {
             </>
           )}
 
+          {/* Health Disclaimer */}
+          <View style={styles.disclaimerBanner} accessibilityRole="text">
+            <Text style={styles.disclaimerIcon}>⚕️</Text>
+            <Text style={styles.disclaimerText}>{AppStrings.disclaimer.short}</Text>
+          </View>
+
           <View style={{ height: 40 }} />
         </ScrollView>
       </LinearGradient>
@@ -629,9 +659,9 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -672,9 +702,9 @@ const styles = StyleSheet.create({
 
   // Categories
   categoryContainer: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: Colors.glass,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: Colors.border,
     borderRadius: 12,
     marginBottom: 12,
     overflow: 'hidden',
@@ -707,7 +737,7 @@ const styles = StyleSheet.create({
   },
   categoryItems: {
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
+    borderTopColor: Colors.border,
   },
 
   // Setting Items
@@ -718,7 +748,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingLeft: 56,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: Colors.surfaceElevated,
   },
   settingIcon: {
     fontSize: 18,
@@ -743,10 +773,33 @@ const styles = StyleSheet.create({
   },
 
   dangerItem: {
-    backgroundColor: 'rgba(239, 68, 68, 0.05)',
+    backgroundColor: Colors.redFaint,
   },
   dangerText: {
     color: Colors.error,
+  },
+
+  // Health Disclaimer
+  disclaimerBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(232, 155, 95, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(232, 155, 95, 0.15)',
+    borderRadius: 10,
+    padding: 14,
+    marginTop: 8,
+    gap: 10,
+  },
+  disclaimerIcon: {
+    fontSize: 16,
+    marginTop: 1,
+  },
+  disclaimerText: {
+    flex: 1,
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 18,
   },
 
   // Toggle (for time format)
@@ -754,7 +807,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.glassActive,
     borderWidth: 2,
     borderColor: Colors.border,
     padding: 2,

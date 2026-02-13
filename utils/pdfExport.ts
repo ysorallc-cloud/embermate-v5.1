@@ -1,7 +1,9 @@
 // PDF EXPORT UTILITY
 // Professional report generation for provider appointments
+// Colors intentionally hardcoded — PDF/HTML print context (light background)
 
 import { Alert, Platform, Share } from 'react-native';
+import { logError } from './devLog';
 
 export interface ReportData {
   title: string;
@@ -278,7 +280,7 @@ export async function generateAndSharePDF(
       return false;
     }
   } catch (error) {
-    console.error('PDF generation error:', error);
+    logError('pdfExport.generateAndSharePDF', error);
     Alert.alert(
       'Error',
       'Could not generate PDF. Please try again.'
@@ -310,7 +312,7 @@ export async function printPDF(
     await Print.printAsync({ html });
     return true;
   } catch (error) {
-    console.error('Print error:', error);
+    logError('pdfExport.printPDF', error);
     Alert.alert('Error', 'Could not print. Please try again.');
     return false;
   }
@@ -354,7 +356,7 @@ export async function shareAsText(
     });
     return true;
   } catch (error) {
-    console.error('Share error:', error);
+    logError('pdfExport.shareAsText', error);
     return false;
   }
 }

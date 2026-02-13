@@ -28,7 +28,7 @@ export const RegulationPrompt: React.FC<RegulationPromptProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    backgroundColor: Colors.purpleMuted,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,

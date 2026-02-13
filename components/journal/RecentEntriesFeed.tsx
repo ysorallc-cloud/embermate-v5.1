@@ -5,6 +5,7 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import { RecentEntry, LABEL_MAP } from '../../hooks/useRecentEntries';
 import { RecentEntryCard } from './RecentEntryCard';
 import { Colors } from '../../theme/theme-tokens';
@@ -33,7 +34,7 @@ export function RecentEntriesFeed({ entries, loading, activeFilter }: Props) {
   const router = useRouter();
 
   const handlePress = (entry: RecentEntry) => {
-    router.push(entry.route as any);
+    navigate(entry.route);
   };
 
   if (loading && entries.length === 0) {
@@ -98,7 +99,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     letterSpacing: 1,
     marginBottom: 8,
   },
@@ -113,12 +114,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     marginBottom: 6,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     textAlign: 'center',
   },
 });

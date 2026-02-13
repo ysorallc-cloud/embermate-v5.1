@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   correlationBar: {
     flex: 1,
     height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.glassActive,
     borderRadius: 4,
     overflow: 'hidden',
   },

@@ -7,6 +7,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { devLog, logError } from './devLog';
 import { Medication } from './medicationStorage';
 
 const NOTIFICATION_SETTINGS_KEY = '@embermate_notification_settings';
@@ -97,9 +98,9 @@ export async function setupNotificationCategories(): Promise<void> {
       },
     ]);
 
-    if (__DEV__) console.log('Notification categories configured');
+    devLog('Notification categories configured');
   } catch (error) {
-    console.error('Error setting up notification categories:', error);
+    logError('notificationService.setupNotificationCategories', error);
   }
 }
 
@@ -117,7 +118,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
     }
 
     if (finalStatus !== 'granted') {
-      if (__DEV__) console.log('Notification permissions not granted');
+      devLog('Notification permissions not granted');
       return false;
     }
 
@@ -139,7 +140,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Error requesting notification permissions:', error);
+    logError('notificationService.requestNotificationPermissions', error);
     return false;
   }
 }
@@ -152,7 +153,7 @@ export async function hasNotificationPermissions(): Promise<boolean> {
     const { status } = await Notifications.getPermissionsAsync();
     return status === 'granted';
   } catch (error) {
-    console.error('Error checking notification permissions:', error);
+    logError('notificationService.hasNotificationPermissions', error);
     return false;
   }
 }
@@ -170,7 +171,7 @@ export async function getNotificationSettings(): Promise<NotificationSettings> {
     if (!data) return DEFAULT_SETTINGS;
     return JSON.parse(data);
   } catch (error) {
-    console.error('Error getting notification settings:', error);
+    logError('notificationService.getNotificationSettings', error);
     return DEFAULT_SETTINGS;
   }
 }
@@ -182,7 +183,7 @@ export async function saveNotificationSettings(settings: NotificationSettings): 
   try {
     await AsyncStorage.setItem(NOTIFICATION_SETTINGS_KEY, JSON.stringify(settings));
   } catch (error) {
-    console.error('Error saving notification settings:', error);
+    logError('notificationService.saveNotificationSettings', error);
   }
 }
 
@@ -198,14 +199,14 @@ export async function scheduleMedicationNotifications(medications: Medication[])
     // Check permissions
     const hasPermission = await hasNotificationPermissions();
     if (!hasPermission) {
-      if (__DEV__) console.log('No notification permissions, skipping scheduling');
+      devLog('No notification permissions, skipping scheduling');
       return;
     }
 
     // Check if notifications are enabled
     const settings = await getNotificationSettings();
     if (!settings.enabled) {
-      if (__DEV__) console.log('Notifications disabled in settings');
+      devLog('Notifications disabled in settings');
       return;
     }
 
@@ -219,9 +220,9 @@ export async function scheduleMedicationNotifications(medications: Medication[])
       await scheduleMedicationNotification(medication, settings);
     }
 
-    if (__DEV__) console.log(`Scheduled ${activeMedications.length} medication notifications`);
+    devLog(`Scheduled ${activeMedications.length} medication notifications`);
   } catch (error) {
-    console.error('Error scheduling medication notifications:', error);
+    logError('notificationService.scheduleMedicationNotifications', error);
   }
 }
 
@@ -296,10 +297,10 @@ async function scheduleMedicationNotification(
       const nextTrigger = scheduleDate <= now
         ? new Date(now.getTime() + 24 * 60 * 60 * 1000)
         : scheduleDate;
-      console.log(`Scheduled ${medication.name} for ${nextTrigger.toLocaleString()}`);
+      devLog(`Scheduled ${medication.name} for ${nextTrigger.toLocaleString()}`);
     }
   } catch (error) {
-    console.error(`Error scheduling notification for ${medication.name}:`, error);
+    logError('notificationService.scheduleMedicationNotification', error);
   }
 }
 
@@ -316,13 +317,13 @@ export async function scheduleOneTimeNotification(
   try {
     const hasPermission = await hasNotificationPermissions();
     if (!hasPermission) {
-      if (__DEV__) console.log('No notification permissions');
+      devLog('No notification permissions');
       return null;
     }
 
     const settings = await getNotificationSettings();
     if (!settings.enabled) {
-      if (__DEV__) console.log('Notifications disabled');
+      devLog('Notifications disabled');
       return null;
     }
 
@@ -349,7 +350,7 @@ export async function scheduleOneTimeNotification(
 
     return notificationId;
   } catch (error) {
-    console.error('Error scheduling one-time notification:', error);
+    logError('notificationService.scheduleOneTimeNotification', error);
     return null;
   }
 }
@@ -365,7 +366,7 @@ export async function cancelAllNotifications(): Promise<void> {
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
   } catch (error) {
-    console.error('Error canceling all notifications:', error);
+    logError('notificationService.cancelAllNotifications', error);
   }
 }
 
@@ -376,7 +377,7 @@ export async function cancelNotification(notificationId: string): Promise<void> 
   try {
     await Notifications.cancelScheduledNotificationAsync(notificationId);
   } catch (error) {
-    console.error('Error canceling notification:', error);
+    logError('notificationService.cancelNotification', error);
   }
 }
 
@@ -387,7 +388,7 @@ export async function getScheduledNotifications(): Promise<Notifications.Notific
   try {
     return await Notifications.getAllScheduledNotificationsAsync();
   } catch (error) {
-    console.error('Error getting scheduled notifications:', error);
+    logError('notificationService.getScheduledNotifications', error);
     return [];
   }
 }
@@ -399,7 +400,7 @@ export async function clearDeliveredNotifications(): Promise<void> {
   try {
     await Notifications.dismissAllNotificationsAsync();
   } catch (error) {
-    console.error('Error clearing delivered notifications:', error);
+    logError('notificationService.clearDeliveredNotifications', error);
   }
 }
 
@@ -473,7 +474,7 @@ async function scheduleOverdueAlert(
       },
     });
   } catch (error) {
-    console.error('Error scheduling overdue alert:', error);
+    logError('notificationService.scheduleOverdueAlert', error);
   }
 }
 
@@ -500,7 +501,7 @@ export async function setupOverdueNotificationCategories(): Promise<void> {
       },
     ]);
   } catch (error) {
-    console.error('Error setting up overdue categories:', error);
+    logError('notificationService.setupOverdueNotificationCategories', error);
   }
 }
 
@@ -608,13 +609,13 @@ export async function scheduleCarePlanNotifications(
     // Check permissions
     const hasPermission = await hasNotificationPermissions();
     if (!hasPermission) {
-      if (__DEV__) console.log('No notification permissions, skipping scheduling');
+      devLog('No notification permissions, skipping scheduling');
       return [];
     }
 
     // Check master toggle
     if (!deliveryPrefs.masterEnabled) {
-      if (__DEV__) console.log('Notifications disabled in delivery preferences');
+      devLog('Notifications disabled in delivery preferences');
       await clearAllScheduledNotifications(patientId);
       await cancelAllNotifications();
       return [];
@@ -667,13 +668,11 @@ export async function scheduleCarePlanNotifications(
     // Save to registry
     await saveScheduledNotifications(patientId, scheduledNotifications);
 
-    if (__DEV__) {
-      console.log(`Scheduled ${scheduledNotifications.length} Care Plan notifications`);
-    }
+    devLog(`Scheduled ${scheduledNotifications.length} Care Plan notifications`);
 
     return scheduledNotifications;
   } catch (error) {
-    console.error('Error scheduling Care Plan notifications:', error);
+    logError('notificationService.scheduleCarePlanNotifications', error);
     return [];
   }
 }
@@ -753,7 +752,7 @@ async function scheduleInstanceNotification(
 
     return notification;
   } catch (error) {
-    console.error(`Error scheduling notification for ${item.name}:`, error);
+    logError('notificationService.scheduleInstanceNotification', error);
     return null;
   }
 }
@@ -771,7 +770,7 @@ export async function rescheduleAllNotifications(patientId: string): Promise<voi
 
     const carePlan = await getActiveCarePlan(patientId);
     if (!carePlan) {
-      if (__DEV__) console.log('No active care plan, clearing notifications');
+      devLog('No active care plan, clearing notifications');
       await clearAllScheduledNotifications(patientId);
       await cancelAllNotifications();
       return;
@@ -784,7 +783,7 @@ export async function rescheduleAllNotifications(patientId: string): Promise<voi
 
     await scheduleCarePlanNotifications(patientId, items, instances, deliveryPrefs);
   } catch (error) {
-    console.error('Error rescheduling notifications:', error);
+    logError('notificationService.rescheduleAllNotifications', error);
   }
 }
 

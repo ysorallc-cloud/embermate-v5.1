@@ -7,6 +7,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
+import { Colors } from '../theme/theme-tokens';
 export default function AppointmentConfirmation() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     marginBottom: 32,
   },
   summaryCard: {
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
   },
   meta: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
   primaryButton: {
     width: '100%',
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: Colors.textPrimary,
   },
   secondaryButton: {
     width: '100%',
@@ -176,6 +177,6 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
 });

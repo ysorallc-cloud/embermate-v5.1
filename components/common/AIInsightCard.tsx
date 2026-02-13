@@ -165,21 +165,21 @@ function getTypeColors(type: InsightType): {
         background: Colors.greenLight,
         border: Colors.greenBorder,
         accent: Colors.green,
-        iconBackground: 'rgba(16, 185, 129, 0.2)',
+        iconBackground: Colors.greenMuted,
       };
     case 'dependency':
       return {
         background: Colors.amberLight,
         border: Colors.amberBorder,
         accent: Colors.amber,
-        iconBackground: 'rgba(245, 158, 11, 0.2)',
+        iconBackground: Colors.amberMuted,
       };
     case 'pattern':
       return {
         background: Colors.purpleLight,
         border: Colors.purpleBorder,
         accent: Colors.purple,
-        iconBackground: 'rgba(139, 92, 246, 0.2)',
+        iconBackground: Colors.purpleWash,
       };
     case 'contextual':
     default:
@@ -187,7 +187,7 @@ function getTypeColors(type: InsightType): {
         background: Colors.accentLight,
         border: Colors.accentBorder,
         accent: Colors.accent,
-        iconBackground: 'rgba(20, 184, 166, 0.2)',
+        iconBackground: Colors.borderMedium,
       };
   }
 }
@@ -239,10 +239,10 @@ const styles = StyleSheet.create({
     marginRight: Spacing.md,
   },
   iconLoading: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.glassActive,
   },
   iconEmpty: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: Colors.greenMuted,
   },
   icon: {
     fontSize: 22,
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   confidenceBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: Colors.glassSubtle,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   badge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: Colors.glassStrong,
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 4,

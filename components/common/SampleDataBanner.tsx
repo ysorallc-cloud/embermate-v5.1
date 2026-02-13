@@ -13,11 +13,13 @@ import {
   Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { hasSampleData, detectSampleData } from '../../utils/sampleDataManager';
 import { useDataListener } from '../../lib/events';
+import { logError } from '../../utils/devLog';
 
 // Storage key for banner dismissal
 const BANNER_DISMISSED_KEY = '@embermate_sample_banner_dismissed';
@@ -79,7 +81,7 @@ export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
         setVisible(false);
       }
     } catch (error) {
-      console.error('[SampleDataBanner] Error checking sample data:', error);
+      logError('SampleDataBanner.checkSampleData', error);
     }
   };
 
@@ -97,11 +99,11 @@ export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
   };
 
   const handleSetup = () => {
-    router.push('/care-plan' as any);
+    navigate('/care-plan');
   };
 
   const handleClearData = () => {
-    router.push('/data-privacy-settings' as any);
+    navigate('/data-privacy-settings');
   };
 
   if (!visible || dismissed) {
@@ -193,9 +195,9 @@ export async function resetSampleDataBanner(): Promise<void> {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    backgroundColor: Colors.purpleMuted,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.25)',
+    borderColor: Colors.purpleBorder,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.md,
@@ -210,7 +212,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    backgroundColor: Colors.purpleWash,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -223,12 +225,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#A78BFA',
+    color: Colors.purpleBright,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     lineHeight: 18,
   },
   actions: {
@@ -237,9 +239,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   primaryButton: {
-    backgroundColor: 'rgba(139, 92, 246, 0.25)',
+    backgroundColor: Colors.purpleBorder,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.4)',
+    borderColor: Colors.purpleGlow,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 14,
@@ -247,7 +249,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#A78BFA',
+    color: Colors.purpleBright,
   },
   secondaryButton: {
     paddingVertical: 8,
@@ -255,7 +257,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
   },
   dismissButton: {
     paddingVertical: 8,
@@ -263,14 +265,14 @@ const styles = StyleSheet.create({
   },
   dismissButtonText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
 
   // Compact variant
   compactContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    backgroundColor: Colors.purpleFaint,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -287,7 +289,7 @@ const styles = StyleSheet.create({
   },
   compactText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
   },
   compactAction: {
     paddingVertical: 4,
@@ -296,14 +298,14 @@ const styles = StyleSheet.create({
   compactActionText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#A78BFA',
+    color: Colors.purpleBright,
   },
   compactDismiss: {
     paddingLeft: 8,
   },
   compactDismissText: {
     fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     fontWeight: '300',
   },
 });

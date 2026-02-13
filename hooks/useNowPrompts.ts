@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { useState, useCallback, useEffect } from 'react';
+import { logError } from '../utils/devLog';
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import type { TodayStats } from '../utils/nowHelpers';
@@ -267,7 +268,7 @@ export function useNowPrompts(todayStats: TodayStats, dailyTracking: any) {
 
       await recordAppOpen();
     } catch (error) {
-      console.error('Error computing prompts:', error);
+      logError('useNowPrompts.computePrompts', error);
     }
   }, []);
 

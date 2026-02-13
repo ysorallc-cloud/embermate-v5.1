@@ -1,3 +1,4 @@
+// TODO: Consolidation candidate — overlaps with log-evening-wellness.tsx
 // ============================================================================
 // DAILY CHECK-IN FLOW
 // 6-step wizard for evening check-in
@@ -19,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { saveDailyTracking } from '../utils/dailyTrackingStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
+import { logError } from '../utils/devLog';
 
 const MOOD_OPTIONS = [
   { value: 9, emoji: '😄', label: 'Great' },
@@ -174,7 +176,7 @@ export default function DailyCheckinScreen() {
       await hapticSuccess();
       router.back();
     } catch (error) {
-      console.error('Error saving check-in:', error);
+      logError('DailyCheckinScreen.handleComplete', error);
       Alert.alert('Error', 'Failed to save check-in');
     }
   };
@@ -455,7 +457,7 @@ export default function DailyCheckinScreen() {
               value={notes}
               onChangeText={setNotes}
               placeholder="Anything else worth noting..."
-              placeholderTextColor="rgba(255, 255, 255, 0.3)"
+              placeholderTextColor={Colors.textPlaceholder}
               multiline
               numberOfLines={4}
               accessibilityLabel="Daily check-in notes"
@@ -573,15 +575,15 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(20, 184, 166, 0.15)',
+    borderBottomColor: Colors.accentHint,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.12)',
+    borderColor: Colors.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -599,12 +601,12 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     marginTop: 2,
   },
   cancelText: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
 
   // Progress Bar
@@ -614,7 +616,7 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 4,
-    backgroundColor: 'rgba(13, 148, 136, 0.15)',
+    backgroundColor: Colors.accentSubtle,
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -642,7 +644,7 @@ const styles = StyleSheet.create({
   },
   stepSubtitle: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     marginBottom: 32,
   },
 
@@ -655,16 +657,16 @@ const styles = StyleSheet.create({
   moodButton: {
     width: '30%',
     aspectRatio: 1,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accentHint,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   moodButtonSelected: {
-    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+    backgroundColor: Colors.accentHint,
     borderColor: Colors.accent,
   },
   moodEmoji: {
@@ -672,7 +674,7 @@ const styles = StyleSheet.create({
   },
   moodLabel: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
   },
   moodLabelSelected: {
     color: Colors.accent,
@@ -686,15 +688,15 @@ const styles = StyleSheet.create({
   energyOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accentHint,
     borderRadius: 12,
     padding: 16,
     gap: 14,
   },
   energyOptionSelected: {
-    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+    backgroundColor: Colors.accentHint,
     borderColor: Colors.accent,
   },
   radio: {
@@ -702,7 +704,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: 'rgba(20, 184, 166, 0.3)',
+    borderColor: Colors.borderStrong,
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
@@ -718,7 +720,7 @@ const styles = StyleSheet.create({
   },
   energyLabel: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
   },
   energyLabelSelected: {
     color: Colors.accent,
@@ -739,18 +741,18 @@ const styles = StyleSheet.create({
   chip: {
     paddingVertical: 12,
     paddingHorizontal: 18,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accentHint,
     borderRadius: 20,
   },
   chipSelected: {
-    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+    backgroundColor: Colors.accentHint,
     borderColor: Colors.accent,
   },
   chipText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
   },
   chipTextSelected: {
     color: Colors.accent,
@@ -765,15 +767,15 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 1.5,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     marginBottom: 12,
   },
   mealToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accentHint,
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,
@@ -784,7 +786,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: 'rgba(20, 184, 166, 0.3)',
+    borderColor: Colors.borderStrong,
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
@@ -795,7 +797,7 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     fontWeight: 'bold',
   },
   mealLabel: {
@@ -815,9 +817,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(13, 148, 136, 0.12)',
+    backgroundColor: Colors.accentLight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.2)',
+    borderColor: Colors.borderMedium,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -830,7 +832,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+    backgroundColor: Colors.accentHint,
     borderWidth: 2,
     borderColor: Colors.accent,
     alignItems: 'center',
@@ -854,16 +856,16 @@ const styles = StyleSheet.create({
   sleepQualityButton: {
     width: '30%',
     aspectRatio: 1,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accentHint,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
   sleepQualityButtonSelected: {
-    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+    backgroundColor: Colors.accentHint,
     borderColor: Colors.accent,
   },
   sleepQualityEmoji: {
@@ -871,7 +873,7 @@ const styles = StyleSheet.create({
   },
   sleepQualityLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
   sleepQualityLabelSelected: {
@@ -881,9 +883,9 @@ const styles = StyleSheet.create({
 
   // Step 6: Notes
   notesInput: {
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accentHint,
     borderRadius: 12,
     padding: 14,
     color: Colors.textPrimary,
@@ -901,7 +903,7 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 24,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(20, 184, 166, 0.15)',
+    borderTopColor: Colors.accentHint,
     backgroundColor: Colors.background,
   },
   nextButton: {
@@ -911,11 +913,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   nextButtonDisabled: {
-    backgroundColor: 'rgba(13, 148, 136, 0.3)',
+    backgroundColor: Colors.borderStrong,
   },
   nextButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
 });

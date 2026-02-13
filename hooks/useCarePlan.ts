@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { useState, useEffect, useCallback } from 'react';
+import { logError } from '../utils/devLog';
 import { useDataListener } from '../lib/events';
 import {
   CarePlan,
@@ -157,7 +158,7 @@ export function useCarePlan(date?: string): UseCarePlanReturn {
       setOverridesState(overrides);
       setIntegrityWarnings(state.integrityWarnings || []);
     } catch (err) {
-      console.error('Error loading care plan data:', err);
+      logError('useCarePlan.loadData', err);
       setError(err instanceof Error ? err : new Error('Failed to load care plan'));
     } finally {
       setLoading(false);
@@ -169,9 +170,11 @@ export function useCarePlan(date?: string): UseCarePlanReturn {
     loadData();
   }, [loadData]);
 
-  // Listen for data updates
-  useDataListener(() => {
-    loadData();
+  // Listen for relevant data updates only
+  useDataListener((category) => {
+    if (['carePlan', 'carePlanItems', 'sampleDataCleared'].includes(category)) {
+      loadData();
+    }
   });
 
   /**
@@ -200,7 +203,7 @@ export function useCarePlan(date?: string): UseCarePlanReturn {
       await setOverride(override);
       // Data will refresh via listener
     } catch (err) {
-      console.error('Error setting override:', err);
+      logError('useCarePlan.setItemOverride', err);
       throw err;
     }
   }, [targetDate]);
@@ -216,7 +219,7 @@ export function useCarePlan(date?: string): UseCarePlanReturn {
       await removeOverride(targetDate, routineId, itemId);
       // Data will refresh via listener
     } catch (err) {
-      console.error('Error clearing override:', err);
+      logError('useCarePlan.clearItemOverride', err);
       throw err;
     }
   }, [targetDate]);
@@ -229,7 +232,7 @@ export function useCarePlan(date?: string): UseCarePlanReturn {
       await updateCarePlanStorage(updates);
       // Data will refresh via listener
     } catch (err) {
-      console.error('Error updating care plan:', err);
+      logError('useCarePlan.updateCarePlan', err);
       throw err;
     }
   }, []);
@@ -244,7 +247,7 @@ export function useCarePlan(date?: string): UseCarePlanReturn {
       await loadData();
       return plan;
     } catch (err) {
-      console.error('Error initializing care plan:', err);
+      logError('useCarePlan.initializeCarePlan', err);
       throw err;
     }
   }, [loadData]);
@@ -274,7 +277,7 @@ export function useCarePlan(date?: string): UseCarePlanReturn {
       await setOverride(override);
       // Data will refresh via listener
     } catch (err) {
-      console.error('Error snoozing item:', err);
+      logError('useCarePlan.snoozeItem', err);
       throw err;
     }
   }, [targetDate]);
@@ -291,7 +294,7 @@ export function useCarePlan(date?: string): UseCarePlanReturn {
       await removeOverride(targetDate, routineId, itemId);
       // Data will refresh via listener
     } catch (err) {
-      console.error('Error clearing snooze:', err);
+      logError('useCarePlan.clearSnooze', err);
       throw err;
     }
   }, [targetDate]);

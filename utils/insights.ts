@@ -5,6 +5,7 @@
 
 import { Medication, getMedicationLogs, MedicationLog } from './medicationStorage';
 import { getTimeSlot } from './time';
+import { logError } from './devLog';
 
 export interface Insight {
   id: string;
@@ -110,7 +111,7 @@ export async function getMissedWindowInsight(medications: Medication[]): Promise
       icon: '⏰',
     };
   } catch (error) {
-    console.error('Error analyzing time windows:', error);
+    logError('insights.getMissedWindowInsight', error);
     return null;
   }
 }
@@ -152,7 +153,7 @@ export async function getAdherenceInsight(medications: Medication[]): Promise<In
       icon: adherenceRate >= 80 ? '✓' : '◐',
     };
   } catch (error) {
-    console.error('Error calculating consistency:', error);
+    logError('insights.getAdherenceInsight', error);
     return null;
   }
 }

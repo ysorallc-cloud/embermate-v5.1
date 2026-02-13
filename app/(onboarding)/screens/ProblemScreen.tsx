@@ -157,9 +157,9 @@ const styles = StyleSheet.create({
   },
   painPointsCard: {
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: Colors.glass,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: Colors.border,
     borderRadius: 16,
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
@@ -172,11 +172,11 @@ const styles = StyleSheet.create({
   },
   painPointBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderBottomColor: Colors.border,
   },
   painPointIcon: {
     fontSize: 18,
-    color: '#EF4444',
+    color: Colors.red,
     fontWeight: '600',
   },
   painPointText: {

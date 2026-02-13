@@ -3,14 +3,13 @@
 // ============================================================================
 
 import { useEffect, useRef } from 'react';
+import { devLog } from '../utils/devLog';
 
 type EventCallback = (category: string) => void;
 const listeners: Set<EventCallback> = new Set();
 
 export const emitDataUpdate = (category: string) => {
-  if (__DEV__) {
-    console.log('[Events] emitDataUpdate:', category, '| listeners:', listeners.size);
-  }
+  devLog('[Events] emitDataUpdate:', category, '| listeners:', listeners.size);
   listeners.forEach(callback => callback(category));
 };
 
@@ -39,15 +38,11 @@ export const useDataListener = (callback: EventCallback) => {
     };
 
     listeners.add(stableCallback);
-    if (__DEV__) {
-      console.log('[Events] useDataListener mounted, total listeners:', listeners.size);
-    }
+    devLog('[Events] useDataListener mounted, total listeners:', listeners.size);
 
     return () => {
       listeners.delete(stableCallback);
-      if (__DEV__) {
-        console.log('[Events] useDataListener unmounted, total listeners:', listeners.size);
-      }
+      devLog('[Events] useDataListener unmounted, total listeners:', listeners.size);
     };
   }, []); // Empty deps is correct here because we use the ref
 };

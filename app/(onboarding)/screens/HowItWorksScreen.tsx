@@ -122,9 +122,9 @@ const styles = StyleSheet.create({
   stepCard: {
     flexDirection: 'row',
     gap: 16,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: Colors.glass,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: Colors.border,
     borderRadius: 14,
     padding: 16,
     position: 'relative',
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   stepNumberText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: Colors.textPrimary,
   },
   stepContent: {
     flex: 1,
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     bottom: -16,
     width: 2,
     height: 16,
-    backgroundColor: 'rgba(20, 184, 166, 0.3)',
+    backgroundColor: Colors.borderStrong,
   },
   ctaHint: {
     fontSize: 14,

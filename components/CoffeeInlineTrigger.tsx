@@ -7,6 +7,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 
+import { Colors } from '../theme/theme-tokens';
 interface CoffeeInlineTriggerProps {
   onPress: () => void;
   microcopy?: string;
@@ -50,7 +51,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
+    color: Colors.textSecondary,
     fontStyle: 'italic',
   },
 });

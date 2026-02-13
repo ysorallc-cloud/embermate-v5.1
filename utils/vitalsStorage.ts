@@ -4,6 +4,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logError } from './devLog';
 
 export type VitalType =
   | 'glucose'
@@ -38,7 +39,7 @@ export async function saveVital(vital: Omit<VitalReading, 'id'>): Promise<void> 
     vitals.push(newVital);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(vitals));
   } catch (error) {
-    console.error('Error saving vital:', error);
+    logError('vitalsStorage.saveVital', error);
     throw error;
   }
 }
@@ -51,7 +52,7 @@ export async function getVitals(): Promise<VitalReading[]> {
     const data = await AsyncStorage.getItem(STORAGE_KEY);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error loading vitals:', error);
+    logError('vitalsStorage.getVitals', error);
     return [];
   }
 }
@@ -66,7 +67,7 @@ export async function getVitalsByType(type: VitalType): Promise<VitalReading[]> 
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
   } catch (error) {
-    console.error('Error loading vitals by type:', error);
+    logError('vitalsStorage.getVitalsByType', error);
     return [];
   }
 }
@@ -90,7 +91,7 @@ export async function getVitalsInRange(
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
   } catch (error) {
-    console.error('Error loading vitals in range:', error);
+    logError('vitalsStorage.getVitalsInRange', error);
     return [];
   }
 }
@@ -118,7 +119,7 @@ export async function getVitalsCompletionForDate(date: string): Promise<Date | n
 
     return new Date(mostRecent.timestamp);
   } catch (error) {
-    console.error('Error checking vitals completion:', error);
+    logError('vitalsStorage.getVitalsCompletionForDate', error);
     return null;
   }
 }
@@ -132,7 +133,7 @@ export async function deleteVital(id: string): Promise<void> {
     const filtered = vitals.filter((v) => v.id !== id);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
   } catch (error) {
-    console.error('Error deleting vital:', error);
+    logError('vitalsStorage.deleteVital', error);
     throw error;
   }
 }
@@ -144,7 +145,7 @@ export async function clearVitals(): Promise<void> {
   try {
     await AsyncStorage.removeItem(STORAGE_KEY);
   } catch (error) {
-    console.error('Error clearing vitals:', error);
+    logError('vitalsStorage.clearVitals', error);
     throw error;
   }
 }
@@ -160,7 +161,7 @@ export async function getVitalsForDate(date: string): Promise<VitalReading[]> {
       return vitalDate === date;
     });
   } catch (error) {
-    console.error('Error getting vitals for date:', error);
+    logError('vitalsStorage.getVitalsForDate', error);
     return [];
   }
 }
@@ -186,7 +187,7 @@ export async function getLatestVitalsByTypes(
 
     return result;
   } catch (error) {
-    console.error('Error getting latest vitals by types:', error);
+    logError('vitalsStorage.getLatestVitalsByTypes', error);
     return {};
   }
 }

@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { useState, useEffect } from 'react';
+import { logError } from '../utils/devLog';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   WellnessSettings,
@@ -56,7 +57,7 @@ export const useWellnessSettings = () => {
         setSettings(merged);
       }
     } catch (error) {
-      console.error('Failed to load wellness settings:', error);
+      logError('useWellnessSettings.loadSettings', error);
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +68,7 @@ export const useWellnessSettings = () => {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
       setSettings(newSettings);
     } catch (error) {
-      console.error('Failed to save wellness settings:', error);
+      logError('useWellnessSettings.saveSettings', error);
     }
   };
 

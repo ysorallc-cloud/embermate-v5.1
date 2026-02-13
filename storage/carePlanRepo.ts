@@ -7,6 +7,7 @@
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { generateUniqueId } from '../utils/idGenerator';
 import { emitDataUpdate } from '../lib/events';
+import { withKeyLock } from '../utils/keyLock';
 import {
   CarePlan,
   CarePlanItem,
@@ -87,8 +88,8 @@ export async function upsertCarePlan(plan: CarePlan): Promise<CarePlan> {
     createdAt: existing?.createdAt || now,
   };
 
-  await safeSetItem(KEYS.CARE_PLAN(plan.patientId), updatedPlan);
-  emitDataUpdate('carePlan');
+  const ok = await safeSetItem(KEYS.CARE_PLAN(plan.patientId), updatedPlan);
+  if (ok) emitDataUpdate('carePlan');
   return updatedPlan;
 }
 
@@ -113,8 +114,8 @@ export async function createCarePlan(
     updatedAt: now,
   };
 
-  await safeSetItem(KEYS.CARE_PLAN(patientId), plan);
-  emitDataUpdate('carePlan');
+  const ok = await safeSetItem(KEYS.CARE_PLAN(patientId), plan);
+  if (ok) emitDataUpdate('carePlan');
   return plan;
 }
 
@@ -181,8 +182,8 @@ export async function upsertCarePlanItem(item: CarePlanItem): Promise<CarePlanIt
     items.push(updatedItem);
   }
 
-  await safeSetItem(KEYS.CARE_PLAN_ITEMS(item.carePlanId), items);
-  emitDataUpdate('carePlanItems');
+  const ok = await safeSetItem(KEYS.CARE_PLAN_ITEMS(item.carePlanId), items);
+  if (ok) emitDataUpdate('carePlanItems');
   return updatedItem;
 }
 
@@ -208,8 +209,8 @@ export async function deleteCarePlanItem(
 ): Promise<void> {
   const items = await listCarePlanItems(carePlanId);
   const filtered = items.filter(i => i.id !== itemId);
-  await safeSetItem(KEYS.CARE_PLAN_ITEMS(carePlanId), filtered);
-  emitDataUpdate('carePlanItems');
+  const ok = await safeSetItem(KEYS.CARE_PLAN_ITEMS(carePlanId), filtered);
+  if (ok) emitDataUpdate('carePlanItems');
 }
 
 // ============================================================================
@@ -246,30 +247,34 @@ export async function upsertDailyInstances(
   date: string,
   instances: DailyCareInstance[]
 ): Promise<DailyCareInstance[]> {
-  const now = new Date().toISOString();
-  const existing = await listDailyInstances(patientId, date);
-  const existingMap = new Map(existing.map(i => [i.id, i]));
+  const lockKey = KEYS.DAILY_INSTANCES(patientId, date);
+  return withKeyLock(lockKey, async () => {
+    const now = new Date().toISOString();
+    const existing = await listDailyInstances(patientId, date);
+    const existingMap = new Map(existing.map(i => [i.id, i]));
 
-  const result: DailyCareInstance[] = [];
+    const result: DailyCareInstance[] = [];
 
-  for (const instance of instances) {
-    const existingInstance = existingMap.get(instance.id);
-    const updatedInstance: DailyCareInstance = {
-      ...instance,
-      updatedAt: now,
-      createdAt: existingInstance?.createdAt || now,
-    };
-    existingMap.set(instance.id, updatedInstance);
-    result.push(updatedInstance);
-  }
+    for (const instance of instances) {
+      const existingInstance = existingMap.get(instance.id);
+      const updatedInstance: DailyCareInstance = {
+        ...instance,
+        updatedAt: now,
+        createdAt: existingInstance?.createdAt || now,
+      };
+      existingMap.set(instance.id, updatedInstance);
+      result.push(updatedInstance);
+    }
 
-  await safeSetItem(KEYS.DAILY_INSTANCES(patientId, date), Array.from(existingMap.values()));
+    const ok = await safeSetItem(KEYS.DAILY_INSTANCES(patientId, date), Array.from(existingMap.values()));
+    if (!ok) return result;
 
-  // Update index
-  await updateInstanceIndex(patientId, date);
+    // Update index
+    await updateInstanceIndex(patientId, date);
 
-  emitDataUpdate('dailyInstances');
-  return result;
+    emitDataUpdate('dailyInstances');
+    return result;
+  });
 }
 
 /**
@@ -282,22 +287,25 @@ export async function updateDailyInstanceStatus(
   status: DailyCareInstance['status'],
   logId?: string
 ): Promise<DailyCareInstance | null> {
-  const instances = await listDailyInstances(patientId, date);
-  const index = instances.findIndex(i => i.id === instanceId);
+  const lockKey = KEYS.DAILY_INSTANCES(patientId, date);
+  return withKeyLock(lockKey, async () => {
+    const instances = await listDailyInstances(patientId, date);
+    const index = instances.findIndex(i => i.id === instanceId);
 
-  if (index === -1) return null;
+    if (index === -1) return null;
 
-  const now = new Date().toISOString();
-  instances[index] = {
-    ...instances[index],
-    status,
-    logId,
-    updatedAt: now,
-  };
+    const now = new Date().toISOString();
+    instances[index] = {
+      ...instances[index],
+      status,
+      logId,
+      updatedAt: now,
+    };
 
-  await safeSetItem(KEYS.DAILY_INSTANCES(patientId, date), instances);
-  emitDataUpdate('dailyInstances');
-  return instances[index];
+    const ok = await safeSetItem(KEYS.DAILY_INSTANCES(patientId, date), instances);
+    if (ok) emitDataUpdate('dailyInstances');
+    return instances[index];
+  });
 }
 
 /**
@@ -309,16 +317,19 @@ export async function removeStaleInstances(
   date: string,
   validItemIds: Set<string>
 ): Promise<number> {
-  const instances = await listDailyInstances(patientId, date);
-  const validInstances = instances.filter(i => validItemIds.has(i.carePlanItemId));
-  const removedCount = instances.length - validInstances.length;
+  const lockKey = KEYS.DAILY_INSTANCES(patientId, date);
+  return withKeyLock(lockKey, async () => {
+    const instances = await listDailyInstances(patientId, date);
+    const validInstances = instances.filter(i => validItemIds.has(i.carePlanItemId));
+    const removedCount = instances.length - validInstances.length;
 
-  if (removedCount > 0) {
-    await safeSetItem(KEYS.DAILY_INSTANCES(patientId, date), validInstances);
-    emitDataUpdate('dailyInstances');
-  }
+    if (removedCount > 0) {
+      const ok = await safeSetItem(KEYS.DAILY_INSTANCES(patientId, date), validInstances);
+      if (ok) emitDataUpdate('dailyInstances');
+    }
 
-  return removedCount;
+    return removedCount;
+  });
 }
 
 /**
@@ -379,10 +390,11 @@ export async function createLogEntry(
     createdAt: now,
   };
 
-  // Store in daily bucket
+  // Store in daily bucket — bail early if this fails
   const dailyLogs = await listLogsByDate(log.patientId, date);
   dailyLogs.push(newLog);
-  await safeSetItem(KEYS.LOGS(log.patientId, date), dailyLogs);
+  const dailyOk = await safeSetItem(KEYS.LOGS(log.patientId, date), dailyLogs);
+  if (!dailyOk) return newLog;
 
   // Update index
   await updateLogIndex(log.patientId, date);
@@ -584,14 +596,18 @@ export async function getDailySchedule(
  */
 export async function clearAllPatientData(patientId: string): Promise<void> {
   const plan = await getActiveCarePlan(patientId);
+  const results: boolean[] = [];
   if (plan) {
-    await safeSetItem(KEYS.CARE_PLAN_ITEMS(plan.id), []);
+    results.push(await safeSetItem(KEYS.CARE_PLAN_ITEMS(plan.id), []));
   }
-  await safeSetItem(KEYS.CARE_PLAN(patientId), null);
-  await safeSetItem(KEYS.DAILY_INSTANCES_INDEX(patientId), []);
-  await safeSetItem(KEYS.LOGS_INDEX(patientId), []);
-  await safeSetItem(KEYS.ALL_LOGS(patientId), []);
-  emitDataUpdate('carePlan');
-  emitDataUpdate('dailyInstances');
-  emitDataUpdate('logs');
+  results.push(await safeSetItem(KEYS.CARE_PLAN(patientId), null));
+  results.push(await safeSetItem(KEYS.DAILY_INSTANCES_INDEX(patientId), []));
+  results.push(await safeSetItem(KEYS.LOGS_INDEX(patientId), []));
+  results.push(await safeSetItem(KEYS.ALL_LOGS(patientId), []));
+  const anySuccess = results.some(r => r);
+  if (anySuccess) {
+    emitDataUpdate('carePlan');
+    emitDataUpdate('dailyInstances');
+    emitDataUpdate('logs');
+  }
 }

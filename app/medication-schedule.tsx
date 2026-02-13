@@ -6,6 +6,7 @@
 // ============================================================================
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { navigate } from '../lib/navigate';
 import {
   View,
   Text,
@@ -29,6 +30,7 @@ import {
   getMedicationsNeedingRefill 
 } from '../utils/medicationStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
+import { logError } from '../utils/devLog';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'bedtime';
 
@@ -75,7 +77,7 @@ export default function MedicationScheduleScreen() {
       const needsRefill = await getMedicationsNeedingRefill(7);
       setRefillMeds(needsRefill);
     } catch (error) {
-      console.error('Error loading medications:', error);
+      logError('MedicationScheduleScreen.loadData', error);
     }
   };
 
@@ -105,7 +107,7 @@ export default function MedicationScheduleScreen() {
         undoTimerRef.current = null;
       }, 5000);
     } catch (error) {
-      console.error('Error toggling medication:', error);
+      logError('MedicationScheduleScreen.handleToggleTaken', error);
       Alert.alert('Error', 'Failed to update medication status');
     }
   };
@@ -122,7 +124,7 @@ export default function MedicationScheduleScreen() {
       setShowUndo(false);
       setUndoAction(null);
     } catch (error) {
-      console.error('Error undoing action:', error);
+      logError('MedicationScheduleScreen.handleUndo', error);
     }
   };
 
@@ -168,7 +170,7 @@ export default function MedicationScheduleScreen() {
             <Text style={styles.title}>Medications</Text>
             <TouchableOpacity
               style={styles.addButton}
-              onPress={() => router.push('/medication-form' as any)}
+              onPress={() => navigate('/medication-form')}
               accessibilityLabel="Add medication"
               accessibilityRole="button"
             >
@@ -238,7 +240,7 @@ export default function MedicationScheduleScreen() {
                       med.taken && styles.checkboxChecked
                     ]}>
                       {med.taken && (
-                        <Ionicons name="checkmark" size={18} color="#FFF" />
+                        <Ionicons name="checkmark" size={18} color={Colors.textPrimary} />
                       )}
                     </View>
                   </TouchableOpacity>

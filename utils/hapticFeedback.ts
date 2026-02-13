@@ -5,6 +5,7 @@
 
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logError } from './devLog';
 
 const HAPTICS_ENABLED_KEY = '@embermate_haptics_enabled';
 const HAPTICS_STRENGTH_KEY = '@embermate_haptics_strength';
@@ -34,7 +35,7 @@ export async function setHapticsEnabled(enabled: boolean): Promise<void> {
   try {
     await AsyncStorage.setItem(HAPTICS_ENABLED_KEY, enabled.toString());
   } catch (error) {
-    console.error('Error setting haptics enabled:', error);
+    logError('hapticFeedback.setHapticsEnabled', error);
   }
 }
 
@@ -57,7 +58,7 @@ export async function setHapticStrength(strength: HapticStrength): Promise<void>
   try {
     await AsyncStorage.setItem(HAPTICS_STRENGTH_KEY, strength);
   } catch (error) {
-    console.error('Error setting haptic strength:', error);
+    logError('hapticFeedback.setHapticStrength', error);
   }
 }
 

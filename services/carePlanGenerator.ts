@@ -4,6 +4,7 @@
 // Called on app launch, tab focus, and date change
 // ============================================================================
 
+import { devLog, logError } from '../utils/devLog';
 import {
   CarePlan,
   CarePlanItem,
@@ -172,9 +173,7 @@ async function syncMedicationItemsWithConfig(
       if (!hasItemById && !hasItemByName) {
         // Create new CarePlanItem for this config medication
         const newItem = createCarePlanItemFromConfigMed(configMed, carePlanId);
-        if (__DEV__) {
-          console.log('[syncMedicationItemsWithConfig] Creating CarePlanItem for config med:', configMed.name);
-        }
+        devLog('[syncMedicationItemsWithConfig] Creating CarePlanItem for config med:', configMed.name);
         await upsertCarePlanItem(newItem);
         changed = true;
       }
@@ -191,9 +190,7 @@ async function syncMedicationItemsWithConfig(
 
       if (!hasMatchingConfig && item.active) {
         // Deactivate this item - it's not in the current config
-        if (__DEV__) {
-          console.log('[syncMedicationItemsWithConfig] Deactivating stale medication item:', item.name);
-        }
+        devLog('[syncMedicationItemsWithConfig] Deactivating stale medication item:', item.name);
         await upsertCarePlanItem({
           ...item,
           active: false,
@@ -202,7 +199,7 @@ async function syncMedicationItemsWithConfig(
       }
     }
   } catch (error) {
-    console.error('[syncMedicationItemsWithConfig] Error syncing medications:', error);
+    logError('carePlanGenerator.syncMedicationItemsWithConfig', error);
     // Don't throw - this is a cleanup operation, shouldn't block instance generation
   }
   return changed;
@@ -260,9 +257,7 @@ async function syncOtherBucketsWithConfig(
         updatedAt: now,
       };
 
-      if (__DEV__) {
-        console.log('[syncOtherBucketsWithConfig] Creating vitals CarePlanItem');
-      }
+      devLog('[syncOtherBucketsWithConfig] Creating vitals CarePlanItem');
       await upsertCarePlanItem(vitalsItem);
       changed = true;
     } else if (!vitalsEnabled && hasActiveVitalsItem) {
@@ -324,9 +319,7 @@ async function syncOtherBucketsWithConfig(
           updatedAt: now,
         };
 
-        if (__DEV__) {
-          console.log('[syncOtherBucketsWithConfig] Creating meal CarePlanItem:', mealItem.name);
-        }
+        devLog('[syncOtherBucketsWithConfig] Creating meal CarePlanItem:', mealItem.name);
         await upsertCarePlanItem(mealItem);
         changed = true;
       }
@@ -388,9 +381,7 @@ async function syncOtherBucketsWithConfig(
         updatedAt: now,
       };
 
-      if (__DEV__) {
-        console.log('[syncOtherBucketsWithConfig] Creating wellness CarePlanItems (morning + evening)');
-      }
+      devLog('[syncOtherBucketsWithConfig] Creating wellness CarePlanItems (morning + evening)');
       await upsertCarePlanItem(morningItem);
       await upsertCarePlanItem(eveningItem);
       changed = true;
@@ -409,7 +400,7 @@ async function syncOtherBucketsWithConfig(
     }
 
   } catch (error) {
-    console.error('[syncOtherBucketsWithConfig] Error syncing buckets:', error);
+    logError('carePlanGenerator.syncOtherBucketsWithConfig', error);
   }
   return changed;
 }
@@ -447,8 +438,8 @@ export async function ensureDailyInstances(
   if (!duplicateCleanupCompleted) {
     duplicateCleanupCompleted = true;
     const cleanup = await cleanupDuplicateCarePlanItems(patientId);
-    if (cleanup.removedCount > 0 && __DEV__) {
-      console.log(`[ensureDailyInstances] Cleaned up ${cleanup.removedCount} duplicate items`);
+    if (cleanup.removedCount > 0) {
+      devLog(`[ensureDailyInstances] Cleaned up ${cleanup.removedCount} duplicate items`);
     }
   }
 
@@ -465,9 +456,7 @@ export async function ensureDailyInstances(
       await rescheduleAllNotifications(patientId);
     } catch (error) {
       // Notification rescheduling is not critical - log and continue
-      if (__DEV__) {
-        console.log('[ensureDailyInstances] Notification reschedule skipped:', error);
-      }
+      devLog('[ensureDailyInstances] Notification reschedule skipped:', error);
     }
   }
 
@@ -812,9 +801,7 @@ export async function cleanupDuplicateCarePlanItems(
     await removeStaleInstances(patientId, today, validItemIds);
   }
 
-  if (__DEV__) {
-    console.log(`[cleanupDuplicateCarePlanItems] Removed ${duplicateIds.length} duplicates for types:`, Array.from(affectedTypes));
-  }
+  devLog(`[cleanupDuplicateCarePlanItems] Removed ${duplicateIds.length} duplicates for types:`, Array.from(affectedTypes));
 
   return {
     removedCount: duplicateIds.length,

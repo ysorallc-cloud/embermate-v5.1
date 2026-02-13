@@ -35,6 +35,7 @@ import {
 // Components
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { BackButton } from '../components/common/BackButton';
+import { logError } from '../utils/devLog';
 
 export default function DataPrivacySettingsScreen() {
   const router = useRouter();
@@ -59,7 +60,7 @@ export default function DataPrivacySettingsScreen() {
       setSampleDataStatus(status);
       setRetentionPolicyState(policy);
     } catch (error) {
-      console.error('Error loading settings:', error);
+      logError('DataPrivacySettingsScreen.loadStatus', error);
     } finally {
       setLoading(false);
     }
@@ -442,7 +443,7 @@ const styles = StyleSheet.create({
   },
   headerLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     letterSpacing: 1,
     fontWeight: '600',
     marginBottom: 8,
@@ -450,7 +451,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '300',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: Spacing.lg,
   },
 
@@ -458,9 +459,9 @@ const styles = StyleSheet.create({
   privacyCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+    backgroundColor: Colors.sageFaint,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.2)',
+    borderColor: Colors.sageWash,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.xl,
@@ -475,12 +476,12 @@ const styles = StyleSheet.create({
   privacyTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#5EEAD4',
+    color: Colors.sage,
     marginBottom: 4,
   },
   privacyText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     lineHeight: 18,
   },
 
@@ -491,22 +492,22 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 4,
   },
   sectionDescription: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     marginBottom: 12,
   },
 
   // Setting Card
   settingCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -532,21 +533,21 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   settingHint: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     marginLeft: 26,
   },
   settingChevron: {
     fontSize: 20,
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: Colors.textPlaceholder,
     fontWeight: '600',
   },
   settingDivider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     marginHorizontal: 14,
   },
 
@@ -566,16 +567,16 @@ const styles = StyleSheet.create({
   sampleDataTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   sampleDataSubtitle: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     marginBottom: 12,
     marginLeft: 26,
   },
   breakdown: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: Colors.glass,
     borderRadius: 8,
     padding: 10,
     gap: 6,
@@ -592,7 +593,7 @@ const styles = StyleSheet.create({
   },
   breakdownText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
   },
 
   // Clear Button
@@ -603,7 +604,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(239, 68, 68, 0.15)',
+    borderTopColor: Colors.redHint,
     padding: 14,
     marginTop: 0,
   },
@@ -613,11 +614,11 @@ const styles = StyleSheet.create({
   clearButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#EF4444',
+    color: Colors.red,
   },
   clearNote: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     textAlign: 'center',
     paddingHorizontal: 14,
     paddingBottom: 12,
@@ -633,7 +634,7 @@ const styles = StyleSheet.create({
   },
   noSampleDataIcon: {
     fontSize: 20,
-    color: '#10B981',
+    color: Colors.green,
   },
   noSampleDataContent: {
     flex: 1,
@@ -641,12 +642,12 @@ const styles = StyleSheet.create({
   noSampleDataTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 2,
   },
   noSampleDataText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
 
   // Retention
@@ -673,6 +674,6 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
   },
 });

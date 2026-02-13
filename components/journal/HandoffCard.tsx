@@ -6,9 +6,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { buildTodaySummary, TodaySummary } from '../../utils/careSummaryBuilder';
 import { useDataListener } from '../../lib/events';
+import { logError } from '../../utils/devLog';
 
 // ============================================================================
 // TYPES
@@ -34,7 +36,7 @@ export function HandoffCard() {
       const data = await buildTodaySummary();
       setSummary(data);
     } catch (error) {
-      console.error('Error loading care summary:', error);
+      logError('HandoffCard.loadSummary', error);
     }
   }, []);
 
@@ -121,7 +123,7 @@ export function HandoffCard() {
       <View style={styles.header}>
         <Text style={styles.headerLabel}>TODAY'S SUMMARY</Text>
         <TouchableOpacity
-          onPress={() => router.push('/care-summary-export' as any)}
+          onPress={() => navigate('/care-summary-export')}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           accessibilityLabel="Share care summary"
           accessibilityRole="button"
@@ -173,7 +175,7 @@ export function HandoffCard() {
       {/* Footer Link */}
       <TouchableOpacity
         style={styles.footerLink}
-        onPress={() => router.push('/care-brief' as any)}
+        onPress={() => navigate('/care-brief')}
         activeOpacity={0.7}
         accessibilityLabel="View full care brief"
         accessibilityRole="link"
@@ -190,9 +192,9 @@ export function HandoffCard() {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: Colors.border,
     borderLeftWidth: 4,
     borderLeftColor: Colors.accentBorder,
     borderRadius: BorderRadius.lg,
@@ -217,7 +219,7 @@ const styles = StyleSheet.create({
   shareText: {
     fontSize: 12,
     fontWeight: '500',
-    color: 'rgba(94, 234, 212, 0.7)',
+    color: Colors.sageSoft,
   },
 
   // Vertical status lines
@@ -297,6 +299,6 @@ const styles = StyleSheet.create({
   footerLinkText: {
     fontSize: 13,
     fontWeight: '500',
-    color: 'rgba(94, 234, 212, 0.7)',
+    color: Colors.sageSoft,
   },
 });

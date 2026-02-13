@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { navigate } from '../lib/navigate';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
@@ -308,7 +309,7 @@ export default function TodayScopeScreen() {
                     <TouchableOpacity
                       key={bucket}
                       style={styles.quickAddButton}
-                      onPress={() => router.push(quickAdd.route as any)}
+                      onPress={() => navigate(quickAdd.route)}
                       activeOpacity={0.7}
                       accessibilityLabel={quickAdd.label}
                       accessibilityRole="button"
@@ -438,9 +439,9 @@ const styles = StyleSheet.create({
   firstTimeBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    backgroundColor: Colors.purpleMuted,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
+    borderColor: Colors.purpleStrong,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.md,
@@ -457,7 +458,7 @@ const styles = StyleSheet.create({
   firstTimeBannerText: {
     flex: 1,
     fontSize: 13,
-    color: '#A78BFA',
+    color: Colors.purpleBright,
     lineHeight: 18,
   },
   firstTimeBannerDismiss: {
@@ -466,7 +467,7 @@ const styles = StyleSheet.create({
   },
   firstTimeBannerDismissText: {
     fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     lineHeight: 18,
   },
   subtitle: {
@@ -480,9 +481,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    backgroundColor: Colors.blueFaint,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)',
+    borderColor: Colors.blueWash,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.xl,
@@ -493,7 +494,7 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     lineHeight: 18,
   },
 
@@ -504,7 +505,7 @@ const styles = StyleSheet.create({
   quickAddLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     letterSpacing: 1,
     marginBottom: Spacing.sm,
   },
@@ -517,9 +518,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+    backgroundColor: Colors.sageFaint,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.2)',
+    borderColor: Colors.sageWash,
     borderRadius: BorderRadius.md,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
@@ -540,14 +541,14 @@ const styles = StyleSheet.create({
   routineLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     letterSpacing: 1,
     marginBottom: Spacing.sm,
   },
   routineCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
   },
@@ -591,7 +592,7 @@ const styles = StyleSheet.create({
   },
   itemDivider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     marginLeft: 56,
   },
 
@@ -610,7 +611,7 @@ const styles = StyleSheet.create({
   },
   checkboxOff: {
     backgroundColor: 'transparent',
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: Colors.textPlaceholder,
   },
   checkboxIcon: {
     fontSize: 16,
@@ -652,6 +653,6 @@ const styles = StyleSheet.create({
   resetButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#FBBF24',
+    color: Colors.amberBright,
   },
 });

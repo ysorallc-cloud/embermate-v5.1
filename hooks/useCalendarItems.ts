@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { useState, useEffect, useCallback } from 'react';
+import { logError } from '../utils/devLog';
 import { CalendarItem } from '../types/calendar';
 import { getCalendarItems } from '../utils/calendarService';
 
@@ -29,7 +30,7 @@ export function useCalendarItems({ startDate, endDate }: UseCalendarItemsParams)
       setItems(data);
     } catch (err) {
       setError(err as Error);
-      console.error('Error fetching calendar items:', err);
+      logError('useCalendarItems.fetchItems', err);
     } finally {
       setIsLoading(false);
     }

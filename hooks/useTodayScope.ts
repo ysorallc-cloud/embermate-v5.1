@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { useState, useEffect, useCallback } from 'react';
+import { logError } from '../utils/devLog';
 import { useDataListener } from '../lib/events';
 import {
   getOverrides,
@@ -58,7 +59,7 @@ export function useTodayScope(date?: string): UseTodayScopeReturn {
       const items = await getSuppressedItems(targetDate);
       setSuppressedItems(items);
     } catch (error) {
-      console.error('Error loading suppressed items:', error);
+      logError('useTodayScope.loadSuppressedItems', error);
       setSuppressedItems([]);
     } finally {
       setLoading(false);

@@ -234,7 +234,7 @@ export async function updateLogEvent(
 
   if (index === -1) return null;
 
-  events[index] = { ...events[index], ...updates };
+  events[index] = { ...events[index], ...updates } as LogEvent;
   await safeSetItem(LOG_EVENTS_KEY, events);
   emitDataUpdate('logEvents');
 

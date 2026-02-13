@@ -38,6 +38,7 @@ import {
   isBackupEncrypted,
   getBackupPreview,
 } from '../../utils/dataBackup';
+import { logError } from '../../utils/devLog';
 
 export default function BackupSettingsScreen() {
   const router = useRouter();
@@ -62,7 +63,7 @@ export default function BackupSettingsScreen() {
       const history = await getBackupHistory();
       setBackups(history);
     } catch (error) {
-      console.error('Error loading backup data:', error);
+      logError('BackupSettingsScreen.loadData', error);
     }
   };
 
@@ -191,7 +192,7 @@ export default function BackupSettingsScreen() {
         );
       }
     } catch (error) {
-      console.error('Import error:', error);
+      logError('BackupSettingsScreen.handleImportBackup', error);
       Alert.alert('Import Error', 'Could not read the backup file.');
     }
   };
@@ -560,9 +561,9 @@ const styles = StyleSheet.create({
   // Info Banner
   infoBanner: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    backgroundColor: Colors.blueTint,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)',
+    borderColor: Colors.blueWash,
     borderRadius: 12,
     padding: 14,
     marginBottom: 20,
@@ -600,9 +601,9 @@ const styles = StyleSheet.create({
   actionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: Colors.glass,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: Colors.border,
     borderRadius: 12,
     padding: 16,
     marginBottom: 10,
@@ -633,9 +634,9 @@ const styles = StyleSheet.create({
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: Colors.glass,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: Colors.border,
     borderRadius: 12,
     padding: 16,
   },
@@ -656,7 +657,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.glassActive,
     borderWidth: 2,
     borderColor: Colors.border,
     padding: 2,
@@ -684,9 +685,9 @@ const styles = StyleSheet.create({
 
   // Password Input
   passwordInput: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -716,9 +717,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent,
   },
   secondaryButton: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.glassActive,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: Colors.glassStrong,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -738,9 +739,9 @@ const styles = StyleSheet.create({
   backupItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: Colors.glass,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: Colors.border,
     borderRadius: 10,
     padding: 14,
     marginBottom: 8,

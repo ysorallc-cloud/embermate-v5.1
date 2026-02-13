@@ -5,6 +5,7 @@
 // ============================================================================
 
 import React, { useState, useCallback } from 'react';
+import { navigate } from '../../lib/navigate';
 import {
   View,
   Text,
@@ -75,9 +76,9 @@ function BucketCard({ bucket, enabled, statusText, onToggle, onConfigure }: Buck
           <Switch
             value={enabled}
             onValueChange={onToggle}
-            trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.accent }}
-            thumbColor={enabled ? '#FFFFFF' : '#F4F3F4'}
-            ios_backgroundColor="rgba(255,255,255,0.2)"
+            trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
+            thumbColor={enabled ? Colors.textPrimary : Colors.switchThumbOff}
+            ios_backgroundColor={Colors.glassStrong}
           />
         </View>
       </TouchableOpacity>
@@ -229,25 +230,25 @@ export default function CarePlanHomeScreen() {
     // Navigate to bucket-specific configuration screen
     switch (bucket) {
       case 'meds':
-        router.push('/care-plan/meds' as any);
+        navigate('/care-plan/meds');
         break;
       case 'vitals':
-        router.push('/care-plan/vitals' as any);
+        navigate('/care-plan/vitals');
         break;
       case 'meals':
-        router.push('/care-plan/meals' as any);
+        navigate('/care-plan/meals');
         break;
       case 'water':
-        router.push('/care-plan/water' as any);
+        navigate('/care-plan/water');
         break;
       case 'sleep':
-        router.push('/care-plan/sleep' as any);
+        navigate('/care-plan/sleep');
         break;
       case 'activity':
-        router.push('/care-plan/activity' as any);
+        navigate('/care-plan/activity');
         break;
       case 'appointments':
-        router.push('/appointments' as any);
+        navigate('/appointments');
         break;
       default:
         break;
@@ -483,7 +484,7 @@ export default function CarePlanHomeScreen() {
           {/* Wellness Checks */}
           <Text style={styles.sectionLabel}>DAILY CHECK-INS</Text>
           <WellnessCard
-            onPress={() => router.push('/care-plan/wellness' as any)}
+            onPress={() => navigate('/care-plan/wellness')}
             activeFieldCount={activeFieldCount}
           />
 
@@ -587,7 +588,7 @@ const styles = StyleSheet.create({
   backButton: {
     width: 44,
     height: 44,
-    backgroundColor: '#0d332e',
+    backgroundColor: Colors.backgroundElevated,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 12,
@@ -639,7 +640,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     letterSpacing: 1,
     marginBottom: Spacing.md,
     marginTop: Spacing.xl,
@@ -647,16 +648,16 @@ const styles = StyleSheet.create({
 
   // Bucket Card
   bucketCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.md,
     overflow: 'hidden',
   },
   bucketCardEnabled: {
-    borderColor: 'rgba(94, 234, 212, 0.3)',
-    backgroundColor: 'rgba(94, 234, 212, 0.05)',
+    borderColor: Colors.sageGlow,
+    backgroundColor: Colors.sageHint,
   },
   bucketCardMain: {
     flexDirection: 'row',
@@ -707,8 +708,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(94, 234, 212, 0.15)',
-    backgroundColor: 'rgba(94, 234, 212, 0.03)',
+    borderTopColor: Colors.sageBorder,
+    backgroundColor: Colors.sageHint,
   },
   configureText: {
     fontSize: 14,
@@ -733,9 +734,9 @@ const styles = StyleSheet.create({
 
   // AI Insight Card
   aiInsightCard: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    backgroundColor: Colors.purpleMuted,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
+    borderColor: Colors.purpleStrong,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
@@ -753,7 +754,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: '#A78BFA',
+    color: Colors.purpleBright,
   },
   aiInsightDismiss: {
     width: 24,
@@ -763,7 +764,7 @@ const styles = StyleSheet.create({
   },
   aiInsightDismissText: {
     fontSize: 20,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
   aiInsightMessage: {
     fontSize: 14,
@@ -773,9 +774,9 @@ const styles = StyleSheet.create({
 
   // Wellness Card
   wellnessCard: {
-    backgroundColor: 'rgba(94, 234, 212, 0.05)',
+    backgroundColor: Colors.sageHint,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.3)',
+    borderColor: Colors.sageGlow,
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.md,
     overflow: 'hidden',
@@ -816,9 +817,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   templateCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -851,9 +852,9 @@ const styles = StyleSheet.create({
 
   // How It Works Card
   howItWorksCard: {
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    backgroundColor: Colors.blueFaint,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)',
+    borderColor: Colors.blueWash,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
@@ -870,7 +871,7 @@ const styles = StyleSheet.create({
   howItWorksTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#60A5FA',
+    color: Colors.blueBright,
   },
   howItWorksList: {
     gap: 6,
@@ -882,11 +883,11 @@ const styles = StyleSheet.create({
   },
   howItWorksBold: {
     fontWeight: '600',
-    color: '#60A5FA',
+    color: Colors.blueBright,
   },
   howItWorksStorage: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     marginTop: Spacing.md,
     fontStyle: 'italic',
   },

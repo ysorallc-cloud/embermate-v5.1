@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLogEvents } from './logEvents';
 import { safeSetItem } from './safeStorage';
+import { logError } from './devLog';
 
 // ============================================================================
 // TYPES
@@ -104,7 +105,7 @@ export async function purgeIfNeeded(): Promise<void> {
 
     await purgeOldData();
   } catch (error) {
-    console.error('Error during data retention purge:', error);
+    logError('dataRetention.purgeIfNeeded', error);
   }
 }
 

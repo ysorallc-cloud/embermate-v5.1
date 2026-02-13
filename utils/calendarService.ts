@@ -8,6 +8,7 @@ import { safeGetItem, safeSetItem } from './safeStorage';
 import { generateUniqueId } from './idGenerator';
 import { Appointment, CalendarEvent, CalendarItem, AppointmentType, ReminderTime } from '../types/calendar';
 import { format, parseISO, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { logError } from './devLog';
 
 const APPOINTMENTS_KEY = '@embermate_appointments_v2';
 const EVENTS_KEY = '@embermate_calendar_events';
@@ -49,7 +50,7 @@ export async function getAppointments(): Promise<Appointment[]> {
   try {
     return await safeGetItem<Appointment[]>(APPOINTMENTS_KEY, []);
   } catch (error) {
-    console.error('Error getting appointments:', error);
+    logError('calendarService.getAppointments', error);
     return [];
   }
 }
@@ -121,7 +122,7 @@ export async function getEvents(): Promise<CalendarEvent[]> {
   try {
     return await safeGetItem<CalendarEvent[]>(EVENTS_KEY, []);
   } catch (error) {
-    console.error('Error getting events:', error);
+    logError('calendarService.getEvents', error);
     return [];
   }
 }

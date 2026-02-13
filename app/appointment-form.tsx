@@ -28,6 +28,7 @@ import {
   getAppointments,
   Appointment
 } from '../utils/appointmentStorage';
+import { logError } from '../utils/devLog';
 
 type AppointmentType = 'doctor' | 'lab' | 'pharmacy' | 'hospital';
 
@@ -118,7 +119,7 @@ export default function AppointmentFormScreen() {
         if (appt.notes) setShowNotesInput(true);
       }
     } catch (error) {
-      console.error('Error loading appointment:', error);
+      logError('AppointmentFormScreen.loadAppointment', error);
     }
   };
 
@@ -248,7 +249,7 @@ export default function AppointmentFormScreen() {
         });
       }
     } catch (error) {
-      console.error('Error saving appointment:', error);
+      logError('AppointmentFormScreen.proceedWithSave', error);
       Alert.alert('Error', 'Failed to save appointment. Please try again.');
     }
   };
@@ -429,7 +430,7 @@ export default function AppointmentFormScreen() {
                 <Switch
                   value={reminderEnabled}
                   onValueChange={setReminderEnabled}
-                  trackColor={{ false: Colors.textMuted, true: '#F59E0B' }}
+                  trackColor={{ false: Colors.textMuted, true: Colors.amber }}
                   thumbColor={Colors.surface}
                   ios_backgroundColor={Colors.textMuted}
                 />
@@ -441,11 +442,11 @@ export default function AppointmentFormScreen() {
                   <Text style={styles.reminderExpandedLabel}>NOTIFICATION SCHEDULE</Text>
                   <View style={styles.reminderScheduleInfo}>
                     <View style={styles.reminderScheduleRow}>
-                      <Ionicons name="calendar-outline" size={16} color="#F59E0B" />
+                      <Ionicons name="calendar-outline" size={16} color={Colors.amber} />
                       <Text style={styles.reminderScheduleText}>1 day before at 9:00 AM</Text>
                     </View>
                     <View style={styles.reminderScheduleRow}>
-                      <Ionicons name="time-outline" size={16} color="#F59E0B" />
+                      <Ionicons name="time-outline" size={16} color={Colors.amber} />
                       <Text style={styles.reminderScheduleText}>1 hour before appointment</Text>
                     </View>
                   </View>
@@ -715,8 +716,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   reminderContainerActive: {
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    backgroundColor: Colors.amberFaint,
+    borderColor: Colors.warningBorder,
   },
   reminderToggleRow: {
     flexDirection: 'row',
@@ -750,11 +751,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(245, 158, 11, 0.2)',
+    borderTopColor: Colors.amberMuted,
   },
   reminderExpandedLabel: {
     fontSize: 10,
-    color: '#F59E0B',
+    color: Colors.amber,
     fontWeight: '600',
     letterSpacing: 0.8,
     marginBottom: 12,

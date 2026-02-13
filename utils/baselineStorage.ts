@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMealsLogs, MealsLog, getVitalsLogs, VitalsLog } from './centralStorage';
 import { getMedications, Medication } from './medicationStorage';
+import { logError } from './devLog';
 
 // ============================================================================
 // CONSTANTS - Do not overthink these
@@ -132,7 +133,7 @@ export async function getFirstUseDate(): Promise<string | null> {
   try {
     return await AsyncStorage.getItem(KEYS.FIRST_USE_DATE);
   } catch (error) {
-    console.error('Error getting first use date:', error);
+    logError('baselineStorage.getFirstUseDate', error);
     return null;
   }
 }
@@ -144,7 +145,7 @@ export async function setFirstUseDate(): Promise<void> {
       await AsyncStorage.setItem(KEYS.FIRST_USE_DATE, new Date().toISOString());
     }
   } catch (error) {
-    console.error('Error setting first use date:', error);
+    logError('baselineStorage.setFirstUseDate', error);
   }
 }
 
@@ -159,7 +160,7 @@ export async function getDaysOfData(): Promise<number> {
 
     return daysSince;
   } catch (error) {
-    console.error('Error calculating days of data:', error);
+    logError('baselineStorage.getDaysOfData', error);
     return 0;
   }
 }
@@ -212,7 +213,7 @@ export async function calculateMealsBaseline(): Promise<CategoryBaseline | null>
       dismissed: dismissals.includes('meals'),
     };
   } catch (error) {
-    console.error('Error calculating meals baseline:', error);
+    logError('baselineStorage.calculateMealsBaseline', error);
     return null;
   }
 }
@@ -267,7 +268,7 @@ export async function calculateVitalsBaseline(): Promise<CategoryBaseline | null
       dismissed: dismissals.includes('vitals'),
     };
   } catch (error) {
-    console.error('Error calculating vitals baseline:', error);
+    logError('baselineStorage.calculateVitalsBaseline', error);
     return null;
   }
 }
@@ -299,7 +300,7 @@ export async function calculateMedsBaseline(): Promise<CategoryBaseline | null> 
       dismissed: dismissals.includes('meds'),
     };
   } catch (error) {
-    console.error('Error calculating meds baseline:', error);
+    logError('baselineStorage.calculateMedsBaseline', error);
     return null;
   }
 }
@@ -457,7 +458,7 @@ export async function confirmBaseline(category: BaselineCategory): Promise<void>
       await AsyncStorage.setItem(KEYS.BASELINE_CONFIRMATIONS, JSON.stringify(confirmations));
     }
   } catch (error) {
-    console.error('Error confirming baseline:', error);
+    logError('baselineStorage.confirmBaseline', error);
   }
 }
 
@@ -471,7 +472,7 @@ export async function rejectBaseline(category: BaselineCategory): Promise<void> 
     const filtered = confirmations.filter(c => c !== category);
     await AsyncStorage.setItem(KEYS.BASELINE_CONFIRMATIONS, JSON.stringify(filtered));
   } catch (error) {
-    console.error('Error rejecting baseline:', error);
+    logError('baselineStorage.rejectBaseline', error);
   }
 }
 
@@ -486,7 +487,7 @@ export async function dismissBaselinePrompt(category: BaselineCategory): Promise
       await AsyncStorage.setItem(KEYS.BASELINE_DISMISSALS, JSON.stringify(dismissals));
     }
   } catch (error) {
-    console.error('Error dismissing baseline prompt:', error);
+    logError('baselineStorage.dismissBaselinePrompt', error);
   }
 }
 

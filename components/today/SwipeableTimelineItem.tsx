@@ -260,7 +260,7 @@ const getCircleStyles = (status: string) => {
     case 'next':
       return { backgroundColor: 'transparent', borderColor: Colors.gold };
     case 'available':
-      return { backgroundColor: 'rgba(251, 191, 36, 0.1)', borderColor: 'rgba(251, 191, 36, 0.4)' };
+      return { backgroundColor: Colors.amberBrightTint, borderColor: 'rgba(251, 191, 36, 0.4)' };
     default:
       return { backgroundColor: 'transparent', borderColor: Colors.border };
   }
@@ -273,7 +273,7 @@ const getStatusColors = (status: string) => {
     case 'next':
       return { time: Colors.textMuted, subtitle: Colors.gold, line: Colors.border };
     case 'available':
-      return { time: 'rgba(251, 191, 36, 0.8)', subtitle: Colors.textMuted, line: Colors.border };
+      return { time: Colors.amberBrightStrong, subtitle: Colors.textMuted, line: Colors.border };
     default:
       return { time: Colors.textMuted, subtitle: Colors.textMuted, line: Colors.border };
   }
@@ -326,12 +326,12 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     fontSize: 10,
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     fontWeight: '700',
   },
   availableIcon: {
     fontSize: 10,
-    color: 'rgba(251, 191, 36, 0.8)',
+    color: Colors.amberBrightStrong,
     fontWeight: '700',
   },
   line: {
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
   availableLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: 'rgba(251, 191, 36, 0.8)',
+    color: Colors.amberBrightStrong,
   },
   title: {
     fontSize: 14,

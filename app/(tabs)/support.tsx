@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/theme-tokens';
 import {
@@ -291,7 +292,7 @@ export default function SupportScreen() {
           {/* Privacy Reassurance - Moved higher (right after Quick Action) */}
           <TouchableOpacity
             style={styles.privacyCard}
-            onPress={() => router.push('/data-privacy-settings' as any)}
+            onPress={() => navigate('/data-privacy-settings')}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Data privacy settings. Nothing is shared without you"
@@ -428,7 +429,7 @@ export default function SupportScreen() {
               {/* Manage team link - clearer copy */}
               <TouchableOpacity
                 style={styles.manageTeamLink}
-                onPress={() => router.push('/caregiver-management')}
+                onPress={() => router.push('/family-sharing')}
                 activeOpacity={0.7}
                 accessibilityRole="link"
                 accessibilityLabel="Manage access and roles"
@@ -553,20 +554,20 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 34,
     fontWeight: '300',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 8,
     letterSpacing: 0.5,
   },
   headerSubtitle: {
     fontSize: 15,
     fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     letterSpacing: 0.3,
   },
   settingsButton: {
     width: 44,
     height: 44,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.glassActive,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
@@ -580,9 +581,9 @@ const styles = StyleSheet.create({
   privacyCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(94, 234, 212, 0.05)',
+    backgroundColor: Colors.sageHint,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.15)',
+    borderColor: Colors.sageBorder,
     borderRadius: 12,
     padding: 14,
     marginBottom: 20,
@@ -597,17 +598,17 @@ const styles = StyleSheet.create({
   privacyTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#5EEAD4',
+    color: Colors.sage,
     marginBottom: 2,
   },
   privacyText: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     lineHeight: 15,
   },
   privacyChevron: {
     fontSize: 18,
-    color: 'rgba(94, 234, 212, 0.5)',
+    color: Colors.accentMuted,
     fontWeight: '600',
     marginLeft: 8,
   },
@@ -621,9 +622,9 @@ const styles = StyleSheet.create({
   teamInsightCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    backgroundColor: Colors.purpleFaint,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.2)',
+    borderColor: Colors.purpleWash,
     borderRadius: 10,
     padding: 12,
     marginBottom: 20,
@@ -636,7 +637,7 @@ const styles = StyleSheet.create({
   teamInsightText: {
     flex: 1,
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.textBright,
     lineHeight: 18,
   },
 
@@ -653,7 +654,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     letterSpacing: 1,
     textTransform: 'uppercase',
     paddingHorizontal: 4,
@@ -661,11 +662,11 @@ const styles = StyleSheet.create({
   requestUpdateText: {
     fontSize: 12,
     fontWeight: '500',
-    color: 'rgba(94, 234, 212, 0.7)',
+    color: Colors.sageSoft,
   },
   sectionSubtitle: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     marginBottom: 12,
     paddingHorizontal: 4,
   },
@@ -677,8 +678,8 @@ const styles = StyleSheet.create({
   },
   memberCard: {
     padding: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.glassFaint,
+    borderColor: Colors.glassActive,
   },
   memberContent: {
     flexDirection: 'row',
@@ -695,7 +696,7 @@ const styles = StyleSheet.create({
   memberAvatarText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   memberInfo: {
     flex: 1,
@@ -709,14 +710,14 @@ const styles = StyleSheet.create({
   memberName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   emergencyBadge: {
     fontSize: 12,
   },
   memberRole: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     marginBottom: 6,
   },
   statusRow: {
@@ -731,14 +732,14 @@ const styles = StyleSheet.create({
   },
   statusDot: {
     fontSize: 8,
-    color: '#5EEAD4',
+    color: Colors.sage,
   },
   statusDotInactive: {
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: Colors.textPlaceholder,
   },
   statusText: {
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
   permissionTags: {
     flexDirection: 'row',
@@ -746,7 +747,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   permissionTag: {
-    backgroundColor: 'rgba(94, 234, 212, 0.12)',
+    backgroundColor: Colors.sageSubtle,
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -754,12 +755,12 @@ const styles = StyleSheet.create({
   permissionTagText: {
     fontSize: 9,
     fontWeight: '600',
-    color: 'rgba(94, 234, 212, 0.9)',
+    color: Colors.sageBright,
     letterSpacing: 0.3,
   },
   capabilityTag: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(94, 234, 212, 0.12)',
+    backgroundColor: Colors.sageSubtle,
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -767,7 +768,7 @@ const styles = StyleSheet.create({
   capabilityTagText: {
     fontSize: 9,
     fontWeight: '600',
-    color: 'rgba(94, 234, 212, 0.9)',
+    color: Colors.sageBright,
     letterSpacing: 0.3,
   },
   memberActions: {
@@ -778,7 +779,7 @@ const styles = StyleSheet.create({
   actionButton: {
     width: 32,
     height: 32,
-    backgroundColor: 'rgba(94, 234, 212, 0.12)',
+    backgroundColor: Colors.sageSubtle,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -788,7 +789,7 @@ const styles = StyleSheet.create({
   },
   editChevron: {
     fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     marginLeft: 4,
   },
   manageTeamLink: {
@@ -797,7 +798,7 @@ const styles = StyleSheet.create({
   },
   manageTeamText: {
     fontSize: 12,
-    color: 'rgba(94, 234, 212, 0.8)',
+    color: Colors.sageStrong,
     fontWeight: '500',
   },
 
@@ -809,9 +810,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    backgroundColor: Colors.surfaceAlt,
     borderLeftWidth: 3,
-    borderLeftColor: 'rgba(94, 234, 212, 0.3)',
+    borderLeftColor: Colors.sageGlow,
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -823,18 +824,18 @@ const styles = StyleSheet.create({
   },
   activityTime: {
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     width: 70,
   },
   activityText: {
     flex: 1,
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.textBright,
   },
   reviewButton: {
-    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    backgroundColor: Colors.sageBorder,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.3)',
+    borderColor: Colors.sageGlow,
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 10,
@@ -843,11 +844,11 @@ const styles = StyleSheet.create({
   reviewButtonText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#5EEAD4',
+    color: Colors.sage,
   },
   activityChevron: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: Colors.textPlaceholder,
     marginLeft: 8,
   },
   viewAllLink: {
@@ -856,20 +857,20 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: 12,
-    color: 'rgba(94, 234, 212, 0.7)',
+    color: Colors.sageSoft,
   },
 
   // Emergency Section - Isolated with more separation
   emergencySpacer: {
     height: 32,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    borderTopColor: Colors.glassHover,
     marginTop: 16,
   },
   emergencySection: {
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    backgroundColor: Colors.redFaint,
     borderWidth: 2,
-    borderColor: 'rgba(239, 68, 68, 0.25)',
+    borderColor: Colors.redBorder,
     borderRadius: 14,
     padding: 20,
     marginTop: 8,
@@ -884,14 +885,14 @@ const styles = StyleSheet.create({
   emergencyHeader: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#EF4444',
+    color: Colors.red,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     textAlign: 'center',
     marginBottom: 14,
   },
   emergencyButton: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: Colors.redHint,
     borderWidth: 2,
     borderColor: 'rgba(239, 68, 68, 0.4)',
     borderRadius: 12,
@@ -902,6 +903,6 @@ const styles = StyleSheet.create({
   emergencyButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#EF4444',
+    color: Colors.red,
   },
 });

@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: 'rgba(245, 158, 11, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderColor: Colors.warningBorder,
     borderRadius: 10,
     padding: 14,
   },

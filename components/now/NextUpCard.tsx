@@ -8,6 +8,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { parseTimeForDisplay, getTimeWindowDisplayRange, TIME_WINDOW_HOURS, type TimeWindow } from '../../utils/nowHelpers';
 
+import { Colors } from '../../theme/theme-tokens';
 interface CurrentBlockCardProps {
   currentWindow: TimeWindow;
   windowItems: any[];          // all pending + completed items in this block
@@ -77,13 +78,13 @@ export function NextUpCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    backgroundColor: Colors.blueLight,
     borderWidth: 2,
     borderColor: 'rgba(59, 130, 246, 0.4)',
     borderRadius: 16,
     padding: 18,
     marginBottom: 24,
-    shadowColor: '#3B82F6',
+    shadowColor: Colors.blue,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -92,20 +93,20 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#3B82F6',
+    color: Colors.blue,
     letterSpacing: 1.2,
     marginBottom: 6,
   },
   title: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 4,
   },
   progress: {
     fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     marginBottom: 4,
   },
   nextItem: {
@@ -114,7 +115,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   button: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: Colors.blue,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -125,12 +126,12 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   emptyCard: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: Colors.greenTint,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: Colors.greenStrong,
     borderRadius: 16,
     padding: 24,
     marginBottom: 24,
@@ -143,11 +144,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#10B981',
+    color: Colors.green,
     marginBottom: 4,
   },
   emptySubtitle: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
 });

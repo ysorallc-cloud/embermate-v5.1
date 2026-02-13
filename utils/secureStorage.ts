@@ -7,6 +7,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CryptoJS from 'crypto-js';
+import { devLog, logError } from './devLog';
 
 /**
  * Encryption key management
@@ -52,7 +53,7 @@ async function getOrCreateEncryptionKey(): Promise<string> {
 
     return key;
   } catch (error) {
-    console.error('Error managing encryption key:', error);
+    logError('secureStorage.getOrCreateEncryptionKey', error);
     throw new Error('Failed to initialize encryption');
   }
 }
@@ -90,7 +91,7 @@ async function encryptData(data: string): Promise<string> {
     // Format: version:iv:ciphertext:tag
     return `${ENCRYPTION_VERSION}:${iv.toString()}:${encrypted.ciphertext.toString()}:${hmac.toString()}`;
   } catch (error) {
-    console.error('Encryption error:', error);
+    logError('secureStorage.encryptData', error);
     throw new Error('Failed to encrypt data');
   }
 }
@@ -156,7 +157,7 @@ async function decryptData(encryptedData: string): Promise<string> {
 
     return decrypted.toString(CryptoJS.enc.Utf8);
   } catch (error) {
-    console.error('Decryption error:', error);
+    logError('secureStorage.decryptData', error);
     throw new Error('Failed to decrypt data');
   }
 }
@@ -167,7 +168,7 @@ async function decryptData(encryptedData: string): Promise<string> {
  */
 async function migrateLegacyEncryption(legacyData: string): Promise<string> {
   try {
-    if (__DEV__) console.log('Migrating legacy encryption to AES-256-CTR+HMAC...');
+    devLog('Migrating legacy encryption to AES-256-CTR+HMAC...');
     const key = await getOrCreateEncryptionKey();
 
     // Split legacy format (iv:encrypted)
@@ -183,7 +184,7 @@ async function migrateLegacyEncryption(legacyData: string): Promise<string> {
     // Note: Data will be re-encrypted with AES-256 on next write
     return decrypted;
   } catch (error) {
-    console.error('Legacy migration error:', error);
+    logError('secureStorage.migrateLegacyEncryption', error);
     throw error;
   }
 }
@@ -224,7 +225,7 @@ export async function setSecureItem(key: string, value: any): Promise<boolean> {
     await AsyncStorage.setItem(key, encrypted);
     return true;
   } catch (error) {
-    console.error(`Error storing secure item ${key}:`, error);
+    logError('secureStorage.setSecureItem', error);
     return false;
   }
 }
@@ -254,7 +255,7 @@ export async function getSecureItem<T = any>(key: string, defaultValue?: T): Pro
       return decrypted as T;
     }
   } catch (error) {
-    console.error(`Error retrieving secure item ${key}:`, error);
+    logError('secureStorage.getSecureItem', error);
     return defaultValue as T;
   }
 }
@@ -267,7 +268,7 @@ export async function removeSecureItem(key: string): Promise<boolean> {
     await AsyncStorage.removeItem(key);
     return true;
   } catch (error) {
-    console.error(`Error removing secure item ${key}:`, error);
+    logError('secureStorage.removeSecureItem', error);
     return false;
   }
 }
@@ -287,7 +288,7 @@ export async function setKeychainItem(key: string, value: string): Promise<boole
     });
     return true;
   } catch (error) {
-    console.error(`Error storing keychain item ${key}:`, error);
+    logError('secureStorage.setKeychainItem', error);
     return false;
   }
 }
@@ -299,7 +300,7 @@ export async function getKeychainItem(key: string): Promise<string | null> {
   try {
     return await SecureStore.getItemAsync(key);
   } catch (error) {
-    console.error(`Error retrieving keychain item ${key}:`, error);
+    logError('secureStorage.getKeychainItem', error);
     return null;
   }
 }
@@ -312,7 +313,7 @@ export async function removeKeychainItem(key: string): Promise<boolean> {
     await SecureStore.deleteItemAsync(key);
     return true;
   } catch (error) {
-    console.error(`Error removing keychain item ${key}:`, error);
+    logError('secureStorage.removeKeychainItem', error);
     return false;
   }
 }
@@ -329,7 +330,7 @@ export async function hashData(data: string): Promise<string> {
     );
     return digest;
   } catch (error) {
-    console.error('Hashing error:', error);
+    logError('secureStorage.hashData', error);
     throw error;
   }
 }
@@ -342,7 +343,7 @@ export async function verifyHash(data: string, hash: string): Promise<boolean> {
     const newHash = await hashData(data);
     return newHash === hash;
   } catch (error) {
-    console.error('Hash verification error:', error);
+    logError('secureStorage.verifyHash', error);
     return false;
   }
 }
@@ -361,7 +362,7 @@ export async function generateSecureToken(length: number = 32): Promise<string> 
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
   } catch (error) {
-    console.error('Token generation error:', error);
+    logError('secureStorage.generateSecureToken', error);
     throw error;
   }
 }
@@ -380,7 +381,7 @@ export async function testEncryption(): Promise<boolean> {
 
     // Test encryption
     const encrypted = await encryptData(JSON.stringify(testData));
-    if (__DEV__) console.log('Encryption successful');
+    devLog('Encryption successful');
 
     // Test decryption
     const decrypted = await decryptData(encrypted);
@@ -392,21 +393,21 @@ export async function testEncryption(): Promise<boolean> {
       throw new Error('Decrypted data does not match original');
     }
 
-    if (__DEV__) console.log('Decryption and integrity verified');
+    devLog('Decryption and integrity verified');
 
     // Test tamper detection
     try {
       const tamperedData = encrypted.replace(/.$/, '0'); // Modify last character
       await decryptData(tamperedData);
-      console.error('Tamper detection FAILED - this should have thrown an error');
+      logError('secureStorage.testEncryption', 'Tamper detection FAILED - this should have thrown an error');
       return false;
     } catch (error) {
-      if (__DEV__) console.log('Tamper detection successful');
+      devLog('Tamper detection successful');
     }
 
     return true;
   } catch (error) {
-    console.error('❌ Encryption test failed:', error);
+    logError('secureStorage.testEncryption', error);
     return false;
   }
 }

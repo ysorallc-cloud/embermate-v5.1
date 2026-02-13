@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: Colors.textPrimary,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 8,
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: '#F87171',
+    color: Colors.redBright,
   },
 
   // EDIT BUTTON

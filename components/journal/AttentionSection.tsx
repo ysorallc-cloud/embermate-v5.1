@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
   cardGreen: {
     backgroundColor: 'rgba(16, 185, 129, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.15)',
+    borderColor: Colors.greenHint,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -45,9 +45,9 @@ const styles = StyleSheet.create({
     color: Colors.accent,
   },
   cardAmber: {
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    backgroundColor: Colors.amberFaint,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.15)',
+    borderColor: Colors.amberHint,
     borderLeftWidth: 3,
     borderLeftColor: Colors.amber,
     borderRadius: BorderRadius.lg,

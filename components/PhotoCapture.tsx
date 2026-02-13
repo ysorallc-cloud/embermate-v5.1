@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors, Spacing } from '../theme/theme-tokens';
 import { savePhoto } from '../utils/photoStorage';
+import { logError } from '../utils/devLog';
 
 export interface PhotoCaptureProps {
   type: 'medication' | 'wound' | 'document' | 'other';
@@ -37,7 +38,7 @@ export default function PhotoCapture({ type, onPhotoSaved, medicationId }: Photo
         onPhotoSaved();
       }
     } catch (error) {
-      console.error('Error taking photo:', error);
+      logError('PhotoCapture.takePhoto', error);
       Alert.alert('Error', 'Failed to save photo');
     }
   };
@@ -56,7 +57,7 @@ export default function PhotoCapture({ type, onPhotoSaved, medicationId }: Photo
         onPhotoSaved();
       }
     } catch (error) {
-      console.error('Error picking photo:', error);
+      logError('PhotoCapture.pickFromLibrary', error);
       Alert.alert('Error', 'Failed to save photo');
     }
   };

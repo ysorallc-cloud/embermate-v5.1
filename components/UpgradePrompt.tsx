@@ -60,7 +60,7 @@ export default function UpgradePrompt({ visible, onClose, feature, reason }: Upg
       <View style={styles.overlay}>
         <View style={styles.container}>
           <LinearGradient
-            colors={['#0A2622', '#051614']}
+            colors={['#0A2622', Colors.background]}
             style={styles.gradient}
           >
             {/* Header */}
@@ -167,16 +167,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   table: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: Colors.glass,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: Colors.border,
     borderRadius: 12,
     overflow: 'hidden',
     marginBottom: 20,
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.surfaceElevated,
     paddingVertical: 10,
     paddingHorizontal: 12,
   },
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.05)',
+    borderTopColor: Colors.surfaceElevated,
   },
   tableCell: {
     flex: 1,
@@ -224,9 +224,9 @@ const styles = StyleSheet.create({
   },
   promoInput: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -243,14 +243,14 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   promoButtonText: {
-    color: '#051614',
+    color: Colors.background,
     fontWeight: '600',
     fontSize: 14,
   },
   iapPlaceholder: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: Colors.glass,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: Colors.border,
     borderRadius: 10,
     padding: 16,
     alignItems: 'center',

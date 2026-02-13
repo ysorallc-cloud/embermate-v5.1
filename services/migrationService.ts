@@ -18,6 +18,7 @@ import {
   TimeWindowLabel,
 } from '../types/carePlan';
 import { generateUniqueId } from '../utils/idGenerator';
+import { logError } from '../utils/devLog';
 
 // ============================================================================
 // MIGRATION STATUS TRACKING
@@ -37,7 +38,7 @@ export async function getMigrationStatus(): Promise<MigrationStatus | null> {
     const status = await AsyncStorage.getItem(MIGRATION_KEY);
     return status ? JSON.parse(status) : null;
   } catch (error) {
-    console.error('Error getting migration status:', error);
+    logError('migrationService.getMigrationStatus', error);
     return null;
   }
 }
@@ -46,7 +47,7 @@ async function setMigrationStatus(status: MigrationStatus): Promise<void> {
   try {
     await AsyncStorage.setItem(MIGRATION_KEY, JSON.stringify(status));
   } catch (error) {
-    console.error('Error setting migration status:', error);
+    logError('migrationService.setMigrationStatus', error);
   }
 }
 
@@ -89,7 +90,7 @@ export async function detectMigrationNeeded(): Promise<{
       existingCarePlanItemsCount: existingItemsCount,
     };
   } catch (error) {
-    console.error('Error detecting migration:', error);
+    logError('migrationService.detectMigrationNeeded', error);
     return {
       hasMedicationsToMigrate: false,
       medicationsCount: 0,
@@ -213,7 +214,7 @@ export async function migrateMedicationsToCarePlan(): Promise<{
         migratedCount++;
       } catch (error) {
         const errorMsg = `Failed to migrate medication ${med.name}: ${error}`;
-        console.error(errorMsg);
+        logError('migrationService.migrateMedicationsToCarePlan', errorMsg);
         errors.push(errorMsg);
       }
     }
@@ -232,7 +233,7 @@ export async function migrateMedicationsToCarePlan(): Promise<{
       errors,
     };
   } catch (error) {
-    console.error('Error migrating medications:', error);
+    logError('migrationService.migrateMedicationsToCarePlan', error);
     return {
       success: false,
       migratedCount,

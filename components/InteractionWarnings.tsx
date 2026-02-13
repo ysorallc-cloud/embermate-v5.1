@@ -11,11 +11,11 @@ export default function InteractionWarnings({ interactions }: InteractionWarning
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'high':
-        return '#EF4444';
+        return Colors.red;
       case 'moderate':
-        return '#F59E0B';
+        return Colors.amber;
       case 'low':
-        return '#EAB308';
+        return Colors.gold;
       default:
         return Colors.textSecondary;
     }
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   recommendationBox: {
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    backgroundColor: Colors.surfaceAlt,
     borderRadius: 8,
     padding: Spacing.sm,
     marginTop: Spacing.xs,

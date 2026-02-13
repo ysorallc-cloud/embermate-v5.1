@@ -7,6 +7,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
 
 // ============================================================================
@@ -48,7 +49,7 @@ export function ConsistencyBanner({
     if (onAction) {
       onAction();
     } else if (actionRoute) {
-      router.push(actionRoute as any);
+      navigate(actionRoute);
     }
   };
 
@@ -218,28 +219,28 @@ export function DataIntegrityBanner({
 
 const styles = StyleSheet.create({
   banner: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 12,
     padding: 14,
     marginBottom: 12,
   },
   bannerEmpty: {
     borderStyle: 'dashed',
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.glassSubtle,
   },
   bannerWarning: {
     backgroundColor: 'rgba(251, 191, 36, 0.08)',
     borderColor: 'rgba(251, 191, 36, 0.25)',
   },
   bannerError: {
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-    borderColor: 'rgba(239, 68, 68, 0.25)',
+    backgroundColor: Colors.redFaint,
+    borderColor: Colors.redBorder,
   },
   bannerInfo: {
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
-    borderColor: 'rgba(59, 130, 246, 0.25)',
+    backgroundColor: Colors.blueFaint,
+    borderColor: Colors.blueBorder,
   },
 
   dismissButton: {
@@ -253,7 +254,7 @@ const styles = StyleSheet.create({
   },
   dismissIcon: {
     fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
   },
 
   content: {
@@ -275,7 +276,7 @@ const styles = StyleSheet.create({
   message: {
     flex: 1,
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     lineHeight: 20,
   },
   messageWarning: {
@@ -290,9 +291,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   actionButton: {
-    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    backgroundColor: Colors.sageBorder,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.3)',
+    borderColor: Colors.sageGlow,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 14,
@@ -302,8 +303,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(251, 191, 36, 0.3)',
   },
   actionButtonError: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    backgroundColor: Colors.redHint,
+    borderColor: Colors.redStrong,
   },
   actionButtonText: {
     fontSize: 13,
@@ -311,10 +312,10 @@ const styles = StyleSheet.create({
     color: Colors.accent,
   },
   actionButtonTextWarning: {
-    color: '#FBBF24',
+    color: Colors.amberBright,
   },
   actionButtonTextError: {
-    color: '#EF4444',
+    color: Colors.red,
   },
 
   secondaryButton: {
@@ -323,7 +324,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
 });
 

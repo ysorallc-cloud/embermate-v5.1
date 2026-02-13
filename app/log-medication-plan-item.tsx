@@ -18,11 +18,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { navigate } from '../lib/navigate';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { useCarePlanConfig } from '../hooks/useCarePlanConfig';
 import { MedicationPlanItem, formatTimeForDisplay } from '../types/carePlanConfig';
 import { saveMedicationLog } from '../utils/centralStorage';
 import { hapticSuccess, hapticLight } from '../utils/hapticFeedback';
+import { logError } from '../utils/devLog';
 import { useDailyCareInstances } from '../hooks/useDailyCareInstances';
 
 // ============================================================================
@@ -151,7 +153,7 @@ export default function LogMedicationPlanItemScreen() {
       await hapticSuccess();
       router.back();
     } catch (error) {
-      console.error('Error logging medication:', error);
+      logError('LogMedicationPlanItemScreen.handleMarkTaken', error);
       Alert.alert('Error', 'Failed to log medication');
       setSaving(false);
     }
@@ -174,7 +176,7 @@ export default function LogMedicationPlanItemScreen() {
       await hapticLight();
       router.back();
     } catch (error) {
-      console.error('Error skipping medication:', error);
+      logError('LogMedicationPlanItemScreen.handleSkip', error);
       Alert.alert('Error', 'Failed to skip medication');
       setSaving(false);
     }
@@ -418,7 +420,7 @@ export default function LogMedicationPlanItemScreen() {
           <TextInput
             style={styles.notesInput}
             placeholder="Add any additional notes..."
-            placeholderTextColor="rgba(255, 255, 255, 0.4)"
+            placeholderTextColor={Colors.textMuted}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -451,6 +453,7 @@ export default function LogMedicationPlanItemScreen() {
               onPress={handleMarkTaken}
               disabled={saving}
               accessibilityLabel={saving ? 'Saving medication' : 'Mark as taken'}
+              accessibilityHint="Records this medication dose as taken"
               accessibilityRole="button"
               accessibilityState={{ disabled: saving }}
             >
@@ -467,6 +470,7 @@ export default function LogMedicationPlanItemScreen() {
               onPress={handleSkip}
               disabled={!skipReason || saving}
               accessibilityLabel={saving ? 'Saving skip' : 'Skip this dose'}
+              accessibilityHint="Records this dose as skipped with the selected reason"
               accessibilityRole="button"
               accessibilityState={{ disabled: !skipReason || saving }}
             >
@@ -521,12 +525,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(20, 184, 166, 0.15)',
+    borderBottomColor: Colors.accentHint,
   },
   backButton: {
     width: 44,
     height: 44,
-    backgroundColor: '#0d332e',
+    backgroundColor: Colors.backgroundElevated,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 12,
@@ -553,9 +557,9 @@ const styles = StyleSheet.create({
 
   // Medication Card
   medicationCard: {
-    backgroundColor: 'rgba(94, 234, 212, 0.08)',
+    backgroundColor: Colors.sageFaint,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.25)',
+    borderColor: Colors.sageGlow,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
@@ -583,7 +587,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   lockedBadge: {
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    backgroundColor: Colors.purpleWash,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -591,7 +595,7 @@ const styles = StyleSheet.create({
   lockedBadgeText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#A78BFA',
+    color: Colors.purpleBright,
     letterSpacing: 0.5,
   },
   scheduleRow: {
@@ -600,7 +604,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderTopColor: Colors.glassActive,
   },
   scheduleLabel: {
     fontSize: 13,
@@ -629,7 +633,7 @@ const styles = StyleSheet.create({
   // Mode Toggle
   modeToggle: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderRadius: BorderRadius.md,
     padding: 4,
     marginBottom: Spacing.xl,
@@ -641,7 +645,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   modeButtonActive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: Colors.greenMuted,
   },
   modeButtonSkip: {
     backgroundColor: 'rgba(251, 191, 36, 0.2)',
@@ -652,17 +656,17 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   modeButtonTextActive: {
-    color: '#10B981',
+    color: Colors.green,
   },
   modeButtonTextSkip: {
-    color: '#FBBF24',
+    color: Colors.amberBright,
   },
 
   // Section Label
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     letterSpacing: 1,
     marginBottom: Spacing.md,
   },
@@ -680,18 +684,18 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.md,
   },
   sideEffectOptionSelected: {
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    borderColor: 'rgba(245, 158, 11, 0.4)',
+    backgroundColor: Colors.amberLight,
+    borderColor: Colors.amberGlow,
   },
   sideEffectOptionNone: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    backgroundColor: Colors.greenTint,
+    borderColor: Colors.greenStrong,
   },
   sideEffectEmoji: {
     fontSize: 16,
@@ -701,19 +705,19 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   sideEffectLabelSelected: {
-    color: '#F59E0B',
+    color: Colors.amber,
     fontWeight: '600',
   },
   sideEffectLabelNone: {
-    color: '#10B981',
+    color: Colors.green,
     fontWeight: '500',
   },
   selectedSummary: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    backgroundColor: Colors.amberFaint,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.25)',
+    borderColor: Colors.amberBorder,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -723,11 +727,11 @@ const styles = StyleSheet.create({
   selectedSummaryLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: Colors.amber,
   },
   selectedSummaryText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     flex: 1,
   },
 
@@ -742,13 +746,13 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     paddingVertical: 14,
     paddingHorizontal: Spacing.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.md,
   },
   skipReasonOptionSelected: {
-    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    backgroundColor: Colors.amberBrightTint,
     borderColor: 'rgba(251, 191, 36, 0.3)',
   },
   skipReasonRadio: {
@@ -756,33 +760,33 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: Colors.textPlaceholder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   skipReasonRadioSelected: {
-    borderColor: '#FBBF24',
+    borderColor: Colors.amberBright,
   },
   skipReasonRadioDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#FBBF24',
+    backgroundColor: Colors.amberBright,
   },
   skipReasonLabel: {
     fontSize: 14,
     color: Colors.textSecondary,
   },
   skipReasonLabelSelected: {
-    color: '#FBBF24',
+    color: Colors.amberBright,
     fontWeight: '500',
   },
 
   // Notes
   notesInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     fontSize: 14,
@@ -799,7 +803,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: BorderRadius.md,
     borderStyle: 'dashed',
   },
@@ -816,11 +820,11 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     paddingBottom: 24,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(20, 184, 166, 0.15)',
+    borderTopColor: Colors.accentHint,
     backgroundColor: Colors.background,
   },
   primaryButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: Colors.green,
     paddingVertical: 16,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
@@ -831,10 +835,10 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   skipButton: {
-    backgroundColor: '#FBBF24',
+    backgroundColor: Colors.amberBright,
     paddingVertical: 16,
     borderRadius: BorderRadius.md,
     alignItems: 'center',

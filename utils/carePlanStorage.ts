@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { emitDataUpdate } from '../lib/events';
 import { CarePlan, CarePlanOverride, isCarePlan } from './carePlanTypes';
 import { generateDefaultCarePlan } from './carePlanDefaults';
+import { devLog, logError } from './devLog';
 
 const CARE_PLAN_KEY = '@embermate_care_plan_v1';
 const OVERRIDES_KEY = '@embermate_care_plan_overrides';
@@ -32,7 +33,7 @@ export async function getCarePlan(): Promise<CarePlan | null> {
     console.warn('Invalid care plan data, returning null');
     return null;
   } catch (error) {
-    console.error('Error getting care plan:', error);
+    logError('carePlanStorage.getCarePlan', error);
     return null;
   }
 }
@@ -46,7 +47,7 @@ export async function saveCarePlan(plan: CarePlan): Promise<void> {
     await AsyncStorage.setItem(CARE_PLAN_KEY, JSON.stringify(plan));
     emitDataUpdate('carePlan');
   } catch (error) {
-    console.error('Error saving care plan:', error);
+    logError('carePlanStorage.saveCarePlan', error);
     throw error;
   }
 }
@@ -71,7 +72,7 @@ export async function updateCarePlan(updates: Partial<CarePlan>): Promise<CarePl
     emitDataUpdate('carePlan');
     return updated;
   } catch (error) {
-    console.error('Error updating care plan:', error);
+    logError('carePlanStorage.updateCarePlan', error);
     throw error;
   }
 }
@@ -84,7 +85,7 @@ export async function clearCarePlan(): Promise<void> {
     await AsyncStorage.removeItem(CARE_PLAN_KEY);
     emitDataUpdate('carePlan');
   } catch (error) {
-    console.error('Error clearing care plan:', error);
+    logError('carePlanStorage.clearCarePlan', error);
     throw error;
   }
 }
@@ -104,7 +105,7 @@ export async function ensureCarePlan(): Promise<CarePlan> {
     await saveCarePlan(defaultPlan);
     return defaultPlan;
   } catch (error) {
-    console.error('Error ensuring care plan:', error);
+    logError('carePlanStorage.ensureCarePlan', error);
     // Return default plan even if save fails
     return generateDefaultCarePlan();
   }
@@ -140,7 +141,7 @@ export async function getDailySnapshot(date: string): Promise<CarePlan | null> {
 
     return null;
   } catch (error) {
-    console.error('Error getting daily snapshot:', error);
+    logError('carePlanStorage.getDailySnapshot', error);
     return null;
   }
 }
@@ -158,7 +159,7 @@ export async function setDailySnapshot(date: string, carePlan: CarePlan): Promis
     };
     await AsyncStorage.setItem(DAILY_SNAPSHOT_KEY, JSON.stringify(snapshot));
   } catch (error) {
-    console.error('Error setting daily snapshot:', error);
+    logError('carePlanStorage.setDailySnapshot', error);
     throw error;
   }
 }
@@ -188,7 +189,7 @@ export async function getEffectiveCarePlan(date?: string): Promise<CarePlan | nu
     await setDailySnapshot(targetDate, currentPlan);
     return currentPlan;
   } catch (error) {
-    console.error('Error getting effective care plan:', error);
+    logError('carePlanStorage.getEffectiveCarePlan', error);
     // Fallback to current plan if snapshot fails
     return getCarePlan();
   }
@@ -212,7 +213,7 @@ export async function ensureDailySnapshot(): Promise<void> {
       await setDailySnapshot(today, currentPlan);
     }
   } catch (error) {
-    console.error('Error ensuring daily snapshot:', error);
+    logError('carePlanStorage.ensureDailySnapshot', error);
   }
 }
 
@@ -238,7 +239,7 @@ async function getAllOverrides(): Promise<Record<string, CarePlanOverride[]>> {
     if (!data) return {};
     return JSON.parse(data);
   } catch (error) {
-    console.error('Error getting overrides:', error);
+    logError('carePlanStorage.getAllOverrides', error);
     return {};
   }
 }
@@ -250,7 +251,7 @@ async function saveAllOverrides(overrides: Record<string, CarePlanOverride[]>): 
   try {
     await AsyncStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides));
   } catch (error) {
-    console.error('Error saving overrides:', error);
+    logError('carePlanStorage.saveAllOverrides', error);
     throw error;
   }
 }
@@ -263,7 +264,7 @@ export async function getOverrides(date: string): Promise<CarePlanOverride[]> {
     const allOverrides = await getAllOverrides();
     return allOverrides[date] || [];
   } catch (error) {
-    console.error('Error getting overrides for date:', error);
+    logError('carePlanStorage.getOverrides', error);
     return [];
   }
 }
@@ -288,7 +289,7 @@ export async function setOverride(override: CarePlanOverride): Promise<void> {
     await saveAllOverrides(allOverrides);
     emitDataUpdate('carePlan');
   } catch (error) {
-    console.error('Error setting override:', error);
+    logError('carePlanStorage.setOverride', error);
     throw error;
   }
 }
@@ -312,7 +313,7 @@ export async function removeOverride(
     await saveAllOverrides(allOverrides);
     emitDataUpdate('carePlan');
   } catch (error) {
-    console.error('Error removing override:', error);
+    logError('carePlanStorage.removeOverride', error);
     throw error;
   }
 }
@@ -327,7 +328,7 @@ export async function clearOverrides(date: string): Promise<void> {
     await saveAllOverrides(allOverrides);
     emitDataUpdate('carePlan');
   } catch (error) {
-    console.error('Error clearing overrides:', error);
+    logError('carePlanStorage.clearOverrides', error);
     throw error;
   }
 }
@@ -351,7 +352,7 @@ export async function pruneOldOverrides(): Promise<void> {
 
     await saveAllOverrides(prunedOverrides);
   } catch (error) {
-    console.error('Error pruning old overrides:', error);
+    logError('carePlanStorage.pruneOldOverrides', error);
   }
 }
 
@@ -379,7 +380,7 @@ export async function suppressItemForToday(
     };
     await setOverride(override);
   } catch (error) {
-    console.error('Error suppressing item:', error);
+    logError('carePlanStorage.suppressItemForToday', error);
     throw error;
   }
 }
@@ -396,7 +397,7 @@ export async function unsuppressItem(
   try {
     await removeOverride(targetDate, routineId, itemId);
   } catch (error) {
-    console.error('Error unsuppressing item:', error);
+    logError('carePlanStorage.unsuppressItem', error);
     throw error;
   }
 }
@@ -417,7 +418,7 @@ export async function isItemSuppressed(
     );
     return override?.suppressed === true;
   } catch (error) {
-    console.error('Error checking suppression:', error);
+    logError('carePlanStorage.isItemSuppressed', error);
     return false;
   }
 }
@@ -433,7 +434,7 @@ export async function getSuppressedItems(date?: string): Promise<Array<{ routine
       .filter(o => o.suppressed === true)
       .map(o => ({ routineId: o.routineId, itemId: o.itemId }));
   } catch (error) {
-    console.error('Error getting suppressed items:', error);
+    logError('carePlanStorage.getSuppressedItems', error);
     return [];
   }
 }
@@ -459,7 +460,7 @@ export async function resetTodayScope(date?: string): Promise<void> {
     await saveAllOverrides(allOverrides);
     emitDataUpdate('carePlan');
   } catch (error) {
-    console.error('Error resetting today scope:', error);
+    logError('carePlanStorage.resetTodayScope', error);
     throw error;
   }
 }
@@ -581,7 +582,7 @@ export async function completeCarePlanItem(
     await setOverride(override);
     // emitDataUpdate is called by setOverride
   } catch (error) {
-    console.error('Error completing care plan item:', error);
+    logError('carePlanStorage.completeCarePlanItem', error);
     throw error;
   }
 }
@@ -605,7 +606,7 @@ export async function uncompleteCarePlanItem(
     await removeOverride(targetDate, routineId, itemId);
     // emitDataUpdate is called by removeOverride
   } catch (error) {
-    console.error('Error uncompleting care plan item:', error);
+    logError('carePlanStorage.uncompleteCarePlanItem', error);
     throw error;
   }
 }
@@ -632,7 +633,7 @@ export async function isCarePlanItemComplete(
     );
     return override?.done === true;
   } catch (error) {
-    console.error('Error checking care plan item completion:', error);
+    logError('carePlanStorage.isCarePlanItemComplete', error);
     return false;
   }
 }
@@ -653,7 +654,5 @@ export async function trackCarePlanProgress(
 ): Promise<void> {
   // For now, this is a no-op as progress is derived from actual logs
   // This function exists as a hook point for future audit trail functionality
-  if (__DEV__) {
-    console.log(`[CarePlan] Progress tracked for ${routineId}/${itemId}`, meta);
-  }
+  devLog(`[CarePlan] Progress tracked for ${routineId}/${itemId}`, meta);
 }

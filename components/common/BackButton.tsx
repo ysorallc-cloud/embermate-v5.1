@@ -12,6 +12,7 @@ import {
   AccessibilityProps,
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
+import { navigateReplace } from '../../lib/navigate';
 import { Colors, Spacing } from '../../theme/theme-tokens';
 
 // ============================================================================
@@ -105,7 +106,7 @@ export function BackButton({
 
     if (isAtRoot) {
       // At a root route - use fallback instead of back
-      router.replace(fallbackRoute as any);
+      navigateReplace(fallbackRoute);
     } else {
       // Try to go back, with fallback if needed
       try {
@@ -115,11 +116,11 @@ export function BackButton({
           router.back();
         } else {
           // Can't go back - use fallback
-          router.replace(fallbackRoute as any);
+          navigateReplace(fallbackRoute);
         }
       } catch {
         // Navigation failed - use fallback
-        router.replace(fallbackRoute as any);
+        navigateReplace(fallbackRoute);
       }
     }
   }, [onPress, pathname, router, fallbackRoute]);

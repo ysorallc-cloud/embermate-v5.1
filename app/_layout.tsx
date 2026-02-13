@@ -8,16 +8,13 @@ import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { resetDailyMedicationStatus } from '../utils/medicationStorage';
+import * as Sentry from '@sentry/react-native';
 import { requestNotificationPermissions } from '../utils/notificationService';
-import { initializeSampleData } from '../utils/sampleDataGenerator';
 import { useNotificationHandler } from '../utils/useNotificationHandler';
-import { ensureDailySnapshot, pruneOldOverrides } from '../utils/carePlanStorage';
-import { runMigrations } from '../services/migrationService';
-import { loadCustomThresholds } from '../utils/vitalThresholds';
-import { purgeIfNeeded } from '../utils/dataRetention';
+import { runStartupSequence } from '../services/appStartup';
 import ErrorBoundary from '../components/ErrorBoundary';
 
+import { Colors } from '../theme/theme-tokens';
 function WebContainer({ children }: { children: React.ReactNode }) {
   const { width, height } = useWindowDimensions();
   
@@ -55,26 +52,17 @@ function WebContainer({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   // Handle notification taps
   useNotificationHandler();
   const notificationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    checkAndResetMedicationStatus();
+    // Orchestrated startup: error reporting → migrations → daily reset → cleanup
+    runStartupSequence();
+
+    // Notification permissions handled separately (needs delay for UX)
     requestNotificationPermissionsOnStartup();
-    // Initialize sample data once at app startup
-    initializeSampleData();
-    // Run migrations (converts medications to CarePlanItems if needed)
-    runMigrations().catch(err => console.error('Migration error:', err));
-    // Ensure CarePlan daily snapshot exists (freezes plan at start of day)
-    ensureDailySnapshot();
-    // Clean up old CarePlan overrides
-    pruneOldOverrides();
-    // Load custom vital thresholds into cache
-    loadCustomThresholds();
-    // Purge old log events based on retention policy (once per day)
-    purgeIfNeeded();
 
     // Cleanup timer on unmount
     return () => {
@@ -84,20 +72,6 @@ export default function RootLayout() {
       }
     };
   }, []);
-
-  async function checkAndResetMedicationStatus() {
-    try {
-      const lastReset = await AsyncStorage.getItem('@embermate_last_reset_date');
-      const today = new Date().toISOString().split('T')[0];
-      
-      if (lastReset !== today) {
-        await resetDailyMedicationStatus();
-        await AsyncStorage.setItem('@embermate_last_reset_date', today);
-      }
-    } catch (error) {
-      console.error('Error checking medication reset:', error);
-    }
-  }
 
   async function requestNotificationPermissionsOnStartup() {
     try {
@@ -114,7 +88,8 @@ export default function RootLayout() {
         }, 1000);
       }
     } catch (error) {
-      console.error('Error requesting notification permissions:', error);
+      // Non-critical — permission dialog failure shouldn't crash the app
+      if (__DEV__) console.error('Error requesting notification permissions:', error);
     }
   }
 
@@ -136,9 +111,7 @@ export default function RootLayout() {
           <Stack.Screen name="appointments" />
           <Stack.Screen name="photos" />
           <Stack.Screen name="emergency" />
-          <Stack.Screen name="vitals" />
           <Stack.Screen name="log-vitals" />
-          <Stack.Screen name="symptoms" />
           <Stack.Screen name="log-symptom" />
           <Stack.Screen name="care-brief" />
           <Stack.Screen name="care-summary-export" />
@@ -147,8 +120,6 @@ export default function RootLayout() {
           <Stack.Screen name="caregiver-management" />
           <Stack.Screen name="notification-settings" />
           <Stack.Screen name="correlation-report" />
-          <Stack.Screen name="correlation-test" />
-          <Stack.Screen name="care-plan-settings" />
           <Stack.Screen name="care-plan" />
           <Stack.Screen name="log-medication-plan-item" />
           <Stack.Screen name="vital-threshold-settings" />
@@ -161,13 +132,13 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   webOuter: {
     flex: 1,
-    backgroundColor: '#0D1F1C', // Match app background
+    backgroundColor: Colors.backgroundDeep, // Match app background
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
   webInner: {
     flex: 1,
-    backgroundColor: '#051614',
+    backgroundColor: Colors.background,
     boxShadow: '0px 0px 30px rgba(0, 0, 0, 0.4)',
     // Add border radius for larger screens
     borderRadius: 0,
@@ -177,3 +148,5 @@ const styles = StyleSheet.create({
     maxWidth: 480,
   },
 });
+
+export default Sentry.wrap(RootLayout);

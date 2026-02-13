@@ -3,7 +3,9 @@
 // Unified hook for notification state and actions
 // ============================================================================
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { logError } from '../utils/devLog';
+import { AppState } from 'react-native';
 import { useDataListener } from '../lib/events';
 import type {
   ScheduledNotificationV2,
@@ -86,7 +88,7 @@ export function useNotifications(patientId: string = 'default'): UseNotification
       setAll(allData);
       setDeliveryPrefs(prefs);
     } catch (err) {
-      console.error('Error loading notifications:', err);
+      logError('useNotifications.loadData', err);
       setError('Failed to load notifications');
     } finally {
       setLoading(false);
@@ -105,12 +107,30 @@ export function useNotifications(patientId: string = 'default'): UseNotification
     }
   });
 
-  // Refresh every minute to update time displays
+  // Refresh every minute to update time displays, only when app is active
   useEffect(() => {
-    const interval = setInterval(() => {
-      loadData();
-    }, 60000);
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      if (!interval) {
+        interval = setInterval(() => { loadData(); }, 60000);
+      }
+    };
+    const stopPolling = () => {
+      if (interval) { clearInterval(interval); interval = null; }
+    };
+
+    startPolling();
+
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') { startPolling(); }
+      else { stopPolling(); }
+    });
+
+    return () => {
+      stopPolling();
+      subscription.remove();
+    };
   }, [loadData]);
 
   // ============================================================================
@@ -122,7 +142,7 @@ export function useNotifications(patientId: string = 'default'): UseNotification
       await snoozeInRegistry(patientId, notificationId, minutes);
       await loadData();
     } catch (err) {
-      console.error('Error snoozing notification:', err);
+      logError('useNotifications.snooze', err);
       throw err;
     }
   }, [patientId, loadData]);
@@ -132,7 +152,7 @@ export function useNotifications(patientId: string = 'default'): UseNotification
       await dismissInRegistry(patientId, notificationId);
       await loadData();
     } catch (err) {
-      console.error('Error dismissing notification:', err);
+      logError('useNotifications.dismiss', err);
       throw err;
     }
   }, [patientId, loadData]);
@@ -142,7 +162,7 @@ export function useNotifications(patientId: string = 'default'): UseNotification
       await updateNotificationStatus(patientId, notificationId, 'actioned');
       await loadData();
     } catch (err) {
-      console.error('Error marking notification as actioned:', err);
+      logError('useNotifications.markActioned', err);
       throw err;
     }
   }, [patientId, loadData]);
@@ -155,7 +175,7 @@ export function useNotifications(patientId: string = 'default'): UseNotification
       // Reschedule all notifications with new preferences
       await rescheduleAllNotifications(patientId);
     } catch (err) {
-      console.error('Error updating delivery preferences:', err);
+      logError('useNotifications.updateDeliveryPrefs', err);
       throw err;
     }
   }, [patientId]);
@@ -179,7 +199,7 @@ export function useNotifications(patientId: string = 'default'): UseNotification
       // Return item config or defaults based on type
       return item.notification || getDefaultNotificationConfig(item.type);
     } catch (err) {
-      console.error('Error getting notification config for item:', err);
+      logError('useNotifications.getConfigForItem', err);
       return undefined;
     }
   }, [patientId]);
@@ -201,7 +221,7 @@ export function useNotifications(patientId: string = 'default'): UseNotification
       // Reschedule notifications
       await rescheduleAllNotifications(patientId);
     } catch (err) {
-      console.error('Error updating notification config for item:', err);
+      logError('useNotifications.updateConfigForItem', err);
       throw err;
     }
   }, [patientId]);
@@ -216,7 +236,7 @@ export function useNotifications(patientId: string = 'default'): UseNotification
         enabled,
       });
     } catch (err) {
-      console.error('Error toggling item notifications:', err);
+      logError('useNotifications.toggleItemNotifications', err);
       throw err;
     }
   }, [getConfigForItem, updateConfigForItem]);

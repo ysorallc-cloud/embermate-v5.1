@@ -183,9 +183,9 @@ const styles = StyleSheet.create({
   },
   stepsCard: {
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: Colors.glass,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: Colors.border,
     borderRadius: 14,
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
@@ -217,8 +217,8 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: Colors.textPlaceholder,
+    backgroundColor: Colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.accent,
   },
   checkmark: {
-    color: '#fff',
+    color: Colors.textPrimary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: Colors.textPrimary,
   },
   bottomNote: {
     fontSize: 11,

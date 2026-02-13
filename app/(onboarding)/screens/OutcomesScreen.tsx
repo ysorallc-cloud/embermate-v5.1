@@ -122,9 +122,9 @@ const styles = StyleSheet.create({
   outcomeCard: {
     flexDirection: 'row',
     gap: 14,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: Colors.glass,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: Colors.border,
     borderRadius: 14,
     padding: 16,
   },
@@ -147,9 +147,9 @@ const styles = StyleSheet.create({
   },
   testimonialCard: {
     width: '100%',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: Colors.greenTint,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: Colors.greenStrong,
     borderRadius: 12,
     padding: 16,
   },

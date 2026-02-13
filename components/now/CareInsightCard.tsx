@@ -7,6 +7,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { CareInsight } from '../../utils/nowHelpers';
 
+import { Colors } from '../../theme/theme-tokens';
 interface CareInsightCardProps {
   careInsight: CareInsight | null;
   hasNextUp: boolean;
@@ -50,14 +51,14 @@ const styles = StyleSheet.create({
   careInsightCard: {
     backgroundColor: 'rgba(139, 92, 246, 0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.15)',
+    borderColor: Colors.purpleHint,
     borderRadius: 12,
     padding: 14,
     marginBottom: 20,
   },
   careInsightReinforcement: {
     backgroundColor: 'rgba(16, 185, 129, 0.05)',
-    borderColor: 'rgba(16, 185, 129, 0.15)',
+    borderColor: Colors.greenHint,
   },
   careInsightPattern: {
     backgroundColor: 'rgba(59, 130, 246, 0.05)',
@@ -68,8 +69,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(251, 191, 36, 0.15)',
   },
   careInsightDependency: {
-    backgroundColor: 'rgba(94, 234, 212, 0.05)',
-    borderColor: 'rgba(94, 234, 212, 0.15)',
+    backgroundColor: Colors.sageHint,
+    borderColor: Colors.sageBorder,
   },
   careInsightHeader: {
     marginBottom: 10,
@@ -95,7 +96,7 @@ const styles = StyleSheet.create({
   careInsightTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 4,
   },
   careInsightMessage: {

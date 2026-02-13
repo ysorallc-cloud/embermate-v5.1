@@ -4,6 +4,10 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logError } from './devLog';
+
+// Maximum entries per log array to prevent unbounded AsyncStorage growth
+const MAX_LOG_ENTRIES = 1000;
 
 // Storage keys
 const KEYS = {
@@ -99,9 +103,10 @@ export const saveMedicationLog = async (data: Omit<MedicationLog, 'id'>): Promis
     };
 
     logs.unshift(newLog);
+    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
     await AsyncStorage.setItem(KEYS.MEDICATION_LOGS, JSON.stringify(logs));
   } catch (error) {
-    console.error('Error saving medication log:', error);
+    logError('centralStorage.saveMedicationLog', error);
     throw error;
   }
 };
@@ -111,7 +116,7 @@ export const getMedicationLogs = async (): Promise<MedicationLog[]> => {
     const data = await AsyncStorage.getItem(KEYS.MEDICATION_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error getting medication logs:', error);
+    logError('centralStorage.getMedicationLogs', error);
     return [];
   }
 };
@@ -122,7 +127,7 @@ export const getTodayMedicationLog = async (): Promise<MedicationLog | null> => 
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
-    console.error('Error getting today medication log:', error);
+    logError('centralStorage.getTodayMedicationLog', error);
     return null;
   }
 };
@@ -142,9 +147,10 @@ export const saveVitalsLog = async (data: Omit<VitalsLog, 'id'>): Promise<void> 
     };
 
     logs.unshift(newLog);
+    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
     await AsyncStorage.setItem(KEYS.VITALS_LOGS, JSON.stringify(logs));
   } catch (error) {
-    console.error('Error saving vitals log:', error);
+    logError('centralStorage.saveVitalsLog', error);
     throw error;
   }
 };
@@ -154,7 +160,7 @@ export const getVitalsLogs = async (): Promise<VitalsLog[]> => {
     const data = await AsyncStorage.getItem(KEYS.VITALS_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error getting vitals logs:', error);
+    logError('centralStorage.getVitalsLogs', error);
     return [];
   }
 };
@@ -165,7 +171,7 @@ export const getTodayVitalsLog = async (): Promise<VitalsLog | null> => {
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
-    console.error('Error getting today vitals log:', error);
+    logError('centralStorage.getTodayVitalsLog', error);
     return null;
   }
 };
@@ -185,9 +191,10 @@ export const saveMoodLog = async (data: Omit<MoodLog, 'id'>): Promise<void> => {
     };
 
     logs.unshift(newLog);
+    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
     await AsyncStorage.setItem(KEYS.MOOD_LOGS, JSON.stringify(logs));
   } catch (error) {
-    console.error('Error saving mood log:', error);
+    logError('centralStorage.saveMoodLog', error);
     throw error;
   }
 };
@@ -197,7 +204,7 @@ export const getMoodLogs = async (): Promise<MoodLog[]> => {
     const data = await AsyncStorage.getItem(KEYS.MOOD_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error getting mood logs:', error);
+    logError('centralStorage.getMoodLogs', error);
     return [];
   }
 };
@@ -208,7 +215,7 @@ export const getTodayMoodLog = async (): Promise<MoodLog | null> => {
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
-    console.error('Error getting today mood log:', error);
+    logError('centralStorage.getTodayMoodLog', error);
     return null;
   }
 };
@@ -228,9 +235,10 @@ export const saveSymptomLog = async (data: Omit<SymptomLog, 'id'>): Promise<void
     };
 
     logs.unshift(newLog);
+    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
     await AsyncStorage.setItem(KEYS.SYMPTOM_LOGS, JSON.stringify(logs));
   } catch (error) {
-    console.error('Error saving symptom log:', error);
+    logError('centralStorage.saveSymptomLog', error);
     throw error;
   }
 };
@@ -240,7 +248,7 @@ export const getSymptomLogs = async (): Promise<SymptomLog[]> => {
     const data = await AsyncStorage.getItem(KEYS.SYMPTOM_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error getting symptom logs:', error);
+    logError('centralStorage.getSymptomLogs', error);
     return [];
   }
 };
@@ -251,7 +259,7 @@ export const getTodaySymptomLog = async (): Promise<SymptomLog | null> => {
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
-    console.error('Error getting today symptom log:', error);
+    logError('centralStorage.getTodaySymptomLog', error);
     return null;
   }
 };
@@ -271,9 +279,10 @@ export const saveSleepLog = async (data: Omit<SleepLog, 'id'>): Promise<void> =>
     };
 
     logs.unshift(newLog);
+    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
     await AsyncStorage.setItem(KEYS.SLEEP_LOGS, JSON.stringify(logs));
   } catch (error) {
-    console.error('Error saving sleep log:', error);
+    logError('centralStorage.saveSleepLog', error);
     throw error;
   }
 };
@@ -283,7 +292,7 @@ export const getSleepLogs = async (): Promise<SleepLog[]> => {
     const data = await AsyncStorage.getItem(KEYS.SLEEP_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error getting sleep logs:', error);
+    logError('centralStorage.getSleepLogs', error);
     return [];
   }
 };
@@ -294,7 +303,7 @@ export const getTodaySleepLog = async (): Promise<SleepLog | null> => {
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
-    console.error('Error getting today sleep log:', error);
+    logError('centralStorage.getTodaySleepLog', error);
     return null;
   }
 };
@@ -314,9 +323,10 @@ export const saveMealsLog = async (data: Omit<MealsLog, 'id'>): Promise<void> =>
     };
 
     logs.unshift(newLog);
+    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
     await AsyncStorage.setItem(KEYS.MEALS_LOGS, JSON.stringify(logs));
   } catch (error) {
-    console.error('Error saving meals log:', error);
+    logError('centralStorage.saveMealsLog', error);
     throw error;
   }
 };
@@ -326,7 +336,7 @@ export const getMealsLogs = async (): Promise<MealsLog[]> => {
     const data = await AsyncStorage.getItem(KEYS.MEALS_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error getting meals logs:', error);
+    logError('centralStorage.getMealsLogs', error);
     return [];
   }
 };
@@ -337,7 +347,7 @@ export const getTodayMealsLog = async (): Promise<MealsLog | null> => {
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
-    console.error('Error getting today meals log:', error);
+    logError('centralStorage.getTodayMealsLog', error);
     return null;
   }
 };
@@ -357,9 +367,10 @@ export const saveWaterLog = async (data: Omit<WaterLog, 'id'>): Promise<void> =>
     };
 
     logs.unshift(newLog);
+    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
     await AsyncStorage.setItem(KEYS.WATER_LOGS, JSON.stringify(logs));
   } catch (error) {
-    console.error('Error saving water log:', error);
+    logError('centralStorage.saveWaterLog', error);
     throw error;
   }
 };
@@ -369,7 +380,7 @@ export const getWaterLogs = async (): Promise<WaterLog[]> => {
     const data = await AsyncStorage.getItem(KEYS.WATER_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error getting water logs:', error);
+    logError('centralStorage.getWaterLogs', error);
     return [];
   }
 };
@@ -380,7 +391,7 @@ export const getTodayWaterLog = async (): Promise<WaterLog | null> => {
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
-    console.error('Error getting today water log:', error);
+    logError('centralStorage.getTodayWaterLog', error);
     return null;
   }
 };
@@ -406,7 +417,7 @@ export const updateTodayWaterLog = async (glasses: number): Promise<void> => {
 
     await AsyncStorage.setItem(KEYS.WATER_LOGS, JSON.stringify(logs));
   } catch (error) {
-    console.error('Error updating water log:', error);
+    logError('centralStorage.updateTodayWaterLog', error);
     throw error;
   }
 };
@@ -426,9 +437,10 @@ export const saveNotesLog = async (data: Omit<NotesLog, 'id'>): Promise<void> =>
     };
 
     logs.unshift(newLog);
+    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
     await AsyncStorage.setItem(KEYS.NOTES_LOGS, JSON.stringify(logs));
   } catch (error) {
-    console.error('Error saving notes log:', error);
+    logError('centralStorage.saveNotesLog', error);
     throw error;
   }
 };
@@ -438,7 +450,7 @@ export const getNotesLogs = async (): Promise<NotesLog[]> => {
     const data = await AsyncStorage.getItem(KEYS.NOTES_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error getting notes logs:', error);
+    logError('centralStorage.getNotesLogs', error);
     return [];
   }
 };
@@ -449,7 +461,7 @@ export const getTodayNotesLog = async (): Promise<NotesLog | null> => {
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
-    console.error('Error getting today notes log:', error);
+    logError('centralStorage.getTodayNotesLog', error);
     return null;
   }
 };
@@ -493,7 +505,7 @@ export const getTodayLogStatus = async (): Promise<TodayLogStatus> => {
       notes: !!notes,
     };
   } catch (error) {
-    console.error('Error getting today log status:', error);
+    logError('centralStorage.getTodayLogStatus', error);
     return {
       medications: false,
       vitals: false,

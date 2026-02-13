@@ -4,6 +4,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logError } from './devLog';
 
 const LAST_VISIT_KEY = 'last_visit_timestamp';
 const WELCOME_BANNER_DISMISSED_KEY = 'welcome_banner_dismissed';
@@ -16,7 +17,7 @@ export async function recordVisit(): Promise<void> {
     const now = Date.now();
     await AsyncStorage.setItem(LAST_VISIT_KEY, now.toString());
   } catch (error) {
-    console.error('Error recording visit:', error);
+    logError('lastVisitTracker.recordVisit', error);
   }
 }
 
@@ -37,7 +38,7 @@ export async function getDaysSinceLastVisit(): Promise<number> {
 
     return daysSince;
   } catch (error) {
-    console.error('Error getting last visit:', error);
+    logError('lastVisitTracker.getDaysSinceLastVisit', error);
     return 0;
   }
 }
@@ -69,7 +70,7 @@ export async function shouldShowWelcomeBanner(): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Error checking welcome banner:', error);
+    logError('lastVisitTracker.shouldShowWelcomeBanner', error);
     return false;
   }
 }
@@ -84,6 +85,6 @@ export async function dismissWelcomeBanner(): Promise<void> {
       Date.now().toString()
     );
   } catch (error) {
-    console.error('Error dismissing banner:', error);
+    logError('lastVisitTracker.dismissWelcomeBanner', error);
   }
 }

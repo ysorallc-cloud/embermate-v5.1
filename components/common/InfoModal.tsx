@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     maxWidth: 340,
     width: '100%',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
   },
   header: {
     flexDirection: 'row',
@@ -120,24 +120,24 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   closeButton: {
     padding: 4,
   },
   closeIcon: {
     fontSize: 24,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     lineHeight: 24,
   },
   content: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.textBright,
     lineHeight: 21,
     marginBottom: 12,
   },
   hintContainer: {
-    backgroundColor: 'rgba(94, 234, 212, 0.1)',
+    backgroundColor: Colors.sageLight,
     borderRadius: 8,
     padding: 10,
     marginBottom: 16,
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   gotItButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.glassActive,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   gotItText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
 
   // Info Icon Button
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
   },
   infoIcon: {
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
   },
 });
 

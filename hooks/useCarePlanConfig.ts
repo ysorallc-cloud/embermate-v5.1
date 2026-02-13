@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { useState, useEffect, useCallback } from 'react';
+import { logError } from '../utils/devLog';
 import { useDataListener } from '../lib/events';
 import {
   CarePlanConfig,
@@ -85,7 +86,7 @@ export function useCarePlanConfig(
       const loadedConfig = await getCarePlanConfig(patientId);
       setConfig(loadedConfig);
     } catch (err) {
-      console.error('Error loading Care Plan config:', err);
+      logError('useCarePlanConfig.loadConfig', err);
       setError(err instanceof Error ? err : new Error('Failed to load config'));
     } finally {
       setLoading(false);
@@ -97,9 +98,11 @@ export function useCarePlanConfig(
     loadConfig();
   }, [loadConfig]);
 
-  // Listen for updates
-  useDataListener(() => {
-    loadConfig();
+  // Listen for relevant updates only
+  useDataListener((category) => {
+    if (['carePlanConfig', 'carePlanItems', 'sampleDataCleared'].includes(category)) {
+      loadConfig();
+    }
   });
 
   /**

@@ -10,7 +10,9 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../theme/theme-tokens';
+import { navigate } from '../lib/navigate';
 import { getUpcomingAppointments, Appointment } from '../utils/appointmentStorage';
+import { logError } from '../utils/devLog';
 
 export default function AppointmentsScreen() {
   const router = useRouter();
@@ -30,7 +32,7 @@ export default function AppointmentsScreen() {
       const appts = await getUpcomingAppointments();
       setAppointments(appts);
     } catch (error) {
-      console.error('Error loading appointments:', error);
+      logError('AppointmentsScreen.loadData', error);
     }
   };
 
@@ -77,7 +79,7 @@ export default function AppointmentsScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.addButton}
-              onPress={() => router.push('/appointment-form' as any)}
+              onPress={() => navigate('/appointment-form')}
               accessibilityLabel="Add new appointment"
               accessibilityRole="button"
             >
@@ -105,7 +107,7 @@ export default function AppointmentsScreen() {
                 <TouchableOpacity
                   key={appt.id}
                   style={styles.appointmentCard}
-                  onPress={() => router.push(`/appointment-form?id=${appt.id}` as any)}
+                  onPress={() => navigate(`/appointment-form?id=${appt.id}`)}
                   accessibilityLabel={`${appt.specialty} appointment with ${appt.provider} on ${month} ${day} at ${formatTime(appt.time)}, ${appt.location}`}
                   accessibilityRole="button"
                 >
@@ -178,7 +180,7 @@ const styles = StyleSheet.create({
   },
   addIcon: {
     fontSize: 24,
-    color: '#fff',
+    color: Colors.textPrimary,
   },
 
   // Title Section
@@ -193,7 +195,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
 
   // Appointment Card
@@ -236,16 +238,16 @@ const styles = StyleSheet.create({
   },
   providerTime: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     marginBottom: 2,
   },
   location: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
   },
   chevron: {
     fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
 
   // Empty State
@@ -269,6 +271,6 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
 });

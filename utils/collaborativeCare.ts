@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMedications, Medication } from './medicationStorage';
 import { getAppointments, Appointment } from './appointmentStorage';
 import { getCareTeam, CareTeamMember } from './careTeamStorage';
+import { logError } from './devLog';
 
 // ============================================================================
 // TYPES
@@ -120,7 +121,7 @@ export async function generateShareCode(
     
     return invite;
   } catch (error) {
-    console.error('Error generating share code:', error);
+    logError('collaborativeCare.generateShareCode', error);
     throw error;
   }
 }
@@ -170,7 +171,7 @@ export async function useShareCode(
     
     return caregiver;
   } catch (error) {
-    console.error('Error using share code:', error);
+    logError('collaborativeCare.useShareCode', error);
     return null;
   }
 }
@@ -183,7 +184,7 @@ export async function getShareInvites(): Promise<ShareInvite[]> {
     const data = await AsyncStorage.getItem(SHARE_INVITES_KEY);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error getting share invites:', error);
+    logError('collaborativeCare.getShareInvites', error);
     return [];
   }
 }
@@ -234,7 +235,7 @@ export async function addCaregiver(
     
     return caregiver;
   } catch (error) {
-    console.error('Error adding caregiver:', error);
+    logError('collaborativeCare.addCaregiver', error);
     throw error;
   }
 }
@@ -247,7 +248,7 @@ export async function getCaregivers(): Promise<CaregiverProfile[]> {
     const data = await AsyncStorage.getItem(CAREGIVERS_KEY);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error getting caregivers:', error);
+    logError('collaborativeCare.getCaregivers', error);
     return [];
   }
 }
@@ -262,7 +263,7 @@ export async function removeCaregiver(caregiverId: string): Promise<boolean> {
     await AsyncStorage.setItem(CAREGIVERS_KEY, JSON.stringify(filtered));
     return true;
   } catch (error) {
-    console.error('Error removing caregiver:', error);
+    logError('collaborativeCare.removeCaregiver', error);
     return false;
   }
 }
@@ -290,7 +291,7 @@ export async function logActivity(activity: Omit<CareActivity, 'id'>): Promise<v
     
     await AsyncStorage.setItem(CARE_ACTIVITIES_KEY, JSON.stringify(trimmed));
   } catch (error) {
-    console.error('Error logging activity:', error);
+    logError('collaborativeCare.logActivity', error);
   }
 }
 
@@ -303,7 +304,7 @@ export async function getCareActivities(limit: number = 50): Promise<CareActivit
     const activities = data ? JSON.parse(data) : [];
     return activities.slice(0, limit);
   } catch (error) {
-    console.error('Error getting care activities:', error);
+    logError('collaborativeCare.getCareActivities', error);
     return [];
   }
 }
@@ -319,7 +320,7 @@ export async function getActivitiesByType(
     const activities = await getCareActivities(500);
     return activities.filter(a => a.type === type).slice(0, limit);
   } catch (error) {
-    console.error('Error getting activities by type:', error);
+    logError('collaborativeCare.getActivitiesByType', error);
     return [];
   }
 }
@@ -361,7 +362,7 @@ export async function addCareNote(
     
     return newNote;
   } catch (error) {
-    console.error('Error adding care note:', error);
+    logError('collaborativeCare.addCareNote', error);
     throw error;
   }
 }
@@ -374,7 +375,7 @@ export async function getCareNotes(): Promise<CareNote[]> {
     const data = await AsyncStorage.getItem(CARE_NOTES_KEY);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error getting care notes:', error);
+    logError('collaborativeCare.getCareNotes', error);
     return [];
   }
 }
@@ -392,7 +393,7 @@ export async function markNoteAsRead(noteId: string, userId: string): Promise<vo
       await AsyncStorage.setItem(CARE_NOTES_KEY, JSON.stringify(notes));
     }
   } catch (error) {
-    console.error('Error marking note as read:', error);
+    logError('collaborativeCare.markNoteAsRead', error);
   }
 }
 
@@ -404,7 +405,7 @@ export async function getUnreadNoteCount(userId: string): Promise<number> {
     const notes = await getCareNotes();
     return notes.filter(n => !n.readBy.includes(userId)).length;
   } catch (error) {
-    console.error('Error getting unread count:', error);
+    logError('collaborativeCare.getUnreadNoteCount', error);
     return 0;
   }
 }
@@ -420,7 +421,7 @@ export async function setCurrentUser(caregiver: CaregiverProfile): Promise<void>
   try {
     await AsyncStorage.setItem(CURRENT_USER_KEY, JSON.stringify(caregiver));
   } catch (error) {
-    console.error('Error setting current user:', error);
+    logError('collaborativeCare.setCurrentUser', error);
   }
 }
 
@@ -432,7 +433,7 @@ export async function getCurrentUser(): Promise<CaregiverProfile | null> {
     const data = await AsyncStorage.getItem(CURRENT_USER_KEY);
     return data ? JSON.parse(data) : null;
   } catch (error) {
-    console.error('Error getting current user:', error);
+    logError('collaborativeCare.getCurrentUser', error);
     return null;
   }
 }

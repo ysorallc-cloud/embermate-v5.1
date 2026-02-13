@@ -22,6 +22,7 @@ import { Colors, BorderRadius, Spacing } from '../theme/theme-tokens';
 import { saveDailyTracking, getDailyTracking } from '../utils/dailyTrackingStorage';
 import { saveSleepLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
+import { logError } from '../utils/devLog';
 
 const QUALITY_LABELS = ['Very Poor', 'Poor', 'Fair', 'Good', 'Excellent'];
 
@@ -50,7 +51,7 @@ export default function LogSleep() {
         }
       }
     } catch (error) {
-      console.error('Error loading existing sleep data:', error);
+      logError('LogSleep.loadExistingData', error);
     }
   };
 
@@ -86,7 +87,7 @@ export default function LogSleep() {
       await hapticSuccess();
       router.back();
     } catch (error) {
-      console.error('Error saving sleep:', error);
+      logError('LogSleep.handleSave', error);
       Alert.alert('Error', 'Failed to save sleep data');
     } finally {
       setLoading(false);
@@ -191,6 +192,7 @@ export default function LogSleep() {
               onPress={handleSave}
               disabled={loading}
               accessibilityLabel={loading ? 'Saving sleep data' : 'Log sleep'}
+              accessibilityHint="Saves sleep hours and quality rating"
               accessibilityRole="button"
               accessibilityState={{ disabled: loading }}
             >
@@ -229,9 +231,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: BorderRadius.md,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.12)',
+    borderColor: Colors.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -265,9 +267,9 @@ const styles = StyleSheet.create({
   },
   hoursInput: {
     flex: 1,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accentHint,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     color: Colors.textPrimary,
@@ -298,9 +300,9 @@ const styles = StyleSheet.create({
     maxWidth: 60,
     maxHeight: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accentHint,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -341,7 +343,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     paddingBottom: Spacing.xxl,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(20, 184, 166, 0.15)',
+    borderTopColor: Colors.accentHint,
     backgroundColor: Colors.background,
   },
   saveButton: {

@@ -14,6 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
 import { DayState, DayStateRoutine, DayStateItem } from '../../utils/carePlanTypes';
 
@@ -56,7 +57,7 @@ export function CarePlanPanel({
   };
 
   const handleItemPress = (item: DayStateItem) => {
-    router.push(item.link as any);
+    navigate(item.link);
   };
 
   const handleItemLongPress = (routineId: string, item: DayStateItem) => {
@@ -132,7 +133,7 @@ export function CarePlanPanel({
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.adjustTodayButton}
-            onPress={() => router.push('/today-scope' as any)}
+            onPress={() => navigate('/today-scope')}
             accessibilityLabel="Adjust today's care plan"
             accessibilityRole="button"
           >
@@ -140,7 +141,7 @@ export function CarePlanPanel({
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.settingsButton}
-            onPress={() => router.push('/care-plan' as any)}
+            onPress={() => navigate('/care-plan')}
             accessibilityLabel="Care plan settings"
             accessibilityRole="button"
           >
@@ -155,7 +156,7 @@ export function CarePlanPanel({
           style={styles.nextUpRow}
           onPress={() => {
             if (dayState.nextAction?.link) {
-              router.push(dayState.nextAction.link as any);
+              navigate(dayState.nextAction.link);
             }
           }}
           accessibilityLabel={`Next action: ${dayState.nextAction.label}`}
@@ -352,10 +353,10 @@ function RoutineItem({ item, onPress, onLongPress }: RoutineItemProps) {
 
 function getStatusColor(status: DayStateRoutine['status']): string {
   switch (status) {
-    case 'completed': return '#10B981'; // Green
-    case 'available': return '#F59E0B'; // Amber
-    case 'upcoming': return 'rgba(255, 255, 255, 0.5)'; // Gray
-    default: return 'rgba(255, 255, 255, 0.5)';
+    case 'completed': return Colors.green; // Green
+    case 'available': return Colors.amber; // Amber
+    case 'upcoming': return Colors.textHalf; // Gray
+    default: return Colors.textHalf;
   }
 }
 
@@ -365,9 +366,9 @@ function getStatusColor(status: DayStateRoutine['status']): string {
 
 const styles = StyleSheet.create({
   panel: {
-    backgroundColor: 'rgba(94, 234, 212, 0.06)',
+    backgroundColor: Colors.sageTint,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.15)',
+    borderColor: Colors.sageBorder,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -375,9 +376,9 @@ const styles = StyleSheet.create({
 
   // Empty State
   emptyPanel: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
@@ -386,12 +387,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -417,12 +418,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
   headerActions: {
     flexDirection: 'row',
@@ -458,17 +459,17 @@ const styles = StyleSheet.create({
   nextUpLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: Colors.amber,
     marginRight: 8,
   },
   nextUpText: {
     flex: 1,
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.textBright,
   },
   nextUpChevron: {
     fontSize: 14,
-    color: '#F59E0B',
+    color: Colors.amber,
   },
 
   // Routine Section
@@ -492,7 +493,7 @@ const styles = StyleSheet.create({
   routineName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   routineProgress: {
     fontSize: 11,
@@ -514,7 +515,7 @@ const styles = StyleSheet.create({
   },
   expandIcon: {
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
   },
 
   // Preview Section (collapsed state)
@@ -522,7 +523,7 @@ const styles = StyleSheet.create({
     marginLeft: 30,
     paddingLeft: 12,
     borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255, 255, 255, 0.08)',
+    borderLeftColor: Colors.border,
     paddingBottom: 4,
   },
   previewItem: {
@@ -540,7 +541,7 @@ const styles = StyleSheet.create({
   previewLabel: {
     flex: 1,
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
   },
   previewStatus: {
     fontSize: 10,
@@ -552,14 +553,14 @@ const styles = StyleSheet.create({
   },
   previewMoreText: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
   },
 
   // Routine Items (expanded)
   routineItems: {
     marginLeft: 30,
     borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255, 255, 255, 0.1)',
+    borderLeftColor: Colors.glassActive,
     paddingLeft: 12,
   },
   routineItem: {
@@ -568,7 +569,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: Colors.surfaceElevated,
   },
   routineItemDone: {
     opacity: 0.6,
@@ -586,10 +587,10 @@ const styles = StyleSheet.create({
   },
   routineItemLabel: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: Colors.textAlmostFull,
   },
   routineItemLabelDone: {
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     textDecorationLine: 'line-through',
   },
   routineItemRight: {
@@ -599,17 +600,17 @@ const styles = StyleSheet.create({
   },
   routineItemStatus: {
     fontSize: 11,
-    color: 'rgba(94, 234, 212, 0.8)',
+    color: Colors.sageStrong,
   },
   routineItemStatusDone: {
-    color: '#10B981',
+    color: Colors.green,
   },
   routineItemStatusOverride: {
     fontStyle: 'italic',
   },
   routineItemChevron: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: Colors.textPlaceholder,
   },
 
   // Complete Message
@@ -627,7 +628,7 @@ const styles = StyleSheet.create({
   completeText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#10B981',
+    color: Colors.green,
   },
 });
 

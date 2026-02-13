@@ -38,7 +38,7 @@ export const CareCircleScreen: React.FC = () => {
                 cx="120"
                 cy="120"
                 r="90"
-                stroke="rgba(255, 255, 255, 0.2)"
+                stroke={Colors.glassStrong}
                 strokeWidth="1"
                 fill="none"
                 strokeDasharray="5,5"

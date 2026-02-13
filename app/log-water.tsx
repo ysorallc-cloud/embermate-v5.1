@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { Colors, Spacing } from '../theme/theme-tokens';
 import { getTodayWaterLog, updateTodayWaterLog } from '../utils/centralStorage';
+import { logError } from '../utils/devLog';
 
 const WATER_GOAL = 8;
 
@@ -34,7 +35,7 @@ export default function LogWaterScreen() {
         setGlasses(todayWater.glasses);
       }
     } catch (error) {
-      console.error('Error loading water data:', error);
+      logError('LogWaterScreen.loadWaterData', error);
     }
   };
 
@@ -52,7 +53,7 @@ export default function LogWaterScreen() {
       await updateTodayWaterLog(glasses);
       router.back();
     } catch (error) {
-      console.error('Error saving water:', error);
+      logError('LogWaterScreen.handleSave', error);
       Alert.alert('Error', 'Failed to save water intake');
     } finally {
       setSaving(false);
@@ -142,6 +143,7 @@ export default function LogWaterScreen() {
             onPress={handleSave}
             disabled={saving}
             accessibilityLabel={saving ? "Saving water intake" : "Save water intake"}
+            accessibilityHint="Saves the water intake amount"
             accessibilityRole="button"
           >
             <Text style={styles.saveButtonText}>
@@ -211,9 +213,9 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    backgroundColor: Colors.sageBorder,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.3)',
+    borderColor: Colors.sageGlow,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -248,14 +250,14 @@ const styles = StyleSheet.create({
   progressBar: {
     width: '100%',
     height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.glassActive,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 12,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#06B6D4',
+    backgroundColor: Colors.cyan,
     borderRadius: 4,
   },
   progressText: {
@@ -271,9 +273,9 @@ const styles = StyleSheet.create({
   quickAddButton: {
     paddingVertical: 12,
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: Colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 8,
   },
   quickAddText: {
@@ -286,7 +288,7 @@ const styles = StyleSheet.create({
   bottomActions: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    borderTopColor: Colors.glassHover,
   },
   saveButton: {
     backgroundColor: Colors.accent,

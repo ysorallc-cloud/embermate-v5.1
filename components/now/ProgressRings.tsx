@@ -135,10 +135,10 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }:
     // Determine stroke color
     const getStrokeColor = () => {
       if (status === 'complete') return Colors.green;
-      if (urgencyResult.tone === 'danger') return '#EF4444';
-      if (urgencyResult.tone === 'warn') return '#F59E0B';
-      if (status === 'partial') return '#3B82F6';
-      return 'rgba(255, 255, 255, 0.25)';
+      if (urgencyResult.tone === 'danger') return Colors.red;
+      if (urgencyResult.tone === 'warn') return Colors.amber;
+      if (status === 'partial') return Colors.blue;
+      return Colors.textDisabled;
     };
 
     const strokeColor = getStrokeColor();
@@ -210,7 +210,7 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }:
               cx={center}
               cy={center}
               r={radius}
-              stroke="rgba(255, 255, 255, 0.1)"
+              stroke={Colors.glassActive}
               strokeWidth={strokeWidth}
               fill="none"
             />
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
@@ -362,9 +362,9 @@ const styles = StyleSheet.create({
   },
   checkinItem: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 12,
     padding: 12,
     paddingHorizontal: 6,
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   },
   checkinItemOverdue: {
     borderColor: 'rgba(239, 68, 68, 0.5)',
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    backgroundColor: Colors.redFaint,
   },
   checkinItemDueSoon: {
     borderColor: 'rgba(251, 191, 36, 0.5)',
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
   checkinLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 3,
   },
   checkinStat: {
@@ -416,25 +416,25 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   stat_complete: {
-    color: '#10B981',
+    color: Colors.green,
   },
   stat_partial: {
-    color: '#F59E0B',
+    color: Colors.amber,
   },
   stat_missing: {
-    color: '#F59E0B',
+    color: Colors.amber,
   },
   stat_inactive: {
     color: 'rgba(255, 255, 255, 0.35)',
   },
   stat_overdue: {
-    color: '#EF4444',
+    color: Colors.red,
   },
   stat_due_soon: {
-    color: '#F59E0B',
+    color: Colors.amber,
   },
   stat_later: {
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
 
   // Carousel dots
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: Colors.glassStrong,
   },
   dotActive: {
     backgroundColor: Colors.accent,

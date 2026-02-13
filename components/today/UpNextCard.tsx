@@ -6,6 +6,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
 import { UpNextData } from '../../types/contextCard';
 import { ComponentRole, getRoleLabel, getRoleA11yHint } from '../../types/componentRoles';
@@ -33,7 +34,7 @@ export const UpNextCard: React.FC<UpNextCardProps> = ({
         // Route to contextual logging if we have Care Plan data
         const extData = data as any;
         if (extData.instanceId && extData.medicationName) {
-          router.push({
+          navigate({
             pathname: '/log-medication-plan-item',
             params: {
               medicationId: extData.medicationId || extData.taskId,
@@ -42,7 +43,7 @@ export const UpNextCard: React.FC<UpNextCardProps> = ({
               itemName: extData.medicationName || data.title,
               itemDosage: extData.dosage || '',
             },
-          } as any);
+          });
         } else {
           // Fallback to manual logging only if no Care Plan context
           router.push('/medication-confirm');
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.glassActive,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
     color: Colors.textMuted,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.glassActive,
     paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 3,

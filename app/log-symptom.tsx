@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { saveSymptom } from '../utils/symptomStorage';
+import { logError } from '../utils/devLog';
 
 const COMMON_SYMPTOMS = [
   'Pain', 'Nausea', 'Dizziness', 'Fatigue',
@@ -57,7 +58,7 @@ export default function LogSymptomScreen() {
       );
     } catch (error) {
       Alert.alert('Error', 'Failed to log symptom. Please try again.');
-      console.error('Error saving symptom:', error);
+      logError('LogSymptomScreen.handleSave', error);
     } finally {
       setSaving(false);
     }
@@ -186,6 +187,7 @@ export default function LogSymptomScreen() {
                 onPress={handleSave}
                 disabled={saving}
                 accessibilityLabel={saving ? 'Saving symptom' : 'Log symptom'}
+                accessibilityHint="Saves the symptom with severity rating"
                 accessibilityRole="button"
                 accessibilityState={{ disabled: saving }}
               >
@@ -285,7 +287,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   severityButtonTextSelected: {
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     fontWeight: '600',
   },
   saveButton: {
@@ -296,5 +298,5 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  saveButtonText: { color: Colors.textPrimary, fontSize: 15, fontWeight: '600' },
 });

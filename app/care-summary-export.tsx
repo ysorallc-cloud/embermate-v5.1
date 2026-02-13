@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing } from '../theme/theme-tokens';
 import { generateAndSharePDF, ReportData } from '../utils/pdfExport';
+import { logError } from '../utils/devLog';
 
 // Helper function to generate care summary reports
 async function generateCareSummaryReport(type: string): Promise<boolean> {
@@ -88,7 +89,7 @@ export default function CareSummaryExportScreen() {
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to generate report. Please try again.');
-      console.error('Export error:', error);
+      logError('CareSummaryExportScreen.handleExport', error);
     } finally {
       setGenerating(false);
     }
@@ -121,7 +122,7 @@ export default function CareSummaryExportScreen() {
             <Text style={styles.infoIcon}>ℹ️</Text>
             <Text style={styles.infoText}>
               Generate a professional PDF report that can be shared with healthcare providers, 
-              family members, or other caregivers. All reports are HIPAA-compliant.
+              family members, or other caregivers. All reports are encrypted and privacy-focused.
             </Text>
           </View>
 

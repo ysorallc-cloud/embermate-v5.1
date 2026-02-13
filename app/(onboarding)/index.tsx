@@ -20,6 +20,7 @@ import { ReadyToStartScreen } from './screens/ReadyToStartScreen';
 
 import { PaginationDots } from './components/PaginationDots';
 import { seedSampleData } from '../../utils/sampleData';
+import { logError } from '../../utils/devLog';
 import { Colors, Typography, Spacing, BorderRadius } from '../../theme/theme-tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -82,7 +83,7 @@ export default function OnboardingFlow() {
       // Navigate to main app
       router.replace('/(tabs)/now');
     } catch (error) {
-      console.error('Error saving onboarding state:', error);
+      logError('OnboardingFlow.completeOnboarding', error);
     }
   };
 

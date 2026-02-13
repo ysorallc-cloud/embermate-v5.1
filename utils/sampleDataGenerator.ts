@@ -7,6 +7,7 @@
 // User-created data should have origin: 'user'
 // ============================================================================
 
+import { devLog, logError } from './devLog';
 import { saveSymptom } from './symptomStorage';
 import { saveDailyTracking } from './dailyTrackingStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,6 +20,7 @@ import {
   TimeWindowLabel,
   DEFAULT_TIME_WINDOWS,
 } from '../types/carePlan';
+import { Colors } from '../theme/theme-tokens';
 import {
   createCarePlan,
   upsertCarePlanItem,
@@ -64,7 +66,7 @@ export const getSampleCaregivers = () => {
       },
       invitedAt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString(),
       joinedAt: new Date(now.getTime() - 59 * 24 * 60 * 60 * 1000).toISOString(),
-      avatarColor: '#10B981',
+      avatarColor: Colors.green,
       lastActive: new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString(),
     }),
     withSampleOrigin({
@@ -84,7 +86,7 @@ export const getSampleCaregivers = () => {
       },
       invitedAt: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString(),
       joinedAt: new Date(now.getTime() - 44 * 24 * 60 * 60 * 1000).toISOString(),
-      avatarColor: '#3B82F6',
+      avatarColor: Colors.blue,
       lastActive: new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString(),
     }),
     withSampleOrigin({
@@ -104,7 +106,7 @@ export const getSampleCaregivers = () => {
       },
       invitedAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
       joinedAt: new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000).toISOString(),
-      avatarColor: '#F59E0B',
+      avatarColor: Colors.amber,
       lastActive: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(),
     }),
   ];
@@ -624,11 +626,9 @@ export async function createSampleCarePlanItems(): Promise<void> {
       await upsertCarePlanItem(item);
     }
 
-    if (__DEV__) {
-      console.log('[SampleDataGenerator] Created sample CarePlanItems:', sampleItems.length);
-    }
+    devLog('[SampleDataGenerator] Created sample CarePlanItems:', sampleItems.length);
   } catch (error) {
-    console.error('[SampleDataGenerator] Error creating sample CarePlanItems:', error);
+    logError('sampleDataGenerator.createSampleCarePlanItems', error);
   }
 }
 
@@ -683,10 +683,10 @@ export const initializeSampleData = async (): Promise<boolean> => {
 
       if (__DEV__) {
         const morningCount = instances.filter(i => i.windowLabel === 'morning').length;
-        console.log(`[SampleDataGenerator] Pre-completed ${morningCount} morning instances`);
+        devLog(`[SampleDataGenerator] Pre-completed ${morningCount} morning instances`);
       }
     } catch (error) {
-      console.error('[SampleDataGenerator] Error pre-completing morning instances:', error);
+      logError('sampleDataGenerator.initializeSampleData', error);
     }
 
     // Mark as initialized
@@ -694,7 +694,7 @@ export const initializeSampleData = async (): Promise<boolean> => {
 
     return true;
   } catch (error) {
-    console.error('Error initializing sample data:', error);
+    logError('sampleDataGenerator.initializeSampleData', error);
     return false;
   }
 };
@@ -715,7 +715,7 @@ export const resetSampleData = async (): Promise<void> => {
  * All generated data is tagged with origin: 'sample' for isolation
  */
 export async function generateSampleCorrelationData(): Promise<void> {
-  if (__DEV__) console.log('Generating 30 days of sample correlation data...');
+  devLog('Generating 30 days of sample correlation data...');
 
   const endDate = new Date();
   const startDate = new Date();
@@ -798,20 +798,18 @@ export async function generateSampleCorrelationData(): Promise<void> {
   // Save medication logs in bulk using multiSet
   await AsyncStorage.multiSet(medLogBatch);
 
-  if (__DEV__) {
-    console.log('Sample data generation complete!');
-    console.log('Expected correlations:');
-    console.log('  - Pain & Hydration: ~-0.6 (negative)');
-    console.log('  - Mood & Sleep: ~+0.7 (positive)');
-    console.log('  - Fatigue & Med Adherence: ~-0.5 (negative)');
-  }
+  devLog('Sample data generation complete!');
+  devLog('Expected correlations:');
+  devLog('  - Pain & Hydration: ~-0.6 (negative)');
+  devLog('  - Mood & Sleep: ~+0.7 (positive)');
+  devLog('  - Fatigue & Med Adherence: ~-0.5 (negative)');
 }
 
 /**
  * Clear all sample correlation data
  */
 export async function clearSampleCorrelationData(): Promise<void> {
-  if (__DEV__) console.log('Clearing sample correlation data...');
+  devLog('Clearing sample correlation data...');
 
   const allKeys = await AsyncStorage.getAllKeys();
   const keysToRemove = allKeys.filter(key =>
@@ -822,7 +820,7 @@ export async function clearSampleCorrelationData(): Promise<void> {
   );
 
   await AsyncStorage.multiRemove(keysToRemove);
-  if (__DEV__) console.log(`Cleared ${keysToRemove.length} keys`);
+  devLog(`Cleared ${keysToRemove.length} keys`);
 }
 
 /**

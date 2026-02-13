@@ -8,6 +8,7 @@ import React, { useMemo } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { GlassCard } from '../../components/aurora/GlassCard';
 import { PageHeader } from '../../components/aurora/PageHeader';
@@ -127,7 +128,7 @@ export default function ReportsHub() {
                       styles.reportRow,
                       i < category.reports.length - 1 && styles.reportRowBorder,
                     ]}
-                    onPress={() => router.push(report.route as any)}
+                    onPress={() => navigate(report.route)}
                     activeOpacity={0.7}
                     accessibilityLabel={`${report.name} report, ${report.badge}`}
                     accessibilityRole="button"

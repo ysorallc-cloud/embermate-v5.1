@@ -7,6 +7,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import {
   parseTimeForDisplay,
   getCurrentTimeWindow,
@@ -18,6 +19,7 @@ import {
 import { getUrgencyStatus } from '../../utils/nowUrgency';
 import { getDetailedUrgencyLabel, getTimeDeltaString } from '../../utils/urgency';
 
+import { Colors } from '../../theme/theme-tokens';
 interface TimelineSectionProps {
   allPending: any[];        // ALL pending items (overdue + upcoming merged)
   completed: any[];         // completed items
@@ -52,7 +54,7 @@ export function TimelineSection({
       <View style={styles.timelineSectionHeader}>
         <Text style={styles.sectionTitle}>TODAY'S PLAN</Text>
         <TouchableOpacity
-          onPress={() => router.push('/today-scope' as any)}
+          onPress={() => navigate('/today-scope')}
           activeOpacity={0.7}
           accessibilityLabel="Adjust today's plan"
           accessibilityRole="link"
@@ -224,7 +226,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
@@ -238,12 +240,12 @@ const styles = StyleSheet.create({
   adjustTodayLink: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#14B8A6',
+    color: Colors.accent,
   },
 
   // Timeline items
   timelineItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: Colors.glass,
     borderLeftWidth: 3,
     borderLeftColor: 'rgba(255, 193, 7, 0.4)',
     borderRadius: 8,
@@ -267,7 +269,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 158, 11, 0.04)',
   },
   timelineItemCompleted: {
-    borderLeftColor: 'rgba(16, 185, 129, 0.3)',
+    borderLeftColor: Colors.greenStrong,
     opacity: 0.45,
   },
   timelineIcon: {
@@ -281,20 +283,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   timelineIconOverdue: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    backgroundColor: Colors.redHint,
+    borderColor: Colors.redStrong,
   },
   timelineIconPending: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    backgroundColor: Colors.amberHint,
+    borderColor: Colors.warningBorder,
   },
   timelineIconDueSoon: {
     backgroundColor: 'rgba(245, 158, 11, 0.10)',
-    borderColor: 'rgba(245, 158, 11, 0.25)',
+    borderColor: Colors.amberBorder,
   },
   timelineIconCompleted: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    backgroundColor: Colors.greenHint,
+    borderColor: Colors.greenStrong,
   },
   timelineIconEmoji: {
     fontSize: 16,
@@ -310,13 +312,13 @@ const styles = StyleSheet.create({
   },
   timelineTimeOverdue: {
     fontSize: 12,
-    color: '#EF4444',
+    color: Colors.red,
     fontWeight: '600',
     marginBottom: 3,
   },
   timelineTimePending: {
     fontSize: 12,
-    color: '#F59E0B',
+    color: Colors.amber,
     fontWeight: '600',
     marginBottom: 3,
   },
@@ -328,42 +330,42 @@ const styles = StyleSheet.create({
   },
   timelineTimeCompleted: {
     fontSize: 12,
-    color: '#10B981',
+    color: Colors.green,
     fontWeight: '600',
     marginBottom: 3,
   },
   timelineTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 2,
   },
   timelineTitleCompleted: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     textDecorationLine: 'line-through',
   },
   timelineSubtitle: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
   timelineAction: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.glassActive,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
   },
   timelineActionOverdue: {
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: Colors.redMuted,
   },
   timelineActionPending: {
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    backgroundColor: Colors.amberMuted,
   },
   timelineActionText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
 
   // Sections
@@ -386,27 +388,27 @@ const styles = StyleSheet.create({
   timeGroupTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   timeGroupTitleCurrent: {
-    color: '#3B82F6',
+    color: Colors.blue,
   },
   timeGroupTitleOverdue: {
-    color: '#F59E0B',
+    color: Colors.amber,
   },
   timeGroupCount: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     marginLeft: 8,
   },
   timeGroupCountOverdue: {
-    color: '#F59E0B',
+    color: Colors.amber,
   },
   timeGroupCollapseIcon: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     marginLeft: 8,
   },
 
@@ -415,12 +417,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    borderTopColor: Colors.glassHover,
   },
   completedHeader: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,

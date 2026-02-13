@@ -32,7 +32,7 @@ export const WelcomeBackBanner: React.FC<WelcomeBackBannerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(94, 234, 212, 0.1)',
+    backgroundColor: Colors.sageLight,
     borderRadius: 12,
     padding: 14,
     marginBottom: 16,

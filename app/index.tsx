@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { Redirect } from 'expo-router';
 import { isOnboardingComplete } from '../utils/sampleData';
+import { logError } from '../utils/devLog';
 import { Colors } from '../theme/theme-tokens';
 
 export default function Index() {
@@ -18,7 +19,7 @@ export default function Index() {
     // Set a timeout to prevent infinite loading
     const timeout = setTimeout(() => {
       if (loading) {
-        console.error('Onboarding check timeout');
+        logError('Index.checkOnboarding', 'Onboarding check timeout');
         setError('Loading is taking longer than expected');
         setLoading(false);
         // Default to onboarding screen on timeout
@@ -37,7 +38,7 @@ export default function Index() {
       setOnboardingDone(complete);
       setError(null);
     } catch (error) {
-      console.error('Error checking onboarding:', error);
+      logError('Index.checkOnboarding', error);
       setError('Failed to load app data');
       // Default to showing onboarding on error
       setOnboardingDone(false);

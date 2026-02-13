@@ -5,6 +5,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logError } from './devLog';
 
 // Storage keys
 const LAST_OPEN_KEY = '@embermate_last_app_open';
@@ -236,7 +237,7 @@ export async function recordAppOpen(): Promise<void> {
   try {
     await AsyncStorage.setItem(LAST_OPEN_KEY, new Date().toISOString());
   } catch (error) {
-    console.error('Error recording app open:', error);
+    logError('promptSystem.recordAppOpen', error);
   }
 }
 
@@ -250,7 +251,7 @@ export async function getHoursSinceLastOpen(): Promise<number> {
     const diffMs = now.getTime() - lastOpenDate.getTime();
     return diffMs / (1000 * 60 * 60);
   } catch (error) {
-    console.error('Error getting last open time:', error);
+    logError('promptSystem.getHoursSinceLastOpen', error);
     return 0;
   }
 }
@@ -265,7 +266,7 @@ export async function isFirstOpenOfDay(): Promise<boolean> {
 
     return lastOpenDate.toDateString() !== today.toDateString();
   } catch (error) {
-    console.error('Error checking first open:', error);
+    logError('promptSystem.isFirstOpenOfDay', error);
     return false;
   }
 }
@@ -276,7 +277,7 @@ export async function dismissPrompt(promptType: PromptType): Promise<void> {
     const key = `${PROMPT_DISMISSED_KEY}_${promptType}_${today}`;
     await AsyncStorage.setItem(key, 'true');
   } catch (error) {
-    console.error('Error dismissing prompt:', error);
+    logError('promptSystem.dismissPrompt', error);
   }
 }
 
@@ -287,7 +288,7 @@ export async function isPromptDismissed(promptType: PromptType): Promise<boolean
     const dismissed = await AsyncStorage.getItem(key);
     return dismissed === 'true';
   } catch (error) {
-    console.error('Error checking prompt dismissed:', error);
+    logError('promptSystem.isPromptDismissed', error);
     return false;
   }
 }
@@ -301,7 +302,7 @@ export async function isOnboardingComplete(): Promise<boolean> {
     const complete = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
     return complete === 'true';
   } catch (error) {
-    console.error('Error checking onboarding status:', error);
+    logError('promptSystem.isOnboardingComplete', error);
     return false;
   }
 }
@@ -310,7 +311,7 @@ export async function completeOnboarding(): Promise<void> {
   try {
     await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
   } catch (error) {
-    console.error('Error completing onboarding:', error);
+    logError('promptSystem.completeOnboarding', error);
   }
 }
 
@@ -324,7 +325,7 @@ export async function isNotificationPromptDismissed(): Promise<boolean> {
     const dismissed = await AsyncStorage.getItem(NOTIFICATION_PROMPT_DISMISSED_KEY);
     return dismissed === 'true';
   } catch (error) {
-    console.error('Error checking notification prompt status:', error);
+    logError('promptSystem.isNotificationPromptDismissed', error);
     return false;
   }
 }
@@ -333,7 +334,7 @@ export async function dismissNotificationPrompt(): Promise<void> {
   try {
     await AsyncStorage.setItem(NOTIFICATION_PROMPT_DISMISSED_KEY, 'true');
   } catch (error) {
-    console.error('Error dismissing notification prompt:', error);
+    logError('promptSystem.dismissNotificationPrompt', error);
   }
 }
 
@@ -345,7 +346,7 @@ export async function triggerNotificationPrompt(): Promise<void> {
       await AsyncStorage.setItem(NOTIFICATION_PROMPT_TRIGGERED_KEY, 'true');
     }
   } catch (error) {
-    console.error('Error triggering notification prompt:', error);
+    logError('promptSystem.triggerNotificationPrompt', error);
   }
 }
 
@@ -366,7 +367,7 @@ export async function shouldShowNotificationPrompt(): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Error checking notification prompt:', error);
+    logError('promptSystem.shouldShowNotificationPrompt', error);
     return false;
   }
 }

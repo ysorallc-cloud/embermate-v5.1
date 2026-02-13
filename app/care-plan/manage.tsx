@@ -48,6 +48,7 @@ import {
   markFirstCarePlanCreated,
   clearSampleData,
 } from '../../utils/sampleDataManager';
+import { logError } from '../../utils/devLog';
 
 // ============================================================================
 // TYPES
@@ -123,7 +124,7 @@ export default function CarePlanManageScreen() {
       const planItems = await listCarePlanItems(plan.id);
       setItems(planItems);
     } catch (error) {
-      console.error('Error loading care plan:', error);
+      logError('CarePlanManageScreen.loadData', error);
       Alert.alert('Error', 'Failed to load care plan');
     } finally {
       setLoading(false);
@@ -265,7 +266,7 @@ export default function CarePlanManageScreen() {
       await loadData();
       emitDataUpdate('carePlanItems');
     } catch (error) {
-      console.error('Error saving item:', error);
+      logError('CarePlanManageScreen.performSave', error);
       Alert.alert('Error', 'Failed to save item');
     }
   };
@@ -285,7 +286,7 @@ export default function CarePlanManageScreen() {
               await loadData();
               emitDataUpdate('carePlanItems');
             } catch (error) {
-              console.error('Error deleting item:', error);
+              logError('CarePlanManageScreen.handleDelete', error);
               Alert.alert('Error', 'Failed to delete item');
             }
           },
@@ -300,7 +301,7 @@ export default function CarePlanManageScreen() {
       await loadData();
       emitDataUpdate('carePlanItems');
     } catch (error) {
-      console.error('Error toggling item:', error);
+      logError('CarePlanManageScreen.handleToggleActive', error);
     }
   };
 
@@ -424,8 +425,8 @@ export default function CarePlanManageScreen() {
                       <Switch
                         value={item.active}
                         onValueChange={() => handleToggleActive(item)}
-                        trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(94, 234, 212, 0.3)' }}
-                        thumbColor={item.active ? Colors.accent : 'rgba(255,255,255,0.5)'}
+                        trackColor={{ false: Colors.glassActive, true: Colors.sageGlow }}
+                        thumbColor={item.active ? Colors.accent : Colors.textHalf}
                       />
                     </TouchableOpacity>
                   ))}
@@ -523,7 +524,7 @@ export default function CarePlanManageScreen() {
                   value={formName}
                   onChangeText={setFormName}
                   placeholder="e.g., Sertraline, Morning vitals check"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor={Colors.textPlaceholder}
                   accessibilityLabel="Care plan item name"
                 />
               </View>
@@ -536,7 +537,7 @@ export default function CarePlanManageScreen() {
                   value={formInstructions}
                   onChangeText={setFormInstructions}
                   placeholder="e.g., Take with food"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor={Colors.textPlaceholder}
                   multiline
                   numberOfLines={2}
                   accessibilityLabel="Care plan item instructions"
@@ -605,8 +606,8 @@ export default function CarePlanManageScreen() {
                   <Switch
                     value={formActive}
                     onValueChange={setFormActive}
-                    trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(94, 234, 212, 0.3)' }}
-                    thumbColor={formActive ? Colors.accent : 'rgba(255,255,255,0.5)'}
+                    trackColor={{ false: Colors.glassActive, true: Colors.sageGlow }}
+                    thumbColor={formActive ? Colors.accent : Colors.textHalf}
                   />
                 </View>
                 <Text style={styles.formHint}>
@@ -689,16 +690,16 @@ const styles = StyleSheet.create({
 
   // Info Card
   infoCard: {
-    backgroundColor: 'rgba(94, 234, 212, 0.06)',
+    backgroundColor: Colors.sageTint,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.15)',
+    borderColor: Colors.sageBorder,
     borderRadius: 12,
     padding: 14,
     marginBottom: 20,
   },
   infoText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     lineHeight: 20,
   },
 
@@ -706,7 +707,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 12,
@@ -722,9 +723,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   quickAddButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -737,7 +738,7 @@ const styles = StyleSheet.create({
   },
   quickAddLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
   },
 
   // Items List
@@ -759,12 +760,12 @@ const styles = StyleSheet.create({
   typeLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.textBright,
   },
   typeCount: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    color: Colors.textMuted,
+    backgroundColor: Colors.glassHover,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
@@ -772,7 +773,7 @@ const styles = StyleSheet.create({
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderRadius: 10,
     padding: 12,
     marginBottom: 6,
@@ -786,7 +787,7 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 2,
   },
   itemNameInactive: {
@@ -794,7 +795,7 @@ const styles = StyleSheet.create({
   },
   itemMeta: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
   },
 
   // Empty State
@@ -809,20 +810,20 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     textAlign: 'center',
   },
 
   // Add Custom Button
   addCustomButton: {
-    backgroundColor: 'rgba(94, 234, 212, 0.1)',
+    backgroundColor: Colors.sageLight,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.3)',
+    borderColor: Colors.sageGlow,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
@@ -851,16 +852,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: Colors.glassActive,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   modalClose: {
     fontSize: 20,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     padding: 4,
   },
   modalScroll: {
@@ -875,23 +876,23 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: 13,
     fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     marginBottom: 8,
   },
   formHint: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     marginTop: 4,
   },
   textInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: Colors.glassActive,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   textInputMultiline: {
     minHeight: 60,
@@ -908,15 +909,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   typeChipSelected: {
-    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    backgroundColor: Colors.sageBorder,
     borderColor: Colors.accent,
   },
   typeChipEmoji: {
@@ -924,7 +925,7 @@ const styles = StyleSheet.create({
   },
   typeChipLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
   },
   typeChipLabelSelected: {
     color: Colors.accent,
@@ -941,15 +942,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   windowChipSelected: {
-    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    backgroundColor: Colors.sageBorder,
     borderColor: Colors.accent,
   },
   windowEmoji: {
@@ -957,7 +958,7 @@ const styles = StyleSheet.create({
   },
   windowLabel: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
   },
   windowLabelSelected: {
     color: Colors.accent,
@@ -971,20 +972,20 @@ const styles = StyleSheet.create({
   },
   priorityChip: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: 'center',
   },
   priorityChipSelected: {
-    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    backgroundColor: Colors.sageBorder,
     borderColor: Colors.accent,
   },
   priorityLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
   },
   priorityLabelSelected: {
     color: Colors.accent,
@@ -1020,7 +1021,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   deleteButtonText: {
-    color: '#EF4444',
+    color: Colors.red,
     fontSize: 15,
     fontWeight: '500',
   },

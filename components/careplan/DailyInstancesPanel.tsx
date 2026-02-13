@@ -15,6 +15,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
 import {
   DailyCareInstance,
@@ -82,7 +83,7 @@ export function DailyInstancesPanel({
   const handleInstancePress = (instance: DailyCareInstance) => {
     // For medications, route to the contextual logging screen with pre-filled data
     if (instance.itemType === 'medication') {
-      router.push({
+      navigate({
         pathname: '/log-medication-plan-item',
         params: {
           medicationId: instance.carePlanItemId,
@@ -92,13 +93,13 @@ export function DailyInstancesPanel({
           itemDosage: instance.itemDosage || '',
           itemInstructions: instance.instructions || '',
         },
-      } as any);
+      });
       return;
     }
 
     // For other item types, use the standard route
     const route = getRouteForItemType(instance.itemType);
-    router.push(route as any);
+    navigate(route);
   };
 
   const handleInstanceLongPress = (instance: DailyCareInstance) => {
@@ -198,7 +199,7 @@ export function DailyInstancesPanel({
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.adjustTodayButton}
-            onPress={() => router.push('/today-scope' as any)}
+            onPress={() => navigate('/today-scope')}
             accessibilityLabel="Adjust today's care plan"
             accessibilityRole="button"
           >
@@ -206,7 +207,7 @@ export function DailyInstancesPanel({
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.settingsButton}
-            onPress={() => router.push('/care-plan' as any)}
+            onPress={() => navigate('/care-plan')}
             accessibilityLabel="Care plan settings"
             accessibilityRole="button"
           >
@@ -431,10 +432,10 @@ function InstanceRow({ instance, onPress, onLongPress }: InstanceRowProps) {
 
 function getStatusColor(status: InstanceGroup['status']): string {
   switch (status) {
-    case 'completed': return '#10B981'; // Green
-    case 'available': return '#F59E0B'; // Amber
-    case 'upcoming': return 'rgba(255, 255, 255, 0.5)'; // Gray
-    default: return 'rgba(255, 255, 255, 0.5)';
+    case 'completed': return Colors.green; // Green
+    case 'available': return Colors.amber; // Amber
+    case 'upcoming': return Colors.textHalf; // Gray
+    default: return Colors.textHalf;
   }
 }
 
@@ -476,9 +477,9 @@ function getRouteForItemType(itemType: DailyCareInstance['itemType']): string {
 
 const styles = StyleSheet.create({
   panel: {
-    backgroundColor: 'rgba(94, 234, 212, 0.06)',
+    backgroundColor: Colors.sageTint,
     borderWidth: 1,
-    borderColor: 'rgba(94, 234, 212, 0.15)',
+    borderColor: Colors.sageBorder,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -486,9 +487,9 @@ const styles = StyleSheet.create({
 
   // Empty State
   emptyPanel: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: Colors.glassFaint,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.glassActive,
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
@@ -497,12 +498,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -528,12 +529,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
   headerActions: {
     flexDirection: 'row',
@@ -569,17 +570,17 @@ const styles = StyleSheet.create({
   nextUpLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: Colors.amber,
     marginRight: 8,
   },
   nextUpText: {
     flex: 1,
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.textBright,
   },
   nextUpChevron: {
     fontSize: 14,
-    color: '#F59E0B',
+    color: Colors.amber,
   },
 
   // Group Section
@@ -603,7 +604,7 @@ const styles = StyleSheet.create({
   groupName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   groupProgress: {
     fontSize: 11,
@@ -625,7 +626,7 @@ const styles = StyleSheet.create({
   },
   expandIcon: {
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
   },
 
   // Preview Section (collapsed state)
@@ -633,7 +634,7 @@ const styles = StyleSheet.create({
     marginLeft: 30,
     paddingLeft: 12,
     borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255, 255, 255, 0.08)',
+    borderLeftColor: Colors.border,
     paddingBottom: 4,
   },
   previewItem: {
@@ -651,7 +652,7 @@ const styles = StyleSheet.create({
   previewLabel: {
     flex: 1,
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
   },
   previewStatus: {
     fontSize: 10,
@@ -663,14 +664,14 @@ const styles = StyleSheet.create({
   },
   previewMoreText: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
   },
 
   // Instances List (expanded)
   instancesList: {
     marginLeft: 30,
     borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255, 255, 255, 0.1)',
+    borderLeftColor: Colors.glassActive,
     paddingLeft: 12,
   },
   instanceRow: {
@@ -679,7 +680,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: Colors.surfaceElevated,
   },
   instanceRowDone: {
     opacity: 0.6,
@@ -703,10 +704,10 @@ const styles = StyleSheet.create({
   },
   instanceName: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: Colors.textAlmostFull,
   },
   instanceNameDone: {
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     textDecorationLine: 'line-through',
   },
   instanceNameMissed: {
@@ -715,7 +716,7 @@ const styles = StyleSheet.create({
   },
   instanceInstructions: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: Colors.textMuted,
     marginTop: 2,
   },
   instanceRowRight: {
@@ -725,17 +726,17 @@ const styles = StyleSheet.create({
   },
   instanceStatus: {
     fontSize: 11,
-    color: 'rgba(94, 234, 212, 0.8)',
+    color: Colors.sageStrong,
   },
   instanceStatusDone: {
-    color: '#10B981',
+    color: Colors.green,
   },
   instanceStatusMissed: {
-    color: '#EF4444',
+    color: Colors.red,
   },
   instanceChevron: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: Colors.textPlaceholder,
   },
 
   // Complete Message
@@ -753,7 +754,7 @@ const styles = StyleSheet.create({
   completeText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#10B981',
+    color: Colors.green,
   },
 });
 

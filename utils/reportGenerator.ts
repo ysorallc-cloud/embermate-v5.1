@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMedications, getMedicationLogs } from './medicationStorage';
 import { getAppointments } from './appointmentStorage';
 import { getVitals, VitalReading } from './vitalsStorage';
+import { logError } from './devLog';
 
 interface VitalLog {
   id: string;
@@ -165,7 +166,7 @@ export async function generateComprehensiveReport(): Promise<ComprehensiveReport
     const vitalReadings = await getVitals();
     vitals = convertVitalsToLogs(vitalReadings);
   } catch (e) {
-    console.error('Error loading vitals for report:', e);
+    logError('reportGenerator.generateComprehensiveReport', e);
   }
   
   // Load symptoms

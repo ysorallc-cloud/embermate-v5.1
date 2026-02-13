@@ -14,6 +14,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { navigate } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
 import { getPersonalizedEncouragement, getSampleCaregiverInsights, Encouragement } from '../utils/coffee-moment';
 
@@ -122,7 +123,7 @@ export const CoffeeMomentModal: React.FC<CoffeeMomentModalProps> = ({
 
   const handleSetReminder = () => {
     handleClose();
-    router.push('/break-reminder-settings' as any);
+    navigate('/break-reminder-settings');
   };
 
   const getPhaseText = () => {
@@ -251,7 +252,7 @@ export const CoffeeMomentModal: React.FC<CoffeeMomentModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: Colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -339,7 +340,7 @@ const styles = StyleSheet.create({
   encouragementBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   encouragementMain: {
     fontSize: 18,
@@ -362,7 +363,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     fontSize: 14,
     fontWeight: '600',
   },

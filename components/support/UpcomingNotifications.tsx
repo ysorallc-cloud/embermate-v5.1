@@ -21,6 +21,7 @@ import {
 } from '../../storage/notificationRegistry';
 import type { ScheduledNotificationV2 } from '../../types/notifications';
 import type { CarePlanItemType } from '../../types/carePlan';
+import { logError } from '../../utils/devLog';
 
 // ============================================================================
 // TYPES
@@ -153,7 +154,7 @@ export const UpcomingNotifications: React.FC<UpcomingNotificationsProps> = ({
       const upcoming = await getUpcomingNotifications(patientId, maxItems);
       setNotifications(upcoming);
     } catch (err) {
-      console.error('Failed to load notifications:', err);
+      logError('UpcomingNotifications.loadNotifications', err);
       setError('Could not load notifications');
     } finally {
       setLoading(false);
@@ -174,7 +175,7 @@ export const UpcomingNotifications: React.FC<UpcomingNotificationsProps> = ({
       await loadNotifications();
       onRefresh?.();
     } catch (err) {
-      console.error('Failed to snooze notification:', err);
+      logError('UpcomingNotifications.handleSnooze', err);
     }
   }, [patientId, loadNotifications, onRefresh]);
 
@@ -184,7 +185,7 @@ export const UpcomingNotifications: React.FC<UpcomingNotificationsProps> = ({
       await loadNotifications();
       onRefresh?.();
     } catch (err) {
-      console.error('Failed to dismiss notification:', err);
+      logError('UpcomingNotifications.handleDismiss', err);
     }
   }, [patientId, loadNotifications, onRefresh]);
 

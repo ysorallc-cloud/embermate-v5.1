@@ -23,6 +23,7 @@ import { hapticSuccess } from '../utils/hapticFeedback';
 import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage';
 import { parseCarePlanContext, getCarePlanBannerText } from '../utils/carePlanRouting';
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
+import { logError } from '../utils/devLog';
 
 // Common medications for dropdown
 const COMMON_MEDICATIONS = [
@@ -182,7 +183,7 @@ export default function MedicationLogScreen() {
       await hapticSuccess();
       router.back();
     } catch (error) {
-      console.error('Error saving medication:', error);
+      logError('MedicationLogScreen.handleSave', error);
       Alert.alert('Error', 'Failed to save medication');
       setSaving(false);
     }
@@ -260,7 +261,7 @@ export default function MedicationLogScreen() {
                 <TextInput
                   style={styles.searchInput}
                   placeholder="Search or type medication name..."
-                  placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                  placeholderTextColor={Colors.textMuted}
                   value={searchQuery}
                   onChangeText={(text) => {
                     setSearchQuery(text);
@@ -312,7 +313,7 @@ export default function MedicationLogScreen() {
             <TextInput
               style={styles.dosageInput}
               placeholder="Enter or select dosage (e.g., 50mg)"
-              placeholderTextColor="rgba(255, 255, 255, 0.4)"
+              placeholderTextColor={Colors.textMuted}
               value={dosage}
               onChangeText={(text) => {
                 setDosage(text);
@@ -436,15 +437,15 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(20, 184, 166, 0.15)',
+    borderBottomColor: Colors.accentHint,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.12)',
+    borderColor: Colors.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -474,25 +475,25 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   carePlanBanner: {
-    backgroundColor: 'rgba(139, 92, 246, 0.08)',
-    borderColor: 'rgba(139, 92, 246, 0.2)',
+    backgroundColor: Colors.purpleFaint,
+    borderColor: Colors.purpleWash,
   },
   carePlanBannerLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: 'rgba(167, 139, 250, 0.9)',
+    color: Colors.violetBright,
     letterSpacing: 1,
     textAlign: 'center',
     marginBottom: 4,
   },
   contextText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
   progressText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     textAlign: 'center',
     marginTop: 4,
   },
@@ -505,15 +506,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 1.5,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     marginBottom: 10,
   },
 
   // Search/Selected Field
   searchInput: {
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.2)',
+    borderColor: Colors.borderMedium,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -521,7 +522,7 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   selectedField: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: Colors.greenLight,
     borderWidth: 1,
     borderColor: Colors.green,
     borderRadius: 12,
@@ -538,14 +539,14 @@ const styles = StyleSheet.create({
   },
   changeText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
   },
 
   // Dropdown
   dropdown: {
-    backgroundColor: 'rgba(13, 148, 136, 0.15)',
+    backgroundColor: Colors.accentSubtle,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.2)',
+    borderColor: Colors.borderMedium,
     borderRadius: 12,
     marginTop: 8,
     overflow: 'hidden',
@@ -554,7 +555,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: Colors.surfaceElevated,
   },
   dropdownItemText: {
     fontSize: 15,
@@ -563,9 +564,9 @@ const styles = StyleSheet.create({
   customOption: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'rgba(94, 234, 212, 0.1)',
+    backgroundColor: Colors.sageLight,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: Colors.glassActive,
   },
   customOptionText: {
     fontSize: 15,
@@ -575,9 +576,9 @@ const styles = StyleSheet.create({
 
   // Dosage
   dosageInput: {
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.2)',
+    borderColor: Colors.borderMedium,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -593,18 +594,18 @@ const styles = StyleSheet.create({
   dosageChip: {
     paddingVertical: 8,
     paddingHorizontal: 14,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accentHint,
     borderRadius: 16,
   },
   dosageChipSelected: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: Colors.greenHint,
     borderColor: Colors.green,
   },
   dosageChipText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
   },
   dosageChipTextSelected: {
     color: Colors.green,
@@ -620,18 +621,18 @@ const styles = StyleSheet.create({
   sideEffectChip: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: Colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.accentHint,
     borderRadius: 20,
   },
   sideEffectChipSelected: {
-    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+    backgroundColor: Colors.accentHint,
     borderColor: Colors.accent,
   },
   sideEffectText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
   },
   sideEffectTextSelected: {
     color: Colors.accent,
@@ -646,13 +647,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 1.5,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textHalf,
     marginBottom: 10,
   },
   summaryCard: {
     backgroundColor: 'rgba(16, 185, 129, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
+    borderColor: Colors.greenMuted,
     borderRadius: 12,
     padding: 16,
   },
@@ -669,7 +670,7 @@ const styles = StyleSheet.create({
   },
   summarySideEffect: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
     marginTop: 8,
     fontStyle: 'italic',
   },
@@ -679,7 +680,7 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 24,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(20, 184, 166, 0.15)',
+    borderTopColor: Colors.accentHint,
     backgroundColor: Colors.background,
   },
   saveButton: {
@@ -694,6 +695,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
 });

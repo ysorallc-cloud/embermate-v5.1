@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StreakData, Achievement, DEFAULT_STREAK_DATA, ACHIEVEMENTS } from '../types/streaks';
 import { format, subDays } from 'date-fns';
+import { devLog, logError } from './devLog';
 
 const STREAKS_KEY = '@EmberMate:streaks';
 const ACHIEVEMENTS_KEY = '@EmberMate:achievements';
@@ -22,7 +23,7 @@ export const getStreaks = async (): Promise<StreakData> => {
     const data = await AsyncStorage.getItem(STREAKS_KEY);
     return data ? JSON.parse(data) : DEFAULT_STREAK_DATA;
   } catch (error) {
-    console.error('Error getting streaks:', error);
+    logError('streakStorage.getStreaks', error);
     return DEFAULT_STREAK_DATA;
   }
 };
@@ -34,7 +35,7 @@ export const saveStreaks = async (streaks: StreakData): Promise<void> => {
   try {
     await AsyncStorage.setItem(STREAKS_KEY, JSON.stringify(streaks));
   } catch (error) {
-    console.error('Error saving streaks:', error);
+    logError('streakStorage.saveStreaks', error);
   }
 };
 
@@ -91,7 +92,7 @@ export const getAchievements = async (): Promise<Achievement[]> => {
     const data = await AsyncStorage.getItem(ACHIEVEMENTS_KEY);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error getting achievements:', error);
+    logError('streakStorage.getAchievements', error);
     return [];
   }
 };
@@ -145,7 +146,7 @@ const awardAchievement = async (
     // Trigger celebration (could be a notification or in-app animation)
     await triggerCelebration(newAchievement);
   } catch (error) {
-    console.error('Error awarding achievement:', error);
+    logError('streakStorage.awardAchievement', error);
   }
 };
 
@@ -154,7 +155,7 @@ const awardAchievement = async (
  * This could show a modal, send a notification, or play an animation
  */
 const triggerCelebration = async (achievement: Achievement): Promise<void> => {
-  if (__DEV__) console.log(`Achievement unlocked: ${achievement.name} ${achievement.icon}`);
+  devLog(`Achievement unlocked: ${achievement.name} ${achievement.icon}`);
   // TODO: Show celebration modal or animation
 };
 

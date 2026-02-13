@@ -4,6 +4,7 @@
 // ============================================================================
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { navigate } from '../../lib/navigate';
 import {
   View,
   Text,
@@ -26,6 +27,7 @@ import { AttentionSection } from '../../components/journal/AttentionSection';
 import { ShareActions } from '../../components/journal/ShareActions';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { buildShiftReport, ShiftReport } from '../../utils/careSummaryBuilder';
+import { logError } from '../../utils/devLog';
 import { useDataListener } from '../../lib/events';
 
 // ============================================================================
@@ -42,7 +44,7 @@ export default function JournalTab() {
       const data = await buildShiftReport();
       setReport(data);
     } catch (error) {
-      console.error('Error loading shift report:', error);
+      logError('JournalTab.loadReport', error);
     } finally {
       setLoading(false);
     }
@@ -91,7 +93,7 @@ export default function JournalTab() {
           subtitle="Today's care summary"
           rightAction={
             <TouchableOpacity
-              onPress={() => router.push('/care-plan' as any)}
+              onPress={() => navigate('/care-plan')}
               style={styles.headerGear}
               accessibilityLabel="Manage Care Plan"
               accessibilityRole="button"
@@ -136,8 +138,8 @@ export default function JournalTab() {
 
         {/* SHARE / EXPORT */}
         <ShareActions
-          onShare={() => router.push('/care-summary-export' as any)}
-          onExport={() => router.push('/care-brief' as any)}
+          onShare={() => navigate('/care-summary-export')}
+          onExport={() => navigate('/care-brief')}
         />
 
         <View style={{ height: 100 }} />
@@ -181,9 +183,9 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   appointmentCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: Colors.glassHover,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: Colors.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,

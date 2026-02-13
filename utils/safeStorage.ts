@@ -4,6 +4,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { devLog, logError } from './devLog';
 
 /**
  * Safely parse JSON with fallback to default value
@@ -22,11 +23,11 @@ export function safeJSONParse<T>(
     const parsed = JSON.parse(jsonString);
     return parsed as T;
   } catch (error) {
-    console.error(`[SafeStorage] JSON parse failed for key: ${key}`, error);
+    logError('safeStorage.safeJSONParse', error, { key: key || 'unknown' });
     console.warn(`[SafeStorage] Corrupted data detected. Using default value.`);
 
     // Log the corrupted data for debugging (first 100 chars)
-    console.error(`[SafeStorage] Corrupted data sample: ${jsonString.substring(0, 100)}...`);
+    logError('safeStorage.safeJSONParse', `Corrupted data sample: ${jsonString.substring(0, 100)}...`);
 
     return defaultValue;
   }
@@ -39,7 +40,7 @@ export function safeJSONStringify(data: any, key?: string): string | null {
   try {
     return JSON.stringify(data);
   } catch (error) {
-    console.error(`[SafeStorage] JSON stringify failed for key: ${key}`, error);
+    logError('safeStorage.safeJSONStringify', error, { key: key || 'unknown' });
     return null;
   }
 }
@@ -55,7 +56,7 @@ export async function safeGetItem<T>(
     const data = await AsyncStorage.getItem(key);
     return safeJSONParse(data, defaultValue, key);
   } catch (error) {
-    console.error(`[SafeStorage] AsyncStorage.getItem failed for key: ${key}`, error);
+    logError('safeStorage.safeGetItem', error, { key });
     return defaultValue;
   }
 }
@@ -74,7 +75,7 @@ export async function safeSetItem<T>(
     const jsonString = safeJSONStringify(value, key);
 
     if (jsonString === null) {
-      console.error(`[SafeStorage] Failed to stringify data for key: ${key}`);
+      logError('safeStorage.safeSetItem', `Failed to stringify data for key: ${key}`);
       return false;
     }
 
@@ -82,7 +83,7 @@ export async function safeSetItem<T>(
     await AsyncStorage.setItem(key, jsonString);
     return true;
   } catch (error) {
-    console.error(`[SafeStorage] AsyncStorage.setItem failed for key: ${key}`, error);
+    logError('safeStorage.safeSetItem', error, { key });
     return false;
   }
 }
@@ -95,7 +96,7 @@ export async function recoverFromBackup<T>(
   defaultValue: T
 ): Promise<T> {
   try {
-    if (__DEV__) console.log(`[SafeStorage] Attempting to recover from backup for key: ${key}`);
+    devLog(`[SafeStorage] Attempting to recover from backup for key: ${key}`);
 
     const backupData = await AsyncStorage.getItem(`${key}_backup`);
     if (!backupData) {
@@ -108,12 +109,12 @@ export async function recoverFromBackup<T>(
     // If recovery successful, restore it as the main value
     if (recovered !== defaultValue) {
       await AsyncStorage.setItem(key, backupData);
-      if (__DEV__) console.log(`[SafeStorage] Successfully recovered from backup for key: ${key}`);
+      devLog(`[SafeStorage] Successfully recovered from backup for key: ${key}`);
     }
 
     return recovered;
   } catch (error) {
-    console.error(`[SafeStorage] Backup recovery failed for key: ${key}`, error);
+    logError('safeStorage.recoverFromBackup', error, { key });
     return defaultValue;
   }
 }
@@ -160,11 +161,11 @@ export async function safeGetItemWithValidation<T extends object>(
   const recovered = await recoverFromBackup(key, defaultValue);
 
   if (validateStructure(recovered, requiredKeys)) {
-    if (__DEV__) console.log(`[SafeStorage] Validation passed after recovery for key: ${key}`);
+    devLog(`[SafeStorage] Validation passed after recovery for key: ${key}`);
     return recovered;
   }
 
-  console.error(`[SafeStorage] Could not recover valid data for key: ${key}. Using default.`);
+  logError('safeStorage.safeGetItemWithValidation', `Could not recover valid data for key: ${key}. Using default.`);
   return defaultValue;
 }
 
@@ -175,9 +176,9 @@ export async function clearCorruptedData(key: string): Promise<void> {
   try {
     await AsyncStorage.removeItem(key);
     await AsyncStorage.removeItem(`${key}_backup`);
-    if (__DEV__) console.log(`[SafeStorage] Cleared corrupted data for key: ${key}`);
+    devLog(`[SafeStorage] Cleared corrupted data for key: ${key}`);
   } catch (error) {
-    console.error(`[SafeStorage] Failed to clear data for key: ${key}`, error);
+    logError('safeStorage.clearCorruptedData', error, { key });
   }
 }
 
@@ -218,7 +219,7 @@ export async function diagnosePotentialCorruption(): Promise<{
       }
     }
   } catch (error) {
-    console.error('[SafeStorage] Diagnostic failed', error);
+    logError('safeStorage.diagnosePotentialCorruption', error);
   }
 
   return result;

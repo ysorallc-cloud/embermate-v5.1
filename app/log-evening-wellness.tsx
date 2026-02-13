@@ -497,6 +497,7 @@ export default function LogEveningWellnessScreen() {
             onPress={handleSubmit}
             disabled={!canSubmit || isSubmitting}
             accessibilityLabel={isSubmitting ? 'Saving evening wellness check' : 'Complete evening wellness check'}
+            accessibilityHint="Saves evening wellness check answers"
             accessibilityRole="button"
           >
             <Text style={styles.submitButtonText}>
@@ -586,7 +587,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   optionButtonSelected: {
-    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+    backgroundColor: Colors.accentHint,
     borderColor: Colors.accent,
   },
   optionEmoji: {
@@ -627,7 +628,7 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     fontWeight: 'bold',
   },
   toggleLabel: {
@@ -650,7 +651,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   ratingOptionSelected: {
-    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+    backgroundColor: Colors.accentHint,
     borderColor: Colors.accent,
   },
   ratingEmoji: {
@@ -742,7 +743,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   chipSelected: {
-    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+    backgroundColor: Colors.accentHint,
     borderColor: Colors.accent,
   },
   chipText: {
@@ -766,11 +767,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitButtonDisabled: {
-    backgroundColor: 'rgba(13, 148, 136, 0.3)',
+    backgroundColor: Colors.borderStrong,
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
 });

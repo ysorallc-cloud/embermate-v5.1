@@ -10,6 +10,7 @@ import * as Crypto from 'expo-crypto';
 import { Alert } from 'react-native';
 import { generateSecureToken } from './secureStorage';
 import { logAuditEvent, AuditEventType, AuditSeverity } from './auditLog';
+import { logError } from './devLog';
 
 export interface BackupData {
   version: string;
@@ -105,7 +106,7 @@ export async function createBackup(): Promise<BackupData | null> {
 
     return backup;
   } catch (error) {
-    console.error('Error creating backup:', error);
+    logError('dataBackup.createBackup', error);
     return null;
   }
 }
@@ -249,7 +250,7 @@ async function encryptBackup(backup: BackupData, password?: string): Promise<str
 
     return JSON.stringify(payload);
   } catch (error) {
-    console.error('Backup encryption error:', error);
+    logError('dataBackup.encryptBackup', error);
     throw error;
   }
 }
@@ -279,7 +280,7 @@ async function decryptBackup(encryptedString: string, password: string): Promise
     const decryptedString = xorDecrypt(payload.data, key);
     return JSON.parse(decryptedString);
   } catch (error) {
-    console.error('Backup decryption error:', error);
+    logError('dataBackup.decryptBackup', error);
     return null;
   }
 }
@@ -294,7 +295,7 @@ async function calculateChecksum(data: string): Promise<string> {
       data
     );
   } catch (error) {
-    console.error('Checksum calculation error:', error);
+    logError('dataBackup.calculateChecksum', error);
     throw error;
   }
 }
@@ -361,7 +362,7 @@ export async function exportBackup(encrypt: boolean = false, password?: string):
 
     return true;
   } catch (error) {
-    console.error('Error exporting backup:', error);
+    logError('dataBackup.exportBackup', error);
     Alert.alert('Export Failed', 'Could not export backup data. Please try again.');
     return false;
   }
@@ -432,7 +433,7 @@ export async function restoreFromBackup(backup: BackupData): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Error restoring from backup:', error);
+    logError('dataBackup.restoreFromBackup', error);
     Alert.alert('Restore Failed', 'Could not restore backup data. The backup file may be corrupted.');
     return false;
   }
@@ -458,7 +459,7 @@ export async function getBackupStats(): Promise<{
       lastBackup: backup.timestamp,
     };
   } catch (error) {
-    console.error('Error getting backup stats:', error);
+    logError('dataBackup.getBackupStats', error);
     return null;
   }
 }
@@ -494,7 +495,7 @@ export async function importEncryptedBackup(
 
     return success;
   } catch (error) {
-    console.error('Error importing encrypted backup:', error);
+    logError('dataBackup.importEncryptedBackup', error);
     Alert.alert('Import Failed', 'Could not import the backup file. Please check the password and try again.');
     return false;
   }
@@ -562,7 +563,7 @@ export async function clearAllData(): Promise<boolean> {
     await AsyncStorage.clear();
     return true;
   } catch (error) {
-    console.error('Error clearing data:', error);
+    logError('dataBackup.clearAllData', error);
     return false;
   }
 }

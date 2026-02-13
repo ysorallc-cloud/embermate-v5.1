@@ -31,6 +31,7 @@ import {
   getTodayNotesLog,
 } from '../utils/centralStorage';
 import { getCareActivities, CareActivity } from '../utils/collaborativeCare';
+import { logError } from '../utils/devLog';
 
 // ============================================================================
 // TYPES
@@ -235,7 +236,7 @@ export default function DailyCareReportScreen() {
         teamActivity: teamActivityData,
       });
     } catch (error) {
-      console.error('Error loading report data:', error);
+      logError('DailyCareReportScreen.loadReportData', error);
     } finally {
       setLoading(false);
     }
@@ -623,7 +624,7 @@ export default function DailyCareReportScreen() {
         title: `Daily Care Report - ${reportData?.patientName}`,
       });
     } catch (error) {
-      console.error('Error sharing:', error);
+      logError('DailyCareReportScreen.handleShareText', error);
     }
   };
 
@@ -645,7 +646,7 @@ export default function DailyCareReportScreen() {
         Alert.alert('Sharing not available', 'PDF sharing is not available on this device.');
       }
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      logError('DailyCareReportScreen.handleSharePDF', error);
       Alert.alert('Error', 'Failed to generate PDF. Please try sharing as text instead.');
     }
   };
@@ -655,7 +656,7 @@ export default function DailyCareReportScreen() {
     try {
       await Print.printAsync({ html });
     } catch (error) {
-      console.error('Error printing:', error);
+      logError('DailyCareReportScreen.handlePrint', error);
       Alert.alert('Error', 'Failed to print report.');
     }
   };
@@ -937,7 +938,7 @@ function getActivityDescription(activity: CareActivity): string {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: Colors.backgroundDark,
   },
   loadingContainer: {
     flex: 1,
@@ -946,7 +947,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
   },
   header: {
     flexDirection: 'row',
@@ -955,7 +956,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: Colors.glassActive,
   },
   closeButton: {
     width: 32,
@@ -965,12 +966,12 @@ const styles = StyleSheet.create({
   },
   closeIcon: {
     fontSize: 24,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textTertiary,
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   headerSpacer: {
     width: 32,
@@ -981,8 +982,9 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
   },
+  // Colors intentionally hardcoded below — PDF/HTML print context (light background)
   reportPreview: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.textPrimary,
     borderRadius: 8,
     padding: 20,
   },
@@ -1127,10 +1129,10 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderTopColor: Colors.glassActive,
   },
   primaryAction: {
-    backgroundColor: '#5EEAD4',
+    backgroundColor: Colors.sage,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -1139,7 +1141,7 @@ const styles = StyleSheet.create({
   primaryActionText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#0a0a0a',
+    color: Colors.backgroundDark,
   },
   secondaryActions: {
     flexDirection: 'row',
@@ -1147,9 +1149,9 @@ const styles = StyleSheet.create({
   },
   secondaryAction: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: Colors.border,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.glassSubtle,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
@@ -1157,17 +1159,17 @@ const styles = StyleSheet.create({
   secondaryActionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.textBright,
   },
   backButton: {
     marginTop: 16,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.glassActive,
     borderRadius: 8,
   },
   backButtonText: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
 });

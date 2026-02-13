@@ -8,6 +8,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
 import { getAllInsights, Insight } from '../../utils/insights';
 import { Medication } from '../../utils/medicationStorage';
+import { logError } from '../../utils/devLog';
 
 interface InsightCardProps {
   medications: Medication[];
@@ -26,7 +27,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ medications }) => {
       const data = await getAllInsights(medications);
       setInsights(data);
     } catch (error) {
-      console.error('Error loading insights:', error);
+      logError('InsightCard.loadInsights', error);
     } finally {
       setLoading(false);
     }
@@ -86,11 +87,11 @@ export const InsightCard: React.FC<InsightCardProps> = ({ medications }) => {
   const getBackgroundColor = (priority: string) => {
     switch (priority) {
       case 'high':
-        return 'rgba(239, 68, 68, 0.08)';
+        return Colors.redFaint;
       case 'medium':
         return Colors.goldLight;
       default:
-        return 'rgba(20, 184, 166, 0.08)';
+        return Colors.sageDim;
     }
   };
 
@@ -145,7 +146,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.glassActive,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -187,7 +188,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   badge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: Colors.glassStrong,
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 4,
