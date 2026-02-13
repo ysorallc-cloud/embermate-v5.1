@@ -28,6 +28,8 @@ import {
   setupPIN,
   hasPIN,
   getTimeSinceLastActivity,
+  getAutoLockTimeout as loadAutoLockTimeout,
+  setAutoLockTimeout as saveAutoLockTimeout,
   BiometricCapabilities,
 } from '../../utils/biometricAuth';
 import {
@@ -65,6 +67,9 @@ export default function SecuritySettingsScreen() {
       setCapabilities(caps);
       setBiometricEnabled(enabled);
       setPinExists(pinSet);
+
+      const timeout = await loadAutoLockTimeout();
+      setAutoLockTimeout(timeout);
 
       if (timeSince < Infinity) {
         const minutes = Math.floor(timeSince / 60);
@@ -172,6 +177,21 @@ export default function SecuritySettingsScreen() {
       ],
       'secure-text'
     );
+  };
+
+  const handleAutoLockChange = () => {
+    Alert.alert('Auto-Lock After', 'Choose when to require re-authentication', [
+      { text: '1 minute', onPress: () => updateAutoLock(60) },
+      { text: '5 minutes', onPress: () => updateAutoLock(300) },
+      { text: '15 minutes', onPress: () => updateAutoLock(900) },
+      { text: '30 minutes', onPress: () => updateAutoLock(1800) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const updateAutoLock = async (seconds: number) => {
+    setAutoLockTimeout(seconds);
+    await saveAutoLockTimeout(seconds);
   };
 
   const handleExportAuditLogs = async () => {
@@ -288,7 +308,7 @@ export default function SecuritySettingsScreen() {
             </TouchableOpacity>
 
             {/* Auto-lock Timeout */}
-            <TouchableOpacity style={styles.settingItem} accessibilityLabel={`Auto-lock timeout, lock after ${autoLockTimeout / 60} minutes`} accessibilityRole="button">
+            <TouchableOpacity style={styles.settingItem} onPress={handleAutoLockChange} accessibilityLabel={`Auto-lock timeout, lock after ${autoLockTimeout / 60} minutes`} accessibilityRole="button">
               <View style={styles.settingLeft}>
                 <Ionicons name="timer-outline" size={22} color={Colors.accent} />
                 <View style={styles.settingContent}>

@@ -440,3 +440,64 @@ export async function buildShiftReport(): Promise<ShiftReport> {
     nextAppointment,
   };
 }
+
+// ============================================================================
+// REDACTED SHARE SUMMARY
+// Strips sensitive details (exact vitals, dosages) for quick text sharing.
+// Only includes aggregated counts and status labels — no raw health values.
+// ============================================================================
+
+export interface ShareSummary {
+  medsStatus: string;
+  vitalsStatus: string;
+  wellnessStatus: string;
+  mealsStatus: string;
+  attentionCount: number;
+  nextAppointment: string | null;
+  generatedAt: string;
+}
+
+export async function buildShareSummary(): Promise<ShareSummary> {
+  const report = await buildShiftReport();
+
+  // Medications: count only, no names or dosages
+  const medsTaken = report.medications.filter(m => m.status === 'completed').length;
+  const medsTotal = report.medications.length;
+  const medsStatus = medsTotal > 0
+    ? `${medsTaken}/${medsTotal} medications logged`
+    : 'No medications scheduled';
+
+  // Vitals: recorded/not recorded only, no actual readings
+  const vitalsStatus = report.vitals.recorded
+    ? 'Vitals recorded today'
+    : report.vitals.scheduled
+    ? 'Vitals scheduled but not yet recorded'
+    : 'No vitals scheduled';
+
+  // Wellness: mood label only, no pain/orientation details
+  const moodLabels = report.mood.entries.map(e => e.label);
+  const wellnessStatus = moodLabels.length > 0
+    ? `Mood: ${moodLabels.join(' → ')}`
+    : 'No wellness checks completed';
+
+  // Meals: count only
+  const mealsCompleted = report.meals.meals.filter(m => m.status === 'completed').length;
+  const mealsStatus = report.meals.total > 0
+    ? `${mealsCompleted}/${report.meals.total} meals logged`
+    : 'No meals scheduled';
+
+  // Appointment: provider name only, no specialty
+  const nextAppointment = report.nextAppointment
+    ? `Next appointment: ${new Date(report.nextAppointment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+    : null;
+
+  return {
+    medsStatus,
+    vitalsStatus,
+    wellnessStatus,
+    mealsStatus,
+    attentionCount: report.attentionItems.length,
+    nextAppointment,
+    generatedAt: new Date().toISOString(),
+  };
+}

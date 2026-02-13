@@ -21,6 +21,7 @@ import { getMedicalInfo, MedicalInfo } from '../utils/medicalInfo';
 import { generateComprehensiveReport, ComprehensiveReport } from '../utils/reportGenerator';
 import { generateAndSharePDF, ReportData, PatientInfo } from '../utils/pdfExport';
 import { logError } from '../utils/devLog';
+import { logAuditEvent, AuditEventType, AuditSeverity } from '../utils/auditLog';
 
 export default function CareBriefScreen() {
   const router = useRouter();
@@ -236,17 +237,42 @@ export default function CareBriefScreen() {
   };
 
   const handleShare = async () => {
-    try {
-      const briefText = `Care Brief for ${patientName}\nSnapshot: ${snapshotTime.toLocaleString()}\n\n${generateClinicalSentence()}`;
-      await Share.share({ message: briefText });
-    } catch (error) {
-      logError('CareBriefScreen.handleShare', error);
-    }
+    Alert.alert(
+      'Share Care Brief?',
+      'This brief contains sensitive health information including medications, vitals, and medical conditions. Only share with trusted caregivers or healthcare providers.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Share',
+          onPress: async () => {
+            try {
+              const briefText = `Care Brief for ${patientName}\nSnapshot: ${snapshotTime.toLocaleString()}\n\n${generateClinicalSentence()}`;
+              await logAuditEvent(AuditEventType.CARE_BRIEF_SHARED, 'Care Brief shared via text', AuditSeverity.WARNING, { format: 'text' });
+              await Share.share({ message: briefText });
+            } catch (error) {
+              logError('CareBriefScreen.handleShare', error);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleGenerateFullReport = async () => {
+    Alert.alert(
+      'Export Care Brief?',
+      'This will generate a PDF containing sensitive health information including medications, vitals, and medical conditions. Ensure the recipient is authorized to receive this information.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Export', onPress: doGenerateFullReport },
+      ]
+    );
+  };
+
+  const doGenerateFullReport = async () => {
     try {
       setIsGeneratingReport(true);
+      await logAuditEvent(AuditEventType.CARE_BRIEF_EXPORTED, 'Care Brief exported as PDF', AuditSeverity.WARNING, { format: 'pdf' });
       
       // Generate comprehensive report
       const report = await generateComprehensiveReport();

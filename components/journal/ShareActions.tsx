@@ -1,6 +1,9 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Share, ActivityIndicator } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { logAuditEvent, AuditEventType, AuditSeverity } from '../../utils/auditLog';
+import { buildShareSummary } from '../../utils/careSummaryBuilder';
+import { logError } from '../../utils/devLog';
 
 interface Props {
   onShare: () => void;
@@ -8,21 +11,87 @@ interface Props {
 }
 
 export function ShareActions({ onShare, onExport }: Props) {
+  const [sharing, setSharing] = useState(false);
+
+  const confirmShare = () => {
+    Alert.alert(
+      'Share Care Brief?',
+      'A redacted summary will be shared (no specific vitals, dosages, or medical details). Only share with trusted caregivers or healthcare providers.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Share',
+          onPress: doShare,
+        },
+      ]
+    );
+  };
+
+  const doShare = async () => {
+    try {
+      setSharing(true);
+      const summary = await buildShareSummary();
+
+      let text = `📋 Care Brief — ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}\n\n`;
+      text += `💊 ${summary.medsStatus}\n`;
+      text += `🩺 ${summary.vitalsStatus}\n`;
+      text += `😊 ${summary.wellnessStatus}\n`;
+      text += `🍽️ ${summary.mealsStatus}\n`;
+      if (summary.attentionCount > 0) {
+        text += `⚠️ ${summary.attentionCount} item${summary.attentionCount > 1 ? 's' : ''} need attention\n`;
+      }
+      if (summary.nextAppointment) {
+        text += `📅 ${summary.nextAppointment}\n`;
+      }
+      text += `\n---\n🔒 CONFIDENTIAL — This is a redacted summary from EmberMate.\nFor full details, request the complete Care Brief from the caregiver.`;
+
+      await Share.share({ message: text, title: 'Care Brief Summary' });
+      logAuditEvent(AuditEventType.CARE_BRIEF_SHARED, 'Care Brief shared via text (redacted)', AuditSeverity.WARNING, { format: 'text', redacted: true });
+    } catch (error) {
+      logError('ShareActions.doShare', error);
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const confirmExport = () => {
+    Alert.alert(
+      'Export Full Care Brief?',
+      'This will open the full Care Brief with sensitive health information including medications, vitals, and medical conditions. Ensure the recipient is authorized to receive this information.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Export',
+          onPress: () => {
+            logAuditEvent(AuditEventType.CARE_BRIEF_EXPORTED, 'Care Brief exported as PDF', AuditSeverity.WARNING, { format: 'pdf' });
+            onExport();
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.primaryButton}
-        onPress={onShare}
+        onPress={confirmShare}
         activeOpacity={0.7}
-        accessibilityLabel="Share this summary"
+        disabled={sharing}
+        accessibilityLabel="Share redacted summary"
         accessibilityRole="button"
+        accessibilityState={{ disabled: sharing }}
       >
-        <Text style={styles.primaryButtonText}>{'\uD83D\uDCE4'} Share This Summary</Text>
+        {sharing ? (
+          <ActivityIndicator size="small" color={Colors.accent} />
+        ) : (
+          <Text style={styles.primaryButtonText}>{'\uD83D\uDCE4'} Share Summary (Redacted)</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.secondaryButton}
-        onPress={onExport}
+        onPress={confirmExport}
         activeOpacity={0.7}
         accessibilityLabel="Export full care brief"
         accessibilityRole="button"

@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   Alert,
   Share,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { Colors, Spacing } from '../theme/theme-tokens';
 import { generateAndSharePDF, ReportData } from '../utils/pdfExport';
 import { logError } from '../utils/devLog';
+import { logAuditEvent, AuditEventType, AuditSeverity } from '../utils/auditLog';
 
 // Helper function to generate care summary reports
 async function generateCareSummaryReport(type: string): Promise<boolean> {
@@ -48,6 +50,19 @@ async function generateCareSummaryReport(type: string): Promise<boolean> {
 export default function CareSummaryExportScreen() {
   const router = useRouter();
   const [generating, setGenerating] = useState(false);
+  const [sections, setSections] = useState({
+    demographics: true,
+    medications: true,
+    adherence: true,
+    vitals: true,
+    symptoms: true,
+    appointments: true,
+    contacts: true,
+  });
+
+  const toggleSection = (key: keyof typeof sections) => {
+    setSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const exportOptions = [
     {
@@ -77,11 +92,26 @@ export default function CareSummaryExportScreen() {
     },
   ];
 
-  const handleExport = async (type: string) => {
+  const handleExport = (type: string) => {
+    Alert.alert(
+      'Export Care Summary?',
+      'This report contains sensitive health information. Only share with trusted caregivers or healthcare providers.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Export',
+          onPress: () => doExport(type),
+        },
+      ]
+    );
+  };
+
+  const doExport = async (type: string) => {
     try {
       setGenerating(true);
+      const includedSections = Object.entries(sections).filter(([, v]) => v).map(([k]) => k);
+      await logAuditEvent(AuditEventType.CARE_BRIEF_EXPORTED, `Care summary exported: ${type}`, AuditSeverity.WARNING, { format: 'pdf', reportType: type, includedSections });
 
-      // Generate and share PDF
       const success = await generateCareSummaryReport(type);
 
       if (!success) {
@@ -121,8 +151,8 @@ export default function CareSummaryExportScreen() {
           <View style={styles.infoCard}>
             <Text style={styles.infoIcon}>ℹ️</Text>
             <Text style={styles.infoText}>
-              Generate a professional PDF report that can be shared with healthcare providers, 
-              family members, or other caregivers. All reports are encrypted and privacy-focused.
+              Generate a professional PDF report that can be shared with healthcare providers,
+              family members, or other caregivers. Reports are generated locally on your device and privacy-focused.
             </Text>
           </View>
 
@@ -158,42 +188,31 @@ export default function CareSummaryExportScreen() {
           ))}
 
           <View style={styles.previewSection}>
-            <Text style={styles.previewTitle}>What's included:</Text>
-            
-            <View style={styles.previewItem}>
-              <Text style={styles.previewIcon}>✓</Text>
-              <Text style={styles.previewText}>Patient information & demographics</Text>
-            </View>
-            
-            <View style={styles.previewItem}>
-              <Text style={styles.previewIcon}>✓</Text>
-              <Text style={styles.previewText}>Complete medication list with dosages</Text>
-            </View>
-            
-            <View style={styles.previewItem}>
-              <Text style={styles.previewIcon}>✓</Text>
-              <Text style={styles.previewText}>Adherence trends & patterns</Text>
-            </View>
-            
-            <View style={styles.previewItem}>
-              <Text style={styles.previewIcon}>✓</Text>
-              <Text style={styles.previewText}>Recent vitals & measurements</Text>
-            </View>
-            
-            <View style={styles.previewItem}>
-              <Text style={styles.previewIcon}>✓</Text>
-              <Text style={styles.previewText}>Symptom logs & correlations</Text>
-            </View>
-            
-            <View style={styles.previewItem}>
-              <Text style={styles.previewIcon}>✓</Text>
-              <Text style={styles.previewText}>Upcoming appointments</Text>
-            </View>
+            <Text style={styles.previewTitle}>Choose what to include:</Text>
+            <Text style={styles.previewSubtitle}>Toggle sections off to minimize shared data</Text>
 
-            <View style={styles.previewItem}>
-              <Text style={styles.previewIcon}>✓</Text>
-              <Text style={styles.previewText}>Care team contacts</Text>
-            </View>
+            {[
+              { key: 'demographics' as const, label: 'Patient information & demographics' },
+              { key: 'medications' as const, label: 'Complete medication list with dosages' },
+              { key: 'adherence' as const, label: 'Adherence trends & patterns' },
+              { key: 'vitals' as const, label: 'Recent vitals & measurements' },
+              { key: 'symptoms' as const, label: 'Symptom logs & correlations' },
+              { key: 'appointments' as const, label: 'Upcoming appointments' },
+              { key: 'contacts' as const, label: 'Care team contacts' },
+            ].map((item) => (
+              <View key={item.key} style={styles.toggleItem}>
+                <Text style={[styles.previewText, !sections[item.key] && styles.previewTextDisabled]}>
+                  {item.label}
+                </Text>
+                <Switch
+                  value={sections[item.key]}
+                  onValueChange={() => toggleSection(item.key)}
+                  trackColor={{ false: Colors.borderMedium, true: Colors.accentBorder }}
+                  thumbColor={sections[item.key] ? Colors.accent : Colors.textMuted}
+                  accessibilityLabel={`Include ${item.label}`}
+                />
+              </View>
+            ))}
           </View>
 
           <View style={styles.privacyNote}>
@@ -342,21 +361,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  previewSubtitle: {
+    fontSize: 13,
+    color: Colors.textTertiary,
     marginBottom: 16,
   },
-  previewItem: {
+  toggleItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  previewIcon: {
-    fontSize: 16,
-    color: Colors.success,
+    justifyContent: 'space-between',
+    marginBottom: 14,
   },
   previewText: {
     fontSize: 14,
     color: Colors.textSecondary,
+    flex: 1,
+    marginRight: 12,
+  },
+  previewTextDisabled: {
+    color: Colors.textMuted,
+    textDecorationLine: 'line-through',
   },
   privacyNote: {
     backgroundColor: Colors.surfaceAlt,

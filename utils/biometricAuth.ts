@@ -14,6 +14,8 @@ const PIN_HASH_KEY = 'embermate_pin_hash';
 const PIN_SALT_KEY = 'embermate_pin_salt';
 const SESSION_TOKEN_KEY = 'embermate_session_token';
 const LAST_ACTIVITY_KEY = '@embermate_last_activity';
+const AUTO_LOCK_TIMEOUT_KEY = '@embermate_auto_lock_timeout';
+const DEFAULT_TIMEOUT = 300; // 5 minutes
 
 export interface BiometricCapabilities {
   isAvailable: boolean;
@@ -332,6 +334,30 @@ export async function shouldLockSession(timeoutSeconds: number = 300): Promise<b
   } catch (error) {
     logError('biometricAuth.shouldLockSession', error);
     return true; // Lock on error for security
+  }
+}
+
+/**
+ * Get the configured auto-lock timeout (in seconds)
+ */
+export async function getAutoLockTimeout(): Promise<number> {
+  try {
+    const value = await AsyncStorage.getItem(AUTO_LOCK_TIMEOUT_KEY);
+    return value ? parseInt(value, 10) : DEFAULT_TIMEOUT;
+  } catch (error) {
+    logError('biometricAuth.getAutoLockTimeout', error);
+    return DEFAULT_TIMEOUT;
+  }
+}
+
+/**
+ * Set the auto-lock timeout (in seconds)
+ */
+export async function setAutoLockTimeout(seconds: number): Promise<void> {
+  try {
+    await AsyncStorage.setItem(AUTO_LOCK_TIMEOUT_KEY, seconds.toString());
+  } catch (error) {
+    logError('biometricAuth.setAutoLockTimeout', error);
   }
 }
 

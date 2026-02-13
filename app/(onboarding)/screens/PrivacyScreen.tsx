@@ -13,7 +13,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const PRIVACY_POINTS = [
   { icon: '📱', title: 'Stays on your device', desc: 'No cloud storage required' },
-  { icon: '🔐', title: 'Encrypted', desc: 'Bank-level security' },
+  { icon: '🔐', title: 'Secured', desc: 'Device-level protection with optional biometric lock' },
   { icon: '👤', title: 'You control sharing', desc: 'Share only what you choose' },
   { icon: '🚫', title: 'No selling data', desc: 'Ever. Period.' },
 ];

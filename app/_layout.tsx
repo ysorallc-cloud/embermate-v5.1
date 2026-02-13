@@ -5,13 +5,14 @@
 
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, StyleSheet, Platform, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, Platform, useWindowDimensions, AppState, AppStateStatus } from 'react-native';
 import { useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sentry from '@sentry/react-native';
 import { requestNotificationPermissions } from '../utils/notificationService';
 import { useNotificationHandler } from '../utils/useNotificationHandler';
 import { runStartupSequence } from '../services/appStartup';
+import { updateLastActivity } from '../utils/biometricAuth';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 import { Colors } from '../theme/theme-tokens';
@@ -64,8 +65,16 @@ function RootLayout() {
     // Notification permissions handled separately (needs delay for UX)
     requestNotificationPermissionsOnStartup();
 
-    // Cleanup timer on unmount
+    // Track activity for session timeout
+    const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (nextState === 'active') {
+        updateLastActivity();
+      }
+    });
+
+    // Cleanup timer and subscription on unmount
     return () => {
+      subscription.remove();
       if (notificationTimerRef.current) {
         clearTimeout(notificationTimerRef.current);
         notificationTimerRef.current = null;

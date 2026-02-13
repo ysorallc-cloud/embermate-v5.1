@@ -3,7 +3,7 @@
 // Ensures both interfaces use the same data source
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { encryptedGetRaw, encryptedSetRaw } from './safeStorage';
 import { logError } from './devLog';
 
 // Maximum entries per log array to prevent unbounded AsyncStorage growth
@@ -94,7 +94,7 @@ export interface NotesLog {
 
 export const saveMedicationLog = async (data: Omit<MedicationLog, 'id'>): Promise<void> => {
   try {
-    const existingData = await AsyncStorage.getItem(KEYS.MEDICATION_LOGS);
+    const existingData = await encryptedGetRaw(KEYS.MEDICATION_LOGS);
     const logs: MedicationLog[] = existingData ? JSON.parse(existingData) : [];
 
     const newLog: MedicationLog = {
@@ -104,7 +104,7 @@ export const saveMedicationLog = async (data: Omit<MedicationLog, 'id'>): Promis
 
     logs.unshift(newLog);
     if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await AsyncStorage.setItem(KEYS.MEDICATION_LOGS, JSON.stringify(logs));
+    await encryptedSetRaw(KEYS.MEDICATION_LOGS, JSON.stringify(logs));
   } catch (error) {
     logError('centralStorage.saveMedicationLog', error);
     throw error;
@@ -113,7 +113,7 @@ export const saveMedicationLog = async (data: Omit<MedicationLog, 'id'>): Promis
 
 export const getMedicationLogs = async (): Promise<MedicationLog[]> => {
   try {
-    const data = await AsyncStorage.getItem(KEYS.MEDICATION_LOGS);
+    const data = await encryptedGetRaw(KEYS.MEDICATION_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
     logError('centralStorage.getMedicationLogs', error);
@@ -138,7 +138,7 @@ export const getTodayMedicationLog = async (): Promise<MedicationLog | null> => 
 
 export const saveVitalsLog = async (data: Omit<VitalsLog, 'id'>): Promise<void> => {
   try {
-    const existingData = await AsyncStorage.getItem(KEYS.VITALS_LOGS);
+    const existingData = await encryptedGetRaw(KEYS.VITALS_LOGS);
     const logs: VitalsLog[] = existingData ? JSON.parse(existingData) : [];
 
     const newLog: VitalsLog = {
@@ -148,7 +148,7 @@ export const saveVitalsLog = async (data: Omit<VitalsLog, 'id'>): Promise<void> 
 
     logs.unshift(newLog);
     if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await AsyncStorage.setItem(KEYS.VITALS_LOGS, JSON.stringify(logs));
+    await encryptedSetRaw(KEYS.VITALS_LOGS, JSON.stringify(logs));
   } catch (error) {
     logError('centralStorage.saveVitalsLog', error);
     throw error;
@@ -157,7 +157,7 @@ export const saveVitalsLog = async (data: Omit<VitalsLog, 'id'>): Promise<void> 
 
 export const getVitalsLogs = async (): Promise<VitalsLog[]> => {
   try {
-    const data = await AsyncStorage.getItem(KEYS.VITALS_LOGS);
+    const data = await encryptedGetRaw(KEYS.VITALS_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
     logError('centralStorage.getVitalsLogs', error);
@@ -182,7 +182,7 @@ export const getTodayVitalsLog = async (): Promise<VitalsLog | null> => {
 
 export const saveMoodLog = async (data: Omit<MoodLog, 'id'>): Promise<void> => {
   try {
-    const existingData = await AsyncStorage.getItem(KEYS.MOOD_LOGS);
+    const existingData = await encryptedGetRaw(KEYS.MOOD_LOGS);
     const logs: MoodLog[] = existingData ? JSON.parse(existingData) : [];
 
     const newLog: MoodLog = {
@@ -192,7 +192,7 @@ export const saveMoodLog = async (data: Omit<MoodLog, 'id'>): Promise<void> => {
 
     logs.unshift(newLog);
     if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await AsyncStorage.setItem(KEYS.MOOD_LOGS, JSON.stringify(logs));
+    await encryptedSetRaw(KEYS.MOOD_LOGS, JSON.stringify(logs));
   } catch (error) {
     logError('centralStorage.saveMoodLog', error);
     throw error;
@@ -201,7 +201,7 @@ export const saveMoodLog = async (data: Omit<MoodLog, 'id'>): Promise<void> => {
 
 export const getMoodLogs = async (): Promise<MoodLog[]> => {
   try {
-    const data = await AsyncStorage.getItem(KEYS.MOOD_LOGS);
+    const data = await encryptedGetRaw(KEYS.MOOD_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
     logError('centralStorage.getMoodLogs', error);
@@ -226,7 +226,7 @@ export const getTodayMoodLog = async (): Promise<MoodLog | null> => {
 
 export const saveSymptomLog = async (data: Omit<SymptomLog, 'id'>): Promise<void> => {
   try {
-    const existingData = await AsyncStorage.getItem(KEYS.SYMPTOM_LOGS);
+    const existingData = await encryptedGetRaw(KEYS.SYMPTOM_LOGS);
     const logs: SymptomLog[] = existingData ? JSON.parse(existingData) : [];
 
     const newLog: SymptomLog = {
@@ -236,7 +236,7 @@ export const saveSymptomLog = async (data: Omit<SymptomLog, 'id'>): Promise<void
 
     logs.unshift(newLog);
     if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await AsyncStorage.setItem(KEYS.SYMPTOM_LOGS, JSON.stringify(logs));
+    await encryptedSetRaw(KEYS.SYMPTOM_LOGS, JSON.stringify(logs));
   } catch (error) {
     logError('centralStorage.saveSymptomLog', error);
     throw error;
@@ -245,7 +245,7 @@ export const saveSymptomLog = async (data: Omit<SymptomLog, 'id'>): Promise<void
 
 export const getSymptomLogs = async (): Promise<SymptomLog[]> => {
   try {
-    const data = await AsyncStorage.getItem(KEYS.SYMPTOM_LOGS);
+    const data = await encryptedGetRaw(KEYS.SYMPTOM_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
     logError('centralStorage.getSymptomLogs', error);
@@ -270,7 +270,7 @@ export const getTodaySymptomLog = async (): Promise<SymptomLog | null> => {
 
 export const saveSleepLog = async (data: Omit<SleepLog, 'id'>): Promise<void> => {
   try {
-    const existingData = await AsyncStorage.getItem(KEYS.SLEEP_LOGS);
+    const existingData = await encryptedGetRaw(KEYS.SLEEP_LOGS);
     const logs: SleepLog[] = existingData ? JSON.parse(existingData) : [];
 
     const newLog: SleepLog = {
@@ -280,7 +280,7 @@ export const saveSleepLog = async (data: Omit<SleepLog, 'id'>): Promise<void> =>
 
     logs.unshift(newLog);
     if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await AsyncStorage.setItem(KEYS.SLEEP_LOGS, JSON.stringify(logs));
+    await encryptedSetRaw(KEYS.SLEEP_LOGS, JSON.stringify(logs));
   } catch (error) {
     logError('centralStorage.saveSleepLog', error);
     throw error;
@@ -289,7 +289,7 @@ export const saveSleepLog = async (data: Omit<SleepLog, 'id'>): Promise<void> =>
 
 export const getSleepLogs = async (): Promise<SleepLog[]> => {
   try {
-    const data = await AsyncStorage.getItem(KEYS.SLEEP_LOGS);
+    const data = await encryptedGetRaw(KEYS.SLEEP_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
     logError('centralStorage.getSleepLogs', error);
@@ -314,7 +314,7 @@ export const getTodaySleepLog = async (): Promise<SleepLog | null> => {
 
 export const saveMealsLog = async (data: Omit<MealsLog, 'id'>): Promise<void> => {
   try {
-    const existingData = await AsyncStorage.getItem(KEYS.MEALS_LOGS);
+    const existingData = await encryptedGetRaw(KEYS.MEALS_LOGS);
     const logs: MealsLog[] = existingData ? JSON.parse(existingData) : [];
 
     const newLog: MealsLog = {
@@ -324,7 +324,7 @@ export const saveMealsLog = async (data: Omit<MealsLog, 'id'>): Promise<void> =>
 
     logs.unshift(newLog);
     if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await AsyncStorage.setItem(KEYS.MEALS_LOGS, JSON.stringify(logs));
+    await encryptedSetRaw(KEYS.MEALS_LOGS, JSON.stringify(logs));
   } catch (error) {
     logError('centralStorage.saveMealsLog', error);
     throw error;
@@ -333,7 +333,7 @@ export const saveMealsLog = async (data: Omit<MealsLog, 'id'>): Promise<void> =>
 
 export const getMealsLogs = async (): Promise<MealsLog[]> => {
   try {
-    const data = await AsyncStorage.getItem(KEYS.MEALS_LOGS);
+    const data = await encryptedGetRaw(KEYS.MEALS_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
     logError('centralStorage.getMealsLogs', error);
@@ -358,7 +358,7 @@ export const getTodayMealsLog = async (): Promise<MealsLog | null> => {
 
 export const saveWaterLog = async (data: Omit<WaterLog, 'id'>): Promise<void> => {
   try {
-    const existingData = await AsyncStorage.getItem(KEYS.WATER_LOGS);
+    const existingData = await encryptedGetRaw(KEYS.WATER_LOGS);
     const logs: WaterLog[] = existingData ? JSON.parse(existingData) : [];
 
     const newLog: WaterLog = {
@@ -368,7 +368,7 @@ export const saveWaterLog = async (data: Omit<WaterLog, 'id'>): Promise<void> =>
 
     logs.unshift(newLog);
     if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await AsyncStorage.setItem(KEYS.WATER_LOGS, JSON.stringify(logs));
+    await encryptedSetRaw(KEYS.WATER_LOGS, JSON.stringify(logs));
   } catch (error) {
     logError('centralStorage.saveWaterLog', error);
     throw error;
@@ -377,7 +377,7 @@ export const saveWaterLog = async (data: Omit<WaterLog, 'id'>): Promise<void> =>
 
 export const getWaterLogs = async (): Promise<WaterLog[]> => {
   try {
-    const data = await AsyncStorage.getItem(KEYS.WATER_LOGS);
+    const data = await encryptedGetRaw(KEYS.WATER_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
     logError('centralStorage.getWaterLogs', error);
@@ -398,7 +398,7 @@ export const getTodayWaterLog = async (): Promise<WaterLog | null> => {
 
 export const updateTodayWaterLog = async (glasses: number): Promise<void> => {
   try {
-    const existingData = await AsyncStorage.getItem(KEYS.WATER_LOGS);
+    const existingData = await encryptedGetRaw(KEYS.WATER_LOGS);
     const logs: WaterLog[] = existingData ? JSON.parse(existingData) : [];
     const today = new Date().toDateString();
 
@@ -415,7 +415,7 @@ export const updateTodayWaterLog = async (glasses: number): Promise<void> => {
       });
     }
 
-    await AsyncStorage.setItem(KEYS.WATER_LOGS, JSON.stringify(logs));
+    await encryptedSetRaw(KEYS.WATER_LOGS, JSON.stringify(logs));
   } catch (error) {
     logError('centralStorage.updateTodayWaterLog', error);
     throw error;
@@ -428,7 +428,7 @@ export const updateTodayWaterLog = async (glasses: number): Promise<void> => {
 
 export const saveNotesLog = async (data: Omit<NotesLog, 'id'>): Promise<void> => {
   try {
-    const existingData = await AsyncStorage.getItem(KEYS.NOTES_LOGS);
+    const existingData = await encryptedGetRaw(KEYS.NOTES_LOGS);
     const logs: NotesLog[] = existingData ? JSON.parse(existingData) : [];
 
     const newLog: NotesLog = {
@@ -438,7 +438,7 @@ export const saveNotesLog = async (data: Omit<NotesLog, 'id'>): Promise<void> =>
 
     logs.unshift(newLog);
     if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await AsyncStorage.setItem(KEYS.NOTES_LOGS, JSON.stringify(logs));
+    await encryptedSetRaw(KEYS.NOTES_LOGS, JSON.stringify(logs));
   } catch (error) {
     logError('centralStorage.saveNotesLog', error);
     throw error;
@@ -447,7 +447,7 @@ export const saveNotesLog = async (data: Omit<NotesLog, 'id'>): Promise<void> =>
 
 export const getNotesLogs = async (): Promise<NotesLog[]> => {
   try {
-    const data = await AsyncStorage.getItem(KEYS.NOTES_LOGS);
+    const data = await encryptedGetRaw(KEYS.NOTES_LOGS);
     return data ? JSON.parse(data) : [];
   } catch (error) {
     logError('centralStorage.getNotesLogs', error);

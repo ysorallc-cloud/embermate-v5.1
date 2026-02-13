@@ -10,6 +10,7 @@ import { initializeSampleData } from '../utils/sampleDataGenerator';
 import { ensureDailySnapshot, pruneOldOverrides } from '../utils/carePlanStorage';
 import { logError } from '../utils/devLog';
 import { runMigrations } from './migrationService';
+import { migrateToEncryptedStorage } from '../utils/dataMigration';
 import { loadCustomThresholds } from '../utils/vitalThresholds';
 import { purgeIfNeeded } from '../utils/dataRetention';
 import { initErrorReporting, reportError, reportWarning } from '../utils/errorReporting';
@@ -51,6 +52,15 @@ export async function runStartupSequence(): Promise<StartupResult> {
     },
     phases,
     true,
+  );
+
+  // Phase 2b: Encrypt sensitive health data at rest (one-time migration)
+  await runPhase(
+    'encryptionMigration',
+    async () => {
+      await migrateToEncryptedStorage();
+    },
+    phases,
   );
 
   // Phase 3: Daily reset + snapshot (order matters)

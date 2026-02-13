@@ -4,7 +4,33 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { setSecureItem, getSecureItem } from './secureStorage';
 import { devLog, logError } from './devLog';
+
+// ============================================================================
+// SENSITIVE KEY ROUTING
+// Keys matching these prefixes are transparently encrypted at rest via secureStorage.
+// ============================================================================
+
+export const SENSITIVE_KEY_PREFIXES = [
+  '@embermate_medical_info',
+  '@embermate_emergency_contacts',
+  '@embermate_central_vitals_logs',
+  '@embermate_central_med_logs',
+  '@embermate_central_mood_logs',
+  '@embermate_central_symptom_logs',
+  '@embermate_central_sleep_logs',
+  '@embermate_medication',          // catches @embermate_medications, @embermate_medication_logs, etc.
+  '@embermate_wellness_morning',
+  '@embermate_wellness_evening',
+  '@embermate_patient_registry',
+  '@embermate_vitals',               // catches @embermate_vitals_*
+  '@embermate_symptoms',
+];
+
+export function isSensitiveKey(key: string): boolean {
+  return SENSITIVE_KEY_PREFIXES.some(prefix => key.startsWith(prefix));
+}
 
 /**
  * Safely parse JSON with fallback to default value
@@ -46,13 +72,17 @@ export function safeJSONStringify(data: any, key?: string): string | null {
 }
 
 /**
- * Safe get with automatic JSON parsing and corruption recovery
+ * Safe get with automatic JSON parsing and corruption recovery.
+ * Sensitive keys are transparently decrypted via secureStorage.
  */
 export async function safeGetItem<T>(
   key: string,
   defaultValue: T
 ): Promise<T> {
   try {
+    if (isSensitiveKey(key)) {
+      return await getSecureItem<T>(key, defaultValue);
+    }
     const data = await AsyncStorage.getItem(key);
     return safeJSONParse(data, defaultValue, key);
   } catch (error) {
@@ -63,6 +93,7 @@ export async function safeGetItem<T>(
 
 /**
  * Safe set with automatic JSON stringification.
+ * Sensitive keys are transparently encrypted via secureStorage.
  * Backup-on-write removed to reduce I/O overhead (was tripling AsyncStorage operations).
  * Backups are handled by the cloudBackup system on explicit user action.
  */
@@ -71,6 +102,10 @@ export async function safeSetItem<T>(
   value: T
 ): Promise<boolean> {
   try {
+    if (isSensitiveKey(key)) {
+      return await setSecureItem(key, value);
+    }
+
     // Stringify the data
     const jsonString = safeJSONStringify(value, key);
 
@@ -180,6 +215,33 @@ export async function clearCorruptedData(key: string): Promise<void> {
   } catch (error) {
     logError('safeStorage.clearCorruptedData', error, { key });
   }
+}
+
+// ============================================================================
+// RAW ENCRYPTED GET/SET
+// For callers (e.g. centralStorage) that work with raw JSON strings
+// instead of pre-parsed objects.
+// ============================================================================
+
+/**
+ * Read a raw string value, decrypting transparently if the key is sensitive.
+ */
+export async function encryptedGetRaw(key: string): Promise<string | null> {
+  if (isSensitiveKey(key)) {
+    return getSecureItem<string>(key, null as any);
+  }
+  return AsyncStorage.getItem(key);
+}
+
+/**
+ * Write a raw string value, encrypting transparently if the key is sensitive.
+ */
+export async function encryptedSetRaw(key: string, value: string): Promise<void> {
+  if (isSensitiveKey(key)) {
+    await setSecureItem(key, value);
+    return;
+  }
+  await AsyncStorage.setItem(key, value);
 }
 
 /**
