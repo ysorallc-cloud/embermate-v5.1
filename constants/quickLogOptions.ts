@@ -99,6 +99,15 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
     category: 'health',
   },
   {
+    id: 'symptom',
+    icon: '🤒',
+    label: 'Symptom',
+    description: 'Log a symptom or side effect',
+    screen: '/log-symptom',
+    isCore: false,
+    category: 'health',
+  },
+  {
     id: 'appointment',
     icon: '📅',
     label: 'Appointment',

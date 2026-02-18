@@ -382,7 +382,7 @@ export default function SettingsScreen() {
     {
       id: 'privacy',
       icon: '🔒',
-      title: 'Privacy & Security',
+      title: 'Privacy & Data',
       items: [
         {
           id: 'security',
@@ -391,19 +391,19 @@ export default function SettingsScreen() {
           subtitle: 'App lock, encryption, audit logs',
           onPress: () => router.push('/settings/security'),
         },
-      ],
-    },
-    {
-      id: 'data',
-      icon: '💾',
-      title: 'Data Management',
-      items: [
+        {
+          id: 'data-privacy',
+          icon: '🛡️',
+          title: 'Data & Privacy',
+          subtitle: 'Sample data, retention, sharing controls',
+          onPress: () => navigate('/data-privacy-settings'),
+        },
         {
           id: 'backup',
           icon: '💾',
-          title: 'Backup Data',
-          subtitle: 'Export all data to file',
-          onPress: handleBackupData,
+          title: 'Backup & Restore',
+          subtitle: 'Export, import, cloud sync',
+          onPress: () => router.push('/settings/backup'),
         },
         {
           id: 'export-summary',
@@ -411,13 +411,6 @@ export default function SettingsScreen() {
           title: 'Export Summary',
           subtitle: 'Create care summary PDF',
           onPress: () => router.push('/care-summary-export'),
-        },
-        {
-          id: 'cloud-sync',
-          icon: '☁️',
-          title: 'Cloud Backup',
-          subtitle: 'Encrypted backup & restore',
-          onPress: () => router.push('/settings/backup'),
         },
       ],
     },
@@ -427,10 +420,10 @@ export default function SettingsScreen() {
       title: 'About & Support',
       items: [
         {
-          id: 'learn-explore',
-          icon: '📚',
-          title: 'Learn & Explore',
-          subtitle: 'Guides, tips, and resources',
+          id: 'help-guides',
+          icon: '❓',
+          title: 'Help & Guides',
+          subtitle: 'How to use EmberMate',
           onPress: () => router.push('/guide-hub'),
         },
         {
@@ -468,19 +461,6 @@ export default function SettingsScreen() {
       icon: '⚙️',
       title: 'Advanced',
       items: [
-        ...(hasSample ? [{
-          id: 'clear-sample',
-          icon: '🧹',
-          title: 'Clear Sample Data',
-          subtitle: 'Remove demo data only',
-          onPress: handleClearSample,
-        }] : [{
-          id: 'generate-sample',
-          icon: '📊',
-          title: 'Generate Sample Data',
-          subtitle: 'Load demo data to explore the app',
-          onPress: handleGenerateSample,
-        }]),
         {
           id: 'clear-data',
           icon: '⚠️',

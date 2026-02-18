@@ -4,8 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing } from '../../theme/theme-tokens';
 import PageHeader from '../../components/PageHeader';
+import { StorageKeys } from '../../utils/storageKeys';
+import { logError } from '../../utils/devLog';
 import {
   getMedicalInfo,
   saveMedicalInfo,
@@ -39,6 +42,13 @@ export default function PatientScreen() {
   const [info, setInfo] = useState<MedicalInfo>(DEFAULT_INFO);
   const [editing, setEditing] = useState(false);
 
+  // Basic info fields
+  const [patientName, setPatientName] = useState('');
+  const [relationship, setRelationship] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [gender, setGender] = useState('');
+  const [primaryLanguage, setPrimaryLanguage] = useState('');
+
   // Inline add fields
   const [newAllergy, setNewAllergy] = useState('');
   const [newDiagnosis, setNewDiagnosis] = useState('');
@@ -48,12 +58,40 @@ export default function PatientScreen() {
   useFocusEffect(
     useCallback(() => {
       loadInfo();
+      loadBasicInfo();
     }, [])
   );
 
   const loadInfo = async () => {
     const stored = await getMedicalInfo();
     if (stored) setInfo(stored);
+  };
+
+  const loadBasicInfo = async () => {
+    try {
+      const [name, rel, dob, gen, lang] = await Promise.all([
+        AsyncStorage.getItem(StorageKeys.PATIENT_NAME),
+        AsyncStorage.getItem('@embermate_patient_relationship'),
+        AsyncStorage.getItem('@embermate_patient_dob'),
+        AsyncStorage.getItem('@embermate_patient_gender'),
+        AsyncStorage.getItem('@embermate_patient_language'),
+      ]);
+      if (name) setPatientName(name);
+      if (rel) setRelationship(rel);
+      if (dob) setDateOfBirth(dob);
+      if (gen) setGender(gen);
+      if (lang) setPrimaryLanguage(lang);
+    } catch (error) {
+      logError('PatientScreen.loadBasicInfo', error);
+    }
+  };
+
+  const saveBasicField = async (key: string, value: string) => {
+    try {
+      await AsyncStorage.setItem(key, value);
+    } catch (error) {
+      logError('PatientScreen.saveBasicField', error);
+    }
   };
 
   const save = async (updated: MedicalInfo) => {
@@ -198,8 +236,88 @@ export default function PatientScreen() {
             <Text style={styles.sectionLabel}>BASIC INFORMATION</Text>
             <View style={styles.infoCard}>
               <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Name</Text>
+                {editing ? (
+                  <TextInput
+                    style={styles.inlineInput}
+                    value={patientName}
+                    onChangeText={setPatientName}
+                    onBlur={() => saveBasicField(StorageKeys.PATIENT_NAME, patientName)}
+                    placeholder="Patient name"
+                    placeholderTextColor={Colors.textMuted}
+                    accessibilityLabel="Patient name"
+                  />
+                ) : (
+                  <Text style={styles.infoValue}>{patientName || '\u2014'}</Text>
+                )}
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Relationship</Text>
+                {editing ? (
+                  <TextInput
+                    style={styles.inlineInput}
+                    value={relationship}
+                    onChangeText={setRelationship}
+                    onBlur={() => saveBasicField('@embermate_patient_relationship', relationship)}
+                    placeholder="e.g. Mom, Dad, Spouse"
+                    placeholderTextColor={Colors.textMuted}
+                    accessibilityLabel="Relationship to patient"
+                  />
+                ) : (
+                  <Text style={styles.infoValue}>{relationship || '\u2014'}</Text>
+                )}
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Date of Birth</Text>
+                {editing ? (
+                  <TextInput
+                    style={styles.inlineInput}
+                    value={dateOfBirth}
+                    onChangeText={setDateOfBirth}
+                    onBlur={() => saveBasicField('@embermate_patient_dob', dateOfBirth)}
+                    placeholder="e.g. Mar 15, 1947"
+                    placeholderTextColor={Colors.textMuted}
+                    accessibilityLabel="Date of birth"
+                  />
+                ) : (
+                  <Text style={styles.infoValue}>{dateOfBirth || '\u2014'}</Text>
+                )}
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Gender</Text>
+                {editing ? (
+                  <TextInput
+                    style={styles.inlineInput}
+                    value={gender}
+                    onChangeText={setGender}
+                    onBlur={() => saveBasicField('@embermate_patient_gender', gender)}
+                    placeholder="e.g. Female"
+                    placeholderTextColor={Colors.textMuted}
+                    accessibilityLabel="Gender"
+                  />
+                ) : (
+                  <Text style={styles.infoValue}>{gender || '\u2014'}</Text>
+                )}
+              </View>
+              <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Blood Type</Text>
                 <Text style={styles.infoValue}>{info.bloodType || '\u2014'}</Text>
+              </View>
+              <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+                <Text style={styles.infoLabel}>Primary Language</Text>
+                {editing ? (
+                  <TextInput
+                    style={styles.inlineInput}
+                    value={primaryLanguage}
+                    onChangeText={setPrimaryLanguage}
+                    onBlur={() => saveBasicField('@embermate_patient_language', primaryLanguage)}
+                    placeholder="e.g. English"
+                    placeholderTextColor={Colors.textMuted}
+                    accessibilityLabel="Primary language"
+                  />
+                ) : (
+                  <Text style={styles.infoValue}>{primaryLanguage || '\u2014'}</Text>
+                )}
               </View>
             </View>
           </View>
@@ -555,6 +673,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: Colors.textPrimary,
+  },
+  inlineInput: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+    textAlign: 'right',
+    minWidth: 140,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: Colors.glassFaint,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 6,
   },
 
   // LIST ITEMS
