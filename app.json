@@ -14,34 +14,27 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1A303B"
+      "backgroundColor": "#051614"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.embermate.app",
       "buildNumber": "23",
-      "usesNonExemptEncryption": false,
+      "usesNonExemptEncryption": true,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
+        "ITSAppUsesNonExemptEncryption": true,
         "NSCameraUsageDescription": "EmberMate needs camera access to take photos of medications, wounds, and medical documents.",
         "NSPhotoLibraryUsageDescription": "EmberMate needs photo library access to select images of medications, wounds, and medical documents.",
         "NSFaceIDUsageDescription": "EmberMate uses Face ID to securely protect your sensitive health information.",
-        "NSHealthShareUsageDescription": "EmberMate can read health data to help track your wellness (optional).",
-        "NSHealthUpdateUsageDescription": "EmberMate can write health data to your Health app (optional).",
-        "NSMicrophoneUsageDescription": "EmberMate uses the microphone for voice notes about symptoms and medications (optional).",
-        "NSLocationWhenInUseUsageDescription": "EmberMate uses your location to find nearby pharmacies and medical facilities (optional).",
         "UIBackgroundModes": [
           "remote-notification"
         ]
-      },
-      "associatedDomains": [
-        "applinks:embermate.com"
-      ]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1A303B"
+        "backgroundColor": "#051614"
       },
       "package": "com.embermate.app",
       "versionCode": 2,
@@ -107,8 +100,20 @@
       ],
       "expo-asset",
       "expo-font",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-localization",
+      [
+        "expo-updates",
+        {
+          "checkAutomatically": "ON_LOAD"
+        }
+      ]
     ],
+    "updates": {
+      "url": "https://u.expo.dev/c1c2cfb3-2d20-485c-9e9d-29a53d853228",
+      "fallbackToCacheTimeout": 5000,
+      "checkAutomatically": "ON_LOAD"
+    },
     "experiments": {
       "typedRoutes": true
     },
@@ -119,21 +124,21 @@
       "router": {
         "origin": false
       },
-      "privacyPolicyUrl": "https://embermate.com/privacy",
-      "termsOfServiceUrl": "https://embermate.com/terms",
-      "supportUrl": "https://embermate.com/support",
-      "helpUrl": "https://embermate.com/help",
+      "privacyPolicyUrl": "https://ysorallc.org/privacy",
+      "termsOfServiceUrl": "https://ysorallc.org/terms",
+      "supportUrl": "https://ysorallc.org/support",
+      "helpUrl": "https://ysorallc.org/help",
       "legalUrls": {
-        "privacy": "https://embermate.com/privacy",
-        "terms": "https://embermate.com/terms",
-        "dataRequest": "https://embermate.com/data-request",
-        "dataDeletion": "https://embermate.com/data-deletion"
+        "privacy": "https://ysorallc.org/privacy",
+        "terms": "https://ysorallc.org/terms",
+        "dataRequest": "https://ysorallc.org/data-request",
+        "dataDeletion": "https://ysorallc.org/data-deletion"
       },
       "security": {
         "encryption": "AES-256",
         "localStorage": true,
         "noExternalServers": true,
-        "hipaaCompliant": true
+        "hipaaCompliant": false
       },
       "features": [
         "medication-tracking",

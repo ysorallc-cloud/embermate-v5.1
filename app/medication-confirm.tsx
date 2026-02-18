@@ -24,6 +24,7 @@ import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage';
 import { parseCarePlanContext, getCarePlanBannerText } from '../utils/carePlanRouting';
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
 import { logError } from '../utils/devLog';
+import { emitDataUpdate } from '../lib/events';
 
 // Common medications for dropdown
 const COMMON_MEDICATIONS = [
@@ -181,6 +182,7 @@ export default function MedicationLogScreen() {
       }
 
       await hapticSuccess();
+      emitDataUpdate('medication');
       router.back();
     } catch (error) {
       logError('MedicationLogScreen.handleSave', error);

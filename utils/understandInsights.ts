@@ -81,8 +81,6 @@ const SAMPLE_STAND_OUT_INSIGHTS: StandOutInsight[] = [
     text: 'Mood tends to be better on days after 7+ hours of sleep.',
     confidence: 'strong',
     relatedTo: 'record',
-    linkRoute: '/correlation-report',
-    linkLabel: 'View patterns',
   },
   {
     id: 'sample-hydration-fatigue',
@@ -222,8 +220,6 @@ async function generateStandOutInsights(
       text,
       confidence: correlationConfidenceToLevel(pattern.confidence),
       relatedTo: 'record',
-      linkRoute: '/correlation-report',
-      linkLabel: 'View patterns',
     });
   }
 
@@ -927,19 +923,18 @@ function capitalize(str: string): string {
 // ============================================================================
 
 const VALID_ROUTES = new Set([
-  '/correlation-report',
   '/vitals',
-  '/hub/reports',
   '/trends',
+  '/medication-report',
   '/(tabs)/now',
   '/(tabs)/journal',
   '/(tabs)/understand',
   '/care-plan',
+  '/care-brief',
   '/notification-settings',
   '/medications',
   '/log-note',
   '/settings',
-  '/coming-soon',
 ]);
 
 export function isValidRoute(route: string): boolean {
@@ -948,5 +943,5 @@ export function isValidRoute(route: string): boolean {
 
 export function getRouteOrFallback(route: string | undefined): string | undefined {
   if (!route) return undefined;
-  return isValidRoute(route) ? route : '/coming-soon';
+  return isValidRoute(route) ? route : undefined;
 }

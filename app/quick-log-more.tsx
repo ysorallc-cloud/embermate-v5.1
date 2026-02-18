@@ -21,6 +21,13 @@ export default function QuickLogMoreScreen() {
   const router = useRouter();
 
   const handleOptionPress = (option: QuickLogOption) => {
+    // Wellness: route to morning or evening screen based on time of day
+    if (option.id === 'wellness') {
+      const hour = new Date().getHours();
+      const route = hour >= 15 ? '/log-evening-wellness' : '/log-morning-wellness';
+      navigate(route);
+      return;
+    }
     navigate(option.screen);
   };
 

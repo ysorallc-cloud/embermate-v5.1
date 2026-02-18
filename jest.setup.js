@@ -304,6 +304,39 @@ const mockNotifications = {
 jest.mock('expo-notifications', () => mockNotifications);
 
 // ============================================================================
+// MOCK: @sentry/react-native
+// ============================================================================
+
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  wrap: jest.fn((component) => component),
+  withScope: jest.fn((callback) => callback({
+    setLevel: jest.fn(),
+    setExtras: jest.fn(),
+  })),
+  captureException: jest.fn(),
+  captureMessage: jest.fn(),
+  setUser: jest.fn(),
+  startTransaction: jest.fn(() => ({
+    startChild: jest.fn(() => ({
+      setStatus: jest.fn(),
+      finish: jest.fn(),
+    })),
+    finish: jest.fn(),
+  })),
+}));
+
+// ============================================================================
+// MOCK: expo-updates
+// ============================================================================
+
+jest.mock('expo-updates', () => ({
+  checkForUpdateAsync: jest.fn(() => Promise.resolve({ isAvailable: false })),
+  fetchUpdateAsync: jest.fn(() => Promise.resolve({ isNew: false })),
+  reloadAsync: jest.fn(() => Promise.resolve()),
+}));
+
+// ============================================================================
 // MOCK: expo-sharing
 // ============================================================================
 

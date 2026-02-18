@@ -10,8 +10,8 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../theme/theme-tokens';
@@ -46,6 +46,9 @@ import { useDailyCareInstances } from '../../hooks/useDailyCareInstances';
 import { useCareTasks } from '../../hooks/useCareTasks';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
+import { useTodayScope } from '../../hooks/useTodayScope';
+import { useCoffeeMoment } from '../../hooks/useCoffeeMoment';
+import { CoffeeMomentMinimal } from '../../components/CoffeeMomentMinimal';
 import { getTodayDateString } from '../../services/carePlanGenerator';
 import { BucketType } from '../../types/carePlanConfig';
 
@@ -59,11 +62,8 @@ import {
 import {
   type TodayStats,
   type StatData,
-  type TimeWindow,
   isOverdue,
   getRouteForInstanceType,
-  getCurrentTimeWindow,
-  getTimeWindow,
   OVERDUE_GRACE_MINUTES,
 } from '../../utils/nowHelpers';
 // Extracted hooks
@@ -71,10 +71,16 @@ import { useNowPrompts } from '../../hooks/useNowPrompts';
 import { useNowInsights } from '../../hooks/useNowInsights';
 
 // Extracted components
-import { NextUpCard } from '../../components/now/NextUpCard';
 import { ProgressRings } from '../../components/now/ProgressRings';
 import { CareInsightCard } from '../../components/now/CareInsightCard';
 import { TimelineSection } from '../../components/now/TimelineSection';
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good Morning';
+  if (hour < 17) return 'Good Afternoon';
+  return 'Good Evening';
+}
 
 // Banners
 import {
@@ -83,9 +89,11 @@ import {
   DataIntegrityBanner,
 } from '../../components/common/ConsistencyBanner';
 import { logError } from '../../utils/devLog';
+import { useDataListener } from '../../lib/events';
+import { GettingStartedChecklist } from '../../components/guidance';
 
 export default function NowScreen() {
-  const router = useRouter();
+
 
   // Track today's date
   const [today, setToday] = useState(() => getTodayDateString());
@@ -99,7 +107,7 @@ export default function NowScreen() {
   } = useDailyCareInstances(today);
 
   // useCareTasks - Single source of truth for task stats
-  const { state: careTasksState } = useCareTasks(today);
+  const { state: careTasksState, refresh: refreshCareTasks } = useCareTasks(today);
 
   // CarePlan hook
   const { dayState, carePlan, overrides, snoozeItem, setItemOverride, integrityWarnings, refresh: refreshCarePlan } = useCarePlan(today);
@@ -109,6 +117,9 @@ export default function NowScreen() {
 
   // Bucket-based Care Plan Config hook
   const { hasCarePlan: hasBucketCarePlan, loading: carePlanConfigLoading, enabledBuckets } = useCarePlanConfig();
+
+  // Today Scope - track hidden items count
+  const { suppressedItems } = useTodayScope(today);
 
   // Determine which system to use
   const hasRegimenInstances = instancesState && instancesState.instances.length > 0;
@@ -121,23 +132,22 @@ export default function NowScreen() {
 
   // ScrollView ref for scroll-to behavior
   const scrollViewRef = useRef<ScrollView>(null);
-  const timeGroupPositions = useRef<Record<TimeWindow, number>>({
-    morning: 0,
-    afternoon: 0,
-    evening: 0,
-    night: 0,
-  });
 
-  // Time group expansion state
-  const [expandedTimeGroups, setExpandedTimeGroups] = useState<Record<TimeWindow, boolean>>(() => {
-    const currentWindow = getCurrentTimeWindow();
-    return {
-      morning: currentWindow === 'morning',
-      afternoon: currentWindow === 'afternoon',
-      evening: currentWindow === 'evening',
-      night: currentWindow === 'night',
-    };
-  });
+  // Category filter state (tappable rings)
+  const [selectedCategory, setSelectedCategory] = useState<BucketType | null>(null);
+
+  const handleRingPress = useCallback((bucket: BucketType) => {
+    // Water is a counter (glasses), not a task checklist — go directly to log screen
+    if (bucket === 'water') {
+      navigate({ pathname: '/log-water', params: {} });
+      return;
+    }
+    setSelectedCategory(prev => prev === bucket ? null : bucket);
+  }, []);
+
+  const handleClearCategory = useCallback(() => {
+    setSelectedCategory(null);
+  }, []);
 
   // Legacy stats state - fallback when no regimen instances
   const [legacyStats, setLegacyStats] = useState<TodayStats>({
@@ -145,6 +155,11 @@ export default function NowScreen() {
     vitals: { completed: 0, total: 4 },
     meals: { completed: 0, total: 3 },
   });
+
+  // Water stats from direct storage (not care plan instances, since water is counted in glasses not task completions)
+  const [waterGlasses, setWaterGlasses] = useState(0);
+  const [patientName, setPatientName] = useState('Patient');
+  const waterGoal = 8;
 
   // ============================================================================
   // SINGLE SOURCE OF TRUTH: Compute stats from useCareTasks hook
@@ -161,7 +176,7 @@ export default function NowScreen() {
         meds: getTypeStats('medication'),
         vitals: getTypeStats('vitals'),
         meals: getTypeStats('nutrition'),
-        water: getTypeStats('hydration'),
+        water: { completed: waterGlasses, total: waterGoal },
         sleep: getTypeStats('sleep'),
         activity: getTypeStats('activity'),
         wellness: getTypeStats('wellness'),
@@ -174,7 +189,7 @@ export default function NowScreen() {
       }
     }
     return legacyStats;
-  }, [careTasksState, legacyStats, today]);
+  }, [careTasksState, legacyStats, today, waterGlasses, waterGoal]);
 
   // Extracted hooks
   const prompts = useNowPrompts(todayStats, dailyTracking);
@@ -250,28 +265,12 @@ export default function NowScreen() {
     return [...todayTimeline.overdue, ...todayTimeline.upcoming];
   }, [todayTimeline.overdue, todayTimeline.upcoming]);
 
-  // Current block data for NextUpCard
-  const currentBlockData = useMemo(() => {
-    const currentWindow = getCurrentTimeWindow();
-    const pendingInBlock = allPending.filter(i => getTimeWindow(i.scheduledTime) === currentWindow);
-    const completedInBlock = todayTimeline.completed.filter(i => getTimeWindow(i.scheduledTime) === currentWindow);
-    const windowItems = [...pendingInBlock, ...completedInBlock];
-    const nextPendingInBlock = pendingInBlock[0] || null;
-    return { currentWindow, windowItems, nextPendingInBlock };
-  }, [allPending, todayTimeline.completed]);
-
-  // Scroll helpers
-  const scrollToTimeGroup = useCallback((window: TimeWindow) => {
-    // Ensure the target group is expanded
-    setExpandedTimeGroups(prev => ({ ...prev, [window]: true }));
-    // Scroll after a short delay to allow layout
-    setTimeout(() => {
-      scrollViewRef.current?.scrollTo({
-        y: timeGroupPositions.current[window] || 0,
-        animated: true,
-      });
-    }, 100);
-  }, []);
+  // Coffee Moment - gentle nudge when task load is high
+  const overdueCount = todayTimeline.overdue.length;
+  const hasLateMedication = todayTimeline.overdue.some(
+    (i: any) => i.itemType === 'medication'
+  );
+  const coffeeMoment = useCoffeeMoment(overdueCount, hasLateMedication);
 
   // Handler for timeline item tap
   const handleTimelineItemPress = useCallback((instance: any) => {
@@ -289,9 +288,31 @@ export default function NowScreen() {
       });
       return;
     }
+    // Wellness: route to morning or evening screen based on instance windowLabel
+    if (instance.itemType === 'wellness') {
+      const wellnessRoute = instance.windowLabel === 'evening'
+        ? '/log-evening-wellness'
+        : '/log-morning-wellness';
+      navigate({
+        pathname: wellnessRoute,
+        params: {
+          instanceId: instance.id,
+          carePlanItemId: instance.carePlanItemId || '',
+          itemName: instance.itemName || '',
+        },
+      });
+      return;
+    }
     const route = getRouteForInstanceType(instance.itemType);
-    navigate(route);
-  }, [router]);
+    navigate({
+      pathname: route,
+      params: {
+        instanceId: instance.id,
+        carePlanItemId: instance.carePlanItemId || '',
+        itemName: instance.itemName || '',
+      },
+    });
+  }, []);
 
   // ============================================================================
   // DATA LOADING
@@ -304,15 +325,32 @@ export default function NowScreen() {
       }
 
       refreshInstances();
+      refreshCareTasks();
       refreshCarePlan();
       loadData();
       prompts.checkNotificationPrompt();
       recordVisit();
-    }, [today, refreshInstances, refreshCarePlan])
+    }, [today, refreshInstances, refreshCareTasks, refreshCarePlan])
   );
+
+  // Live sync: reload data when any storage module emits an update
+  useDataListener(useCallback((category: string) => {
+    if (['medications', 'medicationLog', 'vitals', 'vitalsLog', 'wellness',
+         'mealsLog', 'waterLog', 'dailyTracking', 'appointments',
+         'dailyInstances', 'carePlanItems', 'sampleDataCleared'].includes(category)) {
+      loadData();
+      // Also refresh care instances so timeline + stats update immediately
+      refreshInstances();
+    }
+  }, [refreshInstances]));
 
   const loadData = async () => {
     try {
+      // Load patient name from same source as Journal/Care Brief
+      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+      const name = await AsyncStorage.getItem('@embermate_patient_name');
+      setPatientName(name || 'Patient');
+
       const meds = await getMedications();
       const activeMeds = meds.filter((m) => m.active);
       setMedications(activeMeds);
@@ -320,7 +358,7 @@ export default function NowScreen() {
       const appts = await getUpcomingAppointments();
       setAppointments(appts);
 
-      const todayDate = new Date().toISOString().split('T')[0];
+      const todayDate = getTodayDateString();
       const tracking = await getDailyTracking(todayDate);
       setDailyTracking(tracking);
 
@@ -334,11 +372,29 @@ export default function NowScreen() {
         if (todayVitals.temperature) vitalsLogged++;
       }
 
-      const takenMeds = activeMeds.filter(m => m.taken).length;
+      // Count meds taken TODAY (not the global .taken flag which persists across days)
+      const { getMedicationLogs } = await import('../../utils/medicationStorage');
+      const allMedLogs = await getMedicationLogs();
+      const todayStr = new Date().toDateString();
+      const todayTakenIds = new Set(
+        allMedLogs
+          .filter(log => log.taken && new Date(log.timestamp).toDateString() === todayStr)
+          .map(log => log.medicationId)
+      );
+      const takenMeds = activeMeds.filter(m => todayTakenIds.has(m.id)).length;
       const totalMeds = activeMeds.length;
 
       const mealsLog = await getTodayMealsLog();
       const mealsLogged = mealsLog?.meals?.length || 0;
+
+      // Load water intake for today
+      try {
+        const { getTodayWaterLog } = await import('../../utils/centralStorage');
+        const waterLog = await getTodayWaterLog();
+        setWaterGlasses(waterLog?.glasses ?? 0);
+      } catch {
+        setWaterGlasses(0);
+      }
 
       // Legacy stats fallback — only used when no regimen instances exist
       const legacyStatsUpdate: TodayStats = {
@@ -368,7 +424,7 @@ export default function NowScreen() {
   // ============================================================================
   return (
     <View style={styles.container}>
-      <AuroraBackground variant="today" />
+      <AuroraBackground variant="now" />
 
       <ScrollView
         ref={scrollViewRef}
@@ -382,9 +438,64 @@ export default function NowScreen() {
           />
         }
       >
+        {/* Page header */}
         <ScreenHeader
-          title="Now"
-          subtitle={prompts.showClosure ? undefined : "What needs attention today"}
+          title={getGreeting()}
+        />
+
+        {/* Hidden Items Banner */}
+        {suppressedItems.length > 0 && (
+          <TouchableOpacity
+            style={styles.hiddenBanner}
+            onPress={() => navigate('/today-scope')}
+            activeOpacity={0.7}
+            accessibilityLabel={`${suppressedItems.length} item${suppressedItems.length === 1 ? '' : 's'} hidden via Adjust Today. Tap to manage.`}
+            accessibilityRole="button"
+          >
+            <Text style={styles.hiddenBannerText}>
+              {suppressedItems.length} item{suppressedItems.length === 1 ? '' : 's'} hidden via Adjust Today
+            </Text>
+            <Text style={styles.hiddenBannerAction}>Manage →</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Coffee Moment Banner */}
+        {coffeeMoment.showBanner && (
+          <View style={styles.coffeeBanner}>
+            <Text style={styles.coffeeBannerIcon}>☕</Text>
+            <View style={styles.coffeeBannerContent}>
+              <Text style={styles.coffeeBannerText}>
+                You have a few overdue items. Take 60 seconds before continuing.
+              </Text>
+              <View style={styles.coffeeBannerActions}>
+                <TouchableOpacity
+                  style={styles.coffeeResetButton}
+                  onPress={coffeeMoment.startReset}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Start 1-minute breathing reset"
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.coffeeResetText}>Start 1-Minute Reset</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={coffeeMoment.dismissBanner}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Dismiss coffee moment"
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.coffeeDismissText}>Dismiss</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Coffee Moment Modal */}
+        <CoffeeMomentMinimal
+          visible={coffeeMoment.showModal}
+          onClose={coffeeMoment.closeModal}
+          microcopy="Pause for a minute"
+          duration={60}
         />
 
         {/* Onboarding Prompt */}
@@ -429,6 +540,9 @@ export default function NowScreen() {
           {/* Sample Data Banner */}
           <SampleDataBanner compact />
 
+          {/* Getting Started Checklist */}
+          {!prompts.showOnboarding && <GettingStartedChecklist />}
+
           {/* Notification Prompt */}
           {prompts.showNotificationPrompt && !prompts.showOnboarding && (
             <NotificationPrompt
@@ -470,16 +584,6 @@ export default function NowScreen() {
             </View>
           )}
 
-          {/* 1. CURRENT BLOCK CARD */}
-          <NextUpCard
-            currentWindow={currentBlockData.currentWindow}
-            windowItems={currentBlockData.windowItems}
-            nextPendingItem={currentBlockData.nextPendingInBlock}
-            hasRegimenInstances={!!hasRegimenInstances}
-            completedCount={todayTimeline.completed.length}
-            onViewTasks={scrollToTimeGroup}
-          />
-
           {/* Data Integrity Warning */}
           {integrityWarnings && integrityWarnings.length > 0 && (
             <DataIntegrityBanner
@@ -498,39 +602,29 @@ export default function NowScreen() {
             <NoCarePlanBanner onSetup={() => navigate('/care-plan')} />
           )}
 
-          {/* 2. CARE PLAN PROGRESS */}
+          {/* 2. CARE PLAN PROGRESS — grounding card */}
           <View accessibilityLiveRegion="polite" accessibilityRole="summary">
             <ProgressRings
               todayStats={todayStats}
               enabledBuckets={enabledBuckets}
               nextUp={todayTimeline?.nextUp}
               instances={instancesState?.instances || []}
+              selectedCategory={selectedCategory}
+              onRingPress={handleRingPress}
+              patientName={patientName}
             />
           </View>
 
-          {/* 3. CARE INSIGHT */}
-          <CareInsightCard
-            careInsight={careInsight}
-            hasNextUp={!!todayTimeline?.nextUp}
-          />
-
-          {/* 4. TIMELINE DETAILS */}
+          {/* 3. TIMELINE DETAILS */}
           <TimelineSection
             allPending={allPending}
             completed={todayTimeline.completed}
             hasRegimenInstances={!!hasRegimenInstances}
-            expandedTimeGroups={expandedTimeGroups}
-            onToggleTimeGroup={(window) => setExpandedTimeGroups(prev => ({
-              ...prev,
-              [window]: !prev[window]
-            }))}
+            selectedCategory={selectedCategory}
+            onClearCategory={handleClearCategory}
             onItemPress={handleTimelineItemPress}
-            timeGroupRefs={{
-              morning: (node: any) => { if (node) node.measureInWindow((_x: number, y: number) => { timeGroupPositions.current.morning = y; }); },
-              afternoon: (node: any) => { if (node) node.measureInWindow((_x: number, y: number) => { timeGroupPositions.current.afternoon = y; }); },
-              evening: (node: any) => { if (node) node.measureInWindow((_x: number, y: number) => { timeGroupPositions.current.evening = y; }); },
-              night: (node: any) => { if (node) node.measureInWindow((_x: number, y: number) => { timeGroupPositions.current.night = y; }); },
-            }}
+            todayStats={todayStats}
+            enabledBuckets={enabledBuckets}
           />
 
           {/* Empty states */}
@@ -571,6 +665,12 @@ export default function NowScreen() {
             </View>
           )}
 
+          {/* CARE INSIGHT — bottom of page */}
+          <CareInsightCard
+            careInsight={careInsight}
+            hasNextUp={!!todayTimeline?.nextUp}
+          />
+
         </View>
 
         {/* Bottom spacing for tab bar */}
@@ -600,6 +700,72 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingTop: 8,
+  },
+  hiddenBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 20,
+    marginBottom: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: Colors.glass,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  hiddenBannerText: {
+    fontSize: 13,
+    color: Colors.textHalf,
+  },
+  hiddenBannerAction: {
+    fontSize: 13,
+    color: Colors.accent,
+    fontWeight: '500',
+  },
+  coffeeBanner: {
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginBottom: 8,
+    padding: 14,
+    backgroundColor: Colors.purpleFaint,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.purpleBorder,
+  },
+  coffeeBannerIcon: {
+    fontSize: 24,
+    marginRight: 12,
+    marginTop: 2,
+  },
+  coffeeBannerContent: {
+    flex: 1,
+  },
+  coffeeBannerText: {
+    fontSize: 13,
+    color: Colors.textBright,
+    lineHeight: 19,
+    marginBottom: 10,
+  },
+  coffeeBannerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  coffeeResetButton: {
+    backgroundColor: Colors.purple,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+  },
+  coffeeResetText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  coffeeDismissText: {
+    fontSize: 12,
+    color: Colors.textMuted,
   },
   baselineStatusContainer: {
     marginBottom: 16,

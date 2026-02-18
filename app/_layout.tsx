@@ -5,20 +5,20 @@
 
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, StyleSheet, Platform, useWindowDimensions, AppState, AppStateStatus } from 'react-native';
-import { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Platform, useWindowDimensions, AppState, AppStateStatus, TouchableOpacity } from 'react-native';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Sentry from '@sentry/react-native';
 import { requestNotificationPermissions } from '../utils/notificationService';
 import { useNotificationHandler } from '../utils/useNotificationHandler';
 import { runStartupSequence } from '../services/appStartup';
-import { updateLastActivity } from '../utils/biometricAuth';
+import { isBiometricEnabled, shouldLockSession, requireAuthentication, updateLastActivity, getAutoLockTimeout } from '../utils/biometricAuth';
+import { logError } from '../utils/devLog';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 import { Colors } from '../theme/theme-tokens';
 function WebContainer({ children }: { children: React.ReactNode }) {
   const { width, height } = useWindowDimensions();
-  
+
   if (Platform.OS !== 'web') {
     return <>{children}</>;
   }
@@ -57,6 +57,28 @@ function RootLayout() {
   // Handle notification taps
   useNotificationHandler();
   const notificationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [locked, setLocked] = useState(false);
+  const appStateRef = useRef(AppState.currentState);
+
+  const checkSessionLock = useCallback(async () => {
+    try {
+      const enabled = await isBiometricEnabled();
+      if (!enabled) return;
+      const timeout = await getAutoLockTimeout();
+      const stale = await shouldLockSession(timeout);
+      if (stale) setLocked(true);
+    } catch (err) {
+      logError('RootLayout.checkSessionLock', err);
+    }
+  }, []);
+
+  const handleUnlock = useCallback(async () => {
+    const success = await requireAuthentication();
+    if (success) {
+      await updateLastActivity();
+      setLocked(false);
+    }
+  }, []);
 
   useEffect(() => {
     // Orchestrated startup: error reporting → migrations → daily reset → cleanup
@@ -65,11 +87,13 @@ function RootLayout() {
     // Notification permissions handled separately (needs delay for UX)
     requestNotificationPermissionsOnStartup();
 
-    // Track activity for session timeout
+    // Track activity for session timeout + check lock on resume
     const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
-      if (nextState === 'active') {
+      if (nextState === 'active' && appStateRef.current.match(/inactive|background/)) {
+        checkSessionLock();
         updateLastActivity();
       }
+      appStateRef.current = nextState;
     });
 
     // Cleanup timer and subscription on unmount
@@ -80,7 +104,7 @@ function RootLayout() {
         notificationTimerRef.current = null;
       }
     };
-  }, []);
+  }, [checkSessionLock]);
 
   async function requestNotificationPermissionsOnStartup() {
     try {
@@ -102,6 +126,24 @@ function RootLayout() {
     }
   }
 
+  if (locked) {
+    return (
+      <ErrorBoundary>
+        <WebContainer>
+          <StatusBar style="light" />
+          <View style={styles.lockScreen}>
+            <Text style={styles.lockIcon}>{'\uD83D\uDD12'}</Text>
+            <Text style={styles.lockTitle}>EmberMate Locked</Text>
+            <Text style={styles.lockSubtitle}>Authenticate to continue</Text>
+            <TouchableOpacity style={styles.lockButton} onPress={handleUnlock} accessibilityRole="button">
+              <Text style={styles.lockButtonText}>Unlock</Text>
+            </TouchableOpacity>
+          </View>
+        </WebContainer>
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <WebContainer>
@@ -121,6 +163,10 @@ function RootLayout() {
           <Stack.Screen name="photos" />
           <Stack.Screen name="emergency" />
           <Stack.Screen name="log-vitals" />
+          <Stack.Screen name="log-water" />
+          <Stack.Screen name="log-meal" />
+          <Stack.Screen name="log-morning-wellness" />
+          <Stack.Screen name="log-evening-wellness" />
           <Stack.Screen name="log-symptom" />
           <Stack.Screen name="care-brief" />
           <Stack.Screen name="care-summary-export" />
@@ -128,10 +174,28 @@ function RootLayout() {
           <Stack.Screen name="family-activity" />
           <Stack.Screen name="caregiver-management" />
           <Stack.Screen name="notification-settings" />
-          <Stack.Screen name="correlation-report" />
+          <Stack.Screen name="medication-report" />
           <Stack.Screen name="care-plan" />
           <Stack.Screen name="log-medication-plan-item" />
           <Stack.Screen name="vital-threshold-settings" />
+          <Stack.Screen name="patient" />
+          <Stack.Screen name="today-scope" />
+          <Stack.Screen name="trends" />
+          <Stack.Screen name="data-privacy-settings" />
+          <Stack.Screen name="help" />
+          <Stack.Screen name="log-note" />
+          <Stack.Screen name="daily-care-report" />
+          <Stack.Screen name="appointment-confirmation" />
+          <Stack.Screen name="settings" />
+          <Stack.Screen name="medication-confirm" />
+          <Stack.Screen name="log-mood" />
+          <Stack.Screen name="log-sleep" />
+          <Stack.Screen name="log-activity" />
+          <Stack.Screen name="quick-log-more" />
+          <Stack.Screen name="daily-checkin" />
+          <Stack.Screen name="log-hydration" />
+          <Stack.Screen name="log-bathroom" />
+          <Stack.Screen name="guide-hub" />
         </Stack>
       </WebContainer>
     </ErrorBoundary>
@@ -156,6 +220,39 @@ const styles = StyleSheet.create({
     // Legacy style - no longer used but kept for compatibility
     maxWidth: 480,
   },
+  lockScreen: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  lockIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  lockTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: Colors.textBright,
+    marginBottom: 8,
+  },
+  lockSubtitle: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginBottom: 24,
+  },
+  lockButton: {
+    backgroundColor: Colors.accent,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+  },
+  lockButtonText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+  },
 });
 
-export default Sentry.wrap(RootLayout);
+export default RootLayout;

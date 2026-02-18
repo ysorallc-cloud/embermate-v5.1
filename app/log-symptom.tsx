@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { saveSymptom } from '../utils/symptomStorage';
 import { logError } from '../utils/devLog';
+import { emitDataUpdate } from '../lib/events';
 
 const COMMON_SYMPTOMS = [
   'Pain', 'Nausea', 'Dizziness', 'Fatigue',
@@ -51,6 +52,7 @@ export default function LogSymptomScreen() {
         date: now.toISOString().split('T')[0],
       });
 
+      emitDataUpdate('symptoms');
       Alert.alert(
         'Success',
         'Symptom logged successfully',

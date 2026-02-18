@@ -16,6 +16,7 @@ import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { Colors, Spacing } from '../theme/theme-tokens';
 import { getTodayWaterLog, updateTodayWaterLog } from '../utils/centralStorage';
 import { logError } from '../utils/devLog';
+import { emitDataUpdate } from '../lib/events';
 
 const WATER_GOAL = 8;
 
@@ -51,6 +52,7 @@ export default function LogWaterScreen() {
     try {
       setSaving(true);
       await updateTodayWaterLog(glasses);
+      emitDataUpdate('water');
       router.back();
     } catch (error) {
       logError('LogWaterScreen.handleSave', error);

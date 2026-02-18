@@ -5,6 +5,7 @@ import type { VitalsDetail } from '../../utils/careSummaryBuilder';
 
 interface Props {
   vitals: VitalsDetail;
+  baselines?: Record<string, { range: string }> | null;
 }
 
 function formatTime(iso: string): string {
@@ -31,7 +32,7 @@ function buildReadingsString(readings: VitalsDetail['readings']): string {
   return parts.join(' \u00B7 ');
 }
 
-export function VitalsNarrative({ vitals }: Props) {
+export function VitalsNarrative({ vitals, baselines }: Props) {
   if (!vitals.scheduled && !vitals.recorded) return null;
 
   let text: React.ReactNode;
@@ -39,10 +40,29 @@ export function VitalsNarrative({ vitals }: Props) {
   if (vitals.recorded && vitals.readings) {
     const readingsStr = buildReadingsString(vitals.readings);
     const timeStr = vitals.recordedAt ? ` recorded at ${formatTime(vitals.recordedAt)}` : '';
+    const baselineParts: string[] = [];
+    if (baselines) {
+      if (baselines.systolic && vitals.readings.systolic != null) {
+        baselineParts.push(`BP baseline: ${baselines.systolic.range}`);
+      }
+      if (baselines.heartRate && vitals.readings.heartRate != null) {
+        baselineParts.push(`HR baseline: ${baselines.heartRate.range}`);
+      }
+      if (baselines.glucose && vitals.readings.glucose != null) {
+        baselineParts.push(`Glucose baseline: ${baselines.glucose.range}`);
+      }
+    }
     text = (
-      <Text style={styles.narrative}>
-        <Text style={styles.bold}>{readingsStr}</Text>{timeStr}.
-      </Text>
+      <>
+        <Text style={styles.narrative}>
+          <Text style={styles.bold}>{readingsStr}</Text>{timeStr}.
+        </Text>
+        {baselineParts.length > 0 && (
+          <Text style={[styles.narrative, { marginTop: 4 }]}>
+            {baselineParts.join(' \u00B7 ')}
+          </Text>
+        )}
+      </>
     );
   } else if (vitals.scheduled && !vitals.recorded) {
     const timeStr = vitals.scheduledTime ? formatTime(vitals.scheduledTime) : 'today';

@@ -20,13 +20,9 @@ import {
 // ============================================================================
 
 const DEFAULT_INFO: MedicalInfo = {
-  bloodType: 'O+',
-  allergies: ['Penicillin', 'Sulfa drugs'],
-  diagnoses: [
-    { condition: 'Hypertension', status: 'active' },
-    { condition: 'Type 2 Diabetes', status: 'active' },
-    { condition: 'Arthritis', status: 'active' },
-  ],
+  bloodType: '',
+  allergies: [],
+  diagnoses: [],
   surgeries: [],
   hospitalizations: [],
   currentMedications: [],
@@ -44,6 +40,7 @@ export default function PatientScreen() {
   const [editing, setEditing] = useState(false);
 
   // Inline add fields
+  const [newAllergy, setNewAllergy] = useState('');
   const [newDiagnosis, setNewDiagnosis] = useState('');
   const [newSurgery, setNewSurgery] = useState('');
   const [newHospitalization, setNewHospitalization] = useState('');
@@ -63,6 +60,28 @@ export default function PatientScreen() {
     setInfo(updated);
     const { lastUpdated, ...rest } = updated;
     await saveMedicalInfo(rest);
+  };
+
+  // ---- Allergies ----
+  const addAllergy = async () => {
+    const text = newAllergy.trim();
+    if (!text) return;
+    await save({ ...info, allergies: [...info.allergies, text] });
+    setNewAllergy('');
+  };
+
+  const removeAllergy = (index: number) => {
+    Alert.alert('Remove Allergy', `Remove "${info.allergies[index]}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          const updated = info.allergies.filter((_, i) => i !== index);
+          await save({ ...info, allergies: updated });
+        },
+      },
+    ]);
   };
 
   // ---- Diagnoses ----
@@ -284,15 +303,46 @@ export default function PatientScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>ALLERGIES</Text>
             <View style={[styles.infoCard, styles.allergyCard]}>
-              {info.allergies.length === 0 && (
+              {info.allergies.length === 0 && !editing && (
                 <Text style={styles.emptyText}>No allergies reported</Text>
               )}
               {info.allergies.map((allergy, idx) => (
                 <View key={idx} style={styles.listItem}>
                   <Text style={styles.allergyIcon}>{'\u26A0\uFE0F'}</Text>
                   <Text style={styles.allergyText}>{allergy}</Text>
+                  {editing && (
+                    <TouchableOpacity
+                      onPress={() => removeAllergy(idx)}
+                      accessibilityLabel={`Remove ${allergy}`}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.removeButton}>{'\u2715'}</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               ))}
+              {editing && (
+                <View style={styles.addRow}>
+                  <TextInput
+                    style={styles.addInput}
+                    placeholder="Add allergy..."
+                    placeholderTextColor={Colors.textMuted}
+                    value={newAllergy}
+                    onChangeText={setNewAllergy}
+                    onSubmitEditing={addAllergy}
+                    returnKeyType="done"
+                    accessibilityLabel="Add allergy"
+                  />
+                  <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={addAllergy}
+                    accessibilityLabel="Add allergy"
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.addButtonText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
 
@@ -402,6 +452,25 @@ export default function PatientScreen() {
             accessibilityRole="button"
           >
             <Text style={styles.editButtonText}>{editing ? 'Done Editing' : 'Edit Medical History'}</Text>
+          </TouchableOpacity>
+
+          {/* Clinical Care Settings Link */}
+          <TouchableOpacity
+            style={styles.clinicalCareLink}
+            onPress={() => router.push('/patient/clinical-care')}
+            activeOpacity={0.7}
+            accessibilityLabel="Clinical Care Settings"
+            accessibilityRole="button"
+          >
+            <View style={styles.clinicalCareLinkContent}>
+              <View style={styles.clinicalCareLinkText}>
+                <Text style={styles.clinicalCareLinkTitle}>Clinical Care Settings</Text>
+                <Text style={styles.clinicalCareLinkHint}>
+                  For complex care situations requiring detailed tracking and handoff reports.
+                </Text>
+              </View>
+              <Text style={styles.clinicalCareLinkArrow}>{'\u203A'}</Text>
+            </View>
           </TouchableOpacity>
 
           <View style={{ height: 40 }} />
@@ -613,5 +682,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.background,
+  },
+
+  // Clinical Care Link
+  clinicalCareLink: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: Spacing.md,
+    marginTop: Spacing.xl,
+  },
+  clinicalCareLinkContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  clinicalCareLinkText: {
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  clinicalCareLinkTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  clinicalCareLinkHint: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    lineHeight: 18,
+  },
+  clinicalCareLinkArrow: {
+    fontSize: 22,
+    color: Colors.textMuted,
   },
 });

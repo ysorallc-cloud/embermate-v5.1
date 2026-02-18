@@ -126,7 +126,7 @@ export default function EmergencyScreen() {
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
           <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
+            <TouchableOpacity style={styles.backButton} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/now')} accessibilityLabel="Go back" accessibilityRole="button">
               <Text style={styles.backIcon}>←</Text>
             </TouchableOpacity>
             <Text style={styles.headerLabel}>EMERGENCY</Text>

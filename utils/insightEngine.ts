@@ -291,7 +291,7 @@ export async function analyzeMoodPatterns(): Promise<InsightData | null> {
           label: 'View Mood Trend',
           icon: '📊',
           type: 'navigate',
-          destination: '/correlation-report',
+          destination: '/(tabs)/understand',
           data: { focus: 'mood' },
         },
         {
@@ -375,7 +375,7 @@ export async function analyzeSleepMoodCorrelation(): Promise<InsightData | null>
           label: 'View Sleep Patterns',
           icon: '😴',
           type: 'navigate',
-          destination: '/correlation-report',
+          destination: '/(tabs)/understand',
           data: { focus: 'sleep-mood' },
         },
         {

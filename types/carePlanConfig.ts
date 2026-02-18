@@ -34,7 +34,7 @@ export const BUCKET_TYPES: BucketType[] = [
 ];
 
 // Primary buckets shown by default
-export const PRIMARY_BUCKETS: BucketType[] = ['meds', 'vitals', 'meals', 'water', 'wellness'];
+export const PRIMARY_BUCKETS: BucketType[] = ['meds', 'vitals', 'meals', 'water'];
 
 // Secondary buckets hidden behind "More" initially
 export const SECONDARY_BUCKETS: BucketType[] = ['sleep', 'activity'];
@@ -58,56 +58,56 @@ export const BUCKET_META: Record<BucketType, BucketMeta> = {
   meds: {
     type: 'meds',
     name: 'Medications',
-    emoji: '💊',
+    emoji: '\uD83D\uDC8A',
     aiInsight: 'Keeps dosing and adherence accurate for reports and patterns.',
     route: '/medications',
   },
   vitals: {
     type: 'vitals',
     name: 'Vitals',
-    emoji: '📊',
+    emoji: '\uD83D\uDCCA',
     aiInsight: 'Makes trends visible over time, even when readings look fine day to day.',
     route: '/log-vitals',
   },
   meals: {
     type: 'meals',
     name: 'Meals',
-    emoji: '🍽️',
+    emoji: '\uD83C\uDF7D\uFE0F',
     aiInsight: 'Adds context to mood, energy, and symptoms.',
     route: '/log-meal',
   },
   water: {
     type: 'water',
     name: 'Water',
-    emoji: '💧',
+    emoji: '\uD83D\uDCA7',
     aiInsight: 'Supports hydration goals and explains fatigue or headaches.',
     route: '/log-water',
   },
   sleep: {
     type: 'sleep',
     name: 'Sleep',
-    emoji: '😴',
+    emoji: '\uD83D\uDE34',
     aiInsight: 'Links rest quality to symptoms and energy.',
     route: '/log-sleep',
   },
   activity: {
     type: 'activity',
     name: 'Activity',
-    emoji: '🚶',
+    emoji: '\uD83D\uDEB6',
     aiInsight: 'Shows how movement connects to energy, mood, and overall wellness.',
     route: '/log-activity',
   },
   wellness: {
     type: 'wellness',
     name: 'Wellness',
-    emoji: '🌅',
+    emoji: '\uD83C\uDF05',
     aiInsight: 'Morning and evening check-ins track sleep, mood, orientation, and pain over time.',
     route: '/log-morning-wellness',
   },
   appointments: {
     type: 'appointments',
     name: 'Appointments',
-    emoji: '📅',
+    emoji: '\uD83D\uDCC5',
     aiInsight: 'Prepares visit summaries and keeps care team info organized.',
     route: '/appointments',
   },
@@ -284,12 +284,12 @@ export interface VitalsBucketConfig extends BucketConfig {
 }
 
 export const VITAL_TYPE_OPTIONS: { value: VitalType; label: string; emoji: string }[] = [
-  { value: 'bp', label: 'Blood Pressure', emoji: '🩸' },
-  { value: 'hr', label: 'Heart Rate', emoji: '❤️' },
-  { value: 'spo2', label: 'Oxygen Level', emoji: '🫁' },
-  { value: 'glucose', label: 'Blood Sugar', emoji: '🩸' },
-  { value: 'temp', label: 'Temperature', emoji: '🌡️' },
-  { value: 'weight', label: 'Weight', emoji: '⚖️' },
+  { value: 'bp', label: 'Blood Pressure', emoji: '\uD83E\uDE78' },
+  { value: 'hr', label: 'Heart Rate', emoji: '\u2764\uFE0F' },
+  { value: 'spo2', label: 'Oxygen Level', emoji: '\uD83E\uDEC1' },
+  { value: 'glucose', label: 'Blood Sugar', emoji: '\uD83E\uDE78' },
+  { value: 'temp', label: 'Temperature', emoji: '\uD83C\uDF21\uFE0F' },
+  { value: 'weight', label: 'Weight', emoji: '\u2696\uFE0F' },
 ];
 
 // Meals/Water Bucket extends with tracking style

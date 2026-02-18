@@ -46,6 +46,10 @@ import {
   ConfidenceLevel,
 } from '../../utils/understandInsights';
 import { logError } from '../../utils/devLog';
+import { buildProviderPrep, ProviderPrepData } from '../../utils/providerPrepBuilder';
+import { ProviderPrepCard } from '../../components/understand/ProviderPrepCard';
+import { PatternsSheet } from '../../components/understand/PatternsSheet';
+import { ScreenHeader } from '../../components/ScreenHeader';
 
 // ============================================================================
 // CONFIDENCE BADGE COMPONENT
@@ -366,6 +370,8 @@ export default function UnderstandScreen() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>(14);
   const [pageData, setPageData] = useState<UnderstandPageData | null>(null);
+  const [providerPrep, setProviderPrep] = useState<ProviderPrepData | null>(null);
+  const [showPatternsSheet, setShowPatternsSheet] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -378,6 +384,13 @@ export default function UnderstandScreen() {
       setLoading(true);
       const data = await loadUnderstandPageData(timeRange);
       setPageData(data);
+      // Build provider prep questions from insights when appointment is near
+      try {
+        const prep = await buildProviderPrep(data.standOutInsights);
+        setProviderPrep(prep);
+      } catch {
+        setProviderPrep(null);
+      }
     } catch (error) {
       logError('UnderstandScreen.loadData', error);
     } finally {
@@ -433,13 +446,6 @@ export default function UnderstandScreen() {
   // Pattern exploration tools
   const PATTERN_TOOLS = [
     {
-      id: 'insights',
-      icon: '🔍',
-      title: 'Deeper Patterns',
-      subtitle: 'Explore all correlations',
-      route: '/correlation-report',
-    },
-    {
       id: 'trends',
       icon: '📈',
       title: 'Trends Over Time',
@@ -447,11 +453,11 @@ export default function UnderstandScreen() {
       route: '/trends',
     },
     {
-      id: 'reports',
-      icon: '📋',
-      title: 'Reports',
-      subtitle: 'Shareable summaries',
-      route: '/hub/reports',
+      id: 'medication-report',
+      icon: '💊',
+      title: 'Medication Report',
+      subtitle: 'Adherence & clinical data',
+      route: '/medication-report',
     },
   ];
 
@@ -495,12 +501,15 @@ export default function UnderstandScreen() {
               </View>
               <TouchableOpacity
                 style={styles.settingsButton}
-                onPress={() => router.push('/settings')}
+                onPress={() => navigate('/settings')}
                 accessible={true}
                 accessibilityRole="button"
                 accessibilityLabel="Settings"
               >
                 <Text style={styles.settingsIcon}>⚙️</Text>
+                {pageData && pageData.daysOfData > 0 && (
+                  <View style={styles.settingsDot} />
+                )}
               </TouchableOpacity>
             </View>
 
@@ -514,6 +523,22 @@ export default function UnderstandScreen() {
               onDismiss={handleDismissSampleData}
               previouslySeen={pageData.sampleDataPreviouslySeen}
             />
+          )}
+
+          {/* Data Building Progress Banner — compact version */}
+          {pageData && !pageData.isSampleData && pageData.daysOfData < 7 && (
+            <View style={styles.dataBuildingBanner}>
+              <View style={styles.dataBuildingContent}>
+                <Text style={styles.dataBuildingIcon}>📊</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.dataBuildingTitle}>{pageData.daysOfData} of 7 days logged</Text>
+                  <Text style={styles.dataBuildingSubtitle}>Patterns sharpen with more data. Here's what we see so far.</Text>
+                </View>
+              </View>
+              <View style={styles.dataBuildingProgressBar}>
+                <View style={[styles.dataBuildingProgressFill, { width: `${Math.min(100, (pageData.daysOfData / 7) * 100)}%` }]} />
+              </View>
+            </View>
           )}
 
           {/* One-time confidence explanation */}
@@ -568,6 +593,27 @@ export default function UnderstandScreen() {
                   />
                 ))}
               </View>
+              {pageData.correlationCards.length > 3 && (
+                <TouchableOpacity
+                  style={styles.viewAllLink}
+                  onPress={() => setShowPatternsSheet(true)}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`View all ${pageData.correlationCards.length} patterns`}
+                >
+                  <Text style={styles.viewAllText}>
+                    View all {pageData.correlationCards.length} patterns →
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          {/* Provider Prep (when appointment within 5 days) */}
+          {providerPrep && (
+            <View style={styles.section}>
+              <Text style={styles.sectionHeader}>VISIT PREP</Text>
+              <ProviderPrepCard data={providerPrep} />
             </View>
           )}
 
@@ -626,6 +672,16 @@ export default function UnderstandScreen() {
           <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>
+
+      {/* Patterns Sheet */}
+      {pageData && (
+        <PatternsSheet
+          visible={showPatternsSheet}
+          onClose={() => setShowPatternsSheet(false)}
+          correlationCards={pageData.correlationCards}
+          timeRange={timeRange}
+        />
+      )}
     </View>
   );
 }
@@ -698,6 +754,15 @@ const styles = StyleSheet.create({
   },
   settingsIcon: {
     fontSize: 24,
+  },
+  settingsDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.accent,
   },
 
   // Time Range Toggle
@@ -843,6 +908,18 @@ const styles = StyleSheet.create({
   correlationDataPoints: {
     fontSize: 11,
     color: Colors.textMuted,
+  },
+
+  // View All Link
+  viewAllLink: {
+    marginTop: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.accent,
   },
 
   // Confidence Badge
@@ -1093,5 +1170,46 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: Colors.sageBright,
+  },
+
+  // Data Building Progress Banner
+  dataBuildingBanner: {
+    backgroundColor: Colors.glass,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 20,
+  },
+  dataBuildingContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 10,
+  },
+  dataBuildingIcon: {
+    fontSize: 24,
+  },
+  dataBuildingTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.textBright,
+    marginBottom: 2,
+  },
+  dataBuildingSubtitle: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+  dataBuildingProgressBar: {
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  dataBuildingProgressFill: {
+    height: '100%',
+    backgroundColor: Colors.accent,
+    borderRadius: 3,
   },
 });

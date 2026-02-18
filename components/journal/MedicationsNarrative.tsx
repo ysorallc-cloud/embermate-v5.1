@@ -5,6 +5,7 @@ import type { MedicationDetail } from '../../utils/careSummaryBuilder';
 
 interface Props {
   medications: MedicationDetail[];
+  showPurpose?: boolean;
 }
 
 function formatTime(isoOrHHmm: string): string {
@@ -17,7 +18,7 @@ function formatTime(isoOrHHmm: string): string {
   return isoOrHHmm;
 }
 
-export function MedicationsNarrative({ medications }: Props) {
+export function MedicationsNarrative({ medications, showPurpose }: Props) {
   if (medications.length === 0) return null;
 
   const completed = medications.filter(m => m.status === 'completed');

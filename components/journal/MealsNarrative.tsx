@@ -5,6 +5,9 @@ import type { MealsDetail } from '../../utils/careSummaryBuilder';
 
 interface Props {
   meals: MealsDetail;
+  fluidTarget?: number | null;
+  swallowingIssues?: boolean | null;
+  hydrationGlasses?: number | null;
 }
 
 function formatTime(isoOrHHmm: string): string {
@@ -17,8 +20,9 @@ function formatTime(isoOrHHmm: string): string {
   return isoOrHHmm;
 }
 
-export function MealsNarrative({ meals }: Props) {
-  if (meals.total === 0) return null;
+export function MealsNarrative({ meals, fluidTarget, swallowingIssues, hydrationGlasses }: Props) {
+  const hasHydration = hydrationGlasses != null && hydrationGlasses > 0;
+  if (meals.total === 0 && !hasHydration) return null;
 
   const completed = meals.meals.filter(m => m.status === 'completed');
   const pending = meals.meals.filter(m => m.status === 'pending');
@@ -65,6 +69,25 @@ export function MealsNarrative({ meals }: Props) {
         </Text>
       );
     }
+  }
+
+  // Hydration tracking
+  if (hasHydration) {
+    const targetStr = fluidTarget ? ` / ${fluidTarget} oz target` : '';
+    parts.push(
+      <Text key="hydration" style={[styles.narrative, { marginTop: 4 }]}>
+        Fluid intake: {hydrationGlasses} glasses{targetStr}.
+      </Text>
+    );
+  }
+
+  // Swallowing issues flag (Tier 3)
+  if (swallowingIssues) {
+    parts.push(
+      <Text key="swallowing" style={[styles.narrative, styles.flagged, { marginTop: 4 }]}>
+        Swallowing difficulties noted.
+      </Text>
+    );
   }
 
   return (

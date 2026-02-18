@@ -1,154 +1,221 @@
 // ============================================================================
-// CURRENT BLOCK CARD - Time-block status overview
-// Shows current time window progress and next pending item
-// Always calm blue — no red/amber urgency colors on this card
+// NEXT UP STRIP — Compact status bar at top of Now tab
+// Three states: overdue items (red, with category hint), next upcoming, all caught up
 // ============================================================================
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { parseTimeForDisplay, getTimeWindowDisplayRange, TIME_WINDOW_HOURS, type TimeWindow } from '../../utils/nowHelpers';
-
+import { parseTimeForDisplay } from '../../utils/nowHelpers';
 import { Colors } from '../../theme/theme-tokens';
-interface CurrentBlockCardProps {
-  currentWindow: TimeWindow;
-  windowItems: any[];          // all pending + completed items in this block
-  nextPendingItem: any | null; // next pending item in this block
+
+// Map itemType back to display label for hint text
+const ITEM_TYPE_TO_DISPLAY: Record<string, string> = {
+  medication: 'Meds',
+  vitals: 'Vitals',
+  nutrition: 'Meals',
+  hydration: 'Water',
+  sleep: 'Sleep',
+  activity: 'Activity',
+  wellness: 'Wellness',
+};
+
+interface NextUpStripProps {
+  overdueCount: number;
+  totalPending: number;
+  completedCount: number;
+  nextPendingItem: any | null;
   hasRegimenInstances: boolean;
-  completedCount: number;      // total completed today (for empty state)
-  onViewTasks: (window: TimeWindow) => void;
+  overdueByCategory?: Record<string, number>;
 }
 
 export function NextUpCard({
-  currentWindow,
-  windowItems,
+  overdueCount,
+  totalPending,
+  completedCount,
   nextPendingItem,
   hasRegimenInstances,
-  completedCount,
-  onViewTasks,
-}: CurrentBlockCardProps) {
-  // Empty state: All caught up
-  if (hasRegimenInstances && windowItems.length === 0 && completedCount > 0) {
+  overdueByCategory,
+}: NextUpStripProps) {
+  // No care plan — don't render
+  if (!hasRegimenInstances) return null;
+
+  // All caught up
+  if (totalPending === 0 && completedCount > 0) {
     return (
-      <View style={styles.emptyCard}>
-        <Text style={styles.emptyEmoji}>✓</Text>
-        <Text style={styles.emptyTitle}>All caught up!</Text>
-        <Text style={styles.emptySubtitle}>No scheduled items remain today.</Text>
+      <View style={styles.stripDone}>
+        <Text style={styles.doneCheck}>{'\u2713'}</Text>
+        <Text style={styles.doneText}>All caught up for today</Text>
       </View>
     );
   }
 
-  if (!hasRegimenInstances || windowItems.length === 0) return null;
+  // Nothing scheduled at all
+  if (totalPending === 0 && completedCount === 0) return null;
 
-  const label = TIME_WINDOW_HOURS[currentWindow].label;
-  const timeRange = getTimeWindowDisplayRange(currentWindow);
-  const completedInBlock = windowItems.filter(i => i.status === 'completed' || i.status === 'skipped').length;
-  const totalInBlock = windowItems.length;
-  const pendingInBlock = totalInBlock - completedInBlock;
+  // Overdue items — red tint with category hint
+  if (overdueCount > 0) {
+    // Find the category with the most overdue items for hint text
+    let hintCategory = '';
+    if (overdueByCategory) {
+      let maxCount = 0;
+      for (const [itemType, count] of Object.entries(overdueByCategory)) {
+        if (count > maxCount) {
+          maxCount = count;
+          hintCategory = ITEM_TYPE_TO_DISPLAY[itemType] || itemType;
+        }
+      }
+    }
 
-  const progressText = pendingInBlock === 0
-    ? 'All complete'
-    : `In progress \u2022 ${completedInBlock} of ${totalInBlock} complete`;
-
-  const nextItemTime = nextPendingItem ? parseTimeForDisplay(nextPendingItem.scheduledTime) : null;
-  const nextItemText = nextPendingItem
-    ? `Next: ${nextPendingItem.itemName}${nextItemTime ? ` at ${nextItemTime}` : ''}`
-    : null;
-
-  return (
-    <View style={styles.card}>
-      <Text style={styles.label}>CURRENT BLOCK</Text>
-      <Text style={styles.title}>{label} ({timeRange})</Text>
-      <Text style={styles.progress}>{progressText}</Text>
-      {nextItemText && (
-        <Text style={styles.nextItem} numberOfLines={1}>{nextItemText}</Text>
-      )}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => onViewTasks(currentWindow)}
-        activeOpacity={0.7}
+    return (
+      <View
+        style={styles.stripOverdue}
         accessible={true}
-        accessibilityRole="button"
-        accessibilityLabel={`View ${label} tasks`}
+        accessibilityLabel={`${overdueCount} ${overdueCount === 1 ? 'item' : 'items'} overdue${hintCategory ? `. Tap ${hintCategory} to catch up` : ''}`}
       >
-        <Text style={styles.buttonText}>View {label} Tasks</Text>
-      </TouchableOpacity>
+        <View style={styles.stripContent}>
+          <View style={styles.overdueBadge}>
+            <Text style={styles.overdueBadgeText}>{overdueCount}</Text>
+          </View>
+          <View style={styles.stripTextContainer}>
+            <Text style={styles.overdueLabel}>
+              {overdueCount === 1 ? 'item overdue' : 'items overdue'}
+            </Text>
+            {hintCategory ? (
+              <Text style={styles.overdueHint} numberOfLines={1}>
+                overdue {'\u00B7'} tap {hintCategory} to catch up
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // Next upcoming (nothing overdue)
+  if (nextPendingItem) {
+    const nextTime = parseTimeForDisplay(nextPendingItem.scheduledTime);
+    const nextName = nextPendingItem.itemName || '';
+
+    return (
+      <View
+        style={styles.stripDefault}
+        accessible={true}
+        accessibilityLabel={`Next up: ${nextName}${nextTime ? ` at ${nextTime}` : ''}`}
+      >
+        <View style={styles.stripTextContainer}>
+          <Text style={styles.nextUpLabel}>NEXT UP</Text>
+          <Text style={styles.nextUpDetail} numberOfLines={1}>
+            {nextName}{nextTime ? ` \u00B7 ${nextTime}` : ''}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Pending but no specific next item
+  return (
+    <View style={styles.stripDefault}>
+      <Text style={styles.nextUpDetail}>
+        {totalPending} item{totalPending === 1 ? '' : 's'} remaining today
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.blueLight,
-    borderWidth: 2,
-    borderColor: 'rgba(59, 130, 246, 0.4)',
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 24,
-    shadowColor: Colors.blue,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.blue,
-    letterSpacing: 1.2,
-    marginBottom: 6,
-  },
-  title: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  progress: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginBottom: 4,
-  },
-  nextItem: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.55)',
-    marginBottom: 12,
-  },
-  button: {
-    backgroundColor: Colors.blue,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+  // Overdue strip — red tint
+  stripOverdue: {
+    backgroundColor: Colors.redFaint,
+    borderWidth: 1,
+    borderColor: Colors.redBorder,
     borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  stripContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 10,
+  },
+  overdueBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: Colors.red,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 44,
   },
-  buttonText: {
-    fontSize: 15,
+  overdueBadgeText: {
+    fontSize: 14,
     fontWeight: '700',
+    color: '#fff',
+  },
+  stripTextContainer: {
+    flex: 1,
+  },
+  overdueLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.red,
+  },
+  overdueHint: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 1,
+  },
+
+  // Default strip — glass
+  stripDefault: {
+    backgroundColor: Colors.glass,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  nextUpLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.accent,
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  nextUpDetail: {
+    fontSize: 14,
+    fontWeight: '500',
     color: Colors.textPrimary,
   },
-  emptyCard: {
-    backgroundColor: Colors.greenTint,
+
+  // All done strip — glass with green
+  stripDone: {
+    backgroundColor: Colors.glass,
     borderWidth: 1,
-    borderColor: Colors.greenStrong,
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 24,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  emptyEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '600',
+  doneCheck: {
+    fontSize: 16,
     color: Colors.green,
-    marginBottom: 4,
+    fontWeight: '700',
+    marginRight: 8,
   },
-  emptySubtitle: {
-    fontSize: 13,
-    color: Colors.textHalf,
+  doneText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.green,
   },
 });

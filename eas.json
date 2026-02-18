@@ -9,6 +9,9 @@
       "distribution": "internal",
       "ios": {
         "simulator": false
+      },
+      "env": {
+        "APP_ENV": "development"
       }
     },
     "preview": {
@@ -18,6 +21,10 @@
       },
       "android": {
         "buildType": "apk"
+      },
+      "channel": "preview",
+      "env": {
+        "APP_ENV": "preview"
       }
     },
     "production": {
@@ -27,10 +34,24 @@
       },
       "android": {
         "buildType": "app-bundle"
+      },
+      "channel": "production",
+      "env": {
+        "APP_ENV": "production"
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "YOUR_APPLE_ID",
+        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "YOUR_TEAM_ID"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal"
+      }
+    }
   }
 }

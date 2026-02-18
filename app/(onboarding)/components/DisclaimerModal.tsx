@@ -20,18 +20,19 @@ export const DisclaimerModal: React.FC<Props> = ({ visible, onClose }) => {
         <View style={styles.modalContainer}>
           <GlassCard style={styles.card}>
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-              <Text style={styles.title}>HIPAA Non-Compliance Disclaimer</Text>
+              <Text style={styles.title}>Important Information</Text>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>1. Not HIPAA Compliant</Text>
+                <Text style={styles.sectionTitle}>1. Personal Health Tracking Only</Text>
                 <Text style={styles.sectionText}>
-                  EmberMate is NOT a HIPAA-compliant service. We do not guarantee the security
-                  or privacy of Protected Health Information (PHI) as defined by HIPAA regulations.
+                  EmberMate is a personal health tracking tool designed to help caregivers
+                  organize and monitor daily care activities. It is not a medical device
+                  or clinical system.
                 </Text>
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>2. Not for Medical Use</Text>
+                <Text style={styles.sectionTitle}>2. Not a Substitute for Professional Care</Text>
                 <Text style={styles.sectionText}>
                   This app is for personal tracking and informational purposes only. It is NOT
                   intended to diagnose, treat, cure, or prevent any disease. Always consult
@@ -40,26 +41,25 @@ export const DisclaimerModal: React.FC<Props> = ({ visible, onClose }) => {
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>3. Data Security</Text>
+                <Text style={styles.sectionTitle}>3. Your Data Stays on Your Device</Text>
                 <Text style={styles.sectionText}>
-                  While we implement reasonable security measures, we cannot guarantee absolute
-                  security. By using EmberMate, you acknowledge the risk of storing health
-                  information in a non-HIPAA-compliant system.
+                  All health data you enter is stored locally on your device using encryption.
+                  EmberMate does not transmit your data to external servers. You are responsible
+                  for backing up your device to prevent data loss.
                 </Text>
               </View>
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>4. Your Responsibility</Text>
                 <Text style={styles.sectionText}>
-                  You are solely responsible for deciding what information to enter. Do not input
-                  data you consider highly sensitive or that you need protected under HIPAA. We
+                  You are solely responsible for deciding what information to enter. We
                   recommend consulting with your healthcare provider about appropriate tracking methods.
                 </Text>
               </View>
 
               <View style={styles.warningBox}>
                 <Text style={styles.warningText}>
-                  ⚠️ By using EmberMate, you explicitly acknowledge and accept these limitations.
+                  By using EmberMate, you explicitly acknowledge and accept these limitations.
                 </Text>
               </View>
 

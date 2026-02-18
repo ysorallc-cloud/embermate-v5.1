@@ -12,6 +12,7 @@ import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage';
 import { parseCarePlanContext, getCarePlanBannerText, CarePlanNavigationContext } from '../utils/carePlanRouting';
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
 import { logError } from '../utils/devLog';
+import { emitDataUpdate } from '../lib/events';
 
 export default function LogVitalsScreen() {
   const router = useRouter();
@@ -24,6 +25,9 @@ export default function LogVitalsScreen() {
   // Prepopulate with typical values - user can adjust if needed
   const [systolic, setSystolic] = useState('120');
   const [diastolic, setDiastolic] = useState('80');
+  const [heartRate, setHeartRate] = useState('');
+  const [oxygen, setOxygen] = useState('');
+  const [temperature, setTemperature] = useState('');
   const [glucose, setGlucose] = useState('');
   const [weight, setWeight] = useState('');
   const [saving, setSaving] = useState(false);
@@ -49,6 +53,9 @@ export default function LogVitalsScreen() {
         await saveVital({ type: 'systolic', value: parseFloat(systolic), unit: 'mmHg', timestamp: now.toISOString() });
         await saveVital({ type: 'diastolic', value: parseFloat(diastolic), unit: 'mmHg', timestamp: now.toISOString() });
       }
+      if (heartRate) await saveVital({ type: 'heartRate', value: parseFloat(heartRate), unit: 'bpm', timestamp: now.toISOString() });
+      if (oxygen) await saveVital({ type: 'oxygen', value: parseFloat(oxygen), unit: '%', timestamp: now.toISOString() });
+      if (temperature) await saveVital({ type: 'temperature', value: parseFloat(temperature), unit: '°F', timestamp: now.toISOString() });
       if (glucose) await saveVital({ type: 'glucose', value: parseFloat(glucose), unit: 'mg/dL', timestamp: now.toISOString() });
       if (weight) await saveVital({ type: 'weight', value: parseFloat(weight), unit: 'lbs', timestamp: now.toISOString() });
 
@@ -57,6 +64,9 @@ export default function LogVitalsScreen() {
         timestamp: now.toISOString(),
         systolic: systolic ? parseFloat(systolic) : undefined,
         diastolic: diastolic ? parseFloat(diastolic) : undefined,
+        heartRate: heartRate ? parseFloat(heartRate) : undefined,
+        oxygen: oxygen ? parseFloat(oxygen) : undefined,
+        temperature: temperature ? parseFloat(temperature) : undefined,
         glucose: glucose ? parseFloat(glucose) : undefined,
         weight: weight ? parseFloat(weight) : undefined,
       });
@@ -71,6 +81,7 @@ export default function LogVitalsScreen() {
       }
 
       await hapticSuccess();
+      emitDataUpdate('vitals');
       router.back();
     } catch (error) {
       Alert.alert('Error', 'Failed to log vitals');
@@ -125,6 +136,30 @@ export default function LogVitalsScreen() {
                   <Text style={styles.bpSlash}>/</Text>
                   <TextInput style={[styles.input, styles.bpInput]} value={diastolic} onChangeText={setDiastolic} placeholder="80" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Diastolic blood pressure" />
                   <Text style={styles.unit}>mmHg</Text>
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Heart Rate</Text>
+                <View style={styles.inputRow}>
+                  <TextInput style={[styles.input, styles.flex1]} value={heartRate} onChangeText={setHeartRate} placeholder="72" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Heart rate in beats per minute" />
+                  <Text style={styles.unit}>bpm</Text>
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>SpO2</Text>
+                <View style={styles.inputRow}>
+                  <TextInput style={[styles.input, styles.flex1]} value={oxygen} onChangeText={setOxygen} placeholder="98" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Oxygen saturation percentage" />
+                  <Text style={styles.unit}>%</Text>
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Temperature</Text>
+                <View style={styles.inputRow}>
+                  <TextInput style={[styles.input, styles.flex1]} value={temperature} onChangeText={setTemperature} placeholder="98.6" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Temperature in degrees Fahrenheit" />
+                  <Text style={styles.unit}>{'\u00B0'}F</Text>
                 </View>
               </View>
 

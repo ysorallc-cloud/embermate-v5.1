@@ -99,7 +99,7 @@ export const AppStrings = {
 
   // Disclaimer
   disclaimer: {
-    short: 'EmberMate is a personal health tracking tool, not a medical device. Your data stays on your device and is not HIPAA-compliant. Do not use for clinical decisions.',
+    short: 'EmberMate is a personal health tracking tool, not a medical device. Your data stays on your device. Always consult your healthcare provider for medical decisions.',
     checkboxLabel: 'I understand and accept these terms',
     viewFull: 'View Full Disclaimer →',
   },

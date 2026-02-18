@@ -42,6 +42,7 @@ export interface VitalsLog {
   weight?: number;
   temperature?: number;
   oxygen?: number;
+  oxygenSaturation?: number;
 }
 
 export interface MoodLog {
@@ -73,6 +74,10 @@ export interface MealsLog {
   timestamp: string;
   meals: string[]; // 'Breakfast', 'Lunch', 'Dinner', 'Snack'
   description?: string;
+  mealType?: string;
+  appetite?: string;
+  amountConsumed?: string;
+  assistanceLevel?: string;
 }
 
 export interface WaterLog {

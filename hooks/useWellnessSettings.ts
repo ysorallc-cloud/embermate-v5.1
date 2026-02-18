@@ -10,6 +10,7 @@ import {
   WellnessSettings,
   DEFAULT_WELLNESS_SETTINGS,
 } from '../types/wellnessSettings';
+import { emitDataUpdate } from '../lib/events';
 
 const STORAGE_KEY = '@embermate_wellness_settings';
 
@@ -67,6 +68,8 @@ export const useWellnessSettings = () => {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
       setSettings(newSettings);
+      // Notify all subscribers (log screens, Now page) that wellness config changed
+      emitDataUpdate('wellness');
     } catch (error) {
       logError('useWellnessSettings.saveSettings', error);
     }

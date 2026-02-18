@@ -7,7 +7,7 @@ import { logError } from '../../utils/devLog';
 
 interface Props {
   onShare: () => void;
-  onExport: () => void;
+  onExport?: () => void;
 }
 
 export function ShareActions({ onShare, onExport }: Props) {
@@ -64,7 +64,7 @@ export function ShareActions({ onShare, onExport }: Props) {
           text: 'Export',
           onPress: () => {
             logAuditEvent(AuditEventType.CARE_BRIEF_EXPORTED, 'Care Brief exported as PDF', AuditSeverity.WARNING, { format: 'pdf' });
-            onExport();
+            onExport?.();
           },
         },
       ]
@@ -89,15 +89,17 @@ export function ShareActions({ onShare, onExport }: Props) {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.secondaryButton}
-        onPress={confirmExport}
-        activeOpacity={0.7}
-        accessibilityLabel="Export full care brief"
-        accessibilityRole="button"
-      >
-        <Text style={styles.secondaryButtonText}>{'\uD83D\uDCCB'} Export Full Care Brief</Text>
-      </TouchableOpacity>
+      {onExport && (
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={confirmExport}
+          activeOpacity={0.7}
+          accessibilityLabel="Export full care brief"
+          accessibilityRole="button"
+        >
+          <Text style={styles.secondaryButtonText}>{'\uD83D\uDCCB'} Export Full Care Brief</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

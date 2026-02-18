@@ -12,6 +12,7 @@ export type CarePlanItemType =
   | 'sleep'
   | 'hydration'
   | 'appointment'
+  | 'wellness'
   | 'custom';
 
 // How completion is determined
@@ -31,6 +32,7 @@ export interface CarePlanItem {
     medicationIds?: string[];       // Which meds belong to this routine
     mealTypes?: string[];           // breakfast, lunch, dinner, snack
     timeSlot?: string;              // morning, afternoon, evening, bedtime
+    appointmentId?: string;         // Link to specific appointment
   };
 }
 

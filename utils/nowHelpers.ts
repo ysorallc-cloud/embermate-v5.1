@@ -85,7 +85,12 @@ export function formatTime(time24: string): string {
 export function isOverdue(scheduledTime: string, graceMinutes: number = OVERDUE_GRACE_MINUTES): boolean {
   if (!scheduledTime) return false;
   const now = new Date();
-  const scheduled = new Date(scheduledTime);
+  let scheduled = new Date(scheduledTime);
+  // Handle HH:mm format by anchoring to today's date
+  if (isNaN(scheduled.getTime()) && /^\d{2}:\d{2}$/.test(scheduledTime)) {
+    const todayStr = now.toISOString().slice(0, 10);
+    scheduled = new Date(`${todayStr}T${scheduledTime}:00`);
+  }
   // Handle invalid dates
   if (isNaN(scheduled.getTime())) return false;
   // Add grace period to scheduled time
@@ -97,7 +102,12 @@ export function isOverdue(scheduledTime: string, graceMinutes: number = OVERDUE_
 export function isFuture(scheduledTime: string): boolean {
   if (!scheduledTime) return false;
   const now = new Date();
-  const scheduled = new Date(scheduledTime);
+  let scheduled = new Date(scheduledTime);
+  // Handle HH:mm format by anchoring to today's date
+  if (isNaN(scheduled.getTime()) && /^\d{2}:\d{2}$/.test(scheduledTime)) {
+    const todayStr = now.toISOString().slice(0, 10);
+    scheduled = new Date(`${todayStr}T${scheduledTime}:00`);
+  }
   // Handle invalid dates
   if (isNaN(scheduled.getTime())) return false;
   return scheduled > now;
@@ -135,7 +145,7 @@ export function getRouteForInstanceType(itemType: string): string {
     case 'sleep': return '/log-sleep';
     case 'hydration': return '/log-water';
     case 'activity': return '/log-activity';
-    case 'wellness': return '/log-morning-wellness';
+    case 'wellness': return '/log-morning-wellness'; // Default — caller should pass windowLabel param
     case 'appointment': return '/appointments';
     case 'custom':
     default:
@@ -145,7 +155,12 @@ export function getRouteForInstanceType(itemType: string): string {
 
 // Get time window for a scheduled time
 export function getTimeWindow(scheduledTime: string): TimeWindow {
-  const date = new Date(scheduledTime);
+  let date = new Date(scheduledTime);
+  // Handle HH:mm format
+  if (isNaN(date.getTime()) && /^\d{2}:\d{2}$/.test(scheduledTime)) {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    date = new Date(`${todayStr}T${scheduledTime}:00`);
+  }
   if (isNaN(date.getTime())) return 'morning';
 
   const hour = date.getHours();
