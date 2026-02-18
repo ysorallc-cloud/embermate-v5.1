@@ -33,8 +33,8 @@ async function generateCareSummaryReport(type: string): Promise<boolean> {
 
   const reportData: ReportData = {
     title: reportTitles[type] || 'Care Summary',
-    period: `Generated on ${new Date().toLocaleDateString()}`,
-    periodLabel: 'Report Period',
+    period: 'Report Period',
+    periodLabel: `Generated on ${new Date().toLocaleDateString()}`,
     summary: 'Care summary for healthcare provider review',
     details: [
       { label: 'Report Type', value: reportTitles[type] || type },

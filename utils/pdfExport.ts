@@ -3,6 +3,8 @@
 // Colors intentionally hardcoded — PDF/HTML print context (light background)
 
 import { Alert, Platform, Share } from 'react-native';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { logError } from './devLog';
 
 export interface ReportData {
@@ -245,24 +247,8 @@ export async function generateAndSharePDF(
   patient?: PatientInfo
 ): Promise<boolean> {
   try {
-    // Check if expo-print is available
-    let Print: any;
-    let Sharing: any;
-    
-    try {
-      Print = require('expo-print');
-      Sharing = require('expo-sharing');
-    } catch (e) {
-      Alert.alert(
-        'Dependencies Required',
-        'PDF export requires additional packages. Run:\n\nnpx expo install expo-print expo-sharing',
-        [{ text: 'OK' }]
-      );
-      return false;
-    }
-
     const html = generateHTML(data, patient);
-    
+
     // Generate PDF
     const { uri } = await Print.printToFileAsync({
       html,
@@ -297,19 +283,6 @@ export async function printPDF(
   patient?: PatientInfo
 ): Promise<boolean> {
   try {
-    let Print: any;
-    
-    try {
-      Print = require('expo-print');
-    } catch (e) {
-      Alert.alert(
-        'Dependencies Required',
-        'PDF printing requires additional packages. Run:\n\nnpx expo install expo-print',
-        [{ text: 'OK' }]
-      );
-      return false;
-    }
-
     const html = generateHTML(data, patient);
     await Print.printAsync({ html });
     return true;

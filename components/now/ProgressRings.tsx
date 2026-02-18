@@ -330,12 +330,12 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }:
 // ============================================================================
 
 function getProgressPercent(completed: number, total: number) {
-  return total > 0 ? (completed / total) * 100 : 0;
+  return total > 0 ? Math.min((completed / total) * 100, 100) : 0;
 }
 
 function getProgressStatus(completed: number, total: number): 'complete' | 'partial' | 'missing' | 'inactive' {
   if (total === 0) return 'inactive';
-  if (completed === total) return 'complete';
+  if (completed >= total) return 'complete';
   if (completed > 0) return 'partial';
   return 'missing';
 }

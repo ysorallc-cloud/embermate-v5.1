@@ -93,7 +93,7 @@ export function useNowPrompts(todayStats: TodayStats, dailyTracking: any) {
   const handleShowMeWhatMatters = async () => {
     await completeOnboarding();
     setShowOnboarding(false);
-    router.push('/(tabs)/journal');
+    router.push('/guide-hub');
   };
 
   const handleExploreOnMyOwn = async () => {

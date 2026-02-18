@@ -28,8 +28,8 @@ import {
   removeMedicationFromPlan,
   getActiveMedicationsFromPlan,
   updateVitalsConfig,
-  DEFAULT_PATIENT_ID,
 } from '../storage/carePlanConfigRepo';
+import { DEFAULT_PATIENT_ID } from '../types/patient';
 
 // ============================================================================
 // TYPES

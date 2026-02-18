@@ -123,7 +123,7 @@ export async function runStartupSequence(): Promise<StartupResult> {
 
 async function runPhase(
   name: string,
-  fn: () => void | Promise<void>,
+  fn: () => void | Promise<void> | Promise<boolean>,
   phases: StartupResult['phases'],
   critical: boolean = false,
 ): Promise<void> {

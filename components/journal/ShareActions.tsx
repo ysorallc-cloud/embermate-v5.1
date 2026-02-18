@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Share, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { logAuditEvent, AuditEventType, AuditSeverity } from '../../utils/auditLog';
-import { buildShareSummary } from '../../utils/careSummaryBuilder';
 import { logError } from '../../utils/devLog';
 
 interface Props {
@@ -30,23 +29,7 @@ export function ShareActions({ onShare, onExport }: Props) {
   const doShare = async () => {
     try {
       setSharing(true);
-      const summary = await buildShareSummary();
-
-      let text = `📋 Care Brief — ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}\n\n`;
-      text += `💊 ${summary.medsStatus}\n`;
-      text += `🩺 ${summary.vitalsStatus}\n`;
-      text += `😊 ${summary.wellnessStatus}\n`;
-      text += `🍽️ ${summary.mealsStatus}\n`;
-      if (summary.attentionCount > 0) {
-        text += `⚠️ ${summary.attentionCount} item${summary.attentionCount > 1 ? 's' : ''} need attention\n`;
-      }
-      if (summary.nextAppointment) {
-        text += `📅 ${summary.nextAppointment}\n`;
-      }
-      text += `\n---\n🔒 CONFIDENTIAL — This is a redacted summary from EmberMate.\nFor full details, request the complete Care Brief from the caregiver.`;
-
-      await Share.share({ message: text, title: 'Care Brief Summary' });
-      logAuditEvent(AuditEventType.CARE_BRIEF_SHARED, 'Care Brief shared via text (redacted)', AuditSeverity.WARNING, { format: 'text', redacted: true });
+      onShare();
     } catch (error) {
       logError('ShareActions.doShare', error);
     } finally {

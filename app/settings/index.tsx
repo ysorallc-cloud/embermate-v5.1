@@ -427,6 +427,13 @@ export default function SettingsScreen() {
       title: 'About & Support',
       items: [
         {
+          id: 'learn-explore',
+          icon: '📚',
+          title: 'Learn & Explore',
+          subtitle: 'Guides, tips, and resources',
+          onPress: () => router.push('/guide-hub'),
+        },
+        {
           id: 'privacy-policy',
           icon: '📄',
           title: 'Privacy Policy',
