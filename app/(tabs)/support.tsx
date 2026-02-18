@@ -21,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
+import { useDataListener } from '../../lib/events';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/theme-tokens';
 import {
   getCaregivers,
@@ -57,6 +58,8 @@ export default function SupportScreen() {
       loadData();
     }, [])
   );
+
+  useDataListener(useCallback(() => { loadData(); }, []));
 
   const loadData = async () => {
     let team = await getCaregivers();
@@ -181,8 +184,22 @@ export default function SupportScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Care Team</Text>
-            <Text style={styles.headerSubtitle}>People helping care for Dad</Text>
+            <Text style={styles.headerTitle}>Support</Text>
+            <Text style={styles.headerSubtitle}>Your care team</Text>
+          </View>
+
+          {/* Privacy Notice */}
+          <View style={styles.privacyNotice}>
+            <View style={styles.privacyAccent} />
+            <View style={styles.privacyContent}>
+              <Text style={styles.privacyIcon}>{'\uD83D\uDD12'}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.privacyTitle}>Nothing is shared without you</Text>
+                <Text style={styles.privacyText}>
+                  Your care data stays on this device. You control what gets shared and with whom.
+                </Text>
+              </View>
+            </View>
           </View>
 
           {/* Quick Actions Row */}
@@ -399,32 +416,54 @@ export default function SupportScreen() {
             </View>
           )}
 
-          {/* Bottom links — minimal row */}
-          <View style={styles.bottomLinks}>
-            <TouchableOpacity
-              onPress={() => router.push('/coffee')}
-              activeOpacity={0.7}
-              accessibilityRole="link"
-              accessibilityLabel="Take a Break"
-            >
-              <Text style={styles.bottomLinkText}>{'\u2615'} Take a Break</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => navigate('/help')}
-              activeOpacity={0.7}
-              accessibilityRole="link"
-              accessibilityLabel="Help"
-            >
-              <Text style={styles.bottomLinkText}>{'\u2753'} Help</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => navigate('/data-privacy-settings')}
-              activeOpacity={0.7}
-              accessibilityRole="link"
-              accessibilityLabel="Privacy settings"
-            >
-              <Text style={styles.bottomLinkText}>{'\uD83D\uDD12'} Privacy</Text>
-            </TouchableOpacity>
+          {/* Settings & Help */}
+          <View style={styles.section}>
+            <Text style={styles.sectionHeader}>SETTINGS & HELP</Text>
+            <View style={styles.settingsContainer}>
+              <TouchableOpacity
+                style={styles.settingsRow}
+                onPress={() => navigate('/settings')}
+                activeOpacity={0.7}
+                accessibilityRole="link"
+              >
+                <Text style={styles.settingsIcon}>{'\u2699\uFE0F'}</Text>
+                <Text style={styles.settingsLabel}>App Settings</Text>
+                <Text style={styles.settingsChevron}>{'\u203A'}</Text>
+              </TouchableOpacity>
+              <View style={styles.settingsRowBorder} />
+              <TouchableOpacity
+                style={styles.settingsRow}
+                onPress={() => navigate('/data-privacy-settings')}
+                activeOpacity={0.7}
+                accessibilityRole="link"
+              >
+                <Text style={styles.settingsIcon}>{'\uD83D\uDD12'}</Text>
+                <Text style={styles.settingsLabel}>Privacy & Data</Text>
+                <Text style={styles.settingsChevron}>{'\u203A'}</Text>
+              </TouchableOpacity>
+              <View style={styles.settingsRowBorder} />
+              <TouchableOpacity
+                style={styles.settingsRow}
+                onPress={() => navigate('/help')}
+                activeOpacity={0.7}
+                accessibilityRole="link"
+              >
+                <Text style={styles.settingsIcon}>{'\u2753'}</Text>
+                <Text style={styles.settingsLabel}>Help & Support</Text>
+                <Text style={styles.settingsChevron}>{'\u203A'}</Text>
+              </TouchableOpacity>
+              <View style={styles.settingsRowBorder} />
+              <TouchableOpacity
+                style={styles.settingsRow}
+                onPress={() => router.push('/coffee')}
+                activeOpacity={0.7}
+                accessibilityRole="link"
+              >
+                <Text style={styles.settingsIcon}>{'\u2615'}</Text>
+                <Text style={styles.settingsLabel}>Take a Break</Text>
+                <Text style={styles.settingsChevron}>{'\u203A'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Bottom spacing */}
@@ -483,6 +522,47 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: Colors.textTertiary,
     letterSpacing: 0.3,
+  },
+
+  // Privacy Notice
+  privacyNotice: {
+    backgroundColor: Colors.glassFaint,
+    borderWidth: 1,
+    borderColor: Colors.glassActive,
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  privacyAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: Colors.accent,
+  },
+  privacyContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 14,
+    paddingLeft: 16,
+    gap: 10,
+  },
+  privacyIcon: {
+    fontSize: 18,
+    marginTop: 1,
+  },
+  privacyTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 3,
+  },
+  privacyText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 18,
   },
 
   // Quick Actions
@@ -770,15 +850,38 @@ const styles = StyleSheet.create({
     color: Colors.sageSoft,
   },
 
-  // Bottom links — minimal row
-  bottomLinks: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 24,
-    marginTop: 8,
+  // Settings & Help
+  settingsContainer: {
+    backgroundColor: Colors.glassFaint,
+    borderWidth: 1,
+    borderColor: Colors.glassActive,
+    borderRadius: 14,
+    overflow: 'hidden',
   },
-  bottomLinkText: {
-    fontSize: 12,
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  settingsRowBorder: {
+    height: 1,
+    backgroundColor: Colors.glassHover,
+    marginHorizontal: 14,
+  },
+  settingsIcon: {
+    fontSize: 16,
+    width: 24,
+    textAlign: 'center',
+  },
+  settingsLabel: {
+    fontSize: 14,
+    color: Colors.textBright,
+    flex: 1,
+  },
+  settingsChevron: {
+    fontSize: 18,
     color: Colors.textMuted,
   },
 });

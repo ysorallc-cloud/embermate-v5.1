@@ -46,6 +46,7 @@ import {
   ConfidenceLevel,
 } from '../../utils/understandInsights';
 import { logError } from '../../utils/devLog';
+import { useDataListener } from '../../lib/events';
 import { buildProviderPrep, ProviderPrepData } from '../../utils/providerPrepBuilder';
 import { ProviderPrepCard } from '../../components/understand/ProviderPrepCard';
 import { PatternsSheet } from '../../components/understand/PatternsSheet';
@@ -94,11 +95,15 @@ interface TimeRangeToggleProps {
 }
 
 function TimeRangeToggle({ value, onChange }: TimeRangeToggleProps) {
-  const options: TimeRange[] = [7, 14, 30];
+  const options: { range: TimeRange; label: string }[] = [
+    { range: 7, label: 'This week' },
+    { range: 14, label: 'Two weeks' },
+    { range: 30, label: 'This month' },
+  ];
 
   return (
     <View style={styles.timeRangeContainer}>
-      {options.map((range) => (
+      {options.map(({ range, label }) => (
         <TouchableOpacity
           key={range}
           style={[
@@ -108,14 +113,14 @@ function TimeRangeToggle({ value, onChange }: TimeRangeToggleProps) {
           onPress={() => onChange(range)}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel={`${range} day range`}
+          accessibilityLabel={`${label} range`}
           accessibilityState={{ selected: value === range }}
         >
           <Text style={[
             styles.timeRangeText,
             value === range && styles.timeRangeTextSelected,
           ]}>
-            {range}d
+            {label}
           </Text>
         </TouchableOpacity>
       ))}
@@ -379,6 +384,8 @@ export default function UnderstandScreen() {
     }, [timeRange])
   );
 
+  useDataListener(useCallback(() => { loadData(); }, [timeRange]));
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -446,10 +453,10 @@ export default function UnderstandScreen() {
   // Pattern exploration tools
   const PATTERN_TOOLS = [
     {
-      id: 'trends',
-      icon: '📈',
-      title: 'Trends Over Time',
-      subtitle: 'See how things change',
+      id: 'vitals-history',
+      icon: '🩺',
+      title: 'Vitals History',
+      subtitle: 'BP, heart rate & more over time',
       route: '/trends',
     },
     {
@@ -458,6 +465,13 @@ export default function UnderstandScreen() {
       title: 'Medication Report',
       subtitle: 'Adherence & clinical data',
       route: '/medication-report',
+    },
+    {
+      id: 'weekly-summaries',
+      icon: '📊',
+      title: 'Weekly Summaries',
+      subtitle: 'Week-by-week care overview',
+      route: '/trends',
     },
   ];
 
@@ -495,9 +509,6 @@ export default function UnderstandScreen() {
             <View style={styles.headerTop}>
               <View style={styles.headerText}>
                 <Text style={styles.headerTitle}>Understand</Text>
-                <Text style={styles.headerSubtitle}>
-                  {pageData?.framing.subtitle || "See what's forming"}
-                </Text>
               </View>
               <TouchableOpacity
                 style={styles.settingsButton}
@@ -665,7 +676,7 @@ export default function UnderstandScreen() {
           {/* Guiding question */}
           <View style={styles.guidingSection}>
             <Text style={styles.guidingText}>
-              What would you want to tell the doctor about this {timeRange === 7 ? 'week' : timeRange === 14 ? 'fortnight' : 'month'}?
+              What would you want to tell the doctor about these {timeRange === 7 ? 'past 7 days' : timeRange === 14 ? 'two weeks' : 'past month'}?
             </Text>
           </View>
 
@@ -725,7 +736,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   headerText: {
     flex: 1,
@@ -765,22 +776,22 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent,
   },
 
-  // Time Range Toggle
+  // Time Range Toggle (underline tabs)
   timeRangeContainer: {
     flexDirection: 'row',
-    backgroundColor: Colors.glassHover,
-    borderRadius: 10,
-    padding: 4,
-    gap: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    gap: 0,
   },
   timeRangeOption: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
   timeRangeOptionSelected: {
-    backgroundColor: Colors.sageWash,
+    borderBottomColor: Colors.accent,
   },
   timeRangeText: {
     fontSize: 14,

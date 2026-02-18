@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { parseTimeForDisplay } from '../../utils/nowHelpers';
+import { parseTimeForDisplay, getTimeWindow } from '../../utils/nowHelpers';
 import { Colors } from '../../theme/theme-tokens';
 
 // Map itemType back to display label for hint text
@@ -26,6 +26,8 @@ interface NextUpStripProps {
   nextPendingItem: any | null;
   hasRegimenInstances: boolean;
   overdueByCategory?: Record<string, number>;
+  onViewTasks?: (window: string) => void;
+  overdueItems?: any[];
 }
 
 export function NextUpCard({
@@ -35,6 +37,8 @@ export function NextUpCard({
   nextPendingItem,
   hasRegimenInstances,
   overdueByCategory,
+  onViewTasks,
+  overdueItems,
 }: NextUpStripProps) {
   // No care plan — don't render
   if (!hasRegimenInstances) return null;
@@ -66,11 +70,21 @@ export function NextUpCard({
       }
     }
 
+    const handleOverduePress = () => {
+      if (onViewTasks && overdueItems && overdueItems.length > 0) {
+        const window = getTimeWindow(overdueItems[0].scheduledTime);
+        onViewTasks(window);
+      }
+    };
+
     return (
-      <View
+      <TouchableOpacity
         style={styles.stripOverdue}
+        onPress={handleOverduePress}
+        activeOpacity={onViewTasks ? 0.7 : 1}
         accessible={true}
         accessibilityLabel={`${overdueCount} ${overdueCount === 1 ? 'item' : 'items'} overdue${hintCategory ? `. Tap ${hintCategory} to catch up` : ''}`}
+        accessibilityRole="button"
       >
         <View style={styles.stripContent}>
           <View style={styles.overdueBadge}>
@@ -87,7 +101,7 @@ export function NextUpCard({
             ) : null}
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   }
 

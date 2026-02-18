@@ -81,8 +81,9 @@ export const CoffeeMomentScreen: React.FC<Props> = ({ onAccept }) => {
         <GlassCard style={styles.disclaimerCard}>
           <Text style={styles.disclaimerTitle}>Important Notice</Text>
           <Text style={styles.disclaimerText}>
-            EmberMate is not HIPAA-compliant and is for personal tracking only,
-            not medical diagnosis or treatment.
+            EmberMate is a personal caregiving companion. It is not a medical
+            device and does not replace professional medical advice, diagnosis,
+            or treatment.
           </Text>
 
           {/* Checkbox */}
