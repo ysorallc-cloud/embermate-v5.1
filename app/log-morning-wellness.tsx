@@ -1,6 +1,6 @@
 // ============================================================================
 // LOG MORNING WELLNESS CHECK
-// Sleep quality, mood, energy level
+// Consolidated compact layout: horizontal emoji rows + 2-column grids
 // ============================================================================
 
 import React, { useState } from 'react';
@@ -16,10 +16,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
-import { useWellnessSettings } from '../hooks/useWellnessSettings';
 import { saveMorningWellness, skipMorningWellness } from '../utils/wellnessCheckStorage';
 import { listDailyInstances, logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
-import { format } from 'date-fns';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 const SLEEP_OPTIONS = [
   { value: 5, emoji: '😴', label: 'Excellent' },
@@ -30,47 +29,55 @@ const SLEEP_OPTIONS = [
 ] as const;
 
 const MOOD_OPTIONS = [
-  { value: 'great', emoji: '😄', label: 'Great' },
-  { value: 'good', emoji: '🙂', label: 'Good' },
-  { value: 'managing', emoji: '😐', label: 'Managing' },
-  { value: 'difficult', emoji: '😟', label: 'Difficult' },
-  { value: 'struggling', emoji: '😢', label: 'Struggling' },
+  { value: 5, emoji: '😄', label: 'Great' },
+  { value: 4, emoji: '🙂', label: 'Good' },
+  { value: 3, emoji: '😐', label: 'Managing' },
+  { value: 2, emoji: '😟', label: 'Difficult' },
+  { value: 1, emoji: '😢', label: 'Struggling' },
 ] as const;
 
 const ENERGY_OPTIONS = [
-  { value: 5, label: 'Energetic' },
-  { value: 4, label: 'Good' },
-  { value: 3, label: 'Moderate' },
-  { value: 2, label: 'Low' },
-  { value: 1, label: 'Exhausted' },
+  { value: 5, emoji: '⚡', label: 'Energetic' },
+  { value: 4, emoji: '👍', label: 'Good' },
+  { value: 3, emoji: '😐', label: 'Moderate' },
+  { value: 2, emoji: '📉', label: 'Low' },
+  { value: 1, emoji: '😴', label: 'Exhausted' },
 ] as const;
 
 const ORIENTATION_OPTIONS = [
-  { value: 'alert-oriented', emoji: '🧠', label: 'Alert & Oriented' },
-  { value: 'confused-responsive', emoji: '😕', label: 'Confused but Responsive' },
+  { value: 'alert-oriented', emoji: '🧠', label: 'Alert' },
+  { value: 'confused-responsive', emoji: '😕', label: 'Confused' },
   { value: 'disoriented', emoji: '🌀', label: 'Disoriented' },
   { value: 'unresponsive', emoji: '😶', label: 'Unresponsive' },
 ] as const;
 
 const DECISION_MAKING_OPTIONS = [
-  { value: 'own-decisions', emoji: '✅', label: 'Making Own Decisions' },
+  { value: 'own-decisions', emoji: '✅', label: 'Independent' },
   { value: 'needs-guidance', emoji: '🤝', label: 'Needs Guidance' },
   { value: 'unable-to-decide', emoji: '⚠️', label: 'Unable to Decide' },
 ] as const;
 
+// Progress dots: 5 sections total (sleep, mood, energy, orientation, decision)
+const TOTAL_SECTIONS = 5;
+
 export default function LogMorningWellnessScreen() {
   const router = useRouter();
-  const { settings } = useWellnessSettings();
-  const showOrientation = settings.morning.optionalChecks?.orientation ?? false;
-  const showDecisionMaking = settings.morning.optionalChecks?.decisionMaking ?? false;
   const [sleepQuality, setSleepQuality] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
-  const [mood, setMood] = useState<'struggling' | 'difficult' | 'managing' | 'good' | 'great' | null>(null);
+  const [mood, setMood] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
   const [energyLevel, setEnergyLevel] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
   const [orientation, setOrientation] = useState<'alert-oriented' | 'confused-responsive' | 'disoriented' | 'unresponsive' | null>(null);
   const [decisionMaking, setDecisionMaking] = useState<'own-decisions' | 'needs-guidance' | 'unable-to-decide' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canSubmit = sleepQuality !== null && mood !== null && energyLevel !== null;
+
+  // Count filled sections for progress dots
+  const filledCount =
+    (sleepQuality !== null ? 1 : 0) +
+    (mood !== null ? 1 : 0) +
+    (energyLevel !== null ? 1 : 0) +
+    (orientation !== null ? 1 : 0) +
+    (decisionMaking !== null ? 1 : 0);
 
   const handleSkip = async () => {
     Alert.alert(
@@ -83,9 +90,8 @@ export default function LogMorningWellnessScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const today = format(new Date(), 'yyyy-MM-dd');
+              const today = getTodayDateString();
               await skipMorningWellness(today);
-              // Bridge to care plan instance
               try {
                 const instances = await listDailyInstances(DEFAULT_PATIENT_ID, today);
                 const inst = instances.find(i => i.itemType === 'wellness' && i.windowLabel === 'morning' && i.status === 'pending');
@@ -110,7 +116,7 @@ export default function LogMorningWellnessScreen() {
 
     setIsSubmitting(true);
     try {
-      const today = format(new Date(), 'yyyy-MM-dd');
+      const today = getTodayDateString();
       await saveMorningWellness(today, {
         sleepQuality: sleepQuality!,
         mood: mood!,
@@ -119,7 +125,6 @@ export default function LogMorningWellnessScreen() {
         ...(decisionMaking && { decisionMaking }),
         completedAt: new Date(),
       });
-      // Bridge to care plan instance
       try {
         const instances = await listDailyInstances(DEFAULT_PATIENT_ID, today);
         const inst = instances.find(i => i.itemType === 'wellness' && i.windowLabel === 'morning' && i.status === 'pending');
@@ -167,170 +172,188 @@ export default function LogMorningWellnessScreen() {
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
         >
-          {/* Sleep Quality */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>How was sleep last night?</Text>
-            <View style={styles.optionGrid}>
-              {SLEEP_OPTIONS.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.optionButton,
-                    sleepQuality === option.value && styles.optionButtonSelected,
-                  ]}
-                  onPress={() => setSleepQuality(option.value)}
-                  accessibilityLabel={`Sleep quality: ${option.label}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: sleepQuality === option.value }}
-                >
-                  <Text style={styles.optionEmoji}>{option.emoji}</Text>
-                  <Text
-                    style={[
-                      styles.optionLabel,
-                      sleepQuality === option.value && styles.optionLabelSelected,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+          {/* Progress Dots */}
+          <View style={styles.progressRow}>
+            {Array.from({ length: TOTAL_SECTIONS }).map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.progressDot,
+                  i < filledCount && styles.progressDotActive,
+                ]}
+              />
+            ))}
           </View>
 
-          {/* Mood */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>How are they feeling?</Text>
-            <View style={styles.optionGrid}>
-              {MOOD_OPTIONS.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.optionButton,
-                    mood === option.value && styles.optionButtonSelected,
-                  ]}
-                  onPress={() => setMood(option.value)}
-                  accessibilityLabel={`Mood: ${option.label}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: mood === option.value }}
-                >
-                  <Text style={styles.optionEmoji}>{option.emoji}</Text>
-                  <Text
-                    style={[
-                      styles.optionLabel,
-                      mood === option.value && styles.optionLabelSelected,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+          {/* Sleep Quality — compact card, horizontal emoji row */}
+          <View style={styles.compactCard}>
+            <View style={styles.compactHeader}>
+              <Text style={styles.compactTitle}>Sleep quality</Text>
+              <View style={styles.requiredBadge}>
+                <Text style={styles.requiredBadgeText}>Required</Text>
+              </View>
             </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.emojiRow}>
+                {SLEEP_OPTIONS.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.emojiOption,
+                      sleepQuality === option.value && styles.emojiOptionSelected,
+                    ]}
+                    onPress={() => setSleepQuality(option.value)}
+                    accessibilityLabel={`Sleep quality: ${option.label}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: sleepQuality === option.value }}
+                  >
+                    <Text style={styles.emojiIcon}>{option.emoji}</Text>
+                    <Text style={[
+                      styles.emojiLabel,
+                      sleepQuality === option.value && styles.emojiLabelSelected,
+                    ]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
           </View>
 
-          {/* Energy Level */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Energy level?</Text>
-            <View style={styles.energyList}>
-              {ENERGY_OPTIONS.map((option) => (
+          {/* Mood — compact card, horizontal emoji row */}
+          <View style={styles.compactCard}>
+            <View style={styles.compactHeader}>
+              <Text style={styles.compactTitle}>How are they feeling?</Text>
+              <View style={styles.requiredBadge}>
+                <Text style={styles.requiredBadgeText}>Required</Text>
+              </View>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.emojiRow}>
+                {MOOD_OPTIONS.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.emojiOption,
+                      mood === option.value && styles.emojiOptionSelected,
+                    ]}
+                    onPress={() => setMood(option.value)}
+                    accessibilityLabel={`Mood: ${option.label}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: mood === option.value }}
+                  >
+                    <Text style={styles.emojiIcon}>{option.emoji}</Text>
+                    <Text style={[
+                      styles.emojiLabel,
+                      mood === option.value && styles.emojiLabelSelected,
+                    ]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+
+          {/* Energy Level — compact card, 2-column grid */}
+          <View style={styles.compactCard}>
+            <View style={styles.compactHeader}>
+              <Text style={styles.compactTitle}>Energy level</Text>
+              <View style={styles.requiredBadge}>
+                <Text style={styles.requiredBadgeText}>Required</Text>
+              </View>
+            </View>
+            <View style={styles.radioGrid}>
+              {ENERGY_OPTIONS.map((option, i) => (
                 <TouchableOpacity
                   key={option.value}
                   style={[
-                    styles.energyOption,
-                    energyLevel === option.value && styles.energyOptionSelected,
+                    styles.radioOption,
+                    energyLevel === option.value && styles.radioOptionSelected,
+                    // Last odd item spans 2 columns
+                    i === ENERGY_OPTIONS.length - 1 && ENERGY_OPTIONS.length % 2 !== 0 && styles.radioOptionSpan,
                   ]}
                   onPress={() => setEnergyLevel(option.value)}
                   accessibilityLabel={`Energy level: ${option.label}`}
-                  accessibilityRole="radio"
+                  accessibilityRole="button"
                   accessibilityState={{ selected: energyLevel === option.value }}
                 >
-                  <View
-                    style={[
-                      styles.radio,
-                      energyLevel === option.value && styles.radioSelected,
-                    ]}
-                  >
-                    {energyLevel === option.value && (
-                      <View style={styles.radioDot} />
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.energyLabel,
-                      energyLevel === option.value && styles.energyLabelSelected,
-                    ]}
-                  >
-                    {option.label}
+                  <Text style={[
+                    styles.radioText,
+                    energyLevel === option.value && styles.radioTextSelected,
+                  ]}>
+                    {option.emoji} {option.label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
-          {/* Orientation (Optional — shown if enabled in settings) */}
-          {showOrientation && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Orientation</Text>
-              <Text style={styles.sectionSubtitle}>Optional</Text>
-              <View style={styles.optionGrid}>
-                {ORIENTATION_OPTIONS.map((option) => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.optionButton,
-                      orientation === option.value && styles.optionButtonSelected,
-                    ]}
-                    onPress={() => setOrientation(orientation === option.value ? null : option.value)}
-                    accessibilityLabel={`Orientation: ${option.label}`}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: orientation === option.value }}
-                  >
-                    <Text style={styles.optionEmoji}>{option.emoji}</Text>
-                    <Text
-                      style={[
-                        styles.optionLabel,
-                        orientation === option.value && styles.optionLabelSelected,
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+          {/* Orientation — always visible, Optional badge */}
+          <View style={styles.compactCard}>
+            <View style={styles.compactHeader}>
+              <Text style={styles.compactTitle}>Orientation</Text>
+              <View style={styles.optionalBadge}>
+                <Text style={styles.optionalBadgeText}>Optional</Text>
               </View>
             </View>
-          )}
+            <View style={styles.radioGrid}>
+              {ORIENTATION_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.radioOption,
+                    orientation === option.value && styles.radioOptionSelected,
+                  ]}
+                  onPress={() => setOrientation(orientation === option.value ? null : option.value)}
+                  accessibilityLabel={`Orientation: ${option.label}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: orientation === option.value }}
+                >
+                  <Text style={[
+                    styles.radioText,
+                    orientation === option.value && styles.radioTextSelected,
+                  ]}>
+                    {option.emoji} {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
-          {/* Decision Making (Optional — shown if enabled in settings) */}
-          {showDecisionMaking && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Decision Making</Text>
-              <Text style={styles.sectionSubtitle}>Optional</Text>
-              <View style={styles.optionGrid}>
-                {DECISION_MAKING_OPTIONS.map((option) => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.optionButton,
-                      decisionMaking === option.value && styles.optionButtonSelected,
-                    ]}
-                    onPress={() => setDecisionMaking(decisionMaking === option.value ? null : option.value)}
-                    accessibilityLabel={`Decision making: ${option.label}`}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: decisionMaking === option.value }}
-                  >
-                    <Text style={styles.optionEmoji}>{option.emoji}</Text>
-                    <Text
-                      style={[
-                        styles.optionLabel,
-                        decisionMaking === option.value && styles.optionLabelSelected,
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+          {/* Decision Making — always visible, Optional badge */}
+          <View style={styles.compactCard}>
+            <View style={styles.compactHeader}>
+              <Text style={styles.compactTitle}>Decision making</Text>
+              <View style={styles.optionalBadge}>
+                <Text style={styles.optionalBadgeText}>Optional</Text>
               </View>
             </View>
-          )}
+            <View style={styles.radioGrid}>
+              {DECISION_MAKING_OPTIONS.map((option, i) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.radioOption,
+                    decisionMaking === option.value && styles.radioOptionSelected,
+                    // Last odd item spans 2 columns
+                    i === DECISION_MAKING_OPTIONS.length - 1 && DECISION_MAKING_OPTIONS.length % 2 !== 0 && styles.radioOptionSpan,
+                  ]}
+                  onPress={() => setDecisionMaking(decisionMaking === option.value ? null : option.value)}
+                  accessibilityLabel={`Decision making: ${option.label}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: decisionMaking === option.value }}
+                >
+                  <Text style={[
+                    styles.radioText,
+                    decisionMaking === option.value && styles.radioTextSelected,
+                  ]}>
+                    {option.emoji} {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
         </ScrollView>
 
         {/* Footer */}
@@ -397,98 +420,137 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: 20,
+    padding: 16,
   },
-  section: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.textPrimary,
+
+  // Progress dots
+  progressRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 4,
     marginBottom: 16,
   },
-  sectionSubtitle: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    marginTop: -12,
-    marginBottom: 12,
+  progressDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
-  optionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  optionButton: {
-    width: '30%',
-    aspectRatio: 1,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  optionButtonSelected: {
-    backgroundColor: Colors.accentHint,
-    borderColor: Colors.accent,
-  },
-  optionEmoji: {
-    fontSize: 32,
-  },
-  optionLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-  optionLabelSelected: {
-    color: Colors.accent,
-    fontWeight: '600',
-  },
-  energyList: {
-    gap: 12,
-  },
-  energyOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    padding: 16,
-    gap: 14,
-  },
-  energyOptionSelected: {
-    backgroundColor: Colors.accentHint,
-    borderColor: Colors.accent,
-  },
-  radio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioSelected: {
-    borderColor: Colors.accent,
-  },
-  radioDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  progressDotActive: {
+    width: 20,
+    borderRadius: 3,
     backgroundColor: Colors.accent,
   },
-  energyLabel: {
-    fontSize: 15,
-    color: Colors.textSecondary,
+
+  // Compact card sections
+  compactCard: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
   },
-  energyLabelSelected: {
+  compactHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  compactTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  requiredBadge: {
+    backgroundColor: 'rgba(251,191,36,0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  requiredBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FBBF24',
+    textTransform: 'uppercase',
+  },
+  optionalBadge: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  optionalBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.5)',
+  },
+
+  // Horizontal emoji row
+  emojiRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  emojiOption: {
+    minWidth: 60,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  emojiOptionSelected: {
+    backgroundColor: 'rgba(20,184,166,0.2)',
+    borderColor: Colors.accent,
+  },
+  emojiIcon: {
+    fontSize: 28,
+    marginBottom: 4,
+  },
+  emojiLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.6)',
+  },
+  emojiLabelSelected: {
     color: Colors.accent,
     fontWeight: '600',
   },
+
+  // 2-column radio grid
+  radioGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  radioOption: {
+    width: '48.5%',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+  },
+  radioOptionSelected: {
+    backgroundColor: 'rgba(20,184,166,0.2)',
+    borderColor: Colors.accent,
+  },
+  radioOptionSpan: {
+    width: '100%',
+  },
+  radioText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  radioTextSelected: {
+    color: Colors.accent,
+    fontWeight: '600',
+  },
+
+  // Footer
   footer: {
     padding: 20,
     paddingBottom: 24,
@@ -498,7 +560,7 @@ const styles = StyleSheet.create({
   submitButton: {
     paddingVertical: 16,
     backgroundColor: Colors.accent,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: 'center',
   },
   submitButtonDisabled: {

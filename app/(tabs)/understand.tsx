@@ -96,9 +96,9 @@ interface TimeRangeToggleProps {
 
 function TimeRangeToggle({ value, onChange }: TimeRangeToggleProps) {
   const options: { range: TimeRange; label: string }[] = [
-    { range: 7, label: 'This week' },
-    { range: 14, label: 'Two weeks' },
-    { range: 30, label: 'This month' },
+    { range: 7, label: '7d' },
+    { range: 14, label: '14d' },
+    { range: 30, label: '30d' },
   ];
 
   return (
@@ -137,10 +137,16 @@ interface StandOutRowProps {
   onLinkPress?: () => void;
 }
 
+function getInsightBulletColor(insight: StandOutInsight): string {
+  if (insight.confidence === 'emerging' || insight.confidence === 'early') return '#F59E0B';
+  if (insight.relatedTo === 'record') return '#3B82F6';
+  return Colors.accent;
+}
+
 function StandOutRow({ insight, onLinkPress }: StandOutRowProps) {
   return (
     <View style={styles.standOutRow}>
-      <View style={styles.standOutBullet} />
+      <View style={[styles.standOutBullet, { backgroundColor: getInsightBulletColor(insight) }]} />
       <View style={styles.standOutContent}>
         <Text style={styles.standOutText}>{insight.text}</Text>
         {insight.linkRoute && insight.linkLabel && (
@@ -455,30 +461,13 @@ export default function UnderstandScreen() {
     }
   };
 
-  // Pattern exploration tools
-  const PATTERN_TOOLS = [
-    {
-      id: 'vitals-history',
-      icon: '🩺',
-      title: 'Vitals History',
-      subtitle: 'BP, heart rate & more over time',
-      route: '/trends',
-    },
-    {
-      id: 'medication-report',
-      icon: '💊',
-      title: 'Medication Report',
-      subtitle: 'Adherence & clinical data',
-      route: '/medication-report',
-    },
-    {
-      id: 'weekly-summaries',
-      icon: '📊',
-      title: 'Weekly Summaries',
-      subtitle: 'Week-by-week care overview',
-      route: '/trends',
-    },
-  ];
+  // Single deeper patterns tool
+  const DEEPER_PATTERNS_TOOL = {
+    icon: '🔍',
+    title: 'Deeper Patterns',
+    subtitle: 'Explore all correlations',
+    route: '/trends',
+  };
 
   if (loading && !pageData) {
     return (
@@ -513,7 +502,12 @@ export default function UnderstandScreen() {
           <View style={styles.header}>
             <View style={styles.headerTop}>
               <View style={styles.headerText}>
-                <Text style={styles.headerTitle}>Insights</Text>
+                <Text style={styles.headerTitle}>Understand</Text>
+                <Text style={styles.headerSubtitle}>
+                  {pageData && !pageData.isSampleData && pageData.daysOfData >= 7
+                    ? "What's stabilizing"
+                    : 'Patterns emerge with time'}
+                </Text>
               </View>
               <TouchableOpacity
                 style={styles.settingsButton}
@@ -523,14 +517,13 @@ export default function UnderstandScreen() {
                 accessibilityLabel="Settings"
               >
                 <Text style={styles.settingsIcon}>⚙️</Text>
-                {pageData && pageData.daysOfData > 0 && (
-                  <View style={styles.settingsDot} />
-                )}
               </TouchableOpacity>
             </View>
 
-            {/* Time Range Toggle */}
-            <TimeRangeToggle value={timeRange} onChange={handleTimeRangeChange} />
+            {/* Time Range Toggle — only show with enough data */}
+            {pageData && !pageData.isSampleData && pageData.daysOfData >= 7 && (
+              <TimeRangeToggle value={timeRange} onChange={handleTimeRangeChange} />
+            )}
           </View>
 
           {/* Sample Data Banner - shows smaller version after first dismissal */}
@@ -541,22 +534,15 @@ export default function UnderstandScreen() {
             />
           )}
 
-          {/* Data Building Progress Banner */}
+          {/* Data Building — centered prominent card */}
           {pageData && !pageData.isSampleData && pageData.daysOfData < 7 && (
             <View style={styles.dataBuildingBanner}>
-              <View style={styles.dataBuildingContent}>
-                <Text style={styles.dataBuildingIcon}>{'\uD83C\uDF31'}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.dataBuildingTitle}>Building your picture</Text>
-                  <Text style={styles.dataBuildingSubtitle}>
-                    Keep tracking — patterns start showing up after about a week. You've logged <Text style={{ color: Colors.accent, fontWeight: '600' }}>{pageData.daysOfData} days</Text> so far.
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.dataBuildingProgressBar}>
-                <View style={[styles.dataBuildingProgressFill, { width: `${Math.min(100, (pageData.daysOfData / 7) * 100)}%` }]} />
-              </View>
-              <Text style={styles.dataBuildingProgressLabel}>{pageData.daysOfData} of 7 days to first insights</Text>
+              <Text style={styles.dataBuildingEmoji}>📊</Text>
+              <Text style={styles.dataBuildingTitle}>Building your picture</Text>
+              <Text style={styles.dataBuildingSubtitle}>
+                Keep tracking — patterns emerge after a few days.{'\n'}
+                You've logged <Text style={{ color: Colors.accent, fontWeight: '600' }}>{pageData.daysOfData} day{pageData.daysOfData !== 1 ? 's' : ''}</Text> so far.
+              </Text>
             </View>
           )}
 
@@ -565,9 +551,13 @@ export default function UnderstandScreen() {
             <ConfidenceExplanation onDismiss={handleDismissConfidenceExplanation} />
           )}
 
-          {/* What Stands Out Section */}
+          {/* What Stands Out / What We Know So Far */}
           <View style={styles.section}>
-            <Text style={styles.sectionHeader}>WHAT STANDS OUT</Text>
+            <Text style={styles.sectionHeader}>
+              {pageData && !pageData.isSampleData && pageData.daysOfData < 7
+                ? 'WHAT WE KNOW SO FAR'
+                : 'WHAT STANDS OUT'}
+            </Text>
             <View style={styles.standOutCard}>
               {pageData?.standOutInsights.map((insight) => (
                 <StandOutRow
@@ -636,57 +626,13 @@ export default function UnderstandScreen() {
             </View>
           )}
 
-          {/* Find Patterns Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionHeader}>EXPLORE MORE</Text>
-            <View style={styles.toolsContainer}>
-              {PATTERN_TOOLS.map((tool) => (
-                <PatternTool
-                  key={tool.id}
-                  icon={tool.icon}
-                  title={tool.title}
-                  subtitle={tool.subtitle}
-                  onPress={() => navigateToRoute(tool.route)}
-                />
-              ))}
-            </View>
-          </View>
-
-          {/* Cross-linking hints */}
-          <View style={styles.crossLinkSection}>
-            <TouchableOpacity
-              style={styles.crossLink}
-              onPress={() => router.push('/(tabs)/now')}
-              activeOpacity={0.7}
-              accessibilityRole="link"
-              accessibilityLabel="View in Now"
-            >
-              <Text style={styles.crossLinkText}>
-                Related to mornings? →{' '}
-                <Text style={styles.crossLinkAction}>View in Now</Text>
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.crossLink}
-              onPress={() => navigate('/care-plan')}
-              activeOpacity={0.7}
-              accessibilityRole="link"
-              accessibilityLabel="Edit Care Plan"
-            >
-              <Text style={styles.crossLinkText}>
-                Want different reminders? →{' '}
-                <Text style={styles.crossLinkAction}>Edit Care Plan</Text>
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Guiding question */}
-          <View style={styles.guidingSection}>
-            <Text style={styles.guidingText}>
-              What would you want to tell the doctor about these {timeRange === 7 ? 'past 7 days' : timeRange === 14 ? 'two weeks' : 'past month'}?
-            </Text>
-          </View>
+          {/* Deeper Patterns */}
+          <PatternTool
+            icon={DEEPER_PATTERNS_TOOL.icon}
+            title={DEEPER_PATTERNS_TOOL.title}
+            subtitle={DEEPER_PATTERNS_TOOL.subtitle}
+            onPress={() => navigateToRoute(DEEPER_PATTERNS_TOOL.route)}
+          />
 
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -750,56 +696,55 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 34,
-    fontWeight: '300',
+    fontSize: 28,
+    fontWeight: '200',
     color: Colors.textPrimary,
-    marginBottom: 8,
     letterSpacing: 0.5,
   },
+  headerSubtitle: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
   settingsButton: {
-    width: 44,
-    height: 44,
+    width: 30,
+    height: 30,
     backgroundColor: Colors.glassActive,
-    borderRadius: 22,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   settingsIcon: {
-    fontSize: 24,
-  },
-  settingsDot: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.accent,
+    fontSize: 12,
+    opacity: 0.5,
   },
 
-  // Time Range Toggle (underline tabs)
+  // Time Range Toggle (segmented pill buttons)
   timeRangeContainer: {
     flexDirection: 'row',
-    gap: 20,
-    marginTop: -8,
+    backgroundColor: Colors.glassActive,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   timeRangeOption: {
-    paddingBottom: 6,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
   },
   timeRangeOptionSelected: {
-    borderBottomColor: Colors.accent,
+    backgroundColor: 'rgba(20,184,166,0.12)',
   },
   timeRangeText: {
-    fontSize: 13,
-    fontWeight: '400',
+    fontSize: 12,
+    fontWeight: '600',
     color: Colors.textMuted,
   },
   timeRangeTextSelected: {
     color: Colors.accent,
-    fontWeight: '500',
   },
 
   // Sections
@@ -985,9 +930,6 @@ const styles = StyleSheet.create({
   },
 
   // Pattern Tools
-  toolsContainer: {
-    gap: 10,
-  },
   toolCard: {
     padding: 14,
     backgroundColor: Colors.glassFaint,
@@ -1030,37 +972,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: Colors.accentMuted,
     fontWeight: '600',
-  },
-
-  // Cross-linking
-  crossLinkSection: {
-    gap: 8,
-    marginBottom: 20,
-  },
-  crossLink: {
-    paddingVertical: 8,
-  },
-  crossLinkText: {
-    fontSize: 13,
-    color: Colors.textHalf,
-  },
-  crossLinkAction: {
-    color: Colors.accent,
-  },
-
-  // Guiding Section
-  guidingSection: {
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-  },
-  guidingText: {
-    fontSize: 14,
-    fontWeight: '400',
-    fontStyle: 'italic',
-    color: Colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 20,
   },
 
   // Sample Data Banner
@@ -1183,49 +1094,30 @@ const styles = StyleSheet.create({
     color: Colors.sageBright,
   },
 
-  // Data Building Progress Banner
+  // Data Building Banner (centered)
   dataBuildingBanner: {
-    backgroundColor: Colors.glass,
+    backgroundColor: 'rgba(20,184,166,0.12)',
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: 'rgba(20,184,166,0.25)',
     borderRadius: 14,
-    padding: 14,
+    padding: 20,
     marginBottom: 20,
+    alignItems: 'center',
   },
-  dataBuildingContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    marginBottom: 10,
-  },
-  dataBuildingIcon: {
-    fontSize: 24,
+  dataBuildingEmoji: {
+    fontSize: 32,
+    marginBottom: 8,
   },
   dataBuildingTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '500',
     color: Colors.textBright,
-    marginBottom: 2,
+    marginBottom: 6,
   },
   dataBuildingSubtitle: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  dataBuildingProgressBar: {
-    height: 6,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  dataBuildingProgressFill: {
-    height: '100%',
-    backgroundColor: Colors.accent,
-    borderRadius: 3,
-  },
-  dataBuildingProgressLabel: {
-    fontSize: 10,
+    fontSize: 12,
     color: Colors.textMuted,
-    marginTop: 4,
+    lineHeight: 18,
+    textAlign: 'center',
   },
 });
