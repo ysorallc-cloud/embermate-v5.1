@@ -13,7 +13,7 @@ import { TimelineItem } from '../../types/timeline';
 import { Colors } from '../../theme/theme-tokens';
 import { markMedicationTaken } from '../../utils/medicationStorage';
 import { saveMorningWellness, saveEveningWellness } from '../../utils/wellnessCheckStorage';
-import { format } from 'date-fns';
+import { getTodayDateString } from '../../services/carePlanGenerator';
 import { logError } from '../../utils/devLog';
 
 interface TimelineProps {
@@ -39,16 +39,16 @@ export const Timeline: React.FC<TimelineProps> = ({ items, tomorrowCount = 0, on
           break;
         case 'wellness-morning':
           // Quick complete with defaults (user can edit later by tapping)
-          await saveMorningWellness(format(new Date(), 'yyyy-MM-dd'), {
+          await saveMorningWellness(getTodayDateString(), {
             sleepQuality: 3,
-            mood: 'managing',
+            mood: 3,
             energyLevel: 3,
             completedAt: new Date(),
           });
           break;
         case 'wellness-evening':
-          await saveEveningWellness(format(new Date(), 'yyyy-MM-dd'), {
-            mood: 'managing',
+          await saveEveningWellness(getTodayDateString(), {
+            mood: 3,
             mealsLogged: true,
             dayRating: 3,
             completedAt: new Date(),
@@ -102,7 +102,7 @@ export const Timeline: React.FC<TimelineProps> = ({ items, tomorrowCount = 0, on
             params: {
               medicationId: item.medicationIds?.[0] || '',
               instanceId: item.instanceId,
-              scheduledTime: item.scheduledTime || '',
+              scheduledTime: item.scheduledTime ? item.scheduledTime.toISOString() : '',
               itemName: item.medicationName,
               itemDosage: item.dosage || '',
             },

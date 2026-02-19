@@ -44,7 +44,7 @@ describe('handoffDataFlow — integration', () => {
     // Morning wellness: confused orientation
     const morningData: MorningWellnessData = {
       sleepQuality: 2,
-      mood: 'difficult',
+      mood: 2,
       energyLevel: 2,
       orientation: 'confused-responsive',
       decisionMaking: 'needs-guidance',
@@ -54,7 +54,7 @@ describe('handoffDataFlow — integration', () => {
 
     // Evening wellness: severe pain
     const eveningData: EveningWellnessData = {
-      mood: 'difficult',
+      mood: 2,
       mealsLogged: true,
       dayRating: 2,
       painLevel: 'severe',
@@ -110,7 +110,7 @@ describe('handoffDataFlow — integration', () => {
     // Normal morning
     const morningData: MorningWellnessData = {
       sleepQuality: 4,
-      mood: 'good',
+      mood: 4,
       energyLevel: 4,
       orientation: 'alert-oriented',
       decisionMaking: 'own-decisions',
@@ -125,7 +125,7 @@ describe('handoffDataFlow — integration', () => {
 
     // Normal evening
     const eveningData: EveningWellnessData = {
-      mood: 'good',
+      mood: 4,
       mealsLogged: true,
       dayRating: 4,
       painLevel: 'none',

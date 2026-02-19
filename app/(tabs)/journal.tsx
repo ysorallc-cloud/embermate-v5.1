@@ -53,20 +53,46 @@ function formatTime(t: string): string {
 }
 
 // ============================================================================
-// JOURNAL SECTION COMPONENT — flat with colored top bar
+// BADGE COMPONENT — status indicator on section headers
+// ============================================================================
+
+function Badge({ text, variant = 'done' }: { text: string; variant?: 'done' | 'pending' | 'missed' | 'info' }) {
+  const badgeStyles: Record<string, { bg: string; border: string; color: string }> = {
+    done: { bg: Colors.greenTint, border: Colors.greenBorder, color: Colors.green },
+    pending: { bg: Colors.amberFaint, border: Colors.amberBorder, color: Colors.amberBright },
+    missed: { bg: Colors.redFaint, border: Colors.redBorder, color: Colors.redBright },
+    info: { bg: Colors.glass, border: Colors.border, color: Colors.textMuted },
+  };
+  const bs = badgeStyles[variant] || badgeStyles.info;
+  return (
+    <View style={[s.badge, { backgroundColor: bs.bg, borderColor: bs.border }]}>
+      <Text style={[s.badgeText, { color: bs.color }]}>{text}</Text>
+    </View>
+  );
+}
+
+// ============================================================================
+// JOURNAL SECTION COMPONENT — card with colored left border
 // ============================================================================
 
 interface JournalSectionProps {
+  icon?: string;
   label: string;
   color: string;
+  badge?: { text: string; variant: 'done' | 'pending' | 'missed' | 'info' };
   children: React.ReactNode;
 }
 
-function JournalSection({ label, color, children }: JournalSectionProps) {
+function JournalSection({ icon, label, color, badge, children }: JournalSectionProps) {
   return (
-    <View style={s.journalSection}>
-      <View style={[s.journalSectionBar, { backgroundColor: color }]} />
-      <Text style={[s.journalSectionLabel, { color }]}>{label}</Text>
+    <View style={[s.journalSection, { borderLeftColor: color }]}>
+      <View style={s.journalSectionHeader}>
+        <View style={s.journalSectionHeaderLeft}>
+          {icon && <Text style={s.journalSectionIcon}>{icon}</Text>}
+          <Text style={s.journalSectionLabel}>{label}</Text>
+        </View>
+        {badge && <Badge text={badge.text} variant={badge.variant} />}
+      </View>
       {children}
     </View>
   );
@@ -308,43 +334,73 @@ export default function JournalTab() {
           }
         />
 
-        {/* ─── TIER 1: NEEDS ATTENTION ─── */}
+        {/* ─── PATIENT CARD ─── */}
+        {brief?.patient.name ? (
+          <View style={s.patientCard}>
+            <Text style={s.patientName}>{brief.patient.name}</Text>
+            {brief.patient.relationship ? (
+              <Text style={s.patientRelation}>{brief.patient.relationship}</Text>
+            ) : null}
+            {brief.patient.conditions && brief.patient.conditions.length > 0 && (
+              <View style={s.conditionRow}>
+                {brief.patient.conditions.map((c, i) => (
+                  <View key={i} style={s.conditionTag}>
+                    <Text style={s.conditionText}>{c}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        ) : null}
+
+        {/* ─── TIER 1: FLAGS ─── */}
         {showNeedsAttention && (
-          <View style={s.needsAttentionBanner}>
-            <View style={s.needsAttentionBar} />
-            <Text style={s.needsAttentionTitle}>NEEDS ATTENTION</Text>
+          <JournalSection
+            icon={'\uD83D\uDEA9'}
+            label="Flags"
+            color={Colors.redBright}
+            badge={{ text: `${(hasVitalsFlag ? 1 : 0) + (hasSideEffects ? 1 : 0) + (brief?.attentionItems.length ?? 0)} alert${((hasVitalsFlag ? 1 : 0) + (hasSideEffects ? 1 : 0) + (brief?.attentionItems.length ?? 0)) === 1 ? '' : 's'}`, variant: 'missed' }}
+          >
             {hasVitalsFlag && brief?.vitals?.readings && (
-              <Text style={s.needsAttentionItem}>
-                {'\u2022'} Vitals outside normal range
-                {brief.vitals.readings.systolic != null && brief.vitals.readings.diastolic != null
-                  ? ` (BP ${brief.vitals.readings.systolic}/${brief.vitals.readings.diastolic})`
-                  : ''}
-                {brief.vitals.readings.oxygen != null && brief.vitals.readings.oxygen < 92
-                  ? ` (SpO2 ${brief.vitals.readings.oxygen}%)`
-                  : ''}
-              </Text>
+              <View style={s.flagItem}>
+                {brief.vitals.readings.systolic != null && brief.vitals.readings.diastolic != null && (
+                  <>
+                    <Text style={s.flagValue}>BP {brief.vitals.readings.systolic}/{brief.vitals.readings.diastolic}</Text>
+                    <Text style={s.flagDot}>{'\u00B7'}</Text>
+                    <Text style={s.flagThreshold}>Above threshold (140/90)</Text>
+                  </>
+                )}
+                {brief.vitals.readings.oxygen != null && brief.vitals.readings.oxygen < 92 && (
+                  <>
+                    <Text style={s.flagValue}>SpO2 {brief.vitals.readings.oxygen}%</Text>
+                    <Text style={s.flagDot}>{'\u00B7'}</Text>
+                    <Text style={s.flagThreshold}>Below 92%</Text>
+                  </>
+                )}
+              </View>
             )}
             {hasSideEffects && brief?.medications
               .filter(m => m.sideEffects && m.sideEffects.length > 0)
               .map((m, i) => (
-                <Text key={i} style={s.needsAttentionItem}>
-                  {'\u2022'} {m.name}: {m.sideEffects!.join(', ')}
-                </Text>
+                <View key={i} style={s.flagItem}>
+                  <Text style={s.flagValue}>{m.name}</Text>
+                  <Text style={s.flagDot}>{'\u00B7'}</Text>
+                  <Text style={s.flagThreshold}>{m.sideEffects!.join(', ')}</Text>
+                </View>
               ))
             }
             {hasAttentionItems && brief?.attentionItems.map((item, i) => (
-              <Text key={`attn-${i}`} style={s.needsAttentionItem}>
-                {'\u2022'} {item.text}
-              </Text>
+              <View key={`attn-${i}`} style={s.flagItem}>
+                <Text style={s.flagThreshold}>{item.text}</Text>
+              </View>
             ))}
-            {/* Allergies in attention area */}
             {brief?.patient.allergies && brief.patient.allergies.length > 0 && (
               <View style={s.allergyRow}>
                 <Text style={s.allergyLabel}>Allergies:</Text>
                 <Text style={s.allergyList}>{brief.patient.allergies.join(', ')}</Text>
               </View>
             )}
-          </View>
+          </JournalSection>
         )}
 
         {/* Allergies when no attention banner */}
@@ -360,37 +416,18 @@ export default function JournalTab() {
           Personal tracking summary — not a medical record.
         </Text>
 
-        {/* ─── TIER 2: STATUS BAR ─── */}
+        {/* ─── TIER 2: TOP-LINE SUMMARY ─── */}
         {brief && (
-          <View style={s.statusBar}>
-            <View style={s.statusItems}>
-              <Text style={s.statusItem}>
-                {'\uD83D\uDC8A'} {medsDone}/{medsTotal}
-              </Text>
-              <Text style={s.statusDot}>{'\u00B7'}</Text>
-              <Text style={s.statusItem}>
-                {'\uD83E\uDE7A'} {hasVitals ? '\u2713' : '\u2014'}
-              </Text>
-              <Text style={s.statusDot}>{'\u00B7'}</Text>
-              <Text style={s.statusItem}>
-                {'\uD83C\uDF7D\uFE0F'} {mealsDone}/{mealsTotal}
-              </Text>
-              <Text style={s.statusDot}>{'\u00B7'}</Text>
-              <Text style={s.statusItem}>
-                {'\uD83D\uDCA7'} {waterGlasses}/8
-              </Text>
-              <Text style={s.statusDot}>{'\u00B7'}</Text>
-              <Text style={s.statusItem}>
-                {'\u2600\uFE0F'} {hasMorning ? '\u2713' : '\u2014'}
-              </Text>
-              <Text style={s.statusDot}>{'\u00B7'}</Text>
-              <Text style={s.statusItem}>
-                {'\uD83C\uDF19'} {hasEvening ? '\u2713' : '\u2014'}
-              </Text>
-            </View>
-            {pct > 0 && (
-              <Text style={s.statusPct}>{pct}%</Text>
-            )}
+          <View style={s.topLineSummary}>
+            <Text style={s.topLineText}>
+              {pct}% complete
+              {(() => {
+                const pendingCount = (medsTotal - medsDone) + (hasVitals ? 0 : 1) + (mealsTotal - mealsDone) + (hasMorning ? 0 : 1) + (hasEvening ? 0 : 1);
+                return pendingCount > 0
+                  ? <Text style={s.topLinePending}> {'\u00B7'} {pendingCount} pending</Text>
+                  : null;
+              })()}
+            </Text>
           </View>
         )}
 
@@ -398,7 +435,15 @@ export default function JournalTab() {
 
         {/* MEDICATIONS */}
         {brief && medsTotal > 0 && (
-          <JournalSection label="MEDICATIONS" color={Colors.green}>
+          <JournalSection
+            icon={'\uD83D\uDC8A'}
+            label="Medications"
+            color={allMedsDone ? Colors.green : Colors.amber}
+            badge={{
+              text: `${medsDone}/${medsTotal} taken`,
+              variant: allMedsDone ? 'done' : medsDone > 0 ? 'pending' : 'missed',
+            }}
+          >
             {brief.medications.map((med, i) => {
               const done = med.status === 'completed';
               const missed = med.status === 'missed';
@@ -429,174 +474,218 @@ export default function JournalTab() {
 
         {/* VITALS */}
         {brief && brief.vitals.scheduled && (
-          <JournalSection label="VITALS" color={Colors.accent}>
+          <JournalSection
+            icon={'\uD83E\uDE7A'}
+            label="Vitals"
+            color={hasVitals ? Colors.green : Colors.amber}
+            badge={{
+              text: hasVitals ? 'Recorded' : 'Not recorded',
+              variant: hasVitals ? 'done' : 'pending',
+            }}
+          >
             {hasVitals && brief.vitals.readings ? (
-              <View style={s.statGrid}>
-                {brief.vitals.readings.systolic != null && brief.vitals.readings.diastolic != null && (
-                  <View style={s.statItem}>
-                    <Text style={s.statLabel}>BP</Text>
-                    <Text style={[
-                      s.statValue,
-                      (brief.vitals.readings.systolic > 140 || brief.vitals.readings.diastolic > 90) && s.statValueFlag,
-                    ]}>
-                      {brief.vitals.readings.systolic}/{brief.vitals.readings.diastolic}
-                    </Text>
-                  </View>
-                )}
-                {brief.vitals.readings.heartRate != null && (
-                  <View style={s.statItem}>
-                    <Text style={s.statLabel}>HR</Text>
-                    <Text style={[
-                      s.statValue,
-                      (brief.vitals.readings.heartRate > 100 || brief.vitals.readings.heartRate < 50) && s.statValueFlag,
-                    ]}>
-                      {brief.vitals.readings.heartRate}
-                    </Text>
-                    <Text style={s.statSub}>bpm</Text>
-                  </View>
-                )}
-                {brief.vitals.readings.oxygen != null && (
-                  <View style={s.statItem}>
-                    <Text style={s.statLabel}>SpO2</Text>
-                    <Text style={[
-                      s.statValue,
-                      brief.vitals.readings.oxygen < 92 && s.statValueFlag,
-                    ]}>
-                      {brief.vitals.readings.oxygen}%
-                    </Text>
+              <View style={s.vitalChips}>
+                {brief.vitals.readings.systolic != null && brief.vitals.readings.diastolic != null && (() => {
+                  const flagged = brief.vitals.readings!.systolic! > 140 || brief.vitals.readings!.diastolic! > 90;
+                  return (
+                    <View style={[s.vitalChip, flagged && s.vitalChipFlag]}>
+                      <Text style={s.vitalChipLabel}>BP </Text>
+                      <Text style={[s.vitalChipValue, flagged && s.vitalChipValueFlag]}>
+                        {brief.vitals.readings!.systolic}/{brief.vitals.readings!.diastolic}
+                      </Text>
+                      {flagged && <Text style={s.vitalChipArrow}> {'\u25B2'}</Text>}
+                    </View>
+                  );
+                })()}
+                {brief.vitals.readings.heartRate != null && (() => {
+                  const flagged = brief.vitals.readings!.heartRate! > 100 || brief.vitals.readings!.heartRate! < 50;
+                  return (
+                    <View style={[s.vitalChip, flagged && s.vitalChipFlag]}>
+                      <Text style={s.vitalChipLabel}>HR </Text>
+                      <Text style={[s.vitalChipValue, flagged && s.vitalChipValueFlag]}>{brief.vitals.readings!.heartRate}</Text>
+                      {flagged && <Text style={s.vitalChipArrow}> {'\u25B2'}</Text>}
+                    </View>
+                  );
+                })()}
+                {brief.vitals.readings.oxygen != null && (() => {
+                  const flagged = brief.vitals.readings!.oxygen! < 92;
+                  return (
+                    <View style={[s.vitalChip, flagged && s.vitalChipFlag]}>
+                      <Text style={s.vitalChipLabel}>SpO2 </Text>
+                      <Text style={[s.vitalChipValue, flagged && s.vitalChipValueFlag]}>{brief.vitals.readings!.oxygen}%</Text>
+                      {flagged && <Text style={s.vitalChipArrow}> {'\u25B2'}</Text>}
+                    </View>
+                  );
+                })()}
+                {brief.vitals.readings.temperature != null && (
+                  <View style={s.vitalChip}>
+                    <Text style={s.vitalChipLabel}>Temp </Text>
+                    <Text style={s.vitalChipValue}>{brief.vitals.readings.temperature}{'\u00B0'}F</Text>
                   </View>
                 )}
                 {brief.vitals.readings.glucose != null && (
-                  <View style={s.statItem}>
-                    <Text style={s.statLabel}>Glucose</Text>
-                    <Text style={s.statValue}>{brief.vitals.readings.glucose}</Text>
-                  </View>
-                )}
-                {brief.vitals.readings.temperature != null && (
-                  <View style={s.statItem}>
-                    <Text style={s.statLabel}>Temp</Text>
-                    <Text style={s.statValue}>{brief.vitals.readings.temperature}{'\u00B0'}F</Text>
+                  <View style={s.vitalChip}>
+                    <Text style={s.vitalChipLabel}>Glucose </Text>
+                    <Text style={s.vitalChipValue}>{brief.vitals.readings.glucose}</Text>
                   </View>
                 )}
                 {brief.vitals.readings.weight != null && (
-                  <View style={s.statItem}>
-                    <Text style={s.statLabel}>Weight</Text>
-                    <Text style={s.statValue}>{brief.vitals.readings.weight}</Text>
-                    <Text style={s.statSub}>lbs</Text>
+                  <View style={s.vitalChip}>
+                    <Text style={s.vitalChipLabel}>Weight </Text>
+                    <Text style={s.vitalChipValue}>{brief.vitals.readings.weight} lbs</Text>
                   </View>
                 )}
               </View>
             ) : (
-              <Text style={s.notRecorded}>Not recorded yet</Text>
+              <Text style={s.notRecorded}>Not recorded</Text>
             )}
           </JournalSection>
         )}
 
         {/* INTAKE */}
-        {brief && (
-          <JournalSection label="INTAKE" color={Colors.accent}>
-            <View style={s.intakeRow}>
-              <View style={s.intakeMeals}>
-                {brief.meals.meals.map((meal, i) => {
-                  const done = meal.status === 'completed';
-                  return (
-                    <Text key={i} style={s.mealText}>
-                      {meal.name}{' '}
-                      <Text style={{ color: done ? Colors.green : Colors.textMuted }}>
-                        {done ? '\u2713' : '\u2014'}
-                      </Text>
-                    </Text>
-                  );
-                })}
+        {brief && (mealsTotal > 0 || brief.hydration.logged) && (
+          <JournalSection
+            icon={'\uD83C\uDF7D\uFE0F'}
+            label="Nutrition & Hydration"
+            color={mealsDone >= mealsTotal && mealsTotal > 0 ? Colors.green : Colors.amber}
+            badge={{
+              text: mealsDone >= mealsTotal && mealsTotal > 0 ? 'On track' : `${mealsDone}/${mealsTotal} meals`,
+              variant: mealsDone >= mealsTotal && mealsTotal > 0 ? 'done' : 'pending',
+            }}
+          >
+            <View style={s.intakeColumns}>
+              <View style={s.intakeCol}>
+                <Text style={s.intakeColLabel}>Meals</Text>
+                <Text style={s.intakeColValue}>{mealsDone} <Text style={s.intakeColSub}>of {mealsTotal}</Text></Text>
               </View>
-              <View style={s.waterRow}>
-                <Text style={s.waterEmoji}>{'\uD83D\uDCA7'}</Text>
-                <View style={s.waterDots}>
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        s.waterDot,
-                        { backgroundColor: i < waterGlasses ? Colors.accent : Colors.border },
-                      ]}
-                    />
-                  ))}
+              <View style={s.intakeDivider} />
+              <View style={s.intakeCol}>
+                <Text style={s.intakeColLabel}>Water</Text>
+                <View style={s.waterRow}>
+                  <View style={s.waterDots}>
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          s.waterDot,
+                          { backgroundColor: i < waterGlasses ? Colors.accent : Colors.border },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                  <Text style={[s.waterCount, { color: waterGlasses >= 8 ? Colors.green : Colors.textMuted }]}>{waterGlasses}/8</Text>
                 </View>
-                <Text style={s.waterCount}>{waterGlasses}/8</Text>
+              </View>
+              <View style={s.intakeDivider} />
+              <View style={s.intakeCol}>
+                <Text style={s.intakeColLabel}>Appetite</Text>
+                <Text style={s.intakeColValue}>Normal</Text>
               </View>
             </View>
           </JournalSection>
         )}
 
-        {/* BODY & MIND */}
+        {/* SLEEP & WELLNESS */}
         {brief && (
-          <JournalSection label="BODY & MIND" color={Colors.accent}>
-            <View style={s.statGrid}>
-              {brief.sleep.logged && brief.sleep.hours != null && (
-                <View style={s.statItem}>
-                  <Text style={s.statLabel}>Sleep</Text>
-                  <Text style={s.statValue}>{brief.sleep.hours}h</Text>
-                  {brief.sleep.quality ? <Text style={s.statSub}>{brief.sleep.quality}</Text> : null}
+          <JournalSection
+            icon={'\uD83D\uDE34'}
+            label="Sleep & Wellness"
+            color={hasMorning && hasEvening ? Colors.green : Colors.amber}
+            badge={{
+              text: hasMorning && hasEvening ? 'Complete' : (!hasMorning && !hasEvening ? '2 pending' : '1 pending'),
+              variant: hasMorning && hasEvening ? 'done' : 'pending',
+            }}
+          >
+            {/* Sleep + Wellness Checks in columns */}
+            <View style={s.wellnessColumns}>
+              {/* Sleep column */}
+              {brief.sleep.logged && brief.sleep.hours != null ? (
+                <View style={s.wellnessCol}>
+                  <Text style={s.wellnessColLabel}>Sleep</Text>
+                  <Text style={s.wellnessColValue}>{brief.sleep.hours}h</Text>
+                  {brief.sleep.quality && <Text style={s.wellnessColSub}>{brief.sleep.quality}</Text>}
+                </View>
+              ) : (
+                <View style={[s.wellnessCol, s.wellnessColPending]}>
+                  <Text style={s.wellnessColLabel}>Sleep</Text>
+                  <Text style={s.wellnessColDash}>{'\u2014'}</Text>
                 </View>
               )}
-              {brief.mood.morningWellness?.mood && (
-                <View style={s.statItem}>
-                  <Text style={s.statLabel}>Mood</Text>
-                  <Text style={s.statValue}>{brief.mood.morningWellness.mood}</Text>
+              {/* Morning check */}
+              {hasMorning ? (
+                <View style={s.wellnessCol}>
+                  <Text style={s.wellnessColLabel}>AM Check</Text>
+                  {brief.mood.morningWellness?.mood && (
+                    <Text style={s.wellnessColValue}>{brief.mood.morningWellness.mood}</Text>
+                  )}
+                  {brief.mood.morningWellness?.orientation && (
+                    <Text style={s.wellnessColSub}>{brief.mood.morningWellness.orientation}</Text>
+                  )}
+                </View>
+              ) : (
+                <View style={[s.wellnessCol, s.wellnessColPending]}>
+                  <Text style={s.wellnessColLabel}>AM Check</Text>
+                  <Text style={s.wellnessColDash}>{'\u2014'}</Text>
                 </View>
               )}
-              {brief.mood.morningWellness?.orientation && (
-                <View style={s.statItem}>
-                  <Text style={s.statLabel}>Orientation</Text>
-                  <Text style={s.statValue}>{brief.mood.morningWellness.orientation}</Text>
+              {/* Evening check */}
+              {hasEvening ? (
+                <View style={s.wellnessCol}>
+                  <Text style={s.wellnessColLabel}>PM Check</Text>
+                  {brief.mood.eveningWellness?.painLevel && (
+                    <Text style={s.wellnessColValue}>Pain: {brief.mood.eveningWellness.painLevel}</Text>
+                  )}
+                  {brief.mood.eveningWellness?.dayRating && (
+                    <Text style={s.wellnessColSub}>Day: {brief.mood.eveningWellness.dayRating}</Text>
+                  )}
                 </View>
-              )}
-              {brief.mood.eveningWellness?.painLevel && (
-                <View style={s.statItem}>
-                  <Text style={s.statLabel}>Pain</Text>
-                  <Text style={s.statValue}>{brief.mood.eveningWellness.painLevel}</Text>
-                </View>
-              )}
-              {brief.mood.eveningWellness?.alertness && (
-                <View style={s.statItem}>
-                  <Text style={s.statLabel}>Alertness</Text>
-                  <Text style={s.statValue}>{brief.mood.eveningWellness.alertness}</Text>
-                </View>
-              )}
-              {brief.mood.eveningWellness?.bowelMovement && (
-                <View style={s.statItem}>
-                  <Text style={s.statLabel}>Bowel</Text>
-                  <Text style={s.statValue}>{brief.mood.eveningWellness.bowelMovement}</Text>
-                </View>
-              )}
-              {brief.mood.eveningWellness?.bathingStatus && (
-                <View style={s.statItem}>
-                  <Text style={s.statLabel}>Bathing</Text>
-                  <Text style={s.statValue}>{brief.mood.eveningWellness.bathingStatus}</Text>
-                </View>
-              )}
-              {brief.mood.eveningWellness?.mobilityStatus && (
-                <View style={s.statItem}>
-                  <Text style={s.statLabel}>Mobility</Text>
-                  <Text style={s.statValue}>{brief.mood.eveningWellness.mobilityStatus}</Text>
-                </View>
-              )}
-              {brief.mood.eveningWellness?.dayRating && (
-                <View style={s.statItem}>
-                  <Text style={s.statLabel}>Day Rating</Text>
-                  <Text style={s.statValue}>{brief.mood.eveningWellness.dayRating}</Text>
+              ) : (
+                <View style={[s.wellnessCol, s.wellnessColPending]}>
+                  <Text style={s.wellnessColLabel}>PM Check</Text>
+                  <Text style={s.wellnessColDash}>{'\u2014'}</Text>
                 </View>
               )}
             </View>
-            {!hasMorning && !hasEvening && (
-              <Text style={s.pendingNote}>Wellness checks pending</Text>
+
+            {/* Additional wellness details when available */}
+            {(hasMorning || hasEvening) && (
+              <View style={[s.statGrid, { marginTop: 10 }]}>
+                {brief.mood.eveningWellness?.alertness && (
+                  <View style={s.statItem}>
+                    <Text style={s.statLabel}>Alertness</Text>
+                    <Text style={s.statValue}>{brief.mood.eveningWellness.alertness}</Text>
+                  </View>
+                )}
+                {brief.mood.eveningWellness?.bowelMovement && (
+                  <View style={s.statItem}>
+                    <Text style={s.statLabel}>Bowel</Text>
+                    <Text style={s.statValue}>{brief.mood.eveningWellness.bowelMovement}</Text>
+                  </View>
+                )}
+                {brief.mood.eveningWellness?.bathingStatus && (
+                  <View style={s.statItem}>
+                    <Text style={s.statLabel}>Bathing</Text>
+                    <Text style={s.statValue}>{brief.mood.eveningWellness.bathingStatus}</Text>
+                  </View>
+                )}
+                {brief.mood.eveningWellness?.mobilityStatus && (
+                  <View style={s.statItem}>
+                    <Text style={s.statLabel}>Mobility</Text>
+                    <Text style={s.statValue}>{brief.mood.eveningWellness.mobilityStatus}</Text>
+                  </View>
+                )}
+              </View>
             )}
           </JournalSection>
         )}
 
-        {/* NOTES */}
+        {/* NOTES & SYMPTOMS */}
         {aggregatedNotes.length > 0 && (
-          <JournalSection label="NOTES" color={Colors.amberBright}>
+          <JournalSection
+            icon={'\uD83D\uDCDD'}
+            label="Notes & Symptoms"
+            color={Colors.amberBright}
+          >
             {aggregatedNotes.map((note, i) => (
               <View key={i} style={[s.noteRow, i < aggregatedNotes.length - 1 && s.noteRowBorder]}>
                 {note.time ? <Text style={s.noteTime}>{note.time}</Text> : null}
@@ -610,34 +699,34 @@ export default function JournalTab() {
 
         {/* NEXT APPOINTMENT */}
         {showAppointment && brief?.nextAppointment && (
-          <View style={s.appointmentCard}>
-            <Text style={s.appointmentIcon}>{'\uD83D\uDCC5'}</Text>
-            <View style={s.appointmentInfo}>
-              <Text style={s.appointmentProvider}>
-                {brief.nextAppointment.provider} ({brief.nextAppointment.specialty})
-              </Text>
-              <Text style={s.appointmentDate}>
-                {new Date(brief.nextAppointment.date).toLocaleDateString('en-US', {
-                  weekday: 'short', month: 'short', day: 'numeric',
-                })}
-              </Text>
-            </View>
-            {daysUntilAppt != null && (
-              <Text style={s.appointmentDays}>
-                {daysUntilAppt === 0 ? 'Today' : daysUntilAppt === 1 ? 'Tomorrow' : `${daysUntilAppt} days`}
-              </Text>
-            )}
-          </View>
+          <JournalSection
+            icon={'\uD83D\uDCC5'}
+            label={brief.nextAppointment.provider}
+            color={Colors.sky}
+            badge={{
+              text: daysUntilAppt === 0 ? 'Today' : daysUntilAppt === 1 ? 'Tomorrow' : `${daysUntilAppt} days`,
+              variant: 'info',
+            }}
+          >
+            <Text style={s.appointmentDate}>
+              {brief.nextAppointment.specialty} {'\u00B7'} {new Date(brief.nextAppointment.date).toLocaleDateString('en-US', {
+                weekday: 'short', month: 'short', day: 'numeric',
+              })}
+            </Text>
+          </JournalSection>
         )}
 
         {/* HANDOFF */}
         {brief && (
-          <View style={s.handoffCard}>
-            <Text style={s.handoffHeader}>IF SOMEONE ELSE IS TAKING OVER</Text>
+          <JournalSection
+            icon={'\uD83E\uDD1D'}
+            label="Handoff Notes"
+            color={Colors.amberBright}
+          >
             <Text style={s.handoffText}>
               {brief.handoffNarrative || buildHandoffSummary(brief, medsDone, medsTotal, allMedsDone, hasVitals)}
             </Text>
-          </View>
+          </JournalSection>
         )}
 
         {/* SHARE / EXPORT */}
@@ -672,34 +761,31 @@ function buildHandoffSummary(
   allMedsDone: boolean,
   hasVitals: boolean,
 ): string {
-  const pending: string[] = [];
-  if (medsTotal > 0 && !allMedsDone) {
-    const remaining = medsTotal - medsDone;
-    pending.push(`${remaining} medication${remaining === 1 ? '' : 's'} still pending`);
+  if (brief.handoffNarrative && brief.handoffNarrative.trim().length > 0) {
+    return brief.handoffNarrative;
+  }
+  const parts: string[] = [];
+  if (medsTotal > 0) {
+    if (allMedsDone) {
+      parts.push(`All ${medsTotal} medications taken.`);
+    } else {
+      const pending = medsTotal - medsDone;
+      parts.push(`${pending} medication${pending === 1 ? '' : 's'} still pending.`);
+    }
   }
   if (!hasVitals && brief.vitals.scheduled) {
-    pending.push('vitals not yet recorded');
+    parts.push('Vitals not yet recorded.');
   }
-  if (!brief.mood.morningWellness) {
-    pending.push('morning wellness check pending');
-  }
-  if (!brief.mood.eveningWellness) {
-    pending.push('evening wellness check pending');
-  }
-  const glasses = brief.hydration.glasses ?? 0;
-  if (glasses < 4) {
-    pending.push(`only ${glasses} of 8 glasses of water logged`);
+  if (!brief.mood.morningWellness && !brief.mood.eveningWellness) {
+    parts.push('Wellness check pending.');
+  } else if (!brief.mood.eveningWellness) {
+    parts.push('Evening wellness check pending.');
   }
   if (brief.nextAppointment) {
     const dateStr = new Date(brief.nextAppointment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    pending.push(`next appointment: ${brief.nextAppointment.provider} on ${dateStr}`);
+    parts.push(`Next: ${brief.nextAppointment.provider} on ${dateStr}.`);
   }
-  if (pending.length === 0) {
-    return 'All tasks completed for today. No pending items.';
-  }
-  const first = pending[0].charAt(0).toUpperCase() + pending[0].slice(1);
-  if (pending.length === 1) return first + '.';
-  return first + ', ' + pending.slice(1).join(', ') + '.';
+  return parts.join(' ') || 'No pending items.';
 }
 
 // ============================================================================
@@ -765,37 +851,67 @@ const s = StyleSheet.create({
   authGateButton: { backgroundColor: Colors.accent, paddingHorizontal: 32, paddingVertical: 14, borderRadius: BorderRadius.lg },
   authGateButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
 
-  // ─── TIER 1: NEEDS ATTENTION ───
-  needsAttentionBanner: {
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.redBright,
-    backgroundColor: Colors.redFaint,
-    borderRadius: 12,
+  // ─── PATIENT CARD ───
+  patientCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 14,
     padding: 14,
     marginBottom: 12,
-    position: 'relative',
   },
-  needsAttentionBar: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 3,
-    backgroundColor: Colors.redBright,
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
+  patientName: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: Colors.textPrimary,
   },
-  needsAttentionTitle: {
+  patientRelation: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  conditionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 5,
+    marginTop: 8,
+  },
+  conditionTag: {
+    backgroundColor: 'rgba(94, 234, 212, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  conditionText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: Colors.redBright,
-    letterSpacing: 1.2,
-    marginBottom: 6,
+    fontWeight: '600',
+    color: 'rgba(94, 234, 212, 0.7)',
   },
-  needsAttentionItem: {
-    fontSize: 13,
-    color: Colors.textBright,
-    lineHeight: 20,
+
+  // ─── TIER 1: FLAGS ───
+  flagItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: Colors.redFaint,
+    marginBottom: 4,
+  },
+  flagValue: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.redBright,
+  },
+  flagDot: {
+    fontSize: 10,
+    color: Colors.textMuted,
+  },
+  flagThreshold: {
+    fontSize: 10,
+    color: Colors.redBright,
+    flex: 1,
   },
 
   // Allergy row (in attention or standalone)
@@ -839,60 +955,103 @@ const s = StyleSheet.create({
     fontStyle: 'italic',
   },
 
-  // ─── TIER 2: STATUS BAR ───
-  statusBar: {
+  // ─── TOP-LINE SUMMARY ───
+  topLineSummary: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 14,
+    borderRadius: 10,
+    backgroundColor: Colors.accentFaint,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.accent,
+  },
+  topLineText: {
+    fontSize: 13,
+    color: Colors.textBright,
+  },
+  topLinePending: {
+    color: Colors.amberBright,
+  },
+
+  // ─── BADGE ───
+  badge: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+
+  // ─── JOURNAL SECTION (card with colored left border) ───
+  journalSection: {
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.accent,
+    backgroundColor: Colors.glassFaint,
+    borderRadius: 14,
+    padding: 14,
+    paddingLeft: 16,
+  },
+  journalSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    marginBottom: 16,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: Colors.border,
+    marginBottom: 10,
   },
-  statusItems: {
+  journalSectionHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    flex: 1,
-    gap: 2,
+    gap: 6,
   },
-  statusItem: {
-    fontSize: 13,
-    color: Colors.textPrimary,
-  },
-  statusDot: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    marginHorizontal: 2,
-  },
-  statusPct: {
+  journalSectionIcon: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.accent,
-    marginLeft: 8,
-  },
-
-  // ─── JOURNAL SECTION (flat, colored top bar) ───
-  journalSection: {
-    marginBottom: 16,
-    paddingTop: 2,
-  },
-  journalSectionBar: {
-    height: 3,
-    borderRadius: 2,
-    marginBottom: 8,
   },
   journalSectionLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginBottom: 8,
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.textPrimary,
   },
 
-  // Stat Grid
+  // Vital Chips
+  vitalChips: {
+    flexDirection: 'row',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  vitalChip: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  vitalChipFlag: {
+    backgroundColor: Colors.redFaint,
+    borderWidth: 1,
+    borderColor: Colors.redBorder,
+  },
+  vitalChipLabel: {
+    fontSize: 9,
+    color: Colors.textMuted,
+  },
+  vitalChipValue: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.textBright,
+  },
+  vitalChipValueFlag: {
+    color: Colors.redBright,
+  },
+  vitalChipArrow: {
+    fontSize: 8,
+    color: Colors.redBright,
+  },
+
+  // Stat Grid (wellness details)
   statGrid: {
     flexDirection: 'row',
     gap: 16,
@@ -911,14 +1070,6 @@ const s = StyleSheet.create({
     fontWeight: '500',
     color: Colors.textPrimary,
   },
-  statValueFlag: {
-    color: Colors.red,
-  },
-  statSub: {
-    fontSize: 9,
-    color: Colors.textMuted,
-    marginTop: 1,
-  },
   notRecorded: {
     fontSize: 13,
     color: Colors.textMuted,
@@ -928,6 +1079,43 @@ const s = StyleSheet.create({
     color: Colors.textMuted,
     fontStyle: 'italic',
     marginTop: 6,
+  },
+
+  // Wellness columns
+  wellnessColumns: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  wellnessCol: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+  },
+  wellnessColPending: {
+    borderWidth: 1,
+    borderColor: Colors.amberBorder,
+    opacity: 0.7,
+  },
+  wellnessColLabel: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    marginBottom: 4,
+  },
+  wellnessColValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+  },
+  wellnessColSub: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  wellnessColDash: {
+    fontSize: 13,
+    color: Colors.amberBright,
+    marginTop: 2,
   },
 
   // Med Rows
@@ -958,30 +1146,45 @@ const s = StyleSheet.create({
     color: Colors.textMuted,
   },
 
-  // Intake
-  intakeRow: {
-    gap: 12,
-  },
-  intakeMeals: {
+  // Intake 3-column layout
+  intakeColumns: {
     flexDirection: 'row',
-    gap: 16,
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  mealText: {
+  intakeCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  intakeColLabel: {
     fontSize: 12,
+    color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  intakeColValue: {
+    fontSize: 16,
+    fontWeight: '500',
     color: Colors.textPrimary,
+  },
+  intakeColSub: {
+    fontSize: 11,
+    fontWeight: '400',
+    color: Colors.textMuted,
+  },
+  intakeDivider: {
+    height: 28,
+    width: 1,
+    backgroundColor: Colors.border,
   },
   waterRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  waterEmoji: {
-    fontSize: 12,
+    gap: 5,
+    marginTop: 4,
   },
   waterDots: {
     flexDirection: 'row',
-    gap: 3,
+    gap: 2,
   },
   waterDot: {
     width: 6,
@@ -989,8 +1192,8 @@ const s = StyleSheet.create({
     borderRadius: 3,
   },
   waterCount: {
-    fontSize: 11,
-    color: Colors.textMuted,
+    fontSize: 12,
+    fontWeight: '500',
   },
 
   // Notes
@@ -1018,56 +1221,12 @@ const s = StyleSheet.create({
   // ─── TIER 4: CONTEXT ───
 
   // Appointment
-  appointmentCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    backgroundColor: Colors.glass,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  appointmentIcon: {
-    fontSize: 16,
-  },
-  appointmentInfo: {
-    flex: 1,
-  },
-  appointmentProvider: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-  },
   appointmentDate: {
     fontSize: 11,
     color: Colors.textMuted,
-    marginTop: 1,
-  },
-  appointmentDays: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.accent,
   },
 
   // Handoff
-  handoffCard: {
-    backgroundColor: Colors.purpleFaint,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.purple,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-  },
-  handoffHeader: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: Colors.purple,
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
   handoffText: {
     fontSize: 13,
     color: Colors.textSecondary,

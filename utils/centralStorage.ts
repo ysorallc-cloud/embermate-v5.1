@@ -90,6 +90,7 @@ export interface NotesLog {
   id: string;
   timestamp: string;
   content: string;
+  notes?: string;
   isVoice?: boolean;
 }
 
@@ -163,9 +164,12 @@ export const saveVitalsLog = async (data: Omit<VitalsLog, 'id'>): Promise<void> 
 export const getVitalsLogs = async (): Promise<VitalsLog[]> => {
   try {
     const data = await encryptedGetRaw(KEYS.VITALS_LOGS);
-    return data ? JSON.parse(data) : [];
+    if (!data || typeof data !== 'string') return [];
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
-    logError('centralStorage.getVitalsLogs', error);
+    // Corrupted data — clear it silently to stop recurring errors
+    try { await encryptedSetRaw(KEYS.VITALS_LOGS, JSON.stringify([])); } catch {}
     return [];
   }
 };

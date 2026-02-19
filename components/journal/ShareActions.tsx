@@ -61,14 +61,14 @@ export function ShareActions({ onShare, onExport }: Props) {
         onPress={confirmShare}
         activeOpacity={0.7}
         disabled={sharing}
-        accessibilityLabel="Share redacted summary"
+        accessibilityLabel="Share summary"
         accessibilityRole="button"
         accessibilityState={{ disabled: sharing }}
       >
         {sharing ? (
           <ActivityIndicator size="small" color={Colors.accent} />
         ) : (
-          <Text style={styles.primaryButtonText}>{'\uD83D\uDCE4'} Share Summary (Redacted)</Text>
+          <Text style={styles.primaryButtonText}>{'\uD83D\uDCE4'} Share Summary</Text>
         )}
       </TouchableOpacity>
 

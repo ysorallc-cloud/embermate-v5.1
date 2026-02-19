@@ -393,7 +393,12 @@ export default function UnderstandScreen() {
       setPageData(data);
       // Build provider prep questions from insights when appointment is near
       try {
-        const prep = await buildProviderPrep(data.standOutInsights);
+        const prep = await buildProviderPrep(
+          data.standOutInsights.map(i => ({
+            category: i.relatedTo || 'general',
+            summary: i.text,
+          }))
+        );
         setProviderPrep(prep);
       } catch {
         setProviderPrep(null);
@@ -508,7 +513,7 @@ export default function UnderstandScreen() {
           <View style={styles.header}>
             <View style={styles.headerTop}>
               <View style={styles.headerText}>
-                <Text style={styles.headerTitle}>Understand</Text>
+                <Text style={styles.headerTitle}>Insights</Text>
               </View>
               <TouchableOpacity
                 style={styles.settingsButton}
@@ -536,19 +541,22 @@ export default function UnderstandScreen() {
             />
           )}
 
-          {/* Data Building Progress Banner — compact version */}
+          {/* Data Building Progress Banner */}
           {pageData && !pageData.isSampleData && pageData.daysOfData < 7 && (
             <View style={styles.dataBuildingBanner}>
               <View style={styles.dataBuildingContent}>
-                <Text style={styles.dataBuildingIcon}>📊</Text>
+                <Text style={styles.dataBuildingIcon}>{'\uD83C\uDF31'}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.dataBuildingTitle}>{pageData.daysOfData} of 7 days logged</Text>
-                  <Text style={styles.dataBuildingSubtitle}>Patterns sharpen with more data. Here's what we see so far.</Text>
+                  <Text style={styles.dataBuildingTitle}>Building your picture</Text>
+                  <Text style={styles.dataBuildingSubtitle}>
+                    Keep tracking — patterns start showing up after about a week. You've logged <Text style={{ color: Colors.accent, fontWeight: '600' }}>{pageData.daysOfData} days</Text> so far.
+                  </Text>
                 </View>
               </View>
               <View style={styles.dataBuildingProgressBar}>
                 <View style={[styles.dataBuildingProgressFill, { width: `${Math.min(100, (pageData.daysOfData / 7) * 100)}%` }]} />
               </View>
+              <Text style={styles.dataBuildingProgressLabel}>{pageData.daysOfData} of 7 days to first insights</Text>
             </View>
           )}
 
@@ -748,12 +756,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     letterSpacing: 0.5,
   },
-  headerSubtitle: {
-    fontSize: 15,
-    fontWeight: '400',
-    color: Colors.textTertiary,
-    letterSpacing: 0.3,
-  },
   settingsButton: {
     width: 44,
     height: 44,
@@ -779,14 +781,11 @@ const styles = StyleSheet.create({
   // Time Range Toggle (underline tabs)
   timeRangeContainer: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    gap: 0,
+    gap: 20,
+    marginTop: -8,
   },
   timeRangeOption: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
+    paddingBottom: 6,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
@@ -794,12 +793,13 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.accent,
   },
   timeRangeText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.textHalf,
+    fontSize: 13,
+    fontWeight: '400',
+    color: Colors.textMuted,
   },
   timeRangeTextSelected: {
     color: Colors.accent,
+    fontWeight: '500',
   },
 
   // Sections
@@ -1222,5 +1222,10 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: Colors.accent,
     borderRadius: 3,
+  },
+  dataBuildingProgressLabel: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    marginTop: 4,
   },
 });

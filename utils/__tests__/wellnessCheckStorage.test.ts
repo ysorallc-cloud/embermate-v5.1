@@ -37,7 +37,7 @@ describe('wellnessCheckStorage', () => {
     it('should save and read back a morning wellness record', async () => {
       const data: MorningWellnessData = {
         sleepQuality: 4,
-        mood: 'good',
+        mood: 4,
         energyLevel: 3,
         completedAt: new Date('2025-01-15T10:00:00.000Z'),
       };
@@ -47,7 +47,7 @@ describe('wellnessCheckStorage', () => {
 
       expect(result).not.toBeNull();
       expect(result!.sleepQuality).toBe(4);
-      expect(result!.mood).toBe('good');
+      expect(result!.mood).toBe(4);
       expect(result!.energyLevel).toBe(3);
       expect(result!.date).toBe('2025-01-15');
       expect(result!.id).toContain('morning-2025-01-15');
@@ -56,7 +56,7 @@ describe('wellnessCheckStorage', () => {
     it('should save morning wellness with Sprint 1 enrichment fields', async () => {
       const data: MorningWellnessData = {
         sleepQuality: 3,
-        mood: 'managing',
+        mood: 3,
         energyLevel: 2,
         orientation: 'alert-oriented',
         decisionMaking: 'own-decisions',
@@ -75,14 +75,14 @@ describe('wellnessCheckStorage', () => {
     it('should replace existing record for the same date', async () => {
       const data1: MorningWellnessData = {
         sleepQuality: 2,
-        mood: 'difficult',
+        mood: 2,
         energyLevel: 1,
         completedAt: new Date('2025-01-15T08:00:00.000Z'),
       };
 
       const data2: MorningWellnessData = {
         sleepQuality: 4,
-        mood: 'good',
+        mood: 4,
         energyLevel: 4,
         completedAt: new Date('2025-01-15T10:00:00.000Z'),
       };
@@ -92,7 +92,7 @@ describe('wellnessCheckStorage', () => {
 
       const result = await getMorningWellness('2025-01-15');
       expect(result!.sleepQuality).toBe(4);
-      expect(result!.mood).toBe('good');
+      expect(result!.mood).toBe(4);
 
       // Should only have one record for this date
       const raw = await AsyncStorage.getItem(MORNING_KEY);
@@ -104,7 +104,7 @@ describe('wellnessCheckStorage', () => {
     it('should deserialize completedAt back to a Date object', async () => {
       const data: MorningWellnessData = {
         sleepQuality: 3,
-        mood: 'managing',
+        mood: 3,
         energyLevel: 3,
         completedAt: new Date('2025-01-15T10:00:00.000Z'),
       };
@@ -133,7 +133,7 @@ describe('wellnessCheckStorage', () => {
       expect(result).not.toBeNull();
       expect(result!.skipped).toBe(true);
       expect(result!.sleepQuality).toBe(3);
-      expect(result!.mood).toBe('managing');
+      expect(result!.mood).toBe(3);
       expect(result!.energyLevel).toBe(3);
       expect(result!.id).toContain('morning-skip-2025-01-15');
     });
@@ -154,7 +154,7 @@ describe('wellnessCheckStorage', () => {
   describe('saveEveningWellness + getEveningWellness', () => {
     it('should save and read back an evening wellness record', async () => {
       const data: EveningWellnessData = {
-        mood: 'good',
+        mood: 4,
         mealsLogged: true,
         dayRating: 4,
         completedAt: new Date('2025-01-15T20:00:00.000Z'),
@@ -164,7 +164,7 @@ describe('wellnessCheckStorage', () => {
       const result = await getEveningWellness('2025-01-15');
 
       expect(result).not.toBeNull();
-      expect(result!.mood).toBe('good');
+      expect(result!.mood).toBe(4);
       expect(result!.mealsLogged).toBe(true);
       expect(result!.dayRating).toBe(4);
       expect(result!.date).toBe('2025-01-15');
@@ -172,7 +172,7 @@ describe('wellnessCheckStorage', () => {
 
     it('should save evening wellness with Sprint 1 ADL fields', async () => {
       const data: EveningWellnessData = {
-        mood: 'managing',
+        mood: 3,
         mealsLogged: true,
         dayRating: 3,
         painLevel: 'moderate',
@@ -210,7 +210,7 @@ describe('wellnessCheckStorage', () => {
 
       expect(result).not.toBeNull();
       expect(result!.skipped).toBe(true);
-      expect(result!.mood).toBe('managing');
+      expect(result!.mood).toBe(3);
       expect(result!.mealsLogged).toBe(false);
       expect(result!.dayRating).toBe(3);
     });
@@ -239,7 +239,7 @@ describe('wellnessCheckStorage', () => {
           id: 'morning-2025-01-15-old',
           date: '2025-01-15',
           sleepQuality: 4,
-          mood: 'good',
+          mood: 4,
           energyLevel: 3,
           completedAt: '2025-01-15T10:00:00.000Z',
         },
@@ -249,7 +249,7 @@ describe('wellnessCheckStorage', () => {
       const result = await getMorningWellness('2025-01-15');
       expect(result).not.toBeNull();
       expect(result!.sleepQuality).toBe(4);
-      expect(result!.mood).toBe('good');
+      expect(result!.mood).toBe(4);
       expect(result!.orientation).toBeUndefined();
       expect(result!.decisionMaking).toBeUndefined();
     });
@@ -259,7 +259,7 @@ describe('wellnessCheckStorage', () => {
         {
           id: 'evening-2025-01-15-old',
           date: '2025-01-15',
-          mood: 'managing',
+          mood: 3,
           mealsLogged: true,
           dayRating: 3,
           completedAt: '2025-01-15T20:00:00.000Z',
@@ -269,7 +269,7 @@ describe('wellnessCheckStorage', () => {
 
       const result = await getEveningWellness('2025-01-15');
       expect(result).not.toBeNull();
-      expect(result!.mood).toBe('managing');
+      expect(result!.mood).toBe(3);
       expect(result!.painLevel).toBeUndefined();
       expect(result!.alertness).toBeUndefined();
       expect(result!.bowelMovement).toBeUndefined();

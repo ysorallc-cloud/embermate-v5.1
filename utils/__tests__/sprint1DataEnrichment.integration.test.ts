@@ -68,7 +68,7 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
     it('should accept orientation field on MorningWellnessData', () => {
       const data: MorningWellnessData = {
         sleepQuality: 4,
-        mood: 'good',
+        mood: 4,
         energyLevel: 3,
         orientation: 'alert-oriented',
         completedAt: new Date(),
@@ -79,7 +79,7 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
     it('should accept decisionMaking field on MorningWellnessData', () => {
       const data: MorningWellnessData = {
         sleepQuality: 3,
-        mood: 'managing',
+        mood: 3,
         energyLevel: 2,
         decisionMaking: 'needs-guidance',
         completedAt: new Date(),
@@ -98,7 +98,7 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
       values.forEach(v => {
         const data: MorningWellnessData = {
           sleepQuality: 3,
-          mood: 'good',
+          mood: 4,
           energyLevel: 3,
           orientation: v,
           completedAt: new Date(),
@@ -117,7 +117,7 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
       values.forEach(v => {
         const data: MorningWellnessData = {
           sleepQuality: 3,
-          mood: 'good',
+          mood: 4,
           energyLevel: 3,
           decisionMaking: v,
           completedAt: new Date(),
@@ -129,7 +129,7 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
     it('should work without optional fields (backwards compatible)', () => {
       const data: MorningWellnessData = {
         sleepQuality: 5,
-        mood: 'great',
+        mood: 5,
         energyLevel: 5,
         completedAt: new Date(),
       };
@@ -287,7 +287,7 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
   describe('Task 1.4: Evening Check Expansion types', () => {
     it('should accept all new evening wellness fields', () => {
       const data: EveningWellnessData = {
-        mood: 'good',
+        mood: 4,
         mealsLogged: true,
         dayRating: 4,
         painLevel: 'mild',
@@ -311,7 +311,7 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
       ];
       values.forEach(v => {
         const data: EveningWellnessData = {
-          mood: 'managing',
+          mood: 3,
           mealsLogged: true,
           dayRating: 3,
           painLevel: v,
@@ -327,7 +327,7 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
       ];
       values.forEach(v => {
         const data: EveningWellnessData = {
-          mood: 'managing',
+          mood: 3,
           mealsLogged: true,
           dayRating: 3,
           alertness: v,
@@ -343,7 +343,7 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
       ];
       values.forEach(v => {
         const data: EveningWellnessData = {
-          mood: 'managing',
+          mood: 3,
           mealsLogged: true,
           dayRating: 3,
           bowelMovement: v,
@@ -359,7 +359,7 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
       ];
       values.forEach(v => {
         const data: EveningWellnessData = {
-          mood: 'managing',
+          mood: 3,
           mealsLogged: true,
           dayRating: 3,
           bathingStatus: v,
@@ -375,7 +375,7 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
       ];
       values.forEach(v => {
         const data: EveningWellnessData = {
-          mood: 'managing',
+          mood: 3,
           mealsLogged: true,
           dayRating: 3,
           mobilityStatus: v,
@@ -387,7 +387,7 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
 
     it('should work without new fields (backwards compatible)', () => {
       const data: EveningWellnessData = {
-        mood: 'good',
+        mood: 4,
         mealsLogged: true,
         dayRating: 4,
         completedAt: new Date(),
@@ -401,7 +401,7 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
 
     it('should allow combining original and new fields', () => {
       const data: EveningWellnessData = {
-        mood: 'difficult',
+        mood: 2,
         mealsLogged: false,
         dayRating: 2,
         highlights: 'Enjoyed garden time',

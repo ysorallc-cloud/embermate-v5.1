@@ -8,7 +8,7 @@ import { getMorningWellness, getEveningWellness } from './wellnessCheckStorage';
 import { getUpcomingAppointments } from './appointmentStorage';
 import { getTodayVitalsLog, getMealsLogs, getTodaySleepLog, getTodayWaterLog } from './centralStorage';
 import { listDailyInstances, listLogsByDate, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
-import { ensureDailyInstances } from '../services/carePlanGenerator';
+import { ensureDailyInstances, getTodayDateString } from '../services/carePlanGenerator';
 import { getMedicalInfo, MedicalInfo } from './medicalInfo';
 import { getClinicalCareSettings, ClinicalCareSettings } from './clinicalCareSettings';
 import { getEmergencyContacts, EmergencyContact } from './emergencyContacts';
@@ -69,11 +69,11 @@ const ALERTNESS_LABELS: Record<string, string> = {
 };
 
 const MOOD_DISPLAY: Record<string, string> = {
-  struggling: 'Struggling',
-  difficult: 'Difficult',
-  managing: 'Managing',
-  good: 'Good',
-  great: 'Great',
+  '1': 'Struggling', struggling: 'Struggling',
+  '2': 'Difficult', difficult: 'Difficult',
+  '3': 'Managing', managing: 'Managing',
+  '4': 'Good', good: 'Good',
+  '5': 'Great', great: 'Great',
 };
 
 // ============================================================================
@@ -81,7 +81,7 @@ const MOOD_DISPLAY: Record<string, string> = {
 // ============================================================================
 
 export async function buildTodaySummary(): Promise<TodaySummary> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateString();
 
   // Use ensureDailyInstances for deduplicated instances (same pipeline as Now page)
   const instances = await ensureDailyInstances(DEFAULT_PATIENT_ID, today);
@@ -154,8 +154,8 @@ export async function buildTodaySummary(): Promise<TodaySummary> {
   let moodArc: string | null = null;
   if (morningWellness?.mood || eveningWellness?.mood) {
     const moods: string[] = [];
-    if (morningWellness?.mood) moods.push(MOOD_DISPLAY[morningWellness.mood] || morningWellness.mood);
-    if (eveningWellness?.mood) moods.push(MOOD_DISPLAY[eveningWellness.mood] || eveningWellness.mood);
+    if (morningWellness?.mood) moods.push(MOOD_DISPLAY[String(morningWellness.mood)] || String(morningWellness.mood));
+    if (eveningWellness?.mood) moods.push(MOOD_DISPLAY[String(eveningWellness.mood)] || String(eveningWellness.mood));
     moodArc = moods.length > 1 ? moods.join(' \u2192 ') : moods[0];
   }
 
@@ -257,6 +257,10 @@ export interface MoodDetail {
   eveningWellness?: {
     dayRating: number;
     painLevel?: string;
+    alertness?: string;
+    bowelMovement?: string;
+    bathingStatus?: string;
+    mobilityStatus?: string;
   };
 }
 
@@ -289,7 +293,7 @@ export interface ShiftReport {
 // ============================================================================
 
 export async function buildShiftReport(): Promise<ShiftReport> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateString();
 
   const [instances, logs, morningWellness, eveningWellness, todayVitals, mealsLogs, upcomingAppointments] =
     await Promise.all([
@@ -345,13 +349,13 @@ export async function buildShiftReport(): Promise<ShiftReport> {
   if (morningWellness?.mood) {
     moodEntries.push({
       source: 'morning-wellness',
-      label: MOOD_DISPLAY[morningWellness.mood] || morningWellness.mood,
+      label: MOOD_DISPLAY[String(morningWellness.mood)] || String(morningWellness.mood),
     });
   }
   if (eveningWellness?.mood) {
     moodEntries.push({
       source: 'evening-wellness',
-      label: MOOD_DISPLAY[eveningWellness.mood] || eveningWellness.mood,
+      label: MOOD_DISPLAY[String(eveningWellness.mood)] || String(eveningWellness.mood),
     });
   }
 
@@ -359,7 +363,7 @@ export async function buildShiftReport(): Promise<ShiftReport> {
   if (morningWellness) {
     mood.morningWellness = {
       sleepQuality: morningWellness.sleepQuality ?? 0,
-      mood: MOOD_DISPLAY[morningWellness.mood] || morningWellness.mood || 'Unknown',
+      mood: MOOD_DISPLAY[String(morningWellness.mood)] || String(morningWellness.mood) || 'Unknown',
       orientation: morningWellness.orientation
         ? ORIENTATION_LABELS[morningWellness.orientation] ?? morningWellness.orientation
         : undefined,
@@ -598,7 +602,7 @@ export interface DefaultOpenSections {
 // ============================================================================
 
 export async function buildCareBrief(): Promise<CareBrief> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateString();
 
   let instances: Awaited<ReturnType<typeof ensureDailyInstances>>;
   let logs: Awaited<ReturnType<typeof listLogsByDate>>;
@@ -682,16 +686,16 @@ export async function buildCareBrief(): Promise<CareBrief> {
 
   const moodEntries: MoodDetail['entries'] = [];
   if (morningWellness?.mood) {
-    moodEntries.push({ source: 'morning-wellness', label: MOOD_DISPLAY[morningWellness.mood] || morningWellness.mood });
+    moodEntries.push({ source: 'morning-wellness', label: MOOD_DISPLAY[String(morningWellness.mood)] || String(morningWellness.mood) });
   }
   if (eveningWellness?.mood) {
-    moodEntries.push({ source: 'evening-wellness', label: MOOD_DISPLAY[eveningWellness.mood] || eveningWellness.mood });
+    moodEntries.push({ source: 'evening-wellness', label: MOOD_DISPLAY[String(eveningWellness.mood)] || String(eveningWellness.mood) });
   }
   const mood: MoodDetail = { entries: moodEntries };
   if (morningWellness) {
     mood.morningWellness = {
       sleepQuality: morningWellness.sleepQuality ?? 0,
-      mood: MOOD_DISPLAY[morningWellness.mood] || morningWellness.mood || 'Unknown',
+      mood: MOOD_DISPLAY[String(morningWellness.mood)] || String(morningWellness.mood) || 'Unknown',
       orientation: morningWellness.orientation
         ? ORIENTATION_LABELS[morningWellness.orientation] ?? morningWellness.orientation
         : undefined,
@@ -811,8 +815,8 @@ export async function buildCareBrief(): Promise<CareBrief> {
   }
 
   // --- Patient snapshot ---
-  const activeDiagnoses = medInfo?.diagnoses.filter(d => d.status === 'active').map(d => d.condition) ?? [];
-  const activePatient = patientRegistry.patients.find(p => p.id === patientRegistry.activePatientId);
+  const activeDiagnoses = medInfo?.diagnoses?.filter(d => d.status === 'active').map(d => d.condition) ?? [];
+  const activePatient = patientRegistry?.patients?.find(p => p.id === patientRegistry.activePatientId);
   const relationship = activePatient?.relationship && activePatient.relationship !== 'self'
     ? activePatient.relationship
     : undefined;

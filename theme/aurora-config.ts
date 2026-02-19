@@ -5,7 +5,7 @@
 
 export default null;
 
-export type AuroraVariant = 'today' | 'hub' | 'family' | 'log' | 'reports' | 'insights' | 'settings' | 'member' | 'coffee';
+export type AuroraVariant = 'today' | 'now' | 'journal' | 'hub' | 'family' | 'log' | 'reports' | 'insights' | 'settings' | 'member' | 'coffee';
 
 export interface AuroraConfig {
   baseHue1: number;
@@ -20,6 +20,26 @@ export interface AuroraConfig {
 
 export const AURORA_CONFIGS: Record<AuroraVariant, AuroraConfig> = {
   // Main tabs
+  now: {
+    baseHue1: 160,    // Teal (alias for today)
+    baseHue2: 280,
+    saturation1: 70,
+    saturation2: 50,
+    lightness1: 30,
+    lightness2: 40,
+    opacity1: 0.4,
+    opacity2: 0.3,
+  },
+  journal: {
+    baseHue1: 260,    // Purple
+    baseHue2: 200,    // Blue
+    saturation1: 60,
+    saturation2: 50,
+    lightness1: 22,
+    lightness2: 18,
+    opacity1: 0.45,
+    opacity2: 0.3,
+  },
   today: {
     baseHue1: 160,    // Teal
     baseHue2: 280,    // Purple

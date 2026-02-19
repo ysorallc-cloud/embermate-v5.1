@@ -18,7 +18,6 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { saveNotesLog } from '../utils/centralStorage';
 import { emitDataUpdate } from '../lib/events';
-import { getTodayDateString } from '../services/carePlanGenerator';
 import { logError } from '../utils/devLog';
 
 const BOWEL_OPTIONS = [
@@ -61,7 +60,6 @@ export default function LogBathroomScreen() {
     if (!bowel && !urination) return;
 
     try {
-      const today = getTodayDateString();
       const parts: string[] = [];
       if (bowel) {
         const bowelLabel = BOWEL_OPTIONS.find(o => o.id === bowel)?.label || bowel;
@@ -75,7 +73,10 @@ export default function LogBathroomScreen() {
         parts.push(`Notes: ${notes.trim()}`);
       }
 
-      await saveNotesLog(today, `[Bathroom] ${parts.join(' | ')}`);
+      await saveNotesLog({
+        timestamp: new Date().toISOString(),
+        content: `[Bathroom] ${parts.join(' | ')}`,
+      });
       emitDataUpdate('notes');
       setSaved(true);
     } catch (error) {
@@ -85,7 +86,8 @@ export default function LogBathroomScreen() {
 
   if (saved) {
     return (
-      <AuroraBackground variant="log">
+      <View style={{ flex: 1 }}>
+        <AuroraBackground variant="log" />
         <View style={styles.confirmContainer}>
           <Animated.View style={[styles.confirmContent, { opacity: fadeAnim }]}>
             <Text style={styles.confirmIcon}>✅</Text>
@@ -93,16 +95,14 @@ export default function LogBathroomScreen() {
             <Text style={styles.confirmSubtitle}>Bathroom visit recorded</Text>
           </Animated.View>
         </View>
-      </AuroraBackground>
+      </View>
     );
   }
 
   return (
-    <AuroraBackground variant="log">
-      <ScreenHeader
-        title="Bathroom"
-        onBack={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/now')}
-      />
+    <View style={{ flex: 1 }}>
+      <AuroraBackground variant="log" />
+      <ScreenHeader title="Bathroom" />
       <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
         {/* Bowel Movement */}
         <Text style={styles.sectionTitle}>Bowel Movement</Text>
@@ -159,7 +159,7 @@ export default function LogBathroomScreen() {
           <Text style={styles.saveButtonText}>Log Bathroom Visit</Text>
         </TouchableOpacity>
       </ScrollView>
-    </AuroraBackground>
+    </View>
   );
 }
 

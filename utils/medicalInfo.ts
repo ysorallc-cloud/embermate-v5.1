@@ -38,6 +38,8 @@ export interface MedicalInfo {
     name: string;
     dosage: string;
   }>;
+  dateOfBirth?: string;
+  gender?: string;
   emergencyNotes?: string;
   lastUpdated: Date;
 }

@@ -33,6 +33,12 @@ export interface DailyTrackingLog {
   notes: string | null;
   tags: string[]; // ['good_day', 'concern_for_dr', etc.]
 
+  // Clinical care details (optional)
+  alertness?: string;
+  bowelMovement?: string;
+  bathingStatus?: string;
+  mobilityStatus?: string;
+
   // Vitals summary (optional, for correlation)
   pain: number | null; // 0-10 scale
 }

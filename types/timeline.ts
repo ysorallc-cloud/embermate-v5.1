@@ -35,9 +35,9 @@ export interface TimelineItem {
 
 // Wellness check data captured
 export interface MorningWellnessData {
-  sleepQuality: 1 | 2 | 3 | 4 | 5;      // 1=poor, 5=great
-  mood: 'struggling' | 'difficult' | 'managing' | 'good' | 'great';
-  energyLevel: 1 | 2 | 3 | 4 | 5;
+  sleepQuality: number;      // 1=poor, 5=great
+  mood: number;  // 1=struggling, 5=great
+  energyLevel: number;
   notes?: string;
   orientation?: string;
   decisionMaking?: string;
@@ -45,10 +45,10 @@ export interface MorningWellnessData {
 }
 
 export interface EveningWellnessData {
-  mood: 'struggling' | 'difficult' | 'managing' | 'good' | 'great';
+  mood: number;  // 1=struggling, 5=great
   mealsLogged: boolean;
-  dayRating: 1 | 2 | 3 | 4 | 5;
-  painLevel?: number;
+  dayRating: number;
+  painLevel?: string;
   alertness?: string;
   bowelMovement?: string;
   bathingStatus?: string;

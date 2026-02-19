@@ -74,15 +74,12 @@ import { useNowInsights } from '../../hooks/useNowInsights';
 import { ProgressRings } from '../../components/now/ProgressRings';
 import { CareInsightCard } from '../../components/now/CareInsightCard';
 import { TimelineSection } from '../../components/now/TimelineSection';
-import { WellnessSnapStrip } from '../../components/common/WellnessSnapStrip';
-import { GlassCard } from '../../components/aurora/GlassCard';
-import { NextUpCard } from '../../components/now/NextUpCard';
 
-function getCurrentWindow(): { label: string; emoji: string } {
+function getGreeting(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return { label: 'Morning', emoji: '\u{1F305}' };
-  if (hour < 17) return { label: 'Afternoon', emoji: '\u{2600}\u{FE0F}' };
-  return { label: 'Evening', emoji: '\u{1F306}' };
+  if (hour < 12) return 'Good Morning';
+  if (hour < 17) return 'Good Afternoon';
+  return 'Good Evening';
 }
 
 // Banners
@@ -162,7 +159,6 @@ export default function NowScreen() {
   // Water stats from direct storage (not care plan instances, since water is counted in glasses not task completions)
   const [waterGlasses, setWaterGlasses] = useState(0);
   const [patientName, setPatientName] = useState('Patient');
-  const [vitalsAlerts, setVitalsAlerts] = useState<string[]>([]);
   const waterGoal = 8;
 
   // ============================================================================
@@ -276,21 +272,6 @@ export default function NowScreen() {
   );
   const coffeeMoment = useCoffeeMoment(overdueCount, hasLateMedication);
 
-  // Group overdue items by category for NextUpCard
-  const overdueByCategory = useMemo(() => {
-    const counts: Record<string, number> = {};
-    todayTimeline.overdue.forEach((item: any) => {
-      const type = item.itemType || 'other';
-      counts[type] = (counts[type] || 0) + 1;
-    });
-    return counts;
-  }, [todayTimeline.overdue]);
-
-  const handleViewOverdueTasks = useCallback((window: string) => {
-    setSelectedCategory(null);
-    scrollViewRef.current?.scrollTo({ y: 600, animated: true });
-  }, []);
-
   // Handler for timeline item tap
   const handleTimelineItemPress = useCallback((instance: any) => {
     if (instance.itemType === 'medication') {
@@ -381,28 +362,15 @@ export default function NowScreen() {
       const tracking = await getDailyTracking(todayDate);
       setDailyTracking(tracking);
 
-      // Load vitals to count (legacy fallback) and check for alerts
+      // Load vitals to count (legacy fallback)
       const todayVitals = await getTodayVitalsLog();
       let vitalsLogged = 0;
-      const alerts: string[] = [];
       if (todayVitals) {
         if (todayVitals.systolic) vitalsLogged++;
         if (todayVitals.diastolic) vitalsLogged++;
         if (todayVitals.heartRate) vitalsLogged++;
         if (todayVitals.temperature) vitalsLogged++;
-
-        // Check thresholds for vitals alert banner
-        if ((todayVitals.systolic ?? 0) > 140 || (todayVitals.diastolic ?? 0) > 90) {
-          alerts.push(`BP ${todayVitals.systolic}/${todayVitals.diastolic} — above 140/90`);
-        }
-        if (todayVitals.heartRate && (todayVitals.heartRate > 100 || todayVitals.heartRate < 50)) {
-          alerts.push(`HR ${todayVitals.heartRate} bpm — outside normal range`);
-        }
-        if (todayVitals.oxygen && todayVitals.oxygen < 92) {
-          alerts.push(`SpO2 ${todayVitals.oxygen}% — below 92%`);
-        }
       }
-      setVitalsAlerts(alerts);
 
       // Count meds taken TODAY (not the global .taken flag which persists across days)
       const { getMedicationLogs } = await import('../../utils/medicationStorage');
@@ -472,8 +440,17 @@ export default function NowScreen() {
       >
         {/* Page header */}
         <ScreenHeader
-          title="Now"
-          subtitle="What's happening right now"
+          title={getGreeting()}
+          rightAction={
+            <TouchableOpacity
+              onPress={() => navigate('/care-plan')}
+              style={{ padding: 8, marginRight: -8 }}
+              accessibilityLabel="Manage Care Plan"
+              accessibilityRole="button"
+            >
+              <Text style={{ fontSize: 20, opacity: 0.7 }}>⚙️</Text>
+            </TouchableOpacity>
+          }
         />
 
         {/* Hidden Items Banner */}
@@ -573,20 +550,6 @@ export default function NowScreen() {
           {/* Sample Data Banner */}
           <SampleDataBanner compact />
 
-          {/* NextUpCard — only when overdue items exist */}
-          {overdueCount > 0 && (
-            <NextUpCard
-              overdueCount={overdueCount}
-              totalPending={allPending.length}
-              completedCount={todayTimeline.completed.length}
-              nextPendingItem={todayTimeline.nextUp}
-              hasRegimenInstances={!!hasRegimenInstances}
-              overdueByCategory={overdueByCategory}
-              overdueItems={todayTimeline.overdue}
-              onViewTasks={handleViewOverdueTasks}
-            />
-          )}
-
           {/* Getting Started Checklist */}
           {!prompts.showOnboarding && <GettingStartedChecklist />}
 
@@ -647,76 +610,6 @@ export default function NowScreen() {
           {/* Empty State: No Care Plan */}
           {!hasAnyCarePlan && !prompts.showOnboarding && !carePlanConfigLoading && (
             <NoCarePlanBanner onSetup={() => navigate('/care-plan')} />
-          )}
-
-          {/* CURRENT BLOCK CARD */}
-          {hasRegimenInstances && (() => {
-            const window = getCurrentWindow();
-            const windowKey = window.label.toLowerCase();
-            const windowInstances = instancesState?.instances.filter(
-              (i: any) => i.windowLabel === windowKey
-            ) || [];
-            const windowDone = windowInstances.filter((i: any) => i.status === 'completed').length;
-            const windowTotal = windowInstances.length;
-            const nextPending = windowInstances.find((i: any) => i.status === 'pending');
-
-            return windowTotal > 0 ? (
-              <GlassCard style={styles.currentBlockCard}>
-                <View style={styles.currentBlockHeader}>
-                  <Text style={styles.currentBlockEmoji}>{window.emoji}</Text>
-                  <Text style={styles.currentBlockTitle}>{window.label}</Text>
-                  <Text style={styles.currentBlockCount}>{windowDone}/{windowTotal}</Text>
-                </View>
-                {nextPending && (
-                  <Text style={styles.currentBlockNext}>
-                    Next: {nextPending.itemName}
-                  </Text>
-                )}
-                <TouchableOpacity
-                  style={styles.currentBlockButton}
-                  onPress={() => {
-                    setSelectedCategory(null);
-                    scrollViewRef.current?.scrollTo({ y: 600, animated: true });
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.currentBlockButtonText}>
-                    View {window.label} Tasks
-                  </Text>
-                </TouchableOpacity>
-              </GlassCard>
-            ) : null;
-          })()}
-
-          {/* WELLNESS SNAP STRIP */}
-          {(() => {
-            const snapItems: { emoji: string; label: string; value: string; color?: string }[] = [];
-            if (dailyTracking?.mood) {
-              snapItems.push({ emoji: '\u{1F60A}', label: 'Mood', value: dailyTracking.mood });
-            }
-            if (dailyTracking?.sleepHours != null) {
-              snapItems.push({ emoji: '\u{1F634}', label: 'Sleep', value: `${dailyTracking.sleepHours}h` });
-            }
-            if (dailyTracking?.energyLevel) {
-              snapItems.push({ emoji: '\u{26A1}', label: 'Energy', value: dailyTracking.energyLevel });
-            }
-            if (dailyTracking?.painLevel) {
-              snapItems.push({ emoji: '\u{1FA7A}', label: 'Pain', value: dailyTracking.painLevel });
-            }
-            return snapItems.length > 0 ? <WellnessSnapStrip items={snapItems} /> : null;
-          })()}
-
-          {/* VITALS ALERT BANNER */}
-          {vitalsAlerts.length > 0 && (
-            <View style={styles.vitalsAlertBanner}>
-              <Text style={styles.vitalsAlertIcon}>{'\u26A0\uFE0F'}</Text>
-              <View style={styles.vitalsAlertContent}>
-                <Text style={styles.vitalsAlertTitle}>Vitals Alert</Text>
-                {vitalsAlerts.map((alert, i) => (
-                  <Text key={i} style={styles.vitalsAlertText}>{alert}</Text>
-                ))}
-              </View>
-            </View>
           )}
 
           {/* 2. CARE PLAN PROGRESS — grounding card */}
@@ -912,80 +805,6 @@ const styles = StyleSheet.create({
     color: Colors.textHalf,
     marginTop: 2,
   },
-  // Current Block Card
-  currentBlockCard: {
-    marginBottom: 16,
-  },
-  currentBlockHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 8,
-  },
-  currentBlockEmoji: {
-    fontSize: 22,
-  },
-  currentBlockTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    flex: 1,
-  },
-  currentBlockCount: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.accent,
-  },
-  currentBlockNext: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    marginBottom: 12,
-  },
-  currentBlockButton: {
-    backgroundColor: Colors.accentFaint,
-    borderWidth: 1,
-    borderColor: Colors.accentBorder,
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  currentBlockButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.accent,
-  },
-
-  // Vitals Alert Banner
-  vitalsAlertBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: Colors.amberFaint,
-    borderWidth: 1,
-    borderColor: Colors.amberBorder,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    gap: 10,
-  },
-  vitalsAlertIcon: {
-    fontSize: 18,
-    marginTop: 1,
-  },
-  vitalsAlertContent: {
-    flex: 1,
-  },
-  vitalsAlertTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.amber,
-    marginBottom: 4,
-  },
-  vitalsAlertText: {
-    fontSize: 13,
-    color: Colors.textBright,
-    lineHeight: 19,
-  },
-
   emptyTimeline: {
     backgroundColor: Colors.glass,
     borderRadius: 8,
