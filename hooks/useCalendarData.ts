@@ -1,9 +1,9 @@
 // ============================================================================
 // USE CALENDAR DATA HOOK
-// Builds calendar days and day schedules for calendar view
+// Builds calendar days with heatmap completion data and day detail
 // ============================================================================
 
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import { logError } from '../utils/devLog';
 import {
   startOfMonth,
@@ -13,225 +13,268 @@ import {
   eachDayOfInterval,
   isSameMonth,
   isSameDay,
-  setHours,
-  setMinutes,
+  isAfter,
   format,
 } from 'date-fns';
-import { useWellnessSettings } from './useWellnessSettings';
-import { getTimelineWithStatuses } from '../utils/timelineStatus';
-import { getSubtitle } from '../utils/timelineSubtitle';
 import { CalendarDay } from '../types/calendar';
-import { TimelineItem } from '../types/timeline';
 import { getMedications, Medication } from '../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../utils/appointmentStorage';
 import { getMorningWellness, getEveningWellness } from '../utils/wellnessCheckStorage';
 import { getVitalsCompletionForDate } from '../utils/vitalsStorage';
+import { getVitalsLogs } from '../utils/centralStorage';
+import { getMealsLogs } from '../utils/centralStorage';
+import { getWaterLogs } from '../utils/centralStorage';
+import { getSleepLogs } from '../utils/centralStorage';
+import { getMoodLogs } from '../utils/centralStorage';
+import { listDailyInstancesRange, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
+
+const MOOD_LABELS: Record<string, string> = {
+  '1': 'Struggling', '2': 'Difficult', '3': 'Managing', '4': 'Good', '5': 'Great',
+};
+
+// ============================================================================
+// MONTH SUMMARY STATS
+// ============================================================================
+
+export interface MonthSummary {
+  avgCompletion: number;
+  perfectDays: number;
+  missedMedDays: number;
+  totalTrackedDays: number;
+}
 
 export const useCalendarData = (currentMonth: Date, selectedDate: Date) => {
-  const { wellnessChecks, vitalsCheck } = useWellnessSettings();
-  const [medications, setMedications] = useState<Medication[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [morningWellnessComplete, setMorningWellnessComplete] = useState<Date | undefined>(undefined);
-  const [eveningWellnessComplete, setEveningWellnessComplete] = useState<Date | undefined>(undefined);
-  const [vitalsComplete, setVitalsComplete] = useState<Date | undefined>(undefined);
+  const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
+  const [monthSummary, setMonthSummary] = useState<MonthSummary>({
+    avgCompletion: 0, perfectDays: 0, missedMedDays: 0, totalTrackedDays: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
-  // Load medications and appointments
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const meds = await getMedications();
-        setMedications(meds.filter(m => m.active));
+  const loadMonthData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const today = new Date();
 
-        const appts = await getUpcomingAppointments();
-        setAppointments(appts);
-      } catch (error) {
-        logError('useCalendarData.loadData', error);
+      const monthStart = startOfMonth(currentMonth);
+      const monthEnd = endOfMonth(currentMonth);
+      const calStart = startOfWeek(monthStart);
+      const calEnd = endOfWeek(monthEnd);
+
+      const allDays = eachDayOfInterval({ start: calStart, end: calEnd });
+
+      // Load all data sources in parallel
+      const startStr = format(calStart, 'yyyy-MM-dd');
+      const endStr = format(calEnd, 'yyyy-MM-dd');
+
+      const [
+        medications,
+        appointments,
+        instances,
+        vitalsLogs,
+        mealsLogs,
+        waterLogs,
+        sleepLogs,
+        moodLogs,
+      ] = await Promise.all([
+        getMedications(),
+        getUpcomingAppointments(),
+        listDailyInstancesRange(DEFAULT_PATIENT_ID, startStr, endStr).catch(() => []),
+        getVitalsLogs().catch(() => []),
+        getMealsLogs().catch(() => []),
+        getWaterLogs().catch(() => []),
+        getSleepLogs().catch(() => []),
+        getMoodLogs().catch(() => []),
+      ]);
+
+      const activeMeds = medications.filter(m => m.active);
+      const medsTotal = activeMeds.length;
+
+      // Index data by date for efficient lookup
+      const instancesByDate = new Map<string, any[]>();
+      for (const inst of instances) {
+        const d = inst.date || inst.scheduledTime?.split('T')[0];
+        if (d) {
+          if (!instancesByDate.has(d)) instancesByDate.set(d, []);
+          instancesByDate.get(d)!.push(inst);
+        }
       }
-    };
 
-    loadData();
-  }, []);
+      const vitalsLogsByDate = new Map<string, any>();
+      for (const v of vitalsLogs) {
+        const d = new Date(v.timestamp).toISOString().split('T')[0];
+        vitalsLogsByDate.set(d, v);
+      }
 
-  // Load wellness check and vitals completion status for selected date
+      const mealsByDate = new Map<string, number>();
+      for (const m of mealsLogs) {
+        const d = new Date(m.timestamp).toISOString().split('T')[0];
+        mealsByDate.set(d, (mealsByDate.get(d) || 0) + 1);
+      }
+
+      const waterByDate = new Map<string, number>();
+      for (const w of waterLogs) {
+        const d = new Date(w.timestamp).toISOString().split('T')[0];
+        waterByDate.set(d, Math.max(waterByDate.get(d) || 0, w.glasses));
+      }
+
+      const sleepByDate = new Map<string, any>();
+      for (const s of sleepLogs) {
+        const d = new Date(s.timestamp).toISOString().split('T')[0];
+        sleepByDate.set(d, s);
+      }
+
+      const moodByDate = new Map<string, any>();
+      for (const m of moodLogs) {
+        const d = new Date(m.timestamp).toISOString().split('T')[0];
+        moodByDate.set(d, m);
+      }
+
+      // Build calendar days with completion data
+      const days: CalendarDay[] = [];
+      let sumCompletion = 0;
+      let perfectCount = 0;
+      let missedMedCount = 0;
+      let trackedDayCount = 0;
+
+      for (const date of allDays) {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const isCurrentMonth = isSameMonth(date, currentMonth);
+        const isTodayDate = isSameDay(date, today);
+        const isFuture = isAfter(date, today) && !isTodayDate;
+
+        // Appointment info
+        const dayAppts = appointments.filter(a => a.date === dateStr);
+        const hasAppt = dayAppts.length > 0;
+        const firstAppt = dayAppts[0];
+
+        // Completion data
+        const dayInstances = instancesByDate.get(dateStr) || [];
+        const medInstances = dayInstances.filter((i: any) => i.itemType === 'medication');
+        const medsDone = medInstances.filter((i: any) => i.status === 'completed').length;
+
+        const vitalsLog = vitalsLogsByDate.get(dateStr);
+        const hasVitals = !!vitalsLog;
+
+        // Load wellness
+        let hasWellness = false;
+        let wellnessData: { mood?: string; pain?: string } | null = null;
+        try {
+          const morning = await getMorningWellness(dateStr);
+          const evening = await getEveningWellness(dateStr);
+          hasWellness = !!(morning || evening);
+          if (morning || evening) {
+            const moodVal = morning?.mood || evening?.mood;
+            wellnessData = {
+              mood: moodVal ? (MOOD_LABELS[String(moodVal)] || String(moodVal)) : undefined,
+              pain: evening?.painLevel || undefined,
+            };
+          }
+        } catch {}
+
+        const mealsCount = mealsByDate.get(dateStr) || 0;
+        const waterCount = waterByDate.get(dateStr) || 0;
+        const sleepLog = sleepByDate.get(dateStr);
+        const moodLog = moodByDate.get(dateStr);
+
+        // Calculate completion percentage
+        let totalItems = 0;
+        let doneItems = 0;
+
+        if (medsTotal > 0) {
+          totalItems += medsTotal;
+          doneItems += Math.min(medsDone, medsTotal);
+        }
+        totalItems += 1; // vitals
+        if (hasVitals) doneItems += 1;
+        totalItems += 1; // wellness
+        if (hasWellness) doneItems += 1;
+        totalItems += 3; // 3 meals
+        doneItems += Math.min(mealsCount, 3);
+
+        const completionPct = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
+
+        // Vitals detail
+        let vitalsData: { bp?: string; hr?: number; glucose?: number } | null = null;
+        if (vitalsLog) {
+          vitalsData = {
+            bp: vitalsLog.systolic && vitalsLog.diastolic
+              ? `${vitalsLog.systolic}/${vitalsLog.diastolic}` : undefined,
+            hr: vitalsLog.heartRate,
+            glucose: vitalsLog.glucose,
+          };
+        }
+
+        const day: CalendarDay = {
+          date,
+          isToday: isTodayDate,
+          isSelected: isSameDay(date, selectedDate),
+          isCurrentMonth,
+          hasItems: totalItems > 0,
+          hasAppointment: hasAppt,
+          itemCount: totalItems,
+          isFuture,
+          completionPct: isFuture ? undefined : completionPct,
+          medsTotal,
+          medsDone: isFuture ? 0 : medsDone,
+          vitals: hasVitals,
+          wellness: hasWellness,
+          mealsLogged: mealsCount,
+          mealsTotal: 3,
+          waterGlasses: waterCount,
+          waterTarget: 8,
+          sleepHours: sleepLog ? sleepLog.hours : null,
+          sleepQuality: sleepLog
+            ? (sleepLog.quality >= 4 ? 'good' : sleepLog.quality >= 3 ? 'fair' : 'poor')
+            : null,
+          appointment: firstAppt ? {
+            provider: firstAppt.provider,
+            specialty: firstAppt.specialty || 'Appointment',
+            time: firstAppt.time ? formatTimeDisplay(firstAppt.time) : '',
+          } : null,
+          vitalsData,
+          wellnessData,
+          moodLabel: moodLog?.mood ? (MOOD_LABELS[String(moodLog.mood)] || String(moodLog.mood)) : null,
+        };
+
+        days.push(day);
+
+        // Aggregate month stats (current month, non-future days only)
+        if (isCurrentMonth && !isFuture) {
+          trackedDayCount++;
+          sumCompletion += completionPct;
+          if (completionPct >= 90) perfectCount++;
+          if (medsTotal > 0 && medsDone < medsTotal) missedMedCount++;
+        }
+      }
+
+      setCalendarDays(days);
+      setMonthSummary({
+        avgCompletion: trackedDayCount > 0 ? Math.round(sumCompletion / trackedDayCount) : 0,
+        perfectDays: perfectCount,
+        missedMedDays: missedMedCount,
+        totalTrackedDays: trackedDayCount,
+      });
+    } catch (error) {
+      logError('useCalendarData.loadMonthData', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentMonth, selectedDate]);
+
   useEffect(() => {
-    const loadCompletionStatus = async () => {
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      const morning = await getMorningWellness(dateStr);
-      const evening = await getEveningWellness(dateStr);
-      const vitalsCompletion = await getVitalsCompletionForDate(dateStr);
+    loadMonthData();
+  }, [loadMonthData]);
 
-      setMorningWellnessComplete(morning ? morning.completedAt : undefined);
-      setEveningWellnessComplete(evening ? evening.completedAt : undefined);
-      setVitalsComplete(vitalsCompletion ?? undefined);
-    };
-
-    loadCompletionStatus();
-  }, [selectedDate]);
-
-  // Generate calendar days for the month view (including overflow days)
-  const calendarDays = useMemo(() => {
-    const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(currentMonth);
-    const calendarStart = startOfWeek(monthStart);
-    const calendarEnd = endOfWeek(monthEnd);
-
-    const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
-
-    return days.map(date => {
-      const dateStr = format(date, 'yyyy-MM-dd');
-      const isCurrentMonth = isSameMonth(date, currentMonth);
-
-      // Check for medications (every day has morning/evening if there are any active meds)
-      const hasMeds = medications.length > 0;
-
-      // Check for appointments on this day
-      const hasAppt = appointments.some(appt => {
-        const apptDate = new Date(appt.date);
-        return isSameDay(apptDate, date);
-      });
-
-      // Every day has at least 2 items (morning + evening wellness)
-      // Add 2 if there are meds (morning + evening)
-      const baseCount = 2; // wellness checks
-      const medCount = hasMeds ? 2 : 0; // morning + evening meds
-      const apptCount = appointments.filter(appt => {
-        const apptDate = new Date(appt.date);
-        return isSameDay(apptDate, date);
-      }).length;
-
-      const itemCount = baseCount + medCount + apptCount;
-
-      return {
-        date,
-        isToday: isSameDay(date, new Date()),
-        isSelected: isSameDay(date, selectedDate),
-        isCurrentMonth,
-        hasItems: itemCount > 0,
-        hasAppointment: hasAppt,
-        itemCount,
-      } as CalendarDay;
-    });
-  }, [currentMonth, selectedDate, medications, appointments]);
-
-  // Get schedule for selected day
-  const daySchedule = useMemo(() => {
-    const items: TimelineItem[] = [];
-    const dateStr = format(selectedDate, 'yyyy-MM-dd');
-
-    // Morning wellness check (always present)
-    const [morningHours, morningMinutes] = wellnessChecks.morning.time
-      .split(':')
-      .map(Number);
-    const morningTime = setMinutes(setHours(selectedDate, morningHours), morningMinutes);
-
-    items.push({
-      id: `wellness-morning-${dateStr}`,
-      type: 'wellness-morning',
-      scheduledTime: morningTime,
-      completedTime: morningWellnessComplete,
-      title: 'Morning wellness check',
-      subtitle: '',
-      status: 'upcoming',
-      wellnessChecks: wellnessChecks.morning.checks,
-    });
-
-    // Morning medications (if any active meds)
-    const morningMeds = medications.filter(m => m.timeSlot === 'morning');
-    if (morningMeds.length > 0) {
-      const medTime = setMinutes(setHours(selectedDate, 8), 0);
-      items.push({
-        id: `med-morning-${dateStr}`,
-        type: 'medication',
-        scheduledTime: medTime,
-        completedTime: undefined,
-        title: 'Morning medications',
-        subtitle: '',
-        status: 'upcoming',
-        medicationIds: morningMeds.map(m => m.id),
-      });
-    }
-
-    // Vitals check (if enabled)
-    if (vitalsCheck.enabled) {
-      const [hours, minutes] = vitalsCheck.time.split(':').map(Number);
-      const vitalsTime = setMinutes(setHours(selectedDate, hours), minutes);
-
-      items.push({
-        id: `vitals-${dateStr}`,
-        type: 'vitals',
-        scheduledTime: vitalsTime,
-        completedTime: vitalsComplete,
-        title: 'Vitals',
-        subtitle: '',
-        status: 'upcoming',
-        vitalTypes: vitalsCheck.types,
-      });
-    }
-
-    // Evening medications (if any active meds)
-    const eveningMeds = medications.filter(m => m.timeSlot === 'evening');
-    if (eveningMeds.length > 0) {
-      const medTime = setMinutes(setHours(selectedDate, 18), 0);
-      items.push({
-        id: `med-evening-${dateStr}`,
-        type: 'medication',
-        scheduledTime: medTime,
-        completedTime: undefined,
-        title: 'Evening medications',
-        subtitle: '',
-        status: 'upcoming',
-        medicationIds: eveningMeds.map(m => m.id),
-      });
-    }
-
-    // Appointments on this day
-    appointments
-      .filter(appt => {
-        const apptDate = new Date(appt.date);
-        return isSameDay(apptDate, selectedDate);
-      })
-      .forEach(appt => {
-        const [hours, minutes] = (appt.time || '12:00').split(':').map(Number);
-        const scheduledTime = setMinutes(setHours(selectedDate, hours), minutes);
-
-        items.push({
-          id: `apt-${appt.id}`,
-          type: 'appointment',
-          scheduledTime,
-          completedTime: undefined,
-          title: `${appt.provider} — ${appt.specialty}`,
-          subtitle: appt.location || '',
-          status: 'upcoming',
-          appointmentId: appt.id,
-        });
-      });
-
-    // Evening wellness check (always present)
-    const [eveningHours, eveningMinutes] = wellnessChecks.evening.time
-      .split(':')
-      .map(Number);
-    const eveningTime = setMinutes(setHours(selectedDate, eveningHours), eveningMinutes);
-
-    items.push({
-      id: `wellness-evening-${dateStr}`,
-      type: 'wellness-evening',
-      scheduledTime: eveningTime,
-      completedTime: eveningWellnessComplete,
-      title: 'Evening wellness check',
-      subtitle: '',
-      status: 'upcoming',
-      wellnessChecks: wellnessChecks.evening.checks,
-    });
-
-    // Sort by scheduled time and calculate statuses
-    const withStatuses = getTimelineWithStatuses(items, new Date());
-
-    // Calculate subtitles
-    return withStatuses.map(item => ({
-      ...item,
-      subtitle: getSubtitle(item, new Date()),
-    }));
-  }, [selectedDate, medications, appointments, wellnessChecks, vitalsCheck, morningWellnessComplete, eveningWellnessComplete, vitalsComplete]);
-
-  return { calendarDays, daySchedule };
+  return { calendarDays, monthSummary, loading };
 };
+
+function formatTimeDisplay(time24: string): string {
+  const parts = time24.split(':');
+  if (parts.length < 2) return time24;
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  if (isNaN(h) || isNaN(m)) return time24;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+}

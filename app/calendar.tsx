@@ -1,23 +1,22 @@
 // ============================================================================
-// CALENDAR SCREEN - Month-at-a-glance with daily timeline view
+// CALENDAR SCREEN - Month-at-a-glance with completion heatmap
 // ============================================================================
 
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { CalendarGrid } from '../components/calendar/CalendarGrid';
-import { DayTimeline } from '../components/calendar/DayTimeline';
+import { DayDetail } from '../components/calendar/DayTimeline';
 import { useCalendarData } from '../hooks/useCalendarData';
-import { format, addMonths, subMonths } from 'date-fns';
+import { format, addMonths, subMonths, isSameDay } from 'date-fns';
 
 export default function CalendarScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  // Initialize with selected date from params (from Tomorrow row) or today
   const initialDate = params.selectedDate
     ? new Date(params.selectedDate as string)
     : new Date();
@@ -25,14 +24,17 @@ export default function CalendarScreen() {
   const [currentMonth, setCurrentMonth] = useState(initialDate);
   const [selectedDate, setSelectedDate] = useState(initialDate);
 
-  const { calendarDays, daySchedule } = useCalendarData(currentMonth, selectedDate);
+  const { calendarDays, monthSummary, loading } = useCalendarData(currentMonth, selectedDate);
+
+  const selectedDay = useMemo(() => {
+    return calendarDays.find(d => isSameDay(d.date, selectedDate)) || null;
+  }, [calendarDays, selectedDate]);
 
   const handlePrevMonth = () => setCurrentMonth(prev => subMonths(prev, 1));
   const handleNextMonth = () => setCurrentMonth(prev => addMonths(prev, 1));
 
   const handleDayPress = (date: Date) => {
     setSelectedDate(date);
-    // If selecting a day in different month, also change month view
     if (date.getMonth() !== currentMonth.getMonth()) {
       setCurrentMonth(date);
     }
@@ -59,7 +61,7 @@ export default function CalendarScreen() {
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Month Header */}
+          {/* Month Nav */}
           <View style={styles.monthHeader}>
             <TouchableOpacity
               onPress={handlePrevMonth}
@@ -82,6 +84,41 @@ export default function CalendarScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Month Summary Strip */}
+          {!loading && monthSummary.totalTrackedDays > 0 && (
+            <View style={styles.summaryStrip}>
+              <View style={[styles.summaryItem, styles.summaryGreen]}>
+                <Text style={styles.summaryValue}>{monthSummary.avgCompletion}%</Text>
+                <Text style={styles.summaryLabel}>AVG DAILY</Text>
+              </View>
+              <View style={[styles.summaryItem, styles.summaryAccent]}>
+                <Text style={[styles.summaryValue, { color: Colors.accent }]}>
+                  {monthSummary.perfectDays}
+                </Text>
+                <Text style={styles.summaryLabel}>PERFECT DAYS</Text>
+              </View>
+              <View style={[
+                styles.summaryItem,
+                monthSummary.missedMedDays > 3 ? styles.summaryAmber : styles.summaryNeutral,
+              ]}>
+                <Text style={[
+                  styles.summaryValue,
+                  { color: monthSummary.missedMedDays > 3 ? '#F59E0B' : Colors.textPrimary },
+                ]}>
+                  {monthSummary.missedMedDays}
+                </Text>
+                <Text style={styles.summaryLabel}>MISSED MEDS</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Loading */}
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={Colors.accent} />
+            </View>
+          )}
+
           {/* Calendar Grid */}
           <CalendarGrid
             days={calendarDays}
@@ -92,20 +129,25 @@ export default function CalendarScreen() {
           {/* Legend */}
           <View style={styles.legend}>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
-              <Text style={styles.legendText}>Tasks</Text>
+              <View style={[styles.legendSwatch, { backgroundColor: 'rgba(16,185,129,0.35)', borderColor: 'rgba(16,185,129,0.4)' }]} />
+              <Text style={styles.legendText}>90%+</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: Colors.gold }]} />
-              <Text style={styles.legendText}>Appointment</Text>
+              <View style={[styles.legendSwatch, { backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(16,185,129,0.25)' }]} />
+              <Text style={styles.legendText}>70%+</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendSwatch, { backgroundColor: 'rgba(245,158,11,0.18)', borderColor: 'rgba(245,158,11,0.25)' }]} />
+              <Text style={styles.legendText}>50%+</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#EAB308' }]} />
+              <Text style={styles.legendText}>Appt</Text>
             </View>
           </View>
 
-          {/* Selected Day Timeline */}
-          <DayTimeline
-            date={selectedDate}
-            items={daySchedule}
-          />
+          {/* Selected Day Detail */}
+          <DayDetail day={selectedDay} />
 
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -169,27 +211,81 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.textPrimary,
   },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+
+  // Month Summary Strip
+  summaryStrip: {
+    flexDirection: 'row',
+    gap: 6,
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  summaryItem: {
+    flex: 1,
+    borderRadius: 10,
+    padding: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  summaryGreen: {
+    backgroundColor: 'rgba(16,185,129,0.1)',
+    borderColor: 'rgba(16,185,129,0.25)',
+  },
+  summaryAccent: {
+    backgroundColor: 'rgba(20,184,166,0.1)',
+    borderColor: 'rgba(20,184,166,0.25)',
+  },
+  summaryAmber: {
+    backgroundColor: 'rgba(245,158,11,0.08)',
+    borderColor: 'rgba(245,158,11,0.25)',
+  },
+  summaryNeutral: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: Colors.border,
+  },
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  summaryLabel: {
+    fontSize: 9,
+    color: Colors.textMuted,
+    marginTop: 1,
+  },
+
+  // Legend
   legend: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 16,
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
     marginHorizontal: 20,
+    marginTop: 12,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
+  },
+  legendSwatch: {
+    width: 10,
+    height: 10,
+    borderRadius: 3,
+    borderWidth: 1,
   },
   legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
   legendText: {
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.textMuted,
   },
 });

@@ -15,6 +15,7 @@ import {
   Platform,
   Alert,
   Switch,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -58,6 +59,8 @@ export default function AppointmentFormScreen() {
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
+  const [tempTime, setTempTime] = useState(new Date());
 
   useEffect(() => {
     if (isEditing) {
@@ -152,18 +155,52 @@ export default function AppointmentFormScreen() {
     return `${hours}:${minutes}`;
   };
 
+  const openDatePicker = () => {
+    setTempDate(date);
+    setShowTimePicker(false);
+    setShowDatePicker(true);
+  };
+
+  const openTimePicker = () => {
+    setTempTime(time);
+    setShowDatePicker(false);
+    setShowTimePicker(true);
+  };
+
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setDate(selectedDate);
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+      if (selectedDate) setDate(selectedDate);
+    } else {
+      if (selectedDate) setTempDate(selectedDate);
     }
   };
 
   const handleTimeChange = (event: any, selectedTime?: Date) => {
-    setShowTimePicker(Platform.OS === 'ios');
-    if (selectedTime) {
-      setTime(selectedTime);
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
+      if (selectedTime) setTime(selectedTime);
+    } else {
+      if (selectedTime) setTempTime(selectedTime);
     }
+  };
+
+  const confirmDate = () => {
+    setDate(tempDate);
+    setShowDatePicker(false);
+  };
+
+  const cancelDate = () => {
+    setShowDatePicker(false);
+  };
+
+  const confirmTime = () => {
+    setTime(tempTime);
+    setShowTimePicker(false);
+  };
+
+  const cancelTime = () => {
+    setShowTimePicker(false);
   };
 
   const handleSave = async () => {
@@ -299,7 +336,7 @@ export default function AppointmentFormScreen() {
                 <Text style={styles.fieldLabel}>DATE</Text>
                 <TouchableOpacity
                   style={styles.dateTimeButton}
-                  onPress={() => setShowDatePicker(true)}
+                  onPress={openDatePicker}
                   accessibilityRole="button"
                   accessibilityLabel={`Appointment date: ${formatDate(date)}. Tap to change`}
                 >
@@ -312,7 +349,7 @@ export default function AppointmentFormScreen() {
                 <Text style={styles.fieldLabel}>TIME</Text>
                 <TouchableOpacity
                   style={styles.dateTimeButton}
-                  onPress={() => setShowTimePicker(true)}
+                  onPress={openTimePicker}
                   accessibilityRole="button"
                   accessibilityLabel={`Appointment time: ${formatTime(time)}. Tap to change`}
                 >
@@ -491,22 +528,70 @@ export default function AppointmentFormScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
 
-        {/* Date Picker */}
-        {showDatePicker && (
+        {/* Date Picker - iOS: Modal, Android: native dialog */}
+        {Platform.OS === 'ios' && showDatePicker && (
+          <Modal transparent animationType="slide">
+            <View style={styles.pickerOverlay}>
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerHeader}>
+                  <TouchableOpacity onPress={cancelDate}>
+                    <Text style={styles.pickerCancel}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.pickerTitle}>Select Date</Text>
+                  <TouchableOpacity onPress={confirmDate}>
+                    <Text style={styles.pickerDone}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={tempDate}
+                  mode="date"
+                  display="spinner"
+                  onChange={handleDateChange}
+                  style={{ height: 200 }}
+                />
+              </View>
+            </View>
+          </Modal>
+        )}
+        {Platform.OS === 'android' && showDatePicker && (
           <DateTimePicker
             value={date}
             mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            display="default"
             onChange={handleDateChange}
           />
         )}
 
-        {/* Time Picker */}
-        {showTimePicker && (
+        {/* Time Picker - iOS: Modal, Android: native dialog */}
+        {Platform.OS === 'ios' && showTimePicker && (
+          <Modal transparent animationType="slide">
+            <View style={styles.pickerOverlay}>
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerHeader}>
+                  <TouchableOpacity onPress={cancelTime}>
+                    <Text style={styles.pickerCancel}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.pickerTitle}>Select Time</Text>
+                  <TouchableOpacity onPress={confirmTime}>
+                    <Text style={styles.pickerDone}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={tempTime}
+                  mode="time"
+                  display="spinner"
+                  onChange={handleTimeChange}
+                  style={{ height: 200 }}
+                />
+              </View>
+            </View>
+          </Modal>
+        )}
+        {Platform.OS === 'android' && showTimePicker && (
           <DateTimePicker
             value={time}
             mode="time"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            display="default"
             onChange={handleTimeChange}
           />
         )}
@@ -774,5 +859,41 @@ const styles = StyleSheet.create({
   reminderScheduleText: {
     fontSize: 13,
     color: Colors.textSecondary,
+  },
+
+  // iOS Picker Modal
+  pickerOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  pickerContainer: {
+    backgroundColor: Colors.surfaceAlt,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 34,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  pickerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  pickerCancel: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+  },
+  pickerDone: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.accent,
   },
 });

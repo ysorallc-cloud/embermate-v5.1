@@ -67,6 +67,23 @@ export interface CalendarDay {
   hasItems: boolean;
   hasAppointment: boolean;
   itemCount: number;
+  // Heatmap completion data
+  isFuture?: boolean;
+  completionPct?: number; // 0-100
+  medsTotal?: number;
+  medsDone?: number;
+  vitals?: boolean;
+  wellness?: boolean;
+  mealsLogged?: number;
+  mealsTotal?: number;
+  waterGlasses?: number;
+  waterTarget?: number;
+  sleepHours?: number | null;
+  sleepQuality?: string | null;
+  appointment?: { provider: string; specialty: string; time: string } | null;
+  vitalsData?: { bp?: string; hr?: number; glucose?: number } | null;
+  wellnessData?: { mood?: string; pain?: string } | null;
+  moodLabel?: string | null;
 }
 
 export interface CalendarMonth {

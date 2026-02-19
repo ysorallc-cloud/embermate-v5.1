@@ -1,5 +1,5 @@
 // ============================================================================
-// CALENDAR GRID - Month view with day selection
+// CALENDAR GRID - Month view with completion heatmap
 // ============================================================================
 
 import React from 'react';
@@ -9,6 +9,30 @@ import { Colors } from '@/theme/theme-tokens';
 import { isSameDay } from 'date-fns';
 
 const DAYS_OF_WEEK = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function getHeatColor(pct: number | undefined): string {
+  if (pct === undefined || pct < 0) return 'transparent';
+  if (pct >= 90) return 'rgba(16,185,129,0.35)';
+  if (pct >= 70) return 'rgba(16,185,129,0.18)';
+  if (pct >= 50) return 'rgba(245,158,11,0.18)';
+  if (pct >= 25) return 'rgba(245,158,11,0.1)';
+  return 'rgba(239,68,68,0.1)';
+}
+
+function getHeatBorder(pct: number | undefined): string {
+  if (pct === undefined || pct < 0) return Colors.border;
+  if (pct >= 90) return 'rgba(16,185,129,0.4)';
+  if (pct >= 70) return 'rgba(16,185,129,0.25)';
+  if (pct >= 50) return 'rgba(245,158,11,0.25)';
+  return Colors.border;
+}
+
+function getDotColor(pct: number | undefined): string {
+  if (pct === undefined) return Colors.textMuted;
+  if (pct >= 70) return '#10B981';
+  if (pct >= 40) return '#F59E0B';
+  return '#EF4444';
+}
 
 interface Props {
   days: CalendarDay[];
@@ -35,6 +59,8 @@ export const CalendarGrid: React.FC<Props> = ({ days, selectedDate, onDayPress }
         {days.map((day, i) => {
           const isSelected = isSameDay(day.date, selectedDate);
           const isToday = isSameDay(day.date, today);
+          const isFuture = day.isFuture;
+          const pct = day.completionPct;
 
           return (
             <TouchableOpacity
@@ -42,37 +68,49 @@ export const CalendarGrid: React.FC<Props> = ({ days, selectedDate, onDayPress }
               style={[
                 styles.cell,
                 styles.dayCell,
-                isSelected && styles.selectedCell,
-                isToday && !isSelected && styles.todayCell,
+                {
+                  backgroundColor: isSelected
+                    ? Colors.accent
+                    : getHeatColor(pct),
+                  borderWidth: isSelected ? 2 : isToday ? 1.5 : 1,
+                  borderColor: isSelected
+                    ? Colors.accent
+                    : isToday
+                      ? Colors.accent
+                      : getHeatBorder(pct),
+                  opacity: isFuture ? 0.35 : !day.isCurrentMonth ? 0.25 : 1,
+                },
               ]}
               onPress={() => onDayPress(day.date)}
               activeOpacity={0.7}
-              accessibilityLabel={`${day.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}${day.hasItems ? ', has events' : ''}${isToday ? ', today' : ''}`}
+              accessibilityLabel={`${day.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}${pct !== undefined ? `, ${pct}% complete` : ''}${isToday ? ', today' : ''}`}
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected }}
             >
               <Text style={[
                 styles.dayNumber,
-                !day.isCurrentMonth && styles.otherMonth,
                 isSelected && styles.selectedText,
                 isToday && !isSelected && styles.todayText,
+                (isSelected || isToday) && { fontWeight: '600' as const },
               ]}>
                 {day.date.getDate()}
               </Text>
 
               {/* Indicator dots */}
-              {day.isCurrentMonth && day.hasItems && (
+              {!isFuture && day.isCurrentMonth && (
                 <View style={styles.dots}>
                   {day.hasAppointment && (
                     <View style={[
                       styles.dot,
-                      { backgroundColor: isSelected ? Colors.textPrimary : Colors.gold }
+                      { backgroundColor: isSelected ? 'rgba(0,0,0,0.5)' : '#EAB308' },
                     ]} />
                   )}
-                  <View style={[
-                    styles.dot,
-                    { backgroundColor: isSelected ? Colors.textPrimary : Colors.accent }
-                  ]} />
+                  {pct !== undefined && (
+                    <View style={[
+                      styles.dot,
+                      { backgroundColor: isSelected ? 'rgba(0,0,0,0.5)' : getDotColor(pct) },
+                    ]} />
+                  )}
                 </View>
               )}
             </TouchableOpacity>
@@ -93,9 +131,10 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 4,
   },
   cell: {
-    width: '14.28%',  // 100% / 7 days
+    width: '14.28%',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
@@ -107,30 +146,17 @@ const styles = StyleSheet.create({
   },
   dayCell: {
     aspectRatio: 1,
-    borderRadius: 8,
-  },
-  selectedCell: {
-    backgroundColor: Colors.accent,
-  },
-  todayCell: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.accent,
+    borderRadius: 10,
   },
   dayNumber: {
     fontSize: 14,
     color: Colors.textPrimary,
   },
-  otherMonth: {
-    opacity: 0.3,
-  },
   selectedText: {
-    color: Colors.textPrimary,
-    fontWeight: '600',
+    color: '#000000',
   },
   todayText: {
     color: Colors.accent,
-    fontWeight: '600',
   },
   dots: {
     flexDirection: 'row',
