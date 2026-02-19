@@ -19,6 +19,8 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import PageHeader from '../../components/PageHeader';
+import { CommonStyles } from '../../theme/commonStyles';
+import { BackButton } from '../../components/common/BackButton';
 import {
   getClinicalCareSettings,
   saveClinicalCareSettings,
@@ -59,15 +61,8 @@ export default function ClinicalCareScreen() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
-        <View style={styles.headerWrapper}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={styles.backIcon}>{'\u2190'}</Text>
-          </TouchableOpacity>
+        <View style={CommonStyles.headerWrapper}>
+          <BackButton style={{ marginLeft: 24, marginTop: 16 }} />
 
           <PageHeader
             emoji={'\u{1F3E5}'}

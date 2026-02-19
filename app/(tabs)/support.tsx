@@ -52,6 +52,7 @@ export default function SupportScreen() {
   const [activities, setActivities] = useState<CareActivity[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [usingSample, setUsingSample] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -63,10 +64,13 @@ export default function SupportScreen() {
 
   const loadData = async () => {
     let team = await getCaregivers();
+    let isSample = false;
     if (team.length === 0) {
       team = getSampleCaregivers() as CaregiverProfile[];
+      isSample = true;
     }
     setCaregivers(team);
+    setUsingSample(isSample);
 
     let acts = await getCareActivities(100);
     if (acts.length === 0 && team.length > 0) {
@@ -184,7 +188,7 @@ export default function SupportScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Support</Text>
+            <Text style={styles.headerTitle}>Team</Text>
             <Text style={styles.headerSubtitle}>Your care team</Text>
           </View>
 
@@ -201,6 +205,15 @@ export default function SupportScreen() {
               </View>
             </View>
           </View>
+
+          {/* Sample Data Banner */}
+          {usingSample && (
+            <View style={styles.sampleBanner}>
+              <Text style={styles.sampleBannerText}>
+                Showing sample team members. Invite real caregivers via Family Sharing.
+              </Text>
+            </View>
+          )}
 
           {/* Quick Actions Row */}
           <View style={styles.quickActions}>
@@ -444,7 +457,18 @@ export default function SupportScreen() {
               <View style={styles.settingsRowBorder} />
               <TouchableOpacity
                 style={styles.settingsRow}
-                onPress={() => navigate('/help')}
+                onPress={() => navigate('/guide-hub')}
+                activeOpacity={0.7}
+                accessibilityRole="link"
+              >
+                <Text style={styles.settingsIcon}>{'\uD83D\uDCDA'}</Text>
+                <Text style={styles.settingsLabel}>Learn & Explore</Text>
+                <Text style={styles.settingsChevron}>{'\u203A'}</Text>
+              </TouchableOpacity>
+              <View style={styles.settingsRowBorder} />
+              <TouchableOpacity
+                style={styles.settingsRow}
+                onPress={() => navigate('/guide-hub')}
                 activeOpacity={0.7}
                 accessibilityRole="link"
               >
@@ -525,6 +549,19 @@ const styles = StyleSheet.create({
   },
 
   // Privacy Notice
+  sampleBanner: {
+    backgroundColor: Colors.amberFaint,
+    borderWidth: 1,
+    borderColor: Colors.amberBorder,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+  },
+  sampleBannerText: {
+    fontSize: 13,
+    color: Colors.amber,
+    textAlign: 'center',
+  },
   privacyNotice: {
     backgroundColor: Colors.glassFaint,
     borderWidth: 1,

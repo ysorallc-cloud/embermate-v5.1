@@ -22,6 +22,7 @@ import { generateComprehensiveReport, ComprehensiveReport } from '../utils/repor
 import { generateAndSharePDF, ReportData, PatientInfo } from '../utils/pdfExport';
 import { logError } from '../utils/devLog';
 import { logAuditEvent, AuditEventType, AuditSeverity } from '../utils/auditLog';
+import { getEmergencyContacts, CareTeamMember } from '../utils/careTeamStorage';
 
 export default function CareBriefScreen() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function CareBriefScreen() {
   const [criticalContextExpanded, setCriticalContextExpanded] = useState(false);
   const [isFirstView, setIsFirstView] = useState(false);
   const [medicalInfo, setMedicalInfo] = useState<MedicalInfo | null>(null);
+  const [emergencyContacts, setEmergencyContacts] = useState<CareTeamMember[]>([]);
 
   useFocusEffect(useCallback(() => { 
     loadData(); 
@@ -62,6 +64,10 @@ export default function CareBriefScreen() {
     try {
       const mi = await getMedicalInfo();
       setMedicalInfo(mi);
+    } catch (e) {}
+    try {
+      const contacts = await getEmergencyContacts();
+      setEmergencyContacts(contacts);
     } catch (e) {}
     setSnapshotTime(new Date());
   };
@@ -650,7 +656,11 @@ export default function CareBriefScreen() {
                     </View>
                     <View style={styles.contextField}>
                       <Text style={styles.contextLabel}>EMERGENCY CONTACT</Text>
-                      <Text style={styles.contextValue}>Not configured</Text>
+                      <Text style={styles.contextValue}>
+                        {emergencyContacts.length > 0
+                          ? emergencyContacts.map(c => `${c.name}${c.phone ? ` (${c.phone})` : ''}`).join(', ')
+                          : 'Not configured'}
+                      </Text>
                     </View>
                   </View>
                 )}

@@ -3,7 +3,7 @@
 // Local AsyncStorage for vital signs tracking
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
 
 export type VitalType =
@@ -37,7 +37,7 @@ export async function saveVital(vital: Omit<VitalReading, 'id'>): Promise<void> 
       id: Date.now().toString(),
     };
     vitals.push(newVital);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(vitals));
+    await safeSetItem(STORAGE_KEY, vitals);
   } catch (error) {
     logError('vitalsStorage.saveVital', error);
     throw error;
@@ -49,8 +49,7 @@ export async function saveVital(vital: Omit<VitalReading, 'id'>): Promise<void> 
  */
 export async function getVitals(): Promise<VitalReading[]> {
   try {
-    const data = await AsyncStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+    return await safeGetItem<VitalReading[]>(STORAGE_KEY, []);
   } catch (error) {
     logError('vitalsStorage.getVitals', error);
     return [];
@@ -131,7 +130,7 @@ export async function deleteVital(id: string): Promise<void> {
   try {
     const vitals = await getVitals();
     const filtered = vitals.filter((v) => v.id !== id);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    await safeSetItem(STORAGE_KEY, filtered);
   } catch (error) {
     logError('vitalsStorage.deleteVital', error);
     throw error;
@@ -143,7 +142,7 @@ export async function deleteVital(id: string): Promise<void> {
  */
 export async function clearVitals(): Promise<void> {
   try {
-    await AsyncStorage.removeItem(STORAGE_KEY);
+    await safeSetItem(STORAGE_KEY, []);
   } catch (error) {
     logError('vitalsStorage.clearVitals', error);
     throw error;

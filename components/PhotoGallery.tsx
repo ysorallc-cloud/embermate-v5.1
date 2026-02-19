@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, FlatList, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { Colors, Spacing } from '../theme/theme-tokens';
 import { Photo } from '../utils/photoStorage';
 

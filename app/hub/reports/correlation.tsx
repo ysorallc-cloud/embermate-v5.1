@@ -44,34 +44,6 @@ const SAMPLE_CORRELATIONS = [
       { date: 'Jan 11', event: '5 glasses → Pain 2/10' },
     ],
   },
-  {
-    id: 3,
-    type: 'moderate',
-    confidence: 68,
-    icon: '😴',
-    title: 'Sleep quality → BP stability',
-    summary: 'Poor sleep nights show 15% higher morning blood pressure',
-    color: Colors.purple,
-    recommendation: 'Focus on sleep hygiene on nights before medical readings.',
-    evidence: [
-      { date: 'Jan 14', event: 'Sleep 4 hrs → BP 142/88' },
-      { date: 'Jan 10', event: 'Sleep 7 hrs → BP 128/82' },
-    ],
-  },
-  {
-    id: 4,
-    type: 'emerging',
-    confidence: 55,
-    icon: '🥗',
-    title: 'Meal timing → Glucose stability',
-    summary: 'Regular meal schedule correlates with more stable readings',
-    color: Colors.green,
-    recommendation: 'Try to eat meals within the same 2-hour window each day.',
-    evidence: [
-      { date: 'Jan 16', event: 'Regular meals → Glucose 105-118' },
-      { date: 'Jan 12', event: 'Irregular meals → Glucose 98-142' },
-    ],
-  },
 ];
 
 export default function CorrelationReport() {

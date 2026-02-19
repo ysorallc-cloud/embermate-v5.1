@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -9,6 +9,8 @@ import { Colors, Spacing } from '../../theme/theme-tokens';
 import PageHeader from '../../components/PageHeader';
 import { StorageKeys } from '../../utils/storageKeys';
 import { logError } from '../../utils/devLog';
+import { CommonStyles } from '../../theme/commonStyles';
+import { BackButton } from '../../components/common/BackButton';
 import {
   getMedicalInfo,
   saveMedicalInfo,
@@ -213,15 +215,8 @@ export default function PatientScreen() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
-        <View style={styles.headerWrapper}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={styles.backIcon}>{'\u2190'}</Text>
-          </TouchableOpacity>
+        <View style={CommonStyles.headerWrapper}>
+          <BackButton style={{ marginLeft: 24, marginTop: 16 }} />
 
           <PageHeader
             emoji={'\u{1F464}'}
@@ -230,6 +225,7 @@ export default function PatientScreen() {
           />
         </View>
 
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={100}>
         <ScrollView style={styles.scroll}>
           {/* Basic Info */}
           <View style={styles.section}>
@@ -593,6 +589,7 @@ export default function PatientScreen() {
 
           <View style={{ height: 40 }} />
         </ScrollView>
+        </KeyboardAvoidingView>
       </LinearGradient>
     </SafeAreaView>
   );

@@ -56,6 +56,16 @@ const BUCKET_TO_ICON: Record<string, string> = {
   wellness: '\uD83C\uDF05',
 };
 
+const ITEM_TYPE_TO_DOT_COLOR: Record<string, string> = {
+  medication: '#F59E0B',
+  vitals: '#3B82F6',
+  nutrition: '#10B981',
+  hydration: '#38BDF8',
+  sleep: '#8B5CF6',
+  activity: '#F97316',
+  wellness: '#EC4899',
+};
+
 const TIME_WINDOW_LABELS: Record<TimeWindow, string> = {
   morning: 'Morning',
   afternoon: 'Afternoon',
@@ -63,12 +73,7 @@ const TIME_WINDOW_LABELS: Record<TimeWindow, string> = {
   night: 'Night',
 };
 
-const TIME_WINDOW_ICONS: Record<TimeWindow, string> = {
-  morning: '\u2600\uFE0F',
-  afternoon: '\u26C5',
-  evening: '\uD83C\uDF05',
-  night: '\uD83C\uDF19',
-};
+// Time window icons removed for cleaner design — text-only headers
 
 // ============================================================================
 // PROPS
@@ -83,6 +88,9 @@ interface TimelineSectionProps {
   onItemPress: (instance: any) => void;
   todayStats: TodayStats;
   enabledBuckets: BucketType[];
+  waterGlasses?: number;
+  waterGoal?: number;
+  onWaterUpdate?: (glasses: number) => void;
 }
 
 // ============================================================================
@@ -98,11 +106,77 @@ export function TimelineSection({
   onItemPress,
   todayStats,
   enabledBuckets,
+  waterGlasses = 0,
+  waterGoal = 8,
+  onWaterUpdate,
 }: TimelineSectionProps) {
   const router = useRouter();
 
-  if (!hasRegimenInstances) return null;
-  if (allPending.length === 0 && completed.length === 0) return null;
+  if (!hasRegimenInstances && selectedCategory !== 'water') return null;
+  if (allPending.length === 0 && completed.length === 0 && selectedCategory !== 'water') return null;
+
+  // ============================================================================
+  // MODE W — Water Inline Counter
+  // ============================================================================
+
+  if (selectedCategory === 'water') {
+    const progressPercent = Math.min((waterGlasses / waterGoal) * 100, 100);
+
+    return (
+      <View style={[styles.categoryContainer, styles.categoryContainerDefault]}>
+        {/* Header row */}
+        <View style={styles.categoryHeader}>
+          <View style={styles.categoryHeaderLeft}>
+            <Text style={styles.categoryIcon}>{'\uD83D\uDCA7'}</Text>
+            <Text style={styles.categoryLabel}>Water</Text>
+            <Text style={styles.categoryCount}>{waterGlasses}/{waterGoal} glasses</Text>
+          </View>
+          <TouchableOpacity
+            onPress={onClearCategory}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityLabel="Close Water details"
+            accessibilityRole="button"
+          >
+            <Text style={styles.categoryClose}>{'\u2715'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Inline water counter */}
+        <View style={styles.waterCounterRow}>
+          <TouchableOpacity
+            style={styles.waterButton}
+            onPress={() => onWaterUpdate?.(Math.max(0, waterGlasses - 1))}
+            disabled={waterGlasses === 0}
+            accessibilityLabel="Remove one glass"
+            accessibilityRole="button"
+          >
+            <Text style={[styles.waterButtonText, waterGlasses === 0 && { opacity: 0.3 }]}>{'\u2212'}</Text>
+          </TouchableOpacity>
+
+          <View style={styles.waterDisplay}>
+            <Text style={styles.waterNumber}>{waterGlasses}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.waterButton}
+            onPress={() => onWaterUpdate?.(waterGlasses + 1)}
+            accessibilityLabel="Add one glass"
+            accessibilityRole="button"
+          >
+            <Text style={styles.waterButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Progress bar */}
+        <View style={styles.waterProgressBar}>
+          <View style={[styles.waterProgressFill, { width: `${progressPercent}%` }]} />
+        </View>
+        <Text style={styles.waterProgressText}>
+          {waterGlasses >= waterGoal ? '\u2713 Goal reached!' : `${waterGoal - waterGlasses} more to go`}
+        </Text>
+      </View>
+    );
+  }
 
   // ============================================================================
   // MODE A — Category Expanded
@@ -239,7 +313,7 @@ export function TimelineSection({
     <>
       {/* Timeline header */}
       <View style={styles.timelineSectionHeader}>
-        <Text style={styles.sectionTitle}>COMING UP</Text>
+        <Text style={styles.sectionTitle}>TODAY'S PLAN</Text>
         <TouchableOpacity
           onPress={() => navigate('/today-scope')}
           activeOpacity={0.7}
@@ -264,7 +338,6 @@ export function TimelineSection({
               styles.timeGroupHeader,
               isCurrent && styles.timeGroupHeaderCurrent,
             ]}>
-              <Text style={styles.timeGroupIcon}>{TIME_WINDOW_ICONS[window]}</Text>
               <Text style={[
                 styles.timeGroupTitle,
                 isCurrent && styles.timeGroupTitleCurrent,
@@ -298,7 +371,10 @@ export function TimelineSection({
                   accessibilityLabel={`${instance.itemName}, ${timeDisplay || urgencyInfo.label}`}
                   accessibilityRole="button"
                 >
-                  <Text style={styles.flatItemEmoji}>{instance.itemEmoji || '\uD83D\uDD14'}</Text>
+                  <View style={[
+                    styles.flatItemDot,
+                    { backgroundColor: ITEM_TYPE_TO_DOT_COLOR[instance.itemType] || Colors.textMuted },
+                  ]} />
                   <Text style={styles.flatItemName} numberOfLines={1}>{instance.itemName}</Text>
                   <Text style={[styles.flatItemTime, { color: timeColor }]}>
                     {timeDisplay || urgencyInfo.label}
@@ -535,9 +611,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 8,
   },
-  timeGroupIcon: {
-    fontSize: 14,
-  },
   timeGroupTitle: {
     fontSize: 12,
     fontWeight: '600',
@@ -563,10 +636,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.06)',
   },
-  flatItemEmoji: {
-    fontSize: 18,
-    width: 26,
-    textAlign: 'center',
+  flatItemDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginLeft: 2,
   },
   flatItemName: {
     flex: 1,
@@ -637,5 +711,57 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.35)',
     textAlign: 'center',
     paddingVertical: 8,
+  },
+
+  // ============================================================================
+  // Water Inline Counter
+  // ============================================================================
+  waterCounterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 24,
+    paddingVertical: 16,
+  },
+  waterButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  waterButtonText: {
+    fontSize: 24,
+    fontWeight: '300',
+    color: Colors.accent,
+  },
+  waterDisplay: {
+    alignItems: 'center',
+  },
+  waterNumber: {
+    fontSize: 48,
+    fontWeight: '200',
+    color: Colors.textPrimary,
+  },
+  waterProgressBar: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  waterProgressFill: {
+    height: '100%',
+    backgroundColor: '#38BDF8',
+    borderRadius: 3,
+  },
+  waterProgressText: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    textAlign: 'center',
   },
 });

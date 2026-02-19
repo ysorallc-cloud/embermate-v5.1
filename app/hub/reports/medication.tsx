@@ -19,8 +19,6 @@ const SAMPLE_DATA = {
   medications: [
     { name: 'Lisinopril 10mg', schedule: 'Once daily (morning)', adherence: 100, missed: 0, late: 0 },
     { name: 'Metformin 500mg', schedule: 'Twice daily', adherence: 97, missed: 1, late: 1 },
-    { name: 'Atorvastatin 20mg', schedule: 'Once daily (evening)', adherence: 87, missed: 2, late: 2 },
-    { name: 'Aspirin 81mg', schedule: 'Once daily (morning)', adherence: 93, missed: 1, late: 1 },
   ],
   patterns: [
     { text: 'Morning medications taken more consistently than evening doses', type: 'info' },

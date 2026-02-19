@@ -3,7 +3,7 @@
 // Store and retrieve wellness check completions
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { MorningWellnessData, EveningWellnessData } from '../types/timeline';
 import { updateStreak } from './streakStorage';
 import { logError } from './devLog';
@@ -39,7 +39,7 @@ export const saveMorningWellness = async (
     const filtered = existing.filter(w => w.date !== date);
     const updated = [...filtered, record];
 
-    await AsyncStorage.setItem(MORNING_WELLNESS_KEY, JSON.stringify(updated));
+    await safeSetItem(MORNING_WELLNESS_KEY, updated);
 
     // Update wellness check streak
     await updateStreak('wellnessCheck');
@@ -58,7 +58,7 @@ export const skipMorningWellness = async (date: string): Promise<void> => {
       id,
       date,
       sleepQuality: 3,
-      mood: 'managing',
+      mood: 3,
       energyLevel: 3,
       completedAt: new Date(),
       skipped: true,
@@ -68,7 +68,7 @@ export const skipMorningWellness = async (date: string): Promise<void> => {
     const filtered = existing.filter(w => w.date !== date);
     const updated = [...filtered, record];
 
-    await AsyncStorage.setItem(MORNING_WELLNESS_KEY, JSON.stringify(updated));
+    await safeSetItem(MORNING_WELLNESS_KEY, updated);
   } catch (error) {
     logError('wellnessCheckStorage.skipMorningWellness', error);
     throw error;
@@ -97,10 +97,9 @@ export const getMorningWellness = async (date: string): Promise<StoredMorningWel
 
 export const getAllMorningWellness = async (): Promise<StoredMorningWellness[]> => {
   try {
-    const data = await AsyncStorage.getItem(MORNING_WELLNESS_KEY);
-    if (!data) return [];
+    const parsed = await safeGetItem<any[]>(MORNING_WELLNESS_KEY, []);
+    if (parsed.length === 0) return [];
 
-    const parsed = JSON.parse(data);
     // Deserialize Date objects
     return parsed.map((w: any) => ({
       ...w,
@@ -140,7 +139,7 @@ export const saveEveningWellness = async (
     const filtered = existing.filter(w => w.date !== date);
     const updated = [...filtered, record];
 
-    await AsyncStorage.setItem(EVENING_WELLNESS_KEY, JSON.stringify(updated));
+    await safeSetItem(EVENING_WELLNESS_KEY, updated);
 
     // Update wellness check streak
     await updateStreak('wellnessCheck');
@@ -158,7 +157,7 @@ export const skipEveningWellness = async (date: string): Promise<void> => {
     const record: StoredEveningWellness = {
       id,
       date,
-      mood: 'managing',
+      mood: 3,
       mealsLogged: false,
       dayRating: 3,
       completedAt: new Date(),
@@ -169,7 +168,7 @@ export const skipEveningWellness = async (date: string): Promise<void> => {
     const filtered = existing.filter(w => w.date !== date);
     const updated = [...filtered, record];
 
-    await AsyncStorage.setItem(EVENING_WELLNESS_KEY, JSON.stringify(updated));
+    await safeSetItem(EVENING_WELLNESS_KEY, updated);
   } catch (error) {
     logError('wellnessCheckStorage.skipEveningWellness', error);
     throw error;
@@ -198,10 +197,9 @@ export const getEveningWellness = async (date: string): Promise<StoredEveningWel
 
 export const getAllEveningWellness = async (): Promise<StoredEveningWellness[]> => {
   try {
-    const data = await AsyncStorage.getItem(EVENING_WELLNESS_KEY);
-    if (!data) return [];
+    const parsed = await safeGetItem<any[]>(EVENING_WELLNESS_KEY, []);
+    if (parsed.length === 0) return [];
 
-    const parsed = JSON.parse(data);
     // Deserialize Date objects
     return parsed.map((w: any) => ({
       ...w,

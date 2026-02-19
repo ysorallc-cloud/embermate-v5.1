@@ -14,6 +14,8 @@ import {
   Alert,
   TextInput,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -264,6 +266,7 @@ export default function LogMedicationPlanItemScreen() {
           <View style={{ width: 44 }} />
         </View>
 
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={100}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -444,6 +447,7 @@ export default function LogMedicationPlanItemScreen() {
 
           <View style={{ height: 100 }} />
         </ScrollView>
+        </KeyboardAvoidingView>
 
         {/* Footer */}
         <View style={styles.footer}>

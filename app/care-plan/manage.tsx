@@ -16,6 +16,8 @@ import {
   Modal,
   TextInput,
   Switch,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -49,6 +51,7 @@ import {
   clearSampleData,
 } from '../../utils/sampleDataManager';
 import { logError } from '../../utils/devLog';
+import { BackButton } from '../../components/common/BackButton';
 
 // ============================================================================
 // TYPES
@@ -339,6 +342,7 @@ export default function CarePlanManageScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <AuroraBackground variant="log" />
 
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={100}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -346,14 +350,7 @@ export default function CarePlanManageScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={styles.backButtonText}>← Back</Text>
-          </TouchableOpacity>
+          <BackButton variant="text" />
         </View>
 
         <ScreenHeader
@@ -459,6 +456,7 @@ export default function CarePlanManageScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Add/Edit Modal */}
       <Modal

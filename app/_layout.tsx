@@ -182,7 +182,7 @@ function RootLayout() {
           <Stack.Screen name="today-scope" />
           <Stack.Screen name="trends" />
           <Stack.Screen name="data-privacy-settings" />
-          <Stack.Screen name="help" />
+          <Stack.Screen name="correlation-report" />
           <Stack.Screen name="log-note" />
           <Stack.Screen name="daily-care-report" />
           <Stack.Screen name="appointment-confirmation" />
@@ -196,6 +196,7 @@ function RootLayout() {
           <Stack.Screen name="log-hydration" />
           <Stack.Screen name="log-bathroom" />
           <Stack.Screen name="guide-hub" />
+          <Stack.Screen name="hub" />
         </Stack>
       </WebContainer>
     </ErrorBoundary>

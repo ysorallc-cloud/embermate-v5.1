@@ -8,7 +8,7 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  SectionList,
   TouchableOpacity,
   RefreshControl,
   Alert,
@@ -215,60 +215,183 @@ export default function MedicationsScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView
+        <SectionList
           style={styles.content}
+          sections={(() => {
+            if (loading || medications.length === 0) return [];
+            const sections: { key: string; title: string; data: Medication[] }[] = [];
+            if (dueMeds.length > 0) sections.push({ key: 'due', title: `DUE NOW (${dueMeds.length})`, data: dueMeds });
+            if (takenMeds.length > 0) sections.push({ key: 'taken', title: `TAKEN TODAY (${takenMeds.length})`, data: takenMeds });
+            sections.push({ key: 'all', title: `ALL MEDICATIONS (${medications.length})`, data: medications });
+            return sections;
+          })()}
+          keyExtractor={(item) => item.id}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
           }
-        >
-          {/* Interaction Warning */}
-          {interactions.length > 0 && (
-            <TouchableOpacity
-              style={styles.warningBanner}
-              onPress={() => router.push('/medication-interactions')}
-              accessibilityLabel={`Interaction alert. ${interactions.length} potential interaction${interactions.length > 1 ? 's' : ''} detected. View details`}
-              accessibilityRole="button"
-            >
-              <Text style={styles.warningIcon}>⚠️</Text>
-              <View style={styles.warningContent}>
-                <Text style={styles.warningTitle}>Interaction Alert</Text>
-                <Text style={styles.warningText}>
-                  {interactions.length} potential interaction{interactions.length > 1 ? 's' : ''} detected
-                  {' • '}
-                  <Text style={styles.warningLink}>View details →</Text>
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
-
-          {/* Medications List */}
-          {loading ? (
+          stickySectionHeadersEnabled={false}
+          renderSectionHeader={({ section }) => (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>LOADING MEDICATIONS...</Text>
-              <MedicationCardSkeleton />
-              <MedicationCardSkeleton />
-              <MedicationCardSkeleton />
+              <Text style={styles.sectionTitle}>{section.title}</Text>
             </View>
-          ) : medications.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>💊</Text>
-              <Text style={styles.emptyTitle}>No medications yet</Text>
-              <Text style={styles.emptyText}>
-                Add your first medication to start tracking adherence and managing your care.
-              </Text>
+          )}
+          renderItem={({ item: medication, section }) => {
+            if (section.key === 'due') {
+              const times = formatMedicationTimes(medication);
+              const refillStatus = getRefillStatus(medication);
+              return (
+                <View style={styles.medCard}>
+                  <TouchableOpacity
+                    style={styles.medHeader}
+                    onPress={() => handleMedicationPress(medication)}
+                    accessibilityLabel={`Edit ${medication.name}, ${medication.dosage}`}
+                    accessibilityRole="button"
+                  >
+                    <TouchableOpacity
+                      style={styles.medCheckbox}
+                      onPress={() => handleTakeMedication(medication)}
+                      accessibilityLabel={`Mark ${medication.name} as taken`}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: false }}
+                    >
+                      <View style={styles.checkbox} />
+                    </TouchableOpacity>
+                    <View style={styles.medInfo}>
+                      <Text style={styles.medName}>{medication.name}</Text>
+                      <Text style={styles.medDosage}>{medication.dosage}</Text>
+                      <View style={styles.timeBadges}>
+                        {times.map((time, index) => (
+                          <View
+                            key={index}
+                            style={[styles.timeBadge, index === 0 && styles.timeBadgeNow]}
+                          >
+                            <Text style={[styles.timeBadgeText, index === 0 && styles.timeBadgeTextNow]}>
+                              {time} {index === 0 ? '(NOW)' : ''}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                      {refillStatus.needsRefill && (
+                        <View style={styles.refillWarning}>
+                          <Text style={styles.refillWarningText}>
+                            Refill needed in {refillStatus.daysLeft} days
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              );
+            }
+
+            if (section.key === 'taken') {
+              return (
+                <TouchableOpacity
+                  style={[styles.medCard, styles.medCardTaken]}
+                  onPress={() => handleMedicationPress(medication)}
+                  accessibilityLabel={`${medication.name}, ${medication.dosage}, taken`}
+                  accessibilityRole="button"
+                  accessibilityState={{ checked: true }}
+                >
+                  <View style={styles.medHeader}>
+                    <View style={styles.medCheckboxDone}>
+                      <Text style={styles.checkmarkIcon}>✓</Text>
+                    </View>
+                    <View style={styles.medInfo}>
+                      <Text style={[styles.medName, styles.medNameTaken]}>{medication.name}</Text>
+                      <Text style={styles.medDosage}>{medication.dosage}</Text>
+                      <Text style={styles.takenTime}>
+                        Taken at {medication.lastTaken
+                          ? new Date(medication.lastTaken).toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })
+                          : 'earlier'}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            }
+
+            // section.key === 'all'
+            return (
               <TouchableOpacity
-                style={styles.emptyButton}
-                onPress={handleAddMedication}
-                accessibilityLabel="Add medication"
+                style={styles.medCardCompact}
+                onPress={() => handleMedicationPress(medication)}
+                accessibilityLabel={`${medication.name}, ${medication.dosage}, ${medication.timeSlot}${getAdherencePercent(medication) !== null ? `, ${getAdherencePercent(medication)}% adherence` : ''}`}
                 accessibilityRole="button"
               >
-                <Text style={styles.emptyButtonText}>Add Medication</Text>
+                <View style={styles.medIconBox}>
+                  <Text style={styles.medIcon}>💊</Text>
+                </View>
+                <View style={styles.medInfo}>
+                  <Text style={styles.medName}>{medication.name}</Text>
+                  <Text style={styles.medDosage}>{medication.dosage} • {medication.timeSlot}</Text>
+                </View>
+                <View style={styles.adherenceBadge}>
+                  <Text style={styles.adherenceBadgeText}>
+                    {getAdherencePercent(medication) !== null
+                      ? `${getAdherencePercent(medication)}%`
+                      : '—'}
+                  </Text>
+                </View>
               </TouchableOpacity>
-            </View>
-          ) : (
+            );
+          }}
+          ListHeaderComponent={
             <>
+              {/* Interaction Warning */}
+              {interactions.length > 0 && (
+                <TouchableOpacity
+                  style={styles.warningBanner}
+                  onPress={() => router.push('/medication-interactions')}
+                  accessibilityLabel={`Interaction alert. ${interactions.length} potential interaction${interactions.length > 1 ? 's' : ''} detected. View details`}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.warningIcon}>⚠️</Text>
+                  <View style={styles.warningContent}>
+                    <Text style={styles.warningTitle}>Interaction Alert</Text>
+                    <Text style={styles.warningText}>
+                      {interactions.length} potential interaction{interactions.length > 1 ? 's' : ''} detected
+                      {' • '}
+                      <Text style={styles.warningLink}>View details →</Text>
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+
+              {/* Loading */}
+              {loading && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>LOADING MEDICATIONS...</Text>
+                  <MedicationCardSkeleton />
+                  <MedicationCardSkeleton />
+                  <MedicationCardSkeleton />
+                </View>
+              )}
+
+              {/* Empty State */}
+              {!loading && medications.length === 0 && (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyIcon}>💊</Text>
+                  <Text style={styles.emptyTitle}>No medications yet</Text>
+                  <Text style={styles.emptyText}>
+                    Add your first medication to start tracking adherence and managing your care.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.emptyButton}
+                    onPress={handleAddMedication}
+                    accessibilityLabel="Add medication"
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.emptyButtonText}>Add Medication</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               {/* Take All Button */}
-              {dueCount > 0 && (
+              {!loading && dueCount > 0 && (
                 <TouchableOpacity
                   style={[styles.takeAllButton, takingAll && styles.takeAllButtonDisabled]}
                   onPress={handleTakeAll}
@@ -287,143 +410,9 @@ export default function MedicationsScreen() {
                   </View>
                 </TouchableOpacity>
               )}
-
-              {/* Due Now Section */}
-              {dueMeds.length > 0 && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>DUE NOW ({dueMeds.length})</Text>
-
-                  {dueMeds.map((medication) => {
-                    const times = formatMedicationTimes(medication);
-                    const refillStatus = getRefillStatus(medication);
-
-                    return (
-                      <View key={medication.id} style={styles.medCard}>
-                        <TouchableOpacity
-                          style={styles.medHeader}
-                          onPress={() => handleMedicationPress(medication)}
-                          accessibilityLabel={`Edit ${medication.name}, ${medication.dosage}`}
-                          accessibilityRole="button"
-                        >
-                          <TouchableOpacity
-                            style={styles.medCheckbox}
-                            onPress={() => handleTakeMedication(medication)}
-                            accessibilityLabel={`Mark ${medication.name} as taken`}
-                            accessibilityRole="checkbox"
-                            accessibilityState={{ checked: false }}
-                          >
-                            <View style={styles.checkbox} />
-                          </TouchableOpacity>
-                          <View style={styles.medInfo}>
-                            <Text style={styles.medName}>{medication.name}</Text>
-                            <Text style={styles.medDosage}>{medication.dosage}</Text>
-
-                            {/* Multi-time Display */}
-                            <View style={styles.timeBadges}>
-                              {times.map((time, index) => (
-                                <View
-                                  key={index}
-                                  style={[
-                                    styles.timeBadge,
-                                    index === 0 && styles.timeBadgeNow
-                                  ]}
-                                >
-                                  <Text style={[
-                                    styles.timeBadgeText,
-                                    index === 0 && styles.timeBadgeTextNow
-                                  ]}>
-                                    {time} {index === 0 ? '(NOW)' : ''}
-                                  </Text>
-                                </View>
-                              ))}
-                            </View>
-
-                            {/* Refill Warning */}
-                            {refillStatus.needsRefill && (
-                              <View style={styles.refillWarning}>
-                                <Text style={styles.refillWarningText}>
-                                  ⚠️ Refill needed in {refillStatus.daysLeft} days
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-                        </TouchableOpacity>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
-
-              {/* Taken Today Section */}
-              {takenMeds.length > 0 && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>TAKEN TODAY ({takenMeds.length})</Text>
-
-                  {takenMeds.map((medication) => (
-                    <TouchableOpacity
-                      key={medication.id}
-                      style={[styles.medCard, styles.medCardTaken]}
-                      onPress={() => handleMedicationPress(medication)}
-                      accessibilityLabel={`${medication.name}, ${medication.dosage}, taken`}
-                      accessibilityRole="button"
-                      accessibilityState={{ checked: true }}
-                    >
-                      <View style={styles.medHeader}>
-                        <View style={styles.medCheckboxDone}>
-                          <Text style={styles.checkmarkIcon}>✓</Text>
-                        </View>
-                        <View style={styles.medInfo}>
-                          <Text style={[styles.medName, styles.medNameTaken]}>{medication.name}</Text>
-                          <Text style={styles.medDosage}>{medication.dosage}</Text>
-                          <Text style={styles.takenTime}>
-                            Taken at {medication.lastTaken
-                              ? new Date(medication.lastTaken).toLocaleTimeString('en-US', {
-                                  hour: 'numeric',
-                                  minute: '2-digit',
-                                })
-                              : 'earlier'}
-                          </Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-
-              {/* All Medications Section (for management) */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>ALL MEDICATIONS ({medications.length})</Text>
-
-                {medications.map((medication) => (
-                  <TouchableOpacity
-                    key={medication.id}
-                    style={styles.medCardCompact}
-                    onPress={() => handleMedicationPress(medication)}
-                    accessibilityLabel={`${medication.name}, ${medication.dosage}, ${medication.timeSlot}${getAdherencePercent(medication) !== null ? `, ${getAdherencePercent(medication)}% adherence` : ''}`}
-                    accessibilityRole="button"
-                  >
-                    <View style={styles.medIconBox}>
-                      <Text style={styles.medIcon}>💊</Text>
-                    </View>
-                    <View style={styles.medInfo}>
-                      <Text style={styles.medName}>{medication.name}</Text>
-                      <Text style={styles.medDosage}>{medication.dosage} • {medication.timeSlot}</Text>
-                    </View>
-
-                    {/* Adherence Badge */}
-                    <View style={styles.adherenceBadge}>
-                      <Text style={styles.adherenceBadgeText}>
-                        {getAdherencePercent(medication) !== null
-                          ? `${getAdherencePercent(medication)}%`
-                          : '—'}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
             </>
-          )}
-        </ScrollView>
+          }
+        />
       </LinearGradient>
     </SafeAreaView>
   );

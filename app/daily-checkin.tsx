@@ -13,6 +13,8 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,12 +23,13 @@ import { Colors } from '../theme/theme-tokens';
 import { saveDailyTracking } from '../utils/dailyTrackingStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { logError } from '../utils/devLog';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 const MOOD_OPTIONS = [
-  { value: 9, emoji: '😄', label: 'Great' },
-  { value: 7, emoji: '🙂', label: 'Good' },
-  { value: 5, emoji: '😐', label: 'Okay' },
-  { value: 3, emoji: '😟', label: 'Hard' },
+  { value: 5, emoji: '😄', label: 'Great' },
+  { value: 4, emoji: '🙂', label: 'Good' },
+  { value: 3, emoji: '😐', label: 'Okay' },
+  { value: 2, emoji: '😟', label: 'Hard' },
   { value: 1, emoji: '😢', label: 'Very Hard' },
 ];
 
@@ -148,12 +151,28 @@ export default function DailyCheckinScreen() {
   const handleBack = () => {
     if (step > 1) {
       setStep(step - 1);
+    } else {
+      confirmCancel();
+    }
+  };
+
+  const confirmCancel = () => {
+    const hasData = mood !== null || energy !== null || symptoms.length > 0 ||
+      hadBreakfast || hadLunch || hadDinner || waterGlasses > 0 ||
+      sleepDuration !== null || sleepQuality !== null || notes.trim().length > 0 || noteTags.length > 0;
+    if (hasData) {
+      Alert.alert('Discard Check-In?', 'You have unsaved entries. Are you sure you want to leave?', [
+        { text: 'Keep Going', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: () => router.back() },
+      ]);
+    } else {
+      router.back();
     }
   };
 
   const handleComplete = async () => {
     try {
-      const dateStr = new Date().toISOString().split('T')[0];
+      const dateStr = getTodayDateString();
       // Parse sleep duration (e.g., "7 hours" -> 7)
       const sleepHours = sleepDuration ? parseFloat(sleepDuration.replace(/[^0-9.]/g, '')) : null;
 
@@ -515,7 +534,7 @@ export default function DailyCheckinScreen() {
               Step {step} of 6
             </Text>
           </View>
-          <TouchableOpacity onPress={() => router.back()} accessibilityLabel="Cancel check-in" accessibilityRole="button">
+          <TouchableOpacity onPress={confirmCancel} accessibilityLabel="Cancel check-in" accessibilityRole="button">
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
         </View>
@@ -530,6 +549,7 @@ export default function DailyCheckinScreen() {
         </View>
 
         {/* Content */}
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={100}>
         <ScrollView
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
@@ -537,6 +557,7 @@ export default function DailyCheckinScreen() {
         >
           {renderStep()}
         </ScrollView>
+        </KeyboardAvoidingView>
 
         {/* Footer */}
         <View style={styles.footer}>

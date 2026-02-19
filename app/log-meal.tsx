@@ -26,6 +26,7 @@ import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage';
 import { parseCarePlanContext, getCarePlanBannerText, getPreSelectionHints } from '../utils/carePlanRouting';
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
 import { logError } from '../utils/devLog';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Breakfast', icon: '🌅' },
@@ -48,7 +49,7 @@ export default function LogMeal() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<TodayProgress | null>(null);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateString();
 
   // Load rhythm progress on mount
   useEffect(() => {

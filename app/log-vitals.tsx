@@ -1,6 +1,6 @@
 // Functional vitals logging
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -13,6 +13,7 @@ import { parseCarePlanContext, getCarePlanBannerText, CarePlanNavigationContext 
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { BackButton } from '../components/common/BackButton';
 
 export default function LogVitalsScreen() {
   const router = useRouter();
@@ -93,12 +94,11 @@ export default function LogVitalsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]} style={styles.gradient}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={100}>
         <ScrollView style={styles.scrollView}>
           <View style={styles.content}>
             <View style={styles.header}>
-              <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
-                <Text style={styles.backText}>← Back</Text>
-              </TouchableOpacity>
+              <BackButton variant="text" />
               <Text style={styles.icon}>❤️</Text>
               <Text style={styles.title}>Log Vitals</Text>
               <Text style={styles.subtitle}>Track blood pressure, glucose, weight, and more</Text>
@@ -185,6 +185,7 @@ export default function LogVitalsScreen() {
             </View>
           </View>
         </ScrollView>
+        </KeyboardAvoidingView>
       </LinearGradient>
     </SafeAreaView>
   );

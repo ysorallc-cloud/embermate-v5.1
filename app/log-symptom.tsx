@@ -11,6 +11,8 @@ import {
   TextInput,
   ScrollView,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,6 +21,8 @@ import { Colors } from '../theme/theme-tokens';
 import { saveSymptom } from '../utils/symptomStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { getTodayDateString } from '../services/carePlanGenerator';
+import { BackButton } from '../components/common/BackButton';
 
 const COMMON_SYMPTOMS = [
   'Pain', 'Nausea', 'Dizziness', 'Fatigue',
@@ -49,15 +53,11 @@ export default function LogSymptomScreen() {
         severity,
         description: description.trim(),
         timestamp: now.toISOString(),
-        date: now.toISOString().split('T')[0],
+        date: getTodayDateString(),
       });
 
       emitDataUpdate('symptoms');
-      Alert.alert(
-        'Success',
-        'Symptom logged successfully',
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
+      router.back();
     } catch (error) {
       Alert.alert('Error', 'Failed to log symptom. Please try again.');
       logError('LogSymptomScreen.handleSave', error);
@@ -72,18 +72,12 @@ export default function LogSymptomScreen() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={100}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
             {/* Header */}
             <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => router.back()}
-                accessibilityLabel="Go back"
-                accessibilityRole="button"
-              >
-                <Text style={styles.backText}>← Back</Text>
-              </TouchableOpacity>
+              <BackButton variant="text" />
               <Text style={styles.icon}>🩹</Text>
               <Text style={styles.title}>Log Symptom</Text>
               <Text style={styles.subtitle}>Track pain, discomfort, or health changes</Text>
@@ -200,6 +194,7 @@ export default function LogSymptomScreen() {
             </View>
           </View>
         </ScrollView>
+        </KeyboardAvoidingView>
       </LinearGradient>
     </SafeAreaView>
   );

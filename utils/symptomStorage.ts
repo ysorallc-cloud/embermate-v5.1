@@ -3,7 +3,7 @@
 // AsyncStorage operations for symptom logging
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
 
 export interface SymptomLog {
@@ -25,7 +25,7 @@ export async function saveSymptom(symptom: Omit<SymptomLog, 'id'>): Promise<void
       id: Date.now().toString(),
     };
     symptoms.push(newSymptom);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(symptoms));
+    await safeSetItem(STORAGE_KEY, symptoms);
   } catch (error) {
     logError('symptomStorage.saveSymptom', error);
     throw error;
@@ -34,8 +34,7 @@ export async function saveSymptom(symptom: Omit<SymptomLog, 'id'>): Promise<void
 
 export async function getSymptoms(): Promise<SymptomLog[]> {
   try {
-    const data = await AsyncStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+    return await safeGetItem<SymptomLog[]>(STORAGE_KEY, []);
   } catch (error) {
     logError('symptomStorage.getSymptoms', error);
     return [];
@@ -59,7 +58,7 @@ export async function deleteSymptom(id: string): Promise<boolean> {
     if (filtered.length === symptoms.length) {
       return false; // Symptom not found
     }
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    await safeSetItem(STORAGE_KEY, filtered);
     return true;
   } catch (error) {
     logError('symptomStorage.deleteSymptom', error);

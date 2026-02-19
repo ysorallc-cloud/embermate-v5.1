@@ -23,9 +23,14 @@ export const SENSITIVE_KEY_PREFIXES = [
   '@embermate_medication',          // catches @embermate_medications, @embermate_medication_logs, etc.
   '@embermate_wellness_morning',
   '@embermate_wellness_evening',
+  '@embermate_morning_wellness',    // wellnessCheckStorage.ts key
+  '@embermate_evening_wellness',    // wellnessCheckStorage.ts key
   '@embermate_patient_registry',
   '@embermate_vitals',               // catches @embermate_vitals_*
+  '@vitals_readings',                // vitalsStorage.ts key
   '@embermate_symptoms',
+  'medical_info',                    // medicalInfo.ts key (no @ prefix)
+  'emergency_contacts',              // emergencyContacts.ts key (no @ prefix)
 ];
 
 export function isSensitiveKey(key: string): boolean {

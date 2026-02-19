@@ -451,7 +451,7 @@ export default function SettingsScreen() {
           id: 'version',
           icon: 'ℹ️',
           title: 'Version',
-          subtitle: '2.0.1',
+          subtitle: '5.8.0',
           onPress: () => {},
         },
       ],

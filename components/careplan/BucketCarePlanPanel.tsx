@@ -6,6 +6,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { devLog } from '../../utils/devLog';
+import { getTodayDateString } from '../../services/carePlanGenerator';
 import {
   View,
   Text,
@@ -127,7 +128,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
     }
 
     const items: ScheduleItem[] = [];
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateString();
     const bucketsWithItemsSet = new Set<BucketType>();
 
     // 1. MEDICATIONS - Use regimen instances if available, otherwise from config

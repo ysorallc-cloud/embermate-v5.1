@@ -382,7 +382,7 @@ By using EmberMate, you consent to:
 
 This Privacy Policy is available:
 - In the app (Settings → Privacy Policy)
-- On our website: www.embermate.com/privacy
+- On our website: www.ysorallc.org/privacy
 - Via email: privacy@embermate.com
 - In accessible formats upon request
 

@@ -23,6 +23,7 @@ import { saveDailyTracking, getDailyTracking } from '../utils/dailyTrackingStora
 import { saveSleepLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { logError } from '../utils/devLog';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 const QUALITY_LABELS = ['Very Poor', 'Poor', 'Fair', 'Good', 'Excellent'];
 
@@ -32,7 +33,7 @@ export default function LogSleep() {
   const [quality, setQuality] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateString();
 
   // Load existing sleep data for today
   useEffect(() => {

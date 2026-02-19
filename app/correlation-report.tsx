@@ -39,16 +39,6 @@ const SAMPLE_PATTERNS: DetectedPattern[] = [
     insight: 'Lower water intake days seem to correlate with higher fatigue levels. This relationship appears moderately consistent.',
     action: 'Track water intake alongside energy levels to observe this connection.',
   },
-  {
-    id: 'sample-med-energy',
-    variable1: 'medicationAdherence',
-    variable2: 'mood',
-    coefficient: 0.45,
-    confidence: 'moderate',
-    dataPoints: 10,
-    insight: 'Days with consistent medication timing may be associated with more stable mood. More data would strengthen this observation.',
-    action: 'Continue logging medication times to see if this pattern persists.',
-  },
 ];
 
 export default function CorrelationReportScreen() {

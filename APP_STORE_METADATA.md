@@ -44,7 +44,7 @@ EmberMate is your secure, private personal health companion designed to help you
 • Military-grade AES-256 encryption
 • No external servers, no data sharing
 • Face ID/Touch ID protection
-• HIPAA-compliant technical safeguards
+• Your data stays on your device with strong local encryption
 
 **💊 MEDICATION MANAGEMENT**
 • Track all medications with dosage and schedules
@@ -149,7 +149,7 @@ We respect your privacy. No advertisements, no analytics, no tracking. Your heal
 ---
 
 ### Keywords (100 characters max, comma-separated)
-medication tracker,health manager,appointment calendar,pill reminder,family care,caregiver,medical records,HIPAA,encrypted health
+medication tracker,health manager,appointment calendar,pill reminder,family care,caregiver,medical records,encrypted health,private
 
 ### Support URL
 https://embermate.com/support
@@ -158,7 +158,7 @@ https://embermate.com/support
 https://embermate.com
 
 ### Privacy Policy URL
-https://embermate.com/privacy
+https://ysorallc.org/privacy
 
 ---
 
@@ -182,7 +182,7 @@ EmberMate helps you manage medications, track appointments, monitor symptoms, an
 • No external servers or cloud storage
 • Biometric authentication (fingerprint/face unlock)
 • No data sharing with third parties
-• HIPAA-compliant technical safeguards
+• Your data stays on your device with strong local encryption
 • Your data, your control
 
 **💊 MEDICATION MANAGEMENT**
@@ -514,8 +514,8 @@ PERMISSIONS USED:
 NO DATA TRANSMISSION:
 This app does NOT connect to external servers, does NOT collect analytics, and does NOT share any user data with third parties.
 
-HIPAA COMPLIANCE:
-We implement HIPAA-consistent technical safeguards for personal health information protection.
+DATA PROTECTION:
+All personal health information is encrypted and stored locally on your device. No data is transmitted to external servers.
 
 Contact support@embermate.com with any questions.
 ```
@@ -546,7 +546,7 @@ Contact support@embermate.com with any questions.
 - appointment calendar
 - family health
 - caregiver app
-- HIPAA compliant
+- private health app
 - encrypted health
 - medication management
 

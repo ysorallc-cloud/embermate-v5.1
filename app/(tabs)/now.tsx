@@ -89,7 +89,7 @@ import {
   DataIntegrityBanner,
 } from '../../components/common/ConsistencyBanner';
 import { logError } from '../../utils/devLog';
-import { useDataListener } from '../../lib/events';
+import { useDataListener, emitDataUpdate } from '../../lib/events';
 import { GettingStartedChecklist } from '../../components/guidance';
 
 export default function NowScreen() {
@@ -137,11 +137,6 @@ export default function NowScreen() {
   const [selectedCategory, setSelectedCategory] = useState<BucketType | null>(null);
 
   const handleRingPress = useCallback((bucket: BucketType) => {
-    // Water is a counter (glasses), not a task checklist — go directly to log screen
-    if (bucket === 'water') {
-      navigate({ pathname: '/log-water', params: {} });
-      return;
-    }
     setSelectedCategory(prev => prev === bucket ? null : bucket);
   }, []);
 
@@ -160,6 +155,17 @@ export default function NowScreen() {
   const [waterGlasses, setWaterGlasses] = useState(0);
   const [patientName, setPatientName] = useState('Patient');
   const waterGoal = 8;
+
+  const handleWaterUpdate = useCallback(async (newGlasses: number) => {
+    try {
+      setWaterGlasses(newGlasses);
+      const { updateTodayWaterLog } = await import('../../utils/centralStorage');
+      await updateTodayWaterLog(newGlasses);
+      emitDataUpdate('water');
+    } catch (error) {
+      logError('now.handleWaterUpdate', error);
+    }
+  }, []);
 
   // ============================================================================
   // SINGLE SOURCE OF TRUTH: Compute stats from useCareTasks hook
@@ -635,6 +641,9 @@ export default function NowScreen() {
             onItemPress={handleTimelineItemPress}
             todayStats={todayStats}
             enabledBuckets={enabledBuckets}
+            waterGlasses={waterGlasses}
+            waterGoal={waterGoal}
+            onWaterUpdate={handleWaterUpdate}
           />
 
           {/* Empty states */}

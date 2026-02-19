@@ -27,6 +27,7 @@ import { useCarePlanConfig } from '../hooks/useCarePlanConfig';
 import { BucketType, BUCKET_META } from '../types/carePlanConfig';
 import { BackButton } from '../components/common/BackButton';
 import { InfoModal, InfoIconButton } from '../components/common/InfoModal';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 const FIRST_TIME_BANNER_KEY = '@embermate_today_scope_first_time_banner_dismissed';
 
@@ -82,7 +83,7 @@ function ScopeItemRow({
 
 export default function TodayScopeScreen() {
   const router = useRouter();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateString();
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showFirstTimeBanner, setShowFirstTimeBanner] = useState(false);
 

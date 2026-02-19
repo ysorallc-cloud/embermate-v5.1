@@ -1,7 +1,7 @@
 // ============================================================================
 // SAMPLE DATA GENERATOR
 // Generates realistic sample data for correlation testing and demo purposes
-// Use this to populate 30 days of mock data for development
+// Use this to populate 14 days of mock data for development
 //
 // IMPORTANT: All sample data is tagged with origin: 'sample' for isolation
 // User-created data should have origin: 'user'
@@ -30,7 +30,7 @@ import {
 } from '../storage/carePlanRepo';
 import { saveCarePlanConfig } from '../storage/carePlanConfigRepo';
 import { createDefaultCarePlanConfig } from '../types/carePlanConfig';
-import { ensureDailyInstances } from '../services/carePlanGenerator';
+import { ensureDailyInstances, getTodayDateString } from '../services/carePlanGenerator';
 
 const SAMPLE_DATA_INITIALIZED_KEY = '@embermate_sample_data_initialized';
 
@@ -89,26 +89,6 @@ export const getSampleCaregivers = () => {
       avatarColor: Colors.blue,
       lastActive: new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString(),
     }),
-    withSampleOrigin({
-      id: 'cg-3',
-      name: 'Maria Gonzalez',
-      role: 'caregiver',
-      relationship: 'Home Health Aide',
-      email: 'maria.g@careservice.com',
-      phone: '+1 (555) 345-6789',
-      permissions: {
-        canView: true,
-        canEdit: false,
-        canMarkMedications: true,
-        canScheduleAppointments: false,
-        canAddNotes: true,
-        canExport: false,
-      },
-      invitedAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-      joinedAt: new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000).toISOString(),
-      avatarColor: Colors.amber,
-      lastActive: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(),
-    }),
   ];
 };
 
@@ -131,8 +111,8 @@ export const getSampleActivities = () => {
     withSampleOrigin({
       id: 'act-2',
       type: 'vital_logged',
-      performedBy: 'Maria',
-      performedById: 'cg-3',
+      performedBy: 'Michael',
+      performedById: 'cg-2',
       timestamp: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(),
       details: { vitalType: 'blood pressure', value: '128/82' },
     }),
@@ -143,22 +123,6 @@ export const getSampleActivities = () => {
       performedById: 'cg-2',
       timestamp: new Date(now.getTime() - 8 * 60 * 60 * 1000).toISOString(),
       details: { action: 'added note about appetite' },
-    }),
-    withSampleOrigin({
-      id: 'act-4',
-      type: 'medication_taken',
-      performedBy: 'You',
-      performedById: 'user',
-      timestamp: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-      details: { medications: ['Atorvastatin'] },
-    }),
-    withSampleOrigin({
-      id: 'act-5',
-      type: 'appointment_scheduled',
-      performedBy: 'Sarah',
-      performedById: 'cg-1',
-      timestamp: new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString(),
-      details: { provider: 'Dr. Martinez', date: 'Thursday' },
     }),
   ];
 };
@@ -211,19 +175,6 @@ export const getSampleMedications = (): (Medication & { origin: DataOrigin })[] 
       daysSupply: 30,
       notes: 'Cholesterol medication',
     }),
-    withSampleOrigin({
-      id: 'med-4',
-      name: 'Vitamin D3',
-      dosage: '2000 IU',
-      time: '8:00 AM',
-      timeSlot: 'morning' as const,
-      taken: true,
-      active: true,
-      createdAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-      lastTaken: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
-      pillsRemaining: 45,
-      daysSupply: 90,
-    }),
   ];
 };
 
@@ -235,7 +186,7 @@ export const getSampleVitals = () => {
   const vitals = [];
   const now = new Date();
 
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 14; i++) {
     const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
     const dateStr = date.toISOString();
 
@@ -300,12 +251,12 @@ export const getSampleMoodLogs = () => {
   const logs = [];
   const now = new Date();
 
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 14; i++) {
     const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
     const dateStr = date.toISOString().split('T')[0];
 
     // Mood trending slightly up
-    const baseMood = 3 + Math.floor(i / 15);
+    const baseMood = 3 + Math.floor(i / 7);
     const mood = Math.min(5, Math.max(1, baseMood + Math.floor(Math.random() * 2 - 0.5)));
 
     logs.push(withSampleOrigin({
@@ -348,16 +299,6 @@ export const getSampleAppointments = () => {
       location: 'Family Medical Clinic',
       notes: 'Annual checkup',
       confirmed: false,
-    }),
-    withSampleOrigin({
-      id: 'appt-3',
-      date: new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      time: '9:00 AM',
-      provider: 'Dr. Patel',
-      specialty: 'Endocrinology',
-      location: 'Diabetes Care Center',
-      notes: 'Diabetes management review',
-      confirmed: true,
     }),
   ];
 };
@@ -403,29 +344,6 @@ export async function createSampleCarePlanItems(): Promise<void> {
             label: 'morning' as TimeWindowLabel,
             start: DEFAULT_TIME_WINDOWS.morning.start,
             end: DEFAULT_TIME_WINDOWS.morning.end,
-          }],
-        },
-        createdAt: now,
-        updatedAt: now,
-      },
-      // Evening Wellness Check
-      {
-        id: 'sample-wellness-evening',
-        carePlanId,
-        type: 'wellness',
-        name: 'Evening wellness check',
-        instructions: 'How was your day overall?',
-        priority: 'recommended',
-        active: true,
-        emoji: '🌙',
-        schedule: {
-          frequency: 'daily',
-          times: [{
-            id: 'wellness-evening-window',
-            kind: 'window',
-            label: 'evening' as TimeWindowLabel,
-            start: DEFAULT_TIME_WINDOWS.evening.start,
-            end: DEFAULT_TIME_WINDOWS.evening.end,
           }],
         },
         createdAt: now,
@@ -477,52 +395,6 @@ export async function createSampleCarePlanItems(): Promise<void> {
         createdAt: now,
         updatedAt: now,
       },
-      // Atorvastatin 20mg (evening)
-      {
-        id: 'sample-med-atorvastatin',
-        carePlanId,
-        type: 'medication',
-        name: 'Atorvastatin 20mg',
-        instructions: 'Cholesterol medication',
-        priority: 'required',
-        active: true,
-        emoji: '💊',
-        schedule: {
-          frequency: 'daily',
-          times: [{
-            id: 'med-atorvastatin-window',
-            kind: 'window',
-            label: 'evening' as TimeWindowLabel,
-            start: DEFAULT_TIME_WINDOWS.evening.start,
-            end: DEFAULT_TIME_WINDOWS.evening.end,
-          }],
-        },
-        createdAt: now,
-        updatedAt: now,
-      },
-      // Vitamin D3 2000 IU (morning)
-      {
-        id: 'sample-med-vitamind',
-        carePlanId,
-        type: 'medication',
-        name: 'Vitamin D3 2000 IU',
-        instructions: 'Take with breakfast',
-        priority: 'recommended',
-        active: true,
-        emoji: '💊',
-        schedule: {
-          frequency: 'daily',
-          times: [{
-            id: 'med-vitamind-window',
-            kind: 'window',
-            label: 'morning' as TimeWindowLabel,
-            start: DEFAULT_TIME_WINDOWS.morning.start,
-            end: DEFAULT_TIME_WINDOWS.morning.end,
-          }],
-        },
-        createdAt: now,
-        updatedAt: now,
-      },
       // Breakfast
       {
         id: 'sample-meal-breakfast',
@@ -542,54 +414,6 @@ export async function createSampleCarePlanItems(): Promise<void> {
             label: 'morning' as TimeWindowLabel,
             start: DEFAULT_TIME_WINDOWS.morning.start,
             end: DEFAULT_TIME_WINDOWS.morning.end,
-          }],
-        },
-        createdAt: now,
-        updatedAt: now,
-      },
-      // Lunch
-      {
-        id: 'sample-meal-lunch',
-        carePlanId,
-        type: 'nutrition',
-        name: 'Lunch',
-        instructions: 'Log lunch meal',
-        priority: 'recommended',
-        active: true,
-        emoji: '🥗',
-        nutritionDetails: { mealType: 'lunch' },
-        schedule: {
-          frequency: 'daily',
-          times: [{
-            id: 'meal-lunch-window',
-            kind: 'window',
-            label: 'afternoon' as TimeWindowLabel,
-            start: DEFAULT_TIME_WINDOWS.afternoon.start,
-            end: DEFAULT_TIME_WINDOWS.afternoon.end,
-          }],
-        },
-        createdAt: now,
-        updatedAt: now,
-      },
-      // Dinner
-      {
-        id: 'sample-meal-dinner',
-        carePlanId,
-        type: 'nutrition',
-        name: 'Dinner',
-        instructions: 'Log dinner meal',
-        priority: 'recommended',
-        active: true,
-        emoji: '🍽️',
-        nutritionDetails: { mealType: 'dinner' },
-        schedule: {
-          frequency: 'daily',
-          times: [{
-            id: 'meal-dinner-window',
-            kind: 'window',
-            label: 'evening' as TimeWindowLabel,
-            start: DEFAULT_TIME_WINDOWS.evening.start,
-            end: DEFAULT_TIME_WINDOWS.evening.end,
           }],
         },
         createdAt: now,
@@ -672,7 +496,7 @@ export const initializeSampleData = async (): Promise<boolean> => {
 
     // Pre-complete morning instances for a realistic mid-day demo look
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayDateString();
       const instances = await ensureDailyInstances(DEFAULT_PATIENT_ID, today);
 
       for (const inst of instances) {
@@ -715,11 +539,11 @@ export const resetSampleData = async (): Promise<void> => {
  * All generated data is tagged with origin: 'sample' for isolation
  */
 export async function generateSampleCorrelationData(): Promise<void> {
-  devLog('Generating 30 days of sample correlation data...');
+  devLog('Generating 14 days of sample correlation data...');
 
   const endDate = new Date();
   const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 30);
+  startDate.setDate(startDate.getDate() - 14);
 
   // Batch all data first, then save in bulk to reduce memory pressure
   const symptomBatch: Array<{ symptom: string; severity: number; timestamp: string; date: string; origin: DataOrigin }> = [];
@@ -829,7 +653,7 @@ export async function clearSampleCorrelationData(): Promise<void> {
 export async function hasSampleData(): Promise<boolean> {
   const allKeys = await AsyncStorage.getAllKeys();
   const symptomKeys = allKeys.filter(key => key.startsWith('@symptom_logs_'));
-  return symptomKeys.length >= 14;
+  return symptomKeys.length >= 7;
 }
 
 // Export alias for backwards compatibility

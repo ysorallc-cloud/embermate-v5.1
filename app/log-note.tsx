@@ -7,6 +7,8 @@ import { useRouter } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { saveNote } from '../utils/noteStorage';
 import { logError } from '../utils/devLog';
+import { getTodayDateString } from '../services/carePlanGenerator';
+import { BackButton } from '../components/common/BackButton';
 
 export default function LogNoteScreen() {
   const router = useRouter();
@@ -25,10 +27,10 @@ export default function LogNoteScreen() {
       await saveNote({
         content: content.trim(),
         timestamp: now.toISOString(),
-        date: now.toISOString().split('T')[0],
+        date: getTodayDateString(),
       });
 
-      Alert.alert('Success', 'Note saved successfully', [{ text: 'OK', onPress: () => router.back() }]);
+      router.back();
     } catch (error) {
       Alert.alert('Error', 'Failed to save note');
       logError('LogNoteScreen.handleSave', error);
@@ -43,9 +45,7 @@ export default function LogNoteScreen() {
         <ScrollView style={styles.scrollView}>
           <View style={styles.content}>
             <View style={styles.header}>
-              <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
-                <Text style={styles.backText}>← Back</Text>
-              </TouchableOpacity>
+              <BackButton variant="text" />
               <Text style={styles.icon}>📝</Text>
               <Text style={styles.title}>Add Note</Text>
               <Text style={styles.subtitle}>Capture observations, reminders, or important information</Text>

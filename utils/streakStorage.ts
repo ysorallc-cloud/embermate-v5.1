@@ -5,8 +5,10 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StreakData, Achievement, DEFAULT_STREAK_DATA, ACHIEVEMENTS } from '../types/streaks';
-import { format, subDays } from 'date-fns';
+import { subDays } from 'date-fns';
 import { devLog, logError } from './devLog';
+import { getTodayDateString } from '../services/carePlanGenerator';
+import { maybeRequestReview } from './appReview';
 
 const STREAKS_KEY = '@EmberMate:streaks';
 const ACHIEVEMENTS_KEY = '@EmberMate:achievements';
@@ -44,8 +46,8 @@ export const saveStreaks = async (streaks: StreakData): Promise<void> => {
  */
 export const updateStreak = async (type: keyof StreakData): Promise<void> => {
   const streaks = await getStreaks();
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+  const today = getTodayDateString();
+  const yesterday = subDays(new Date(), 1).toISOString().split('T')[0];
 
   const streak = streaks[type];
 
@@ -110,6 +112,11 @@ const checkAndAwardAchievements = async (type: string, count: number): Promise<v
 
       if (achievementDef) {
         await awardAchievement(achievementId, achievementDef);
+      }
+
+      // Prompt for app review at the 7-day milestone
+      if (threshold === 7) {
+        await maybeRequestReview();
       }
     }
   }

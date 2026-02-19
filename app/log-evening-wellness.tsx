@@ -12,6 +12,8 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,14 +22,14 @@ import { Colors } from '../theme/theme-tokens';
 import { useWellnessSettings } from '../hooks/useWellnessSettings';
 import { saveEveningWellness, skipEveningWellness } from '../utils/wellnessCheckStorage';
 import { listDailyInstances, logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
-import { format } from 'date-fns';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 const MOOD_OPTIONS = [
-  { value: 'great', emoji: '😄', label: 'Great' },
-  { value: 'good', emoji: '🙂', label: 'Good' },
-  { value: 'managing', emoji: '😐', label: 'Managing' },
-  { value: 'difficult', emoji: '😟', label: 'Difficult' },
-  { value: 'struggling', emoji: '😢', label: 'Struggling' },
+  { value: 5, emoji: '😄', label: 'Great' },
+  { value: 4, emoji: '🙂', label: 'Good' },
+  { value: 3, emoji: '😐', label: 'Managing' },
+  { value: 2, emoji: '😟', label: 'Difficult' },
+  { value: 1, emoji: '😢', label: 'Struggling' },
 ] as const;
 
 const DAY_RATING_OPTIONS = [
@@ -78,7 +80,7 @@ export default function LogEveningWellnessScreen() {
   const { settings } = useWellnessSettings();
   const eveningOptional = settings.evening.optionalChecks ?? {};
   const hasAnyOptionalEnabled = Object.values(eveningOptional).some(Boolean);
-  const [mood, setMood] = useState<'struggling' | 'difficult' | 'managing' | 'good' | 'great' | null>(null);
+  const [mood, setMood] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
   const [mealsLogged, setMealsLogged] = useState(false);
   const [dayRating, setDayRating] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
   const [highlights, setHighlights] = useState('');
@@ -104,7 +106,7 @@ export default function LogEveningWellnessScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const today = format(new Date(), 'yyyy-MM-dd');
+              const today = getTodayDateString();
               await skipEveningWellness(today);
               // Bridge to care plan instance
               try {
@@ -131,7 +133,7 @@ export default function LogEveningWellnessScreen() {
 
     setIsSubmitting(true);
     try {
-      const today = format(new Date(), 'yyyy-MM-dd');
+      const today = getTodayDateString();
       await saveEveningWellness(today, {
         mood: mood!,
         mealsLogged,
@@ -179,6 +181,7 @@ export default function LogEveningWellnessScreen() {
           </TouchableOpacity>
         </View>
 
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={100}>
         <ScrollView
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
@@ -489,6 +492,7 @@ export default function LogEveningWellnessScreen() {
             </View>
           )}
         </ScrollView>
+        </KeyboardAvoidingView>
 
         {/* Footer */}
         <View style={styles.footer}>

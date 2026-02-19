@@ -90,7 +90,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="understand"
         options={{
-          title: 'Understand',
+          title: 'Insights',
           tabBarIcon: ({ focused }) => <TabIcon icon="📊" focused={focused} />,
           tabBarAccessibilityLabel: 'Understand tab. View health patterns and insights',
           tabBarButtonTestID: 'tab-understand',
@@ -99,7 +99,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="support"
         options={{
-          title: 'Support',
+          title: 'Team',
           tabBarIcon: ({ focused }) => <TabIcon icon="👥" focused={focused} />,
           tabBarAccessibilityLabel: 'Support tab. Manage care circle and family',
           tabBarButtonTestID: 'tab-support',

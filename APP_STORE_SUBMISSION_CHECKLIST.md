@@ -19,7 +19,7 @@ Use this checklist to ensure EmberMate is ready for submission to both Apple App
 - [x] Terms of Service created and reviewed (TERMS_OF_SERVICE.md)
 - [x] Data Deletion Instructions created (DATA_DELETION_INSTRUCTIONS.md)
 - [ ] Legal team review completed
-- [ ] Privacy Policy uploaded to website (https://embermate.com/privacy)
+- [ ] Privacy Policy uploaded to website (https://ysorallc.org/privacy)
 - [ ] Terms of Service uploaded to website (https://embermate.com/terms)
 - [ ] Data deletion page uploaded (https://embermate.com/data-deletion)
 
@@ -79,7 +79,7 @@ Use this checklist to ensure EmberMate is ready for submission to both Apple App
 - [ ] Keywords optimized (100 chars)
 - [ ] Support URL: https://embermate.com/support
 - [ ] Marketing URL: https://embermate.com
-- [ ] Privacy Policy URL: https://embermate.com/privacy
+- [ ] Privacy Policy URL: https://ysorallc.org/privacy
 - [ ] Copyright: © 2025 [Your Company Name]
 
 ### Screenshots (Required)
@@ -212,7 +212,7 @@ Use this checklist to ensure EmberMate is ready for submission to both Apple App
 - [ ] Email: support@embermate.com
 - [ ] Website: https://embermate.com
 - [ ] Phone: [Your Phone Number]
-- [ ] Privacy Policy URL: https://embermate.com/privacy
+- [ ] Privacy Policy URL: https://ysorallc.org/privacy
 
 ### Privacy & Data Safety (CRITICAL)
 - [ ] Data safety form completed

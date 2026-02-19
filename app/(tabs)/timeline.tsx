@@ -153,7 +153,7 @@ export default function InsightsScreen() {
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Vitals History</Text>
                   <TouchableOpacity
-                    onPress={() => router.push('/vitals')}
+                    onPress={() => router.push('/log-vitals')}
                     accessibilityLabel="View all vitals history"
                     accessibilityRole="button"
                   >
@@ -163,7 +163,7 @@ export default function InsightsScreen() {
                 <View style={styles.historyCard}>
                   <TouchableOpacity
                     style={styles.historyRow}
-                    onPress={() => router.push('/vitals?type=blood-pressure')}
+                    onPress={() => router.push('/log-vitals')}
                     accessibilityLabel="Blood Pressure, 120/80, Today at 8:00 AM"
                     accessibilityRole="button"
                   >
@@ -179,7 +179,7 @@ export default function InsightsScreen() {
                   
                   <TouchableOpacity
                     style={styles.historyRow}
-                    onPress={() => router.push('/vitals?type=temperature')}
+                    onPress={() => router.push('/log-vitals')}
                     accessibilityLabel="Temperature, 98.6°F, Yesterday"
                     accessibilityRole="button"
                   >
@@ -195,7 +195,7 @@ export default function InsightsScreen() {
                   
                   <TouchableOpacity
                     style={styles.historyRow}
-                    onPress={() => router.push('/vitals?type=weight')}
+                    onPress={() => router.push('/log-vitals')}
                     accessibilityLabel="Weight, 165 lbs, 2 days ago"
                     accessibilityRole="button"
                   >
@@ -216,7 +216,7 @@ export default function InsightsScreen() {
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Symptoms Log</Text>
                   <TouchableOpacity
-                    onPress={() => router.push('/symptoms')}
+                    onPress={() => router.push('/log-symptom')}
                     accessibilityLabel="View all symptoms"
                     accessibilityRole="button"
                   >
@@ -226,7 +226,7 @@ export default function InsightsScreen() {
                 <View style={styles.historyCard}>
                   <TouchableOpacity
                     style={styles.historyRow}
-                    onPress={() => router.push('/symptoms')}
+                    onPress={() => router.push('/log-symptom')}
                     accessibilityLabel="Headache, Mild, Yesterday at 3:00 PM"
                     accessibilityRole="button"
                   >
@@ -242,7 +242,7 @@ export default function InsightsScreen() {
                   
                   <TouchableOpacity
                     style={styles.historyRow}
-                    onPress={() => router.push('/symptoms')}
+                    onPress={() => router.push('/log-symptom')}
                     accessibilityLabel="Fatigue, Moderate, 3 days ago"
                     accessibilityRole="button"
                   >

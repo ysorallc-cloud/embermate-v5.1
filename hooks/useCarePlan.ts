@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { logError } from '../utils/devLog';
 import { useDataListener } from '../lib/events';
+import { getTodayDateString } from '../services/carePlanGenerator';
 import {
   CarePlan,
   DayState,
@@ -77,7 +78,7 @@ export interface UseCarePlanReturn {
  * @param date Optional date string (YYYY-MM-DD). Defaults to today.
  */
 export function useCarePlan(date?: string): UseCarePlanReturn {
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || getTodayDateString();
 
   const [carePlan, setCarePlan] = useState<CarePlan | null>(null);
   const [dayState, setDayState] = useState<DayState | null>(null);

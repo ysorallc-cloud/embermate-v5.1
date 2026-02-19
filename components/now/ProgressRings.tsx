@@ -1,19 +1,14 @@
 // ============================================================================
-// PROGRESS RINGS - Care Plan Progress Dashboard (View-Only)
-// Provides fast reassurance: "Are we generally okay?"
-// Pure visual — no tap interaction
-// Paginated carousel when >4 items enabled
+// PROGRESS RINGS - Care Plan Progress Dashboard
+// Large circular rings per category with urgency-aware status labels.
+// Tappable to filter the timeline section by category.
 // ============================================================================
 
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-  LayoutChangeEvent,
   TouchableOpacity,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
@@ -32,23 +27,20 @@ interface RingItem {
   icon: string;
   label: string;
   statKey: keyof TodayStats;
-  itemType: string; // care task itemType for urgency lookup
+  itemType: string;
 }
 
 const BUCKET_RING_MAP: Record<string, Omit<RingItem, 'bucket'>> = {
-  meds:      { icon: '💊', label: 'Meds',     statKey: 'meds',     itemType: 'medication' },
-  vitals:    { icon: '📊', label: 'Vitals',   statKey: 'vitals',   itemType: 'vitals' },
-  meals:     { icon: '🍽️', label: 'Meals',    statKey: 'meals',    itemType: 'nutrition' },
-  water:     { icon: '💧', label: 'Water',    statKey: 'water',    itemType: 'hydration' },
-  sleep:     { icon: '😴', label: 'Sleep',    statKey: 'sleep',    itemType: 'sleep' },
-  activity:  { icon: '🚶', label: 'Activity', statKey: 'activity', itemType: 'activity' },
-  wellness:  { icon: '🌅', label: 'Wellness', statKey: 'wellness', itemType: 'wellness' },
+  meds:      { icon: '\uD83D\uDC8A', label: 'Meds',     statKey: 'meds',     itemType: 'medication' },
+  vitals:    { icon: '\uD83D\uDCCA', label: 'Vitals',   statKey: 'vitals',   itemType: 'vitals' },
+  meals:     { icon: '\uD83C\uDF7D\uFE0F', label: 'Meals',    statKey: 'meals',    itemType: 'nutrition' },
+  water:     { icon: '\uD83D\uDCA7', label: 'Water',    statKey: 'water',    itemType: 'hydration' },
+  sleep:     { icon: '\uD83D\uDE34', label: 'Sleep',    statKey: 'sleep',    itemType: 'sleep' },
+  activity:  { icon: '\uD83D\uDEB6', label: 'Activity', statKey: 'activity', itemType: 'activity' },
+  wellness:  { icon: '\uD83C\uDF05', label: 'Wellness', statKey: 'wellness', itemType: 'wellness' },
 };
 
-// Default buckets shown when none are enabled (backwards compat)
 const DEFAULT_BUCKETS: BucketType[] = ['meds', 'vitals', 'meals', 'wellness'];
-
-const ITEMS_PER_PAGE = 4;
 
 // ============================================================================
 // PROPS
@@ -59,75 +51,75 @@ interface ProgressRingsProps {
   enabledBuckets: BucketType[];
   nextUp: any | null;
   instances: any[];
+  selectedCategory?: BucketType | null;
+  onRingPress?: (bucket: BucketType) => void;
+  patientName?: string;
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function getProgressPercent(completed: number, total: number) {
+  return total > 0 ? (completed / total) * 100 : 0;
+}
+
+function getProgressStatus(completed: number, total: number): 'complete' | 'partial' | 'missing' | 'inactive' {
+  if (total === 0) return 'inactive';
+  if (completed === total) return 'complete';
+  if (completed > 0) return 'partial';
+  return 'missing';
 }
 
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
-export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }: ProgressRingsProps) {
-  const scrollRef = useRef<ScrollView>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [containerWidth, setContainerWidth] = useState(0);
-
-  // Build dynamic ring items from enabled buckets
+export function ProgressRings({
+  todayStats,
+  enabledBuckets,
+  nextUp,
+  instances,
+  selectedCategory,
+  onRingPress,
+}: ProgressRingsProps) {
+  // Build dynamic items from enabled buckets
   const ringItems: RingItem[] = useMemo(() => {
     const buckets = enabledBuckets.length > 0 ? enabledBuckets : DEFAULT_BUCKETS;
     return buckets
-      .filter(b => BUCKET_RING_MAP[b]) // skip appointments etc. that have no ring
+      .filter(b => BUCKET_RING_MAP[b])
       .map(b => ({ bucket: b, ...BUCKET_RING_MAP[b] }));
   }, [enabledBuckets]);
 
-  const totalPages = Math.ceil(ringItems.length / ITEMS_PER_PAGE);
-  const showCarousel = ringItems.length > ITEMS_PER_PAGE;
-
   // Track how many critical tiles we've rendered (for above-fold cap)
   let criticalTileCount = 0;
-
-  // Compute if Next Up is critical (shared across all rings)
-  const nextUpIsCritical = useMemo(() => {
-    if (!nextUp) return false;
-    const nextUpUrgency = getUrgencyStatus(nextUp.scheduledTime, false, nextUp.itemType);
-    return nextUpUrgency.tier === 'critical';
-  }, [nextUp]);
-
-  const handleLayout = useCallback((e: LayoutChangeEvent) => {
-    setContainerWidth(e.nativeEvent.layout.width);
-  }, []);
-
-  const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (containerWidth === 0) return;
-    const page = Math.round(e.nativeEvent.contentOffset.x / containerWidth);
-    setCurrentPage(page);
-  }, [containerWidth]);
-
-  const goToPage = useCallback((page: number) => {
-    if (scrollRef.current && containerWidth > 0) {
-      scrollRef.current.scrollTo({ x: page * containerWidth, animated: true });
-      setCurrentPage(page);
-    }
-  }, [containerWidth]);
-
-  // ============================================================================
-  // RENDER SINGLE RING
-  // ============================================================================
 
   const renderProgressRing = (item: RingItem) => {
     const stat: StatData = todayStats[item.statKey] ?? { completed: 0, total: 0 };
     const percent = getProgressPercent(stat.completed, stat.total);
     const status = getProgressStatus(stat.completed, stat.total);
+    const isSelected = selectedCategory === item.bucket;
+
     const radius = 24;
     const strokeWidth = 5;
     const circumference = 2 * Math.PI * radius;
     const dashoffset = circumference * (1 - percent / 100);
 
-    // Get urgency status using Calm Urgency system with above-fold constraint
-    const urgencyResult = getCategoryUrgencyStatus(instances, item.itemType, stat, {
-      hasCriticalNextUp: nextUpIsCritical,
-      criticalTileCount,
-    });
+    // Compute if Next Up is critical (for above-fold constraint)
+    let nextUpIsCritical = false;
+    if (nextUp) {
+      const nextUpUrgency = getUrgencyStatus(nextUp.scheduledTime, false, nextUp.itemType);
+      nextUpIsCritical = nextUpUrgency.tier === 'critical';
+    }
 
-    // Track critical tiles for above-fold constraint
+    // Get urgency status using Calm Urgency system
+    const urgencyResult = item.itemType
+      ? getCategoryUrgencyStatus(instances, item.itemType, stat, {
+          hasCriticalNextUp: nextUpIsCritical,
+          criticalTileCount,
+        })
+      : { status: 'NOT_APPLICABLE' as UrgencyStatus, tier: 'info' as UrgencyTier, tone: 'neutral' as UrgencyTone, label: '', isCritical: false };
+
     if (urgencyResult.isCritical) {
       criticalTileCount++;
     }
@@ -137,13 +129,13 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }:
       if (status === 'complete') return Colors.green;
       if (urgencyResult.tone === 'danger') return Colors.red;
       if (urgencyResult.tone === 'warn') return Colors.amber;
-      if (status === 'partial') return Colors.blue;
-      return Colors.textDisabled;
+      if (status === 'partial') return '#3B82F6';
+      return 'rgba(255, 255, 255, 0.25)';
     };
 
     const strokeColor = getStrokeColor();
 
-    // Determine display text
+    // Determine display text based on status and urgency tier
     let statText = '';
     let statusLabel = '';
     let statusStyle = `stat_${status}` as keyof typeof styles;
@@ -178,12 +170,9 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }:
         break;
     }
 
-    // Get urgency-based tile styling
+    // Urgency-based tile border/background
     const getTileUrgencyStyle = () => {
-      if (nextUp) {
-        if (status === 'complete') return null;
-        return null;
-      }
+      if (status === 'complete') return null;
       if (urgencyResult.tone === 'danger') return styles.checkinItemOverdue;
       if (urgencyResult.tone === 'warn') return styles.checkinItemDueSoon;
       return null;
@@ -193,16 +182,19 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }:
     const center = svgSize / 2;
 
     return (
-      <View
+      <TouchableOpacity
         key={item.bucket}
         style={[
           styles.checkinItem,
           status === 'inactive' && styles.checkinItemInactive,
           getTileUrgencyStyle(),
+          isSelected && styles.checkinItemSelected,
         ]}
-        accessible={true}
-        accessibilityRole="text"
+        onPress={() => onRingPress?.(item.bucket)}
+        activeOpacity={0.7}
         accessibilityLabel={`${item.label}. ${statText} ${statusLabel}`}
+        accessibilityRole="button"
+        accessibilityState={{ selected: isSelected }}
       >
         <View style={[styles.ringContainer, { width: svgSize, height: svgSize }]}>
           <Svg width={svgSize} height={svgSize} style={styles.progressRing}>
@@ -210,7 +202,7 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }:
               cx={center}
               cy={center}
               r={radius}
-              stroke={Colors.glassActive}
+              stroke="rgba(255, 255, 255, 0.1)"
               strokeWidth={strokeWidth}
               fill="none"
             />
@@ -239,105 +231,18 @@ export function ProgressRings({ todayStats, enabledBuckets, nextUp, instances }:
         <Text style={[styles.checkinStatusLabel, styles[statusStyle] || styles.stat_missing]}>
           {statusLabel}
         </Text>
-      </View>
+      </TouchableOpacity>
     );
   };
 
-  // ============================================================================
-  // RENDER PAGE
-  // ============================================================================
-
-  const renderPage = (pageIndex: number) => {
-    const start = pageIndex * ITEMS_PER_PAGE;
-    const pageItems = ringItems.slice(start, start + ITEMS_PER_PAGE);
-
-    // Pad with empty flex spacers so items keep consistent width
-    const empties = ITEMS_PER_PAGE - pageItems.length;
-
-    return (
-      <View
-        key={pageIndex}
-        style={[styles.progressGrid, containerWidth > 0 && { width: containerWidth }]}
-      >
-        {pageItems.map(item => renderProgressRing(item))}
-        {empties > 0 && Array.from({ length: empties }).map((_, i) => (
-          <View key={`empty-${i}`} style={styles.checkinItemEmpty} />
-        ))}
-      </View>
-    );
-  };
-
-  // ============================================================================
-  // RENDER
-  // ============================================================================
-
-  if (!showCarousel) {
-    // Simple layout — no carousel needed
-    return (
-      <View style={styles.progressSection}>
-        <Text style={styles.sectionTitle}>CARE PLAN PROGRESS</Text>
-        <View style={styles.progressGrid}>
-          {ringItems.map(item => renderProgressRing(item))}
-        </View>
-      </View>
-    );
-  }
-
-  // Carousel layout
   return (
     <View style={styles.progressSection}>
       <Text style={styles.sectionTitle}>CARE PLAN PROGRESS</Text>
-      <View onLayout={handleLayout}>
-        <ScrollView
-          ref={scrollRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={handleScroll}
-          scrollEventThrottle={16}
-          decelerationRate="fast"
-        >
-          {Array.from({ length: totalPages }).map((_, i) => renderPage(i))}
-        </ScrollView>
-      </View>
-
-      {/* Dot Indicators */}
-      <View style={styles.dotsContainer}>
-        {Array.from({ length: totalPages }).map((_, i) => (
-          <TouchableOpacity
-            key={i}
-            onPress={() => goToPage(i)}
-            hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel={`Page ${i + 1} of ${totalPages}`}
-          >
-            <View
-              style={[
-                styles.dot,
-                i === currentPage && styles.dotActive,
-              ]}
-            />
-          </TouchableOpacity>
-        ))}
+      <View style={styles.progressGrid}>
+        {ringItems.map(item => renderProgressRing(item))}
       </View>
     </View>
   );
-}
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-function getProgressPercent(completed: number, total: number) {
-  return total > 0 ? Math.min((completed / total) * 100, 100) : 0;
-}
-
-function getProgressStatus(completed: number, total: number): 'complete' | 'partial' | 'missing' | 'inactive' {
-  if (total === 0) return 'inactive';
-  if (completed >= total) return 'complete';
-  if (completed > 0) return 'partial';
-  return 'missing';
 }
 
 // ============================================================================
@@ -351,7 +256,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textHalf,
+    color: 'rgba(255, 255, 255, 0.5)',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
@@ -362,28 +267,28 @@ const styles = StyleSheet.create({
   },
   checkinItem: {
     flex: 1,
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     padding: 12,
     paddingHorizontal: 6,
     alignItems: 'center',
-  },
-  checkinItemEmpty: {
-    flex: 1,
-    // Invisible spacer to maintain 4-column layout on partial last page
   },
   checkinItemInactive: {
     opacity: 0.6,
   },
   checkinItemOverdue: {
     borderColor: 'rgba(239, 68, 68, 0.5)',
-    backgroundColor: Colors.redFaint,
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
   },
   checkinItemDueSoon: {
     borderColor: 'rgba(251, 191, 36, 0.5)',
     backgroundColor: 'rgba(251, 191, 36, 0.06)',
+  },
+  checkinItemSelected: {
+    borderColor: 'rgba(20, 184, 166, 0.6)',
+    backgroundColor: 'rgba(20, 184, 166, 0.12)',
   },
   ringContainer: {
     marginBottom: 8,
@@ -403,7 +308,7 @@ const styles = StyleSheet.create({
   checkinLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
     marginBottom: 3,
   },
   checkinStat: {
@@ -416,45 +321,24 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   stat_complete: {
-    color: Colors.green,
+    color: '#10B981',
   },
   stat_partial: {
-    color: Colors.amber,
+    color: '#F59E0B',
   },
   stat_missing: {
-    color: Colors.amber,
+    color: '#F59E0B',
   },
   stat_inactive: {
     color: 'rgba(255, 255, 255, 0.35)',
   },
   stat_overdue: {
-    color: Colors.red,
+    color: '#EF4444',
   },
   stat_due_soon: {
-    color: Colors.amber,
+    color: '#F59E0B',
   },
   stat_later: {
-    color: Colors.textHalf,
-  },
-
-  // Carousel dots
-  dotsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 12,
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.glassStrong,
-  },
-  dotActive: {
-    backgroundColor: Colors.accent,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    color: 'rgba(255, 255, 255, 0.5)',
   },
 });

@@ -3,7 +3,7 @@
 // Stores critical medical information for emergency situations
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
 
 // ============================================================================
@@ -84,10 +84,9 @@ function migrateLegacyInfo(raw: any): MedicalInfo {
  */
 export async function getMedicalInfo(): Promise<MedicalInfo | null> {
   try {
-    const data = await AsyncStorage.getItem(MEDICAL_INFO_KEY);
-    if (!data) return null;
+    const raw = await safeGetItem<any>(MEDICAL_INFO_KEY, null);
+    if (!raw) return null;
 
-    const raw = JSON.parse(data);
     return migrateLegacyInfo(raw);
   } catch (error) {
     logError('medicalInfo.getMedicalInfo', error);
@@ -107,7 +106,7 @@ export async function saveMedicalInfo(
       lastUpdated: new Date(),
     };
 
-    await AsyncStorage.setItem(MEDICAL_INFO_KEY, JSON.stringify(medicalInfo));
+    await safeSetItem(MEDICAL_INFO_KEY, medicalInfo);
   } catch (error) {
     logError('medicalInfo.saveMedicalInfo', error);
     throw error;

@@ -18,12 +18,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing } from '../theme/theme-tokens';
-import { generateAndSharePDF, ReportData } from '../utils/pdfExport';
+import { generateAndSharePDF, ReportData, PatientInfo } from '../utils/pdfExport';
 import { logError } from '../utils/devLog';
 import { logAuditEvent, AuditEventType, AuditSeverity } from '../utils/auditLog';
+import { buildCareBrief, CareBrief } from '../utils/careSummaryBuilder';
+import { getAppointments } from '../utils/appointmentStorage';
+import { getEmergencyContacts } from '../utils/careTeamStorage';
 
 // Helper function to generate care summary reports
-async function generateCareSummaryReport(type: string): Promise<boolean> {
+async function generateCareSummaryReport(
+  type: string,
+  sections: Record<string, boolean>
+): Promise<boolean> {
   const reportTitles: Record<string, string> = {
     full: 'Full Care Summary',
     medications: 'Medication List',
@@ -31,20 +37,152 @@ async function generateCareSummaryReport(type: string): Promise<boolean> {
     emergency: 'Emergency Information',
   };
 
+  // Apply report-type overrides to sections
+  const activeSections = { ...sections };
+  if (type === 'medications') {
+    Object.keys(activeSections).forEach(k => { activeSections[k] = false; });
+    activeSections.medications = true;
+    activeSections.adherence = true;
+  } else if (type === 'weekly') {
+    Object.keys(activeSections).forEach(k => { activeSections[k] = false; });
+    activeSections.adherence = true;
+    activeSections.vitals = true;
+    activeSections.symptoms = true;
+  } else if (type === 'emergency') {
+    Object.keys(activeSections).forEach(k => { activeSections[k] = false; });
+    activeSections.demographics = true;
+    activeSections.contacts = true;
+    activeSections.medications = true;
+  }
+
+  const brief = await buildCareBrief();
+  const details: Array<{ label: string; value: string }> = [];
+
+  // Demographics
+  if (activeSections.demographics) {
+    details.push({ label: 'Patient', value: brief.patient.name || 'Not recorded' });
+    if (brief.patient.dateOfBirth) details.push({ label: 'Date of Birth', value: brief.patient.dateOfBirth });
+    if (brief.patient.gender) details.push({ label: 'Gender', value: brief.patient.gender });
+    if (brief.patient.bloodType) details.push({ label: 'Blood Type', value: brief.patient.bloodType });
+    details.push({ label: 'Conditions', value: brief.patient.conditions?.length ? brief.patient.conditions.join(', ') : 'None recorded' });
+    details.push({ label: 'Allergies', value: brief.patient.allergies?.length ? brief.patient.allergies.join(', ') : 'None recorded' });
+  }
+
+  // Medications
+  if (activeSections.medications) {
+    if (brief.medications.length > 0) {
+      brief.medications.forEach(med => {
+        details.push({ label: med.name, value: `${med.dosage || 'No dosage'} - ${med.status}` });
+      });
+    } else {
+      details.push({ label: 'Medications', value: 'No medications tracked' });
+    }
+  }
+
+  // Adherence
+  if (activeSections.adherence) {
+    const taken = brief.medications.filter(m => m.status === 'completed').length;
+    const total = brief.medications.length;
+    details.push({ label: 'Medication Adherence', value: total > 0 ? `${taken}/${total} taken today` : 'No medications tracked' });
+    if (brief.interpretations.medications) {
+      details.push({ label: 'Medication Notes', value: brief.interpretations.medications });
+    }
+  }
+
+  // Vitals
+  if (activeSections.vitals) {
+    const r = brief.vitals?.readings;
+    if (r) {
+      if (r.systolic && r.diastolic) details.push({ label: 'Blood Pressure', value: `${r.systolic}/${r.diastolic} mmHg` });
+      if (r.heartRate) details.push({ label: 'Heart Rate', value: `${r.heartRate} bpm` });
+      if (r.oxygen) details.push({ label: 'O2 Saturation', value: `${r.oxygen}%` });
+      if (r.glucose) details.push({ label: 'Glucose', value: `${r.glucose} mg/dL` });
+      if (r.temperature) details.push({ label: 'Temperature', value: `${r.temperature}°F` });
+      if (r.weight) details.push({ label: 'Weight', value: `${r.weight} lbs` });
+    }
+    if (!r || (!r.systolic && !r.heartRate && !r.oxygen && !r.glucose)) {
+      details.push({ label: 'Vitals', value: 'No readings recorded today' });
+    }
+    if (brief.interpretations.vitals) {
+      details.push({ label: 'Vitals Notes', value: brief.interpretations.vitals });
+    }
+  }
+
+  // Symptoms / Wellness
+  if (activeSections.symptoms) {
+    const mw = brief.mood?.morningWellness;
+    const ew = brief.mood?.eveningWellness;
+    if (mw) {
+      if (mw.mood) details.push({ label: 'Morning Mood', value: String(mw.mood) });
+      if (mw.orientation) details.push({ label: 'Orientation', value: mw.orientation });
+      if (mw.sleepQuality) details.push({ label: 'Sleep Quality', value: `${mw.sleepQuality}/5` });
+    }
+    if (ew) {
+      if (ew.painLevel !== undefined) details.push({ label: 'Pain Level', value: `${ew.painLevel}/10` });
+      if (ew.dayRating) details.push({ label: 'Day Rating', value: `${ew.dayRating}/5` });
+    }
+    if (!mw && !ew) {
+      details.push({ label: 'Wellness', value: 'No wellness checks recorded today' });
+    }
+  }
+
+  // Appointments
+  if (activeSections.appointments) {
+    try {
+      const allAppts = await getAppointments();
+      const upcoming = allAppts
+        .filter(a => new Date(a.date) >= new Date())
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .slice(0, 5);
+      if (upcoming.length > 0) {
+        upcoming.forEach(appt => {
+          details.push({ label: appt.provider || 'Appointment', value: `${appt.specialty || 'General'} - ${new Date(appt.date).toLocaleDateString()}` });
+        });
+      } else {
+        details.push({ label: 'Appointments', value: 'No upcoming appointments' });
+      }
+    } catch { details.push({ label: 'Appointments', value: 'Unable to load' }); }
+  }
+
+  // Contacts
+  if (activeSections.contacts) {
+    try {
+      const contacts = await getEmergencyContacts();
+      if (contacts.length > 0) {
+        contacts.forEach(c => {
+          details.push({ label: c.name, value: `${c.role}${c.phone ? ' - ' + c.phone : ''}` });
+        });
+      } else {
+        details.push({ label: 'Emergency Contacts', value: 'Not configured' });
+      }
+    } catch { details.push({ label: 'Emergency Contacts', value: 'Unable to load' }); }
+  }
+
+  // Build attention notes
+  const notesParts: string[] = [];
+  if (brief.attentionItems.length > 0) {
+    notesParts.push('Attention Items:\n' + brief.attentionItems.map(a => `• ${a.text}${a.detail ? ' - ' + a.detail : ''}`).join('\n'));
+  }
+  if (brief.interpretations.nutrition) {
+    notesParts.push('Nutrition: ' + brief.interpretations.nutrition);
+  }
+
   const reportData: ReportData = {
     title: reportTitles[type] || 'Care Summary',
     period: 'Report Period',
     periodLabel: `Generated on ${new Date().toLocaleDateString()}`,
-    summary: 'Care summary for healthcare provider review',
-    details: [
-      { label: 'Report Type', value: reportTitles[type] || type },
-      { label: 'Generated', value: new Date().toLocaleString() },
-    ],
-    notes: 'This report contains health tracking data collected via EmberMate.',
+    summary: brief.handoffNarrative || brief.statusNarrative || 'Care summary for healthcare provider review',
+    details,
+    notes: notesParts.length > 0 ? notesParts.join('\n\n') : undefined,
     generatedAt: new Date(),
   };
 
-  return await generateAndSharePDF(reportData);
+  const patientInfo: PatientInfo = {
+    name: brief.patient.name || undefined,
+    dob: brief.patient.dateOfBirth || undefined,
+  };
+
+  return await generateAndSharePDF(reportData, patientInfo);
 }
 
 export default function CareSummaryExportScreen() {
@@ -112,7 +250,7 @@ export default function CareSummaryExportScreen() {
       const includedSections = Object.entries(sections).filter(([, v]) => v).map(([k]) => k);
       await logAuditEvent(AuditEventType.CARE_BRIEF_EXPORTED, `Care summary exported: ${type}`, AuditSeverity.WARNING, { format: 'pdf', reportType: type, includedSections });
 
-      const success = await generateCareSummaryReport(type);
+      const success = await generateCareSummaryReport(type, sections);
 
       if (!success) {
         Alert.alert('Error', 'Failed to generate report. Please try again.');

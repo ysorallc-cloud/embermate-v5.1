@@ -20,6 +20,8 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import PageHeader from '../components/PageHeader';
+import { CommonStyles } from '../theme/commonStyles';
+import { BackButton } from '../components/common/BackButton';
 import {
   generateShareCode,
   getShareInvites,
@@ -112,17 +114,10 @@ export default function FamilySharingScreen() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
-        <View style={styles.headerWrapper}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          
-          <PageHeader 
+        <View style={CommonStyles.headerWrapper}>
+          <BackButton style={{ marginLeft: 24, marginTop: 16 }} />
+
+          <PageHeader
             emoji="👥"
             label="Collaborative Care"
             title="Family Sharing"

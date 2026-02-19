@@ -188,7 +188,7 @@ Follow prompts, and your site will be live!
 After deployment, update the URLs in your legal documents:
 
 **Files to update**:
-- `PRIVACY_POLICY.md` - Update `https://embermate.com/privacy` to your actual URL
+- `PRIVACY_POLICY.md` - Update `https://ysorallc.org/privacy` to your actual URL
 - `TERMS_OF_SERVICE.md` - Update `https://embermate.com/terms`
 - `app.json` - Update `extra.privacyPolicyUrl`, `extra.termsOfServiceUrl`, etc.
 

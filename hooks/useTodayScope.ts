@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { logError } from '../utils/devLog';
 import { useDataListener } from '../lib/events';
+import { getTodayDateString } from '../services/carePlanGenerator';
 import {
   getOverrides,
   suppressItemForToday,
@@ -46,7 +47,7 @@ export interface UseTodayScopeReturn {
 // ============================================================================
 
 export function useTodayScope(date?: string): UseTodayScopeReturn {
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || getTodayDateString();
   const [suppressedItems, setSuppressedItems] = useState<TodayScopeItem[]>([]);
   const [loading, setLoading] = useState(true);
 

@@ -3,7 +3,7 @@
 // Manages emergency contacts for quick access in critical situations
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import * as Linking from 'expo-linking';
 import * as Localization from 'expo-localization';
 import { Alert } from 'react-native';
@@ -26,10 +26,7 @@ const EMERGENCY_CONTACTS_KEY = 'emergency_contacts';
  */
 export async function getEmergencyContacts(): Promise<EmergencyContact[]> {
   try {
-    const data = await AsyncStorage.getItem(EMERGENCY_CONTACTS_KEY);
-    if (!data) return [];
-
-    const contacts = JSON.parse(data);
+    const contacts = await safeGetItem<EmergencyContact[]>(EMERGENCY_CONTACTS_KEY, []);
 
     // Sort by primary first, then by name
     return contacts.sort((a: EmergencyContact, b: EmergencyContact) => {
@@ -59,10 +56,7 @@ export async function saveEmergencyContact(
 
     contacts.push(newContact);
 
-    await AsyncStorage.setItem(
-      EMERGENCY_CONTACTS_KEY,
-      JSON.stringify(contacts)
-    );
+    await safeSetItem(EMERGENCY_CONTACTS_KEY, contacts);
   } catch (error) {
     logError('emergencyContacts.saveEmergencyContact', error);
     throw error;
@@ -85,10 +79,7 @@ export async function updateEmergencyContact(
 
     contacts[index] = contact;
 
-    await AsyncStorage.setItem(
-      EMERGENCY_CONTACTS_KEY,
-      JSON.stringify(contacts)
-    );
+    await safeSetItem(EMERGENCY_CONTACTS_KEY, contacts);
   } catch (error) {
     logError('emergencyContacts.updateEmergencyContact', error);
     throw error;
@@ -103,10 +94,7 @@ export async function deleteEmergencyContact(id: string): Promise<void> {
     const contacts = await getEmergencyContacts();
     const filtered = contacts.filter(c => c.id !== id);
 
-    await AsyncStorage.setItem(
-      EMERGENCY_CONTACTS_KEY,
-      JSON.stringify(filtered)
-    );
+    await safeSetItem(EMERGENCY_CONTACTS_KEY, filtered);
   } catch (error) {
     logError('emergencyContacts.deleteEmergencyContact', error);
     throw error;

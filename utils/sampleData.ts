@@ -66,23 +66,16 @@ const generateSampleSleep = (days: number) => {
       notes: day === 0 ? 'Slept through the night!' : undefined,
     });
 
-    // Morning nap
-    sleepSessions.push({
-      id: `sleep-${day}-2`,
-      startTime: generateTimestamp(day, 10, 0),
-      endTime: generateTimestamp(day, 11, 30),
-      duration: 90,
-      quality: 'good',
-    });
-
-    // Afternoon nap
-    sleepSessions.push({
-      id: `sleep-${day}-3`,
-      startTime: generateTimestamp(day, 14, 0),
-      endTime: generateTimestamp(day, 15, 0),
-      duration: 60,
-      quality: 'fair',
-    });
+    // Afternoon nap (every other day)
+    if (day % 2 === 0) {
+      sleepSessions.push({
+        id: `sleep-${day}-2`,
+        startTime: generateTimestamp(day, 14, 0),
+        endTime: generateTimestamp(day, 15, 0),
+        duration: 60,
+        quality: 'fair',
+      });
+    }
   }
 
   return sleepSessions;
@@ -160,7 +153,7 @@ export const seedSampleData = async (options: SampleDataOptions = {}) => {
     includeBathroom = true,
     includeActivity = true,
     includeHydration = true,
-    daysOfData = 7,
+    daysOfData = 3,
   } = options;
 
   try {
