@@ -65,7 +65,7 @@ const ITEM_TYPE_ROUTES: Record<CarePlanItemType, string> = {
   hydration: '/log-water',
   wellness: '/log-morning-wellness',
   appointment: '/appointments',  // Route to canonical appointments screen
-  custom: '/daily-checkin',
+  custom: '/log-evening-wellness',
 };
 
 // ============================================================================
@@ -101,7 +101,7 @@ export function buildTaskAction(
     params.mealType = inferMealType(item.label, routine.timeWindow.start);
   }
 
-  const route = ITEM_TYPE_ROUTES[item.type] || '/daily-checkin';
+  const route = ITEM_TYPE_ROUTES[item.type] || '/log-evening-wellness';
   const displayText = buildDisplayText(item, routine);
 
   return { route, params, displayText };
@@ -157,7 +157,7 @@ export function buildAppointmentAction(
  */
 function buildCarePlanAction(entry: ScheduleEntry): TaskAction {
   const itemType = (entry.itemType as CarePlanItemType) || 'custom';
-  const route = ITEM_TYPE_ROUTES[itemType] || '/daily-checkin';
+  const route = ITEM_TYPE_ROUTES[itemType] || '/log-evening-wellness';
 
   const params: TaskActionParams = {
     source: 'careplan',
@@ -200,7 +200,7 @@ export function buildQuickAction(
   type: CarePlanItemType,
   label?: string
 ): TaskAction {
-  const route = ITEM_TYPE_ROUTES[type] || '/daily-checkin';
+  const route = ITEM_TYPE_ROUTES[type] || '/log-evening-wellness';
 
   return {
     route,

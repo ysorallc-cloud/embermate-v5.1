@@ -4,7 +4,7 @@
 // No GlassCards. Colored top-border sections. Flat information hierarchy.
 // ============================================================================
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { navigate } from '../../lib/navigate';
 import {
   View,
@@ -139,7 +139,14 @@ export default function JournalTab() {
     loadReport();
     logAuditEvent(AuditEventType.CARE_BRIEF_VIEWED, 'Care Brief viewed', AuditSeverity.INFO);
   }, [loadReport]);
-  useDataListener(useCallback(() => { loadReport(); }, [loadReport]));
+  // Debounce event-driven reloads to prevent cascade storms
+  const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useDataListener(useCallback((category) => {
+    // Only reload for relevant events
+    if (!['dailyInstances', 'carePlanItems', 'logs'].includes(category)) return;
+    if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+    reloadTimerRef.current = setTimeout(() => { loadReport(); }, 500);
+  }, [loadReport]));
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

@@ -12,6 +12,7 @@ import {
   AdherenceStats,
   CarePlanItemType,
 } from '../types/carePlan';
+import { getTodayDateString } from './carePlanGenerator';
 import {
   listDailyInstancesRange,
   listLogsInRange,
@@ -335,7 +336,7 @@ function computeStreaks(
   }
 
   const results: Streak[] = [];
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateString();
 
   for (const [itemId, itemInstances] of byItem) {
     const item = itemMap.get(itemId);
@@ -565,7 +566,7 @@ export async function getTopConcerns(
 export async function getTodayCompletionRate(
   patientId: string = DEFAULT_PATIENT_ID
 ): Promise<{ completed: number; total: number; rate: number }> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateString();
   const insights = await generateInsights({ start: today, end: today }, patientId);
 
   const completed = insights.adherenceByItem.reduce((sum, a) => sum + a.completedCount, 0);

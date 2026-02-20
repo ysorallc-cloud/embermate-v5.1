@@ -9,6 +9,7 @@ import { createMedication, Medication } from './medicationStorage';
 import { createAppointment, Appointment } from './appointmentStorage';
 import { saveVital } from './vitalsStorage';
 import { Alert } from 'react-native';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 interface ImportResult {
   success: boolean;
@@ -60,7 +61,7 @@ export async function importFromJSON(jsonString: string): Promise<ImportResult> 
       for (const appt of data.appointments) {
         try {
           await createAppointment({
-            date: appt.date || new Date().toISOString().split('T')[0],
+            date: appt.date || getTodayDateString(),
             time: appt.time || '09:00',
             provider: appt.provider || 'Provider',
             specialty: appt.specialty || 'General',

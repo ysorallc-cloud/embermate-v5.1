@@ -64,7 +64,7 @@ EmberMate is a privacy-first personal health companion designed to help you mana
 - PIN code protection
 - Auto-lock feature
 - Encrypted backups
-- HIPAA-compliant technical safeguards
+- All data stays on-device with strong local encryption
 
 ### 🏥 **Care Summaries**
 - Generate comprehensive health reports
@@ -85,7 +85,7 @@ EmberMate is a privacy-first personal health companion designed to help you mana
 ✅ **Military-grade encryption** - AES-256 encryption at rest
 ✅ **Biometric security** - Face ID, Touch ID, or fingerprint protection
 ✅ **No tracking or analytics** - Zero third-party SDKs or tracking
-✅ **HIPAA-compliant safeguards** - Technical security measures
+✅ **Strong local encryption** - Your data never leaves your device
 ✅ **Offline-first** - No internet required for core features
 
 [Read our Privacy Policy](./PRIVACY_POLICY.md) | [Read our Security Policy](./SECURITY.md)

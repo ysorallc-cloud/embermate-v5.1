@@ -8,6 +8,7 @@ import { checkMultipleInteractions, DrugInteraction } from './drugInteractions';
 import { safeGetItem, safeSetItem } from './safeStorage';
 import { generateUniqueId } from './idGenerator';
 import { logError } from './devLog';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 export interface Medication {
   id: string;
@@ -87,7 +88,7 @@ export async function getMedications(): Promise<Medication[]> {
  */
 async function checkAndResetDaily(): Promise<void> {
   try {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const today = getTodayDateString(); // YYYY-MM-DD
     const lastResetDate = await AsyncStorage.getItem(LAST_RESET_DATE_KEY);
 
     if (lastResetDate !== today) {

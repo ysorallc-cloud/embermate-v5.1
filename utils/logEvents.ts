@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { safeGetItem, safeSetItem } from './safeStorage';
 import { generateUniqueId } from './idGenerator';
 import { emitDataUpdate } from '../lib/events';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 // ============================================================================
 // TYPES
@@ -465,7 +466,7 @@ export async function getTodayLogSummary(): Promise<{
   hydration: number;
   symptoms: number;
 }> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateString();
   const events = await getLogEventsByDate(today);
 
   return {

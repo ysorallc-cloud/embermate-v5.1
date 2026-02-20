@@ -37,6 +37,14 @@ export default function LogSymptomScreen() {
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const handleSymptomSelect = (symptom: string) => {
+    if (symptom === 'Pain') {
+      router.push('/log-pain');
+      return;
+    }
+    setSelectedSymptom(symptom);
+  };
+
   const handleSave = async () => {
     const symptomToLog = selectedSymptom === 'Other' ? customSymptom : selectedSymptom;
 
@@ -96,7 +104,7 @@ export default function LogSymptomScreen() {
                         styles.symptomChip,
                         selectedSymptom === symptom && styles.symptomChipSelected,
                       ]}
-                      onPress={() => setSelectedSymptom(symptom)}
+                      onPress={() => handleSymptomSelect(symptom)}
                       accessibilityLabel={`${symptom} symptom`}
                       accessibilityRole="radio"
                       accessibilityState={{ selected: selectedSymptom === symptom }}

@@ -8,6 +8,7 @@ import { emitDataUpdate } from '../lib/events';
 import { CarePlan, CarePlanOverride, isCarePlan } from './carePlanTypes';
 import { generateDefaultCarePlan } from './carePlanDefaults';
 import { devLog, logError } from './devLog';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 const CARE_PLAN_KEY = '@embermate_care_plan_v1';
 const OVERRIDES_KEY = '@embermate_care_plan_overrides';
@@ -170,7 +171,7 @@ export async function setDailySnapshot(date: string, carePlan: CarePlan): Promis
  * This ensures CarePlan edits only take effect the next day
  */
 export async function getEffectiveCarePlan(date?: string): Promise<CarePlan | null> {
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || getTodayDateString();
 
   try {
     // First, check if we have a snapshot for today
@@ -200,7 +201,7 @@ export async function getEffectiveCarePlan(date?: string): Promise<CarePlan | nu
  * Call this on app startup to ensure snapshot exists
  */
 export async function ensureDailySnapshot(): Promise<void> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateString();
 
   try {
     const existingSnapshot = await getDailySnapshot(today);
@@ -368,7 +369,7 @@ export async function suppressItemForToday(
   itemId: string,
   date?: string
 ): Promise<void> {
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || getTodayDateString();
   try {
     const override: CarePlanOverride = {
       date: targetDate,
@@ -393,7 +394,7 @@ export async function unsuppressItem(
   itemId: string,
   date?: string
 ): Promise<void> {
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || getTodayDateString();
   try {
     await removeOverride(targetDate, routineId, itemId);
   } catch (error) {
@@ -410,7 +411,7 @@ export async function isItemSuppressed(
   itemId: string,
   date?: string
 ): Promise<boolean> {
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || getTodayDateString();
   try {
     const overrides = await getOverrides(targetDate);
     const override = overrides.find(
@@ -427,7 +428,7 @@ export async function isItemSuppressed(
  * Get all suppressed items for a date
  */
 export async function getSuppressedItems(date?: string): Promise<Array<{ routineId: string; itemId: string }>> {
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || getTodayDateString();
   try {
     const overrides = await getOverrides(targetDate);
     return overrides
@@ -443,7 +444,7 @@ export async function getSuppressedItems(date?: string): Promise<Array<{ routine
  * Reset Today's Scope - clear all suppressions for a date (back to Care Plan defaults)
  */
 export async function resetTodayScope(date?: string): Promise<void> {
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || getTodayDateString();
   try {
     const allOverrides = await getAllOverrides();
     const dateOverrides = allOverrides[targetDate] || [];
@@ -568,7 +569,7 @@ export async function completeCarePlanItem(
   itemId: string,
   date?: string
 ): Promise<void> {
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || getTodayDateString();
 
   try {
     const override: CarePlanOverride = {
@@ -600,7 +601,7 @@ export async function uncompleteCarePlanItem(
   itemId: string,
   date?: string
 ): Promise<void> {
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || getTodayDateString();
 
   try {
     await removeOverride(targetDate, routineId, itemId);
@@ -624,7 +625,7 @@ export async function isCarePlanItemComplete(
   itemId: string,
   date?: string
 ): Promise<boolean> {
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || getTodayDateString();
 
   try {
     const overrides = await getOverrides(targetDate);

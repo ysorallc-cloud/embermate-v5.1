@@ -8,6 +8,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
+import { MedsBatchPanel } from './MedsBatchPanel';
 import {
   parseTimeForDisplay,
   isOverdue,
@@ -86,6 +87,7 @@ interface TimelineSectionProps {
   selectedCategory: BucketType | null;
   onClearCategory: () => void;
   onItemPress: (instance: any) => void;
+  onBatchMedConfirm?: (instanceIds: string[]) => Promise<void>;
   todayStats: TodayStats;
   enabledBuckets: BucketType[];
   waterGlasses?: number;
@@ -104,6 +106,7 @@ export function TimelineSection({
   selectedCategory,
   onClearCategory,
   onItemPress,
+  onBatchMedConfirm,
   todayStats,
   enabledBuckets,
   waterGlasses = 0,
@@ -195,6 +198,23 @@ export function TimelineSection({
     const categoryPending = allPending.filter(i => i.itemType === itemType);
     const categoryCompleted = completed.filter(i => i.itemType === itemType);
     const hasOverdueItems = categoryPending.some(i => isOverdue(i.scheduledTime));
+
+    // Meds batch panel — single-screen confirm flow
+    if (selectedCategory === 'meds' && onBatchMedConfirm) {
+      return (
+        <>
+          <MedsBatchPanel
+            pendingMeds={categoryPending}
+            completedMeds={categoryCompleted}
+            onBatchConfirm={onBatchMedConfirm}
+            onItemPress={onItemPress}
+            stat={stat}
+            onClose={onClearCategory}
+          />
+          {renderCompletedSection(completed.filter(i => i.itemType !== itemType))}
+        </>
+      );
+    }
 
     return (
       <>

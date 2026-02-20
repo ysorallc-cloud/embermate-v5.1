@@ -32,6 +32,24 @@ const MOOD_OPTIONS = [
   { value: 1, emoji: '😢', label: 'Struggling' },
 ] as const;
 
+const ENERGY_OPTIONS = [
+  { value: 5, label: 'Energetic' },
+  { value: 4, label: 'Good' },
+  { value: 3, label: 'Moderate' },
+  { value: 2, label: 'Low' },
+  { value: 1, label: 'Exhausted' },
+] as const;
+
+const SYMPTOM_OPTIONS = [
+  'Pain',
+  'Nausea',
+  'Dizziness',
+  'Fatigue',
+  'Anxiety',
+  'Confusion',
+  'None today',
+] as const;
+
 const DAY_RATING_OPTIONS = [
   { value: 5, emoji: '⭐⭐⭐⭐⭐', label: 'Excellent' },
   { value: 4, emoji: '⭐⭐⭐⭐', label: 'Good' },
@@ -81,6 +99,8 @@ export default function LogEveningWellnessScreen() {
   const eveningOptional = settings.evening.optionalChecks ?? {};
   const hasAnyOptionalEnabled = Object.values(eveningOptional).some(Boolean);
   const [mood, setMood] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
+  const [energyLevel, setEnergyLevel] = useState<number | null>(null);
+  const [symptoms, setSymptoms] = useState<string[]>([]);
   const [mealsLogged, setMealsLogged] = useState(false);
   const [dayRating, setDayRating] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
   const [highlights, setHighlights] = useState('');
@@ -92,6 +112,19 @@ export default function LogEveningWellnessScreen() {
   const [bathingStatus, setBathingStatus] = useState<'independent' | 'partial-assist' | 'full-assist' | 'not-today' | null>(null);
   const [mobilityStatus, setMobilityStatus] = useState<'independent' | 'walker' | 'cane' | 'wheelchair' | 'bed-bound' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const toggleSymptom = (symptom: string) => {
+    if (symptom === 'None today') {
+      setSymptoms(['None today']);
+    } else {
+      setSymptoms((prev) => {
+        const filtered = prev.filter((s) => s !== 'None today');
+        return filtered.includes(symptom)
+          ? filtered.filter((s) => s !== symptom)
+          : [...filtered, symptom];
+      });
+    }
+  };
 
   const canSubmit = mood !== null && dayRating !== null;
 
@@ -138,6 +171,8 @@ export default function LogEveningWellnessScreen() {
         mood: mood!,
         mealsLogged,
         dayRating: dayRating!,
+        ...(energyLevel !== null && { energyLevel }),
+        ...(symptoms.length > 0 && { symptoms }),
         highlights: highlights || undefined,
         concerns: concerns || undefined,
         ...(painLevel && { painLevel }),
@@ -211,6 +246,66 @@ export default function LogEveningWellnessScreen() {
                     ]}
                   >
                     {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Energy Level */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Energy level today?</Text>
+            <Text style={styles.sectionSubtitle}>Optional</Text>
+            <View style={styles.chipRow}>
+              {ENERGY_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.chip,
+                    energyLevel === option.value && styles.chipSelected,
+                  ]}
+                  onPress={() => setEnergyLevel(energyLevel === option.value ? null : option.value)}
+                  accessibilityLabel={`Energy: ${option.label}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: energyLevel === option.value }}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      energyLevel === option.value && styles.chipTextSelected,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Symptoms */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Any symptoms today?</Text>
+            <Text style={styles.sectionSubtitle}>Optional — select all that apply</Text>
+            <View style={styles.chipRow}>
+              {SYMPTOM_OPTIONS.map((symptom) => (
+                <TouchableOpacity
+                  key={symptom}
+                  style={[
+                    styles.chip,
+                    symptoms.includes(symptom) && styles.chipSelected,
+                  ]}
+                  onPress={() => toggleSymptom(symptom)}
+                  accessibilityLabel={symptom}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: symptoms.includes(symptom) }}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      symptoms.includes(symptom) && styles.chipTextSelected,
+                    ]}
+                  >
+                    {symptom}
                   </Text>
                 </TouchableOpacity>
               ))}

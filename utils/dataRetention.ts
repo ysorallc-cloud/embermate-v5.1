@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLogEvents } from './logEvents';
 import { safeSetItem } from './safeStorage';
 import { logError } from './devLog';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 // ============================================================================
 // TYPES
@@ -87,7 +88,7 @@ export async function purgeOldData(): Promise<number> {
   }
 
   // Record the purge timestamp
-  await AsyncStorage.setItem(LAST_PURGE_KEY, new Date().toISOString().split('T')[0]);
+  await AsyncStorage.setItem(LAST_PURGE_KEY, getTodayDateString());
 
   return removed;
 }
@@ -99,7 +100,7 @@ export async function purgeOldData(): Promise<number> {
 export async function purgeIfNeeded(): Promise<void> {
   try {
     const lastPurge = await AsyncStorage.getItem(LAST_PURGE_KEY);
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateString();
 
     if (lastPurge === today) return;
 

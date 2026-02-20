@@ -37,6 +37,8 @@ import {
 // Aurora Components
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { PatientSwitcherModal } from '../../components/now/PatientSwitcherModal';
+import { usePatient } from '../../contexts/PatientContext';
 import { WelcomeBackBanner } from '../../components/common/WelcomeBackBanner';
 import { SampleDataBanner } from '../../components/common/SampleDataBanner';
 
@@ -154,6 +156,8 @@ export default function NowScreen() {
   // Water stats from direct storage (not care plan instances, since water is counted in glasses not task completions)
   const [waterGlasses, setWaterGlasses] = useState(0);
   const [patientName, setPatientName] = useState('Patient');
+  const [showPatientSwitcher, setShowPatientSwitcher] = useState(false);
+  const { activePatient, patients } = usePatient();
   const waterGoal = 8;
 
   const handleWaterUpdate = useCallback(async (newGlasses: number) => {
@@ -320,6 +324,14 @@ export default function NowScreen() {
     });
   }, []);
 
+  // Batch confirm meds — uses the same completeInstance from useDailyCareInstances
+  const handleBatchMedConfirm = useCallback(async (instanceIds: string[]) => {
+    for (const id of instanceIds) {
+      await completeInstance(id, 'taken');
+    }
+    emitDataUpdate('dailyInstances');
+  }, [completeInstance]);
+
   // ============================================================================
   // DATA LOADING
   // ============================================================================
@@ -352,10 +364,23 @@ export default function NowScreen() {
 
   const loadData = async () => {
     try {
-      // Load patient name from same source as Journal/Care Brief
-      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-      const name = await AsyncStorage.getItem('@embermate_patient_name');
-      setPatientName(name || 'Patient');
+      // Load patient name — prefer PatientContext, fall back to AsyncStorage for migration
+      if (activePatient && activePatient.name !== 'Patient') {
+        setPatientName(activePatient.name);
+      } else {
+        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+        const name = await AsyncStorage.getItem('@embermate_patient_name');
+        if (name && name !== 'Patient') {
+          setPatientName(name);
+          // Migration: sync legacy name to patient registry
+          try {
+            const { updatePatient } = await import('../../storage/patientRegistry');
+            await updatePatient(activePatient?.id || 'default', { name });
+          } catch {}
+        } else {
+          setPatientName(activePatient?.name || 'Patient');
+        }
+      }
 
       const meds = await getMedications();
       const activeMeds = meds.filter((m) => m.active);
@@ -447,6 +472,43 @@ export default function NowScreen() {
         {/* Page header */}
         <ScreenHeader
           title={getGreeting()}
+          leftAction={
+            <TouchableOpacity
+              onPress={() => setShowPatientSwitcher(true)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: Colors.glass,
+                borderWidth: 1,
+                borderColor: Colors.glassBorder,
+                borderRadius: 16,
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                gap: 6,
+              }}
+              accessibilityLabel={`Patient: ${patientName}. Tap to switch.`}
+              accessibilityRole="button"
+            >
+              <View style={{
+                width: 24,
+                height: 24,
+                borderRadius: 12,
+                backgroundColor: Colors.accent,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: Colors.textPrimary }}>
+                  {patientName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 13, color: Colors.textSecondary, fontWeight: '500' }}>
+                {patientName}
+              </Text>
+              {patients.length > 1 && (
+                <Text style={{ fontSize: 10, color: Colors.textMuted }}>{'\u25BC'}</Text>
+              )}
+            </TouchableOpacity>
+          }
           rightAction={
             <TouchableOpacity
               onPress={() => navigate('/care-plan')}
@@ -457,6 +519,10 @@ export default function NowScreen() {
               <Text style={{ fontSize: 20, opacity: 0.7 }}>⚙️</Text>
             </TouchableOpacity>
           }
+        />
+        <PatientSwitcherModal
+          visible={showPatientSwitcher}
+          onClose={() => setShowPatientSwitcher(false)}
         />
 
         {/* Hidden Items Banner */}
@@ -639,6 +705,7 @@ export default function NowScreen() {
             selectedCategory={selectedCategory}
             onClearCategory={handleClearCategory}
             onItemPress={handleTimelineItemPress}
+            onBatchMedConfirm={handleBatchMedConfirm}
             todayStats={todayStats}
             enabledBuckets={enabledBuckets}
             waterGlasses={waterGlasses}

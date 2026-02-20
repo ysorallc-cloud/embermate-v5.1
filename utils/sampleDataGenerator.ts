@@ -539,6 +539,13 @@ export const resetSampleData = async (): Promise<void> => {
  * All generated data is tagged with origin: 'sample' for isolation
  */
 export async function generateSampleCorrelationData(): Promise<void> {
+  // Idempotency guard: skip if correlation data already exists
+  const correlationFlag = await AsyncStorage.getItem('@embermate_sample_correlation_generated');
+  if (correlationFlag === 'true') {
+    devLog('Sample correlation data already exists, skipping generation');
+    return;
+  }
+
   devLog('Generating 14 days of sample correlation data...');
 
   const endDate = new Date();
@@ -622,6 +629,9 @@ export async function generateSampleCorrelationData(): Promise<void> {
   // Save medication logs in bulk using multiSet
   await AsyncStorage.multiSet(medLogBatch);
 
+  // Mark as generated to prevent duplicate runs
+  await AsyncStorage.setItem('@embermate_sample_correlation_generated', 'true');
+
   devLog('Sample data generation complete!');
   devLog('Expected correlations:');
   devLog('  - Pain & Hydration: ~-0.6 (negative)');
@@ -637,23 +647,82 @@ export async function clearSampleCorrelationData(): Promise<void> {
 
   const allKeys = await AsyncStorage.getAllKeys();
   const keysToRemove = allKeys.filter(key =>
-    key.startsWith('@symptom_logs_') ||
     key.startsWith('@daily_tracking_') ||
     key.startsWith('@medication_logs_') ||
     key === '@correlation_cache'
   );
 
   await AsyncStorage.multiRemove(keysToRemove);
-  devLog(`Cleared ${keysToRemove.length} keys`);
+  await AsyncStorage.removeItem('@embermate_sample_correlation_generated');
+
+  // Remove sample-origin entries from the global symptoms array
+  await removeSampleSymptoms();
+
+  devLog(`Cleared ${keysToRemove.length} keys + sample symptoms`);
+}
+
+/**
+ * Remove sample-origin entries from the global symptoms array.
+ */
+async function removeSampleSymptoms(): Promise<number> {
+  try {
+    const raw = await AsyncStorage.getItem('@embermate_symptoms');
+    if (!raw) return 0;
+    const symptoms: any[] = JSON.parse(raw);
+    const userOnly = symptoms.filter(s => s.origin !== 'sample');
+    const removed = symptoms.length - userOnly.length;
+    if (removed > 0) {
+      await AsyncStorage.setItem('@embermate_symptoms', JSON.stringify(userOnly));
+      devLog(`[removeSampleSymptoms] Removed ${removed} sample symptoms`);
+    }
+    return removed;
+  } catch (error) {
+    logError('removeSampleSymptoms', error);
+    return 0;
+  }
+}
+
+/**
+ * Remove duplicate entries from the global symptoms array.
+ * Duplicates share the same symptom + timestamp + severity.
+ */
+export async function deduplicateSampleSymptoms(): Promise<number> {
+  try {
+    const raw = await AsyncStorage.getItem('@embermate_symptoms');
+    if (!raw) return 0;
+    const symptoms: any[] = JSON.parse(raw);
+    const seen = new Set<string>();
+    const deduped = symptoms.filter(s => {
+      const key = `${s.symptom}|${s.timestamp}|${s.severity}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    const removed = symptoms.length - deduped.length;
+    if (removed > 0) {
+      await AsyncStorage.setItem('@embermate_symptoms', JSON.stringify(deduped));
+      devLog(`[deduplicateSampleSymptoms] Removed ${removed} duplicate symptoms`);
+    }
+    return removed;
+  } catch (error) {
+    logError('deduplicateSampleSymptoms', error);
+    return 0;
+  }
 }
 
 /**
  * Check if sample data exists
  */
 export async function hasSampleData(): Promise<boolean> {
-  const allKeys = await AsyncStorage.getAllKeys();
-  const symptomKeys = allKeys.filter(key => key.startsWith('@symptom_logs_'));
-  return symptomKeys.length >= 7;
+  try {
+    const raw = await AsyncStorage.getItem('@embermate_symptoms');
+    if (!raw) return false;
+    const symptoms: any[] = JSON.parse(raw);
+    const sampleCount = symptoms.filter(s => s.origin === 'sample').length;
+    return sampleCount >= 7;
+  } catch {
+    return false;
+  }
 }
 
 // Export alias for backwards compatibility

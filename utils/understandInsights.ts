@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { detectCorrelations, DetectedPattern, hasSufficientData } from './correlationDetector';
 import { getAllInsights, InsightData } from './insightEngine';
 import { logError } from './devLog';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 import { getDailyTrackingLogs } from './dailyTrackingStorage';
 import { getAllBaselines } from './baselineStorage';
@@ -336,7 +337,7 @@ async function generatePositiveObservations(
     }
 
     // Check hydration (positive if meeting target)
-    const endDate = new Date().toISOString().split('T')[0];
+    const endDate = getTodayDateString();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - timeRange);
     const startDateStr = startDate.toISOString().split('T')[0];
@@ -527,7 +528,7 @@ interface CarePlanStats {
 }
 
 async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanStats> {
-  const endDate = new Date().toISOString().split('T')[0];
+  const endDate = getTodayDateString();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - timeRange);
   const startDateStr = startDate.toISOString().split('T')[0];

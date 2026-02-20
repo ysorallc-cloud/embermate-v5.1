@@ -48,6 +48,8 @@ export interface EveningWellnessData {
   mood: number;  // 1=struggling, 5=great
   mealsLogged: boolean;
   dayRating: number;
+  energyLevel?: number;  // 1=exhausted, 5=energetic (consolidated from daily-checkin)
+  symptoms?: string[];   // Symptom chips (consolidated from daily-checkin)
   painLevel?: string;
   alertness?: string;
   bowelMovement?: string;

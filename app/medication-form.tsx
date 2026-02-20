@@ -249,6 +249,7 @@ export default function MedicationFormScreen() {
   const [scheduleDaysOfWeek, setScheduleDaysOfWeek] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
   const [scheduleEndCondition, setScheduleEndCondition] = useState<ScheduleEndCondition>('ongoing');
 
+  const [formStep, setFormStep] = useState<1 | 2>(1);
   const [showMedSuggestions, setShowMedSuggestions] = useState(false);
   const [showDosageSuggestions, setShowDosageSuggestions] = useState(false);
   const [medSuggestions, setMedSuggestions] = useState<typeof COMMON_MEDICATIONS>([]);
@@ -759,6 +760,48 @@ export default function MedicationFormScreen() {
             </Text>
           </View>
 
+          {/* Step 1: Advanced Options link */}
+          {formStep === 1 && (
+            <>
+              <TouchableOpacity
+                style={styles.advancedLink}
+                onPress={() => setFormStep(2)}
+                accessibilityLabel="Show advanced options"
+                accessibilityRole="button"
+              >
+                <Text style={styles.advancedLinkText}>Advanced Options</Text>
+                <Text style={styles.advancedLinkArrow}>{'\u25B6'}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.primarySaveButton}
+                onPress={handleSave}
+                accessibilityLabel={isEditing ? 'Save medication changes' : 'Save medication'}
+                accessibilityRole="button"
+              >
+                <Text style={styles.primarySaveButtonText}>
+                  {isEditing ? 'Save Changes' : 'Save Medication'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* ============================================= */}
+          {/* STEP 2: ADVANCED OPTIONS */}
+          {/* ============================================= */}
+          {formStep === 2 && (
+          <>
+
+          {/* Back to basics link */}
+          <TouchableOpacity
+            style={styles.backToBasicsLink}
+            onPress={() => setFormStep(1)}
+            accessibilityLabel="Back to basic options"
+            accessibilityRole="button"
+          >
+            <Text style={styles.backToBasicsText}>{'\u2190'} Back</Text>
+          </TouchableOpacity>
+
           {/* ============================================= */}
           {/* REMINDERS SECTION - "When should we notify you?" */}
           {/* ============================================= */}
@@ -1030,6 +1073,23 @@ export default function MedicationFormScreen() {
               accessibilityLabel="Medication notes"
             />
           </View>
+
+          {/* Step 2 save button */}
+          {formStep === 2 && (
+            <TouchableOpacity
+              style={styles.primarySaveButton}
+              onPress={handleSave}
+              accessibilityLabel={isEditing ? 'Save medication changes' : 'Save medication'}
+              accessibilityRole="button"
+            >
+              <Text style={styles.primarySaveButtonText}>
+                {isEditing ? 'Save Changes' : 'Save Medication'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          </>
+          )}
 
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -1507,5 +1567,45 @@ const styles = StyleSheet.create({
   endConditionTextActive: {
     color: Colors.accent,
     fontWeight: '600',
+  },
+
+  // Progressive disclosure
+  advancedLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    marginBottom: Spacing.lg,
+  },
+  advancedLinkText: {
+    fontSize: 14,
+    color: Colors.accent,
+    fontWeight: '500',
+  },
+  advancedLinkArrow: {
+    fontSize: 10,
+    color: Colors.accent,
+  },
+  backToBasicsLink: {
+    paddingVertical: 8,
+    marginBottom: Spacing.md,
+  },
+  backToBasicsText: {
+    fontSize: 14,
+    color: Colors.accent,
+    fontWeight: '500',
+  },
+  primarySaveButton: {
+    backgroundColor: Colors.accent,
+    borderRadius: BorderRadius.md,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  primarySaveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
   },
 });

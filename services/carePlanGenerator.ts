@@ -284,10 +284,21 @@ async function syncOtherBucketsWithConfig(
     // ===== MEALS SYNC =====
     const mealsConfig = config.meals as MealsBucketConfig;
     const mealsEnabled = mealsConfig?.enabled;
-    const existingMealItems = allItems.filter(i => i.type === 'nutrition');
+    const allNutritionItems = allItems.filter(i => i.type === 'nutrition');
+    // Only sync-meal-* items are managed by this sync; sample/other meal items are deactivated
+    const syncMealItems = allNutritionItems.filter(i => i.id.startsWith('sync-meal-'));
+    const nonSyncMealItems = allNutritionItems.filter(i => !i.id.startsWith('sync-meal-'));
 
-    if (mealsEnabled && existingMealItems.length === 0) {
-      // Only create if NO meal items exist at all
+    // Deactivate any non-sync nutrition items (e.g. sample-meal-breakfast) to prevent duplicates
+    for (const item of nonSyncMealItems) {
+      if (item.active) {
+        devLog('[syncOtherBucketsWithConfig] Deactivating non-sync meal item:', item.id);
+        await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
+        changed = true;
+      }
+    }
+
+    if (mealsEnabled) {
       const mealTimesOfDay = mealsConfig.timesOfDay || ['morning', 'midday', 'evening'];
 
       const mealNames: Record<string, string> = {
@@ -297,37 +308,53 @@ async function syncOtherBucketsWithConfig(
         night: 'Evening snack',
       };
 
-      for (const tod of mealTimesOfDay) {
-        const mealItem: CarePlanItem = {
-          id: generateUniqueId(),
-          carePlanId,
-          type: 'nutrition',
-          name: mealNames[tod] || 'Meal',
-          priority: mealsConfig.priority || 'recommended',
-          active: true,
-          schedule: {
-            frequency: 'daily',
-            times: [{
-              id: generateUniqueId(),
-              kind: 'exact' as const,
-              label: TIME_OF_DAY_TO_WINDOW[tod as TimeOfDay],
-              at: TIME_OF_DAY_DEFAULTS[tod as TimeOfDay] || '12:00',
-            }],
-          },
-          emoji: tod === 'morning' ? '🍳' : tod === 'midday' ? '🥗' : '🍽️',
-          createdAt: now,
-          updatedAt: now,
-        };
-
-        devLog('[syncOtherBucketsWithConfig] Creating meal CarePlanItem:', mealItem.name);
-        await upsertCarePlanItem(mealItem);
-        changed = true;
+      // Reactivate/deactivate existing sync-meal items based on configured times
+      for (const item of syncMealItems) {
+        const itemTod = item.id.replace('sync-meal-', '');
+        const shouldBeActive = mealTimesOfDay.includes(itemTod as TimeOfDay);
+        if (shouldBeActive && !item.active) {
+          devLog('[syncOtherBucketsWithConfig] Reactivating meal:', item.name);
+          await upsertCarePlanItem({ ...item, active: true, updatedAt: now });
+          changed = true;
+        } else if (!shouldBeActive && item.active) {
+          await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
+          changed = true;
+        }
       }
-    } else if (!mealsEnabled && existingMealItems.some(i => i.active)) {
-      // Deactivate all meal items
-      for (const item of existingMealItems) {
+
+      // Create sync-meal items for any configured times that don't have one yet
+      for (const tod of mealTimesOfDay) {
+        if (!syncMealItems.some(i => i.id === `sync-meal-${tod}`)) {
+          const mealItem: CarePlanItem = {
+            id: `sync-meal-${tod}`,
+            carePlanId,
+            type: 'nutrition',
+            name: mealNames[tod] || 'Meal',
+            priority: mealsConfig.priority || 'recommended',
+            active: true,
+            schedule: {
+              frequency: 'daily',
+              times: [{
+                id: `sync-meal-${tod}-time`,
+                kind: 'exact' as const,
+                label: TIME_OF_DAY_TO_WINDOW[tod as TimeOfDay],
+                at: TIME_OF_DAY_DEFAULTS[tod as TimeOfDay] || '12:00',
+              }],
+            },
+            emoji: tod === 'morning' ? '🍳' : tod === 'midday' ? '🥗' : '🍽️',
+            createdAt: now,
+            updatedAt: now,
+          };
+          devLog('[syncOtherBucketsWithConfig] Creating meal CarePlanItem:', mealItem.name);
+          await upsertCarePlanItem(mealItem);
+          changed = true;
+        }
+      }
+    } else if (!mealsEnabled) {
+      // Deactivate all sync meal items
+      for (const item of syncMealItems) {
         if (item.active) {
-          await upsertCarePlanItem({ ...item, active: false });
+          await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
           changed = true;
         }
       }
@@ -339,7 +366,7 @@ async function syncOtherBucketsWithConfig(
     if (existingWellnessItems.length === 0) {
       // Create "Morning wellness check" item
       const morningItem: CarePlanItem = {
-        id: generateUniqueId(),
+        id: 'sync-wellness-morning',
         carePlanId,
         type: 'wellness',
         name: 'Morning wellness check',
@@ -348,7 +375,7 @@ async function syncOtherBucketsWithConfig(
         schedule: {
           frequency: 'daily',
           times: [{
-            id: generateUniqueId(),
+            id: 'sync-wellness-morning-time',
             kind: 'exact' as const,
             label: 'morning',
             at: '07:00',
@@ -361,7 +388,7 @@ async function syncOtherBucketsWithConfig(
 
       // Create "Evening wellness check" item
       const eveningItem: CarePlanItem = {
-        id: generateUniqueId(),
+        id: 'sync-wellness-evening',
         carePlanId,
         type: 'wellness',
         name: 'Evening wellness check',
@@ -370,7 +397,7 @@ async function syncOtherBucketsWithConfig(
         schedule: {
           frequency: 'daily',
           times: [{
-            id: generateUniqueId(),
+            id: 'sync-wellness-evening-time',
             kind: 'exact' as const,
             label: 'evening',
             at: '20:00',
@@ -448,18 +475,6 @@ export async function ensureDailyInstances(
   const medsChanged = await syncMedicationItemsWithConfig(carePlan.id, patientId);
   const bucketsChanged = await syncOtherBucketsWithConfig(carePlan.id, patientId);
 
-  // 1.6 Reschedule notifications if any items changed
-  if (medsChanged || bucketsChanged) {
-    // Import dynamically to avoid circular dependency
-    try {
-      const { rescheduleAllNotifications } = await import('../utils/notificationService');
-      await rescheduleAllNotifications(patientId);
-    } catch (error) {
-      // Notification rescheduling is not critical - log and continue
-      devLog('[ensureDailyInstances] Notification reschedule skipped:', error);
-    }
-  }
-
   // 2. Get active items (after sync to reflect current config)
   const items = await listCarePlanItems(carePlan.id, { activeOnly: true });
   if (items.length === 0) {
@@ -519,6 +534,16 @@ export async function ensureDailyInstances(
   // 6. Build set of valid item IDs and remove stale instances from storage
   const validItemIds = new Set(items.map(item => item.id));
   await removeStaleInstances(patientId, date, validItemIds);
+
+  // 6.5 Reschedule notifications if items changed (AFTER instances exist)
+  if (medsChanged || bucketsChanged) {
+    try {
+      const { rescheduleAllNotifications } = await import('../utils/notificationService');
+      await rescheduleAllNotifications(patientId);
+    } catch (error) {
+      devLog('[ensureDailyInstances] Notification reschedule skipped:', error);
+    }
+  }
 
   // 7. Return all valid instances sorted by time
   const allInstances = await listDailyInstances(patientId, date);
@@ -776,11 +801,9 @@ export async function cleanupDuplicateCarePlanItems(
 
   // For each item, keep the first one and mark others as duplicates
   for (const item of allItems) {
-    // For medications, use type + name as key
-    // For other types (vitals, mood, nutrition), use just type as key
-    const key = item.type === 'medication'
-      ? `${item.type}:${item.name.toLowerCase()}`
-      : item.type;
+    // Use type + name as key so items of the same type but different names
+    // (e.g. Breakfast, Lunch, Dinner) are NOT treated as duplicates
+    const key = `${item.type}:${item.name.toLowerCase()}`;
 
     if (seenByTypeAndName.has(key)) {
       // This is a duplicate

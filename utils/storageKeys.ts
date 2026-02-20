@@ -33,3 +33,11 @@ export const StorageKeys = {
 } as const;
 
 export type StorageKey = typeof StorageKeys[keyof typeof StorageKeys];
+
+/**
+ * Global keys used by storage modules (patientRegistry, subscriptionRepo)
+ */
+export const GlobalKeys = {
+  PATIENT_REGISTRY: '@embermate_patient_registry',
+  SUBSCRIPTION_STATE: '@embermate_subscription_state',
+} as const;

@@ -23,6 +23,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../theme/theme-tokens';
 import { CommonStyles } from '../../theme/commonStyles';
+import { useTheme, ThemeMode } from '../../contexts/ThemeContext';
 import PageHeader from '../../components/PageHeader';
 import { generateSampleCorrelationData, clearSampleCorrelationData, hasSampleData } from '../../utils/sampleDataGenerator';
 import { StorageKeys } from '../../utils/storageKeys';
@@ -52,6 +53,7 @@ interface SettingsCategory {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { themeMode, setThemeMode } = useTheme();
   const [patientName, setPatientName] = useState('');
   const [hasSample, setHasSample] = useState(false);
   const [lastModified, setLastModified] = useState<string>('');
@@ -356,6 +358,17 @@ export default function SettingsScreen() {
       icon: '🎨',
       title: 'Appearance & Experience',
       items: [
+        {
+          id: 'theme',
+          icon: themeMode === 'dark' ? '🌙' : themeMode === 'light' ? '☀️' : '🔄',
+          title: 'Theme',
+          subtitle: themeMode === 'dark' ? 'Dark' : themeMode === 'light' ? 'Light' : 'System',
+          onPress: () => {
+            const modes: ThemeMode[] = ['dark', 'light', 'system'];
+            const currentIndex = modes.indexOf(themeMode);
+            setThemeMode(modes[(currentIndex + 1) % modes.length]);
+          },
+        },
         {
           id: 'time-format',
           icon: '🕐',

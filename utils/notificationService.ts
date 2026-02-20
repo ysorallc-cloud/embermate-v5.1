@@ -9,6 +9,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { devLog, logError } from './devLog';
 import { Medication } from './medicationStorage';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 const NOTIFICATION_SETTINGS_KEY = '@embermate_notification_settings';
 
@@ -626,7 +627,7 @@ export async function scheduleCarePlanNotifications(
 
     const scheduledNotifications: ScheduledNotificationV2[] = [];
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const today = getTodayDateString();
 
     // Group instances by item ID
     const instancesByItem = new Map<string, DailyCareInstance[]>();
@@ -693,8 +694,8 @@ async function scheduleInstanceNotification(
     const originalTime = parseScheduledTime(instance.scheduledTime, instance.date);
     const triggerTime = new Date(originalTime.getTime() - minutesBefore * 60 * 1000);
 
-    // Skip if trigger time is in the past (with 30s buffer for scheduling latency)
-    if (triggerTime.getTime() <= Date.now() + 30_000) {
+    // Skip if trigger time is invalid or in the past (with 30s buffer for scheduling latency)
+    if (isNaN(triggerTime.getTime()) || triggerTime.getTime() <= Date.now() + 30_000) {
       return null;
     }
 
@@ -764,9 +765,11 @@ async function scheduleInstanceNotification(
 export async function rescheduleAllNotifications(patientId: string): Promise<void> {
   try {
     // Import dynamically to avoid circular dependencies
-    const { ensureDailyInstances } = await import('../services/carePlanGenerator');
-    const { listCarePlanItems, getActiveCarePlan } = await import('../storage/carePlanRepo');
+    // NOTE: Use listDailyInstances (NOT ensureDailyInstances) to avoid recursive loop.
+    // This function is called FROM ensureDailyInstances, so calling it back would re-enter.
+    const { listCarePlanItems, getActiveCarePlan, listDailyInstances } = await import('../storage/carePlanRepo');
     const { getDeliveryPreferences } = await import('../storage/notificationRegistry');
+    const { getTodayDateString: getToday } = await import('../services/carePlanGenerator');
 
     const carePlan = await getActiveCarePlan(patientId);
     if (!carePlan) {
@@ -776,9 +779,9 @@ export async function rescheduleAllNotifications(patientId: string): Promise<voi
       return;
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getToday();
     const items = await listCarePlanItems(carePlan.id, { activeOnly: true });
-    const instances = await ensureDailyInstances(patientId, today);
+    const instances = await listDailyInstances(patientId, today);
     const deliveryPrefs = await getDeliveryPreferences();
 
     await scheduleCarePlanNotifications(patientId, items, instances, deliveryPrefs);

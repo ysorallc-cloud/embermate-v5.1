@@ -11,6 +11,8 @@ export interface SymptomLog {
   symptom: string;
   severity: number; // 1-10 scale
   description?: string;
+  bodyLocation?: string;  // For pain: Head, Chest, Back, Hip, etc.
+  character?: string;     // For pain: Aching, Sharp, Burning, etc.
   timestamp: string; // ISO datetime
   date: string; // ISO date (YYYY-MM-DD)
 }

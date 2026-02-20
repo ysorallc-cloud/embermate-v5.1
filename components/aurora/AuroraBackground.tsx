@@ -9,6 +9,7 @@ import Animated, {
   Easing,
   cancelAnimation,
 } from 'react-native-reanimated';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -100,15 +101,39 @@ const AURORA_CONFIGS: Record<AuroraVariant, {
   },
 };
 
-export const AuroraBackground: React.FC<Props> = ({ variant = 'today' }) => {
-  // Safety check: fallback to 'today' if invalid variant
-  const config = AURORA_CONFIGS[variant] || AURORA_CONFIGS.today;
+// Light theme: subtle static gradients (no animation)
+const LIGHT_AURORA_CONFIGS: Record<AuroraVariant, {
+  colors: [string, string, string];
+}> = {
+  today: { colors: ['rgba(13, 148, 136, 0.06)', 'rgba(13, 148, 136, 0.02)', 'transparent'] },
+  now: { colors: ['rgba(13, 148, 136, 0.06)', 'rgba(13, 148, 136, 0.02)', 'transparent'] },
+  journal: { colors: ['rgba(124, 58, 237, 0.05)', 'rgba(37, 99, 235, 0.02)', 'transparent'] },
+  hub: { colors: ['rgba(79, 70, 229, 0.05)', 'rgba(13, 148, 136, 0.02)', 'transparent'] },
+  log: { colors: ['rgba(217, 119, 6, 0.05)', 'rgba(5, 150, 105, 0.02)', 'transparent'] },
+  care: { colors: ['rgba(124, 58, 237, 0.04)', 'rgba(79, 70, 229, 0.02)', 'transparent'] },
+  reports: { colors: ['rgba(124, 58, 237, 0.05)', 'rgba(37, 99, 235, 0.02)', 'transparent'] },
+  settings: { colors: ['rgba(107, 114, 128, 0.04)', 'rgba(75, 85, 99, 0.02)', 'transparent'] },
+  family: { colors: ['rgba(124, 58, 237, 0.04)', 'rgba(79, 70, 229, 0.02)', 'transparent'] },
+  insights: { colors: ['rgba(124, 58, 237, 0.05)', 'rgba(37, 99, 235, 0.02)', 'transparent'] },
+  connect: { colors: ['rgba(124, 58, 237, 0.04)', 'rgba(79, 70, 229, 0.02)', 'transparent'] },
+};
 
-  // Subtle animation
+export const AuroraBackground: React.FC<Props> = ({ variant = 'today' }) => {
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === 'light';
+
+  // Safety check: fallback to 'today' if invalid variant
+  const config = isLight
+    ? (LIGHT_AURORA_CONFIGS[variant] || LIGHT_AURORA_CONFIGS.today)
+    : (AURORA_CONFIGS[variant] || AURORA_CONFIGS.today);
+
+  // Subtle animation (dark theme only)
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
 
   useEffect(() => {
+    if (isLight) return; // No animation in light theme
+
     translateX.value = withRepeat(
       withTiming(20, { duration: 8000, easing: Easing.inOut(Easing.ease) }),
       -1,
@@ -125,7 +150,7 @@ export const AuroraBackground: React.FC<Props> = ({ variant = 'today' }) => {
       cancelAnimation(translateX);
       cancelAnimation(translateY);
     };
-  }, []);
+  }, [isLight]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -133,6 +158,21 @@ export const AuroraBackground: React.FC<Props> = ({ variant = 'today' }) => {
       { translateY: translateY.value },
     ],
   }));
+
+  // Light theme: static gradient, no animation
+  if (isLight) {
+    return (
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <LinearGradient
+          colors={config.colors}
+          locations={[0, 0.4, 0.8]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={[styles.primaryGradient, { position: 'absolute', top: 0, left: 0, right: 0, height: 350 }]}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">

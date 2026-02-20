@@ -17,7 +17,7 @@ export const EndOfDayCard: React.FC<EndOfDayCardProps> = ({
   const router = useRouter();
 
   const handleLogMood = () => {
-    router.push('/daily-checkin');
+    router.push('/log-evening-wellness');
   };
 
   const handleAddNote = () => {

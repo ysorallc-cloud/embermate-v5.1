@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import Constants from 'expo-constants';
 import { logError } from './devLog';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 /**
  * Export all data as JSON
@@ -44,7 +45,7 @@ export async function exportDataAsJSON(): Promise<void> {
     };
 
     // Generate filename
-    const timestamp = new Date().toISOString().split('T')[0];
+    const timestamp = getTodayDateString();
     const filename = `embermate-export-${timestamp}.json`;
     const fileUri = `${FileSystem.documentDirectory}${filename}`;
 
@@ -132,7 +133,7 @@ export async function exportDataAsCSV(): Promise<void> {
     }
 
     // Generate filename
-    const timestamp = new Date().toISOString().split('T')[0];
+    const timestamp = getTodayDateString();
     const filename = `embermate-export-${timestamp}.csv`;
     const fileUri = `${FileSystem.documentDirectory}${filename}`;
 
@@ -181,9 +182,9 @@ export async function generateHealthSummary(): Promise<{
     const dates = trackingKeys
       .map((k) => k.replace('@daily_tracking_', ''))
       .sort();
-    const startDate = dates[0] || new Date().toISOString().split('T')[0];
+    const startDate = dates[0] || getTodayDateString();
     const endDate =
-      dates[dates.length - 1] || new Date().toISOString().split('T')[0];
+      dates[dates.length - 1] || getTodayDateString();
 
     return {
       medicationCount: medCount,
@@ -201,8 +202,8 @@ export async function generateHealthSummary(): Promise<{
       vitalCount: 0,
       trackingDays: 0,
       dateRange: {
-        start: new Date().toISOString().split('T')[0],
-        end: new Date().toISOString().split('T')[0],
+        start: getTodayDateString(),
+        end: getTodayDateString(),
       },
     };
   }

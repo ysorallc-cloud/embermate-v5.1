@@ -26,12 +26,14 @@ import {
   BucketType,
   BucketConfig,
   BUCKET_META,
+  BUCKET_TYPES,
   PRIMARY_BUCKETS,
   SECONDARY_BUCKETS,
   OPTIONAL_BUCKETS,
 } from '../../types/carePlanConfig';
 import { InfoModal, InfoIconButton } from '../../components/common/InfoModal';
-import { CARE_PLAN_TEMPLATES, CarePlanTemplate } from '../../constants/carePlanTemplates';
+import { CARE_PLAN_TEMPLATES, CarePlanTemplate, TemplateMedSuggestion } from '../../constants/carePlanTemplates';
+import { TemplateMedSeedingModal } from '../../components/careplan/TemplateMedSeedingModal';
 
 // ============================================================================
 // BUCKET CARD COMPONENT
@@ -214,6 +216,7 @@ export default function CarePlanHomeScreen() {
   const [showMoreBuckets, setShowMoreBuckets] = useState(false);
   const [dismissedInsights, setDismissedInsights] = useState<string[]>([]);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [medSeedingTemplate, setMedSeedingTemplate] = useState<{ name: string; suggestions: TemplateMedSuggestion[] } | null>(null);
 
   // Ensure config exists on first load
   React.useEffect(() => {
@@ -266,6 +269,15 @@ export default function CarePlanHomeScreen() {
       currentConfig = await initializeConfig();
     }
 
+    const enabledSet = new Set(template.enabledBuckets);
+
+    // Disable buckets NOT in the template
+    for (const bucket of BUCKET_TYPES) {
+      if (!enabledSet.has(bucket)) {
+        await updateBucket(bucket, { enabled: false });
+      }
+    }
+
     // Enable each bucket from the template and apply suggested settings
     for (const bucket of template.enabledBuckets) {
       const suggestion = template.suggestedSettings[bucket];
@@ -290,6 +302,14 @@ export default function CarePlanHomeScreen() {
           await updateBucket(bucket, bucketSpecific);
         }
       }
+    }
+
+    // After applying template settings, show med seeding modal if applicable
+    if (template.suggestedMedications && template.suggestedMedications.length > 0) {
+      setMedSeedingTemplate({
+        name: template.name,
+        suggestions: template.suggestedMedications,
+      });
     }
   }, [config, initializeConfig, updateBucket]);
 
@@ -554,6 +574,16 @@ export default function CarePlanHomeScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       </LinearGradient>
+
+      {/* Med Seeding Modal — shown after applying a template with suggested meds */}
+      {medSeedingTemplate && (
+        <TemplateMedSeedingModal
+          visible={!!medSeedingTemplate}
+          templateName={medSeedingTemplate.name}
+          suggestions={medSeedingTemplate.suggestions}
+          onClose={() => setMedSeedingTemplate(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }

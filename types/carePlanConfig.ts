@@ -450,10 +450,34 @@ export function getBucketStatusText(config: CarePlanConfig, bucket: BucketType):
       }
       return `${types.length} vitals`;
     }
+    case 'meals': {
+      const mealsConfig = bucketConfig as MealsBucketConfig;
+      const times = mealsConfig.timesOfDay || [];
+      const mealNames: Record<string, string> = {
+        morning: 'Breakfast',
+        midday: 'Lunch',
+        evening: 'Dinner',
+        night: 'Snack',
+      };
+      if (times.length === 0) return null;
+      const names = times.map(t => mealNames[t] || t).join(', ');
+      const style = mealsConfig.trackingStyle === 'detailed' ? 'Detailed' : 'Quick';
+      return `${names} · ${style} log`;
+    }
     case 'water': {
       const waterConfig = bucketConfig as WaterBucketConfig;
       const goal = waterConfig.dailyGoalGlasses || 8;
       return `Goal: ${goal} ${waterConfig.units || 'glasses'}`;
+    }
+    case 'sleep': {
+      const times = bucketConfig.timesOfDay || [];
+      if (times.length === 0) return null;
+      return `Tracked ${times.join(', ')}`;
+    }
+    case 'activity': {
+      const times = bucketConfig.timesOfDay || [];
+      if (times.length === 0) return null;
+      return `Tracked ${times.join(', ')}`;
     }
     default:
       return null;

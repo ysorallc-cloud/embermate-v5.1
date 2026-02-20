@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMealsLogs, MealsLog, getVitalsLogs, VitalsLog } from './centralStorage';
 import { getMedications, Medication } from './medicationStorage';
 import { logError } from './devLog';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 // ============================================================================
 // CONSTANTS - Do not overthink these
@@ -333,7 +334,7 @@ export async function getAllBaselines(): Promise<BaselineData> {
  * Get today's count for a category
  */
 export async function getTodayCount(category: BaselineCategory): Promise<number> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateString();
 
   switch (category) {
     case 'meals': {

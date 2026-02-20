@@ -4,7 +4,7 @@
 // Suppressions are date-scoped and auto-expire tomorrow
 // ============================================================================
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { logError } from '../utils/devLog';
 import { useDataListener } from '../lib/events';
 import { getTodayDateString } from '../services/carePlanGenerator';
@@ -72,10 +72,12 @@ export function useTodayScope(date?: string): UseTodayScopeReturn {
     loadSuppressedItems();
   }, [loadSuppressedItems]);
 
-  // Listen for relevant data updates only
+  // Listen for relevant data updates — debounced to prevent cascading re-renders
+  const scopeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useDataListener((category) => {
     if (['carePlanItems', 'dailyInstances', 'sampleDataCleared'].includes(category)) {
-      loadSuppressedItems();
+      if (scopeTimerRef.current) clearTimeout(scopeTimerRef.current);
+      scopeTimerRef.current = setTimeout(() => { loadSuppressedItems(); }, 300);
     }
   });
 

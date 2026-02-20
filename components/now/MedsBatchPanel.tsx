@@ -1,0 +1,357 @@
+// ============================================================================
+// MEDS BATCH PANEL - Confirm multiple meds at once
+// Replaces individual per-med navigation when meds ring is tapped
+// ============================================================================
+
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { navigate } from '../../lib/navigate';
+import { Colors } from '../../theme/theme-tokens';
+import { parseTimeForDisplay, isOverdue } from '../../utils/nowHelpers';
+
+interface MedInstance {
+  id: string;
+  itemName: string;
+  itemDosage?: string;
+  scheduledTime: string;
+  carePlanItemId?: string;
+  instructions?: string;
+  [key: string]: any;
+}
+
+interface MedsBatchPanelProps {
+  pendingMeds: MedInstance[];
+  completedMeds: MedInstance[];
+  onBatchConfirm: (instanceIds: string[]) => Promise<void>;
+  onItemPress: (instance: MedInstance) => void;
+  stat: { completed: number; total: number };
+  onClose: () => void;
+}
+
+export function MedsBatchPanel({
+  pendingMeds,
+  completedMeds,
+  onBatchConfirm,
+  onItemPress,
+  stat,
+  onClose,
+}: MedsBatchPanelProps) {
+  const [selected, setSelected] = useState<Set<string>>(
+    () => new Set(pendingMeds.map(m => m.id))
+  );
+  const [confirming, setConfirming] = useState(false);
+
+  const toggleMed = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setSelected(new Set(pendingMeds.map(m => m.id)));
+  };
+
+  const handleConfirmSelected = async () => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+
+    setConfirming(true);
+    try {
+      await onBatchConfirm(ids);
+    } catch {
+      Alert.alert('Error', 'Failed to confirm some medications. Please try again.');
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const hasOverdue = pendingMeds.some(m => isOverdue(m.scheduledTime));
+
+  return (
+    <View style={[
+      styles.container,
+      hasOverdue ? styles.containerOverdue : styles.containerDefault,
+    ]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.icon}>{'\uD83D\uDC8A'}</Text>
+          <Text style={styles.label}>Meds</Text>
+          <Text style={styles.count}>{stat.completed}/{stat.total}</Text>
+        </View>
+        <TouchableOpacity
+          onPress={onClose}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityLabel="Close Meds details"
+          accessibilityRole="button"
+        >
+          <Text style={styles.close}>{'\u2715'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Pending meds checklist */}
+      {pendingMeds.length > 0 && (
+        <>
+          {pendingMeds.map((med) => {
+            const isChecked = selected.has(med.id);
+            const timeStr = parseTimeForDisplay(med.scheduledTime);
+            const overdueItem = isOverdue(med.scheduledTime);
+
+            return (
+              <View key={med.id} style={styles.medRow}>
+                <TouchableOpacity
+                  style={[styles.checkbox, isChecked && styles.checkboxChecked]}
+                  onPress={() => toggleMed(med.id)}
+                  accessibilityLabel={`${isChecked ? 'Deselect' : 'Select'} ${med.itemName}`}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: isChecked }}
+                >
+                  {isChecked && <Text style={styles.checkmark}>{'\u2713'}</Text>}
+                </TouchableOpacity>
+                <View style={styles.medDetails}>
+                  <Text style={styles.medName}>{med.itemName}</Text>
+                  <Text style={[styles.medMeta, overdueItem && styles.medMetaOverdue]}>
+                    {med.itemDosage ? `${med.itemDosage} \u00B7 ` : ''}
+                    {timeStr || ''}
+                    {overdueItem ? ' \u00B7 Overdue' : ''}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.detailsButton}
+                  onPress={() => onItemPress(med)}
+                  accessibilityLabel={`Details for ${med.itemName}`}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.detailsText}>Details</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+
+          {/* Batch actions */}
+          <View style={styles.batchActions}>
+            {selected.size < pendingMeds.length && (
+              <TouchableOpacity
+                style={styles.selectAllButton}
+                onPress={selectAll}
+                accessibilityLabel="Select all medications"
+                accessibilityRole="button"
+              >
+                <Text style={styles.selectAllText}>Select All</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[
+                styles.confirmButton,
+                (selected.size === 0 || confirming) && styles.confirmButtonDisabled,
+              ]}
+              onPress={handleConfirmSelected}
+              disabled={selected.size === 0 || confirming}
+              accessibilityLabel={
+                confirming
+                  ? 'Confirming medications'
+                  : `Confirm ${selected.size} medication${selected.size !== 1 ? 's' : ''}`
+              }
+              accessibilityRole="button"
+            >
+              <Text style={styles.confirmButtonText}>
+                {confirming
+                  ? 'Confirming...'
+                  : `Confirm ${selected.size === pendingMeds.length ? 'All' : selected.size} Med${selected.size !== 1 ? 's' : ''}`}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
+
+      {pendingMeds.length === 0 && completedMeds.length === 0 && (
+        <Text style={styles.emptyText}>No medications scheduled today</Text>
+      )}
+
+      {/* Completed meds */}
+      {completedMeds.map((med) => {
+        const timeStr = parseTimeForDisplay(med.scheduledTime);
+        const statusText = med.status === 'skipped' ? 'Skipped' : 'Done';
+        return (
+          <View key={med.id} style={styles.medRow}>
+            <View style={styles.doneCircle}>
+              <Text style={styles.doneCheck}>{'\u2713'}</Text>
+            </View>
+            <View style={styles.medDetails}>
+              <Text style={styles.medNameDone}>{med.itemName}</Text>
+              <Text style={styles.medMetaDone}>
+                {med.itemDosage ? `${med.itemDosage} \u00B7 ` : ''}
+                {timeStr ? `${timeStr} \u00B7 ` : ''}
+                {statusText}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+  },
+  containerDefault: {
+    backgroundColor: Colors.glass,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+  },
+  containerOverdue: {
+    backgroundColor: Colors.redFaint,
+    borderWidth: 1,
+    borderColor: Colors.redBorder,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  icon: { fontSize: 16 },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  count: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  close: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    padding: 4,
+  },
+  medRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.glassBorder,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.textMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  checkmark: {
+    fontSize: 13,
+    color: Colors.textPrimary,
+    fontWeight: 'bold',
+  },
+  medDetails: {
+    flex: 1,
+  },
+  medName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+  },
+  medMeta: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  medMetaOverdue: {
+    color: Colors.red,
+  },
+  detailsButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: Colors.glass,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+  },
+  detailsText: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  batchActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.glassBorder,
+  },
+  selectAllButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  selectAllText: {
+    fontSize: 13,
+    color: Colors.accent,
+    fontWeight: '500',
+  },
+  confirmButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: Colors.accent,
+    borderRadius: 10,
+  },
+  confirmButtonDisabled: {
+    opacity: 0.4,
+  },
+  confirmButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  emptyText: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: 12,
+  },
+  doneCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.greenLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doneCheck: {
+    fontSize: 13,
+    color: Colors.green,
+    fontWeight: 'bold',
+  },
+  medNameDone: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    textDecorationLine: 'line-through',
+  },
+  medMetaDone: {
+    fontSize: 12,
+    color: Colors.textDisabled,
+    marginTop: 2,
+  },
+});

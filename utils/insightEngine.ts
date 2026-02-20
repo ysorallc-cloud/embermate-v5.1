@@ -9,6 +9,7 @@ import { getMedications, getMedicationLogs, Medication, MedicationLog } from './
 import { getVitalsInRange, VitalReading } from './vitalsStorage';
 import { getDailyTrackingLogs, DailyTrackingLog } from './dailyTrackingStorage';
 import { logError } from './devLog';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 // ============================================================================
 // TYPES
@@ -248,7 +249,7 @@ export async function analyzeBloodPressureTrends(): Promise<InsightData | null> 
  */
 export async function analyzeMoodPatterns(): Promise<InsightData | null> {
   try {
-    const endDate = new Date().toISOString().split('T')[0];
+    const endDate = getTodayDateString();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 14);
     const startDateStr = startDate.toISOString().split('T')[0];
@@ -327,7 +328,7 @@ export async function analyzeMoodPatterns(): Promise<InsightData | null> {
  */
 export async function analyzeSleepMoodCorrelation(): Promise<InsightData | null> {
   try {
-    const endDate = new Date().toISOString().split('T')[0];
+    const endDate = getTodayDateString();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 14);
     const startDateStr = startDate.toISOString().split('T')[0];
@@ -403,7 +404,7 @@ export async function analyzeSleepMoodCorrelation(): Promise<InsightData | null>
  */
 export async function analyzeHydration(): Promise<InsightData | null> {
   try {
-    const endDate = new Date().toISOString().split('T')[0];
+    const endDate = getTodayDateString();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 7);
     const startDateStr = startDate.toISOString().split('T')[0];

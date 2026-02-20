@@ -4,7 +4,7 @@
 // This replaces the old static routine-based useCarePlan hook
 // ============================================================================
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { devLog, logError } from '../utils/devLog';
 import { useDataListener } from '../lib/events';
 import {
@@ -179,11 +179,19 @@ export function useDailyCareInstances(
   // Today's Scope: filter out suppressed items (unless skipSuppressionFilter is set)
   const { isSuppressed, loading: scopeLoading } = useTodayScope(targetDate);
 
+  // Re-entry guard: prevent concurrent loadInstances calls from causing cascading updates
+  const loadingRef = useRef(false);
+
   /**
    * Load instances for the target date
    * Ensures instances are generated if they don't exist
    */
   const loadInstances = useCallback(async () => {
+    if (loadingRef.current) {
+      devLog('[useDailyCareInstances] loadInstances skipped (already loading)');
+      return;
+    }
+    loadingRef.current = true;
     devLog('[useDailyCareInstances] loadInstances called for', targetDate);
     try {
       setLoading(true);
@@ -202,6 +210,7 @@ export function useDailyCareInstances(
       setError(err instanceof Error ? err : new Error('Failed to load instances'));
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
   }, [patientId, targetDate]);
 
@@ -210,11 +219,24 @@ export function useDailyCareInstances(
     loadInstances();
   }, [loadInstances]);
 
-  // Listen for relevant data updates only (prevents cascade reloads)
+  // Refresh instances from storage without re-running ensureDailyInstances
+  // (which emits events and would cause an infinite loop)
+  const refreshFromStorage = useCallback(async () => {
+    try {
+      const dayInstances = await listDailyInstances(patientId, targetDate);
+      setInstances(dayInstances.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime)));
+    } catch (err) {
+      logError('useDailyCareInstances.refreshFromStorage', err);
+    }
+  }, [patientId, targetDate]);
+
+  // Listen for relevant data updates — debounced, read-only refresh
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useDataListener((category) => {
     if (['dailyInstances', 'carePlanItems', 'carePlan', 'logs', 'sampleDataCleared'].includes(category)) {
       devLog('[useDailyCareInstances] useDataListener received event:', category);
-      loadInstances();
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = setTimeout(() => { refreshFromStorage(); }, 300);
     }
   });
 

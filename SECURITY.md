@@ -2,7 +2,7 @@
 
 ## Overview
 
-EmberMate V5 implements comprehensive security measures to protect sensitive health information (PHI) and ensure HIPAA-compliant data handling practices.
+EmberMate V5 implements comprehensive security measures to protect sensitive health information with strong local encryption and on-device storage.
 
 ---
 

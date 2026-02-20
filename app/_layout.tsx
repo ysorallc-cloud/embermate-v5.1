@@ -14,6 +14,8 @@ import { runStartupSequence } from '../services/appStartup';
 import { isBiometricEnabled, shouldLockSession, requireAuthentication, updateLastActivity, getAutoLockTimeout } from '../utils/biometricAuth';
 import { logError } from '../utils/devLog';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { PatientProvider } from '../contexts/PatientContext';
+import { ThemeProvider } from '../contexts/ThemeContext';
 
 import { Colors } from '../theme/theme-tokens';
 function WebContainer({ children }: { children: React.ReactNode }) {
@@ -146,8 +148,10 @@ function RootLayout() {
 
   return (
     <ErrorBoundary>
+      <ThemeProvider>
       <WebContainer>
-        <StatusBar style="light" />
+        <StatusBar style="auto" />
+        <PatientProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(onboarding)" />
@@ -168,6 +172,7 @@ function RootLayout() {
           <Stack.Screen name="log-morning-wellness" />
           <Stack.Screen name="log-evening-wellness" />
           <Stack.Screen name="log-symptom" />
+          <Stack.Screen name="log-pain" />
           <Stack.Screen name="care-brief" />
           <Stack.Screen name="care-summary-export" />
           <Stack.Screen name="family-sharing" />
@@ -198,7 +203,9 @@ function RootLayout() {
           <Stack.Screen name="guide-hub" />
           <Stack.Screen name="hub" />
         </Stack>
+        </PatientProvider>
       </WebContainer>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

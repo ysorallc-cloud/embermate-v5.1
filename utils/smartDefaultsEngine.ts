@@ -8,6 +8,7 @@ import { getVitalsForDate, VitalReading } from './vitalsStorage';
 import { getDailyTracking } from './dailyTrackingStorage';
 import { UserPattern, suggestPatternsForTime } from './userPatternStorage';
 import { logError } from './devLog';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 export interface CheckinDefaults {
   systolic?: number;
@@ -67,7 +68,7 @@ export function getCurrentTimeSlot(): 'morning' | 'afternoon' | 'evening' | 'bed
  */
 export async function getRecentVitals(): Promise<Partial<CheckinDefaults>> {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateString();
     const vitals = await getVitalsForDate(today);
 
     const result: Partial<CheckinDefaults> = {};
@@ -250,7 +251,7 @@ export async function getPendingMedicationCount(): Promise<number> {
  */
 export async function hasLoggedVitalsToday(): Promise<boolean> {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateString();
     const vitals = await getVitalsForDate(today);
     return vitals.length > 0;
   } catch (error) {
@@ -264,7 +265,7 @@ export async function hasLoggedVitalsToday(): Promise<boolean> {
  */
 export async function hasLoggedMoodToday(): Promise<boolean> {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateString();
     const tracking = await getDailyTracking(today);
     return tracking?.mood !== null && tracking?.mood !== undefined;
   } catch (error) {

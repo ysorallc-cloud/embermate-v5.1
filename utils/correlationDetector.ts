@@ -10,6 +10,7 @@ import { getSymptoms, SymptomLog } from './symptomStorage';
 import { getDailyTrackingLogs, DailyTrackingLog } from './dailyTrackingStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logError } from './devLog';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 export interface CorrelationDataPoint {
   date: string;
@@ -50,9 +51,9 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
  */
 export async function hasSufficientData(): Promise<boolean> {
   try {
-    const endDate = new Date().toISOString().split('T')[0];
+    const endDate = getTodayDateString();
     const startDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    
+
     const data = await loadCorrelationData(startDate, endDate);
     
     // Need at least 14 days with at least 2 different categories tracked
@@ -264,7 +265,7 @@ export async function detectCorrelations(): Promise<DetectedPattern[]> {
     }
     
     // Load last 30 days of data from AsyncStorage
-    const endDate = new Date().toISOString().split('T')[0];
+    const endDate = getTodayDateString();
     const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const data = await loadCorrelationData(startDate, endDate);
     

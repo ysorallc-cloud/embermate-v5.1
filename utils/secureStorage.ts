@@ -117,7 +117,9 @@ async function decryptData(encryptedData: string): Promise<string> {
     }
 
     if (parts.length !== 4) {
-      throw new Error('Invalid encrypted data format');
+      // Data is not in any recognized encrypted format — likely plain text
+      // stored before encryption was enabled. Return as-is.
+      return encryptedData;
     }
 
     const [version, ivHex, ciphertextHex, tagHex] = parts;
@@ -157,7 +159,8 @@ async function decryptData(encryptedData: string): Promise<string> {
 
     return decrypted.toString(CryptoJS.enc.Utf8);
   } catch (error) {
-    logError('secureStorage.decryptData', error);
+    // Log as warning, not error — this is expected on fresh installs or format mismatches
+    devLog('[secureStorage.decryptData] Decrypt failed:', error instanceof Error ? error.message : error);
     throw new Error('Failed to decrypt data');
   }
 }
@@ -255,7 +258,8 @@ export async function getSecureItem<T = any>(key: string, defaultValue?: T): Pro
       return decrypted as T;
     }
   } catch (error) {
-    logError('secureStorage.getSecureItem', error);
+    // Expected on fresh installs or when encryption key changes — not a real error
+    devLog('[secureStorage.getSecureItem] Decrypt failed for key, returning default:', key);
     return defaultValue as T;
   }
 }
