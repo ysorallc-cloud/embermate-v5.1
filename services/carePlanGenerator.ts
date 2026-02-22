@@ -408,8 +408,31 @@ async function syncOtherBucketsWithConfig(
         updatedAt: now,
       };
 
-      devLog('[syncOtherBucketsWithConfig] Creating wellness CarePlanItems (morning + evening)');
+      // Create "Afternoon wellness check" item
+      const afternoonItem: CarePlanItem = {
+        id: 'sync-wellness-afternoon',
+        carePlanId,
+        type: 'wellness',
+        name: 'Afternoon wellness check',
+        priority: 'recommended',
+        active: true,
+        schedule: {
+          frequency: 'daily',
+          times: [{
+            id: 'sync-wellness-afternoon-time',
+            kind: 'exact' as const,
+            label: 'afternoon',
+            at: '13:00',
+          }],
+        },
+        emoji: '☀️',
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      devLog('[syncOtherBucketsWithConfig] Creating wellness CarePlanItems (morning + afternoon + evening)');
       await upsertCarePlanItem(morningItem);
+      await upsertCarePlanItem(afternoonItem);
       await upsertCarePlanItem(eveningItem);
       changed = true;
     } else {
@@ -423,6 +446,34 @@ async function syncOtherBucketsWithConfig(
           await upsertCarePlanItem({ ...item, name: newName, updatedAt: now });
           changed = true;
         }
+      }
+
+      // Migration: add afternoon wellness check for existing users who only have morning + evening
+      const hasAfternoon = existingWellnessItems.some(i => i.id === 'sync-wellness-afternoon');
+      if (!hasAfternoon) {
+        const afternoonItem: CarePlanItem = {
+          id: 'sync-wellness-afternoon',
+          carePlanId,
+          type: 'wellness',
+          name: 'Afternoon wellness check',
+          priority: 'recommended',
+          active: true,
+          schedule: {
+            frequency: 'daily',
+            times: [{
+              id: 'sync-wellness-afternoon-time',
+              kind: 'exact' as const,
+              label: 'afternoon',
+              at: '13:00',
+            }],
+          },
+          emoji: '☀️',
+          createdAt: now,
+          updatedAt: now,
+        };
+        devLog('[syncOtherBucketsWithConfig] Migration: adding afternoon wellness check');
+        await upsertCarePlanItem(afternoonItem);
+        changed = true;
       }
     }
 

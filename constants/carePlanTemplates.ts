@@ -67,7 +67,7 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
       },
       wellness: {
         priority: 'recommended',
-        timesOfDay: ['morning', 'evening'],
+        timesOfDay: ['morning', 'midday', 'evening'],
       },
       appointments: {
         priority: 'recommended',
@@ -98,7 +98,7 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
       },
       wellness: {
         priority: 'required',
-        timesOfDay: ['morning', 'evening'],
+        timesOfDay: ['morning', 'midday', 'evening'],
       },
       activity: {
         priority: 'recommended',
@@ -134,7 +134,7 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
       },
       wellness: {
         priority: 'recommended',
-        timesOfDay: ['morning', 'evening'],
+        timesOfDay: ['morning', 'midday', 'evening'],
       },
       appointments: {
         priority: 'required',
@@ -163,7 +163,7 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
       },
       wellness: {
         priority: 'recommended',
-        timesOfDay: ['morning', 'evening'],
+        timesOfDay: ['morning', 'midday', 'evening'],
       },
       sleep: {
         priority: 'recommended',
@@ -201,7 +201,7 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
       },
       wellness: {
         priority: 'recommended',
-        timesOfDay: ['morning', 'evening'],
+        timesOfDay: ['morning', 'midday', 'evening'],
       },
     },
     suggestedMedications: [
@@ -250,7 +250,7 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
       },
       wellness: {
         priority: 'required',
-        timesOfDay: ['morning', 'evening'],
+        timesOfDay: ['morning', 'midday', 'evening'],
       },
       meals: {
         priority: 'recommended',

@@ -388,7 +388,7 @@ export function createDefaultCarePlanConfig(patientId: string): CarePlanConfig {
     water: { ...DEFAULT_WATER_CONFIG },
     sleep: { ...DEFAULT_BUCKET_CONFIG },
     activity: { ...DEFAULT_BUCKET_CONFIG },
-    wellness: { ...DEFAULT_BUCKET_CONFIG, enabled: true, priority: 'recommended', timesOfDay: ['morning', 'evening'] },
+    wellness: { ...DEFAULT_BUCKET_CONFIG, enabled: true, priority: 'recommended', timesOfDay: ['morning', 'midday', 'evening'] },
     appointments: { ...DEFAULT_BUCKET_CONFIG },
   };
 }

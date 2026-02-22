@@ -1,10 +1,10 @@
 // ============================================================================
 // TIMELINE SECTION - Two modes:
 // A) Category expanded: inline items with Log buttons (when ring tapped)
-// B) Flat "Coming Up" chronological list (default, no ring selected)
+// B) Flat "Coming Up Today" chronological list (default, no ring selected)
 // ============================================================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
@@ -35,6 +35,7 @@ const BUCKET_TO_ITEM_TYPE: Record<string, string> = {
   sleep: 'sleep',
   activity: 'activity',
   wellness: 'wellness',
+  custom: 'custom',
 };
 
 const ITEM_TYPE_TO_LABEL: Record<string, string> = {
@@ -45,6 +46,7 @@ const ITEM_TYPE_TO_LABEL: Record<string, string> = {
   sleep: 'Sleep',
   activity: 'Activity',
   wellness: 'Wellness',
+  custom: 'Tasks',
 };
 
 const BUCKET_TO_ICON: Record<string, string> = {
@@ -55,6 +57,7 @@ const BUCKET_TO_ICON: Record<string, string> = {
   sleep: '\uD83D\uDE34',
   activity: '\uD83D\uDEB6',
   wellness: '\uD83C\uDF05',
+  custom: '\uD83D\uDCCB',
 };
 
 const ITEM_TYPE_TO_DOT_COLOR: Record<string, string> = {
@@ -65,6 +68,7 @@ const ITEM_TYPE_TO_DOT_COLOR: Record<string, string> = {
   sleep: '#8B5CF6',
   activity: '#F97316',
   wellness: '#EC4899',
+  custom: '#A78BFA',
 };
 
 const TIME_WINDOW_LABELS: Record<TimeWindow, string> = {
@@ -74,7 +78,80 @@ const TIME_WINDOW_LABELS: Record<TimeWindow, string> = {
   night: 'Night',
 };
 
-// Time window icons removed for cleaner design — text-only headers
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function getItemSubtitle(instance: any): string {
+  const parts: string[] = [];
+
+  // Time
+  const time = parseTimeForDisplay(instance.scheduledTime);
+  if (time) parts.push(time);
+
+  // Context from instructions or dosage
+  if (instance.instructions) {
+    parts.push(instance.instructions);
+  } else if (instance.itemDosage) {
+    parts.push(instance.itemDosage);
+  }
+
+  return parts.join(' \u00B7 ');
+}
+
+function getTimeDelta(scheduledTime: string): { text: string; tone: 'late' | 'soon' | 'later' } | null {
+  if (!scheduledTime) return null;
+
+  const now = new Date();
+  let scheduled = new Date(scheduledTime);
+  if (isNaN(scheduled.getTime()) && /^\d{2}:\d{2}$/.test(scheduledTime)) {
+    const todayStr = now.toISOString().slice(0, 10);
+    scheduled = new Date(`${todayStr}T${scheduledTime}:00`);
+  }
+  if (isNaN(scheduled.getTime())) return null;
+
+  const diffMs = now.getTime() - scheduled.getTime();
+
+  if (diffMs > 30 * 60 * 1000) {
+    return { text: 'overdue', tone: 'late' };
+  }
+
+  if (diffMs > 0) {
+    return { text: 'due now', tone: 'soon' };
+  }
+
+  // Future within 30min
+  const diffMin = Math.round(Math.abs(diffMs) / (1000 * 60));
+  if (diffMin <= 30) {
+    return { text: 'coming up', tone: 'soon' };
+  }
+
+  return null;
+}
+
+function getDotColor(instance: any): string {
+  const itemIsOverdue = isOverdue(instance.scheduledTime);
+  if (itemIsOverdue) {
+    const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
+    if (urgencyInfo.tone === 'danger') return Colors.red;
+    return Colors.amber;
+  }
+
+  // Check if due soon (within 30 min)
+  const now = new Date();
+  let scheduled = new Date(instance.scheduledTime);
+  if (isNaN(scheduled.getTime()) && /^\d{2}:\d{2}$/.test(instance.scheduledTime)) {
+    const todayStr = now.toISOString().slice(0, 10);
+    scheduled = new Date(`${todayStr}T${instance.scheduledTime}:00`);
+  }
+  if (!isNaN(scheduled.getTime())) {
+    const diffMin = (scheduled.getTime() - now.getTime()) / (1000 * 60);
+    if (diffMin <= 30 && diffMin > 0) return Colors.amber;
+  }
+
+  // Later - use category color but muted
+  return ITEM_TYPE_TO_DOT_COLOR[instance.itemType] || 'rgba(255, 255, 255, 0.25)';
+}
 
 // ============================================================================
 // PROPS
@@ -127,7 +204,6 @@ export function TimelineSection({
 
     return (
       <View style={[styles.categoryContainer, styles.categoryContainerDefault]}>
-        {/* Header row */}
         <View style={styles.categoryHeader}>
           <View style={styles.categoryHeaderLeft}>
             <Text style={styles.categoryIcon}>{'\uD83D\uDCA7'}</Text>
@@ -144,7 +220,6 @@ export function TimelineSection({
           </TouchableOpacity>
         </View>
 
-        {/* Inline water counter */}
         <View style={styles.waterCounterRow}>
           <TouchableOpacity
             style={styles.waterButton}
@@ -170,7 +245,6 @@ export function TimelineSection({
           </TouchableOpacity>
         </View>
 
-        {/* Progress bar */}
         <View style={styles.waterProgressBar}>
           <View style={[styles.waterProgressFill, { width: `${progressPercent}%` }]} />
         </View>
@@ -189,151 +263,171 @@ export function TimelineSection({
     const itemType = BUCKET_TO_ITEM_TYPE[selectedCategory] || selectedCategory;
     const icon = BUCKET_TO_ICON[selectedCategory] || '\uD83D\uDD14';
     const label = ITEM_TYPE_TO_LABEL[itemType] || selectedCategory;
-
-    // Get stat key for this bucket
     const statKey = selectedCategory as keyof TodayStats;
     const stat: StatData = todayStats[statKey] ?? { completed: 0, total: 0 };
-
-    // Filter pending items for this category
     const categoryPending = allPending.filter(i => i.itemType === itemType);
     const categoryCompleted = completed.filter(i => i.itemType === itemType);
     const hasOverdueItems = categoryPending.some(i => isOverdue(i.scheduledTime));
 
-    // Meds batch panel — single-screen confirm flow
+    // Meds batch panel
     if (selectedCategory === 'meds' && onBatchMedConfirm) {
       return (
-        <>
-          <MedsBatchPanel
-            pendingMeds={categoryPending}
-            completedMeds={categoryCompleted}
-            onBatchConfirm={onBatchMedConfirm}
-            onItemPress={onItemPress}
-            stat={stat}
-            onClose={onClearCategory}
-          />
-          {renderCompletedSection(completed.filter(i => i.itemType !== itemType))}
-        </>
+        <MedsBatchPanel
+          pendingMeds={categoryPending}
+          completedMeds={categoryCompleted}
+          onBatchConfirm={onBatchMedConfirm}
+          onItemPress={onItemPress}
+          stat={stat}
+          onClose={onClearCategory}
+        />
       );
     }
 
     return (
-      <>
-        {/* Category expanded container */}
-        <View style={[
-          styles.categoryContainer,
-          hasOverdueItems ? styles.categoryContainerOverdue : styles.categoryContainerDefault,
-        ]}>
-          {/* Header row */}
-          <View style={styles.categoryHeader}>
-            <View style={styles.categoryHeaderLeft}>
-              <Text style={styles.categoryIcon}>{icon}</Text>
-              <Text style={styles.categoryLabel}>{label}</Text>
-              <Text style={styles.categoryCount}>{stat.completed}/{stat.total}</Text>
-            </View>
-            <TouchableOpacity
-              onPress={onClearCategory}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              accessibilityLabel={`Close ${label} details`}
-              accessibilityRole="button"
-            >
-              <Text style={styles.categoryClose}>{'\u2715'}</Text>
-            </TouchableOpacity>
+      <View style={[
+        styles.categoryContainer,
+        hasOverdueItems ? styles.categoryContainerOverdue : styles.categoryContainerDefault,
+      ]}>
+        <View style={styles.categoryHeader}>
+          <View style={styles.categoryHeaderLeft}>
+            <Text style={styles.categoryIcon}>{icon}</Text>
+            <Text style={styles.categoryLabel}>{label}</Text>
+            <Text style={styles.categoryCount}>{stat.completed}/{stat.total}</Text>
           </View>
-
-          {/* Pending items with Log buttons */}
-          {categoryPending.length === 0 && categoryCompleted.length === 0 && (
-            <Text style={styles.categoryEmptyText}>No items for {label} today</Text>
-          )}
-
-          {categoryPending.map((instance) => {
-            const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
-            const itemIsOverdue = isOverdue(instance.scheduledTime);
-            const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
-
-            const statusLabel = urgencyInfo.itemUrgency
-              ? getDetailedUrgencyLabel(urgencyInfo.itemUrgency)
-              : urgencyInfo.label;
-
-            const timeDelta = urgencyInfo.itemUrgency
-              ? getTimeDeltaString(urgencyInfo.itemUrgency)
-              : null;
-
-            return (
-              <View key={instance.id} style={styles.categoryItemRow}>
-                <View style={[
-                  styles.statusCircle,
-                  itemIsOverdue ? styles.statusCircleOverdue : styles.statusCirclePending,
-                ]}>
-                  <Text style={styles.statusCircleText}>
-                    {itemIsOverdue ? '!' : '\u25CB'}
-                  </Text>
-                </View>
-                <View style={styles.categoryItemDetails}>
-                  <Text style={styles.categoryItemName}>{instance.itemName}</Text>
-                  <Text style={[
-                    styles.categoryItemTime,
-                    itemIsOverdue && styles.categoryItemTimeOverdue,
-                  ]}>
-                    {timeDisplay ? `${timeDisplay} \u00B7 ${statusLabel}` : statusLabel}
-                    {timeDelta ? ` \u00B7 ${timeDelta}` : ''}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={[
-                    styles.logButton,
-                    itemIsOverdue && styles.logButtonOverdue,
-                  ]}
-                  onPress={() => onItemPress(instance)}
-                  activeOpacity={0.7}
-                  accessibilityLabel={`Log ${instance.itemName}`}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.logButtonText}>Log</Text>
-                </TouchableOpacity>
-              </View>
-            );
-          })}
-
-          {/* Completed items for this category */}
-          {categoryCompleted.map((instance) => {
-            const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
-            const statusText = instance.status === 'skipped' ? 'Skipped' : 'Done';
-
-            return (
-              <View key={instance.id} style={styles.categoryItemRow}>
-                <View style={[styles.statusCircle, styles.statusCircleDone]}>
-                  <Text style={styles.statusCircleDoneText}>{'\u2713'}</Text>
-                </View>
-                <View style={styles.categoryItemDetails}>
-                  <Text style={styles.categoryItemNameDone}>{instance.itemName}</Text>
-                  <Text style={styles.categoryItemTimeDone}>
-                    {timeDisplay ? `${timeDisplay} \u00B7 ${statusText}` : statusText}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
+          <TouchableOpacity
+            onPress={onClearCategory}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityLabel={`Close ${label} details`}
+            accessibilityRole="button"
+          >
+            <Text style={styles.categoryClose}>{'\u2715'}</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Completed section at bottom (other categories) */}
-        {renderCompletedSection(completed.filter(i => i.itemType !== itemType))}
-      </>
+        {categoryPending.length === 0 && categoryCompleted.length === 0 && (
+          <Text style={styles.categoryEmptyText}>No items for {label} today</Text>
+        )}
+
+        {categoryPending.map((instance) => {
+          const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
+          const itemIsOverdue = isOverdue(instance.scheduledTime);
+          const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
+          const statusLabel = urgencyInfo.itemUrgency
+            ? getDetailedUrgencyLabel(urgencyInfo.itemUrgency)
+            : urgencyInfo.label;
+          const timeDelta = urgencyInfo.itemUrgency
+            ? getTimeDeltaString(urgencyInfo.itemUrgency)
+            : null;
+
+          return (
+            <View key={instance.id} style={styles.categoryItemRow}>
+              <View style={[
+                styles.statusCircle,
+                itemIsOverdue ? styles.statusCircleOverdue : styles.statusCirclePending,
+              ]}>
+                <Text style={styles.statusCircleText}>
+                  {itemIsOverdue ? '!' : '\u25CB'}
+                </Text>
+              </View>
+              <View style={styles.categoryItemDetails}>
+                <Text style={styles.categoryItemName}>{instance.itemName}</Text>
+                <Text style={[
+                  styles.categoryItemTime,
+                  itemIsOverdue && styles.categoryItemTimeOverdue,
+                ]}>
+                  {timeDisplay ? `${timeDisplay} \u00B7 ${statusLabel}` : statusLabel}
+                  {timeDelta ? ` \u00B7 ${timeDelta}` : ''}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.logButton, itemIsOverdue && styles.logButtonOverdue]}
+                onPress={() => onItemPress(instance)}
+                activeOpacity={0.7}
+                accessibilityLabel={`Log ${instance.itemName}`}
+                accessibilityRole="button"
+              >
+                <Text style={styles.logButtonText}>Log</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+
+        {categoryCompleted.map((instance) => {
+          const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
+          const isMissed = instance.status === 'missed';
+          const statusText = isMissed ? 'Missed' : instance.status === 'skipped' ? 'Skipped' : 'Done';
+
+          return (
+            <View key={instance.id} style={styles.categoryItemRow}>
+              <View style={[styles.statusCircle, isMissed ? styles.statusCircleMissed : styles.statusCircleDone]}>
+                <Text style={isMissed ? styles.statusCircleMissedText : styles.statusCircleDoneText}>
+                  {isMissed ? '\u2014' : '\u2713'}
+                </Text>
+              </View>
+              <View style={styles.categoryItemDetails}>
+                <Text style={styles.categoryItemNameDone}>{instance.itemName}</Text>
+                <Text style={styles.categoryItemTimeDone}>
+                  {timeDisplay ? `${timeDisplay} \u00B7 ${statusText}` : statusText}
+                </Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
     );
   }
 
   // ============================================================================
-  // MODE B — Time-Grouped "Coming Up" List
+  // MODE B — Clean Timeline with collapsible time groups
   // ============================================================================
 
-  const grouped = groupByTimeWindow(allPending);
+  return (
+    <TimelineModeBContent
+      allPending={allPending}
+      completed={completed}
+      onItemPress={onItemPress}
+    />
+  );
+}
+
+// ============================================================================
+// MODE B — Collapsible Time-Grouped Timeline
+// ============================================================================
+
+function TimelineModeBContent({
+  allPending,
+  completed,
+  onItemPress,
+}: {
+  allPending: any[];
+  completed: any[];
+  onItemPress: (instance: any) => void;
+}) {
+  const [collapsedWindows, setCollapsedWindows] = useState<Set<TimeWindow>>(() => {
+    const current = getCurrentTimeWindow();
+    const allWindows: TimeWindow[] = ['morning', 'afternoon', 'evening', 'night'];
+    return new Set(allWindows.filter(w => w !== current));
+  });
+
+  const toggleWindow = (window: TimeWindow) => {
+    setCollapsedWindows(prev => {
+      const next = new Set(prev);
+      if (next.has(window)) next.delete(window);
+      else next.add(window);
+      return next;
+    });
+  };
+
+  const allItems = [...allPending, ...completed];
+  const grouped = groupByTimeWindow(allItems);
   const currentWindow = getCurrentTimeWindow();
   const windowOrder: TimeWindow[] = ['morning', 'afternoon', 'evening', 'night'];
 
   return (
     <>
-      {/* Timeline header */}
+      {/* Section header */}
       <View style={styles.timelineSectionHeader}>
-        <Text style={styles.sectionTitle}>TODAY'S PLAN</Text>
+        <Text style={styles.sectionTitle}>COMING UP TODAY</Text>
         <TouchableOpacity
           onPress={() => navigate('/today-scope')}
           activeOpacity={0.7}
@@ -350,106 +444,127 @@ export function TimelineSection({
         if (items.length === 0) return null;
 
         const isCurrent = window === currentWindow;
+        const isCollapsed = collapsedWindows.has(window);
+        const pendingCount = items.filter(i => i.status === 'pending').length;
+        const doneCount = items.length - pendingCount;
 
         return (
           <View key={window} style={styles.timeGroup}>
-            {/* Time window header */}
-            <View style={[
-              styles.timeGroupHeader,
-              isCurrent && styles.timeGroupHeaderCurrent,
-            ]}>
+            {/* Collapsible header */}
+            <TouchableOpacity
+              style={[
+                styles.timeGroupHeader,
+                isCurrent && styles.timeGroupHeaderCurrent,
+              ]}
+              onPress={() => toggleWindow(window)}
+              activeOpacity={0.7}
+              accessibilityLabel={`${TIME_WINDOW_LABELS[window]}, ${pendingCount} remaining, ${doneCount} done. ${isCollapsed ? 'Expand' : 'Collapse'}`}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: !isCollapsed }}
+            >
+              <Text style={styles.timeGroupChevron}>
+                {isCollapsed ? '\u25B6' : '\u25BC'}
+              </Text>
               <Text style={[
                 styles.timeGroupTitle,
                 isCurrent && styles.timeGroupTitleCurrent,
               ]}>
                 {TIME_WINDOW_LABELS[window]}
               </Text>
-              <Text style={styles.timeGroupCount}>{items.length}</Text>
-            </View>
+              <Text style={styles.timeGroupCount}>
+                {pendingCount > 0 ? `${pendingCount} remaining` : `${items.length} done`}
+              </Text>
+            </TouchableOpacity>
 
-            {/* Items in this time window */}
-            {items.map((instance, index) => {
-              const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
-              const itemIsOverdue = isOverdue(instance.scheduledTime);
-              const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
+            {/* Items */}
+            {!isCollapsed && (
+              <View style={styles.timeGroupItems}>
+                {items.map((instance, index) => {
+                  const isDone = instance.status === 'completed' || instance.status === 'skipped';
+                  const isMissed = instance.status === 'missed';
+                  const isFinished = isDone || isMissed;
 
-              const timeColor = itemIsOverdue && urgencyInfo.tone === 'danger'
-                ? Colors.red
-                : itemIsOverdue
-                ? Colors.amber
-                : Colors.textMuted;
+                  if (isFinished) {
+                    const statusText = isMissed ? 'Missed' : instance.status === 'skipped' ? 'Skipped' : 'Done';
+                    return (
+                      <View
+                        key={instance.id}
+                        style={[
+                          styles.timelineItem,
+                          styles.timelineItemDone,
+                          index < items.length - 1 && styles.timelineItemBorder,
+                        ]}
+                        accessibilityLabel={`${instance.itemName}, ${statusText}`}
+                      >
+                        <View style={[
+                          styles.timelineDotDone,
+                          isMissed && styles.timelineDotMissed,
+                        ]}>
+                          <Text style={[styles.timelineDotDoneIcon, isMissed && styles.timelineDotMissedIcon]}>
+                            {isMissed ? '\u2014' : '\u2713'}
+                          </Text>
+                        </View>
+                        <View style={styles.timelineItemBody}>
+                          <Text style={styles.timelineNameDone} numberOfLines={1}>{instance.itemName}</Text>
+                          <Text style={styles.timelineSubDone}>
+                            {parseTimeForDisplay(instance.scheduledTime) || statusText}
+                          </Text>
+                        </View>
+                        <Text style={[styles.timelineStatusText, isMissed && styles.timelineStatusMissed]}>
+                          {statusText}
+                        </Text>
+                      </View>
+                    );
+                  }
 
-              return (
-                <TouchableOpacity
-                  key={instance.id}
-                  style={[
-                    styles.flatItem,
-                    index < items.length - 1 && styles.flatItemBorder,
-                  ]}
-                  onPress={() => onItemPress(instance)}
-                  activeOpacity={0.7}
-                  accessibilityLabel={`${instance.itemName}, ${timeDisplay || urgencyInfo.label}`}
-                  accessibilityRole="button"
-                >
-                  <View style={[
-                    styles.flatItemDot,
-                    { backgroundColor: ITEM_TYPE_TO_DOT_COLOR[instance.itemType] || Colors.textMuted },
-                  ]} />
-                  <Text style={styles.flatItemName} numberOfLines={1}>{instance.itemName}</Text>
-                  <Text style={[styles.flatItemTime, { color: timeColor }]}>
-                    {timeDisplay || urgencyInfo.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+                  // Pending item
+                  const subtitle = getItemSubtitle(instance);
+                  const delta = getTimeDelta(instance.scheduledTime);
+                  const dotColor = getDotColor(instance);
+
+                  return (
+                    <TouchableOpacity
+                      key={instance.id}
+                      style={[
+                        styles.timelineItem,
+                        index < items.length - 1 && styles.timelineItemBorder,
+                      ]}
+                      onPress={() => onItemPress(instance)}
+                      activeOpacity={0.7}
+                      accessibilityLabel={`${instance.itemName}, ${subtitle}`}
+                      accessibilityRole="button"
+                    >
+                      <View style={[styles.timelineDot, { backgroundColor: dotColor }]} />
+                      <View style={styles.timelineItemBody}>
+                        <Text style={styles.timelineName} numberOfLines={1}>{instance.itemName}</Text>
+                        {subtitle ? (
+                          <Text style={styles.timelineSub} numberOfLines={1}>{subtitle}</Text>
+                        ) : null}
+                      </View>
+                      {delta && (
+                        <View style={[
+                          styles.timelineBadge,
+                          delta.tone === 'late' && styles.timelineBadgeLate,
+                          delta.tone === 'soon' && styles.timelineBadgeSoon,
+                        ]}>
+                          <Text style={[
+                            styles.timelineBadgeText,
+                            delta.tone === 'late' && styles.timelineBadgeTextLate,
+                            delta.tone === 'soon' && styles.timelineBadgeTextSoon,
+                          ]}>
+                            {delta.text}
+                          </Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
           </View>
         );
       })}
-
-      {/* Completed section at bottom */}
-      {renderCompletedSection(completed)}
     </>
-  );
-}
-
-// ============================================================================
-// SHARED: Completed items section
-// ============================================================================
-
-function renderCompletedSection(completedItems: any[]) {
-  if (completedItems.length === 0) return null;
-
-  return (
-    <View style={styles.completedSection}>
-      <Text style={styles.completedHeader}>
-        {'\u2713'} Completed ({completedItems.length})
-      </Text>
-      {completedItems.slice(0, 3).map((instance) => {
-        const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
-        const statusText = instance.status === 'skipped' ? 'Skipped' : 'Done';
-        const displayText = timeDisplay ? `${timeDisplay} \u00B7 ${statusText}` : statusText;
-
-        return (
-          <View
-            key={instance.id}
-            style={styles.completedItem}
-          >
-            <View style={styles.completedIcon}>
-              <Text style={styles.completedIconText}>{'\u2713'}</Text>
-            </View>
-            <View style={styles.completedDetails}>
-              <Text style={styles.completedTimeText}>{displayText}</Text>
-              <Text style={styles.completedNameText}>{instance.itemName}</Text>
-            </View>
-          </View>
-        );
-      })}
-      {completedItems.length > 3 && (
-        <Text style={styles.completedMoreText}>
-          +{completedItems.length - 3} more completed
-        </Text>
-      )}
-    </View>
   );
 }
 
@@ -459,21 +574,24 @@ function renderCompletedSection(completedItems: any[]) {
 
 const styles = StyleSheet.create({
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textHalf,
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.30)',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.4,
   },
   timelineSectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-    marginTop: 8,
+    marginBottom: 7,
+    marginTop: 4,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
   },
   adjustTodayLink: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     color: Colors.accent,
   },
@@ -531,8 +649,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 12,
   },
-
-  // Category item rows
   categoryItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -568,6 +684,15 @@ const styles = StyleSheet.create({
   statusCircleDoneText: {
     fontSize: 12,
     color: Colors.green,
+    fontWeight: '600',
+  },
+  statusCircleMissed: {
+    borderColor: Colors.amber,
+    backgroundColor: 'rgba(245, 158, 11, 0.10)',
+  },
+  statusCircleMissedText: {
+    fontSize: 12,
+    color: Colors.amber,
     fontWeight: '600',
   },
   categoryItemDetails: {
@@ -613,7 +738,7 @@ const styles = StyleSheet.create({
   },
 
   // ============================================================================
-  // MODE B — Time-Grouped "Coming Up" List
+  // MODE B — Clean Timeline
   // ============================================================================
   timeGroup: {
     marginBottom: 4,
@@ -621,116 +746,142 @@ const styles = StyleSheet.create({
   timeGroupHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
+    gap: 8,
+    paddingVertical: 3,
     paddingHorizontal: 4,
-    marginTop: 4,
+    marginTop: 2,
   },
   timeGroupHeaderCurrent: {
     backgroundColor: 'rgba(96, 165, 250, 0.06)',
     borderRadius: 8,
     paddingHorizontal: 8,
   },
+  timeGroupChevron: {
+    fontSize: 8,
+    color: Colors.textMuted,
+    width: 12,
+  },
   timeGroupTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textHalf,
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
   timeGroupTitleCurrent: {
     color: Colors.accent,
   },
   timeGroupCount: {
+    flex: 1,
     fontSize: 11,
     color: Colors.textMuted,
     fontWeight: '500',
   },
-  flatItem: {
+  timeGroupItems: {
+    paddingLeft: 4,
+  },
+
+  // Timeline item (pending)
+  timelineItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
     gap: 10,
   },
-  flatItemBorder: {
+  timelineItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.035)',
   },
-  flatItemDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginLeft: 2,
+  timelineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
-  flatItemName: {
+  timelineItemBody: {
     flex: 1,
+  },
+  timelineName: {
     fontSize: 14,
     fontWeight: '500',
     color: Colors.textPrimary,
+    marginBottom: 1,
   },
-  flatItemTime: {
+  timelineSub: {
+    fontSize: 10,
+    color: Colors.textMuted,
+  },
+
+  // Timeline badges (right side)
+  timelineBadge: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  timelineBadgeLate: {
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+  },
+  timelineBadgeSoon: {
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+  },
+  timelineBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-  },
-  // ============================================================================
-  // Completed (shared)
-  // ============================================================================
-  completedSection: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: Colors.glassHover,
-  },
-  completedHeader: {
-    fontSize: 11,
-    fontWeight: '600',
     color: Colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
   },
-  completedItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    gap: 10,
-    opacity: 0.45,
+  timelineBadgeTextLate: {
+    color: '#FCA5A5',
   },
-  completedIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(16, 185, 129, 0.10)',
-    borderWidth: 1.5,
-    borderColor: Colors.greenStrong,
+  timelineBadgeTextSoon: {
+    color: Colors.amber,
+  },
+
+  // Timeline item (done/missed)
+  timelineItemDone: {
+    opacity: 0.5,
+  },
+  timelineDotDone: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(16, 185, 129, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  completedIconText: {
-    fontSize: 12,
+  timelineDotMissed: {
+    backgroundColor: 'rgba(245, 158, 11, 0.7)',
+  },
+  timelineDotDoneIcon: {
+    fontSize: 0,
+    fontWeight: '700',
     color: Colors.green,
-    fontWeight: '600',
   },
-  completedDetails: {
-    flex: 1,
+  timelineDotMissedIcon: {
+    color: Colors.amber,
   },
-  completedTimeText: {
+  timelineNameDone: {
     fontSize: 12,
-    color: Colors.green,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  completedNameText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textTertiary,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.3)',
     textDecorationLine: 'line-through',
+    textDecorationColor: 'rgba(255, 255, 255, 0.15)',
+    marginBottom: 1,
   },
-  completedMoreText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.35)',
-    textAlign: 'center',
-    paddingVertical: 8,
+  timelineSubDone: {
+    fontSize: 10,
+    color: Colors.textMuted,
+  },
+  timelineStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(16, 185, 129, 0.5)',
+  },
+  timelineStatusMissed: {
+    color: 'rgba(245, 158, 11, 0.6)',
   },
 
   // ============================================================================

@@ -20,11 +20,12 @@ export interface VitalsCheckConfig {
 
 export interface WellnessSettings {
   morning: WellnessCheckConfig;
+  afternoon: WellnessCheckConfig;
   evening: WellnessCheckConfig;
   vitals: VitalsCheckConfig;
 }
 
-// Default settings — morning and evening are ALWAYS enabled
+// Default settings — morning, afternoon, and evening are ALWAYS enabled
 export const DEFAULT_WELLNESS_SETTINGS: WellnessSettings = {
   morning: {
     enabled: true,              // Cannot be disabled — core feature
@@ -32,6 +33,13 @@ export const DEFAULT_WELLNESS_SETTINGS: WellnessSettings = {
     checks: ['sleep', 'mood', 'energy'],
     reminderEnabled: true,
     optionalChecks: { orientation: false, decisionMaking: false },
+  },
+  afternoon: {
+    enabled: true,              // Cannot be disabled — core feature
+    time: '13:00',
+    checks: ['mood', 'energy'],
+    reminderEnabled: true,
+    optionalChecks: {},
   },
   evening: {
     enabled: true,              // Cannot be disabled — core feature

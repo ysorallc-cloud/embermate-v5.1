@@ -36,7 +36,6 @@ import {
 
 // Aurora Components
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
-import { ScreenHeader } from '../../components/ScreenHeader';
 import { PatientSwitcherModal } from '../../components/now/PatientSwitcherModal';
 import { usePatient } from '../../contexts/PatientContext';
 import { WelcomeBackBanner } from '../../components/common/WelcomeBackBanner';
@@ -44,7 +43,6 @@ import { SampleDataBanner } from '../../components/common/SampleDataBanner';
 
 // CarePlan System
 import { useCarePlan } from '../../hooks/useCarePlan';
-import { useDailyCareInstances } from '../../hooks/useDailyCareInstances';
 import { useCareTasks } from '../../hooks/useCareTasks';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
@@ -74,8 +72,9 @@ import { useNowInsights } from '../../hooks/useNowInsights';
 
 // Extracted components
 import { ProgressRings } from '../../components/now/ProgressRings';
-import { CareInsightCard } from '../../components/now/CareInsightCard';
+// CareInsightCard removed — insight now shown inline in footer
 import { TimelineSection } from '../../components/now/TimelineSection';
+import { UpNextCard } from '../../components/now/UpNextCard';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -100,16 +99,14 @@ export default function NowScreen() {
   // Track today's date
   const [today, setToday] = useState(() => getTodayDateString());
 
-  // Daily Care Instances hook
+  // Single source of truth: useCareTasks wraps useDailyCareInstances
   const {
-    state: instancesState,
+    state: careTasksState,
+    instanceState: instancesState,
     loading: instancesLoading,
     completeInstance,
-    refresh: refreshInstances,
-  } = useDailyCareInstances(today);
-
-  // useCareTasks - Single source of truth for task stats
-  const { state: careTasksState, refresh: refreshCareTasks } = useCareTasks(today);
+    refresh: refreshCareTasks,
+  } = useCareTasks(today);
 
   // CarePlan hook
   const { dayState, carePlan, overrides, snoozeItem, setItemOverride, integrityWarnings, refresh: refreshCarePlan } = useCarePlan(today);
@@ -182,6 +179,7 @@ export default function NowScreen() {
         return { completed, total: typeTasks.length };
       };
 
+      const customStats = getTypeStats('custom');
       const stats: TodayStats = {
         meds: getTypeStats('medication'),
         vitals: getTypeStats('vitals'),
@@ -190,10 +188,11 @@ export default function NowScreen() {
         sleep: getTypeStats('sleep'),
         activity: getTypeStats('activity'),
         wellness: getTypeStats('wellness'),
+        custom: customStats.total > 0 ? customStats : undefined,
       };
 
       const hasAnyInstanceData = stats.meds.total > 0 || stats.vitals.total > 0 ||
-                                  stats.meals.total > 0;
+                                  stats.meals.total > 0 || (stats.custom?.total ?? 0) > 0;
       if (hasAnyInstanceData) {
         return stats;
       }
@@ -262,7 +261,7 @@ export default function NowScreen() {
       .map(w => w.instance);
 
     const completed = allInstances.filter(
-      i => i.status === 'completed' || i.status === 'skipped'
+      i => i.status === 'completed' || i.status === 'skipped' || i.status === 'missed'
     ).sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
 
     const nextUp = pendingWithScores[0]?.instance || null;
@@ -298,11 +297,23 @@ export default function NowScreen() {
       });
       return;
     }
+    // Pain: route to dedicated pain tracking screen
+    if (instance.itemName?.toLowerCase().includes('pain')) {
+      navigate({
+        pathname: '/log-pain',
+        params: {
+          instanceId: instance.id,
+          carePlanItemId: instance.carePlanItemId || '',
+          itemName: instance.itemName || '',
+        },
+      });
+      return;
+    }
     // Wellness: route to morning or evening screen based on instance windowLabel
     if (instance.itemType === 'wellness') {
       const wellnessRoute = instance.windowLabel === 'evening'
         ? '/log-evening-wellness'
-        : '/log-morning-wellness';
+        : '/log-morning-wellness'; // morning and midday both use morning wellness screen
       navigate({
         pathname: wellnessRoute,
         params: {
@@ -324,7 +335,13 @@ export default function NowScreen() {
     });
   }, []);
 
-  // Batch confirm meds — uses the same completeInstance from useDailyCareInstances
+  // Skip an instance from UpNextCard
+  const handleSkipInstance = useCallback(async (instanceId: string) => {
+    await completeInstance(instanceId, 'skipped');
+    emitDataUpdate('dailyInstances');
+  }, [completeInstance]);
+
+  // Batch confirm meds — uses completeInstance from useCareTasks
   const handleBatchMedConfirm = useCallback(async (instanceIds: string[]) => {
     for (const id of instanceIds) {
       await completeInstance(id, 'taken');
@@ -342,13 +359,12 @@ export default function NowScreen() {
         setToday(currentDate);
       }
 
-      refreshInstances();
       refreshCareTasks();
       refreshCarePlan();
       loadData();
       prompts.checkNotificationPrompt();
       recordVisit();
-    }, [today, refreshInstances, refreshCareTasks, refreshCarePlan])
+    }, [today, refreshCareTasks, refreshCarePlan])
   );
 
   // Live sync: reload data when any storage module emits an update
@@ -357,10 +373,10 @@ export default function NowScreen() {
          'mealsLog', 'waterLog', 'dailyTracking', 'appointments',
          'dailyInstances', 'carePlanItems', 'sampleDataCleared'].includes(category)) {
       loadData();
-      // Also refresh care instances so timeline + stats update immediately
-      refreshInstances();
+      // Also refresh care tasks so timeline + stats update immediately
+      refreshCareTasks();
     }
-  }, [refreshInstances]));
+  }, [refreshCareTasks]));
 
   const loadData = async () => {
     try {
@@ -469,57 +485,31 @@ export default function NowScreen() {
           />
         }
       >
-        {/* Page header */}
-        <ScreenHeader
-          title={getGreeting()}
-          leftAction={
-            <TouchableOpacity
-              onPress={() => setShowPatientSwitcher(true)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: Colors.glass,
-                borderWidth: 1,
-                borderColor: Colors.glassBorder,
-                borderRadius: 16,
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                gap: 6,
-              }}
-              accessibilityLabel={`Patient: ${patientName}. Tap to switch.`}
-              accessibilityRole="button"
-            >
-              <View style={{
-                width: 24,
-                height: 24,
-                borderRadius: 12,
-                backgroundColor: Colors.accent,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: Colors.textPrimary }}>
-                  {patientName.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-              <Text style={{ fontSize: 13, color: Colors.textSecondary, fontWeight: '500' }}>
-                {patientName}
+        {/* Compact header: greeting + date left, patient chip right */}
+        <View style={styles.headerRow}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerGreeting}>{getGreeting()}</Text>
+            <Text style={styles.headerDate}>
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setShowPatientSwitcher(true)}
+            style={styles.patientChip}
+            accessibilityLabel={`Patient: ${patientName}. Tap to switch.`}
+            accessibilityRole="button"
+          >
+            <View style={styles.patientAvatar}>
+              <Text style={styles.patientAvatarText}>
+                {patientName.charAt(0).toUpperCase()}
               </Text>
-              {patients.length > 1 && (
-                <Text style={{ fontSize: 10, color: Colors.textMuted }}>{'\u25BC'}</Text>
-              )}
-            </TouchableOpacity>
-          }
-          rightAction={
-            <TouchableOpacity
-              onPress={() => navigate('/care-plan')}
-              style={{ padding: 8, marginRight: -8 }}
-              accessibilityLabel="Manage Care Plan"
-              accessibilityRole="button"
-            >
-              <Text style={{ fontSize: 20, opacity: 0.7 }}>⚙️</Text>
-            </TouchableOpacity>
-          }
-        />
+            </View>
+            <Text style={styles.patientChipName}>{patientName}</Text>
+            {patients.length > 1 && (
+              <Text style={{ fontSize: 10, color: Colors.textMuted }}>{'\u25BC'}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
         <PatientSwitcherModal
           visible={showPatientSwitcher}
           onClose={() => setShowPatientSwitcher(false)}
@@ -684,7 +674,16 @@ export default function NowScreen() {
             <NoCarePlanBanner onSetup={() => navigate('/care-plan')} />
           )}
 
-          {/* 2. CARE PLAN PROGRESS — grounding card */}
+          {/* 1. UP NEXT — highest priority item */}
+          {todayTimeline.nextUp && !selectedCategory && (
+            <UpNextCard
+              instance={todayTimeline.nextUp}
+              onLogNow={handleTimelineItemPress}
+              onSkip={handleSkipInstance}
+            />
+          )}
+
+          {/* 2. CARE PLAN PROGRESS — linear tiles */}
           <View accessibilityLiveRegion="polite" accessibilityRole="summary">
             <ProgressRings
               todayStats={todayStats}
@@ -693,6 +692,7 @@ export default function NowScreen() {
               instances={instancesState?.instances || []}
               selectedCategory={selectedCategory}
               onRingPress={handleRingPress}
+              onManagePress={() => navigate('/care-plan')}
               patientName={patientName}
             />
           </View>
@@ -738,24 +738,56 @@ export default function NowScreen() {
 
           {hasRegimenInstances &&
             allPending.length === 0 &&
-            todayTimeline.completed.length > 0 && (
-            <View
-              style={styles.allDoneMessage}
-              accessible={true}
-              accessibilityRole="text"
-              accessibilityLabel="All caught up! All care plan items are complete for today."
-              accessibilityLiveRegion="polite"
-            >
-              <Text style={styles.allDoneEmoji}>🎉</Text>
-              <Text style={styles.allDoneText}>All caught up!</Text>
-            </View>
-          )}
+            todayTimeline.completed.length > 0 && (() => {
+              const hasMissed = todayTimeline.completed.some(i => i.status === 'missed');
+              if (hasMissed) {
+                return (
+                  <Text
+                    style={styles.encouragementText}
+                    accessible={true}
+                    accessibilityRole="text"
+                  >
+                    You're doing a great job. Every bit of care matters.
+                  </Text>
+                );
+              }
+              return (
+                <View
+                  style={styles.allDoneMessage}
+                  accessible={true}
+                  accessibilityRole="text"
+                  accessibilityLabel="All caught up! All care plan items are complete for today."
+                  accessibilityLiveRegion="polite"
+                >
+                  <Text style={styles.allDoneEmoji}>🎉</Text>
+                  <Text style={styles.allDoneText}>All caught up!</Text>
+                </View>
+              );
+            })()}
 
-          {/* CARE INSIGHT — bottom of page */}
-          <CareInsightCard
-            careInsight={careInsight}
-            hasNextUp={!!todayTimeline?.nextUp}
-          />
+          {/* Encouraging footer with care insight */}
+          <View style={styles.footerSection}>
+            <Text style={styles.footerMessage}>
+              {careInsight
+                ? careInsight.message
+                : allPending.length === 0 && todayTimeline.completed.length > 0
+                ? 'You showed up today, and that matters.'
+                : allPending.length <= 2 && allPending.length > 0
+                ? 'Almost there. You\'re doing more than you think.'
+                : 'Caregiving is hard. You\'re not behind \u2014 you\'re showing up.'}
+            </Text>
+            <TouchableOpacity
+              onPress={coffeeMoment.startReset}
+              style={styles.footerCoffeeLink}
+              activeOpacity={0.7}
+              accessibilityLabel="Take a 1-minute breathing pause"
+              accessibilityRole="button"
+            >
+              <Text style={styles.footerCoffeeLinkText}>
+                {'\u2615'}  Take a 1-minute pause
+              </Text>
+            </TouchableOpacity>
+          </View>
 
         </View>
 
@@ -786,6 +818,59 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingTop: 8,
+  },
+
+  // Compact header
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 12,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerGreeting: {
+    fontSize: 22,
+    fontWeight: '300',
+    color: Colors.textPrimary,
+    letterSpacing: -0.2,
+  },
+  headerDate: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  patientChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(20, 184, 166, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 184, 166, 0.28)',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 6,
+  },
+  patientAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  patientAvatarText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  patientChipName: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: '500',
   },
   hiddenBanner: {
     flexDirection: 'row',
@@ -912,5 +997,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.green,
+  },
+  encouragementText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginVertical: 16,
+    paddingHorizontal: 20,
+  },
+  footerSection: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  footerMessage: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 24,
+  },
+  footerCoffeeLink: {
+    marginTop: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  footerCoffeeLinkText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: '500',
   },
 });
