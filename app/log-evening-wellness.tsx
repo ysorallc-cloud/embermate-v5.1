@@ -23,6 +23,7 @@ import { useWellnessSettings } from '../hooks/useWellnessSettings';
 import { saveEveningWellness, skipEveningWellness } from '../utils/wellnessCheckStorage';
 import { listDailyInstances, logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { emitDataUpdate } from '../lib/events';
 
 const MOOD_OPTIONS = [
   { value: 5, emoji: '😄', label: 'Great' },
@@ -147,6 +148,7 @@ export default function LogEveningWellnessScreen() {
                 const inst = instances.find(i => i.itemType === 'wellness' && i.windowLabel === 'evening' && i.status === 'pending');
                 if (inst) {
                   await logInstanceCompletion(DEFAULT_PATIENT_ID, today, inst.id, 'skipped');
+                  emitDataUpdate('dailyInstances');
                 }
               } catch (e) {
                 console.warn('Could not update care plan instance:', e);
@@ -188,6 +190,7 @@ export default function LogEveningWellnessScreen() {
         const inst = instances.find(i => i.itemType === 'wellness' && i.windowLabel === 'evening' && i.status === 'pending');
         if (inst) {
           await logInstanceCompletion(DEFAULT_PATIENT_ID, today, inst.id, 'completed');
+          emitDataUpdate('dailyInstances');
         }
       } catch (e) {
         console.warn('Could not update care plan instance:', e);
@@ -640,7 +643,7 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: '600',
     color: Colors.textPrimary,
   },

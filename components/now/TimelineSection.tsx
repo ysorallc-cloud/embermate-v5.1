@@ -9,6 +9,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { MedsBatchPanel } from './MedsBatchPanel';
+import { WindowReceipt } from './WindowReceipt';
 import {
   parseTimeForDisplay,
   isOverdue,
@@ -170,6 +171,7 @@ interface TimelineSectionProps {
   waterGlasses?: number;
   waterGoal?: number;
   onWaterUpdate?: (glasses: number) => void;
+  onStartRoutine?: (window: TimeWindow) => void;
 }
 
 // ============================================================================
@@ -189,6 +191,7 @@ export function TimelineSection({
   waterGlasses = 0,
   waterGoal = 8,
   onWaterUpdate,
+  onStartRoutine,
 }: TimelineSectionProps) {
   const router = useRouter();
 
@@ -386,6 +389,7 @@ export function TimelineSection({
       allPending={allPending}
       completed={completed}
       onItemPress={onItemPress}
+      onStartRoutine={onStartRoutine}
     />
   );
 }
@@ -398,10 +402,12 @@ function TimelineModeBContent({
   allPending,
   completed,
   onItemPress,
+  onStartRoutine,
 }: {
   allPending: any[];
   completed: any[];
   onItemPress: (instance: any) => void;
+  onStartRoutine?: (window: TimeWindow) => void;
 }) {
   const [collapsedWindows, setCollapsedWindows] = useState<Set<TimeWindow>>(() => {
     const current = getCurrentTimeWindow();
@@ -448,6 +454,15 @@ function TimelineModeBContent({
         const pendingCount = items.filter(i => i.status === 'pending').length;
         const doneCount = items.length - pendingCount;
 
+        // Past window fully complete → show receipt instead of expanded list
+        const isPastWindow = windowOrder.indexOf(window) < windowOrder.indexOf(currentWindow);
+        const allDone = items.every(i =>
+          i.status === 'completed' || i.status === 'skipped' || i.status === 'missed'
+        );
+        if (allDone && isPastWindow && items.length > 0) {
+          return <WindowReceipt key={window} window={window} items={items} />;
+        }
+
         return (
           <View key={window} style={styles.timeGroup}>
             {/* Collapsible header */}
@@ -474,6 +489,17 @@ function TimelineModeBContent({
               <Text style={styles.timeGroupCount}>
                 {pendingCount > 0 ? `${pendingCount} remaining` : `${items.length} done`}
               </Text>
+              {isCurrent && pendingCount > 0 && onStartRoutine && (
+                <TouchableOpacity
+                  onPress={() => onStartRoutine(window)}
+                  style={styles.startRoutineButton}
+                  activeOpacity={0.7}
+                  accessibilityLabel={`Start ${TIME_WINDOW_LABELS[window]} routine`}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.startRoutineText}>Start</Text>
+                </TouchableOpacity>
+              )}
             </TouchableOpacity>
 
             {/* Items */}
@@ -776,6 +802,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textMuted,
     fontWeight: '500',
+  },
+  startRoutineButton: {
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  startRoutineText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.background,
   },
   timeGroupItems: {
     paddingLeft: 4,

@@ -11,17 +11,20 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { Colors, Spacing } from '../theme/theme-tokens';
 import { getTodayWaterLog, updateTodayWaterLog } from '../utils/centralStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 const WATER_GOAL = 8;
 
 export default function LogWaterScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [glasses, setGlasses] = useState(0);
   const [saving, setSaving] = useState(false);
 
@@ -52,6 +55,25 @@ export default function LogWaterScreen() {
     try {
       setSaving(true);
       await updateTodayWaterLog(glasses);
+
+      // Mark the daily care instance as completed (updates progress card)
+      const instanceId = params.instanceId as string | undefined;
+      if (instanceId) {
+        try {
+          await logInstanceCompletion(
+            DEFAULT_PATIENT_ID,
+            getTodayDateString(),
+            instanceId,
+            'completed',
+            { type: 'hydration', glasses },
+            { source: 'record' }
+          );
+          emitDataUpdate('dailyInstances');
+        } catch (err) {
+          logError('LogWater.completeInstance', err);
+        }
+      }
+
       emitDataUpdate('water');
       router.back();
     } catch (error) {

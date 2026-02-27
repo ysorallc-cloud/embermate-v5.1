@@ -25,6 +25,8 @@ import { hapticSuccess } from '../utils/hapticFeedback';
 import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage';
 import { parseCarePlanContext, getCarePlanBannerText, getPreSelectionHints } from '../utils/carePlanRouting';
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
+import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
+import { emitDataUpdate } from '../lib/events';
 import { logError } from '../utils/devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
 
@@ -155,6 +157,24 @@ export default function LogMeal() {
           carePlanContext.carePlanItemId,
           { logType: 'meals' }
         );
+      }
+
+      // Mark the daily care instance as completed (updates progress card)
+      const instanceId = params.instanceId as string | undefined;
+      if (instanceId) {
+        try {
+          await logInstanceCompletion(
+            DEFAULT_PATIENT_ID,
+            today,
+            instanceId,
+            'completed',
+            { type: 'nutrition', mealType: selectedMeals.join(', ') },
+            { source: 'record' }
+          );
+          emitDataUpdate('dailyInstances');
+        } catch (err) {
+          logError('LogMeal.completeInstance', err);
+        }
       }
 
       await hapticSuccess();

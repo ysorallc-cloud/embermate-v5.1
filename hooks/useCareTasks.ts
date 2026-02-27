@@ -59,6 +59,9 @@ export interface UseCareTasksReturn {
   /** Current state (null while loading) */
   state: CareTasksState | null;
 
+  /** Raw instance state from useDailyCareInstances (use for timeline rendering) */
+  instanceState: UseDailyCareInstancesReturn['state'];
+
   /** Loading indicator */
   loading: boolean;
 
@@ -71,6 +74,9 @@ export interface UseCareTasksReturn {
     outcome?: 'taken' | 'completed' | 'skipped',
     data?: any
   ) => Promise<{ task: CarePlanTask; log: LogEntry } | null>;
+
+  /** Complete an instance directly (for batch operations) */
+  completeInstance: UseDailyCareInstancesReturn['completeInstance'];
 
   /** Skip a task */
   skipTask: (taskId: string, reason?: string) => Promise<void>;
@@ -256,9 +262,11 @@ export function useCareTasks(
 
   return {
     state,
+    instanceState,
     loading,
     error,
     completeTask,
+    completeInstance,
     skipTask,
     refresh,
     getTaskById,

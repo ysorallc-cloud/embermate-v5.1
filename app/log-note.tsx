@@ -3,15 +3,18 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { saveNote } from '../utils/noteStorage';
 import { logError } from '../utils/devLog';
+import { emitDataUpdate } from '../lib/events';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { BackButton } from '../components/common/BackButton';
 
 export default function LogNoteScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [content, setContent] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -30,6 +33,20 @@ export default function LogNoteScreen() {
         date: getTodayDateString(),
       });
 
+      emitDataUpdate('notes');
+
+      const instanceId = params.instanceId as string | undefined;
+      if (instanceId) {
+        try {
+          await logInstanceCompletion(DEFAULT_PATIENT_ID, getTodayDateString(), instanceId, 'completed',
+            { type: 'custom', note: content.trim() },
+            { source: 'record' });
+          emitDataUpdate('dailyInstances');
+        } catch (err) {
+          logError('LogNoteScreen.completeInstance', err);
+        }
+      }
+
       router.back();
     } catch (error) {
       Alert.alert('Error', 'Failed to save note');
@@ -46,9 +63,13 @@ export default function LogNoteScreen() {
           <View style={styles.content}>
             <View style={styles.header}>
               <BackButton variant="text" />
-              <Text style={styles.icon}>📝</Text>
-              <Text style={styles.title}>Add Note</Text>
-              <Text style={styles.subtitle}>Capture observations, reminders, or important information</Text>
+              <Text style={styles.icon}>{params.instanceId ? '\uD83D\uDCCB' : '\uD83D\uDCDD'}</Text>
+              <Text style={styles.title}>{params.itemName ? String(params.itemName) : 'Add Note'}</Text>
+              <Text style={styles.subtitle}>
+                {params.itemName
+                  ? 'Add a note to complete this task'
+                  : 'Capture observations, reminders, or important information'}
+              </Text>
             </View>
 
             <View style={styles.form}>

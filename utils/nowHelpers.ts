@@ -28,6 +28,7 @@ export interface TodayStats {
   sleep?: StatData;
   activity?: StatData;
   wellness?: StatData;
+  custom?: StatData;
 }
 
 export interface AIInsight {

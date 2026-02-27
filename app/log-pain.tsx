@@ -16,12 +16,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { saveSymptom } from '../utils/symptomStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { BackButton } from '../components/common/BackButton';
 
 const BODY_LOCATIONS = [
@@ -53,6 +54,7 @@ function getSeverityLabel(value: number): string {
 
 export default function LogPainScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [severity, setSeverity] = useState<number | null>(null);
   const [bodyLocation, setBodyLocation] = useState<string | null>(null);
   const [character, setCharacter] = useState<string | null>(null);
@@ -78,6 +80,19 @@ export default function LogPainScreen() {
       });
 
       emitDataUpdate('symptoms');
+
+      const instanceId = params.instanceId as string | undefined;
+      if (instanceId) {
+        try {
+          await logInstanceCompletion(DEFAULT_PATIENT_ID, getTodayDateString(), instanceId, 'completed',
+            { type: 'custom', pain: { severity, bodyLocation: bodyLocation || undefined, character: character || undefined } },
+            { source: 'record' });
+          emitDataUpdate('dailyInstances');
+        } catch (err) {
+          logError('LogPainScreen.completeInstance', err);
+        }
+      }
+
       router.back();
     } catch (error) {
       Alert.alert('Error', 'Failed to log pain. Please try again.');

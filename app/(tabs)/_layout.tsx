@@ -90,7 +90,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="understand"
         options={{
-          title: 'Insights',
+          title: 'Understand',
           tabBarIcon: ({ focused }) => <TabIcon icon="📊" focused={focused} />,
           tabBarAccessibilityLabel: 'Understand tab. View health patterns and insights',
           tabBarButtonTestID: 'tab-understand',

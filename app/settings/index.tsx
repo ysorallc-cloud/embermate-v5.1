@@ -53,7 +53,7 @@ interface SettingsCategory {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { themeMode, setThemeMode } = useTheme();
+  const { themeMode, setThemeMode, highContrast, setHighContrast } = useTheme();
   const [patientName, setPatientName] = useState('');
   const [hasSample, setHasSample] = useState(false);
   const [lastModified, setLastModified] = useState<string>('');
@@ -368,6 +368,13 @@ export default function SettingsScreen() {
             const currentIndex = modes.indexOf(themeMode);
             setThemeMode(modes[(currentIndex + 1) % modes.length]);
           },
+        },
+        {
+          id: 'high-contrast',
+          icon: '🔲',
+          title: 'High Contrast',
+          subtitle: highContrast ? 'On — increased text and border contrast' : 'Off',
+          onPress: () => setHighContrast(!highContrast),
         },
         {
           id: 'time-format',

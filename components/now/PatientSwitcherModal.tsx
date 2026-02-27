@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
 import { usePatient } from '../../contexts/PatientContext';
+import { checkFeatureAccess } from '../../utils/featureGate';
 
 interface PatientSwitcherModalProps {
   visible: boolean;
@@ -137,7 +138,14 @@ export function PatientSwitcherModal({ visible, onClose }: PatientSwitcherModalP
           ) : (
             <TouchableOpacity
               style={styles.addPatientRow}
-              onPress={() => setShowAdd(true)}
+              onPress={async () => {
+                const result = await checkFeatureAccess('multi_patient');
+                if (!result.allowed) {
+                  Alert.alert('Upgrade Required', result.reason || 'Multi-patient support requires an upgrade.');
+                  return;
+                }
+                setShowAdd(true);
+              }}
               accessibilityLabel="Add a new patient"
               accessibilityRole="button"
             >

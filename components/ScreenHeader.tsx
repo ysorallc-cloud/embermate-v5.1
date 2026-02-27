@@ -29,7 +29,12 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
       )}
       <View style={styles.headerRow}>
         <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+          <Text
+            style={[styles.title, { color: colors.textPrimary }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.8}
+          >{title}</Text>
           {subtitle && <Text style={[styles.subtitle, { color: colors.textTertiary }]}>{subtitle}</Text>}
         </View>
         {rightAction && (
@@ -45,8 +50,8 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    paddingTop: 80,
-    paddingBottom: 20,
+    paddingTop: 60,
+    paddingBottom: 16,
   },
   headerRow: {
     flexDirection: 'row',
@@ -57,14 +62,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: '300',
     color: Colors.textPrimary,
-    marginBottom: 8,
-    letterSpacing: 0.5,
+    marginBottom: 4,
+    letterSpacing: 0.3,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '400',
     color: Colors.textTertiary,
     letterSpacing: 0.3,

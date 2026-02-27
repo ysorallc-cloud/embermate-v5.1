@@ -17,18 +17,21 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors, BorderRadius, Spacing } from '../theme/theme-tokens';
 import { saveDailyTracking, getDailyTracking } from '../utils/dailyTrackingStorage';
 import { saveSleepLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { logError } from '../utils/devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
+import { emitDataUpdate } from '../lib/events';
 
 const QUALITY_LABELS = ['Very Poor', 'Poor', 'Fair', 'Good', 'Excellent'];
 
 export default function LogSleep() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [hours, setHours] = useState('');
   const [quality, setQuality] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -83,6 +86,24 @@ export default function LogSleep() {
           hours: hoursNum,
           quality: quality || 3,
         });
+      }
+
+      // Mark the daily care instance as completed (updates progress card)
+      const instanceId = params.instanceId as string | undefined;
+      if (instanceId) {
+        try {
+          await logInstanceCompletion(
+            DEFAULT_PATIENT_ID,
+            today,
+            instanceId,
+            'completed',
+            { type: 'sleep', hours: hoursNum, quality: quality || 3 },
+            { source: 'record' }
+          );
+          emitDataUpdate('dailyInstances');
+        } catch (err) {
+          logError('LogSleep.completeInstance', err);
+        }
       }
 
       await hapticSuccess();

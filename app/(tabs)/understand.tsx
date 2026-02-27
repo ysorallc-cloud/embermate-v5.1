@@ -1,18 +1,12 @@
 // ============================================================================
-// UNDERSTAND PAGE - Interpretive Insight Layer
-// Purpose: Explain what matters and why, not just show data
+// UNDERSTAND PAGE - "Give Me the Headline"
 //
-// Contains:
-// - What Stands Out (top insights at a glance)
-// - What's Going Well (positive observations)
-// - Correlation Cards (with optional suggestions)
-// - Find Patterns (deeper exploration tools)
-//
-// Explicit Non-Goals:
-// - No medical advice
-// - No duplication of Now, Record, or Care Plan content
-// - No alerts, reminders, or tasks
-// - No raw analytics without interpretation
+// Layout (per mockup):
+// 1. Stat Spotlight — 3 headline numbers above the fold
+// 2. Positive Banner — "Going well" as flat green strip
+// 3. Patterns Detected — left-border accent cards
+// 4. Vitals at a Glance — compact rows with sparklines
+// 5. More — menu list
 // ============================================================================
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -29,9 +23,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
-import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import Svg, { Polyline, Circle as SvgCircle } from 'react-native-svg';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
-import { GlassCard } from '../../components/aurora/GlassCard';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import {
   loadUnderstandPageData,
   dismissSuggestion,
@@ -43,50 +38,47 @@ import {
   StandOutInsight,
   PositiveObservation,
   CorrelationCard,
-  ConfidenceLevel,
 } from '../../utils/understandInsights';
 import { logError } from '../../utils/devLog';
 import { useDataListener } from '../../lib/events';
 import { buildProviderPrep, ProviderPrepData } from '../../utils/providerPrepBuilder';
-import { ProviderPrepCard } from '../../components/understand/ProviderPrepCard';
 import { PatternsSheet } from '../../components/understand/PatternsSheet';
-import { ScreenHeader } from '../../components/ScreenHeader';
+import { getVitalsInRange, VitalReading } from '../../utils/vitalsStorage';
+import { useCareTasks } from '../../hooks/useCareTasks';
+import { getTodayDateString } from '../../services/carePlanGenerator';
 
 // ============================================================================
-// CONFIDENCE BADGE COMPONENT
+// TYPES
 // ============================================================================
 
-interface ConfidenceBadgeProps {
-  level: ConfidenceLevel;
+interface VitalSummary {
+  icon: string;
+  name: string;
+  description: string;
+  descriptionTone: 'normal' | 'warn' | 'alert';
+  value: string;
+  valueTone: 'normal' | 'warn' | 'alert';
+  trend: string;
+  trendTone: 'stable' | 'up' | 'flagged';
+  sparkPoints: string;
+  sparkColor: string;
+  alertDots?: { cx: number; cy: number }[];
 }
 
-function ConfidenceBadge({ level }: ConfidenceBadgeProps) {
-  // Normalized pattern strength language: "Strong pattern" and "Emerging pattern"
-  const config = {
-    strong: { color: Colors.sageStrong, bg: Colors.sageBorder },
-    emerging: { color: Colors.amberBrightStrong, bg: 'rgba(251, 191, 36, 0.15)' },
-    early: { color: 'rgba(148, 163, 184, 0.8)', bg: 'rgba(148, 163, 184, 0.15)' },
-  };
-
-  // Normalize labels: both emerging and early show as "Emerging pattern"
-  const labels = {
-    strong: 'Strong pattern',
-    emerging: 'Emerging pattern',
-    early: 'Emerging pattern',  // Normalized from "Early signal"
-  };
-
-  const { color, bg } = config[level];
-
-  return (
-    <View style={[styles.confidenceBadge, { backgroundColor: bg }]}>
-      <View style={[styles.confidenceDot, { backgroundColor: color }]} />
-      <Text style={[styles.confidenceText, { color }]}>{labels[level]}</Text>
-    </View>
-  );
+interface MenuItem {
+  id: string;
+  icon: string;
+  iconBg: string;
+  title: string;
+  subtitle: string;
+  badge?: string;
+  badgeStyle?: 'good' | 'warn' | 'alert' | 'info' | 'soon';
+  elevated?: boolean;
+  onPress: () => void;
 }
 
 // ============================================================================
-// TIME RANGE TOGGLE COMPONENT
+// TIME RANGE TOGGLE
 // ============================================================================
 
 interface TimeRangeToggleProps {
@@ -107,8 +99,8 @@ function TimeRangeToggle({ value, onChange }: TimeRangeToggleProps) {
         <TouchableOpacity
           key={range}
           style={[
-            styles.timeRangeOption,
-            value === range && styles.timeRangeOptionSelected,
+            styles.timeRangePill,
+            value === range && styles.timeRangePillActive,
           ]}
           onPress={() => onChange(range)}
           activeOpacity={0.7}
@@ -118,7 +110,7 @@ function TimeRangeToggle({ value, onChange }: TimeRangeToggleProps) {
         >
           <Text style={[
             styles.timeRangeText,
-            value === range && styles.timeRangeTextSelected,
+            value === range && styles.timeRangeTextActive,
           ]}>
             {label}
           </Text>
@@ -129,163 +121,242 @@ function TimeRangeToggle({ value, onChange }: TimeRangeToggleProps) {
 }
 
 // ============================================================================
-// STAND OUT INSIGHT ROW COMPONENT
+// STAT SPOTLIGHT - 3 headline numbers
 // ============================================================================
 
-interface StandOutRowProps {
-  insight: StandOutInsight;
-  onLinkPress?: () => void;
+interface StatSpotlightProps {
+  adherencePct: number;
+  daysTracked: number;
+  patternsFound: number;
+  insightText?: string;
 }
 
-function getInsightBulletColor(insight: StandOutInsight): string {
-  if (insight.confidence === 'emerging' || insight.confidence === 'early') return '#F59E0B';
-  if (insight.relatedTo === 'record') return '#3B82F6';
-  return Colors.accent;
-}
-
-function StandOutRow({ insight, onLinkPress }: StandOutRowProps) {
+function StatSpotlight({ adherencePct, daysTracked, patternsFound, insightText }: StatSpotlightProps) {
   return (
-    <View style={styles.standOutRow}>
-      <View style={[styles.standOutBullet, { backgroundColor: getInsightBulletColor(insight) }]} />
-      <View style={styles.standOutContent}>
-        <Text style={styles.standOutText}>{insight.text}</Text>
-        {insight.linkRoute && insight.linkLabel && (
-          <TouchableOpacity
-            onPress={onLinkPress}
-            activeOpacity={0.7}
-            accessibilityRole="link"
-            accessibilityLabel={insight.linkLabel}
-          >
-            <Text style={styles.standOutLink}>{insight.linkLabel} →</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
-  );
-}
-
-// ============================================================================
-// POSITIVE OBSERVATION ROW COMPONENT
-// ============================================================================
-
-interface PositiveRowProps {
-  observation: PositiveObservation;
-}
-
-function PositiveRow({ observation }: PositiveRowProps) {
-  return (
-    <View style={styles.positiveRow}>
-      <Text style={styles.positiveIcon}>✓</Text>
-      <Text style={styles.positiveText}>{observation.text}</Text>
-    </View>
-  );
-}
-
-// ============================================================================
-// CORRELATION CARD COMPONENT
-// ============================================================================
-
-interface CorrelationCardComponentProps {
-  card: CorrelationCard;
-  onDismissSuggestion: (cardId: string) => void;
-  onTrackThis?: (cardId: string, title: string) => void;
-}
-
-function CorrelationCardComponent({ card, onDismissSuggestion, onTrackThis }: CorrelationCardComponentProps) {
-  const [suggestionHidden, setSuggestionHidden] = useState(card.suggestionDismissed);
-
-  const handleDismiss = () => {
-    setSuggestionHidden(true);
-    onDismissSuggestion(card.id);
-  };
-
-  const handleTrackThis = () => {
-    onTrackThis?.(card.id, card.title);
-  };
-
-  return (
-    <GlassCard style={styles.correlationCard}>
-      <View style={styles.correlationHeader}>
-        <Text style={styles.correlationTitle}>{card.title}</Text>
-        <ConfidenceBadge level={card.confidence} />
-      </View>
-
-      <Text style={styles.correlationInsight}>{card.insight}</Text>
-
-      <Text style={styles.correlationDataPoints}>
-        Based on {card.dataPoints} days of data
-      </Text>
-
-      {/* You Could Try Section - Enhanced with Track This CTA */}
-      {card.suggestion && !suggestionHidden && (
-        <View style={styles.suggestionContainer}>
-          <View style={styles.suggestionHeader}>
-            <Text style={styles.suggestionLabel}>You could try</Text>
-            <TouchableOpacity
-              onPress={handleDismiss}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              accessibilityRole="button"
-              accessibilityLabel={`Dismiss suggestion for ${card.title}`}
-            >
-              <Text style={styles.suggestionDismiss}>×</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.suggestionText}>{card.suggestion}</Text>
-
-          {/* Track This CTA - Allows follow-through */}
-          <TouchableOpacity
-            style={styles.trackThisButton}
-            onPress={handleTrackThis}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel={`Track ${card.title}`}
-          >
-            <Text style={styles.trackThisText}>📝 Track this</Text>
-          </TouchableOpacity>
+    <View style={styles.spotlight}>
+      <View style={styles.spotlightRow}>
+        <View style={styles.spotlightStat}>
+          <Text style={styles.spotlightValue}>
+            {adherencePct}<Text style={styles.spotlightUnit}>%</Text>
+          </Text>
+          <Text style={styles.spotlightLabel}>Med adherence</Text>
         </View>
+        <View style={styles.spotlightDivider} />
+        <View style={styles.spotlightStat}>
+          <Text style={styles.spotlightValue}>{daysTracked}</Text>
+          <Text style={styles.spotlightLabel}>Days tracked</Text>
+        </View>
+        <View style={styles.spotlightDivider} />
+        <View style={styles.spotlightStat}>
+          <Text style={styles.spotlightValue}>{patternsFound}</Text>
+          <Text style={styles.spotlightLabel}>Patterns found</Text>
+        </View>
+      </View>
+      {insightText && (
+        <Text style={styles.spotlightInsight}>{insightText}</Text>
       )}
-    </GlassCard>
+    </View>
   );
 }
 
 // ============================================================================
-// PATTERN TOOL COMPONENT
+// POSITIVE BANNER - flat green strip
 // ============================================================================
 
-interface PatternToolProps {
-  icon: string;
-  title: string;
-  subtitle: string;
-  onPress: () => void;
+interface PositiveBannerProps {
+  observations: PositiveObservation[];
 }
 
-function PatternTool({ icon, title, subtitle, onPress }: PatternToolProps) {
+function PositiveBanner({ observations }: PositiveBannerProps) {
+  if (observations.length === 0) return null;
+
+  return (
+    <View style={styles.positiveBanner}>
+      {observations.map((obs) => (
+        <View key={obs.id} style={styles.positiveRow}>
+          <Text style={styles.positiveCheck}>{'\u2713'}</Text>
+          <Text style={styles.positiveText}>{obs.text}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ============================================================================
+// PATTERN CARD - left-border accent
+// ============================================================================
+
+interface PatternCardProps {
+  card: CorrelationCard;
+  onPress?: () => void;
+}
+
+function PatternCard({ card, onPress }: PatternCardProps) {
+  const borderColor = card.confidence === 'strong' ? Colors.accent : Colors.amber;
+  const confLabel = card.confidence === 'strong' ? 'Strong' : 'Emerging';
+  const confStyle = card.confidence === 'strong' ? styles.confStrong : styles.confEmerging;
+
   return (
     <TouchableOpacity
+      style={[styles.patternCard, { borderLeftColor: borderColor }]}
       onPress={onPress}
       activeOpacity={0.7}
       accessibilityRole="button"
-      accessibilityLabel={`${title}, ${subtitle}`}
+      accessibilityLabel={`${card.title}, ${confLabel} pattern`}
     >
-      <GlassCard style={styles.toolCard}>
-        <View style={styles.toolContent}>
-          <View style={styles.toolIcon}>
-            <Text style={styles.toolIconText}>{icon}</Text>
-          </View>
-          <View style={styles.toolText}>
-            <Text style={styles.toolTitle}>{title}</Text>
-            <Text style={styles.toolSubtitle}>{subtitle}</Text>
-          </View>
-          <Text style={styles.chevron}>›</Text>
+      <View style={styles.patternTop}>
+        <Text style={styles.patternTitle}>{card.title}</Text>
+        <View style={confStyle}>
+          <Text style={[styles.confText, card.confidence === 'strong' ? styles.confTextStrong : styles.confTextEmerging]}>
+            {confLabel}
+          </Text>
         </View>
-      </GlassCard>
+      </View>
+      <Text style={styles.patternText}>{card.insight}</Text>
+      <Text style={styles.patternFooter}>
+        Based on {card.dataPoints} days {card.confidence === 'strong' ? '\u00B7 Tap to track \u2192' : '\u00B7 More data needed'}
+      </Text>
     </TouchableOpacity>
   );
 }
 
 // ============================================================================
-// SAMPLE DATA BANNER COMPONENT
-// Shows smaller/demoted version after first dismissal
+// SPARKLINE COMPONENT
+// ============================================================================
+
+interface SparklineProps {
+  points: string;
+  color: string;
+  alertDots?: { cx: number; cy: number }[];
+}
+
+function Sparkline({ points, color, alertDots }: SparklineProps) {
+  return (
+    <Svg width={50} height={22} viewBox="0 0 50 22">
+      <Polyline
+        points={points}
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      {alertDots?.map((dot, i) => (
+        <SvgCircle
+          key={i}
+          cx={dot.cx}
+          cy={dot.cy}
+          r={2.2}
+          fill={`${Colors.red}80`}
+        />
+      ))}
+    </Svg>
+  );
+}
+
+// ============================================================================
+// VITAL ROW COMPONENT
+// ============================================================================
+
+interface VitalRowProps {
+  vital: VitalSummary;
+  onPress?: () => void;
+}
+
+function VitalRow({ vital, onPress }: VitalRowProps) {
+  const descColor = vital.descriptionTone === 'alert' ? '#FCA5A5'
+    : vital.descriptionTone === 'warn' ? Colors.amber
+    : Colors.textMuted;
+
+  const valColor = vital.valueTone === 'alert' ? '#FCA5A5'
+    : vital.valueTone === 'warn' ? Colors.amber
+    : Colors.textPrimary;
+
+  const trendColor = vital.trendTone === 'flagged' ? '#FCA5A5'
+    : vital.trendTone === 'up' ? Colors.amber
+    : Colors.green;
+
+  return (
+    <TouchableOpacity
+      style={styles.vitalRow}
+      onPress={onPress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`${vital.name}, ${vital.value}, ${vital.trend}`}
+    >
+      <Text style={styles.vitalIcon}>{vital.icon}</Text>
+      <View style={styles.vitalInfo}>
+        <Text style={styles.vitalName}>{vital.name}</Text>
+        <Text style={[styles.vitalDesc, { color: descColor }]}>{vital.description}</Text>
+      </View>
+      <View style={styles.sparkContainer}>
+        <Sparkline points={vital.sparkPoints} color={vital.sparkColor} alertDots={vital.alertDots} />
+      </View>
+      <View style={styles.vitalRight}>
+        <Text style={[styles.vitalValue, { color: valColor }]}>{vital.value}</Text>
+        <Text style={[styles.vitalTrend, { color: trendColor }]}>{vital.trend}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ============================================================================
+// MENU ITEM COMPONENT
+// ============================================================================
+
+interface MenuItemProps {
+  item: MenuItem;
+}
+
+const ICON_BG_COLORS: Record<string, string> = {
+  green: Colors.greenLight,
+  amber: Colors.amberLight,
+  teal: Colors.accentLight,
+  sage: 'rgba(110, 231, 183, 0.10)',
+  blue: Colors.blueLight,
+  purple: Colors.purpleLight,
+};
+
+const BADGE_COLORS: Record<string, { bg: string; color: string }> = {
+  good:  { bg: 'rgba(16, 185, 129, 0.14)', color: Colors.green },
+  warn:  { bg: 'rgba(245, 158, 11, 0.14)', color: Colors.amber },
+  alert: { bg: 'rgba(239, 68, 68, 0.14)', color: '#FCA5A5' },
+  info:  { bg: Colors.accentLight, color: Colors.accent },
+  soon:  { bg: 'rgba(110, 231, 183, 0.12)', color: '#6EE7B7' },
+};
+
+function MenuItemRow({ item }: MenuItemProps) {
+  const badgeStyle = item.badgeStyle ? BADGE_COLORS[item.badgeStyle] : null;
+
+  return (
+    <TouchableOpacity
+      style={[styles.menuItem, item.elevated && styles.menuItemElevated]}
+      onPress={item.onPress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.title}, ${item.subtitle}`}
+    >
+      <View style={[styles.menuIconWrap, { backgroundColor: ICON_BG_COLORS[item.iconBg] || Colors.accentLight }]}>
+        <Text style={styles.menuIconText}>{item.icon}</Text>
+      </View>
+      <View style={styles.menuBody}>
+        <Text style={styles.menuTitle}>{item.title}</Text>
+        <Text style={styles.menuSub}>{item.subtitle}</Text>
+      </View>
+      <View style={styles.menuRight}>
+        {item.badge && badgeStyle && (
+          <View style={[styles.menuBadge, { backgroundColor: badgeStyle.bg }]}>
+            <Text style={[styles.menuBadgeText, { color: badgeStyle.color }]}>{item.badge}</Text>
+          </View>
+        )}
+        <Text style={styles.menuChevron}>{'\u203A'}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ============================================================================
+// SAMPLE DATA BANNER
 // ============================================================================
 
 interface SampleDataBannerProps {
@@ -294,7 +365,6 @@ interface SampleDataBannerProps {
 }
 
 function SampleDataBanner({ onDismiss, previouslySeen }: SampleDataBannerProps) {
-  // Demoted/smaller version after first viewing
   if (previouslySeen) {
     return (
       <TouchableOpacity
@@ -305,17 +375,16 @@ function SampleDataBanner({ onDismiss, previouslySeen }: SampleDataBannerProps) 
         accessibilityLabel="Dismiss preview mode banner"
       >
         <Text style={styles.sampleBannerCompactText}>
-          ✨ Preview mode — <Text style={styles.sampleBannerCompactLink}>start tracking for real patterns</Text>
+          Preview mode — <Text style={styles.sampleBannerCompactLink}>start tracking for real patterns</Text>
         </Text>
       </TouchableOpacity>
     );
   }
 
-  // Full version for first-time viewers
   return (
     <View style={styles.sampleBanner}>
       <View style={styles.sampleBannerContent}>
-        <Text style={styles.sampleBannerIcon}>✨</Text>
+        <Text style={styles.sampleBannerIcon}>{'\u2728'}</Text>
         <View style={styles.sampleBannerText}>
           <Text style={styles.sampleBannerTitle}>Preview Mode</Text>
           <Text style={styles.sampleBannerSubtitle}>
@@ -337,38 +406,148 @@ function SampleDataBanner({ onDismiss, previouslySeen }: SampleDataBannerProps) 
 }
 
 // ============================================================================
-// CONFIDENCE EXPLANATION COMPONENT
-// One-time global explanation for pattern confidence
+// VITALS COMPUTATION HELPERS
 // ============================================================================
 
-interface ConfidenceExplanationProps {
-  onDismiss: () => void;
+function computeVitalSummaries(readings: VitalReading[], timeRange: TimeRange): VitalSummary[] {
+  const summaries: VitalSummary[] = [];
+
+  const byType: Record<string, VitalReading[]> = {};
+  for (const r of readings) {
+    if (!byType[r.type]) byType[r.type] = [];
+    byType[r.type].push(r);
+  }
+
+  for (const type of Object.keys(byType)) {
+    byType[type].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }
+
+  // Blood Pressure
+  const systolic = byType['systolic'];
+  const diastolic = byType['diastolic'];
+  if (systolic && systolic.length > 0) {
+    const latestSys = systolic[systolic.length - 1].value;
+    const latestDia = diastolic?.[diastolic.length - 1]?.value ?? 0;
+    const midpoint = Math.floor(systolic.length / 2);
+    const firstHalfAvg = systolic.slice(0, Math.max(midpoint, 1)).reduce((s, r) => s + r.value, 0) / Math.max(midpoint, 1);
+    const secondHalfAvg = systolic.slice(midpoint).reduce((s, r) => s + r.value, 0) / Math.max(systolic.length - midpoint, 1);
+    const trending = secondHalfAvg - firstHalfAvg;
+    const isHigh = latestSys >= 130 || latestDia >= 85;
+    const isRising = trending > 3;
+
+    summaries.push({
+      icon: '\uD83E\uDEC0',
+      name: 'Blood Pressure',
+      description: isRising ? 'Trending up slightly' : isHigh ? 'Above target range' : 'Stable',
+      descriptionTone: isHigh ? 'alert' : isRising ? 'warn' : 'normal',
+      value: `${Math.round(latestSys)}/${Math.round(latestDia)}`,
+      valueTone: isHigh ? 'alert' : isRising ? 'warn' : 'normal',
+      trend: isRising ? '\u2191 avg mmHg' : '\u2192 stable',
+      trendTone: isRising ? 'up' : 'stable',
+      sparkPoints: generateSparkPoints(systolic.map(r => r.value)),
+      sparkColor: isHigh ? Colors.red : isRising ? Colors.amber : 'rgba(20, 184, 166, 0.65)',
+    });
+  }
+
+  // Heart Rate
+  const hr = byType['heartRate'];
+  if (hr && hr.length > 0) {
+    const latest = hr[hr.length - 1].value;
+    const midpoint = Math.floor(hr.length / 2);
+    const firstAvg = hr.slice(0, Math.max(midpoint, 1)).reduce((s, r) => s + r.value, 0) / Math.max(midpoint, 1);
+    const secondAvg = hr.slice(midpoint).reduce((s, r) => s + r.value, 0) / Math.max(hr.length - midpoint, 1);
+    const trending = secondAvg - firstAvg;
+    const isStable = Math.abs(trending) < 5;
+
+    summaries.push({
+      icon: '\uD83D\uDC93',
+      name: 'Heart Rate',
+      description: isStable ? 'Stable' : trending > 0 ? 'Slightly elevated' : 'Lower than usual',
+      descriptionTone: isStable ? 'normal' : 'warn',
+      value: `${Math.round(latest)} bpm`,
+      valueTone: 'normal',
+      trend: isStable ? '\u2192 stable' : trending > 0 ? '\u2191 slight' : '\u2193 slight',
+      trendTone: isStable ? 'stable' : 'up',
+      sparkPoints: generateSparkPoints(hr.map(r => r.value)),
+      sparkColor: 'rgba(20, 184, 166, 0.65)',
+    });
+  }
+
+  // Glucose
+  const glucose = byType['glucose'];
+  if (glucose && glucose.length > 0) {
+    const aboveRange = glucose.filter(r => r.value > 180).length;
+    const latest = glucose[glucose.length - 1].value;
+    const hasAlerts = aboveRange > 0;
+    const alertDots = hasAlerts
+      ? glucose.map((r, i) => r.value > 180
+          ? { cx: sparkX(i, glucose.length), cy: sparkY(r.value, glucose.map(v => v.value)) }
+          : null
+        ).filter(Boolean) as { cx: number; cy: number }[]
+      : undefined;
+
+    summaries.push({
+      icon: '\uD83E\uDE78',
+      name: 'Glucose',
+      description: hasAlerts ? `${aboveRange} reading${aboveRange !== 1 ? 's' : ''} above range` : 'Within range',
+      descriptionTone: hasAlerts ? 'alert' : 'normal',
+      value: hasAlerts ? '\u26A0 review' : `${Math.round(latest)} mg/dL`,
+      valueTone: hasAlerts ? 'alert' : 'normal',
+      trend: hasAlerts ? 'tap to see' : '\u2192 stable',
+      trendTone: hasAlerts ? 'flagged' : 'stable',
+      sparkPoints: generateSparkPoints(glucose.map(r => r.value)),
+      sparkColor: hasAlerts ? Colors.red : 'rgba(20, 184, 166, 0.65)',
+      alertDots,
+    });
+  }
+
+  // Weight
+  const weight = byType['weight'];
+  if (weight && weight.length >= 2) {
+    const latest = weight[weight.length - 1].value;
+    const first = weight[0].value;
+    const change = latest - first;
+    const isStable = Math.abs(change) < 2;
+
+    summaries.push({
+      icon: '\u2696\uFE0F',
+      name: 'Weight',
+      description: isStable ? 'Stable' : change > 0 ? 'Slight increase' : 'Slight decrease',
+      descriptionTone: 'normal',
+      value: `${latest.toFixed(1)} lbs`,
+      valueTone: 'normal',
+      trend: isStable ? '\u2192 stable' : change > 0 ? `\u2191 ${Math.abs(change).toFixed(1)}` : `\u2193 ${Math.abs(change).toFixed(1)}`,
+      trendTone: isStable ? 'stable' : 'up',
+      sparkPoints: generateSparkPoints(weight.map(r => r.value)),
+      sparkColor: 'rgba(20, 184, 166, 0.65)',
+    });
+  }
+
+  return summaries;
 }
 
-function ConfidenceExplanation({ onDismiss }: ConfidenceExplanationProps) {
-  return (
-    <View style={styles.confidenceExplanation}>
-      <View style={styles.confidenceExplanationHeader}>
-        <Text style={styles.confidenceExplanationTitle}>How patterns are detected</Text>
-        <TouchableOpacity
-          onPress={onDismiss}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityRole="button"
-          accessibilityLabel="Dismiss pattern explanation"
-        >
-          <Text style={styles.confidenceExplanationDismiss}>×</Text>
-        </TouchableOpacity>
-      </View>
-      <Text style={styles.confidenceExplanationText}>
-        We look for connections in your tracking data. <Text style={styles.confidenceExplanationBold}>Strong patterns</Text> appear
-        consistently over 20+ days. <Text style={styles.confidenceExplanationBold}>Emerging patterns</Text> are
-        forming but need more data to confirm.
-      </Text>
-      <Text style={styles.confidenceExplanationNote}>
-        Patterns suggest connections, not causes. Discuss with your care team before making changes.
-      </Text>
-    </View>
-  );
+function generateSparkPoints(values: number[]): string {
+  if (values.length === 0) return '';
+  if (values.length === 1) return '25,11';
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  return values.map((v, i) => {
+    const x = 2 + (i / (values.length - 1)) * 46;
+    const y = 19 - ((v - min) / range) * 16;
+    return `${x.toFixed(0)},${y.toFixed(0)}`;
+  }).join(' ');
+}
+
+function sparkX(index: number, total: number): number {
+  return 2 + (index / Math.max(total - 1, 1)) * 46;
+}
+
+function sparkY(value: number, allValues: number[]): number {
+  const min = Math.min(...allValues);
+  const max = Math.max(...allValues);
+  const range = max - min || 1;
+  return 19 - ((value - min) / range) * 16;
 }
 
 // ============================================================================
@@ -382,7 +561,11 @@ export default function UnderstandScreen() {
   const [timeRange, setTimeRange] = useState<TimeRange>(14);
   const [pageData, setPageData] = useState<UnderstandPageData | null>(null);
   const [providerPrep, setProviderPrep] = useState<ProviderPrepData | null>(null);
+  const [vitalSummaries, setVitalSummaries] = useState<VitalSummary[]>([]);
   const [showPatternsSheet, setShowPatternsSheet] = useState(false);
+
+  // Care tasks for adherence stat
+  const { state: careTasksState } = useCareTasks(getTodayDateString());
 
   useFocusEffect(
     useCallback(() => {
@@ -397,7 +580,17 @@ export default function UnderstandScreen() {
       setLoading(true);
       const data = await loadUnderstandPageData(timeRange);
       setPageData(data);
-      // Build provider prep questions from insights when appointment is near
+
+      try {
+        const now = new Date();
+        const start = new Date(now);
+        start.setDate(start.getDate() - timeRange);
+        const readings = await getVitalsInRange(start.toISOString(), now.toISOString());
+        setVitalSummaries(computeVitalSummaries(readings, timeRange));
+      } catch {
+        setVitalSummaries([]);
+      }
+
       try {
         const prep = await buildProviderPrep(
           data.standOutInsights.map(i => ({
@@ -422,53 +615,103 @@ export default function UnderstandScreen() {
     setRefreshing(false);
   }, [timeRange]);
 
-  const handleTimeRangeChange = (range: TimeRange) => {
-    setTimeRange(range);
-  };
-
-  const handleDismissSuggestion = async (cardId: string) => {
-    await dismissSuggestion(`suggestion-${cardId}`);
-  };
-
   const handleDismissSampleData = async () => {
     await dismissSampleData();
     await loadData();
   };
 
-  const [confidenceExplanationDismissed, setConfidenceExplanationDismissed] = useState(false);
-
-  const handleDismissConfidenceExplanation = async () => {
-    setConfidenceExplanationDismissed(true);
-    await markConfidenceExplained();
-  };
-
-  const handleTrackThis = (cardId: string, title: string) => {
-    // Navigate to log-note with the pattern as context for tracking
-    router.push({
-      pathname: '/log-note',
-      params: {
-        prefillTitle: `Tracking: ${title}`,
-        prefillContext: 'experiment',
-      },
-    } as any);
-  };
-
   const navigateToRoute = (route: string | undefined) => {
     if (!route) return;
     const validRoute = getRouteOrFallback(route);
-    if (validRoute) {
-      navigate(validRoute);
+    if (validRoute) navigate(validRoute);
+  };
+
+  // Spotlight insight text — use first insight
+  const spotlightInsight = useMemo(() => {
+    if (!pageData?.standOutInsights.length) return undefined;
+    return pageData.standOutInsights[0].text;
+  }, [pageData?.standOutInsights]);
+
+  // Build menu items
+  const menuItems: MenuItem[] = useMemo(() => {
+    const items: MenuItem[] = [];
+
+    if (providerPrep) {
+      items.push({
+        id: 'visit-prep',
+        icon: '\uD83D\uDCCB',
+        iconBg: 'sage',
+        title: 'Visit Prep',
+        subtitle: providerPrep.appointment
+          ? `${providerPrep.appointment.provider} \u00B7 ${providerPrep.appointment.specialty} \u00B7 in ${providerPrep.appointment.daysUntil} day${providerPrep.appointment.daysUntil !== 1 ? 's' : ''}`
+          : 'Prepare for your next visit',
+        badge: providerPrep.questions?.length
+          ? `${providerPrep.questions.length} question${providerPrep.questions.length !== 1 ? 's' : ''} ready`
+          : undefined,
+        badgeStyle: 'soon',
+        elevated: true,
+        onPress: () => navigate('/care-brief'),
+      });
     }
-  };
 
-  // Single deeper patterns tool
-  const DEEPER_PATTERNS_TOOL = {
-    icon: '🔍',
-    title: 'Deeper Patterns',
-    subtitle: 'Explore all correlations',
-    route: '/trends',
-  };
+    items.push({
+      id: 'med-adherence',
+      icon: '\uD83D\uDC8A',
+      iconBg: 'amber',
+      title: 'Medication Adherence',
+      subtitle: `By time of day \u00B7 ${timeRange} days`,
+      onPress: () => navigate('/medication-report'),
+    });
 
+    const patternCount = pageData?.correlationCards.length ?? 0;
+    items.push({
+      id: 'patterns',
+      icon: '\uD83D\uDD17',
+      iconBg: 'teal',
+      title: 'Patterns Detected',
+      subtitle: 'Sleep & mood \u00B7 Hydration & energy',
+      badge: patternCount > 0 ? `${patternCount} pattern${patternCount !== 1 ? 's' : ''}` : undefined,
+      badgeStyle: 'info',
+      onPress: () => {
+        if (patternCount > 0) {
+          setShowPatternsSheet(true);
+        } else {
+          navigate('/trends');
+        }
+      },
+    });
+
+    items.push({
+      id: 'vitals-trends',
+      icon: '\uD83D\uDCC8',
+      iconBg: 'blue',
+      title: 'Vital Signs Trends',
+      subtitle: 'BP, glucose, heart rate over time',
+      onPress: () => navigate('/trends'),
+    });
+
+    items.push({
+      id: 'med-report',
+      icon: '\uD83D\uDCCA',
+      iconBg: 'amber',
+      title: 'Medication Report',
+      subtitle: 'Full adherence history by med',
+      onPress: () => navigate('/care-summary-export'),
+    });
+
+    items.push({
+      id: 'care-report',
+      icon: '\uD83D\uDCCB',
+      iconBg: 'purple',
+      title: 'Daily Care Report',
+      subtitle: 'Complete summary \u00B7 export ready',
+      onPress: () => navigate('/daily-care-report'),
+    });
+
+    return items;
+  }, [providerPrep, timeRange, pageData?.correlationCards]);
+
+  // Loading state
   if (loading && !pageData) {
     return (
       <View style={styles.container}>
@@ -481,6 +724,10 @@ export default function UnderstandScreen() {
     );
   }
 
+  const adherencePct = careTasksState?.completionRate ?? 0;
+  const daysTracked = pageData?.daysOfData ?? 0;
+  const patternsFound = pageData?.correlationCards.length ?? 0;
+
   return (
     <View style={styles.container}>
       <AuroraBackground variant="hub" />
@@ -491,42 +738,21 @@ export default function UnderstandScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={Colors.accent}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
           }
         >
           {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerTop}>
-              <View style={styles.headerText}>
-                <Text style={styles.headerTitle}>Understand</Text>
-                <Text style={styles.headerSubtitle}>
-                  {pageData && !pageData.isSampleData && pageData.daysOfData >= 7
-                    ? "What's stabilizing"
-                    : 'Patterns emerge with time'}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.settingsButton}
-                onPress={() => navigate('/settings')}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="Settings"
-              >
-                <Text style={styles.settingsIcon}>⚙️</Text>
-              </TouchableOpacity>
-            </View>
+          <ScreenHeader
+            title="Understand"
+            subtitle={`Last ${timeRange} days`}
+            rightAction={
+              pageData && !pageData.isSampleData && pageData.daysOfData >= 7
+                ? <TimeRangeToggle value={timeRange} onChange={setTimeRange} />
+                : undefined
+            }
+          />
 
-            {/* Time Range Toggle — only show with enough data */}
-            {pageData && !pageData.isSampleData && pageData.daysOfData >= 7 && (
-              <TimeRangeToggle value={timeRange} onChange={handleTimeRangeChange} />
-            )}
-          </View>
-
-          {/* Sample Data Banner - shows smaller version after first dismissal */}
+          {/* Sample Data Banner */}
           {pageData?.isSampleData && (
             <SampleDataBanner
               onDismiss={handleDismissSampleData}
@@ -534,10 +760,10 @@ export default function UnderstandScreen() {
             />
           )}
 
-          {/* Data Building — centered prominent card */}
+          {/* Data Building Banner */}
           {pageData && !pageData.isSampleData && pageData.daysOfData < 7 && (
             <View style={styles.dataBuildingBanner}>
-              <Text style={styles.dataBuildingEmoji}>📊</Text>
+              <Text style={styles.dataBuildingEmoji}>{'\uD83D\uDCCA'}</Text>
               <Text style={styles.dataBuildingTitle}>Building your picture</Text>
               <Text style={styles.dataBuildingSubtitle}>
                 Keep tracking — patterns emerge after a few days.{'\n'}
@@ -546,93 +772,56 @@ export default function UnderstandScreen() {
             </View>
           )}
 
-          {/* One-time confidence explanation */}
-          {pageData?.showConfidenceExplanation && !confidenceExplanationDismissed && (
-            <ConfidenceExplanation onDismiss={handleDismissConfidenceExplanation} />
+          {/* 1. STAT SPOTLIGHT */}
+          <StatSpotlight
+            adherencePct={adherencePct}
+            daysTracked={daysTracked}
+            patternsFound={patternsFound}
+            insightText={spotlightInsight}
+          />
+
+          {/* 2. POSITIVE BANNER */}
+          {pageData && pageData.positiveObservations.length > 0 && (
+            <PositiveBanner observations={pageData.positiveObservations} />
           )}
 
-          {/* What Stands Out / What We Know So Far */}
-          <View style={styles.section}>
-            <Text style={styles.sectionHeader}>
-              {pageData && !pageData.isSampleData && pageData.daysOfData < 7
-                ? 'WHAT WE KNOW SO FAR'
-                : 'WHAT STANDS OUT'}
-            </Text>
-            <View style={styles.standOutCard}>
-              {pageData?.standOutInsights.map((insight) => (
-                <StandOutRow
-                  key={insight.id}
-                  insight={insight}
-                  onLinkPress={() => navigateToRoute(insight.linkRoute)}
-                />
-              ))}
-
-              {/* Data context badge */}
-              {pageData && pageData.daysOfData > 0 && (
-                <View style={styles.dataContextBadge}>
-                  <Text style={styles.dataContextText}>
-                    Based on {pageData.daysOfData} days of tracking
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-
-          {/* What's Going Well Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionHeader}>WHAT'S GOING WELL</Text>
-            <View style={styles.positiveCard}>
-              {pageData?.positiveObservations.map((observation) => (
-                <PositiveRow key={observation.id} observation={observation} />
-              ))}
-            </View>
-          </View>
-
-          {/* Correlation Cards */}
+          {/* 3. PATTERNS DETECTED */}
           {pageData && pageData.correlationCards.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionHeader}>PATTERNS DETECTED</Text>
-              <View style={styles.correlationsContainer}>
-                {pageData.correlationCards.slice(0, 3).map((card) => (
-                  <CorrelationCardComponent
-                    key={card.id}
-                    card={card}
-                    onDismissSuggestion={handleDismissSuggestion}
-                    onTrackThis={handleTrackThis}
+              <Text style={styles.sectionLabel}>PATTERNS DETECTED</Text>
+              {pageData.correlationCards.map(card => (
+                <PatternCard
+                  key={card.id}
+                  card={card}
+                  onPress={() => setShowPatternsSheet(true)}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* 4. VITALS AT A GLANCE */}
+          {vitalSummaries.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>VITALS AT A GLANCE {'\u00B7'} LAST {timeRange} DAYS</Text>
+              <View style={styles.vitalsCard}>
+                {vitalSummaries.map((vital) => (
+                  <VitalRow
+                    key={vital.name}
+                    vital={vital}
+                    onPress={() => navigate('/trends')}
                   />
                 ))}
               </View>
-              {pageData.correlationCards.length > 3 && (
-                <TouchableOpacity
-                  style={styles.viewAllLink}
-                  onPress={() => setShowPatternsSheet(true)}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel={`View all ${pageData.correlationCards.length} patterns`}
-                >
-                  <Text style={styles.viewAllText}>
-                    View all {pageData.correlationCards.length} patterns →
-                  </Text>
-                </TouchableOpacity>
-              )}
             </View>
           )}
 
-          {/* Provider Prep (when appointment within 5 days) */}
-          {providerPrep && (
-            <View style={styles.section}>
-              <Text style={styles.sectionHeader}>VISIT PREP</Text>
-              <ProviderPrepCard data={providerPrep} />
-            </View>
-          )}
-
-          {/* Deeper Patterns */}
-          <PatternTool
-            icon={DEEPER_PATTERNS_TOOL.icon}
-            title={DEEPER_PATTERNS_TOOL.title}
-            subtitle={DEEPER_PATTERNS_TOOL.subtitle}
-            onPress={() => navigateToRoute(DEEPER_PATTERNS_TOOL.route)}
-          />
+          {/* 5. MORE MENU */}
+          <Text style={styles.menuLabel}>MORE</Text>
+          <View style={styles.menuList}>
+            {menuItems.map(item => (
+              <MenuItemRow key={item.id} item={item} />
+            ))}
+          </View>
 
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -680,298 +869,307 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  // Header
-  header: {
-    paddingTop: 60,
-    paddingBottom: 12,
-    marginBottom: 16,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
-  headerText: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '200',
-    color: Colors.textPrimary,
-    letterSpacing: 0.5,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  settingsButton: {
-    width: 30,
-    height: 30,
-    backgroundColor: Colors.glassActive,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  settingsIcon: {
-    fontSize: 12,
-    opacity: 0.5,
-  },
-
-  // Time Range Toggle (segmented pill buttons)
+  // Time Range
   timeRangeContainer: {
     flexDirection: 'row',
-    backgroundColor: Colors.glassActive,
-    borderRadius: 10,
-    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 8,
+    overflow: 'hidden',
   },
-  timeRangeOption: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
+  timeRangePill: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
   },
-  timeRangeOptionSelected: {
-    backgroundColor: 'rgba(20,184,166,0.12)',
+  timeRangePillActive: {
+    backgroundColor: 'rgba(20, 184, 166, 0.12)',
   },
   timeRangeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: Colors.textMuted,
   },
-  timeRangeTextSelected: {
+  timeRangeTextActive: {
     color: Colors.accent,
   },
 
-  // Sections
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.textHalf,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+  // Stat Spotlight
+  spotlight: {
+    backgroundColor: 'rgba(20, 184, 166, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 184, 166, 0.2)',
+    borderRadius: 18,
+    padding: 18,
+    paddingHorizontal: 20,
     marginBottom: 12,
-    paddingHorizontal: 4,
   },
-
-  // What Stands Out Card
-  standOutCard: {
-    backgroundColor: Colors.sageTint,
-    borderWidth: 1,
-    borderColor: Colors.sageBorder,
-    borderRadius: 16,
-    padding: 16,
-    gap: 12,
-  },
-  standOutRow: {
+  spotlightRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
+    gap: 16,
   },
-  standOutBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.accent,
-    marginTop: 7,
-  },
-  standOutContent: {
+  spotlightStat: {
     flex: 1,
+    alignItems: 'center',
   },
-  standOutText: {
-    fontSize: 15,
-    color: Colors.textPrimary,
-    lineHeight: 22,
-  },
-  standOutLink: {
-    fontSize: 13,
+  spotlightValue: {
+    fontSize: 28,
+    fontWeight: '300',
     color: Colors.accent,
-    marginTop: 4,
+    lineHeight: 32,
+    marginBottom: 4,
   },
-  dataContextBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.border,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    marginTop: 4,
+  spotlightUnit: {
+    fontSize: 14,
+    color: Colors.textMuted,
   },
-  dataContextText: {
-    fontSize: 11,
-    color: Colors.textHalf,
+  spotlightLabel: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  spotlightDivider: {
+    width: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    alignSelf: 'stretch',
+  },
+  spotlightInsight: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
   },
 
-  // What's Going Well Card
-  positiveCard: {
-    backgroundColor: 'rgba(34, 197, 94, 0.06)',
+  // Positive Banner
+  positiveBanner: {
+    borderRadius: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 0.15)',
-    borderRadius: 16,
-    padding: 16,
-    gap: 10,
+    borderColor: 'rgba(16, 185, 129, 0.15)',
+    padding: 12,
+    paddingHorizontal: 14,
+    marginBottom: 12,
   },
   positiveRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
-  },
-  positiveIcon: {
-    fontSize: 14,
-    color: 'rgba(34, 197, 94, 0.8)',
-    marginTop: 2,
-  },
-  positiveText: {
-    flex: 1,
-    fontSize: 14,
-    color: Colors.textBright,
-    lineHeight: 20,
-  },
-
-  // Correlation Cards
-  correlationsContainer: {
-    gap: 12,
-  },
-  correlationCard: {
-    padding: 16,
-    backgroundColor: Colors.glassFaint,
-    borderColor: Colors.glassActive,
-    borderWidth: 1,
-  },
-  correlationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  correlationTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  correlationInsight: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.75)',
-    lineHeight: 21,
+    gap: 8,
     marginBottom: 8,
   },
-  correlationDataPoints: {
-    fontSize: 11,
-    color: Colors.textMuted,
+  positiveCheck: {
+    color: Colors.green,
+    fontSize: 12,
+    marginTop: 1,
+  },
+  positiveText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 19,
+    flex: 1,
   },
 
-  // View All Link
-  viewAllLink: {
-    marginTop: 8,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  viewAllText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.accent,
-  },
-
-  // Confidence Badge
-  confidenceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    gap: 5,
-  },
-  confidenceDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  confidenceText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-
-  // Suggestion Section
-  suggestionContainer: {
-    marginTop: 12,
-    paddingTop: 12,
+  // Pattern Card
+  patternCard: {
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.accent,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 14,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderRightColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    padding: 14,
+    paddingLeft: 16,
+    marginBottom: 10,
   },
-  suggestionHeader: {
+  patternTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 6,
   },
-  suggestionLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.amberBrightStrong,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  suggestionDismiss: {
-    fontSize: 18,
-    color: Colors.textPlaceholder,
-    fontWeight: '300',
-  },
-  suggestionText: {
+  patternTitle: {
     fontSize: 13,
-    color: Colors.textTertiary,
-    lineHeight: 19,
-    fontStyle: 'italic',
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  confStrong: {
+    backgroundColor: 'rgba(20, 184, 166, 0.12)',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+  },
+  confEmerging: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+  },
+  confText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  confTextStrong: {
+    color: Colors.accent,
+  },
+  confTextEmerging: {
+    color: '#FBBF24',
+  },
+  patternText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  patternFooter: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    letterSpacing: 0.3,
   },
 
-  // Pattern Tools
-  toolCard: {
-    padding: 14,
-    backgroundColor: Colors.glassFaint,
-    borderColor: Colors.glassActive,
-    borderWidth: 1,
+  // Section
+  section: {
+    marginBottom: 20,
   },
-  toolContent: {
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    color: Colors.textMuted,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+
+  // Vitals at a Glance
+  vitalsCard: {
+    backgroundColor: Colors.glassDim,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  vitalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    paddingVertical: 11,
+    paddingHorizontal: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  vitalIcon: {
+    fontSize: 18,
+    width: 26,
+    textAlign: 'center',
+  },
+  vitalInfo: {
+    flex: 1,
+  },
+  vitalName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  vitalDesc: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    marginTop: 1,
+  },
+  sparkContainer: {
+    width: 50,
+    height: 22,
+  },
+  vitalRight: {
+    alignItems: 'flex-end',
+  },
+  vitalValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
+  vitalTrend: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    marginTop: 1,
+  },
+
+  // More Menu
+  menuLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    color: Colors.textMuted,
+    textTransform: 'uppercase',
+    paddingHorizontal: 2,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  menuList: {
+    backgroundColor: Colors.glassDim,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
-  toolIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.sageSubtle,
+  menuItemElevated: {
+    backgroundColor: 'rgba(110, 231, 183, 0.05)',
+    borderBottomColor: 'rgba(110, 231, 183, 0.10)',
+  },
+  menuIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  toolIconText: {
-    fontSize: 20,
-    textAlign: 'center',
+  menuIconText: {
+    fontSize: 17,
   },
-  toolText: {
+  menuBody: {
     flex: 1,
-    justifyContent: 'center',
   },
-  toolTitle: {
-    fontSize: 15,
+  menuTitle: {
+    fontSize: 14,
     fontWeight: '600',
     color: Colors.textPrimary,
-    letterSpacing: 0.2,
   },
-  toolSubtitle: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.55)',
+  menuSub: {
+    fontSize: 11,
+    color: Colors.textMuted,
     marginTop: 2,
   },
-  chevron: {
-    fontSize: 18,
-    color: Colors.accentMuted,
-    fontWeight: '600',
+  menuRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  menuBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+    borderRadius: 8,
+  },
+  menuBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  menuChevron: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.22)',
   },
 
   // Sample Data Banner
@@ -1019,8 +1217,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.purpleBright,
   },
-
-  // Sample Data Banner - Compact version (after first dismissal)
   sampleBannerCompact: {
     backgroundColor: Colors.purpleFaint,
     borderRadius: 10,
@@ -1038,63 +1234,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // Confidence Explanation (one-time)
-  confidenceExplanation: {
-    backgroundColor: Colors.sageFaint,
-    borderWidth: 1,
-    borderColor: Colors.sageWash,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 20,
-  },
-  confidenceExplanationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  confidenceExplanationTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.sageBright,
-  },
-  confidenceExplanationDismiss: {
-    fontSize: 18,
-    color: Colors.textMuted,
-    fontWeight: '300',
-  },
-  confidenceExplanationText: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.75)',
-    lineHeight: 19,
-    marginBottom: 8,
-  },
-  confidenceExplanationBold: {
-    fontWeight: '600',
-    color: Colors.textAlmostFull,
-  },
-  confidenceExplanationNote: {
-    fontSize: 11,
-    color: Colors.textHalf,
-    fontStyle: 'italic',
-  },
-
-  // Track This Button
-  trackThisButton: {
-    backgroundColor: Colors.sageBorder,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  trackThisText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.sageBright,
-  },
-
-  // Data Building Banner (centered)
+  // Data Building Banner
   dataBuildingBanner: {
     backgroundColor: 'rgba(20,184,166,0.12)',
     borderWidth: 1,

@@ -37,7 +37,7 @@ export function MedsBatchPanel({
   onClose,
 }: MedsBatchPanelProps) {
   const [selected, setSelected] = useState<Set<string>>(
-    () => new Set(pendingMeds.map(m => m.id))
+    () => new Set()
   );
   const [confirming, setConfirming] = useState(false);
 
@@ -133,16 +133,16 @@ export function MedsBatchPanel({
 
           {/* Batch actions */}
           <View style={styles.batchActions}>
-            {selected.size < pendingMeds.length && (
-              <TouchableOpacity
-                style={styles.selectAllButton}
-                onPress={selectAll}
-                accessibilityLabel="Select all medications"
-                accessibilityRole="button"
-              >
-                <Text style={styles.selectAllText}>Select All</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={styles.selectAllButton}
+              onPress={selected.size === pendingMeds.length ? () => setSelected(new Set()) : selectAll}
+              accessibilityLabel={selected.size === pendingMeds.length ? 'Deselect all medications' : 'Select all medications'}
+              accessibilityRole="button"
+            >
+              <Text style={styles.selectAllText}>
+                {selected.size === pendingMeds.length ? 'Deselect All' : 'Select All'}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.confirmButton,
@@ -160,6 +160,8 @@ export function MedsBatchPanel({
               <Text style={styles.confirmButtonText}>
                 {confirming
                   ? 'Confirming...'
+                  : selected.size === 0
+                  ? 'Select Meds to Confirm'
                   : `Confirm ${selected.size === pendingMeds.length ? 'All' : selected.size} Med${selected.size !== 1 ? 's' : ''}`}
               </Text>
             </TouchableOpacity>

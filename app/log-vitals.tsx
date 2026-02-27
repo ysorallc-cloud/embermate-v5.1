@@ -13,6 +13,8 @@ import { parseCarePlanContext, getCarePlanBannerText, CarePlanNavigationContext 
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
+import { getTodayDateString } from '../services/carePlanGenerator';
 import { BackButton } from '../components/common/BackButton';
 
 export default function LogVitalsScreen() {
@@ -79,6 +81,24 @@ export default function LogVitalsScreen() {
           carePlanContext.carePlanItemId,
           { logType: 'vitals' }
         );
+      }
+
+      // Mark the daily care instance as completed (updates progress card)
+      const instanceId = params.instanceId as string | undefined;
+      if (instanceId) {
+        try {
+          await logInstanceCompletion(
+            DEFAULT_PATIENT_ID,
+            getTodayDateString(),
+            instanceId,
+            'completed',
+            { type: 'vitals', systolic: Number(systolic) || undefined, diastolic: Number(diastolic) || undefined, heartRate: Number(heartRate) || undefined, oxygen: Number(oxygen) || undefined, temperature: Number(temperature) || undefined, glucose: Number(glucose) || undefined, weight: Number(weight) || undefined },
+            { source: 'record' }
+          );
+          emitDataUpdate('dailyInstances');
+        } catch (err) {
+          logError('LogVitals.completeInstance', err);
+        }
       }
 
       await hapticSuccess();

@@ -37,6 +37,7 @@ import {
 
 // Aurora Components
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
+import { ScreenHeader } from '../../components/ScreenHeader';
 
 // Support Components
 import { HandoffPrompt } from '../../components/support/HandoffPrompt';
@@ -187,10 +188,7 @@ export default function SupportScreen() {
           }
         >
           {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Team</Text>
-            <Text style={styles.headerSubtitle}>Your care team</Text>
-          </View>
+          <ScreenHeader title="Team" subtitle="Your care team" />
 
           {/* Privacy Notice */}
           <View style={styles.privacyNotice}>
@@ -528,25 +526,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
 
-  // Header
-  header: {
-    paddingTop: 60,
-    paddingBottom: 20,
-    marginBottom: 4,
-  },
-  headerTitle: {
-    fontSize: 34,
-    fontWeight: '300',
-    color: Colors.textPrimary,
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    fontWeight: '400',
-    color: Colors.textTertiary,
-    letterSpacing: 0.3,
-  },
+  // Header uses ScreenHeader component
 
   // Privacy Notice
   sampleBanner: {

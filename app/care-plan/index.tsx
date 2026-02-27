@@ -21,7 +21,6 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
-import { useWellnessSettings } from '../../hooks/useWellnessSettings';
 import {
   BucketType,
   BucketConfig,
@@ -34,6 +33,7 @@ import {
 import { InfoModal, InfoIconButton } from '../../components/common/InfoModal';
 import { CARE_PLAN_TEMPLATES, CarePlanTemplate, TemplateMedSuggestion } from '../../constants/carePlanTemplates';
 import { TemplateMedSeedingModal } from '../../components/careplan/TemplateMedSeedingModal';
+import { AddItemSheet } from '../../components/careplan/AddItemSheet';
 
 // ============================================================================
 // BUCKET CARD COMPONENT
@@ -129,33 +129,6 @@ function AIInsightCard({ icon, title, message, onDismiss }: AIInsightCardProps) 
 }
 
 // ============================================================================
-// WELLNESS CARD COMPONENT
-// ============================================================================
-
-function WellnessCard({ onPress, activeFieldCount }: { onPress: () => void; activeFieldCount: number }) {
-  return (
-    <TouchableOpacity
-      style={styles.wellnessCard}
-      onPress={onPress}
-      activeOpacity={0.7}
-      accessibilityLabel={`Wellness Checks, ${activeFieldCount} fields active`}
-      accessibilityRole="button"
-    >
-      <View style={styles.wellnessCardMain}>
-        <Text style={styles.wellnessEmoji}>☀️</Text>
-        <View style={styles.wellnessInfo}>
-          <Text style={styles.wellnessName}>Wellness Checks</Text>
-          <Text style={styles.wellnessSubtitle}>
-            Morning & evening check-in · {activeFieldCount} fields active
-          </Text>
-        </View>
-        <Text style={styles.wellnessChevron}>›</Text>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-// ============================================================================
 // TEMPLATE CARD COMPONENT
 // ============================================================================
 
@@ -204,18 +177,9 @@ export default function CarePlanHomeScreen() {
     initializeConfig,
   } = useCarePlanConfig();
 
-  const { settings: wellnessSettings } = useWellnessSettings();
-
-  // Count active fields: core + enabled optional
-  const morningCoreCount = 3; // sleep, mood, energy
-  const eveningCoreCount = 4; // mood, meals, dayRating, notes
-  const morningOptionalCount = Object.values(wellnessSettings.morning.optionalChecks).filter(Boolean).length;
-  const eveningOptionalCount = Object.values(wellnessSettings.evening.optionalChecks).filter(Boolean).length;
-  const activeFieldCount = morningCoreCount + eveningCoreCount + morningOptionalCount + eveningOptionalCount;
-
-  const [showMoreBuckets, setShowMoreBuckets] = useState(false);
   const [dismissedInsights, setDismissedInsights] = useState<string[]>([]);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [addItemWindow, setAddItemWindow] = useState<string | null>(null);
   const [medSeedingTemplate, setMedSeedingTemplate] = useState<{ name: string; suggestions: TemplateMedSuggestion[] } | null>(null);
 
   // Ensure config exists on first load
@@ -439,7 +403,7 @@ export default function CarePlanHomeScreen() {
               <InfoIconButton onPress={() => setShowInfoModal(true)} />
             </View>
             <Text style={styles.subtitle}>
-              Choose what to track and how reminders work.
+              Build what happens at each part of the day.
             </Text>
           </View>
 
@@ -501,16 +465,88 @@ export default function CarePlanHomeScreen() {
             />
           )}
 
-          {/* Wellness Checks */}
-          <Text style={styles.sectionLabel}>DAILY CHECK-INS</Text>
-          <WellnessCard
-            onPress={() => navigate('/care-plan/wellness')}
-            activeFieldCount={activeFieldCount}
-          />
+          {/* Routines — grouped by time of day */}
+          <Text style={styles.sectionLabel}>ROUTINES</Text>
 
-          {/* Primary Buckets */}
-          <Text style={styles.sectionLabel}>TRACKING CATEGORIES</Text>
-          {PRIMARY_BUCKETS.map(bucket => (
+          {(['morning', 'midday', 'evening'] as const).map((window) => {
+            const windowLabel = window === 'midday' ? 'Afternoon' : window.charAt(0).toUpperCase() + window.slice(1);
+            const windowEmoji = window === 'morning' ? '🌅' : window === 'midday' ? '☀️' : '🌙';
+
+            // Find buckets scheduled in this window
+            const bucketsInWindow = BUCKET_TYPES.filter(b =>
+              config?.[b]?.enabled && config[b]?.timesOfDay?.includes(window)
+            );
+
+            // Check if wellness is scheduled in this window
+            const hasWellness = window === 'morning' || window === 'midday' || window === 'evening';
+            const wellnessLabel = window === 'morning' ? 'Morning wellness check'
+              : window === 'midday' ? 'Afternoon wellness check'
+              : 'Evening wellness check';
+
+            const itemCount = bucketsInWindow.length + (hasWellness ? 1 : 0);
+
+            return (
+              <View key={window} style={styles.routineSection}>
+                <View style={styles.routineHeader}>
+                  <Text style={styles.routineEmoji}>{windowEmoji}</Text>
+                  <View style={styles.routineHeaderText}>
+                    <Text style={styles.routineTitle}>{windowLabel}</Text>
+                    <Text style={styles.routineCount}>
+                      {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Wellness check for this window */}
+                {hasWellness && (
+                  <TouchableOpacity
+                    style={styles.routineItem}
+                    onPress={() => navigate('/care-plan/wellness')}
+                    activeOpacity={0.7}
+                    accessibilityLabel={`Configure ${wellnessLabel}`}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.routineItemEmoji}>☀️</Text>
+                    <View style={styles.routineItemInfo}>
+                      <Text style={styles.routineItemName}>{wellnessLabel}</Text>
+                      <Text style={styles.routineItemSub}>Wellness check</Text>
+                    </View>
+                    <Text style={styles.routineItemChevron}>›</Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* Buckets in this window */}
+                {bucketsInWindow.map(bucket => (
+                  <BucketCard
+                    key={`${window}-${bucket}`}
+                    bucket={bucket}
+                    enabled={config?.[bucket]?.enabled ?? false}
+                    statusText={getBucketStatus(bucket)}
+                    onToggle={(enabled) => handleToggleBucket(bucket, enabled)}
+                    onConfigure={() => handleConfigureBucket(bucket)}
+                  />
+                ))}
+
+                {bucketsInWindow.length === 0 && !hasWellness && (
+                  <Text style={styles.routineEmpty}>No items scheduled</Text>
+                )}
+
+                <TouchableOpacity
+                  style={styles.addItemButton}
+                  onPress={() => setAddItemWindow(window)}
+                  activeOpacity={0.7}
+                  accessibilityLabel={`Add item to ${windowLabel}`}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.addItemText}>+ Add item</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+
+          {/* Unscheduled / all categories */}
+          <Text style={styles.sectionLabel}>ALL CATEGORIES</Text>
+          {[...PRIMARY_BUCKETS, ...SECONDARY_BUCKETS].map(bucket => (
             <BucketCard
               key={bucket}
               bucket={bucket}
@@ -520,42 +556,6 @@ export default function CarePlanHomeScreen() {
               onConfigure={() => handleConfigureBucket(bucket)}
             />
           ))}
-
-          {/* More Categories Toggle */}
-          {!showMoreBuckets ? (
-            <TouchableOpacity
-              style={styles.showMoreButton}
-              onPress={() => setShowMoreBuckets(true)}
-              activeOpacity={0.7}
-              accessibilityLabel="Show more categories"
-              accessibilityRole="button"
-            >
-              <Text style={styles.showMoreText}>+ Show more categories</Text>
-            </TouchableOpacity>
-          ) : (
-            <>
-              <Text style={styles.sectionLabel}>MORE CATEGORIES</Text>
-              {SECONDARY_BUCKETS.map(bucket => (
-                <BucketCard
-                  key={bucket}
-                  bucket={bucket}
-                  enabled={config?.[bucket]?.enabled ?? false}
-                  statusText={getBucketStatus(bucket)}
-                  onToggle={(enabled) => handleToggleBucket(bucket, enabled)}
-                  onConfigure={() => handleConfigureBucket(bucket)}
-                />
-              ))}
-              <TouchableOpacity
-                style={styles.showMoreButton}
-                onPress={() => setShowMoreBuckets(false)}
-                activeOpacity={0.7}
-                accessibilityLabel="Hide extra categories"
-                accessibilityRole="button"
-              >
-                <Text style={styles.showMoreText}>- Hide extra categories</Text>
-              </TouchableOpacity>
-            </>
-          )}
 
           {/* Optional - Appointments */}
           <Text style={styles.sectionLabel}>OPTIONAL</Text>
@@ -574,6 +574,13 @@ export default function CarePlanHomeScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       </LinearGradient>
+
+      {/* Add Item Sheet */}
+      <AddItemSheet
+        visible={!!addItemWindow}
+        windowLabel={addItemWindow ?? undefined}
+        onClose={() => setAddItemWindow(null)}
+      />
 
       {/* Med Seeding Modal — shown after applying a template with suggested meds */}
       {medSeedingTemplate && (
@@ -751,15 +758,83 @@ const styles = StyleSheet.create({
     color: Colors.accent,
   },
 
-  // Show More
-  showMoreButton: {
-    alignItems: 'center',
-    paddingVertical: Spacing.lg,
+  // Routine Sections
+  routineSection: {
+    backgroundColor: Colors.glassFaint,
+    borderWidth: 1,
+    borderColor: Colors.glassActive,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
   },
-  showMoreText: {
+  routineHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  routineEmoji: {
+    fontSize: 22,
+  },
+  routineHeaderText: {
+    flex: 1,
+  },
+  routineTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  routineCount: {
+    fontSize: 12,
+    color: Colors.textHalf,
+    marginTop: 2,
+  },
+  routineItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.glassActive,
+    gap: Spacing.md,
+  },
+  routineItemEmoji: {
+    fontSize: 20,
+  },
+  routineItemInfo: {
+    flex: 1,
+  },
+  routineItemName: {
     fontSize: 14,
-    color: Colors.accent,
     fontWeight: '500',
+    color: Colors.textPrimary,
+  },
+  routineItemSub: {
+    fontSize: 12,
+    color: Colors.textHalf,
+    marginTop: 2,
+  },
+  routineItemChevron: {
+    fontSize: 18,
+    color: Colors.accent,
+  },
+  routineEmpty: {
+    fontSize: 13,
+    color: Colors.textHalf,
+    fontStyle: 'italic',
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.glassActive,
+  },
+  addItemButton: {
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.glassActive,
+    marginTop: Spacing.sm,
+  },
+  addItemText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.accent,
   },
 
   // AI Insight Card
@@ -800,43 +875,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textSecondary,
     lineHeight: 20,
-  },
-
-  // Wellness Card
-  wellnessCard: {
-    backgroundColor: Colors.sageHint,
-    borderWidth: 1,
-    borderColor: Colors.sageGlow,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
-    overflow: 'hidden',
-  },
-  wellnessCardMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  wellnessEmoji: {
-    fontSize: 28,
-  },
-  wellnessInfo: {
-    flex: 1,
-  },
-  wellnessName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.accent,
-    marginBottom: 4,
-  },
-  wellnessSubtitle: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  wellnessChevron: {
-    fontSize: 22,
-    color: Colors.accent,
   },
 
   // Templates

@@ -36,6 +36,7 @@ import {
 
 // Aurora Components
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { PatientSwitcherModal } from '../../components/now/PatientSwitcherModal';
 import { usePatient } from '../../contexts/PatientContext';
 import { WelcomeBackBanner } from '../../components/common/WelcomeBackBanner';
@@ -72,9 +73,11 @@ import { useNowInsights } from '../../hooks/useNowInsights';
 
 // Extracted components
 import { ProgressRings } from '../../components/now/ProgressRings';
-// CareInsightCard removed — insight now shown inline in footer
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { TimelineSection } from '../../components/now/TimelineSection';
+import { RoutineSheet } from '../../components/now/RoutineSheet';
 import { UpNextCard } from '../../components/now/UpNextCard';
+import type { TimeWindow } from '../../utils/nowHelpers';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -134,6 +137,7 @@ export default function NowScreen() {
 
   // Category filter state (tappable rings)
   const [selectedCategory, setSelectedCategory] = useState<BucketType | null>(null);
+  const [activeRoutineWindow, setActiveRoutineWindow] = useState<TimeWindow | null>(null);
 
   const handleRingPress = useCallback((bucket: BucketType) => {
     setSelectedCategory(prev => prev === bucket ? null : bucket);
@@ -473,6 +477,7 @@ export default function NowScreen() {
     <View style={styles.container}>
       <AuroraBackground variant="now" />
 
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
@@ -485,31 +490,29 @@ export default function NowScreen() {
           />
         }
       >
-        {/* Compact header: greeting + date left, patient chip right */}
-        <View style={styles.headerRow}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.headerGreeting}>{getGreeting()}</Text>
-            <Text style={styles.headerDate}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => setShowPatientSwitcher(true)}
-            style={styles.patientChip}
-            accessibilityLabel={`Patient: ${patientName}. Tap to switch.`}
-            accessibilityRole="button"
-          >
-            <View style={styles.patientAvatar}>
-              <Text style={styles.patientAvatarText}>
-                {patientName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-            <Text style={styles.patientChipName}>{patientName}</Text>
-            {patients.length > 1 && (
-              <Text style={{ fontSize: 10, color: Colors.textMuted }}>{'\u25BC'}</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        {/* Header: greeting + date left, patient chip right */}
+        <ScreenHeader
+          title={getGreeting()}
+          subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+          rightAction={
+            <TouchableOpacity
+              onPress={() => setShowPatientSwitcher(true)}
+              style={styles.patientChip}
+              accessibilityLabel={`Patient: ${patientName}. Tap to switch.`}
+              accessibilityRole="button"
+            >
+              <View style={styles.patientAvatar}>
+                <Text style={styles.patientAvatarText}>
+                  {patientName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <Text style={styles.patientChipName}>{patientName}</Text>
+              {patients.length > 1 && (
+                <Text style={{ fontSize: 10, color: Colors.textMuted }}>{'\u25BC'}</Text>
+              )}
+            </TouchableOpacity>
+          }
+        />
         <PatientSwitcherModal
           visible={showPatientSwitcher}
           onClose={() => setShowPatientSwitcher(false)}
@@ -711,6 +714,7 @@ export default function NowScreen() {
             waterGlasses={waterGlasses}
             waterGoal={waterGoal}
             onWaterUpdate={handleWaterUpdate}
+            onStartRoutine={setActiveRoutineWindow}
           />
 
           {/* Empty states */}
@@ -794,6 +798,20 @@ export default function NowScreen() {
         {/* Bottom spacing for tab bar */}
         <View style={{ height: 100 }} />
       </ScrollView>
+      </SafeAreaView>
+
+      {/* Routine Sheet — batch logging for a time window */}
+      {activeRoutineWindow && (
+        <RoutineSheet
+          visible={!!activeRoutineWindow}
+          window={activeRoutineWindow}
+          items={[...allPending, ...todayTimeline.completed].filter(
+            i => i.windowLabel === activeRoutineWindow
+          )}
+          onItemPress={handleTimelineItemPress}
+          onDismiss={() => setActiveRoutineWindow(null)}
+        />
+      )}
     </View>
   );
 }
@@ -820,29 +838,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
 
-  // Compact header
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 12,
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  headerGreeting: {
-    fontSize: 22,
-    fontWeight: '300',
-    color: Colors.textPrimary,
-    letterSpacing: -0.2,
-  },
-  headerDate: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
+  // Patient chip (header uses ScreenHeader)
   patientChip: {
     flexDirection: 'row',
     alignItems: 'center',

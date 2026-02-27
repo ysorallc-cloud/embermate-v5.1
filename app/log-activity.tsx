@@ -13,9 +13,12 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { Colors } from '../theme/theme-tokens';
+import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
+import { emitDataUpdate } from '../lib/events';
+import { getTodayDateString } from '../services/carePlanGenerator';
 
 const ACTIVITY_TYPES = [
   { id: 'walk', emoji: '🚶', label: 'Walking' },
@@ -28,6 +31,7 @@ const ACTIVITY_TYPES = [
 
 export default function LogActivityScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [duration, setDuration] = useState('');
   const [notes, setNotes] = useState('');
@@ -51,6 +55,25 @@ export default function LogActivityScreen() {
       setSaving(true);
       // For now, just log to console - can be connected to storage later
       devLog('Activity logged:', { selectedActivities, duration, notes });
+
+      // Mark the daily care instance as completed (updates progress card)
+      const instanceId = params.instanceId as string | undefined;
+      if (instanceId) {
+        try {
+          await logInstanceCompletion(
+            DEFAULT_PATIENT_ID,
+            getTodayDateString(),
+            instanceId,
+            'completed',
+            { type: 'activity', activityType: selectedActivities.join(', '), duration: parseInt(duration) || 0 },
+            { source: 'record' }
+          );
+          emitDataUpdate('dailyInstances');
+        } catch (err) {
+          logError('LogActivity.completeInstance', err);
+        }
+      }
+
       router.back();
     } catch (error) {
       logError('LogActivityScreen.handleSave', error);

@@ -16,12 +16,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { saveSymptom } from '../utils/symptomStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { BackButton } from '../components/common/BackButton';
 
 const COMMON_SYMPTOMS = [
@@ -31,6 +32,7 @@ const COMMON_SYMPTOMS = [
 
 export default function LogSymptomScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [selectedSymptom, setSelectedSymptom] = useState('');
   const [customSymptom, setCustomSymptom] = useState('');
   const [severity, setSeverity] = useState(5);
@@ -39,7 +41,8 @@ export default function LogSymptomScreen() {
 
   const handleSymptomSelect = (symptom: string) => {
     if (symptom === 'Pain') {
-      router.push('/log-pain');
+      const instanceId = params.instanceId as string | undefined;
+      router.push(instanceId ? `/log-pain?instanceId=${instanceId}` : '/log-pain');
       return;
     }
     setSelectedSymptom(symptom);
@@ -65,6 +68,19 @@ export default function LogSymptomScreen() {
       });
 
       emitDataUpdate('symptoms');
+
+      const instanceId = params.instanceId as string | undefined;
+      if (instanceId) {
+        try {
+          await logInstanceCompletion(DEFAULT_PATIENT_ID, getTodayDateString(), instanceId, 'completed',
+            { type: 'custom', symptom: { name: symptomToLog.trim(), severity } },
+            { source: 'record' });
+          emitDataUpdate('dailyInstances');
+        } catch (err) {
+          logError('LogSymptomScreen.completeInstance', err);
+        }
+      }
+
       router.back();
     } catch (error) {
       Alert.alert('Error', 'Failed to log symptom. Please try again.');
