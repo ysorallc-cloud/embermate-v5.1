@@ -1,5 +1,6 @@
 // ============================================================================
-// QUICK LOG MORE SCREEN - All Quick Log options with Core and More sections
+// QUICK LOG MORE SCREEN - All Quick Log options filtered by enabled buckets
+// Disabled categories shown at bottom with 'Enable' hint
 // ============================================================================
 
 import React from 'react';
@@ -15,10 +16,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { navigate } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
-import { CORE_OPTIONS, MORE_OPTIONS, QuickLogOption } from '../constants/quickLogOptions';
+import { getFilteredOptions, QuickLogOption } from '../constants/quickLogOptions';
+import { useEnabledBuckets } from '../hooks/useCarePlanConfig';
 
 export default function QuickLogMoreScreen() {
   const router = useRouter();
+  const { enabledBuckets } = useEnabledBuckets();
+  const { core, more, disabled } = getFilteredOptions(enabledBuckets);
 
   const handleOptionPress = (option: QuickLogOption) => {
     // Wellness: route to morning or evening screen based on time of day
@@ -77,20 +81,58 @@ export default function QuickLogMoreScreen() {
 
         <ScrollView style={styles.content}>
           {/* Core Section */}
-          <Text style={styles.sectionLabel}>CORE</Text>
-          <View style={styles.sectionCard}>
-            {CORE_OPTIONS.map((option, index) =>
-              renderOption(option, index === CORE_OPTIONS.length - 1)
-            )}
-          </View>
+          {core.length > 0 && (
+            <>
+              <Text style={styles.sectionLabel}>CORE</Text>
+              <View style={styles.sectionCard}>
+                {core.map((option, index) =>
+                  renderOption(option, index === core.length - 1)
+                )}
+              </View>
+            </>
+          )}
 
           {/* More Options Section */}
-          <Text style={styles.sectionLabel}>MORE OPTIONS</Text>
-          <View style={styles.sectionCard}>
-            {MORE_OPTIONS.map((option, index) =>
-              renderOption(option, index === MORE_OPTIONS.length - 1)
-            )}
-          </View>
+          {more.length > 0 && (
+            <>
+              <Text style={styles.sectionLabel}>MORE OPTIONS</Text>
+              <View style={styles.sectionCard}>
+                {more.map((option, index) =>
+                  renderOption(option, index === more.length - 1)
+                )}
+              </View>
+            </>
+          )}
+
+          {/* Disabled Categories Section */}
+          {disabled.length > 0 && (
+            <>
+              <Text style={styles.sectionLabel}>NOT IN YOUR CARE PLAN</Text>
+              <View style={styles.sectionCard}>
+                {disabled.map((option, index) => (
+                  <View
+                    key={option.id}
+                    style={[styles.disabledRow, index < disabled.length - 1 && styles.optionBorder]}
+                  >
+                    <View style={styles.disabledIconContainer}>
+                      <Text style={styles.optionIcon}>{option.icon}</Text>
+                    </View>
+                    <View style={styles.optionContent}>
+                      <Text style={styles.disabledLabel}>{option.label}</Text>
+                      <Text style={styles.optionDescription}>{option.description}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => navigate('/care-plan')}
+                      accessibilityLabel={`Enable ${option.label} in care plan`}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.enableLink}>Enable →</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
 
           {/* Bottom spacing */}
           <View style={{ height: 40 }} />
@@ -194,5 +236,32 @@ const styles = StyleSheet.create({
   optionArrow: {
     fontSize: 16,
     color: Colors.textMuted,
+  },
+  // Disabled section styles
+  disabledRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    opacity: 0.6,
+  },
+  disabledIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: Colors.glassDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  disabledLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: Colors.textMuted,
+    marginBottom: 2,
+  },
+  enableLink: {
+    fontSize: 13,
+    color: Colors.accent,
+    fontWeight: '500',
   },
 });

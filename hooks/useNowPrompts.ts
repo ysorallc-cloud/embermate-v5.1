@@ -1,5 +1,6 @@
 // ============================================================================
 // useNowPrompts - Manages prompt/baseline/onboarding state for Now page
+// Returns { showOnboarding, briefing, handlers } for MorningBriefing consumption
 // ============================================================================
 
 import { useState, useCallback, useEffect } from 'react';
@@ -43,19 +44,34 @@ import {
   getBaselineLanguage,
 } from '../utils/baselineStorage';
 
+// ============================================================================
+// MorningBriefingData — aggregated prompt state for MorningBriefing component
+// ============================================================================
+export interface MorningBriefingData {
+  orientationMessage: string | null;
+  closureMessage: string | null;
+  regulationMessage: string | null;
+  regulationReason: string | null;
+  baselineToConfirm: { category: BaselineCategory; baseline: CategoryBaseline } | null;
+  todayVsBaseline: TodayVsBaseline[];
+  lastVisitHours: number | null;
+  shouldShow: boolean;
+}
+
 export function useNowPrompts(todayStats: TodayStats, dailyTracking: any) {
   const router = useRouter();
 
-  // Prompt system state
+  // Prompt system state (internal)
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showNotificationPrompt, setShowNotificationPromptState] = useState(false);
   const [orientationPrompt, setOrientationPrompt] = useState<OrientationPromptType | null>(null);
   const [regulationPrompt, setRegulationPrompt] = useState<RegulationPromptType | null>(null);
   const [showClosure, setShowClosure] = useState(false);
   const [closureMessage, setClosureMessage] = useState('');
-  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+  const [showWelcomeBannerState, setShowWelcomeBanner] = useState(false);
+  const [lastVisitHours, setLastVisitHours] = useState<number | null>(null);
 
-  // Baseline state
+  // Baseline state (internal)
   const [baselineData, setBaselineData] = useState<BaselineData | null>(null);
   const [todayVsBaseline, setTodayVsBaseline] = useState<TodayVsBaseline[]>([]);
   const [baselineToConfirm, setBaselineToConfirm] = useState<{
@@ -63,11 +79,15 @@ export function useNowPrompts(todayStats: TodayStats, dailyTracking: any) {
     baseline: CategoryBaseline;
   } | null>(null);
 
+  // Briefing dismissal state
+  const [briefingDismissed, setBriefingDismissed] = useState(false);
+
   // Check for onboarding, notification prompt, and welcome banner on mount
   useEffect(() => {
     checkOnboarding();
     checkNotificationPrompt();
     checkWelcomeBanner();
+    loadLastVisitHours();
   }, []);
 
   const checkOnboarding = async () => {
@@ -85,10 +105,14 @@ export function useNowPrompts(todayStats: TodayStats, dailyTracking: any) {
     setShowWelcomeBanner(shouldShow);
   };
 
-  const handleDismissBanner = async () => {
-    await dismissWelcomeBanner();
-    setShowWelcomeBanner(false);
+  const loadLastVisitHours = async () => {
+    const hours = await getHoursSinceLastOpen();
+    setLastVisitHours(hours);
   };
+
+  // ============================================================================
+  // Handlers
+  // ============================================================================
 
   const handleShowMeWhatMatters = async () => {
     await completeOnboarding();
@@ -116,28 +140,33 @@ export function useNowPrompts(todayStats: TodayStats, dailyTracking: any) {
     setShowNotificationPromptState(false);
   };
 
-  const handleDismissRegulation = async () => {
-    await dismissPrompt('regulation');
-    setRegulationPrompt(null);
+  const dismissBriefing = async () => {
+    setBriefingDismissed(true);
+    // Persist individual dismissals for their original AsyncStorage keys
+    if (regulationPrompt) {
+      await dismissPrompt('regulation');
+      setRegulationPrompt(null);
+    }
+    if (showWelcomeBannerState) {
+      await dismissWelcomeBanner();
+      setShowWelcomeBanner(false);
+    }
+    if (showNotificationPrompt) {
+      await dismissNotificationPrompt();
+      setShowNotificationPromptState(false);
+    }
   };
 
-  // Baseline confirmation handlers
-  const handleBaselineYes = async () => {
-    if (baselineToConfirm) {
+  const handleBaselineConfirm = async (yes: boolean) => {
+    if (!baselineToConfirm) return;
+    if (yes) {
       await confirmBaseline(baselineToConfirm.category);
-      setBaselineToConfirm(null);
-      const next = await getNextBaselineToConfirm();
-      setBaselineToConfirm(next);
-    }
-  };
-
-  const handleBaselineNotReally = async () => {
-    if (baselineToConfirm) {
+    } else {
       await rejectBaseline(baselineToConfirm.category);
-      setBaselineToConfirm(null);
-      const next = await getNextBaselineToConfirm();
-      setBaselineToConfirm(next);
     }
+    setBaselineToConfirm(null);
+    const next = await getNextBaselineToConfirm();
+    setBaselineToConfirm(next);
   };
 
   const handleBaselineDismiss = async () => {
@@ -153,7 +182,6 @@ export function useNowPrompts(todayStats: TodayStats, dailyTracking: any) {
   const getBaselineStatusMessage = (comparison: TodayVsBaseline): { main: string; sub?: string } | null => {
     const { category, baseline, today, matchesBaseline, belowBaseline } = comparison;
 
-    // Get confidence level from baselineData
     let categoryBaseline: CategoryBaseline | null = null;
     if (baselineData) {
       switch (category) {
@@ -221,6 +249,8 @@ export function useNowPrompts(todayStats: TodayStats, dailyTracking: any) {
       const firstOpen = await isFirstOpenOfDay();
       const rapid = isRapidNavigation();
 
+      setLastVisitHours(hoursSinceOpen);
+
       const pendingCount =
         (stats.meds.total - stats.meds.completed) +
         (stats.vitals.total - stats.vitals.completed) +
@@ -286,26 +316,41 @@ export function useNowPrompts(todayStats: TodayStats, dailyTracking: any) {
     setBaselineToConfirm(toConfirm);
   };
 
-  return {
-    showOnboarding,
-    showClosure,
-    closureMessage,
-    orientationPrompt,
-    regulationPrompt,
-    showNotificationPrompt,
-    showWelcomeBanner,
+  // ============================================================================
+  // Aggregate into MorningBriefingData
+  // ============================================================================
+  const hasAnyContent = !!(
+    orientationPrompt ||
+    showClosure ||
+    regulationPrompt ||
+    baselineToConfirm ||
+    showWelcomeBannerState
+  );
+
+  const briefing: MorningBriefingData | null = {
+    orientationMessage: orientationPrompt?.message ?? null,
+    closureMessage: showClosure ? closureMessage : null,
+    regulationMessage: regulationPrompt?.message ?? null,
+    regulationReason: regulationPrompt?.reason ?? null,
     baselineToConfirm,
     todayVsBaseline,
-    baselineData,
-    handleShowMeWhatMatters,
-    handleExploreOnMyOwn,
-    handleEnableNotifications,
-    handleNotNowNotifications,
-    handleDismissRegulation,
-    handleDismissBanner,
-    handleBaselineYes,
-    handleBaselineNotReally,
-    handleBaselineDismiss,
+    lastVisitHours,
+    shouldShow: !showOnboarding && !briefingDismissed && hasAnyContent,
+  };
+
+  return {
+    showOnboarding,
+    briefing,
+    handlers: {
+      handleShowMeWhatMatters,
+      handleExploreOnMyOwn,
+      handleEnableNotifications,
+      handleNotNowNotifications,
+      dismissBriefing,
+      handleBaselineConfirm,
+      handleBaselineDismiss,
+    },
+    // Kept for backward compatibility — these still need to be called from now.tsx
     getBaselineStatusMessage,
     computePrompts,
     checkNotificationPrompt,

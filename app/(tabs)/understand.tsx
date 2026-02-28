@@ -43,6 +43,8 @@ import {
 import { logError } from '../../utils/devLog';
 import { useDataListener } from '../../lib/events';
 import { buildProviderPrep, ProviderPrepData } from '../../utils/providerPrepBuilder';
+import { useEnabledBuckets } from '../../hooks/useCarePlanConfig';
+import type { BucketType } from '../../types/carePlanConfig';
 import { PatternsSheet } from '../../components/understand/PatternsSheet';
 import { getVitalsInRange, VitalReading } from '../../utils/vitalsStorage';
 
@@ -74,6 +76,7 @@ interface MenuItem {
   badgeStyle?: 'good' | 'warn' | 'alert' | 'info' | 'soon';
   elevated?: boolean;
   onPress: () => void;
+  requiredBuckets?: BucketType[];
 }
 
 // ============================================================================
@@ -570,6 +573,8 @@ export default function UnderstandScreen() {
   const [providerPrep, setProviderPrep] = useState<ProviderPrepData | null>(null);
   const [vitalSummaries, setVitalSummaries] = useState<VitalSummary[]>([]);
   const [showPatternsSheet, setShowPatternsSheet] = useState(false);
+  const [hasActiveJourney, setHasActiveJourney] = useState(false);
+  const { enabledBuckets } = useEnabledBuckets();
 
   useFocusEffect(
     useCallback(() => {
@@ -610,6 +615,15 @@ export default function UnderstandScreen() {
       } catch {
         setProviderPrep(null);
       }
+
+      // Check for active care journey (Task 4.4)
+      try {
+        const { getActiveJourney } = await import('../../utils/careJourneyStorage');
+        const journey = await getActiveJourney();
+        setHasActiveJourney(journey !== null);
+      } catch {
+        setHasActiveJourney(false);
+      }
     } catch (error) {
       logError('UnderstandScreen.loadData', error);
     } finally {
@@ -634,7 +648,7 @@ export default function UnderstandScreen() {
     if (validRoute) navigate(validRoute);
   };
 
-  // Build menu items
+  // Build menu items — filtered by enabled buckets
   const menuItems: MenuItem[] = useMemo(() => {
     const items: MenuItem[] = [];
 
@@ -652,17 +666,19 @@ export default function UnderstandScreen() {
           : undefined,
         badgeStyle: 'soon',
         elevated: true,
-        onPress: () => navigate('/care-brief'),
+        onPress: () => navigate('/care-report?scope=visit'),
+        requiredBuckets: [], // Always visible when appointment exists
       });
     }
 
     items.push({
-      id: 'med-adherence',
-      icon: '\uD83D\uDC8A',
+      id: 'care-report',
+      icon: '\uD83D\uDCCB',
       iconBg: 'amber',
-      title: 'Medication Adherence',
-      subtitle: `By time of day \u00B7 ${timeRange} days`,
-      onPress: () => navigate('/medication-report'),
+      title: 'Care Report',
+      subtitle: 'Handoff, daily summary, export',
+      onPress: () => navigate('/care-report'),
+      requiredBuckets: [], // Always visible — aggregates all data
     });
 
     const patternCount = pageData?.correlationCards.length ?? 0;
@@ -681,6 +697,7 @@ export default function UnderstandScreen() {
           navigate('/trends');
         }
       },
+      requiredBuckets: [], // Always visible — patterns span multiple buckets
     });
 
     items.push({
@@ -690,28 +707,28 @@ export default function UnderstandScreen() {
       title: 'Vital Signs Trends',
       subtitle: 'BP, glucose, heart rate over time',
       onPress: () => navigate('/trends'),
+      requiredBuckets: ['vitals'],
     });
 
-    items.push({
-      id: 'med-report',
-      icon: '\uD83D\uDCCA',
-      iconBg: 'amber',
-      title: 'Medication Report',
-      subtitle: 'Full adherence history by med',
-      onPress: () => navigate('/care-summary-export'),
-    });
+    // Care Journey — only visible when a journey is active (Task 4.4)
+    if (hasActiveJourney) {
+      items.push({
+        id: 'care-journey',
+        icon: '\uD83D\uDDFA\uFE0F',
+        iconBg: 'teal',
+        title: 'Care Journey',
+        subtitle: 'Your guided care timeline',
+        onPress: () => navigate('/care-journey'),
+        requiredBuckets: [], // Always visible when journey active
+      });
+    }
 
-    items.push({
-      id: 'care-report',
-      icon: '\uD83D\uDCCB',
-      iconBg: 'purple',
-      title: 'Daily Care Report',
-      subtitle: 'Complete summary \u00B7 export ready',
-      onPress: () => navigate('/daily-care-report'),
-    });
-
-    return items;
-  }, [providerPrep, timeRange, pageData?.correlationCards]);
+    // Filter: show items with empty requiredBuckets or at least one matching enabled bucket
+    return items.filter(item =>
+      !item.requiredBuckets || item.requiredBuckets.length === 0 ||
+      item.requiredBuckets.some(b => enabledBuckets.includes(b))
+    );
+  }, [providerPrep, timeRange, pageData?.correlationCards, enabledBuckets, hasActiveJourney]);
 
   // Loading state
   if (loading && !pageData) {
@@ -730,7 +747,27 @@ export default function UnderstandScreen() {
   const dosesLogged = pageData?.dosesLogged ?? 0;
   const dosesScheduled = pageData?.dosesScheduled ?? 0;
   const daysTracked = pageData?.daysOfData ?? 0;
-  const patternsFound = pageData?.correlationCards.length ?? 0;
+
+  // Filter correlation cards by enabled buckets
+  const CARD_BUCKET_KEYWORDS: Record<string, BucketType[]> = {
+    sleep: ['sleep'], mood: ['wellness'], hydration: ['water'],
+    energy: ['wellness'], meal: ['meals'], med: ['meds'],
+    vital: ['vitals'], activity: ['activity'],
+  };
+
+  const filteredCorrelationCards = useMemo(() => {
+    if (!pageData?.correlationCards) return [];
+    return pageData.correlationCards.filter(card => {
+      const titleLower = card.title.toLowerCase();
+      const relatedBuckets = Object.entries(CARD_BUCKET_KEYWORDS)
+        .filter(([keyword]) => titleLower.includes(keyword))
+        .flatMap(([, buckets]) => buckets);
+      // Show card if no bucket keywords found (generic) or at least one related bucket is enabled
+      return relatedBuckets.length === 0 || relatedBuckets.some(b => enabledBuckets.includes(b));
+    });
+  }, [pageData?.correlationCards, enabledBuckets]);
+
+  const patternsFound = filteredCorrelationCards.length;
 
   return (
     <View style={styles.container}>
@@ -790,11 +827,11 @@ export default function UnderstandScreen() {
             <InsightCallout observations={pageData.positiveObservations} />
           )}
 
-          {/* 3. PATTERNS DETECTED */}
-          {pageData && pageData.correlationCards.length > 0 && (
+          {/* 3. PATTERNS DETECTED — filtered by enabled buckets */}
+          {filteredCorrelationCards.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>PATTERNS DETECTED</Text>
-              {pageData.correlationCards.map(card => (
+              {filteredCorrelationCards.map(card => (
                 <PatternCard
                   key={card.id}
                   card={card}
@@ -837,7 +874,7 @@ export default function UnderstandScreen() {
         <PatternsSheet
           visible={showPatternsSheet}
           onClose={() => setShowPatternsSheet(false)}
-          correlationCards={pageData.correlationCards}
+          correlationCards={filteredCorrelationCards}
           timeRange={timeRange}
         />
       )}

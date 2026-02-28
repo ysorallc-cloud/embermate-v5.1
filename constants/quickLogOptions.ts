@@ -1,7 +1,10 @@
 // ============================================================================
 // QUICK LOG OPTIONS
 // Defines all quick log types with core (3 always visible) and more options
+// Each option maps to a BucketType for progressive disclosure filtering
 // ============================================================================
+
+import type { BucketType } from '../types/carePlanConfig';
 
 export interface QuickLogOption {
   id: string;
@@ -11,6 +14,7 @@ export interface QuickLogOption {
   screen: string; // Navigation target
   isCore: boolean; // Shows on TODAY screen
   category: 'core' | 'health' | 'daily' | 'care';
+  bucketType: BucketType | null; // null = always visible regardless of config
 }
 
 export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
@@ -23,6 +27,7 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
     screen: '/medication-confirm',
     isCore: true,
     category: 'core',
+    bucketType: 'meds',
   },
   {
     id: 'wellness',
@@ -32,6 +37,7 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
     screen: '/log-morning-wellness',
     isCore: true,
     category: 'core',
+    bucketType: 'wellness',
   },
   {
     id: 'vitals',
@@ -41,6 +47,7 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
     screen: '/log-vitals',
     isCore: true,
     category: 'core',
+    bucketType: 'vitals',
   },
 
   // MORE OPTIONS
@@ -52,6 +59,7 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
     screen: '/log-note',
     isCore: false,
     category: 'care',
+    bucketType: null, // Always visible
   },
   {
     id: 'meals',
@@ -61,6 +69,7 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
     screen: '/log-meal',
     isCore: false,
     category: 'daily',
+    bucketType: 'meals',
   },
   {
     id: 'hydration',
@@ -70,6 +79,7 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
     screen: '/log-hydration',
     isCore: false,
     category: 'daily',
+    bucketType: 'water',
   },
   {
     id: 'sleep',
@@ -79,6 +89,7 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
     screen: '/log-sleep',
     isCore: false,
     category: 'daily',
+    bucketType: 'sleep',
   },
   {
     id: 'activity',
@@ -88,6 +99,7 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
     screen: '/log-activity',
     isCore: false,
     category: 'daily',
+    bucketType: 'activity',
   },
   {
     id: 'bathroom',
@@ -97,6 +109,7 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
     screen: '/log-bathroom',
     isCore: false,
     category: 'health',
+    bucketType: null, // General health — always visible
   },
   {
     id: 'symptom',
@@ -106,6 +119,7 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
     screen: '/log-symptom',
     isCore: false,
     category: 'health',
+    bucketType: null, // General health — always visible
   },
   {
     id: 'appointment',
@@ -115,6 +129,7 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
     screen: '/appointments',
     isCore: false,
     category: 'care',
+    bucketType: null, // Always visible
   },
 ];
 
@@ -123,3 +138,25 @@ export const CORE_OPTIONS = QUICK_LOG_OPTIONS.filter((o) => o.isCore);
 
 // Helper to get more options
 export const MORE_OPTIONS = QUICK_LOG_OPTIONS.filter((o) => !o.isCore);
+
+// ============================================================================
+// PROGRESSIVE DISCLOSURE FILTER
+// Returns options split by enabled/disabled bucket status
+// ============================================================================
+
+export interface FilteredOptions {
+  core: QuickLogOption[];
+  more: QuickLogOption[];
+  disabled: QuickLogOption[];
+}
+
+export function getFilteredOptions(enabledBuckets: BucketType[]): FilteredOptions {
+  const isVisible = (option: QuickLogOption): boolean =>
+    option.bucketType === null || enabledBuckets.includes(option.bucketType);
+
+  const visibleCore = CORE_OPTIONS.filter(isVisible);
+  const visibleMore = MORE_OPTIONS.filter(isVisible);
+  const disabled = QUICK_LOG_OPTIONS.filter(o => !isVisible(o));
+
+  return { core: visibleCore, more: visibleMore, disabled };
+}

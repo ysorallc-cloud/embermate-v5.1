@@ -181,6 +181,12 @@ export default function CarePlanHomeScreen() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [addItemWindow, setAddItemWindow] = useState<string | null>(null);
   const [medSeedingTemplate, setMedSeedingTemplate] = useState<{ name: string; suggestions: TemplateMedSuggestion[] } | null>(null);
+  const [showAddMore, setShowAddMore] = useState(false);
+
+  // Split buckets into enabled (main grid) and disabled (collapsible section)
+  const allBuckets: BucketType[] = [...PRIMARY_BUCKETS, ...SECONDARY_BUCKETS, ...OPTIONAL_BUCKETS];
+  const enabledBucketSet = new Set(enabledBuckets);
+  const disabledBuckets = allBuckets.filter(b => !enabledBucketSet.has(b));
 
   // Ensure config exists on first load
   React.useEffect(() => {
@@ -544,31 +550,52 @@ export default function CarePlanHomeScreen() {
             );
           })}
 
-          {/* Unscheduled / all categories */}
-          <Text style={styles.sectionLabel}>ALL CATEGORIES</Text>
-          {[...PRIMARY_BUCKETS, ...SECONDARY_BUCKETS].map(bucket => (
-            <BucketCard
-              key={bucket}
-              bucket={bucket}
-              enabled={config?.[bucket]?.enabled ?? false}
-              statusText={getBucketStatus(bucket)}
-              onToggle={(enabled) => handleToggleBucket(bucket, enabled)}
-              onConfigure={() => handleConfigureBucket(bucket)}
-            />
-          ))}
+          {/* Enabled categories — main tile grid */}
+          {enabledBuckets.length > 0 && (
+            <>
+              <Text style={styles.sectionLabel}>YOUR CATEGORIES</Text>
+              {enabledBuckets.map(bucket => (
+                <BucketCard
+                  key={bucket}
+                  bucket={bucket}
+                  enabled={true}
+                  statusText={getBucketStatus(bucket)}
+                  onToggle={(enabled) => handleToggleBucket(bucket, enabled)}
+                  onConfigure={() => handleConfigureBucket(bucket)}
+                />
+              ))}
+            </>
+          )}
 
-          {/* Optional - Appointments */}
-          <Text style={styles.sectionLabel}>OPTIONAL</Text>
-          {OPTIONAL_BUCKETS.map(bucket => (
-            <BucketCard
-              key={bucket}
-              bucket={bucket}
-              enabled={config?.[bucket]?.enabled ?? false}
-              statusText={getBucketStatus(bucket)}
-              onToggle={(enabled) => handleToggleBucket(bucket, enabled)}
-              onConfigure={() => handleConfigureBucket(bucket)}
-            />
-          ))}
+          {/* Disabled categories — collapsible "Add more" section */}
+          {disabledBuckets.length > 0 && (
+            <>
+              <TouchableOpacity
+                style={styles.addMoreHeader}
+                onPress={() => setShowAddMore(!showAddMore)}
+                activeOpacity={0.7}
+                accessibilityLabel={showAddMore ? 'Collapse add more categories' : 'Expand add more categories'}
+                accessibilityRole="button"
+              >
+                <Text style={styles.addMoreTitle}>
+                  Add more categories
+                </Text>
+                <Text style={styles.addMoreChevron}>
+                  {showAddMore ? '▾' : '▸'}
+                </Text>
+              </TouchableOpacity>
+              {showAddMore && disabledBuckets.map(bucket => (
+                <BucketCard
+                  key={bucket}
+                  bucket={bucket}
+                  enabled={false}
+                  statusText={null}
+                  onToggle={(enabled) => handleToggleBucket(bucket, enabled)}
+                  onConfigure={() => handleConfigureBucket(bucket)}
+                />
+              ))}
+            </>
+          )}
 
           {/* Bottom spacing */}
           <View style={{ height: 40 }} />
@@ -681,6 +708,24 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: Spacing.md,
     marginTop: Spacing.xl,
+  },
+  addMoreHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: Colors.glassBorder,
+  },
+  addMoreTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+  },
+  addMoreChevron: {
+    fontSize: 14,
+    color: Colors.textMuted,
   },
 
   // Bucket Card

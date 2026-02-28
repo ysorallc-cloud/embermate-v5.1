@@ -1,5 +1,5 @@
 // ============================================================================
-// QUICK LOG CARD - Shows 3 core options on TODAY screen
+// QUICK LOG CARD - Shows core options on TODAY screen, filtered by enabled buckets
 // Links to QuickLogMore screen for all options
 // ============================================================================
 
@@ -8,10 +8,14 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
-import { CORE_OPTIONS } from '../../constants/quickLogOptions';
+import { getFilteredOptions } from '../../constants/quickLogOptions';
+import { useEnabledBuckets } from '../../hooks/useCarePlanConfig';
 
 export const QuickLogCard: React.FC = () => {
   const router = useRouter();
+  const { enabledBuckets } = useEnabledBuckets();
+
+  const { core } = getFilteredOptions(enabledBuckets);
 
   const handleOptionPress = (screen: string) => {
     navigate(screen);
@@ -20,6 +24,9 @@ export const QuickLogCard: React.FC = () => {
   const handleMorePress = () => {
     navigate('/quick-log-more');
   };
+
+  // Don't render if no core options are enabled
+  if (core.length === 0) return null;
 
   return (
     <View style={styles.container}>
@@ -37,7 +44,7 @@ export const QuickLogCard: React.FC = () => {
 
       {/* Core Options */}
       <View style={styles.optionsRow}>
-        {CORE_OPTIONS.map((option) => (
+        {core.map((option) => (
           <TouchableOpacity
             key={option.id}
             style={styles.optionButton}
