@@ -7,11 +7,10 @@
 import React, { useMemo } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity, Text, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { navigate } from '../../../lib/navigate';
 import { AuroraBackground } from '../../../components/aurora/AuroraBackground';
 import { GlassCard } from '../../../components/aurora/GlassCard';
-import { PageHeader } from '../../../components/aurora/PageHeader';
+import { SubScreenHeader } from '../../../components/SubScreenHeader';
 import { SectionHeader } from '../../../components/aurora/SectionHeader';
 import { Colors, Spacing, Typography, BorderRadius } from '../../../theme/theme-tokens';
 import { useEnabledBuckets } from '../../../hooks/useCarePlanConfig';
@@ -64,7 +63,6 @@ const REPORT_CATEGORIES: ReportCategory[] = [
 ];
 
 export default function ReportsHub() {
-  const router = useRouter();
   const { enabledBuckets } = useEnabledBuckets();
 
   // Filter reports by enabled buckets
@@ -99,12 +97,9 @@ export default function ReportsHub() {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          <PageHeader
-            category="HUB"
+          <SubScreenHeader
             title="Reports"
-            onBack={() => router.back()}
-            actionIcon="📤"
-            onAction={() => {/* Share all reports */}}
+            emoji="📊"
           />
 
           {/* Intro */}

@@ -20,6 +20,7 @@ export const SENSITIVE_KEY_PREFIXES = [
   '@embermate_central_mood_logs',
   '@embermate_central_symptom_logs',
   '@embermate_central_sleep_logs',
+  '@embermate_central_notes_logs',   // notes may contain medical observations
   '@embermate_medication',          // catches @embermate_medications, @embermate_medication_logs, etc.
   '@embermate_wellness_morning',
   '@embermate_wellness_evening',
@@ -29,6 +30,9 @@ export const SENSITIVE_KEY_PREFIXES = [
   '@embermate_vitals',               // catches @embermate_vitals_*
   '@vitals_readings',                // vitalsStorage.ts key
   '@embermate_symptoms',
+  '@embermate_appointments',         // doctor names, locations, medical reasons
+  '@embermate_care_plan',            // medical conditions, treatment plans
+  '@embermate_careplan',             // carePlanRepo keys
   'medical_info',                    // medicalInfo.ts key (no @ prefix)
   'emergency_contacts',              // emergencyContacts.ts key (no @ prefix)
 ];

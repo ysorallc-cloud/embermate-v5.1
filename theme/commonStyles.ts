@@ -5,19 +5,21 @@
 // ============================================================================
 
 import { StyleSheet } from 'react-native';
+import { useMemo } from 'react';
 import { Colors, Spacing, BorderRadius } from './theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Prevent Expo Router warning (this is not a route component)
 export default null;
 
-export const CommonStyles = StyleSheet.create({
+export const createCommonStyles = (c: typeof Colors) => StyleSheet.create({
   // BACK BUTTON - Used across 20+ screens
   backButton: {
     width: 44,
     height: 44,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -25,7 +27,7 @@ export const CommonStyles = StyleSheet.create({
 
   backIcon: {
     fontSize: 24,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // HEADER ELEMENTS
@@ -35,16 +37,16 @@ export const CommonStyles = StyleSheet.create({
 
   headerLabel: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 1,
     fontWeight: '600',
   },
 
   // ACTION BUTTONS
   saveButton: {
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
+    borderColor: c.accentBorder,
     borderRadius: 12,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
@@ -55,11 +57,11 @@ export const CommonStyles = StyleSheet.create({
   saveButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
 
   primaryButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.xl,
@@ -70,13 +72,13 @@ export const CommonStyles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.background,
+    color: c.background,
   },
 
   secondaryButton: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.xl,
@@ -87,35 +89,35 @@ export const CommonStyles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // FORM INPUTS
   input: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.md,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   inputLabel: {
     fontSize: 13,
     fontWeight: '500',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.sm,
   },
 
   inputError: {
-    borderColor: Colors.error,
+    borderColor: c.error,
   },
 
   inputHelpText: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: Spacing.xs,
   },
 
@@ -125,15 +127,15 @@ export const CommonStyles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.5,
     textTransform: 'uppercase',
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: Spacing.md,
   },
 
   // CARDS
   card: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
   },
@@ -154,13 +156,13 @@ export const CommonStyles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
 
   emptyText: {
     fontSize: 14,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -170,34 +172,33 @@ export const CommonStyles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
 
   loadingText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: Spacing.md,
   },
 
   // DIVIDERS
   divider: {
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     marginVertical: Spacing.md,
   },
 
   dividerThick: {
     height: 2,
-    backgroundColor: Colors.borderMedium,
+    backgroundColor: c.borderMedium,
     marginVertical: Spacing.lg,
   },
 });
 
-// COMMON LAYOUT STYLES
-export const LayoutStyles = StyleSheet.create({
+export const createLayoutStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
 
   gradient: {
@@ -216,3 +217,19 @@ export const LayoutStyles = StyleSheet.create({
     padding: Spacing.xl,
   },
 });
+
+/** Frozen dark-theme instances for backward compat with non-migrated files */
+export const CommonStyles = createCommonStyles(Colors);
+export const LayoutStyles = createLayoutStyles(Colors);
+
+/** Hook that returns theme-aware common styles */
+export function useCommonStyles() {
+  const { colors } = useTheme();
+  return useMemo(() => createCommonStyles(colors), [colors]);
+}
+
+/** Hook that returns theme-aware layout styles */
+export function useLayoutStyles() {
+  const { colors } = useTheme();
+  return useMemo(() => createLayoutStyles(colors), [colors]);
+}

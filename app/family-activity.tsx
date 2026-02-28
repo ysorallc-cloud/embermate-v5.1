@@ -17,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
-import PageHeader from '../components/PageHeader';
+import { SubScreenHeader } from '../components/SubScreenHeader';
 import {
   getCareActivities,
   formatActivityMessage,
@@ -112,22 +112,10 @@ export default function FamilyActivityScreen() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
-        <View style={styles.headerWrapper}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          
-          <PageHeader 
-            emoji="📋"
-            label="Care Coordination"
-            title="Activity Feed"
-          />
-        </View>
+        <SubScreenHeader
+          title="Activity Feed"
+          emoji="📋"
+        />
 
         <ScrollView
           style={styles.content}
@@ -192,27 +180,6 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-  },
-  headerWrapper: {
-    position: 'relative',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 16,
-    left: 24,
-    width: 44,
-    height: 44,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 100,
-  },
-  backIcon: {
-    fontSize: 24,
-    color: Colors.textPrimary,
   },
   content: {
     flex: 1,

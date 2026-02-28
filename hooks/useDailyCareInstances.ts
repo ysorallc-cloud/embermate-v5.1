@@ -233,7 +233,7 @@ export function useDailyCareInstances(
   // Listen for relevant data updates — debounced, read-only refresh
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useDataListener((category) => {
-    if (['dailyInstances', 'carePlanItems', 'carePlan', 'logs', 'sampleDataCleared'].includes(category)) {
+    if (['dailyInstances', 'carePlanItems', 'carePlan', 'logs', 'sampleDataCleared', 'patient'].includes(category)) {
       devLog('[useDailyCareInstances] useDataListener received event:', category);
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = setTimeout(() => { refreshFromStorage(); }, 300);

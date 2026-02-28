@@ -6,10 +6,9 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { AuroraBackground } from '../../../components/aurora/AuroraBackground';
 import { GlassCard } from '../../../components/aurora/GlassCard';
-import { PageHeader } from '../../../components/aurora/PageHeader';
+import { SubScreenHeader } from '../../../components/SubScreenHeader';
 import { Colors, Spacing, Typography, BorderRadius } from '../../../theme/theme-tokens';
 
 // Sample correlation data
@@ -47,7 +46,6 @@ const SAMPLE_CORRELATIONS = [
 ];
 
 export default function CorrelationReport() {
-  const router = useRouter();
   const [timeRange, setTimeRange] = useState<'7' | '14' | '30'>('30');
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
@@ -73,12 +71,8 @@ export default function CorrelationReport() {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          <PageHeader
-            category="THE BIGGER PICTURE"
+          <SubScreenHeader
             title="Health Insights"
-            onBack={() => router.back()}
-            actionIcon="📤"
-            onAction={() => {/* Share insights */}}
           />
 
           {/* Time Range Selector */}

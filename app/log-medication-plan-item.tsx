@@ -28,6 +28,7 @@ import { saveMedicationLog } from '../utils/centralStorage';
 import { hapticSuccess, hapticLight } from '../utils/hapticFeedback';
 import { logError } from '../utils/devLog';
 import { useDailyCareInstances } from '../hooks/useDailyCareInstances';
+import { emitDataUpdate } from '../lib/events';
 
 // ============================================================================
 // CONSTANTS
@@ -150,6 +151,7 @@ export default function LogMedicationPlanItemScreen() {
           sideEffect: sideEffects.length > 0 ? sideEffects.join(', ') : undefined,
           notes: notes.trim() || undefined,
         });
+        emitDataUpdate('dailyInstances');
       }
 
       await hapticSuccess();
@@ -173,6 +175,7 @@ export default function LogMedicationPlanItemScreen() {
       // Skip the care instance
       if (instanceId) {
         await skipInstance(instanceId, `${SKIP_REASONS.find(r => r.id === skipReason)?.label}: ${notes.trim() || 'No additional notes'}`);
+        emitDataUpdate('dailyInstances');
       }
 
       await hapticLight();

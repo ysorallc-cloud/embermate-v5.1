@@ -4,7 +4,7 @@
 // B) Flat "Coming Up Today" chronological list (default, no ring selected)
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
@@ -22,6 +22,7 @@ import {
 import { getUrgencyStatus } from '../../utils/nowUrgency';
 import { getDetailedUrgencyLabel, getTimeDeltaString } from '../../utils/urgency';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import type { BucketType } from '../../types/carePlanConfig';
 
 // ============================================================================
@@ -193,6 +194,8 @@ export function TimelineSection({
   onWaterUpdate,
   onStartRoutine,
 }: TimelineSectionProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
 
   if (!hasRegimenInstances && selectedCategory !== 'water') return null;
@@ -409,6 +412,8 @@ function TimelineModeBContent({
   onItemPress: (instance: any) => void;
   onStartRoutine?: (window: TimeWindow) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [collapsedWindows, setCollapsedWindows] = useState<Set<TimeWindow>>(() => {
     const current = getCurrentTimeWindow();
     const allWindows: TimeWindow[] = ['morning', 'afternoon', 'evening', 'night'];
@@ -522,13 +527,15 @@ function TimelineModeBContent({
                         ]}
                         accessibilityLabel={`${instance.itemName}, ${statusText}`}
                       >
-                        <View style={[
-                          styles.timelineDotDone,
-                          isMissed && styles.timelineDotMissed,
-                        ]}>
-                          <Text style={[styles.timelineDotDoneIcon, isMissed && styles.timelineDotMissedIcon]}>
-                            {isMissed ? '\u2014' : '\u2713'}
-                          </Text>
+                        <View style={styles.timelineDotWrap}>
+                          <View style={[
+                            styles.timelineDotDone,
+                            isMissed && styles.timelineDotMissed,
+                          ]}>
+                            <Text style={[styles.timelineDotDoneIcon, isMissed && styles.timelineDotMissedIcon]}>
+                              {isMissed ? '\u2014' : '\u2713'}
+                            </Text>
+                          </View>
                         </View>
                         <View style={styles.timelineItemBody}>
                           <Text style={styles.timelineNameDone} numberOfLines={1}>{instance.itemName}</Text>
@@ -560,7 +567,9 @@ function TimelineModeBContent({
                       accessibilityLabel={`${instance.itemName}, ${subtitle}`}
                       accessibilityRole="button"
                     >
-                      <View style={[styles.timelineDot, { backgroundColor: dotColor }]} />
+                      <View style={styles.timelineDotWrap}>
+                        <View style={[styles.timelineDot, { backgroundColor: dotColor }]} />
+                      </View>
                       <View style={styles.timelineItemBody}>
                         <Text style={styles.timelineName} numberOfLines={1}>{instance.itemName}</Text>
                         {subtitle ? (
@@ -598,11 +607,11 @@ function TimelineModeBContent({
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.30)',
+    color: c.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 1.4,
   },
@@ -614,12 +623,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    borderTopColor: c.glassHover,
   },
   adjustTodayLink: {
     fontSize: 12,
     fontWeight: '500',
-    color: Colors.accent,
+    color: c.accent,
   },
 
   // ============================================================================
@@ -633,12 +642,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   categoryContainerDefault: {
-    borderColor: Colors.accent,
-    backgroundColor: 'rgba(96, 165, 250, 0.06)',
+    borderColor: c.accent,
+    backgroundColor: c.accentDim,
   },
   categoryContainerOverdue: {
     borderColor: 'rgba(239, 68, 68, 0.4)',
-    backgroundColor: Colors.redFaint,
+    backgroundColor: c.redFaint,
   },
   categoryHeader: {
     flexDirection: 'row',
@@ -657,21 +666,21 @@ const styles = StyleSheet.create({
   categoryLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   categoryCount: {
     fontSize: 13,
     fontWeight: '500',
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   categoryClose: {
     fontSize: 16,
-    color: Colors.textMuted,
+    color: c.textMuted,
     padding: 4,
   },
   categoryEmptyText: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     paddingVertical: 12,
   },
@@ -680,7 +689,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    borderTopColor: c.glassHover,
     gap: 10,
   },
   statusCircle: {
@@ -692,33 +701,33 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   statusCirclePending: {
-    borderColor: Colors.textMuted,
+    borderColor: c.textMuted,
     backgroundColor: 'transparent',
   },
   statusCircleOverdue: {
-    borderColor: Colors.red,
-    backgroundColor: Colors.redFaint,
+    borderColor: c.red,
+    backgroundColor: c.redFaint,
   },
   statusCircleDone: {
-    borderColor: Colors.green,
+    borderColor: c.green,
     backgroundColor: 'rgba(16, 185, 129, 0.10)',
   },
   statusCircleText: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   statusCircleDoneText: {
     fontSize: 12,
-    color: Colors.green,
+    color: c.green,
     fontWeight: '600',
   },
   statusCircleMissed: {
-    borderColor: Colors.amber,
+    borderColor: c.amber,
     backgroundColor: 'rgba(245, 158, 11, 0.10)',
   },
   statusCircleMissedText: {
     fontSize: 12,
-    color: Colors.amber,
+    color: c.amber,
     fontWeight: '600',
   },
   categoryItemDetails: {
@@ -727,40 +736,40 @@ const styles = StyleSheet.create({
   categoryItemName: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   categoryItemNameDone: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     textDecorationLine: 'line-through',
     marginBottom: 2,
   },
   categoryItemTime: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   categoryItemTimeOverdue: {
-    color: Colors.red,
+    color: c.red,
   },
   categoryItemTimeDone: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   logButton: {
-    backgroundColor: Colors.glassActive,
+    backgroundColor: c.glassActive,
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 12,
   },
   logButtonOverdue: {
-    backgroundColor: Colors.redMuted,
+    backgroundColor: c.redMuted,
   },
   logButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // ============================================================================
@@ -778,33 +787,32 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   timeGroupHeaderCurrent: {
-    backgroundColor: 'rgba(96, 165, 250, 0.06)',
+    backgroundColor: c.accentDim,
     borderRadius: 8,
-    paddingHorizontal: 8,
   },
   timeGroupChevron: {
     fontSize: 8,
-    color: Colors.textMuted,
+    color: c.textMuted,
     width: 12,
   },
   timeGroupTitle: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.textMuted,
+    color: c.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   timeGroupTitleCurrent: {
-    color: Colors.accent,
+    color: c.accent,
   },
   timeGroupCount: {
     flex: 1,
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: '500',
   },
   startRoutineButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 10,
@@ -812,10 +820,10 @@ const styles = StyleSheet.create({
   startRoutineText: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.background,
+    color: c.background,
   },
   timeGroupItems: {
-    paddingLeft: 4,
+    paddingLeft: 0,
   },
 
   // Timeline item (pending)
@@ -828,7 +836,12 @@ const styles = StyleSheet.create({
   },
   timelineItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.035)',
+    borderBottomColor: c.glassFaint,
+  },
+  timelineDotWrap: {
+    width: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   timelineDot: {
     width: 6,
@@ -841,12 +854,12 @@ const styles = StyleSheet.create({
   timelineName: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 1,
   },
   timelineSub: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Timeline badges (right side)
@@ -855,7 +868,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: c.glassActive,
   },
   timelineBadgeLate: {
     borderColor: 'rgba(239, 68, 68, 0.35)',
@@ -868,13 +881,13 @@ const styles = StyleSheet.create({
   timelineBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   timelineBadgeTextLate: {
     color: '#FCA5A5',
   },
   timelineBadgeTextSoon: {
-    color: Colors.amber,
+    color: c.amber,
   },
 
   // Timeline item (done/missed)
@@ -895,22 +908,22 @@ const styles = StyleSheet.create({
   timelineDotDoneIcon: {
     fontSize: 0,
     fontWeight: '700',
-    color: Colors.green,
+    color: c.green,
   },
   timelineDotMissedIcon: {
-    color: Colors.amber,
+    color: c.amber,
   },
   timelineNameDone: {
     fontSize: 12,
     fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: c.textMuted,
     textDecorationLine: 'line-through',
-    textDecorationColor: 'rgba(255, 255, 255, 0.15)',
+    textDecorationColor: c.glassSubtle,
     marginBottom: 1,
   },
   timelineSubDone: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   timelineStatusText: {
     fontSize: 11,
@@ -935,16 +948,16 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: c.glassBorder,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: c.glassSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
   waterButtonText: {
     fontSize: 24,
     fontWeight: '300',
-    color: Colors.accent,
+    color: c.accent,
   },
   waterDisplay: {
     alignItems: 'center',
@@ -952,11 +965,11 @@ const styles = StyleSheet.create({
   waterNumber: {
     fontSize: 48,
     fontWeight: '200',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   waterProgressBar: {
     height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: c.glassBorder,
     borderRadius: 3,
     overflow: 'hidden',
     marginTop: 4,
@@ -969,7 +982,7 @@ const styles = StyleSheet.create({
   },
   waterProgressText: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
   },
 });

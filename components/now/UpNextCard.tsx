@@ -3,9 +3,10 @@
 // Left-border accent strip with item name, time badge, and Log action
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { parseTimeForDisplay, isOverdue } from '../../utils/nowHelpers';
 
 // ============================================================================
@@ -57,6 +58,9 @@ interface UpNextCardProps {
 // ============================================================================
 
 export function UpNextCard({ instance, onLogNow, onSkip }: UpNextCardProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (!instance) return null;
 
   const itemIsOverdue = isOverdue(instance.scheduledTime);
@@ -107,15 +111,15 @@ export function UpNextCard({ instance, onLogNow, onSkip }: UpNextCardProps) {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   strip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(20, 184, 166, 0.04)',
+    backgroundColor: c.accentFaint,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.22)',
+    borderColor: c.accentBorder,
     borderLeftWidth: 3,
-    borderLeftColor: Colors.accent,
+    borderLeftColor: c.accent,
     borderRadius: 0,
     borderTopRightRadius: 10,
     borderBottomRightRadius: 10,
@@ -124,9 +128,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   stripOverdue: {
-    backgroundColor: 'rgba(239, 68, 68, 0.07)',
-    borderColor: 'rgba(239, 68, 68, 0.22)',
-    borderLeftColor: '#EF4444',
+    backgroundColor: c.redFaint,
+    borderColor: c.redBorder,
+    borderLeftColor: c.red,
   },
 
   left: {
@@ -137,17 +141,17 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1,
-    color: Colors.accent,
+    color: c.accent,
     textTransform: 'uppercase',
     marginBottom: 2,
   },
   labelOverdue: {
-    color: '#F87171',
+    color: c.redBright,
   },
   itemName: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   right: {
@@ -158,26 +162,26 @@ const styles = StyleSheet.create({
   deltaText: {
     fontSize: 12,
     fontWeight: '500',
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   deltaTextLate: {
-    color: '#F87171',
+    color: c.redBright,
   },
   deltaTextSoon: {
-    color: Colors.amber,
+    color: c.amber,
   },
   timeText: {
     fontSize: 12,
     fontWeight: '500',
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   logPill: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+    backgroundColor: c.accentSubtle,
     borderWidth: 1.5,
-    borderColor: 'rgba(20, 184, 166, 0.4)',
+    borderColor: c.accentBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -188,9 +192,9 @@ const styles = StyleSheet.create({
   logPillText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   logPillTextOverdue: {
-    color: '#F87171',
+    color: c.redBright,
   },
 });

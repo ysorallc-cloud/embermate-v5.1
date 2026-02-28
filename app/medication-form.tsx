@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { SubScreenHeader } from '../components/SubScreenHeader';
 import {
   createMedication,
   updateMedication,
@@ -61,6 +62,7 @@ import {
 } from '../types/carePlan';
 import { generateUniqueId } from '../utils/idGenerator';
 import { logError } from '../utils/devLog';
+import { emitDataUpdate } from '../lib/events';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'bedtime';
 
@@ -249,6 +251,7 @@ export default function MedicationFormScreen() {
   const [scheduleDaysOfWeek, setScheduleDaysOfWeek] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
   const [scheduleEndCondition, setScheduleEndCondition] = useState<ScheduleEndCondition>('ongoing');
 
+  const [saving, setSaving] = useState(false);
   const [formStep, setFormStep] = useState<1 | 2>(1);
   const [showMedSuggestions, setShowMedSuggestions] = useState(false);
   const [showDosageSuggestions, setShowDosageSuggestions] = useState(false);
@@ -397,6 +400,8 @@ export default function MedicationFormScreen() {
   };
 
   const handleSave = async () => {
+    if (saving) return;
+
     // Validate medication name
     if (!name.trim()) {
       Alert.alert('Required Field', 'Please enter a medication name');
@@ -434,6 +439,7 @@ export default function MedicationFormScreen() {
       return;
     }
 
+    setSaving(true);
     try {
       // Map TimeSlot to TimeOfDay for CarePlanConfig
       const slotToTimeOfDay: Record<TimeSlot, TimeOfDay> = {
@@ -567,8 +573,12 @@ export default function MedicationFormScreen() {
         });
       }
 
+      emitDataUpdate('medication');
+      emitDataUpdate('carePlanItems');
+      emitDataUpdate('dailyInstances');
       router.back();
     } catch (error) {
+      setSaving(false);
       logError('MedicationFormScreen.handleSave', error);
       Alert.alert('Error', 'Failed to save medication');
     }
@@ -580,33 +590,9 @@ export default function MedicationFormScreen() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerLabel}>
-            {isEditing ? 'EDIT MEDICATION' : 'ADD MEDICATION'}
-          </Text>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSave}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel={isEditing ? 'Save medication changes' : 'Save new medication'}
-            accessibilityHint="Saves the medication and returns to the previous screen"
-          >
-            <Text style={styles.saveButtonText}>Save</Text>
-          </TouchableOpacity>
-        </View>
+        <SubScreenHeader title={isEditing ? 'Edit Medication' : 'Add Medication'} emoji="💊" />
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <Text style={styles.title}>{isEditing ? 'Edit Medication' : 'Add Medication'}</Text>
 
           {/* Medication Name */}
           <View style={styles.formGroup}>
@@ -774,13 +760,14 @@ export default function MedicationFormScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.primarySaveButton}
+                style={[styles.primarySaveButton, saving && { opacity: 0.5 }]}
                 onPress={handleSave}
+                disabled={saving}
                 accessibilityLabel={isEditing ? 'Save medication changes' : 'Save medication'}
                 accessibilityRole="button"
               >
                 <Text style={styles.primarySaveButtonText}>
-                  {isEditing ? 'Save Changes' : 'Save Medication'}
+                  {saving ? 'Saving...' : isEditing ? 'Save Changes' : 'Save Medication'}
                 </Text>
               </TouchableOpacity>
             </>
@@ -1077,19 +1064,32 @@ export default function MedicationFormScreen() {
           {/* Step 2 save button */}
           {formStep === 2 && (
             <TouchableOpacity
-              style={styles.primarySaveButton}
+              style={[styles.primarySaveButton, saving && { opacity: 0.5 }]}
               onPress={handleSave}
+              disabled={saving}
               accessibilityLabel={isEditing ? 'Save medication changes' : 'Save medication'}
               accessibilityRole="button"
             >
               <Text style={styles.primarySaveButtonText}>
-                {isEditing ? 'Save Changes' : 'Save Medication'}
+                {saving ? 'Saving...' : isEditing ? 'Save Changes' : 'Save Medication'}
               </Text>
             </TouchableOpacity>
           )}
 
           </>
           )}
+
+          <TouchableOpacity
+            style={[styles.bottomSaveButton, saving && { opacity: 0.5 }]}
+            onPress={handleSave}
+            disabled={saving}
+            accessibilityLabel={isEditing ? 'Save medication changes' : 'Save medication'}
+            accessibilityRole="button"
+          >
+            <Text style={styles.bottomSaveButtonText}>
+              {saving ? 'Saving...' : isEditing ? 'Save Changes' : 'Save Medication'}
+            </Text>
+          </TouchableOpacity>
 
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -1106,53 +1106,23 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Platform.OS === 'android' ? 20 : 0,
-    paddingBottom: Spacing.md,
-  },
-    backButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: Colors.backgroundElevated,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  backIcon: {
-    fontSize: 24,
-    color: Colors.textPrimary,
-  },
-  headerLabel: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    letterSpacing: 1,
-    fontWeight: '600',
-  },
-  saveButton: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    color: Colors.accent,
-    fontWeight: '600',
-  },
   scrollView: {
     flex: 1,
     paddingHorizontal: Spacing.xl,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xxl,
+  bottomSaveButton: {
+    backgroundColor: Colors.accent,
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 32,
+  },
+  bottomSaveButtonText: {
+    color: Colors.background,
+    fontSize: 16,
+    fontWeight: '700',
   },
 
   // Form

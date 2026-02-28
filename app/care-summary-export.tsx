@@ -21,6 +21,7 @@ import { Colors, Spacing } from '../theme/theme-tokens';
 import { generateAndSharePDF, ReportData, PatientInfo } from '../utils/pdfExport';
 import { logError } from '../utils/devLog';
 import { logAuditEvent, AuditEventType, AuditSeverity } from '../utils/auditLog';
+import { checkFeatureAccess } from '../utils/featureGate';
 import { buildCareBrief, CareBrief } from '../utils/careSummaryBuilder';
 import { getAppointments } from '../utils/appointmentStorage';
 import { getEmergencyContacts } from '../utils/careTeamStorage';
@@ -246,6 +247,13 @@ export default function CareSummaryExportScreen() {
 
   const doExport = async (type: string) => {
     try {
+      // Check subscription gate for PDF export
+      const gate = await checkFeatureAccess('pdf_export');
+      if (!gate.allowed) {
+        Alert.alert('Premium Feature', gate.reason || 'Upgrade to Premium to export PDF reports.');
+        return;
+      }
+
       setGenerating(true);
       const includedSections = Object.entries(sections).filter(([, v]) => v).map(([k]) => k);
       await logAuditEvent(AuditEventType.CARE_BRIEF_EXPORTED, `Care summary exported: ${type}`, AuditSeverity.WARNING, { format: 'pdf', reportType: type, includedSections });

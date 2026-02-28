@@ -20,8 +20,7 @@ import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { Colors } from '../../theme/theme-tokens';
-import { CommonStyles } from '../../theme/commonStyles';
-import PageHeader from '../../components/PageHeader';
+import { SubScreenHeader } from '../../components/SubScreenHeader';
 import {
   quickBackup,
   quickRestore,
@@ -287,22 +286,10 @@ export default function BackupSettingsScreen() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
-        <View style={CommonStyles.headerWrapper}>
-          <TouchableOpacity
-            style={CommonStyles.backButton}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={CommonStyles.backIcon}>←</Text>
-          </TouchableOpacity>
-
-          <PageHeader
-            emoji="☁️"
-            label="Data Protection"
-            title="Backup & Restore"
-          />
-        </View>
+        <SubScreenHeader
+          title="Backup & Restore"
+          emoji="☁️"
+        />
 
         <ScrollView style={styles.content}>
           {/* Info Banner */}

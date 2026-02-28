@@ -25,6 +25,7 @@ import { navigate } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Polyline, Circle as SvgCircle } from 'react-native-svg';
 import { Colors, Spacing } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import {
@@ -44,8 +45,6 @@ import { useDataListener } from '../../lib/events';
 import { buildProviderPrep, ProviderPrepData } from '../../utils/providerPrepBuilder';
 import { PatternsSheet } from '../../components/understand/PatternsSheet';
 import { getVitalsInRange, VitalReading } from '../../utils/vitalsStorage';
-import { useCareTasks } from '../../hooks/useCareTasks';
-import { getTodayDateString } from '../../services/carePlanGenerator';
 
 // ============================================================================
 // TYPES
@@ -94,13 +93,13 @@ function TimeRangeToggle({ value, onChange }: TimeRangeToggleProps) {
   ];
 
   return (
-    <View style={styles.timeRangeContainer}>
+    <View style={_styles.timeRangeContainer}>
       {options.map(({ range, label }) => (
         <TouchableOpacity
           key={range}
           style={[
-            styles.timeRangePill,
-            value === range && styles.timeRangePillActive,
+            _styles.timeRangePill,
+            value === range && _styles.timeRangePillActive,
           ]}
           onPress={() => onChange(range)}
           activeOpacity={0.7}
@@ -109,8 +108,8 @@ function TimeRangeToggle({ value, onChange }: TimeRangeToggleProps) {
           accessibilityState={{ selected: value === range }}
         >
           <Text style={[
-            styles.timeRangeText,
-            value === range && styles.timeRangeTextActive,
+            _styles.timeRangeText,
+            value === range && _styles.timeRangeTextActive,
           ]}>
             {label}
           </Text>
@@ -121,61 +120,67 @@ function TimeRangeToggle({ value, onChange }: TimeRangeToggleProps) {
 }
 
 // ============================================================================
-// STAT SPOTLIGHT - 3 headline numbers
+// STAT SPOTLIGHT — hero card + secondary chip row
 // ============================================================================
 
 interface StatSpotlightProps {
   adherencePct: number;
+  dosesLogged: number;
+  dosesScheduled: number;
   daysTracked: number;
   patternsFound: number;
-  insightText?: string;
 }
 
-function StatSpotlight({ adherencePct, daysTracked, patternsFound, insightText }: StatSpotlightProps) {
+function StatSpotlight({ adherencePct, dosesLogged, dosesScheduled, daysTracked, patternsFound }: StatSpotlightProps) {
   return (
-    <View style={styles.spotlight}>
-      <View style={styles.spotlightRow}>
-        <View style={styles.spotlightStat}>
-          <Text style={styles.spotlightValue}>
-            {adherencePct}<Text style={styles.spotlightUnit}>%</Text>
+    <>
+      {/* Hero card — adherence */}
+      <View style={_styles.heroCard}>
+        <View style={_styles.heroTopBar} />
+        <Text style={_styles.heroLabel}>MED ADHERENCE</Text>
+        <View style={_styles.heroNumRow}>
+          <Text style={_styles.heroNum}>{adherencePct}</Text>
+          <Text style={_styles.heroUnit}>%</Text>
+        </View>
+        <Text style={_styles.heroContext}>
+          {dosesLogged} of {dosesScheduled} doses logged
+        </Text>
+      </View>
+
+      {/* Secondary chips */}
+      <View style={_styles.chipRow}>
+        <View style={_styles.chip}>
+          <Text style={_styles.chipVal}>{daysTracked}</Text>
+          <Text style={_styles.chipLabel}>Days tracked</Text>
+        </View>
+        <View style={_styles.chip}>
+          <Text style={_styles.chipVal}>
+            {patternsFound}<Text style={_styles.chipValDim}> found</Text>
           </Text>
-          <Text style={styles.spotlightLabel}>Med adherence</Text>
-        </View>
-        <View style={styles.spotlightDivider} />
-        <View style={styles.spotlightStat}>
-          <Text style={styles.spotlightValue}>{daysTracked}</Text>
-          <Text style={styles.spotlightLabel}>Days tracked</Text>
-        </View>
-        <View style={styles.spotlightDivider} />
-        <View style={styles.spotlightStat}>
-          <Text style={styles.spotlightValue}>{patternsFound}</Text>
-          <Text style={styles.spotlightLabel}>Patterns found</Text>
+          <Text style={_styles.chipLabel}>Patterns</Text>
         </View>
       </View>
-      {insightText && (
-        <Text style={styles.spotlightInsight}>{insightText}</Text>
-      )}
-    </View>
+    </>
   );
 }
 
 // ============================================================================
-// POSITIVE BANNER - flat green strip
+// INSIGHT CALLOUT — left-bordered green callout
 // ============================================================================
 
-interface PositiveBannerProps {
+interface InsightCalloutProps {
   observations: PositiveObservation[];
 }
 
-function PositiveBanner({ observations }: PositiveBannerProps) {
+function InsightCallout({ observations }: InsightCalloutProps) {
   if (observations.length === 0) return null;
 
   return (
-    <View style={styles.positiveBanner}>
+    <View style={_styles.insightCallout}>
       {observations.map((obs) => (
-        <View key={obs.id} style={styles.positiveRow}>
-          <Text style={styles.positiveCheck}>{'\u2713'}</Text>
-          <Text style={styles.positiveText}>{obs.text}</Text>
+        <View key={obs.id} style={_styles.insightCalloutRow}>
+          <Text style={_styles.insightCalloutCheck}>{'\u2713'}</Text>
+          <Text style={_styles.insightCalloutText}>{obs.text}</Text>
         </View>
       ))}
     </View>
@@ -194,26 +199,26 @@ interface PatternCardProps {
 function PatternCard({ card, onPress }: PatternCardProps) {
   const borderColor = card.confidence === 'strong' ? Colors.accent : Colors.amber;
   const confLabel = card.confidence === 'strong' ? 'Strong' : 'Emerging';
-  const confStyle = card.confidence === 'strong' ? styles.confStrong : styles.confEmerging;
+  const confStyle = card.confidence === 'strong' ? _styles.confStrong : _styles.confEmerging;
 
   return (
     <TouchableOpacity
-      style={[styles.patternCard, { borderLeftColor: borderColor }]}
+      style={[_styles.patternCard, { borderLeftColor: borderColor }]}
       onPress={onPress}
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={`${card.title}, ${confLabel} pattern`}
     >
-      <View style={styles.patternTop}>
-        <Text style={styles.patternTitle}>{card.title}</Text>
+      <View style={_styles.patternTop}>
+        <Text style={_styles.patternTitle}>{card.title}</Text>
         <View style={confStyle}>
-          <Text style={[styles.confText, card.confidence === 'strong' ? styles.confTextStrong : styles.confTextEmerging]}>
+          <Text style={[_styles.confText, card.confidence === 'strong' ? _styles.confTextStrong : _styles.confTextEmerging]}>
             {confLabel}
           </Text>
         </View>
       </View>
-      <Text style={styles.patternText}>{card.insight}</Text>
-      <Text style={styles.patternFooter}>
+      <Text style={_styles.patternText}>{card.insight}</Text>
+      <Text style={_styles.patternFooter}>
         Based on {card.dataPoints} days {card.confidence === 'strong' ? '\u00B7 Tap to track \u2192' : '\u00B7 More data needed'}
       </Text>
     </TouchableOpacity>
@@ -278,23 +283,23 @@ function VitalRow({ vital, onPress }: VitalRowProps) {
 
   return (
     <TouchableOpacity
-      style={styles.vitalRow}
+      style={_styles.vitalRow}
       onPress={onPress}
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={`${vital.name}, ${vital.value}, ${vital.trend}`}
     >
-      <Text style={styles.vitalIcon}>{vital.icon}</Text>
-      <View style={styles.vitalInfo}>
-        <Text style={styles.vitalName}>{vital.name}</Text>
-        <Text style={[styles.vitalDesc, { color: descColor }]}>{vital.description}</Text>
+      <Text style={_styles.vitalIcon}>{vital.icon}</Text>
+      <View style={_styles.vitalInfo}>
+        <Text style={_styles.vitalName}>{vital.name}</Text>
+        <Text style={[_styles.vitalDesc, { color: descColor }]}>{vital.description}</Text>
       </View>
-      <View style={styles.sparkContainer}>
+      <View style={_styles.sparkContainer}>
         <Sparkline points={vital.sparkPoints} color={vital.sparkColor} alertDots={vital.alertDots} />
       </View>
-      <View style={styles.vitalRight}>
-        <Text style={[styles.vitalValue, { color: valColor }]}>{vital.value}</Text>
-        <Text style={[styles.vitalTrend, { color: trendColor }]}>{vital.trend}</Text>
+      <View style={_styles.vitalRight}>
+        <Text style={[_styles.vitalValue, { color: valColor }]}>{vital.value}</Text>
+        <Text style={[_styles.vitalTrend, { color: trendColor }]}>{vital.trend}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -330,26 +335,26 @@ function MenuItemRow({ item }: MenuItemProps) {
 
   return (
     <TouchableOpacity
-      style={[styles.menuItem, item.elevated && styles.menuItemElevated]}
+      style={[_styles.menuItem, item.elevated && _styles.menuItemElevated]}
       onPress={item.onPress}
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={`${item.title}, ${item.subtitle}`}
     >
-      <View style={[styles.menuIconWrap, { backgroundColor: ICON_BG_COLORS[item.iconBg] || Colors.accentLight }]}>
-        <Text style={styles.menuIconText}>{item.icon}</Text>
+      <View style={[_styles.menuIconWrap, { backgroundColor: ICON_BG_COLORS[item.iconBg] || Colors.accentLight }]}>
+        <Text style={_styles.menuIconText}>{item.icon}</Text>
       </View>
-      <View style={styles.menuBody}>
-        <Text style={styles.menuTitle}>{item.title}</Text>
-        <Text style={styles.menuSub}>{item.subtitle}</Text>
+      <View style={_styles.menuBody}>
+        <Text style={_styles.menuTitle}>{item.title}</Text>
+        <Text style={_styles.menuSub}>{item.subtitle}</Text>
       </View>
-      <View style={styles.menuRight}>
+      <View style={_styles.menuRight}>
         {item.badge && badgeStyle && (
-          <View style={[styles.menuBadge, { backgroundColor: badgeStyle.bg }]}>
-            <Text style={[styles.menuBadgeText, { color: badgeStyle.color }]}>{item.badge}</Text>
+          <View style={[_styles.menuBadge, { backgroundColor: badgeStyle.bg }]}>
+            <Text style={[_styles.menuBadgeText, { color: badgeStyle.color }]}>{item.badge}</Text>
           </View>
         )}
-        <Text style={styles.menuChevron}>{'\u203A'}</Text>
+        <Text style={_styles.menuChevron}>{'\u203A'}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -368,38 +373,38 @@ function SampleDataBanner({ onDismiss, previouslySeen }: SampleDataBannerProps) 
   if (previouslySeen) {
     return (
       <TouchableOpacity
-        style={styles.sampleBannerCompact}
+        style={_styles.sampleBannerCompact}
         onPress={onDismiss}
         activeOpacity={0.7}
         accessibilityRole="button"
         accessibilityLabel="Dismiss preview mode banner"
       >
-        <Text style={styles.sampleBannerCompactText}>
-          Preview mode — <Text style={styles.sampleBannerCompactLink}>start tracking for real patterns</Text>
+        <Text style={_styles.sampleBannerCompactText}>
+          Preview mode — <Text style={_styles.sampleBannerCompactLink}>start tracking for real patterns</Text>
         </Text>
       </TouchableOpacity>
     );
   }
 
   return (
-    <View style={styles.sampleBanner}>
-      <View style={styles.sampleBannerContent}>
-        <Text style={styles.sampleBannerIcon}>{'\u2728'}</Text>
-        <View style={styles.sampleBannerText}>
-          <Text style={styles.sampleBannerTitle}>Preview Mode</Text>
-          <Text style={styles.sampleBannerSubtitle}>
+    <View style={_styles.sampleBanner}>
+      <View style={_styles.sampleBannerContent}>
+        <Text style={_styles.sampleBannerIcon}>{'\u2728'}</Text>
+        <View style={_styles.sampleBannerText}>
+          <Text style={_styles.sampleBannerTitle}>Preview Mode</Text>
+          <Text style={_styles.sampleBannerSubtitle}>
             This is sample data showing what insights will look like. Start tracking to see your real patterns.
           </Text>
         </View>
       </View>
       <TouchableOpacity
-        style={styles.sampleBannerDismiss}
+        style={_styles.sampleBannerDismiss}
         onPress={onDismiss}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         accessibilityRole="button"
         accessibilityLabel="Got it, dismiss preview mode"
       >
-        <Text style={styles.sampleBannerDismissText}>Got it</Text>
+        <Text style={_styles.sampleBannerDismissText}>Got it</Text>
       </TouchableOpacity>
     </View>
   );
@@ -556,6 +561,8 @@ function sparkY(value: number, allValues: number[]): number {
 
 export default function UnderstandScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>(14);
@@ -564,16 +571,17 @@ export default function UnderstandScreen() {
   const [vitalSummaries, setVitalSummaries] = useState<VitalSummary[]>([]);
   const [showPatternsSheet, setShowPatternsSheet] = useState(false);
 
-  // Care tasks for adherence stat
-  const { state: careTasksState } = useCareTasks(getTodayDateString());
-
   useFocusEffect(
     useCallback(() => {
       loadData();
     }, [timeRange])
   );
 
-  useDataListener(useCallback(() => { loadData(); }, [timeRange]));
+  useDataListener(useCallback((cat: string) => {
+    if (['carePlan', 'vitals', 'mood', 'journal', 'medication'].includes(cat)) {
+      loadData();
+    }
+  }, [timeRange]));
 
   const loadData = async () => {
     try {
@@ -625,12 +633,6 @@ export default function UnderstandScreen() {
     const validRoute = getRouteOrFallback(route);
     if (validRoute) navigate(validRoute);
   };
-
-  // Spotlight insight text — use first insight
-  const spotlightInsight = useMemo(() => {
-    if (!pageData?.standOutInsights.length) return undefined;
-    return pageData.standOutInsights[0].text;
-  }, [pageData?.standOutInsights]);
 
   // Build menu items
   const menuItems: MenuItem[] = useMemo(() => {
@@ -717,14 +719,16 @@ export default function UnderstandScreen() {
       <View style={styles.container}>
         <AuroraBackground variant="hub" />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.accent} />
+          <ActivityIndicator size="large" color={colors.accent} />
           <Text style={styles.loadingText}>Analyzing patterns...</Text>
         </View>
       </View>
     );
   }
 
-  const adherencePct = careTasksState?.completionRate ?? 0;
+  const adherencePct = Math.round(pageData?.adherenceRate ?? 0);
+  const dosesLogged = pageData?.dosesLogged ?? 0;
+  const dosesScheduled = pageData?.dosesScheduled ?? 0;
   const daysTracked = pageData?.daysOfData ?? 0;
   const patternsFound = pageData?.correlationCards.length ?? 0;
 
@@ -738,7 +742,7 @@ export default function UnderstandScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
           }
         >
           {/* Header */}
@@ -767,7 +771,7 @@ export default function UnderstandScreen() {
               <Text style={styles.dataBuildingTitle}>Building your picture</Text>
               <Text style={styles.dataBuildingSubtitle}>
                 Keep tracking — patterns emerge after a few days.{'\n'}
-                You've logged <Text style={{ color: Colors.accent, fontWeight: '600' }}>{pageData.daysOfData} day{pageData.daysOfData !== 1 ? 's' : ''}</Text> so far.
+                You've logged <Text style={{ color: colors.accent, fontWeight: '600' }}>{pageData.daysOfData} day{pageData.daysOfData !== 1 ? 's' : ''}</Text> so far.
               </Text>
             </View>
           )}
@@ -775,14 +779,15 @@ export default function UnderstandScreen() {
           {/* 1. STAT SPOTLIGHT */}
           <StatSpotlight
             adherencePct={adherencePct}
+            dosesLogged={dosesLogged}
+            dosesScheduled={dosesScheduled}
             daysTracked={daysTracked}
             patternsFound={patternsFound}
-            insightText={spotlightInsight}
           />
 
-          {/* 2. POSITIVE BANNER */}
+          {/* 2. INSIGHT CALLOUT */}
           {pageData && pageData.positiveObservations.length > 0 && (
-            <PositiveBanner observations={pageData.positiveObservations} />
+            <InsightCallout observations={pageData.positiveObservations} />
           )}
 
           {/* 3. PATTERNS DETECTED */}
@@ -844,10 +849,10 @@ export default function UnderstandScreen() {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   safeArea: {
     flex: 1,
@@ -866,15 +871,15 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Time Range
   timeRangeContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: c.glassBorder,
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -883,89 +888,119 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   timeRangePillActive: {
-    backgroundColor: 'rgba(20, 184, 166, 0.12)',
+    backgroundColor: c.accentLight,
   },
   timeRangeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   timeRangeTextActive: {
-    color: Colors.accent,
+    color: c.accent,
   },
 
-  // Stat Spotlight
-  spotlight: {
-    backgroundColor: 'rgba(20, 184, 166, 0.12)',
+  // Hero Card — adherence
+  heroCard: {
+    backgroundColor: c.accentLight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.2)',
+    borderColor: c.accentBorder,
     borderRadius: 18,
     padding: 18,
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    paddingTop: 0,
+    marginBottom: 10,
+    overflow: 'hidden',
   },
-  spotlightRow: {
+  heroTopBar: {
+    height: 3,
+    backgroundColor: c.accent,
+    marginHorizontal: -18,
+    marginBottom: 14,
+  },
+  heroLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    color: c.textMuted,
+    marginBottom: 2,
+  },
+  heroNumRow: {
     flexDirection: 'row',
-    gap: 16,
+    alignItems: 'baseline',
   },
-  spotlightStat: {
-    flex: 1,
-    alignItems: 'center',
+  heroNum: {
+    fontSize: 40,
+    fontWeight: '200',
+    color: c.accent,
+    lineHeight: 46,
   },
-  spotlightValue: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: Colors.accent,
-    lineHeight: 32,
-    marginBottom: 4,
+  heroUnit: {
+    fontSize: 18,
+    fontWeight: '400',
+    color: c.textMuted,
+    marginLeft: 2,
   },
-  spotlightUnit: {
-    fontSize: 14,
-    color: Colors.textMuted,
-  },
-  spotlightLabel: {
+  heroContext: {
     fontSize: 12,
-    color: Colors.textMuted,
-  },
-  spotlightDivider: {
-    width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    alignSelf: 'stretch',
-  },
-  spotlightInsight: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    color: c.textTertiary,
+    marginTop: 2,
   },
 
-  // Positive Banner
-  positiveBanner: {
-    borderRadius: 12,
-    backgroundColor: 'rgba(16, 185, 129, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.15)',
-    padding: 12,
-    paddingHorizontal: 14,
-    marginBottom: 12,
+  // Chip Row — secondary stats
+  chipRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
   },
-  positiveRow: {
+  chip: {
+    flex: 1,
+    backgroundColor: c.glassDim,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  chipVal: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: c.textPrimary,
+  },
+  chipValDim: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: c.textMuted,
+  },
+  chipLabel: {
+    fontSize: 11,
+    color: c.textMuted,
+    marginTop: 1,
+  },
+
+  // Insight Callout — left-bordered green
+  insightCallout: {
+    borderLeftWidth: 3,
+    borderLeftColor: c.green,
+    backgroundColor: c.greenTint,
+    borderRadius: 12,
+    padding: 12,
+    paddingLeft: 14,
+    marginBottom: 14,
+  },
+  insightCalloutRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  positiveCheck: {
-    color: Colors.green,
+  insightCalloutCheck: {
+    color: c.green,
     fontSize: 12,
+    fontWeight: '700',
     marginTop: 1,
   },
-  positiveText: {
+  insightCalloutText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 19,
     flex: 1,
   },
@@ -973,15 +1008,15 @@ const styles = StyleSheet.create({
   // Pattern Card
   patternCard: {
     borderLeftWidth: 3,
-    borderLeftColor: Colors.accent,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderLeftColor: c.accent,
+    backgroundColor: c.glassDim,
     borderRadius: 14,
     borderTopWidth: 1,
     borderRightWidth: 1,
     borderBottomWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
-    borderRightColor: 'rgba(255, 255, 255, 0.08)',
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: c.glassBorder,
+    borderRightColor: c.glassBorder,
+    borderBottomColor: c.glassBorder,
     padding: 14,
     paddingLeft: 16,
     marginBottom: 10,
@@ -995,17 +1030,17 @@ const styles = StyleSheet.create({
   patternTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
   },
   confStrong: {
-    backgroundColor: 'rgba(20, 184, 166, 0.12)',
+    backgroundColor: c.accentLight,
     paddingVertical: 2,
     paddingHorizontal: 8,
     borderRadius: 10,
   },
   confEmerging: {
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    backgroundColor: c.amberFaint,
     paddingVertical: 2,
     paddingHorizontal: 8,
     borderRadius: 10,
@@ -1015,20 +1050,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   confTextStrong: {
-    color: Colors.accent,
+    color: c.accent,
   },
   confTextEmerging: {
     color: '#FBBF24',
   },
   patternText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
     marginBottom: 10,
   },
   patternFooter: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 0.3,
   },
 
@@ -1040,7 +1075,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1.4,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textTransform: 'uppercase',
     marginBottom: 10,
     paddingHorizontal: 2,
@@ -1048,9 +1083,9 @@ const styles = StyleSheet.create({
 
   // Vitals at a Glance
   vitalsCard: {
-    backgroundColor: Colors.glassDim,
+    backgroundColor: c.glassDim,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 16,
     overflow: 'hidden',
   },
@@ -1061,7 +1096,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     paddingHorizontal: 13,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: c.borderLight,
   },
   vitalIcon: {
     fontSize: 18,
@@ -1074,11 +1109,11 @@ const styles = StyleSheet.create({
   vitalName: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   vitalDesc: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 1,
   },
   sparkContainer: {
@@ -1095,7 +1130,7 @@ const styles = StyleSheet.create({
   },
   vitalTrend: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 1,
   },
 
@@ -1104,16 +1139,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1.4,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textTransform: 'uppercase',
     paddingHorizontal: 2,
     marginBottom: 8,
     marginTop: 4,
   },
   menuList: {
-    backgroundColor: Colors.glassDim,
+    backgroundColor: c.glassDim,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 16,
     overflow: 'hidden',
   },
@@ -1124,11 +1159,11 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     paddingHorizontal: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: c.borderLight,
   },
   menuItemElevated: {
-    backgroundColor: 'rgba(110, 231, 183, 0.05)',
-    borderBottomColor: 'rgba(110, 231, 183, 0.10)',
+    backgroundColor: c.sageHint,
+    borderBottomColor: c.sageLight,
   },
   menuIconWrap: {
     width: 36,
@@ -1146,11 +1181,11 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   menuSub: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   menuRight: {
@@ -1169,14 +1204,14 @@ const styles = StyleSheet.create({
   },
   menuChevron: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.22)',
+    color: c.glassStrong,
   },
 
   // Sample Data Banner
   sampleBanner: {
-    backgroundColor: Colors.purpleLight,
+    backgroundColor: c.purpleLight,
     borderWidth: 1,
-    borderColor: Colors.purpleStrong,
+    borderColor: c.purpleStrong,
     borderRadius: 14,
     padding: 14,
     marginBottom: 20,
@@ -1197,17 +1232,17 @@ const styles = StyleSheet.create({
   sampleBannerTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.purpleBright,
+    color: c.purpleBright,
     marginBottom: 4,
   },
   sampleBannerSubtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
   sampleBannerDismiss: {
     alignSelf: 'flex-end',
-    backgroundColor: Colors.purpleWash,
+    backgroundColor: c.purpleWash,
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 8,
@@ -1215,10 +1250,10 @@ const styles = StyleSheet.create({
   sampleBannerDismissText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.purpleBright,
+    color: c.purpleBright,
   },
   sampleBannerCompact: {
-    backgroundColor: Colors.purpleFaint,
+    backgroundColor: c.purpleFaint,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -1230,15 +1265,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   sampleBannerCompactLink: {
-    color: Colors.purpleBright,
+    color: c.purpleBright,
     fontWeight: '500',
   },
 
   // Data Building Banner
   dataBuildingBanner: {
-    backgroundColor: 'rgba(20,184,166,0.12)',
+    backgroundColor: c.accentLight,
     borderWidth: 1,
-    borderColor: 'rgba(20,184,166,0.25)',
+    borderColor: c.accentBorder,
     borderRadius: 14,
     padding: 20,
     marginBottom: 20,
@@ -1251,13 +1286,16 @@ const styles = StyleSheet.create({
   dataBuildingTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textBright,
+    color: c.textBright,
     marginBottom: 6,
   },
   dataBuildingSubtitle: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     lineHeight: 18,
     textAlign: 'center',
   },
 });
+
+// Static styles for module-scope sub-components (benefit from _syncColors)
+const _styles = createStyles(Colors);

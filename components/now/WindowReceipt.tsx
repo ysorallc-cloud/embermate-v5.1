@@ -3,9 +3,10 @@
 // Shows "✓ Morning complete · 8:22 AM" with a summary of what was logged
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { parseTimeForDisplay, type TimeWindow } from '../../utils/nowHelpers';
 
 const TIME_WINDOW_LABELS: Record<TimeWindow, string> = {
@@ -21,6 +22,8 @@ interface WindowReceiptProps {
 }
 
 export function WindowReceipt({ window: windowKey, items }: WindowReceiptProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [expanded, setExpanded] = useState(false);
 
   // Completion timestamp: latest updatedAt across items
@@ -106,12 +109,12 @@ export function WindowReceipt({ window: windowKey, items }: WindowReceiptProps) 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     marginBottom: 4,
     borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: 'rgba(16, 185, 129, 0.06)',
+    backgroundColor: c.greenTint,
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.15)',
   },
@@ -139,12 +142,12 @@ const styles = StyleSheet.create({
   },
   summary: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 1,
   },
   chevron: {
     fontSize: 8,
-    color: Colors.textMuted,
+    color: c.textMuted,
     width: 12,
   },
   itemList: {
@@ -170,17 +173,17 @@ const styles = StyleSheet.create({
     color: 'rgba(245, 158, 11, 0.7)',
   },
   itemDotSkipped: {
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   itemName: {
     flex: 1,
     fontSize: 12,
     fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: c.textDisabled,
   },
   itemStatus: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   itemStatusMissed: {
     color: 'rgba(245, 158, 11, 0.6)',

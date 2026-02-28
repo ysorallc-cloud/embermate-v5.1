@@ -4,11 +4,12 @@
 
 import { useEffect, useRef } from 'react';
 import { devLog } from '../utils/devLog';
+import { EventCategory } from './eventNames';
 
 type EventCallback = (category: string) => void;
 const listeners: Set<EventCallback> = new Set();
 
-export const emitDataUpdate = (category: string) => {
+export const emitDataUpdate = (category: EventCategory) => {
   devLog('[Events] emitDataUpdate:', category, '| listeners:', listeners.size);
   listeners.forEach(callback => callback(category));
 };

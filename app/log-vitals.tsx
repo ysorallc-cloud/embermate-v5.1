@@ -15,7 +15,7 @@ import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { getTodayDateString } from '../services/carePlanGenerator';
-import { BackButton } from '../components/common/BackButton';
+import { SubScreenHeader } from '../components/SubScreenHeader';
 
 export default function LogVitalsScreen() {
   const router = useRouter();
@@ -26,8 +26,8 @@ export default function LogVitalsScreen() {
   const isFromCarePlan = carePlanContext !== null;
 
   // Prepopulate with typical values - user can adjust if needed
-  const [systolic, setSystolic] = useState('120');
-  const [diastolic, setDiastolic] = useState('80');
+  const [systolic, setSystolic] = useState('');
+  const [diastolic, setDiastolic] = useState('');
   const [heartRate, setHeartRate] = useState('');
   const [oxygen, setOxygen] = useState('');
   const [temperature, setTemperature] = useState('');
@@ -117,12 +117,7 @@ export default function LogVitalsScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={100}>
         <ScrollView style={styles.scrollView}>
           <View style={styles.content}>
-            <View style={styles.header}>
-              <BackButton variant="text" />
-              <Text style={styles.icon}>❤️</Text>
-              <Text style={styles.title}>Log Vitals</Text>
-              <Text style={styles.subtitle}>Track blood pressure, glucose, weight, and more</Text>
-            </View>
+            <SubScreenHeader title="Log Vitals" subtitle="Blood pressure, glucose & more" emoji="❤️" />
 
             {/* CarePlan context banner */}
             {isFromCarePlan && carePlanContext && (
@@ -247,12 +242,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
-  header: { alignItems: 'center', marginBottom: 32 },
-  backButton: { alignSelf: 'flex-start', marginBottom: 16 },
-  backText: { fontSize: 14, color: Colors.accent, fontWeight: '500' },
-  icon: { fontSize: 48, marginBottom: 12 },
-  title: { fontSize: 24, fontWeight: '300', color: Colors.textPrimary, marginBottom: 8 },
-  subtitle: { fontSize: 13, color: Colors.textMuted, textAlign: 'center' },
   form: { gap: 24 },
   formGroup: { gap: 8 },
   label: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },

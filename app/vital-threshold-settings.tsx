@@ -15,13 +15,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
-import { CommonStyles } from '../theme/commonStyles';
-import PageHeader from '../components/PageHeader';
+import { SubScreenHeader } from '../components/SubScreenHeader';
 import { VITAL_THRESHOLDS, VitalType, loadCustomThresholds } from '../utils/vitalThresholds';
 import { logError } from '../utils/devLog';
+import { emitDataUpdate } from '../lib/events';
 
 const STORAGE_KEY = '@embermate_custom_vital_thresholds';
 
@@ -44,7 +43,6 @@ const VITAL_DISPLAY: { key: VitalType; emoji: string }[] = [
 ];
 
 export default function VitalThresholdSettings() {
-  const router = useRouter();
   const [customThresholds, setCustomThresholds] = useState<CustomThresholds>({});
   const [editingValues, setEditingValues] = useState<Record<string, string>>({});
   const [hasChanges, setHasChanges] = useState(false);
@@ -224,6 +222,7 @@ export default function VitalThresholdSettings() {
       // Reload cache so getVitalStatus/generateVitalAlert use new values
       await loadCustomThresholds();
 
+      emitDataUpdate('vitals');
       setHasChanges(false);
       Alert.alert('Saved', 'Custom vital thresholds saved successfully.');
     } catch (error) {
@@ -312,35 +311,10 @@ export default function VitalThresholdSettings() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
-        <View style={CommonStyles.headerWrapper}>
-          <TouchableOpacity
-            style={CommonStyles.backButton}
-            onPress={() => {
-              if (hasChanges) {
-                Alert.alert(
-                  'Unsaved Changes',
-                  'You have unsaved changes. Discard them?',
-                  [
-                    { text: 'Keep Editing', style: 'cancel' },
-                    { text: 'Discard', style: 'destructive', onPress: () => router.back() },
-                  ]
-                );
-              } else {
-                router.back();
-              }
-            }}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={CommonStyles.backIcon}>←</Text>
-          </TouchableOpacity>
-
-          <PageHeader
-            emoji="📊"
-            label="HEALTH"
-            title="Vital Ranges"
-          />
-        </View>
+        <SubScreenHeader
+          title="Vital Ranges"
+          emoji="📊"
+        />
 
         <ScrollView
           style={styles.content}

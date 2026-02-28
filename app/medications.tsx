@@ -18,7 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../theme/theme-tokens';
-import PageHeader from '../components/PageHeader';
+import { SubScreenHeader } from '../components/SubScreenHeader';
 import { MedicationCardSkeleton } from '../components/LoadingSkeleton';
 import { getMedications, deleteMedication, calculateAdherence, Medication, markMedicationTaken } from '../utils/medicationStorage';
 import { checkInteraction } from '../utils/drugInteractions';
@@ -189,31 +189,20 @@ export default function MedicationsScreen() {
         style={styles.gradient}
       >
         {/* Header */}
-        <View style={styles.headerWrapper}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          
-          <PageHeader
-            emoji="💊"
-            label="Prescriptions"
-            title="Medications"
-          />
-          
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={handleAddMedication}
-            accessibilityLabel="Add medication"
-            accessibilityRole="button"
-          >
-            <Text style={styles.addIcon}>+</Text>
-          </TouchableOpacity>
-        </View>
+        <SubScreenHeader
+          title="Medications"
+          emoji="💊"
+          rightAction={
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={handleAddMedication}
+              accessibilityLabel="Add medication"
+              accessibilityRole="button"
+            >
+              <Text style={styles.addIcon}>+</Text>
+            </TouchableOpacity>
+          }
+        />
 
         <SectionList
           style={styles.content}
@@ -427,32 +416,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  // HEADER WITH ADD BUTTON
-  headerWrapper: {
-    position: 'relative',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    width: 44,
-    height: 44,
-    backgroundColor: Colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  backIcon: {
-    fontSize: 24,
-    color: Colors.textPrimary,
-  },
+  // ADD BUTTON
   addButton: {
-    position: 'absolute',
-    top: 70,
-    right: 24,
     width: 44,
     height: 44,
     backgroundColor: Colors.accentLight,

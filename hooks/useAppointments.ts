@@ -94,7 +94,7 @@ export function useAppointments(): UseAppointmentsReturn {
 
   // Listen for relevant data updates only
   useDataListener((category) => {
-    if (['appointments', 'sampleDataCleared'].includes(category)) {
+    if (['appointments', 'sampleDataCleared', 'patient'].includes(category)) {
       loadData();
     }
   });

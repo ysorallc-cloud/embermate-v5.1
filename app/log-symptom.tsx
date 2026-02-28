@@ -23,7 +23,7 @@ import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
-import { BackButton } from '../components/common/BackButton';
+import { SubScreenHeader } from '../components/SubScreenHeader';
 
 const COMMON_SYMPTOMS = [
   'Pain', 'Nausea', 'Dizziness', 'Fatigue',
@@ -99,13 +99,7 @@ export default function LogSymptomScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={100}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
-            {/* Header */}
-            <View style={styles.header}>
-              <BackButton variant="text" />
-              <Text style={styles.icon}>🩹</Text>
-              <Text style={styles.title}>Log Symptom</Text>
-              <Text style={styles.subtitle}>Track pain, discomfort, or health changes</Text>
-            </View>
+            <SubScreenHeader title="Log Symptom" emoji="🤒" />
 
             {/* Form */}
             <View style={styles.form}>
@@ -229,12 +223,6 @@ const styles = StyleSheet.create({
   gradient: { flex: 1 },
   scrollView: { flex: 1 },
   content: { padding: 20, paddingBottom: 40 },
-  header: { alignItems: 'center', marginBottom: 32 },
-  backButton: { alignSelf: 'flex-start', marginBottom: 16 },
-  backText: { fontSize: 14, color: Colors.accent, fontWeight: '500' },
-  icon: { fontSize: 48, marginBottom: 12 },
-  title: { fontSize: 24, fontWeight: '300', color: Colors.textPrimary, marginBottom: 8 },
-  subtitle: { fontSize: 13, color: Colors.textMuted, textAlign: 'center' },
   form: { gap: 24 },
   formGroup: { gap: 8 },
   label: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },

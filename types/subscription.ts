@@ -20,7 +20,7 @@ export interface TierLimits {
 }
 
 export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
-  free: { maxPatients: 1, pdfExport: true, advancedInsights: true },
+  free: { maxPatients: 1, pdfExport: false, advancedInsights: true },
   premium: { maxPatients: 10, pdfExport: true, advancedInsights: true },
 };
 

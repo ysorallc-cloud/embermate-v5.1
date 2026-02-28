@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as Crypto from 'expo-crypto';
+import CryptoJS from 'crypto-js';
 import { Alert } from 'react-native';
 import { generateSecureToken } from './secureStorage';
 import { logAuditEvent, AuditEventType, AuditSeverity } from './auditLog';
@@ -112,140 +113,68 @@ export async function createBackup(): Promise<BackupData | null> {
 }
 
 // ============================================================================
-// Encryption Helpers (Improved from weak Base64 to proper XOR + HMAC)
+// Encryption Helpers — AES-256-CBC + PBKDF2 key derivation
+// Uses CryptoJS (same library as primary secureStorage encryption)
 // ============================================================================
 
-/**
- * Generate random bytes for salt/IV
- */
-async function generateRandomBytes(length: number): Promise<Uint8Array> {
-  return await Crypto.getRandomBytesAsync(length);
-}
-
-/**
- * Convert bytes to hex string
- */
-function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-/**
- * Convert hex string to bytes
- */
-function hexToBytes(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
-  }
-  return bytes;
-}
-
-/**
- * Derive encryption key from password using iterated hashing
- * Optimized: Reduced iterations and avoid string concatenation memory buildup
- */
-async function deriveKey(password: string, salt: Uint8Array): Promise<Uint8Array> {
-  const saltHex = bytesToHex(salt);
-  const passwordSuffix = password.substring(0, 8);
-
-  // Start with combined value
-  let hash = await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    password + saltHex
-  );
-
-  // Reduced iterations (100 instead of 1000) to prevent memory pressure
-  // Each iteration reuses the same variable instead of concatenating
-  for (let i = 0; i < 100; i++) {
-    hash = await Crypto.digestStringAsync(
-      Crypto.CryptoDigestAlgorithm.SHA256,
-      hash + passwordSuffix
-    );
-  }
-
-  return hexToBytes(hash);
-}
-
-/**
- * XOR-based encryption with key stretching
- */
-function xorEncrypt(data: string, key: Uint8Array): string {
-  const dataBytes = new TextEncoder().encode(data);
-  const encrypted = new Uint8Array(dataBytes.length);
-
-  for (let i = 0; i < dataBytes.length; i++) {
-    encrypted[i] = dataBytes[i] ^ key[i % key.length];
-  }
-
-  return btoa(String.fromCharCode(...encrypted));
-}
-
-/**
- * XOR-based decryption
- */
-function xorDecrypt(encryptedBase64: string, key: Uint8Array): string {
-  const encrypted = new Uint8Array(
-    atob(encryptedBase64).split('').map(c => c.charCodeAt(0))
-  );
-  const decrypted = new Uint8Array(encrypted.length);
-
-  for (let i = 0; i < encrypted.length; i++) {
-    decrypted[i] = encrypted[i] ^ key[i % key.length];
-  }
-
-  return new TextDecoder().decode(decrypted);
-}
-
-/**
- * Calculate HMAC for integrity verification
- */
-async function calculateHMAC(data: string, key: Uint8Array): Promise<string> {
-  const keyHex = bytesToHex(key);
-  const combined = keyHex + data;
-
-  return await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    combined
-  );
-}
+const BACKUP_ENCRYPTION_VERSION = 'v2'; // v2: AES-256-CBC + PBKDF2 (replaces v1 XOR+SHA)
+const PBKDF2_ITERATIONS = 100_000;
+const PBKDF2_KEY_SIZE = 256 / 32; // 256-bit key in words
 
 interface EncryptedPayload {
+  version: string;
   salt: string;
+  iv: string;
   hmac: string;
   data: string;
 }
 
 /**
- * Encrypt backup data with proper key derivation and integrity verification
+ * Encrypt backup data with AES-256-CBC + PBKDF2 key derivation + HMAC integrity
  */
 async function encryptBackup(backup: BackupData, password?: string): Promise<string> {
   try {
     const dataString = JSON.stringify(backup);
 
     if (!password) {
-      // No encryption, just return plain JSON
       return dataString;
     }
 
-    // Generate random salt
-    const salt = await generateRandomBytes(32);
+    // Generate random salt and IV
+    const saltBytes = await Crypto.getRandomBytesAsync(32);
+    const ivBytes = await Crypto.getRandomBytesAsync(16);
+    const salt = CryptoJS.lib.WordArray.create(saltBytes as any);
+    const iv = CryptoJS.lib.WordArray.create(ivBytes as any);
 
-    // Derive key from password
-    const key = await deriveKey(password, salt);
+    // Derive key using PBKDF2 with 100k iterations
+    const derivedKey = CryptoJS.PBKDF2(password, salt, {
+      keySize: PBKDF2_KEY_SIZE + (256 / 32), // derive enc key + mac key
+      iterations: PBKDF2_ITERATIONS,
+      hasher: CryptoJS.algo.SHA256,
+    });
 
-    // Encrypt the data
-    const encryptedData = xorEncrypt(dataString, key);
+    // Split derived key into encryption key and MAC key
+    const encKey = CryptoJS.lib.WordArray.create(derivedKey.words.slice(0, 8)); // 256 bits
+    const macKey = CryptoJS.lib.WordArray.create(derivedKey.words.slice(8, 16)); // 256 bits
 
-    // Calculate HMAC for integrity
-    const hmac = await calculateHMAC(encryptedData, key);
+    // Encrypt using AES-256-CBC
+    const encrypted = CryptoJS.AES.encrypt(dataString, encKey, {
+      iv,
+      mode: CryptoJS.mode.CBC,
+      padding: CryptoJS.pad.Pkcs7,
+    });
 
-    // Create encrypted payload
+    const ciphertextHex = encrypted.ciphertext.toString();
+
+    // HMAC over ciphertext for integrity (Encrypt-then-MAC)
+    const hmac = CryptoJS.HmacSHA256(ciphertextHex, macKey).toString();
+
     const payload: EncryptedPayload = {
-      salt: bytesToHex(salt),
+      version: BACKUP_ENCRYPTION_VERSION,
+      salt: salt.toString(),
+      iv: iv.toString(),
       hmac,
-      data: encryptedData,
+      data: ciphertextHex,
     };
 
     return JSON.stringify(payload);
@@ -256,33 +185,109 @@ async function encryptBackup(backup: BackupData, password?: string): Promise<str
 }
 
 /**
- * Decrypt backup data
+ * Constant-time comparison to prevent timing attacks on HMAC verification
+ */
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+/**
+ * Decrypt backup data (supports v2 AES and legacy v1 XOR format)
  */
 async function decryptBackup(encryptedString: string, password: string): Promise<BackupData | null> {
   try {
-    const payload: EncryptedPayload = JSON.parse(encryptedString);
+    const payload = JSON.parse(encryptedString);
 
-    if (!payload.salt || !payload.hmac || !payload.data) {
-      throw new Error('Invalid encrypted backup format');
+    // v2: AES-256-CBC + PBKDF2
+    if (payload.version === BACKUP_ENCRYPTION_VERSION) {
+      if (!payload.salt || !payload.iv || !payload.hmac || !payload.data) {
+        throw new Error('Invalid encrypted backup format');
+      }
+
+      const salt = CryptoJS.enc.Hex.parse(payload.salt);
+      const iv = CryptoJS.enc.Hex.parse(payload.iv);
+
+      // Derive key using same PBKDF2 params
+      const derivedKey = CryptoJS.PBKDF2(password, salt, {
+        keySize: PBKDF2_KEY_SIZE + (256 / 32),
+        iterations: PBKDF2_ITERATIONS,
+        hasher: CryptoJS.algo.SHA256,
+      });
+
+      const encKey = CryptoJS.lib.WordArray.create(derivedKey.words.slice(0, 8));
+      const macKey = CryptoJS.lib.WordArray.create(derivedKey.words.slice(8, 16));
+
+      // Verify HMAC before decrypting (constant-time comparison)
+      const calculatedHmac = CryptoJS.HmacSHA256(payload.data, macKey).toString();
+      if (!constantTimeEqual(calculatedHmac, payload.hmac)) {
+        throw new Error('Invalid password or corrupted backup');
+      }
+
+      // Decrypt
+      const ciphertext = CryptoJS.enc.Hex.parse(payload.data);
+      const cipherParams = CryptoJS.lib.CipherParams.create({ ciphertext });
+      const decrypted = CryptoJS.AES.decrypt(cipherParams, encKey, {
+        iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
+      });
+
+      return JSON.parse(decrypted.toString(CryptoJS.enc.Utf8));
     }
 
-    // Derive key from password
-    const salt = hexToBytes(payload.salt);
-    const key = await deriveKey(password, salt);
-
-    // Verify HMAC
-    const calculatedHmac = await calculateHMAC(payload.data, key);
-    if (calculatedHmac !== payload.hmac) {
-      throw new Error('Invalid password or corrupted backup');
+    // Legacy v1 format (salt + hmac + data with XOR) — read-only backward compat
+    if (payload.salt && payload.hmac && payload.data && !payload.version) {
+      return await decryptLegacyBackup(payload, password);
     }
 
-    // Decrypt the data
-    const decryptedString = xorDecrypt(payload.data, key);
-    return JSON.parse(decryptedString);
+    throw new Error('Unrecognized encrypted backup format');
   } catch (error) {
     logError('dataBackup.decryptBackup', error);
     return null;
   }
+}
+
+/**
+ * Decrypt legacy v1 backups (XOR + SHA-based KDF) — backward compatibility only
+ */
+async function decryptLegacyBackup(
+  payload: { salt: string; hmac: string; data: string },
+  password: string
+): Promise<BackupData | null> {
+  // Legacy key derivation: 100-iteration SHA-256
+  const passwordSuffix = password.substring(0, 8);
+  let hash = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    password + payload.salt
+  );
+  for (let i = 0; i < 100; i++) {
+    hash = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      hash + passwordSuffix
+    );
+  }
+
+  // Legacy XOR decryption
+  const keyBytes = new Uint8Array(hash.length / 2);
+  for (let i = 0; i < hash.length; i += 2) {
+    keyBytes[i / 2] = parseInt(hash.substr(i, 2), 16);
+  }
+
+  const encrypted = new Uint8Array(
+    atob(payload.data).split('').map(c => c.charCodeAt(0))
+  );
+  const decrypted = new Uint8Array(encrypted.length);
+  for (let i = 0; i < encrypted.length; i++) {
+    decrypted[i] = encrypted[i] ^ keyBytes[i % keyBytes.length];
+  }
+
+  const decryptedString = new TextDecoder().decode(decrypted);
+  return JSON.parse(decryptedString);
 }
 
 /**

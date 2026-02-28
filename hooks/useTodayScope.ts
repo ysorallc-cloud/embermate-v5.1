@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { logError } from '../utils/devLog';
-import { useDataListener } from '../lib/events';
+import { emitDataUpdate, useDataListener } from '../lib/events';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import {
   getOverrides,
@@ -87,6 +87,7 @@ export function useTodayScope(date?: string): UseTodayScopeReturn {
   const suppress = useCallback(async (routineId: string, itemId: string) => {
     await suppressItemForToday(routineId, itemId, targetDate);
     await loadSuppressedItems();
+    emitDataUpdate('carePlan');
   }, [targetDate, loadSuppressedItems]);
 
   /**
@@ -95,6 +96,7 @@ export function useTodayScope(date?: string): UseTodayScopeReturn {
   const unsuppressCallback = useCallback(async (routineId: string, itemId: string) => {
     await unsuppressItem(routineId, itemId, targetDate);
     await loadSuppressedItems();
+    emitDataUpdate('carePlan');
   }, [targetDate, loadSuppressedItems]);
 
   /**
@@ -117,6 +119,7 @@ export function useTodayScope(date?: string): UseTodayScopeReturn {
   const resetToDefaults = useCallback(async () => {
     await resetTodayScope(targetDate);
     await loadSuppressedItems();
+    emitDataUpdate('carePlan');
   }, [targetDate, loadSuppressedItems]);
 
   /**

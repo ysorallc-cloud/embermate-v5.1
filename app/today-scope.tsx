@@ -11,7 +11,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Platform,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,7 +24,7 @@ import { useCarePlan } from '../hooks/useCarePlan';
 import { useDailyCareInstances } from '../hooks/useDailyCareInstances';
 import { useCarePlanConfig } from '../hooks/useCarePlanConfig';
 import { BucketType, BUCKET_META } from '../types/carePlanConfig';
-import { BackButton } from '../components/common/BackButton';
+import { SubScreenHeader } from '../components/SubScreenHeader';
 import { InfoModal, InfoIconButton } from '../components/common/InfoModal';
 import { getTodayDateString } from '../services/carePlanGenerator';
 
@@ -238,26 +237,16 @@ export default function TodayScopeScreen() {
         style={styles.gradient}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <BackButton />
-          <Text style={styles.headerLabel}>TODAY'S SCOPE</Text>
-          <View style={{ width: 44 }} />
-        </View>
+        <SubScreenHeader title="Adjust Today" subtitle="Temporarily hide items from today" />
 
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Title */}
-          <View style={styles.titleSection}>
-            <View style={styles.titleRow}>
-              <Text style={styles.title}>Adjust Today</Text>
-              <InfoIconButton onPress={() => setShowInfoModal(true)} />
-            </View>
-            <Text style={styles.subtitle}>
-              Temporarily hide items from today. Your Care Plan isn't changed.
-            </Text>
+          {/* Info button */}
+          <View style={styles.titleRow}>
+            <InfoIconButton onPress={() => setShowInfoModal(true)} />
           </View>
 
           {/* Info Modal */}
@@ -395,22 +384,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Platform.OS === 'android' ? 20 : 0,
-    paddingBottom: Spacing.md,
-  },
-  headerLabel: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    letterSpacing: 1,
-    fontWeight: '600',
-  },
-
   // Scroll
   scrollView: {
     flex: 1,
@@ -420,20 +393,11 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // Title
-  titleSection: {
-    marginBottom: Spacing.lg,
-  },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     marginBottom: Spacing.sm,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: Colors.textPrimary,
   },
 
   // First-Time Helper Banner

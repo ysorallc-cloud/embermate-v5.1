@@ -13,11 +13,12 @@ import {
   Alert,
   Switch,
 } from 'react-native';
+import { emitDataUpdate } from '../lib/events';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
-import PageHeader from '../components/PageHeader';
+import { SubScreenHeader } from '../components/SubScreenHeader';
 import {
   getCaregivers,
   removeCaregiver,
@@ -66,6 +67,7 @@ export default function CaregiverManagementScreen() {
           : c
       );
       await AsyncStorage.setItem('@embermate_caregivers', JSON.stringify(updated));
+      emitDataUpdate('carePlan');
     }
   };
 
@@ -103,22 +105,10 @@ export default function CaregiverManagementScreen() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
-        <View style={styles.headerWrapper}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          
-          <PageHeader 
-            emoji="👤"
-            label="Caregiver Settings"
-            title={caregiver.name}
-          />
-        </View>
+        <SubScreenHeader
+          title={caregiver.name}
+          emoji="👤"
+        />
 
         <ScrollView style={styles.content}>
           {/* Caregiver Info */}
@@ -343,27 +333,6 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-  },
-  headerWrapper: {
-    position: 'relative',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 16,
-    left: 24,
-    width: 44,
-    height: 44,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 100,
-  },
-  backIcon: {
-    fontSize: 24,
-    color: Colors.textPrimary,
   },
   content: {
     flex: 1,

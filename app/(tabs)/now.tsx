@@ -15,6 +15,7 @@ import {
 import { navigate } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { getMedications, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
 import { getDailyTracking } from '../../utils/dailyTrackingStorage';
@@ -97,7 +98,8 @@ import { useDataListener, emitDataUpdate } from '../../lib/events';
 import { GettingStartedChecklist } from '../../components/guidance';
 
 export default function NowScreen() {
-
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Track today's date
   const [today, setToday] = useState(() => getTodayDateString());
@@ -373,9 +375,10 @@ export default function NowScreen() {
 
   // Live sync: reload data when any storage module emits an update
   useDataListener(useCallback((category: string) => {
-    if (['medications', 'medicationLog', 'vitals', 'vitalsLog', 'wellness',
-         'mealsLog', 'waterLog', 'dailyTracking', 'appointments',
-         'dailyInstances', 'carePlanItems', 'sampleDataCleared'].includes(category)) {
+    if (['medication', 'vitals', 'water', 'mood', 'wellness',
+         'logs', 'carePlan', 'carePlanConfig', 'appointments',
+         'dailyInstances', 'carePlanItems', 'sampleDataCleared',
+         'symptoms', 'notes'].includes(category)) {
       loadData();
       // Also refresh care tasks so timeline + stats update immediately
       refreshCareTasks();
@@ -486,14 +489,14 @@ export default function NowScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.accent}
+            tintColor={colors.accent}
           />
         }
       >
         {/* Header: greeting + date left, patient chip right */}
         <ScreenHeader
           title={getGreeting()}
-          subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+          subtitle={`${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })} \u00B7 ${patientName}`}
           rightAction={
             <TouchableOpacity
               onPress={() => setShowPatientSwitcher(true)}
@@ -508,7 +511,7 @@ export default function NowScreen() {
               </View>
               <Text style={styles.patientChipName}>{patientName}</Text>
               {patients.length > 1 && (
-                <Text style={{ fontSize: 10, color: Colors.textMuted }}>{'\u25BC'}</Text>
+                <Text style={{ fontSize: 10, color: colors.textMuted }}>{'\u25BC'}</Text>
               )}
             </TouchableOpacity>
           }
@@ -796,7 +799,7 @@ export default function NowScreen() {
         </View>
 
         {/* Bottom spacing for tab bar */}
-        <View style={{ height: 100 }} />
+        <View style={{ height: 83 }} />
       </ScrollView>
       </SafeAreaView>
 
@@ -816,10 +819,10 @@ export default function NowScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   scrollView: {
     flex: 1,
@@ -842,9 +845,9 @@ const styles = StyleSheet.create({
   patientChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(20, 184, 166, 0.12)',
+    backgroundColor: c.accentLight,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.28)',
+    borderColor: c.accentBorder,
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -854,18 +857,18 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   patientAvatarText: {
     fontSize: 10,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   patientChipName: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '500',
   },
   hiddenBanner: {
@@ -876,18 +879,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: c.glassHover,
   },
   hiddenBannerText: {
     fontSize: 13,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
   hiddenBannerAction: {
     fontSize: 13,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   coffeeBanner: {
@@ -895,10 +898,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 8,
     padding: 14,
-    backgroundColor: Colors.purpleFaint,
+    backgroundColor: c.purpleFaint,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.purpleBorder,
+    borderColor: c.purpleBorder,
   },
   coffeeBannerIcon: {
     fontSize: 24,
@@ -910,7 +913,7 @@ const styles = StyleSheet.create({
   },
   coffeeBannerText: {
     fontSize: 13,
-    color: Colors.textBright,
+    color: c.textBright,
     lineHeight: 19,
     marginBottom: 10,
   },
@@ -920,7 +923,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   coffeeResetButton: {
-    backgroundColor: Colors.purple,
+    backgroundColor: c.purple,
     paddingVertical: 7,
     paddingHorizontal: 14,
     borderRadius: 8,
@@ -928,11 +931,11 @@ const styles = StyleSheet.create({
   coffeeResetText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   coffeeDismissText: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   baselineStatusContainer: {
     marginBottom: 16,
@@ -942,28 +945,28 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
   },
   baselineStatusMatch: {
     borderLeftWidth: 3,
-    borderLeftColor: Colors.greenGlow,
+    borderLeftColor: c.greenGlow,
   },
   baselineStatusBelow: {
     borderLeftWidth: 3,
-    borderLeftColor: 'rgba(251, 191, 36, 0.4)',
+    borderLeftColor: c.amberGlow,
   },
   baselineStatusMain: {
     fontSize: 13,
-    color: Colors.textBright,
+    color: c.textBright,
     lineHeight: 18,
   },
   baselineStatusSub: {
     fontSize: 12,
-    color: Colors.textHalf,
+    color: c.textHalf,
     marginTop: 2,
   },
   emptyTimeline: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderRadius: 8,
     padding: 20,
     alignItems: 'center',
@@ -971,15 +974,15 @@ const styles = StyleSheet.create({
   },
   emptyTimelineText: {
     fontSize: 14,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
   emptyTimelineSubtext: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.35)',
+    color: c.textDisabled,
     marginTop: 4,
   },
   allDoneMessage: {
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    backgroundColor: c.greenTint,
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
@@ -992,11 +995,11 @@ const styles = StyleSheet.create({
   allDoneText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.green,
+    color: c.green,
   },
   encouragementText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     marginVertical: 16,
     paddingHorizontal: 20,
@@ -1006,12 +1009,12 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     marginTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    borderTopColor: c.glassHover,
   },
   footerMessage: {
     fontSize: 14,
     fontStyle: 'italic',
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: 24,
@@ -1021,13 +1024,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: c.glassDim,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: c.glassBorder,
   },
   footerCoffeeLinkText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '500',
   },
 });

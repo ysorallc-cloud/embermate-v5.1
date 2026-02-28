@@ -22,9 +22,8 @@ import { navigate, navigateReplace } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../theme/theme-tokens';
-import { CommonStyles } from '../../theme/commonStyles';
 import { useTheme, ThemeMode } from '../../contexts/ThemeContext';
-import PageHeader from '../../components/PageHeader';
+import { SubScreenHeader } from '../../components/SubScreenHeader';
 import { generateSampleCorrelationData, clearSampleCorrelationData, hasSampleData } from '../../utils/sampleDataGenerator';
 import { StorageKeys } from '../../utils/storageKeys';
 import { getMedications } from '../../utils/medicationStorage';
@@ -568,22 +567,10 @@ export default function SettingsScreen() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
-        <View style={CommonStyles.headerWrapper}>
-          <TouchableOpacity
-            style={CommonStyles.backButton}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={CommonStyles.backIcon}>←</Text>
-          </TouchableOpacity>
-
-          <PageHeader
-            emoji="⚙️"
-            label="Configuration"
-            title="Settings"
-          />
-        </View>
+        <SubScreenHeader
+          title="Settings"
+          emoji="⚙️"
+        />
 
         <ScrollView style={styles.content}>
           {/* Search Bar */}

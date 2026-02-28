@@ -3,10 +3,11 @@
 // Replaces individual per-med navigation when meds ring is tapped
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { parseTimeForDisplay, isOverdue } from '../../utils/nowHelpers';
 
 interface MedInstance {
@@ -36,6 +37,9 @@ export function MedsBatchPanel({
   stat,
   onClose,
 }: MedsBatchPanelProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set()
   );
@@ -197,21 +201,21 @@ export function MedsBatchPanel({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     borderRadius: 14,
     padding: 14,
     marginBottom: 12,
   },
   containerDefault: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
   },
   containerOverdue: {
-    backgroundColor: Colors.redFaint,
+    backgroundColor: c.redFaint,
     borderWidth: 1,
-    borderColor: Colors.redBorder,
+    borderColor: c.redBorder,
   },
   header: {
     flexDirection: 'row',
@@ -228,15 +232,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   count: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   close: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     padding: 4,
   },
   medRow: {
@@ -245,24 +249,24 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.glassBorder,
+    borderTopColor: c.glassBorder,
   },
   checkbox: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: Colors.textMuted,
+    borderColor: c.textMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: c.accent,
+    borderColor: c.accent,
   },
   checkmark: {
     fontSize: 13,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: 'bold',
   },
   medDetails: {
@@ -271,27 +275,27 @@ const styles = StyleSheet.create({
   medName: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   medMeta: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   medMetaOverdue: {
-    color: Colors.red,
+    color: c.red,
   },
   detailsButton: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
   },
   detailsText: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   batchActions: {
     flexDirection: 'row',
@@ -301,7 +305,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.glassBorder,
+    borderTopColor: c.glassBorder,
   },
   selectAllButton: {
     paddingHorizontal: 12,
@@ -310,13 +314,13 @@ const styles = StyleSheet.create({
   },
   selectAllText: {
     fontSize: 13,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   confirmButton: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 10,
   },
   confirmButtonDisabled: {
@@ -325,11 +329,11 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   emptyText: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     paddingVertical: 12,
   },
@@ -337,23 +341,23 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.greenLight,
+    backgroundColor: c.greenLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   doneCheck: {
     fontSize: 13,
-    color: Colors.green,
+    color: c.green,
     fontWeight: 'bold',
   },
   medNameDone: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textDecorationLine: 'line-through',
   },
   medMetaDone: {
     fontSize: 12,
-    color: Colors.textDisabled,
+    color: c.textDisabled,
     marginTop: 2,
   },
 });

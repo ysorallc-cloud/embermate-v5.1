@@ -18,9 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
-import PageHeader from '../../components/PageHeader';
-import { CommonStyles } from '../../theme/commonStyles';
-import { BackButton } from '../../components/common/BackButton';
+import { SubScreenHeader } from '../../components/SubScreenHeader';
 import {
   getClinicalCareSettings,
   saveClinicalCareSettings,
@@ -61,15 +59,10 @@ export default function ClinicalCareScreen() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
-        <View style={CommonStyles.headerWrapper}>
-          <BackButton style={{ marginLeft: 24, marginTop: 16 }} />
-
-          <PageHeader
-            emoji={'\u{1F3E5}'}
-            label="Settings"
-            title="Clinical Care"
-          />
-        </View>
+        <SubScreenHeader
+          title="Clinical Care"
+          emoji={'\u{1F3E5}'}
+        />
 
         <ScrollView style={styles.scroll}>
           {/* Explanation */}
@@ -233,27 +226,6 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-  },
-  headerWrapper: {
-    position: 'relative',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 70,
-    left: 24,
-    width: 44,
-    height: 44,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  backIcon: {
-    fontSize: 24,
-    color: Colors.textPrimary,
   },
   scroll: {
     flex: 1,

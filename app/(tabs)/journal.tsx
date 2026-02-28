@@ -4,7 +4,7 @@
 // Color-coded left borders, export surfaced at top, vitals as horizontal strip.
 // ============================================================================
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { navigate } from '../../lib/navigate';
 import {
   View,
@@ -18,6 +18,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { Colors, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   buildCareBrief,
   CareBrief,
@@ -65,8 +66,8 @@ function Badge({ text, variant = 'done' }: { text: string; variant?: 'done' | 'p
   };
   const bs = badgeStyles[variant] || badgeStyles.info;
   return (
-    <View style={[s.badge, { backgroundColor: bs.bg, borderColor: bs.border }]}>
-      <Text style={[s.badgeText, { color: bs.color }]}>{text}</Text>
+    <View style={[_s.badge, { backgroundColor: bs.bg, borderColor: bs.border }]}>
+      <Text style={[_s.badgeText, { color: bs.color }]}>{text}</Text>
     </View>
   );
 }
@@ -86,11 +87,11 @@ interface JournalSectionProps {
 
 function JournalSection({ icon, label, color, labelColor, badge, children }: JournalSectionProps) {
   return (
-    <View style={[s.journalSection, { borderLeftColor: color }]}>
-      <View style={s.journalSectionHeader}>
-        <View style={s.journalSectionHeaderLeft}>
-          {icon && <Text style={s.journalSectionIcon}>{icon}</Text>}
-          <Text style={[s.journalSectionLabel, labelColor ? { color: labelColor } : null]}>{label}</Text>
+    <View style={[_s.journalSection, { borderLeftColor: color }]}>
+      <View style={_s.journalSectionHeader}>
+        <View style={_s.journalSectionHeaderLeft}>
+          {icon && <Text style={_s.journalSectionIcon}>{icon}</Text>}
+          <Text style={[_s.journalSectionLabel, labelColor ? { color: labelColor } : null]}>{label}</Text>
         </View>
         {badge && <Badge text={badge.text} variant={badge.variant} />}
       </View>
@@ -104,6 +105,8 @@ function JournalSection({ icon, label, color, labelColor, badge, children }: Jou
 // ============================================================================
 
 export default function JournalTab() {
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const [brief, setBrief] = useState<CareBrief | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -145,7 +148,7 @@ export default function JournalTab() {
   useDataListener(useCallback((category) => {
     if (!['dailyInstances', 'carePlanItems', 'logs', 'vitals', 'water',
           'symptoms', 'mood', 'wellness', 'medication', 'notes',
-          'mealsLog', 'dailyTracking', 'sampleDataCleared'].includes(category)) return;
+          'carePlan', 'carePlanConfig', 'sampleDataCleared'].includes(category)) return;
     if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
     reloadTimerRef.current = setTimeout(() => { loadReport(); }, 500);
   }, [loadReport]));
@@ -240,7 +243,7 @@ export default function JournalTab() {
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
             }
           >
-            <ScreenHeader title="Journal" subtitle={`${dayName}, ${dateStr}`} />
+            <ScreenHeader title="Journal" subtitle={`${dayName}, ${dateStr} \u00B7 Self`} />
             <View style={s.errorContainer}>
               <Text style={s.errorIcon}>{'\u26A0\uFE0F'}</Text>
               <Text style={s.errorText}>{error}</Text>
@@ -328,11 +331,13 @@ export default function JournalTab() {
       lines.push(`${med.name} taken${timeStr ? ` at ${timeStr}` : ' on schedule'}.`);
     }
     for (const med of missed) {
-      const scheduledStr = med.scheduledTime ? ` (scheduled ${formatTime(med.scheduledTime)})` : '';
+      const missedFormatted = med.scheduledTime ? formatTime(med.scheduledTime) : '';
+      const scheduledStr = missedFormatted ? ` (scheduled ${missedFormatted})` : '';
       lines.push(`${med.name} missed${scheduledStr}.`);
     }
     for (const med of pending) {
-      const scheduledStr = med.scheduledTime ? ` at ${formatTime(med.scheduledTime)}` : '';
+      const pendingFormatted = med.scheduledTime ? formatTime(med.scheduledTime) : '';
+      const scheduledStr = pendingFormatted ? ` at ${pendingFormatted}` : '';
       lines.push(`${med.name} pending${scheduledStr}.`);
     }
     return lines;
@@ -423,39 +428,28 @@ export default function JournalTab() {
             subtitle={`${dayName}, ${dateStr}${brief?.patient.name ? ` \u00B7 ${brief.patient.name}` : ''}`}
             style={s.journalHeader}
             rightAction={
-              <TouchableOpacity
-                style={s.shareChip}
-                onPress={() => navigate('/care-summary-export')}
-                activeOpacity={0.7}
-                accessibilityLabel="Share care brief"
-                accessibilityRole="button"
-              >
-                <Text style={s.shareChipText}>{'\uD83D\uDCE4'} Share</Text>
-              </TouchableOpacity>
+              <View style={s.headerActions}>
+                <TouchableOpacity
+                  style={s.headerIconBtn}
+                  onPress={() => navigate('/daily-care-report')}
+                  activeOpacity={0.7}
+                  accessibilityLabel="View care report"
+                  accessibilityRole="button"
+                >
+                  <Text style={s.headerIconBtnText}>{'\uD83D\uDCCB'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={s.headerHandoffBtn}
+                  onPress={() => navigate('/care-summary-export')}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Generate nurse handoff"
+                  accessibilityRole="button"
+                >
+                  <Text style={s.headerHandoffBtnText}>{'\uD83D\uDC69\u200D\u2695\uFE0F'} Handoff</Text>
+                </TouchableOpacity>
+              </View>
             }
           />
-
-          {/* Share row */}
-          <View style={s.shareRow}>
-              <TouchableOpacity
-                style={s.shareBtn}
-                onPress={() => navigate('/daily-care-report')}
-                activeOpacity={0.7}
-                accessibilityLabel="View care report"
-                accessibilityRole="button"
-              >
-                <Text style={s.shareBtnText}>{'\uD83D\uDCCB'} Care Report</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.shareBtn, s.shareBtnPrimary]}
-                onPress={() => navigate('/care-summary-export')}
-                activeOpacity={0.7}
-                accessibilityLabel="Generate nurse handoff"
-                accessibilityRole="button"
-              >
-                <Text style={[s.shareBtnText, s.shareBtnPrimaryText]}>{'\uD83D\uDC69\u200D\u2695\uFE0F'} Nurse Handoff</Text>
-              </TouchableOpacity>
-            </View>
 
           {/* ─── FLAGS ─── */}
           {showNeedsAttention && (
@@ -672,7 +666,6 @@ export default function JournalTab() {
             </Text>
           )}
 
-          <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -721,17 +714,17 @@ function buildHandoffSummary(
 // STYLES
 // ============================================================================
 
-const s = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 80,
+    paddingBottom: 32,
   },
   loadingContainer: {
     flex: 1,
@@ -739,7 +732,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 16,
     marginTop: 10,
   },
@@ -754,7 +747,7 @@ const s = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -767,55 +760,45 @@ const s = StyleSheet.create({
     paddingHorizontal: 40,
   },
   authGateIcon: { fontSize: 48, marginBottom: 16 },
-  authGateTitle: { fontSize: 20, fontWeight: '600', color: Colors.textPrimary, marginBottom: 8 },
-  authGateSubtitle: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', marginBottom: 24, lineHeight: 20 },
-  authGateButton: { backgroundColor: Colors.accent, paddingHorizontal: 32, paddingVertical: 14, borderRadius: BorderRadius.lg },
+  authGateTitle: { fontSize: 20, fontWeight: '600', color: c.textPrimary, marginBottom: 8 },
+  authGateSubtitle: { fontSize: 14, color: c.textSecondary, textAlign: 'center', marginBottom: 24, lineHeight: 20 },
+  authGateButton: { backgroundColor: c.accent, paddingHorizontal: 32, paddingVertical: 14, borderRadius: BorderRadius.lg },
   authGateButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
 
   // ─── NARRATIVE HEADER ───
   journalHeader: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: c.glassBorder,
     marginBottom: 16,
   },
-  shareChip: {
-    backgroundColor: 'rgba(20, 184, 166, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.3)',
-    borderRadius: 10,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  shareChipText: {
+  headerIconBtn: {
+    backgroundColor: c.glassDim,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+  },
+  headerIconBtnText: {
+    fontSize: 12,
+  },
+  headerHandoffBtn: {
+    backgroundColor: c.accentDim,
+    borderWidth: 1,
+    borderColor: c.accentBorder,
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 9,
+  },
+  headerHandoffBtnText: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.accent,
-  },
-  shareRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-  },
-  shareBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    alignItems: 'center',
-  },
-  shareBtnPrimary: {
-    backgroundColor: 'rgba(20, 184, 166, 0.15)',
-    borderColor: 'rgba(20, 184, 166, 0.3)',
-  },
-  shareBtnText: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-  shareBtnPrimaryText: {
-    color: Colors.accent,
+    color: c.accent,
   },
 
   // ─── FLAGS ───
@@ -826,21 +809,21 @@ const s = StyleSheet.create({
     padding: 8,
     paddingHorizontal: 10,
     borderRadius: 8,
-    backgroundColor: Colors.redFaint,
+    backgroundColor: c.redFaint,
     marginBottom: 4,
   },
   flagValue: {
     fontSize: 12,
     fontWeight: '500',
-    color: Colors.redBright,
+    color: c.redBright,
   },
   flagDot: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   flagThreshold: {
     fontSize: 10,
-    color: Colors.redBright,
+    color: c.redBright,
     flex: 1,
   },
 
@@ -860,8 +843,8 @@ const s = StyleSheet.create({
   journalSection: {
     marginBottom: 16,
     borderLeftWidth: 3,
-    borderLeftColor: Colors.accent,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderLeftColor: c.accent,
+    backgroundColor: c.glassDim,
     borderRadius: 12,
     padding: 14,
     paddingLeft: 16,
@@ -885,13 +868,13 @@ const s = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // ─── NARRATIVE PROSE ───
   narrativeLine: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 20,
     marginBottom: 6,
   },
@@ -908,26 +891,29 @@ const s = StyleSheet.create({
   },
   vitalLabel: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 2,
     letterSpacing: 0.3,
   },
   vitalValue: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   vitalUnit: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Timestamp
   timestamp: {
     fontSize: 10,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     textAlign: 'center',
     marginTop: 12,
     lineHeight: 16,
   },
 });
+
+// Static styles for module-scope sub-components (benefit from _syncColors)
+const _s = createStyles(Colors);

@@ -10,7 +10,7 @@ import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
-import { BackButton } from '../components/common/BackButton';
+import { SubScreenHeader } from '../components/SubScreenHeader';
 
 export default function LogNoteScreen() {
   const router = useRouter();
@@ -61,16 +61,7 @@ export default function LogNoteScreen() {
       <LinearGradient colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]} style={styles.gradient}>
         <ScrollView style={styles.scrollView}>
           <View style={styles.content}>
-            <View style={styles.header}>
-              <BackButton variant="text" />
-              <Text style={styles.icon}>{params.instanceId ? '\uD83D\uDCCB' : '\uD83D\uDCDD'}</Text>
-              <Text style={styles.title}>{params.itemName ? String(params.itemName) : 'Add Note'}</Text>
-              <Text style={styles.subtitle}>
-                {params.itemName
-                  ? 'Add a note to complete this task'
-                  : 'Capture observations, reminders, or important information'}
-              </Text>
-            </View>
+            <SubScreenHeader title="Log Note" emoji="📝" />
 
             <View style={styles.form}>
               <View style={styles.formGroup}>
@@ -105,12 +96,6 @@ const styles = StyleSheet.create({
   gradient: { flex: 1 },
   scrollView: { flex: 1 },
   content: { padding: 20, paddingBottom: 40 },
-  header: { alignItems: 'center', marginBottom: 32 },
-  backButton: { alignSelf: 'flex-start', marginBottom: 16 },
-  backText: { fontSize: 14, color: Colors.accent, fontWeight: '500' },
-  icon: { fontSize: 48, marginBottom: 12 },
-  title: { fontSize: 24, fontWeight: '300', color: Colors.textPrimary, marginBottom: 8 },
-  subtitle: { fontSize: 13, color: Colors.textMuted, textAlign: 'center', lineHeight: 20, paddingHorizontal: 20 },
   form: { gap: 24 },
   formGroup: { gap: 8 },
   label: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },

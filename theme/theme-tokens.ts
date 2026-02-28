@@ -211,6 +211,12 @@ export const Colors = {
   switchTrackOff: 'rgba(255, 255, 255, 0.2)',
 };
 
+/** Mutate the exported Colors object in-place so every file that reads Colors.X
+ *  at render time picks up the active theme without needing a hook. */
+export function _syncColors(newColors: Partial<typeof Colors>) {
+  Object.assign(Colors, newColors);
+}
+
 export const Spacing = {
   xs: 4,
   sm: 8,

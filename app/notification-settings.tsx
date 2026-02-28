@@ -30,10 +30,11 @@ import {
 import { getMedications } from '../utils/medicationStorage';
 import { scheduleMedicationNotifications } from '../utils/notificationService';
 import { logError } from '../utils/devLog';
+import { emitDataUpdate } from '../lib/events';
 
 // Components
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
-import { BackButton } from '../components/common/BackButton';
+import { SubScreenHeader } from '../components/SubScreenHeader';
 
 export default function NotificationSettingsScreen() {
   const router = useRouter();
@@ -99,6 +100,7 @@ export default function NotificationSettingsScreen() {
     const newSettings = { ...settings, ...updates };
     setSettings(newSettings);
     await saveNotificationSettings(newSettings);
+    emitDataUpdate('notifications');
 
     // Reschedule notifications with new delivery settings
     const medications = await getMedications();
@@ -185,13 +187,7 @@ export default function NotificationSettingsScreen() {
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
-            <BackButton variant="text" />
-          </View>
-
-          <Text style={styles.headerLabel}>NOTIFICATIONS</Text>
-          <Text style={styles.title}>How We Reach You</Text>
+          <SubScreenHeader title="Notifications" subtitle="How we reach you" emoji="🔔" />
 
           {/* Explanation Card */}
           <View style={styles.explanationCard}>
@@ -440,24 +436,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  // Header
-  header: {
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  headerLabel: {
-    fontSize: 11,
-    color: Colors.textHalf,
-    letterSpacing: 1,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.lg,
-  },
 
   // Explanation Card
   explanationCard: {

@@ -100,7 +100,7 @@ export function useCarePlanConfig(
 
   // Listen for relevant updates only
   useDataListener((category) => {
-    if (['carePlanConfig', 'carePlanItems', 'sampleDataCleared'].includes(category)) {
+    if (['carePlanConfig', 'carePlanItems', 'sampleDataCleared', 'patient'].includes(category)) {
       loadConfig();
     }
   });

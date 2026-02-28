@@ -18,7 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { GlassCard } from '../components/aurora/GlassCard';
-import PageHeader from '../components/PageHeader';
+import { SubScreenHeader } from '../components/SubScreenHeader';
 import { getMedications, Medication, getMedicationLogs, MedicationLog } from '../utils/medicationStorage';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { logError } from '../utils/devLog';
@@ -137,22 +137,10 @@ export default function MedicationReportScreen() {
       <AuroraBackground variant="hub" />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.headerWrapper}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={styles.backIcon}>{'\u2190'}</Text>
-          </TouchableOpacity>
-
-          <PageHeader
-            emoji={'\uD83D\uDC8A'}
-            label="Insights"
-            title="Medication Report"
-          />
-        </View>
+        <SubScreenHeader
+          title="Medication Report"
+          emoji={'\uD83D\uDC8A'}
+        />
 
         <ScrollView
           style={styles.scrollView}
@@ -288,27 +276,6 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-  },
-  headerWrapper: {
-    position: 'relative',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 70,
-    left: 24,
-    width: 44,
-    height: 44,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  backIcon: {
-    fontSize: 24,
-    color: Colors.textPrimary,
   },
   scrollView: {
     flex: 1,

@@ -62,6 +62,9 @@ export interface UnderstandPageData {
   correlationCards: CorrelationCard[];
   hasEnoughData: boolean;
   daysOfData: number;
+  adherenceRate: number;       // Period-based med adherence %
+  dosesLogged: number;         // completedCount for the period
+  dosesScheduled: number;      // completedCount + skippedCount for the period
   isSampleData?: boolean;
   sampleDataPreviouslySeen?: boolean; // True if preview was dismissed before
   showConfidenceExplanation?: boolean; // True if one-time explanation should show
@@ -148,6 +151,9 @@ async function getSampleData(timeRange: TimeRange): Promise<UnderstandPageData> 
     correlationCards: SAMPLE_CORRELATION_CARDS,
     hasEnoughData: false,
     daysOfData: 0,
+    adherenceRate: 0,
+    dosesLogged: 0,
+    dosesScheduled: 0,
     isSampleData: true,
     sampleDataPreviouslySeen: previouslySeen,
   };
@@ -811,6 +817,9 @@ export async function loadUnderstandPageData(timeRange: TimeRange): Promise<Unde
       correlationCards,
       hasEnoughData: hasEnoughData || hasCarePlanData,
       daysOfData: effectiveDaysOfData,
+      adherenceRate: carePlanStats.adherenceRate,
+      dosesLogged: carePlanStats.completedCount,
+      dosesScheduled: carePlanStats.completedCount + carePlanStats.skippedCount,
       isSampleData: false,
       showConfidenceExplanation: shouldShowConfidenceExplanation,
     };
@@ -833,6 +842,9 @@ export async function loadUnderstandPageData(timeRange: TimeRange): Promise<Unde
       correlationCards: [],
       hasEnoughData: false,
       daysOfData: 0,
+      adherenceRate: 0,
+      dosesLogged: 0,
+      dosesScheduled: 0,
       isSampleData: false,
     };
   }

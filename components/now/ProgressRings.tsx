@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import type { StatData, TodayStats } from '../../utils/nowHelpers';
 import { getUrgencyStatus, getCategoryUrgencyStatus, type UrgencyStatus } from '../../utils/nowUrgency';
 import type { UrgencyTier, UrgencyTone } from '../../utils/urgency';
@@ -78,6 +79,100 @@ function getProgressPercent(completed: number, total: number) {
 }
 
 // ============================================================================
+// STYLES
+// ============================================================================
+
+const createStyles = (c: typeof Colors) => StyleSheet.create({
+  section: {
+    marginBottom: 12,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 7,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: c.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+  },
+  manageLink: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: c.accent,
+  },
+
+  // 4-col strip (wraps to second row if >4 tiles)
+  strip: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+
+  // Individual cell — fixed ~24% width for 4-col grid
+  cell: {
+    width: '23.5%' as any,
+    flexGrow: 1,
+    backgroundColor: c.glassFaint,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  cellInactive: {
+    opacity: 0.5,
+  },
+  cellOverdue: {
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    backgroundColor: 'rgba(239, 68, 68, 0.05)',
+  },
+  cellWarn: {
+    borderColor: 'rgba(245, 158, 11, 0.25)',
+    backgroundColor: 'rgba(245, 158, 11, 0.05)',
+  },
+  cellSelected: {
+    borderColor: 'rgba(20, 184, 166, 0.5)',
+    backgroundColor: 'rgba(20, 184, 166, 0.08)',
+  },
+
+  cellIcon: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  cellLabel: {
+    fontSize: 9,
+    color: c.textMuted,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    marginBottom: 3,
+  },
+  cellFrac: {
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 16,
+  },
+
+  // Mini progress bar
+  progressBar: {
+    height: 2,
+    backgroundColor: c.glassHover,
+    borderRadius: 1,
+    marginTop: 5,
+    overflow: 'hidden',
+    alignSelf: 'stretch',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 1,
+  },
+});
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -90,6 +185,9 @@ export function ProgressRings({
   onRingPress,
   onManagePress,
 }: ProgressRingsProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   // Build dynamic items from enabled buckets
   const tileItems: TileItem[] = useMemo(() => {
     const buckets = enabledBuckets.length > 0 ? enabledBuckets : DEFAULT_BUCKETS;
@@ -136,15 +234,15 @@ export function ProgressRings({
 
     // Bar color
     const barColor = isComplete
-      ? Colors.green
-      : BUCKET_BAR_COLOR[item.bucket] || Colors.accent;
+      ? colors.green
+      : BUCKET_BAR_COLOR[item.bucket] || colors.accent;
 
     // Count text color
-    const countColor = isComplete ? Colors.green
-      : isInactive ? Colors.textMuted
-      : urgencyResult.tone === 'danger' ? Colors.red
-      : urgencyResult.tone === 'warn' ? Colors.amber
-      : Colors.textSecondary;
+    const countColor = isComplete ? colors.green
+      : isInactive ? colors.textMuted
+      : urgencyResult.tone === 'danger' ? colors.red
+      : urgencyResult.tone === 'warn' ? colors.amber
+      : colors.textSecondary;
 
     // Cell urgency style
     const getCellStyle = () => {
@@ -207,95 +305,3 @@ export function ProgressRings({
     </View>
   );
 }
-
-// ============================================================================
-// STYLES
-// ============================================================================
-
-const styles = StyleSheet.create({
-  section: {
-    marginBottom: 12,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 7,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.30)',
-    textTransform: 'uppercase',
-    letterSpacing: 1.4,
-  },
-  manageLink: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.accent,
-  },
-
-  // 4-col strip
-  strip: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-
-  // Individual cell
-  cell: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.07)',
-    borderRadius: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-  },
-  cellInactive: {
-    opacity: 0.5,
-  },
-  cellOverdue: {
-    borderColor: 'rgba(239, 68, 68, 0.35)',
-    backgroundColor: 'rgba(239, 68, 68, 0.05)',
-  },
-  cellWarn: {
-    borderColor: 'rgba(245, 158, 11, 0.25)',
-    backgroundColor: 'rgba(245, 158, 11, 0.05)',
-  },
-  cellSelected: {
-    borderColor: 'rgba(20, 184, 166, 0.5)',
-    backgroundColor: 'rgba(20, 184, 166, 0.08)',
-  },
-
-  cellIcon: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  cellLabel: {
-    fontSize: 9,
-    color: 'rgba(255, 255, 255, 0.30)',
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-    marginBottom: 3,
-  },
-  cellFrac: {
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 16,
-  },
-
-  // Mini progress bar
-  progressBar: {
-    height: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 1,
-    marginTop: 5,
-    overflow: 'hidden',
-    alignSelf: 'stretch',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 1,
-  },
-});

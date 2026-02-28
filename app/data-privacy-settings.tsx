@@ -34,8 +34,9 @@ import {
 
 // Components
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
-import { BackButton } from '../components/common/BackButton';
+import { SubScreenHeader } from '../components/SubScreenHeader';
 import { logError } from '../utils/devLog';
+import { emitDataUpdate } from '../lib/events';
 
 export default function DataPrivacySettingsScreen() {
   const router = useRouter();
@@ -90,6 +91,7 @@ export default function DataPrivacySettingsScreen() {
             setRetentionPolicyState(policy);
             const removed = await purgeOldData();
             if (removed > 0) {
+              emitDataUpdate('logs');
               Alert.alert('Data Purged', `${removed} old event${removed === 1 ? '' : 's'} removed.`);
             }
           },
@@ -164,13 +166,7 @@ export default function DataPrivacySettingsScreen() {
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
-            <BackButton variant="text" />
-          </View>
-
-          <Text style={styles.headerLabel}>SETTINGS</Text>
-          <Text style={styles.title}>Data & Privacy</Text>
+          <SubScreenHeader title="Data & Privacy" emoji="🔒" />
 
           {/* Privacy Statement */}
           <View style={styles.privacyCard}>
@@ -436,24 +432,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  // Header
-  header: {
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  headerLabel: {
-    fontSize: 11,
-    color: Colors.textHalf,
-    letterSpacing: 1,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.lg,
-  },
 
   // Privacy Card
   privacyCard: {

@@ -6,10 +6,9 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { AuroraBackground } from '../../../components/aurora/AuroraBackground';
 import { GlassCard } from '../../../components/aurora/GlassCard';
-import { PageHeader } from '../../../components/aurora/PageHeader';
+import { SubScreenHeader } from '../../../components/SubScreenHeader';
 import { Colors, Spacing, Typography, BorderRadius } from '../../../theme/theme-tokens';
 
 // Sample data
@@ -36,8 +35,6 @@ const getAdherenceColor = (adherence: number) => {
 };
 
 export default function MedicationReport() {
-  const router = useRouter();
-
   return (
     <View style={styles.container}>
       <AuroraBackground variant="reports" />
@@ -48,12 +45,9 @@ export default function MedicationReport() {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          <PageHeader
-            category="CLINICAL REPORT"
+          <SubScreenHeader
             title="Medication Adherence"
-            onBack={() => router.back()}
-            actionIcon="📤"
-            onAction={() => {/* Share report */}}
+            emoji="💊"
           />
 
           {/* Adherence Overview */}

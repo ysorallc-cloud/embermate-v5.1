@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
+import { SubScreenHeader } from '../components/SubScreenHeader';
 import { saveMoodLog } from '../utils/centralStorage';
 import { logMood } from '../utils/logEvents';
 import { hapticSuccess } from '../utils/hapticFeedback';
@@ -114,19 +115,7 @@ export default function LogMoodScreen() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Log Mood</Text>
-          <View style={styles.backButton} />
-        </View>
+        <SubScreenHeader title="Log Mood" emoji="😊" />
 
         <ScrollView style={styles.content}>
           {/* CarePlan context banner */}
@@ -187,35 +176,6 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButtonText: {
-    color: Colors.textPrimary,
-    fontSize: 18,
-  },
-  title: {
-    color: Colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '500',
   },
   content: {
     flex: 1,

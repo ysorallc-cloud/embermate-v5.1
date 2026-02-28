@@ -6,7 +6,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors } from '../theme/theme-tokens';
+import { Colors, _syncColors } from '../theme/theme-tokens';
 import { LightColors } from '../theme/light-tokens';
 import { HighContrastDarkOverrides, HighContrastLightOverrides } from '../theme/high-contrast-tokens';
 
@@ -100,6 +100,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     return { ...base, ...overrides } as typeof Colors;
   }, [resolvedTheme, highContrast]);
+
+  // Prong 1: keep global Colors object in sync so non-migrated files
+  // that read Colors.X at render time get the correct values.
+  useEffect(() => {
+    _syncColors(colors);
+  }, [colors]);
 
   return (
     <ThemeContext.Provider value={{ colors, themeMode, resolvedTheme, highContrast, setThemeMode, setHighContrast }}>

@@ -4,7 +4,7 @@
 // Individual row taps still work normally when sheet is closed
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { parseTimeForDisplay, type TimeWindow } from '../../utils/nowHelpers';
 
 const TIME_WINDOW_LABELS: Record<TimeWindow, string> = {
@@ -46,6 +47,9 @@ export function RoutineSheet({
   onItemPress,
   onDismiss,
 }: RoutineSheetProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const pendingItems = items.filter(i => i.status === 'pending');
   const doneItems = items.filter(i =>
     i.status === 'completed' || i.status === 'skipped' || i.status === 'missed'
@@ -181,10 +185,10 @@ export function RoutineSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: 'row',
@@ -194,7 +198,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    borderBottomColor: c.glassHover,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -207,23 +211,23 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   headerSub: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   closeButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: Colors.glassActive,
+    backgroundColor: c.glassActive,
   },
   closeText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   scrollView: {
     flex: 1,
@@ -235,7 +239,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.30)',
+    color: c.textMuted,
     letterSpacing: 1.4,
     textTransform: 'uppercase',
     marginTop: 16,
@@ -249,7 +253,7 @@ const styles = StyleSheet.create({
   },
   itemRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+    borderBottomColor: c.glassDim,
   },
   itemRowDone: {
     opacity: 0.5,
@@ -258,7 +262,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
   },
   itemBody: {
     flex: 1,
@@ -266,23 +270,23 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   itemSub: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   itemNameDone: {
     fontSize: 14,
     fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.35)',
+    color: c.textDisabled,
     textDecorationLine: 'line-through',
     marginBottom: 2,
   },
   itemSubDone: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   doneIcon: {
     fontSize: 14,
@@ -295,7 +299,7 @@ const styles = StyleSheet.create({
     color: 'rgba(245, 158, 11, 0.7)',
   },
   logButton: {
-    backgroundColor: Colors.glassActive,
+    backgroundColor: c.glassActive,
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 12,
@@ -303,7 +307,7 @@ const styles = StyleSheet.create({
   logButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   allDoneCard: {
     alignItems: 'center',

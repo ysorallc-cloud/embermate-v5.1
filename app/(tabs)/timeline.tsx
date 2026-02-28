@@ -17,7 +17,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing } from '../../theme/theme-tokens';
-import PageHeader from '../../components/PageHeader';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { logError } from '../../utils/devLog';
 
 type TimeRange = '7days' | '30days' | '3months';
@@ -61,10 +61,9 @@ export default function InsightsScreen() {
         style={styles.gradient}
       >
         {/* Header with Minimalist Line Art */}
-        <PageHeader 
-          emoji="🪷"
-          label="Patterns & Trends"
+        <ScreenHeader
           title="Insights"
+          subtitle="Patterns & Trends"
         />
         
         {/* Time Range Selector */}

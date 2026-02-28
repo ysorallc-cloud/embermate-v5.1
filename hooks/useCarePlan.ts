@@ -173,7 +173,7 @@ export function useCarePlan(date?: string): UseCarePlanReturn {
 
   // Listen for relevant data updates only
   useDataListener((category) => {
-    if (['carePlan', 'carePlanItems', 'sampleDataCleared'].includes(category)) {
+    if (['carePlan', 'carePlanItems', 'sampleDataCleared', 'patient'].includes(category)) {
       loadData();
     }
   });

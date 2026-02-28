@@ -23,6 +23,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { SubScreenHeader } from '../components/SubScreenHeader';
 import {
   createAppointment,
   updateAppointment,
@@ -300,33 +301,9 @@ export default function AppointmentFormScreen() {
         colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
-        {/* Header - Keep existing style */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerLabel}>
-            {isEditing ? 'EDIT APPOINTMENT' : 'ADD APPOINTMENT'}
-          </Text>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSave}
-            accessibilityRole="button"
-            accessibilityLabel={isEditing ? 'Save appointment changes' : 'Save new appointment'}
-          >
-            <Text style={styles.saveButtonText}>Save</Text>
-          </TouchableOpacity>
-        </View>
+        <SubScreenHeader title={isEditing ? 'Edit Appointment' : 'Schedule Appointment'} emoji="📅" />
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <Text style={styles.title}>
-            {isEditing ? 'Edit Appointment' : 'Schedule Appointment'}
-          </Text>
 
           {/* Single Card Container */}
           <View style={styles.card}>
@@ -525,6 +502,17 @@ export default function AppointmentFormScreen() {
             </View>
           )}
 
+          <TouchableOpacity
+            style={styles.bottomSaveButton}
+            onPress={handleSave}
+            accessibilityRole="button"
+            accessibilityLabel={isEditing ? 'Save appointment changes' : 'Save new appointment'}
+          >
+            <Text style={styles.bottomSaveButtonText}>
+              {isEditing ? 'Save Changes' : 'Save Appointment'}
+            </Text>
+          </TouchableOpacity>
+
           <View style={{ height: 40 }} />
         </ScrollView>
 
@@ -608,52 +596,23 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Platform.OS === 'android' ? 20 : 0,
-    paddingBottom: Spacing.md,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backIcon: {
-    fontSize: 24,
-    color: Colors.textPrimary,
-  },
-  headerLabel: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    letterSpacing: 1,
-    fontWeight: '600',
-  },
-  saveButton: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    color: Colors.accent,
-    fontWeight: '600',
-  },
   scrollView: {
     flex: 1,
     paddingHorizontal: Spacing.xl,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xxl,
+  bottomSaveButton: {
+    backgroundColor: Colors.accent,
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 32,
+  },
+  bottomSaveButtonText: {
+    color: Colors.background,
+    fontSize: 16,
+    fontWeight: '700',
   },
 
   // Single Card

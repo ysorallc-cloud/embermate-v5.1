@@ -3,7 +3,7 @@
 // People first. Quick actions at top. Compact expandable rows.
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import { navigate } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
 import { useDataListener } from '../../lib/events';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   getCaregivers,
   getCareActivities,
@@ -49,6 +50,8 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function SupportScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [caregivers, setCaregivers] = useState<CaregiverProfile[]>([]);
   const [activities, setActivities] = useState<CareActivity[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -183,7 +186,7 @@ export default function SupportScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={Colors.accent}
+              tintColor={colors.accent}
             />
           }
         >
@@ -260,7 +263,7 @@ export default function SupportScreen() {
                 const lastActive = getLastActiveTime(caregiver.id, caregiver.name);
                 const trustedPermissions = getTrustedPermissions(caregiver);
                 const isEmergencyContact = (caregiver as any).emergencyContact;
-                const avatarColor = caregiver.avatarColor || Colors.accent;
+                const avatarColor = caregiver.avatarColor || colors.accent;
 
                 return (
                   <View key={caregiver.id} style={styles.memberWrapper}>
@@ -511,10 +514,10 @@ function getRelativeTime(timestamp: string): string {
   return time.toLocaleDateString();
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   safeArea: {
     flex: 1,
@@ -530,22 +533,22 @@ const styles = StyleSheet.create({
 
   // Privacy Notice
   sampleBanner: {
-    backgroundColor: Colors.amberFaint,
+    backgroundColor: c.amberFaint,
     borderWidth: 1,
-    borderColor: Colors.amberBorder,
+    borderColor: c.amberBorder,
     borderRadius: 10,
     padding: 12,
     marginBottom: 16,
   },
   sampleBannerText: {
     fontSize: 13,
-    color: Colors.amber,
+    color: c.amber,
     textAlign: 'center',
   },
   privacyNotice: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 14,
     overflow: 'hidden',
     marginBottom: 16,
@@ -557,7 +560,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 3,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
   },
   privacyContent: {
     flexDirection: 'row',
@@ -573,12 +576,12 @@ const styles = StyleSheet.create({
   privacyTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 3,
   },
   privacyText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
 
@@ -593,27 +596,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: Colors.accentFaint,
+    backgroundColor: c.accentFaint,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
+    borderColor: c.accentBorder,
   },
   quickAction: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
   },
   quickActionEmergency: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: Colors.redFaint,
+    backgroundColor: c.redFaint,
     borderWidth: 1,
-    borderColor: Colors.redBorder,
+    borderColor: c.redBorder,
   },
   quickActionIcon: {
     fontSize: 18,
@@ -622,17 +625,17 @@ const styles = StyleSheet.create({
   quickActionLabelPrimary: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   quickActionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textBright,
+    color: c.textBright,
   },
   quickActionLabelEmergency: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.redBright,
+    color: c.redBright,
   },
 
   // Sections
@@ -642,7 +645,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textHalf,
+    color: c.textHalf,
     letterSpacing: 1,
     textTransform: 'uppercase',
     paddingHorizontal: 4,
@@ -665,9 +668,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 14,
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
   },
   memberAvatar: {
     width: 38,
@@ -679,7 +682,7 @@ const styles = StyleSheet.create({
   memberAvatarText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   memberInfo: {
     flex: 1,
@@ -693,29 +696,29 @@ const styles = StyleSheet.create({
   memberName: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   emergencyBadge: {
     fontSize: 10,
   },
   memberMeta: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   memberActiveTime: {
-    color: Colors.sage,
+    color: c.sage,
   },
   memberInactive: {
-    color: Colors.textPlaceholder,
+    color: c.textPlaceholder,
   },
   callButton: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: Colors.accentFaint,
+    backgroundColor: c.accentFaint,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
+    borderColor: c.accentBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -724,7 +727,7 @@ const styles = StyleSheet.create({
   },
   expandArrow: {
     fontSize: 18,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginLeft: 2,
   },
   expandArrowOpen: {
@@ -733,10 +736,10 @@ const styles = StyleSheet.create({
 
   // Expanded panel
   expandedPanel: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
     borderTopWidth: 0,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderBottomLeftRadius: 14,
     borderBottomRightRadius: 14,
     paddingHorizontal: 14,
@@ -744,13 +747,13 @@ const styles = StyleSheet.create({
   },
   expandedDivider: {
     height: 1,
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     marginBottom: 12,
   },
   expandedLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 0.5,
     marginBottom: 6,
   },
@@ -761,28 +764,28 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   permissionTag: {
-    backgroundColor: Colors.accentFaint,
+    backgroundColor: c.accentFaint,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
+    borderColor: c.accentBorder,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 3,
   },
   permissionTagText: {
     fontSize: 11,
-    color: Colors.accent,
+    color: c.accent,
   },
   emergencyTag: {
-    backgroundColor: Colors.redFaint,
+    backgroundColor: c.redFaint,
     borderWidth: 1,
-    borderColor: Colors.redBorder,
+    borderColor: c.redBorder,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 3,
   },
   emergencyTagText: {
     fontSize: 11,
-    color: Colors.redBright,
+    color: c.redBright,
   },
   expandedActions: {
     flexDirection: 'row',
@@ -793,22 +796,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
   },
   expandedActionSettings: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
   },
   expandedActionText: {
     fontSize: 12,
     fontWeight: '500',
-    color: Colors.textBright,
+    color: c.textBright,
   },
 
   manageTeamLink: {
@@ -817,15 +820,15 @@ const styles = StyleSheet.create({
   },
   manageTeamText: {
     fontSize: 12,
-    color: Colors.sageStrong,
+    color: c.sageStrong,
     fontWeight: '500',
   },
 
   // Activity — inline rows
   activityContainer: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -838,7 +841,7 @@ const styles = StyleSheet.create({
   },
   activityRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: Colors.glassHover,
+    borderBottomColor: c.glassHover,
   },
   activityIcon: {
     fontSize: 14,
@@ -848,15 +851,15 @@ const styles = StyleSheet.create({
   },
   activityText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   activityWho: {
     fontWeight: '500',
-    color: Colors.textBright,
+    color: c.textBright,
   },
   activityTime: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   viewAllLink: {
     paddingVertical: 10,
@@ -864,14 +867,14 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: 12,
-    color: Colors.sageSoft,
+    color: c.sageSoft,
   },
 
   // Settings & Help
   settingsContainer: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 14,
     overflow: 'hidden',
   },
@@ -884,7 +887,7 @@ const styles = StyleSheet.create({
   },
   settingsRowBorder: {
     height: 1,
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     marginHorizontal: 14,
   },
   settingsIcon: {
@@ -894,11 +897,11 @@ const styles = StyleSheet.create({
   },
   settingsLabel: {
     fontSize: 14,
-    color: Colors.textBright,
+    color: c.textBright,
     flex: 1,
   },
   settingsChevron: {
     fontSize: 18,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 });

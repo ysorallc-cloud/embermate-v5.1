@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors, BorderRadius, Spacing } from '../theme/theme-tokens';
+import { SubScreenHeader } from '../components/SubScreenHeader';
 import { saveDailyTracking, getDailyTracking } from '../utils/dailyTrackingStorage';
 import { saveSleepLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
@@ -131,19 +132,7 @@ export default function LogSleep() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => router.back()}
-                accessibilityLabel="Go back"
-                accessibilityRole="button"
-              >
-                <Text style={styles.backIcon}>←</Text>
-              </TouchableOpacity>
-              <Text style={styles.title}>Log Sleep</Text>
-              <View style={{ width: 44 }} />
-            </View>
+            <SubScreenHeader title="Log Sleep" emoji="😴" />
 
             {/* Hours Input */}
             <View style={styles.section}>
@@ -241,33 +230,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: Spacing.xl,
-    paddingTop: Spacing.lg,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surfaceHighlight,
-    borderWidth: 1,
-    borderColor: Colors.accentLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backIcon: {
-    fontSize: 20,
-    color: Colors.textPrimary,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
 
   // Section
   section: {

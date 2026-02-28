@@ -6,9 +6,9 @@
 import { Tabs } from 'expo-router';
 import { View, Text, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
-const TabIcon = ({ icon, focused }: { icon: string; focused: boolean }) => (
+const TabIcon = ({ icon, focused, accentGlow, accent }: { icon: string; focused: boolean; accentGlow: string; accent: string }) => (
   <View
     style={{ alignItems: 'center' }}
     accessible={false}
@@ -19,7 +19,7 @@ const TabIcon = ({ icon, focused }: { icon: string; focused: boolean }) => (
       opacity: focused ? 1 : 0.5,
       transform: [{ scale: focused ? 1.1 : 1 }],
       ...(focused && Platform.OS === 'ios' && {
-        textShadowColor: Colors.accentGlow,
+        textShadowColor: accentGlow,
         textShadowOffset: { width: 0, height: 0 },
         textShadowRadius: 12,
       }),
@@ -31,7 +31,7 @@ const TabIcon = ({ icon, focused }: { icon: string; focused: boolean }) => (
         width: 4,
         height: 4,
         borderRadius: 2,
-        backgroundColor: Colors.accent,
+        backgroundColor: accent,
         marginTop: 4,
       }} />
     )}
@@ -39,13 +39,15 @@ const TabIcon = ({ icon, focused }: { icon: string; focused: boolean }) => (
 );
 
 export default function TabLayout() {
+  const { colors, resolvedTheme } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Platform.OS === 'ios' ? 'transparent' : 'rgba(4, 15, 14, 0.95)',
-          borderTopColor: Colors.glassBorder,
+          backgroundColor: Platform.OS === 'ios' ? 'transparent' : colors.tabBarBackground,
+          borderTopColor: colors.glassBorder,
           borderTopWidth: 1,
           paddingTop: 8,
           paddingBottom: 28,
@@ -56,13 +58,13 @@ export default function TabLayout() {
           Platform.OS === 'ios' ? (
             <BlurView
               intensity={40}
-              tint="dark"
-              style={{ flex: 1, backgroundColor: 'rgba(5, 22, 20, 0.85)' }}
+              tint={resolvedTheme === 'light' ? 'light' : 'dark'}
+              style={{ flex: 1, backgroundColor: resolvedTheme === 'light' ? 'rgba(248, 255, 254, 0.85)' : 'rgba(5, 22, 20, 0.85)' }}
             />
           ) : null
         ),
-        tabBarActiveTintColor: Colors.accent,
-        tabBarInactiveTintColor: Colors.textMuted,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '500',
@@ -73,7 +75,7 @@ export default function TabLayout() {
         name="now"
         options={{
           title: 'Now',
-          tabBarIcon: ({ focused }) => <TabIcon icon="☀️" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="☀️" focused={focused} accentGlow={colors.accentGlow} accent={colors.accent} />,
           tabBarAccessibilityLabel: 'Now tab. What is happening right now',
           tabBarButtonTestID: 'tab-now',
         }}
@@ -82,7 +84,7 @@ export default function TabLayout() {
         name="journal"
         options={{
           title: 'Journal',
-          tabBarIcon: ({ focused }) => <TabIcon icon="📖" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="📖" focused={focused} accentGlow={colors.accentGlow} accent={colors.accent} />,
           tabBarAccessibilityLabel: 'Journal tab. Review care history and daily summary',
           tabBarButtonTestID: 'tab-journal',
         }}
@@ -91,7 +93,7 @@ export default function TabLayout() {
         name="understand"
         options={{
           title: 'Understand',
-          tabBarIcon: ({ focused }) => <TabIcon icon="📊" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="📊" focused={focused} accentGlow={colors.accentGlow} accent={colors.accent} />,
           tabBarAccessibilityLabel: 'Understand tab. View health patterns and insights',
           tabBarButtonTestID: 'tab-understand',
         }}
@@ -100,7 +102,7 @@ export default function TabLayout() {
         name="support"
         options={{
           title: 'Team',
-          tabBarIcon: ({ focused }) => <TabIcon icon="👥" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="👥" focused={focused} accentGlow={colors.accentGlow} accent={colors.accent} />,
           tabBarAccessibilityLabel: 'Support tab. Manage care circle and family',
           tabBarButtonTestID: 'tab-support',
         }}

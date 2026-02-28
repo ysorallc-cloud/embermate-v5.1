@@ -29,7 +29,14 @@ export async function checkFeatureAccess(feature: GatedFeature): Promise<Feature
     }
 
     case 'pdf_export':
-      // Currently free for all tiers
+      if (!limits.pdfExport) {
+        return {
+          allowed: false,
+          reason: 'PDF export is a Premium feature. Upgrade to export care summaries as PDF.',
+          currentTier: state.tier,
+          requiredTier: 'premium',
+        };
+      }
       return { allowed: true, currentTier: state.tier };
 
     case 'advanced_insights':
