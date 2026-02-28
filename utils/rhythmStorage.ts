@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMedications } from './medicationStorage';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import { logError } from './devLog';
 
 const STORAGE_KEY = '@embermate_rhythm';
@@ -151,7 +152,7 @@ export async function getRhythm(): Promise<Rhythm | null> {
 export async function saveRhythm(rhythm: Rhythm): Promise<void> {
   try {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(rhythm));
-    emitDataUpdate('rhythm');
+    emitDataUpdate(EVENT.RHYTHM);
   } catch (error) {
     logError('rhythmStorage.saveRhythm', error);
     throw error;
@@ -177,7 +178,7 @@ export async function updateRhythm(updates: Partial<Rhythm>): Promise<void> {
 export async function clearRhythm(): Promise<void> {
   try {
     await AsyncStorage.removeItem(STORAGE_KEY);
-    emitDataUpdate('rhythm');
+    emitDataUpdate(EVENT.RHYTHM);
   } catch (error) {
     logError('rhythmStorage.clearRhythm', error);
     throw error;

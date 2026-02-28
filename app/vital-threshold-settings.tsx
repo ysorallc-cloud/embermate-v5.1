@@ -21,6 +21,7 @@ import { SubScreenHeader } from '../components/SubScreenHeader';
 import { VITAL_THRESHOLDS, VitalType, loadCustomThresholds } from '../utils/vitalThresholds';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 
 const STORAGE_KEY = '@embermate_custom_vital_thresholds';
 
@@ -222,7 +223,7 @@ export default function VitalThresholdSettings() {
       // Reload cache so getVitalStatus/generateVitalAlert use new values
       await loadCustomThresholds();
 
-      emitDataUpdate('vitals');
+      emitDataUpdate(EVENT.VITALS);
       setHasChanges(false);
       Alert.alert('Saved', 'Custom vital thresholds saved successfully.');
     } catch (error) {

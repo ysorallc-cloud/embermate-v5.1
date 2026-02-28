@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { safeGetItem, safeSetItem } from './safeStorage';
 import { generateUniqueId } from './idGenerator';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import { getTodayDateString } from '../services/carePlanGenerator';
 
 // ============================================================================
@@ -218,7 +219,7 @@ export async function addLogEvent<T extends Omit<LogEvent, 'id' | 'date'>>(
   const trimmed = events.slice(-MAX_EVENTS);
 
   await safeSetItem(LOG_EVENTS_KEY, trimmed);
-  emitDataUpdate('logEvents');
+  emitDataUpdate(EVENT.LOG_EVENTS);
 
   return newEvent;
 }
@@ -237,7 +238,7 @@ export async function updateLogEvent(
 
   events[index] = { ...events[index], ...updates } as LogEvent;
   await safeSetItem(LOG_EVENTS_KEY, events);
-  emitDataUpdate('logEvents');
+  emitDataUpdate(EVENT.LOG_EVENTS);
 
   return events[index];
 }
@@ -252,7 +253,7 @@ export async function deleteLogEvent(id: string): Promise<boolean> {
   if (filtered.length === events.length) return false;
 
   await safeSetItem(LOG_EVENTS_KEY, filtered);
-  emitDataUpdate('logEvents');
+  emitDataUpdate(EVENT.LOG_EVENTS);
 
   return true;
 }

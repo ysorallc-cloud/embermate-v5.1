@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { logError } from '../utils/devLog';
 import { useDataListener, emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import {
   Appointment,
   getAppointments,
@@ -120,7 +121,7 @@ export function useAppointments(): UseAppointmentsReturn {
     appointment: Omit<Appointment, 'id' | 'createdAt'>
   ): Promise<Appointment> => {
     const newAppointment = await createAppointment(appointment);
-    emitDataUpdate('appointments'); // Notify all listeners
+    emitDataUpdate(EVENT.APPOINTMENTS); // Notify all listeners
     return newAppointment;
   }, []);
 
@@ -133,7 +134,7 @@ export function useAppointments(): UseAppointmentsReturn {
   ): Promise<Appointment | null> => {
     const updated = await updateAppointment(id, updates);
     if (updated) {
-      emitDataUpdate('appointments'); // Notify all listeners
+      emitDataUpdate(EVENT.APPOINTMENTS); // Notify all listeners
     }
     return updated;
   }, []);
@@ -144,7 +145,7 @@ export function useAppointments(): UseAppointmentsReturn {
   const complete = useCallback(async (id: string): Promise<boolean> => {
     const success = await completeAppointment(id);
     if (success) {
-      emitDataUpdate('appointments'); // Notify all listeners
+      emitDataUpdate(EVENT.APPOINTMENTS); // Notify all listeners
     }
     return success;
   }, []);
@@ -155,7 +156,7 @@ export function useAppointments(): UseAppointmentsReturn {
   const cancel = useCallback(async (id: string): Promise<boolean> => {
     const success = await cancelAppointment(id);
     if (success) {
-      emitDataUpdate('appointments'); // Notify all listeners
+      emitDataUpdate(EVENT.APPOINTMENTS); // Notify all listeners
     }
     return success;
   }, []);
@@ -166,7 +167,7 @@ export function useAppointments(): UseAppointmentsReturn {
   const remove = useCallback(async (id: string): Promise<boolean> => {
     const success = await deleteAppointment(id);
     if (success) {
-      emitDataUpdate('appointments'); // Notify all listeners
+      emitDataUpdate(EVENT.APPOINTMENTS); // Notify all listeners
     }
     return success;
   }, []);

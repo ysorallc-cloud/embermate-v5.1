@@ -5,6 +5,7 @@
 
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import {
   CarePlanConfig,
   BucketType,
@@ -65,7 +66,7 @@ export async function saveCarePlanConfig(config: CarePlanConfig): Promise<void> 
     version: (config.version || 0) + 1,
   };
   const ok = await safeSetItem(KEYS.CONFIG(config.patientId), updated);
-  if (ok) emitDataUpdate('carePlanConfig');
+  if (ok) emitDataUpdate(EVENT.CARE_PLAN_CONFIG);
 }
 
 /**

@@ -5,6 +5,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import { CarePlan, CarePlanOverride, isCarePlan } from './carePlanTypes';
 import { generateDefaultCarePlan } from './carePlanDefaults';
 import { devLog, logError } from './devLog';
@@ -46,7 +47,7 @@ export async function saveCarePlan(plan: CarePlan): Promise<void> {
   try {
     plan.updatedAt = new Date().toISOString();
     await AsyncStorage.setItem(CARE_PLAN_KEY, JSON.stringify(plan));
-    emitDataUpdate('carePlan');
+    emitDataUpdate(EVENT.CARE_PLAN);
   } catch (error) {
     logError('carePlanStorage.saveCarePlan', error);
     throw error;
@@ -70,7 +71,7 @@ export async function updateCarePlan(updates: Partial<CarePlan>): Promise<CarePl
     };
 
     await AsyncStorage.setItem(CARE_PLAN_KEY, JSON.stringify(updated));
-    emitDataUpdate('carePlan');
+    emitDataUpdate(EVENT.CARE_PLAN);
     return updated;
   } catch (error) {
     logError('carePlanStorage.updateCarePlan', error);
@@ -84,7 +85,7 @@ export async function updateCarePlan(updates: Partial<CarePlan>): Promise<CarePl
 export async function clearCarePlan(): Promise<void> {
   try {
     await AsyncStorage.removeItem(CARE_PLAN_KEY);
-    emitDataUpdate('carePlan');
+    emitDataUpdate(EVENT.CARE_PLAN);
   } catch (error) {
     logError('carePlanStorage.clearCarePlan', error);
     throw error;
@@ -288,7 +289,7 @@ export async function setOverride(override: CarePlanOverride): Promise<void> {
 
     allOverrides[override.date] = filteredOverrides;
     await saveAllOverrides(allOverrides);
-    emitDataUpdate('carePlan');
+    emitDataUpdate(EVENT.CARE_PLAN);
   } catch (error) {
     logError('carePlanStorage.setOverride', error);
     throw error;
@@ -312,7 +313,7 @@ export async function removeOverride(
     );
 
     await saveAllOverrides(allOverrides);
-    emitDataUpdate('carePlan');
+    emitDataUpdate(EVENT.CARE_PLAN);
   } catch (error) {
     logError('carePlanStorage.removeOverride', error);
     throw error;
@@ -327,7 +328,7 @@ export async function clearOverrides(date: string): Promise<void> {
     const allOverrides = await getAllOverrides();
     delete allOverrides[date];
     await saveAllOverrides(allOverrides);
-    emitDataUpdate('carePlan');
+    emitDataUpdate(EVENT.CARE_PLAN);
   } catch (error) {
     logError('carePlanStorage.clearOverrides', error);
     throw error;
@@ -459,7 +460,7 @@ export async function resetTodayScope(date?: string): Promise<void> {
     }
 
     await saveAllOverrides(allOverrides);
-    emitDataUpdate('carePlan');
+    emitDataUpdate(EVENT.CARE_PLAN);
   } catch (error) {
     logError('carePlanStorage.resetTodayScope', error);
     throw error;

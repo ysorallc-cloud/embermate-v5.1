@@ -7,6 +7,7 @@
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { generateUniqueId } from '../utils/idGenerator';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import { withKeyLock } from '../utils/keyLock';
 import {
   CarePlan,
@@ -89,7 +90,7 @@ export async function upsertCarePlan(plan: CarePlan): Promise<CarePlan> {
   };
 
   const ok = await safeSetItem(KEYS.CARE_PLAN(plan.patientId), updatedPlan);
-  if (ok) emitDataUpdate('carePlan');
+  if (ok) emitDataUpdate(EVENT.CARE_PLAN);
   return updatedPlan;
 }
 
@@ -115,7 +116,7 @@ export async function createCarePlan(
   };
 
   const ok = await safeSetItem(KEYS.CARE_PLAN(patientId), plan);
-  if (ok) emitDataUpdate('carePlan');
+  if (ok) emitDataUpdate(EVENT.CARE_PLAN);
   return plan;
 }
 
@@ -183,7 +184,7 @@ export async function upsertCarePlanItem(item: CarePlanItem): Promise<CarePlanIt
   }
 
   const ok = await safeSetItem(KEYS.CARE_PLAN_ITEMS(item.carePlanId), items);
-  if (ok) emitDataUpdate('carePlanItems');
+  if (ok) emitDataUpdate(EVENT.CARE_PLAN_ITEMS);
   return updatedItem;
 }
 
@@ -210,7 +211,7 @@ export async function deleteCarePlanItem(
   const items = await listCarePlanItems(carePlanId);
   const filtered = items.filter(i => i.id !== itemId);
   const ok = await safeSetItem(KEYS.CARE_PLAN_ITEMS(carePlanId), filtered);
-  if (ok) emitDataUpdate('carePlanItems');
+  if (ok) emitDataUpdate(EVENT.CARE_PLAN_ITEMS);
 }
 
 // ============================================================================
@@ -272,7 +273,7 @@ export async function upsertDailyInstances(
     // Update index
     await updateInstanceIndex(patientId, date);
 
-    emitDataUpdate('dailyInstances');
+    emitDataUpdate(EVENT.DAILY_INSTANCES);
     return result;
   });
 }
@@ -303,7 +304,7 @@ export async function updateDailyInstanceStatus(
     };
 
     const ok = await safeSetItem(KEYS.DAILY_INSTANCES(patientId, date), instances);
-    if (ok) emitDataUpdate('dailyInstances');
+    if (ok) emitDataUpdate(EVENT.DAILY_INSTANCES);
     return instances[index];
   });
 }
@@ -325,7 +326,7 @@ export async function removeStaleInstances(
 
     if (removedCount > 0) {
       const ok = await safeSetItem(KEYS.DAILY_INSTANCES(patientId, date), validInstances);
-      if (ok) emitDataUpdate('dailyInstances');
+      if (ok) emitDataUpdate(EVENT.DAILY_INSTANCES);
     }
 
     return removedCount;
@@ -406,7 +407,7 @@ export async function createLogEntry(
   const trimmed = allLogs.slice(-5000);
   await safeSetItem(KEYS.ALL_LOGS(log.patientId), trimmed);
 
-  emitDataUpdate('logs');
+  emitDataUpdate(EVENT.LOGS);
   return newLog;
 }
 
@@ -606,8 +607,8 @@ export async function clearAllPatientData(patientId: string): Promise<void> {
   results.push(await safeSetItem(KEYS.ALL_LOGS(patientId), []));
   const anySuccess = results.some(r => r);
   if (anySuccess) {
-    emitDataUpdate('carePlan');
-    emitDataUpdate('dailyInstances');
-    emitDataUpdate('logs');
+    emitDataUpdate(EVENT.CARE_PLAN);
+    emitDataUpdate(EVENT.DAILY_INSTANCES);
+    emitDataUpdate(EVENT.LOGS);
   }
 }

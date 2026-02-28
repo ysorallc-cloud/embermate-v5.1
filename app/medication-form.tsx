@@ -63,6 +63,7 @@ import {
 import { generateUniqueId } from '../utils/idGenerator';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'bedtime';
 
@@ -573,9 +574,9 @@ export default function MedicationFormScreen() {
         });
       }
 
-      emitDataUpdate('medication');
-      emitDataUpdate('carePlanItems');
-      emitDataUpdate('dailyInstances');
+      emitDataUpdate(EVENT.MEDICATION);
+      emitDataUpdate(EVENT.CARE_PLAN_ITEMS);
+      emitDataUpdate(EVENT.DAILY_INSTANCES);
       router.back();
     } catch (error) {
       setSaving(false);

@@ -31,6 +31,7 @@ import { getMedications } from '../utils/medicationStorage';
 import { scheduleMedicationNotifications } from '../utils/notificationService';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 
 // Components
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
@@ -100,7 +101,7 @@ export default function NotificationSettingsScreen() {
     const newSettings = { ...settings, ...updates };
     setSettings(newSettings);
     await saveNotificationSettings(newSettings);
-    emitDataUpdate('notifications');
+    emitDataUpdate(EVENT.NOTIFICATIONS);
 
     // Reschedule notifications with new delivery settings
     const medications = await getMedications();

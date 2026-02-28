@@ -95,6 +95,7 @@ import {
 } from '../../components/common/ConsistencyBanner';
 import { logError } from '../../utils/devLog';
 import { useDataListener, emitDataUpdate } from '../../lib/events';
+import { EVENT } from '../../lib/eventNames';
 import { GettingStartedChecklist } from '../../components/guidance';
 
 export default function NowScreen() {
@@ -168,7 +169,7 @@ export default function NowScreen() {
       setWaterGlasses(newGlasses);
       const { updateTodayWaterLog } = await import('../../utils/centralStorage');
       await updateTodayWaterLog(newGlasses);
-      emitDataUpdate('water');
+      emitDataUpdate(EVENT.WATER);
     } catch (error) {
       logError('now.handleWaterUpdate', error);
     }
@@ -344,7 +345,7 @@ export default function NowScreen() {
   // Skip an instance from UpNextCard
   const handleSkipInstance = useCallback(async (instanceId: string) => {
     await completeInstance(instanceId, 'skipped');
-    emitDataUpdate('dailyInstances');
+    emitDataUpdate(EVENT.DAILY_INSTANCES);
   }, [completeInstance]);
 
   // Batch confirm meds — uses completeInstance from useCareTasks
@@ -352,7 +353,7 @@ export default function NowScreen() {
     for (const id of instanceIds) {
       await completeInstance(id, 'taken');
     }
-    emitDataUpdate('dailyInstances');
+    emitDataUpdate(EVENT.DAILY_INSTANCES);
   }, [completeInstance]);
 
   // ============================================================================
@@ -375,10 +376,10 @@ export default function NowScreen() {
 
   // Live sync: reload data when any storage module emits an update
   useDataListener(useCallback((category: string) => {
-    if (['medication', 'vitals', 'water', 'mood', 'wellness',
-         'logs', 'carePlan', 'carePlanConfig', 'appointments',
-         'dailyInstances', 'carePlanItems', 'sampleDataCleared',
-         'symptoms', 'notes'].includes(category)) {
+    if ([EVENT.MEDICATION, EVENT.VITALS, EVENT.WATER, EVENT.MOOD, EVENT.WELLNESS,
+         EVENT.LOGS, EVENT.CARE_PLAN, EVENT.CARE_PLAN_CONFIG, EVENT.APPOINTMENTS,
+         EVENT.DAILY_INSTANCES, EVENT.CARE_PLAN_ITEMS, EVENT.SAMPLE_DATA_CLEARED,
+         EVENT.SYMPTOMS, EVENT.NOTES].includes(category)) {
       loadData();
       // Also refresh care tasks so timeline + stats update immediately
       refreshCareTasks();
@@ -838,7 +839,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 0,
   },
 
   // Patient chip (header uses ScreenHeader)

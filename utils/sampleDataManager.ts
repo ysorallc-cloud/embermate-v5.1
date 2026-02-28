@@ -5,6 +5,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import { devLog, logError } from './devLog';
 
 // ============================================================================
@@ -314,7 +315,7 @@ export async function clearSampleData(): Promise<{
     await AsyncStorage.setItem(SAMPLE_DATA_KEYS.sampleDataCleared, 'true');
 
     // 14. Emit global refresh event
-    emitDataUpdate('sampleDataCleared');
+    emitDataUpdate(EVENT.SAMPLE_DATA_CLEARED);
 
     devLog(`[SampleDataManager] Cleared ${clearedCount} sample records`);
 

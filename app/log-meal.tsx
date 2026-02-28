@@ -27,6 +27,7 @@ import { parseCarePlanContext, getCarePlanBannerText, getPreSelectionHints } fro
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import { logError } from '../utils/devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
 
@@ -171,7 +172,7 @@ export default function LogMeal() {
             { type: 'nutrition', mealType: selectedMeals.join(', ') },
             { source: 'record' }
           );
-          emitDataUpdate('dailyInstances');
+          emitDataUpdate(EVENT.DAILY_INSTANCES);
         } catch (err) {
           logError('LogMeal.completeInstance', err);
         }

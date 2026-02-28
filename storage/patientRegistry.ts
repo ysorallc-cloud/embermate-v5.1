@@ -5,6 +5,7 @@
 
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import { generateUniqueId } from '../utils/idGenerator';
 import { GlobalKeys } from '../utils/storageKeys';
 import { Patient, PatientRegistry, DEFAULT_PATIENT_ID } from '../types/patient';
@@ -68,7 +69,7 @@ export async function setActivePatient(patientId: string): Promise<void> {
   registry.activePatientId = patientId;
   registry.version += 1;
   await safeSetItem(GlobalKeys.PATIENT_REGISTRY, registry);
-  emitDataUpdate('patient');
+  emitDataUpdate(EVENT.PATIENT);
 }
 
 /**
@@ -101,7 +102,7 @@ export async function addPatient(
   registry.patients.push(patient);
   registry.version += 1;
   await safeSetItem(GlobalKeys.PATIENT_REGISTRY, registry);
-  emitDataUpdate('patient');
+  emitDataUpdate(EVENT.PATIENT);
   return patient;
 }
 
@@ -123,7 +124,7 @@ export async function updatePatient(
   };
   registry.version += 1;
   await safeSetItem(GlobalKeys.PATIENT_REGISTRY, registry);
-  emitDataUpdate('patient');
+  emitDataUpdate(EVENT.PATIENT);
   return registry.patients[index];
 }
 
@@ -144,7 +145,7 @@ export async function removePatient(patientId: string): Promise<boolean> {
 
   registry.version += 1;
   await safeSetItem(GlobalKeys.PATIENT_REGISTRY, registry);
-  emitDataUpdate('patient');
+  emitDataUpdate(EVENT.PATIENT);
   return true;
 }
 

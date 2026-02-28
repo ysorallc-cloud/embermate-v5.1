@@ -18,6 +18,7 @@ import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { Colors } from '../theme/theme-tokens';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import { getTodayDateString } from '../services/carePlanGenerator';
 
 const ACTIVITY_TYPES = [
@@ -68,7 +69,7 @@ export default function LogActivityScreen() {
             { type: 'activity', activityType: selectedActivities.join(', '), duration: parseInt(duration) || 0 },
             { source: 'record' }
           );
-          emitDataUpdate('dailyInstances');
+          emitDataUpdate(EVENT.DAILY_INSTANCES);
         } catch (err) {
           logError('LogActivity.completeInstance', err);
         }

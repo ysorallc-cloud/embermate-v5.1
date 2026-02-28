@@ -14,8 +14,8 @@ interface ScreenHeaderProps {
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 14,
+    paddingTop: 6,
+    paddingBottom: 6,
   },
   headerRow: {
     flexDirection: 'row',
@@ -26,14 +26,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 25,
-    fontWeight: '400',
+    fontSize: 22,
+    fontWeight: '600',
     color: c.textPrimary,
-    marginBottom: 4,
+    marginBottom: 2,
     letterSpacing: -0.4,
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '400',
     color: c.textTertiary,
     letterSpacing: 0.3,
@@ -42,7 +42,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 8,
   },
   rightAction: {
-    paddingTop: 8,
+    paddingTop: 2,
     paddingLeft: 12,
   },
 });

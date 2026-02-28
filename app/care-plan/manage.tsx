@@ -45,6 +45,7 @@ import {
 } from '../../storage/carePlanRepo';
 import { generateUniqueId } from '../../utils/idGenerator';
 import { emitDataUpdate } from '../../lib/events';
+import { EVENT } from '../../lib/eventNames';
 import {
   shouldPromptSampleDataClear,
   markFirstCarePlanCreated,
@@ -267,7 +268,7 @@ export default function CarePlanManageScreen() {
       setShowAddModal(false);
       resetForm();
       await loadData();
-      emitDataUpdate('carePlanItems');
+      emitDataUpdate(EVENT.CARE_PLAN_ITEMS);
     } catch (error) {
       logError('CarePlanManageScreen.performSave', error);
       Alert.alert('Error', 'Failed to save item');
@@ -287,7 +288,7 @@ export default function CarePlanManageScreen() {
             try {
               await deleteCarePlanItem(item.carePlanId, item.id);
               await loadData();
-              emitDataUpdate('carePlanItems');
+              emitDataUpdate(EVENT.CARE_PLAN_ITEMS);
             } catch (error) {
               logError('CarePlanManageScreen.handleDelete', error);
               Alert.alert('Error', 'Failed to delete item');
@@ -302,7 +303,7 @@ export default function CarePlanManageScreen() {
     try {
       await upsertCarePlanItem({ ...item, active: !item.active });
       await loadData();
-      emitDataUpdate('carePlanItems');
+      emitDataUpdate(EVENT.CARE_PLAN_ITEMS);
     } catch (error) {
       logError('CarePlanManageScreen.handleToggleActive', error);
     }

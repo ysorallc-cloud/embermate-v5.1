@@ -27,6 +27,7 @@ import { logError } from '../utils/devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 
 const QUALITY_LABELS = ['Very Poor', 'Poor', 'Fair', 'Good', 'Excellent'];
 
@@ -101,7 +102,7 @@ export default function LogSleep() {
             { type: 'sleep', hours: hoursNum, quality: quality || 3 },
             { source: 'record' }
           );
-          emitDataUpdate('dailyInstances');
+          emitDataUpdate(EVENT.DAILY_INSTANCES);
         } catch (err) {
           logError('LogSleep.completeInstance', err);
         }

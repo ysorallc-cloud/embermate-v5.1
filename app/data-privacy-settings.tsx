@@ -37,6 +37,7 @@ import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 
 export default function DataPrivacySettingsScreen() {
   const router = useRouter();
@@ -91,7 +92,7 @@ export default function DataPrivacySettingsScreen() {
             setRetentionPolicyState(policy);
             const removed = await purgeOldData();
             if (removed > 0) {
-              emitDataUpdate('logs');
+              emitDataUpdate(EVENT.LOGS);
               Alert.alert('Data Purged', `${removed} old event${removed === 1 ? '' : 's'} removed.`);
             }
           },

@@ -8,6 +8,7 @@ import { Colors } from '../theme/theme-tokens';
 import { saveNote } from '../utils/noteStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { SubScreenHeader } from '../components/SubScreenHeader';
@@ -33,7 +34,7 @@ export default function LogNoteScreen() {
         date: getTodayDateString(),
       });
 
-      emitDataUpdate('notes');
+      emitDataUpdate(EVENT.NOTES);
 
       const instanceId = params.instanceId as string | undefined;
       if (instanceId) {
@@ -41,7 +42,7 @@ export default function LogNoteScreen() {
           await logInstanceCompletion(DEFAULT_PATIENT_ID, getTodayDateString(), instanceId, 'completed',
             { type: 'custom', note: content.trim() },
             { source: 'record' });
-          emitDataUpdate('dailyInstances');
+          emitDataUpdate(EVENT.DAILY_INSTANCES);
         } catch (err) {
           logError('LogNoteScreen.completeInstance', err);
         }

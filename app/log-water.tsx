@@ -17,6 +17,7 @@ import { Colors, Spacing } from '../theme/theme-tokens';
 import { getTodayWaterLog, updateTodayWaterLog } from '../utils/centralStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { getTodayDateString } from '../services/carePlanGenerator';
 
@@ -68,13 +69,13 @@ export default function LogWaterScreen() {
             { type: 'hydration', glasses },
             { source: 'record' }
           );
-          emitDataUpdate('dailyInstances');
+          emitDataUpdate(EVENT.DAILY_INSTANCES);
         } catch (err) {
           logError('LogWater.completeInstance', err);
         }
       }
 
-      emitDataUpdate('water');
+      emitDataUpdate(EVENT.WATER);
       router.back();
     } catch (error) {
       logError('LogWaterScreen.handleSave', error);

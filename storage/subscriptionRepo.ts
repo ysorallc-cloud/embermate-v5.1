@@ -5,6 +5,7 @@
 
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import { GlobalKeys } from '../utils/storageKeys';
 import {
   SubscriptionState,
@@ -53,7 +54,7 @@ export async function setSubscriptionTier(
   };
 
   await safeSetItem(GlobalKeys.SUBSCRIPTION_STATE, updated);
-  emitDataUpdate('subscription');
+  emitDataUpdate(EVENT.SUBSCRIPTION);
   return updated;
 }
 

@@ -18,6 +18,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { saveNotesLog } from '../utils/centralStorage';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import { logError } from '../utils/devLog';
 
 const BOWEL_OPTIONS = [
@@ -77,7 +78,7 @@ export default function LogBathroomScreen() {
         timestamp: new Date().toISOString(),
         content: `[Bathroom] ${parts.join(' | ')}`,
       });
-      emitDataUpdate('notes');
+      emitDataUpdate(EVENT.NOTES);
       setSaved(true);
     } catch (error) {
       logError('LogBathroomScreen.handleSave', error);

@@ -13,6 +13,7 @@ import { parseCarePlanContext, getCarePlanBannerText, CarePlanNavigationContext 
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { SubScreenHeader } from '../components/SubScreenHeader';
@@ -95,14 +96,14 @@ export default function LogVitalsScreen() {
             { type: 'vitals', systolic: Number(systolic) || undefined, diastolic: Number(diastolic) || undefined, heartRate: Number(heartRate) || undefined, oxygen: Number(oxygen) || undefined, temperature: Number(temperature) || undefined, glucose: Number(glucose) || undefined, weight: Number(weight) || undefined },
             { source: 'record' }
           );
-          emitDataUpdate('dailyInstances');
+          emitDataUpdate(EVENT.DAILY_INSTANCES);
         } catch (err) {
           logError('LogVitals.completeInstance', err);
         }
       }
 
       await hapticSuccess();
-      emitDataUpdate('vitals');
+      emitDataUpdate(EVENT.VITALS);
       router.back();
     } catch (error) {
       Alert.alert('Error', 'Failed to log vitals');

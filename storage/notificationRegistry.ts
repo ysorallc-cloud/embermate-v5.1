@@ -7,6 +7,7 @@
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { generateUniqueId } from '../utils/idGenerator';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import type { ScheduledNotificationV2, DeliveryPreferences, DEFAULT_DELIVERY_PREFERENCES } from '../types/notifications';
 import type { CarePlanItemType } from '../types/carePlan';
 import { DEFAULT_PATIENT_ID } from '../types/patient';
@@ -85,7 +86,7 @@ export async function saveScheduledNotifications(
   notifications: ScheduledNotificationV2[]
 ): Promise<void> {
   await safeSetItem(KEYS.SCHEDULED(patientId), notifications);
-  emitDataUpdate('notifications');
+  emitDataUpdate(EVENT.NOTIFICATIONS);
 }
 
 /**
@@ -250,7 +251,7 @@ export async function saveDeliveryPreferences(
   prefs: DeliveryPreferences
 ): Promise<void> {
   await safeSetItem(KEYS.DELIVERY_PREFS(), prefs);
-  emitDataUpdate('deliveryPreferences');
+  emitDataUpdate(EVENT.DELIVERY_PREFERENCES);
 }
 
 /**
@@ -409,5 +410,5 @@ export async function clearAllNotificationData(
 ): Promise<void> {
   await clearAllScheduledNotifications(patientId);
   await clearNotificationHistory(patientId);
-  emitDataUpdate('notifications');
+  emitDataUpdate(EVENT.NOTIFICATIONS);
 }

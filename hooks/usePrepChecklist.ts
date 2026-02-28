@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { logError } from '../utils/devLog';
 import { useDataListener, emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import {
   AppointmentPrepChecklist,
   PrepChecklistItem,
@@ -114,7 +115,7 @@ export function usePrepChecklist(appointment: Appointment | null): UsePrepCheckl
       );
       if (updated) {
         setChecklist(updated);
-        emitDataUpdate('prepChecklist');
+        emitDataUpdate(EVENT.PREP_CHECKLIST);
       }
     } catch (err) {
       logError('usePrepChecklist.toggleItem', err);
@@ -131,7 +132,7 @@ export function usePrepChecklist(appointment: Appointment | null): UsePrepCheckl
       const updated = await addCustomPrepItem(appointment.id, label);
       if (updated) {
         setChecklist(updated);
-        emitDataUpdate('prepChecklist');
+        emitDataUpdate(EVENT.PREP_CHECKLIST);
       }
     } catch (err) {
       logError('usePrepChecklist.addItem', err);
@@ -148,7 +149,7 @@ export function usePrepChecklist(appointment: Appointment | null): UsePrepCheckl
       const updated = await removeCustomPrepItem(appointment.id, itemId);
       if (updated) {
         setChecklist(updated);
-        emitDataUpdate('prepChecklist');
+        emitDataUpdate(EVENT.PREP_CHECKLIST);
       }
     } catch (err) {
       logError('usePrepChecklist.removeItem', err);

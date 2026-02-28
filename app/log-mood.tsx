@@ -22,6 +22,7 @@ import { parseCarePlanContext, getCarePlanBannerText } from '../utils/carePlanRo
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 
 const MOODS = [
   { id: 'great', emoji: '😊', label: 'Great' },
@@ -95,7 +96,7 @@ export default function LogMoodScreen() {
       }
 
       await hapticSuccess();
-      emitDataUpdate('mood');
+      emitDataUpdate(EVENT.MOOD);
 
       // Show confirmation before navigating back
       setShowConfirmation(true);

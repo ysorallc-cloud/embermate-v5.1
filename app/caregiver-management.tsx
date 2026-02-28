@@ -14,6 +14,7 @@ import {
   Switch,
 } from 'react-native';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -67,7 +68,7 @@ export default function CaregiverManagementScreen() {
           : c
       );
       await AsyncStorage.setItem('@embermate_caregivers', JSON.stringify(updated));
-      emitDataUpdate('carePlan');
+      emitDataUpdate(EVENT.CARE_PLAN);
     }
   };
 

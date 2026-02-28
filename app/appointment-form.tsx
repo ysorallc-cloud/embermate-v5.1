@@ -32,6 +32,7 @@ import {
 } from '../utils/appointmentStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 
 type AppointmentType = 'doctor' | 'lab' | 'pharmacy' | 'hospital';
 
@@ -257,7 +258,7 @@ export default function AppointmentFormScreen() {
         };
 
         await updateAppointment(apptId, apptData);
-        emitDataUpdate('appointments');
+        emitDataUpdate(EVENT.APPOINTMENTS);
         router.back();
       } else {
         const apptData: Omit<Appointment, 'id' | 'createdAt'> = {
@@ -275,7 +276,7 @@ export default function AppointmentFormScreen() {
         };
 
         await createAppointment(apptData);
-        emitDataUpdate('appointments');
+        emitDataUpdate(EVENT.APPOINTMENTS);
         // Navigate to confirmation screen with appointment details
         router.replace({
           pathname: '/appointment-confirmation' as any,

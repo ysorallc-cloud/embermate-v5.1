@@ -25,6 +25,7 @@ import { parseCarePlanContext, getCarePlanBannerText } from '../utils/carePlanRo
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 
 // Common medications for dropdown
 const COMMON_MEDICATIONS = [
@@ -182,7 +183,7 @@ export default function MedicationLogScreen() {
       }
 
       await hapticSuccess();
-      emitDataUpdate('medication');
+      emitDataUpdate(EVENT.MEDICATION);
       router.back();
     } catch (error) {
       logError('MedicationLogScreen.handleSave', error);
