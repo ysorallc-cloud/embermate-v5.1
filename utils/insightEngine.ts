@@ -9,6 +9,7 @@ import { safeGetItem, safeSetItem } from './safeStorage';
 import { getMedications, getMedicationLogs, Medication, MedicationLog } from './medicationStorage';
 import { getVitalsInRange, VitalReading } from './vitalsStorage';
 import { getDailyTrackingLogs, DailyTrackingLog } from './dailyTrackingStorage';
+import { getDailyChecks, type CaregiverDailyCheck } from './caregiverWellnessStorage';
 import { logError } from './devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { StorageKeys } from './storageKeys';
@@ -539,5 +540,176 @@ export async function clearDismissedInsights(): Promise<void> {
     await AsyncStorage.removeItem(DISMISSED_INSIGHTS_KEY);
   } catch (error) {
     logError('insightEngine.clearDismissedInsights', error);
+  }
+}
+
+// ============================================================================
+// PROVIDER QUESTIONS GENERATOR
+// Auto-generates prioritized questions from data anomalies
+// ============================================================================
+
+export interface ProviderQuestion {
+  id: string;
+  priority: 'high' | 'medium' | 'low';
+  question: string;
+  source: string;
+  dataPoint?: string;
+  icon: string;
+}
+
+/**
+ * Generate provider questions from data anomalies
+ */
+export async function generateProviderQuestions(
+  appointmentId: string,
+  daysSinceLastVisit: number
+): Promise<ProviderQuestion[]> {
+  const questions: ProviderQuestion[] = [];
+
+  try {
+    // Analyze vitals trends
+    const endDate = new Date().toISOString();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysSinceLastVisit);
+    const vitals = await getVitalsInRange(startDate.toISOString(), endDate);
+
+    const systolicReadings = vitals.filter(v => v.type === 'systolic');
+    if (systolicReadings.length >= 3) {
+      const first = systolicReadings.slice(-3).reduce((s, v) => s + v.value, 0) / 3;
+      const last = systolicReadings.slice(0, 3).reduce((s, v) => s + v.value, 0) / Math.min(3, systolicReadings.length);
+      const changePct = Math.abs((last - first) / first) * 100;
+
+      if (changePct > 15) {
+        questions.push({
+          id: `vitals-bp-trend-${appointmentId}`,
+          priority: 'high',
+          question: `Blood pressure has ${last > first ? 'increased' : 'decreased'} by ${Math.round(changePct)}% — should medication be adjusted?`,
+          source: 'Vitals trend',
+          dataPoint: `${Math.round(first)} → ${Math.round(last)} mmHg avg`,
+          icon: '\uD83D\uDCC8',
+        });
+      }
+    }
+
+    // Check medication adherence
+    const adherenceInsight = await analyzeMedicationAdherence();
+    if (adherenceInsight && (adherenceInsight.specificData.percentage ?? 100) < 80) {
+      questions.push({
+        id: `med-adherence-${appointmentId}`,
+        priority: 'medium',
+        question: `Medication adherence is at ${adherenceInsight.specificData.percentage}% — are dosage times or formulations causing issues?`,
+        source: 'Medication tracking',
+        dataPoint: `${adherenceInsight.specificData.current}/${adherenceInsight.specificData.target} doses taken`,
+        icon: '\uD83D\uDC8A',
+      });
+    }
+
+    // Check mood patterns
+    const moodInsight = await analyzeMoodPatterns();
+    if (moodInsight) {
+      questions.push({
+        id: `mood-pattern-${appointmentId}`,
+        priority: 'medium',
+        question: `Mood has been low on ${moodInsight.specificData.percentage}% of days — could this relate to medications or condition?`,
+        source: 'Mood tracking',
+        dataPoint: `${moodInsight.specificData.current} of ${moodInsight.specificData.target} days`,
+        icon: '\uD83D\uDE14',
+      });
+    }
+
+    // Sort by priority
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    questions.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+  } catch (error) {
+    logError('insightEngine.generateProviderQuestions', error);
+  }
+
+  return questions;
+}
+
+// ============================================================================
+// CAREGIVER CORRELATION ANALYZER
+// Cross-references caregiver wellness with medication timing
+// ============================================================================
+
+/**
+ * Analyze correlation between caregiver sleep and medication logging delays
+ * Surfaces on Understand tab after 7+ days of caregiver self-check data
+ */
+export async function analyzeCaregiverCorrelations(): Promise<InsightData | null> {
+  try {
+    const checks = await getDailyChecks(14);
+
+    if (checks.length < 7) {
+      return null; // Not enough data
+    }
+
+    const medLogs = await getMedicationLogs();
+    if (medLogs.length === 0) return null;
+
+    // Calculate average med logging delay on low-sleep vs good-sleep days
+    let lowSleepDelaySum = 0;
+    let lowSleepCount = 0;
+    let goodSleepDelaySum = 0;
+    let goodSleepCount = 0;
+
+    for (const check of checks) {
+      // Find medication logs for this date
+      const dayLogs = medLogs.filter(log => {
+        const logDate = new Date(log.timestamp).toISOString().split('T')[0];
+        return logDate === check.date && log.taken;
+      });
+
+      if (dayLogs.length === 0) continue;
+
+      // Use hour of first log as a proxy for delay
+      const avgHour = dayLogs.reduce((sum, log) =>
+        sum + new Date(log.timestamp).getHours(), 0
+      ) / dayLogs.length;
+
+      if (check.sleep <= 2) {
+        lowSleepDelaySum += avgHour;
+        lowSleepCount++;
+      } else if (check.sleep >= 4) {
+        goodSleepDelaySum += avgHour;
+        goodSleepCount++;
+      }
+    }
+
+    if (lowSleepCount < 2 || goodSleepCount < 2) return null;
+
+    const lowSleepAvg = lowSleepDelaySum / lowSleepCount;
+    const goodSleepAvg = goodSleepDelaySum / goodSleepCount;
+    const delayDiffMinutes = Math.round((lowSleepAvg - goodSleepAvg) * 60);
+
+    if (delayDiffMinutes < 30) return null; // Not significant
+
+    return {
+      id: 'caregiver-sleep-correlation',
+      type: 'correlation',
+      severity: 'info',
+      title: 'Your Sleep Affects Care Timing',
+      specificData: {
+        current: delayDiffMinutes,
+        target: 0,
+        unit: 'minutes later',
+      },
+      context: `On days you sleep poorly, medications tend to be logged ~${delayDiffMinutes} minutes later.`,
+      whyItMatters: 'Getting enough rest helps you stay on schedule with care tasks. Consider adjusting reminder times on tough days.',
+      pattern: 'Low caregiver sleep → later medication logging',
+      actions: [
+        {
+          id: 'adjust-reminders',
+          label: 'Adjust Reminder Times',
+          icon: '\u23F0',
+          type: 'navigate',
+          destination: '/notification-settings',
+        },
+      ],
+      timestamp: new Date(),
+    };
+  } catch (error) {
+    logError('insightEngine.analyzeCaregiverCorrelations', error);
+    return null;
   }
 }

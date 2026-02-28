@@ -174,6 +174,9 @@ function RootLayout() {
           <Stack.Screen name="log-evening-wellness" />
           <Stack.Screen name="log-symptom" />
           <Stack.Screen name="log-pain" />
+          <Stack.Screen name="care-report" />
+          <Stack.Screen name="care-journey" />
+          <Stack.Screen name="provider-prep" />
           <Stack.Screen name="care-brief" />
           <Stack.Screen name="care-summary-export" />
           <Stack.Screen name="family-sharing" />

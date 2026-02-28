@@ -116,7 +116,7 @@ export function generateCarePulse(data: CarePulseData): CarePulseResult {
       message: `All ${totalMeds} medications taken today. Great job caring for ${patientName}!`,
       status: 'complete',
       ctaText: 'View Care Brief →',
-      ctaRoute: '/care-brief',
+      ctaRoute: '/care-report?scope=handoff',
     };
   }
 
@@ -158,7 +158,7 @@ export function generateCarePulse(data: CarePulseData): CarePulseResult {
       message: `${patientName}'s next appointment is ${dayText} with ${nextAppt.provider}.`,
       status: 'calm',
       ctaText: 'View Care Brief →',
-      ctaRoute: '/care-brief',
+      ctaRoute: '/care-report?scope=handoff',
     };
   }
 
@@ -167,7 +167,7 @@ export function generateCarePulse(data: CarePulseData): CarePulseResult {
     message: `Based on what you've shared so far, today looks similar to recent days.`,
     status: 'calm',
     ctaText: 'View Care Brief →',
-    ctaRoute: '/care-brief',
+    ctaRoute: '/care-report?scope=handoff',
   };
 }
 

@@ -220,7 +220,7 @@ export default function SupportScreen() {
           <View style={styles.quickActions}>
             <TouchableOpacity
               style={styles.quickActionPrimary}
-              onPress={() => navigate('/care-summary-export')}
+              onPress={() => navigate('/care-report?scope=handoff')}
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel="Share Care Brief"
@@ -358,7 +358,7 @@ export default function SupportScreen() {
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={styles.expandedAction}
-                            onPress={() => navigate('/care-summary-export')}
+                            onPress={() => navigate('/care-report?scope=handoff')}
                             activeOpacity={0.7}
                           >
                             <Text style={styles.expandedActionText}>{'\uD83D\uDCCB'} Send Brief</Text>

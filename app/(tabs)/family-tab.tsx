@@ -70,7 +70,7 @@ export default function FamilyScreen() {
     {
       icon: '📋',
       label: 'Share Report',
-      onPress: () => router.push('/care-summary-export'),
+      onPress: () => router.push('/care-report?scope=full'),
     },
     {
       icon: '📞',

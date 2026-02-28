@@ -480,7 +480,7 @@ export default function SettingsScreen() {
           icon: '📤',
           title: 'Export Summary',
           subtitle: 'Create care summary PDF',
-          onPress: () => router.push('/care-summary-export'),
+          onPress: () => router.push('/care-report?scope=full'),
         },
       ],
     },

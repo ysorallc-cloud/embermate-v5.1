@@ -428,26 +428,15 @@ export default function JournalTab() {
             subtitle={`${dayName}, ${dateStr}${brief?.patient.name ? ` \u00B7 ${brief.patient.name}` : ''}`}
             style={s.journalHeader}
             rightAction={
-              <View style={s.headerActions}>
-                <TouchableOpacity
-                  style={s.headerIconBtn}
-                  onPress={() => navigate('/daily-care-report')}
-                  activeOpacity={0.7}
-                  accessibilityLabel="View care report"
-                  accessibilityRole="button"
-                >
-                  <Text style={s.headerIconBtnText}>{'\uD83D\uDCCB'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={s.headerHandoffBtn}
-                  onPress={() => navigate('/care-summary-export')}
-                  activeOpacity={0.7}
-                  accessibilityLabel="Generate nurse handoff"
-                  accessibilityRole="button"
-                >
-                  <Text style={s.headerHandoffBtnText}>{'\uD83D\uDC69\u200D\u2695\uFE0F'} Handoff</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={s.headerHandoffBtn}
+                onPress={() => navigate('/care-report?scope=today')}
+                activeOpacity={0.7}
+                accessibilityLabel="Share care report"
+                accessibilityRole="button"
+              >
+                <Text style={s.headerHandoffBtnText}>{'\uD83D\uDCCB'} Share</Text>
+              </TouchableOpacity>
             }
           />
 
