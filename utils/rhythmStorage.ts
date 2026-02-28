@@ -4,13 +4,15 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { getMedications } from './medicationStorage';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
 import { logError } from './devLog';
+import { StorageKeys } from './storageKeys';
 
-const STORAGE_KEY = '@embermate_rhythm';
-const FIRST_USE_KEY = '@embermate_first_use_date';
+const STORAGE_KEY = StorageKeys.RHYTHM;
+const FIRST_USE_KEY = StorageKeys.FIRST_USE_DATE;
 
 // ============================================================================
 // TYPES
@@ -41,7 +43,7 @@ export interface TodayProgress {
 
 export async function getFirstUseDate(): Promise<string | null> {
   try {
-    return await AsyncStorage.getItem(FIRST_USE_KEY);
+    return await safeGetItem<string | null>(FIRST_USE_KEY, null);
   } catch (error) {
     logError('rhythmStorage.getFirstUseDate', error);
     return null;
@@ -52,7 +54,7 @@ export async function setFirstUseDate(): Promise<void> {
   try {
     const existing = await getFirstUseDate();
     if (!existing) {
-      await AsyncStorage.setItem(FIRST_USE_KEY, new Date().toISOString());
+      await safeSetItem(FIRST_USE_KEY, new Date().toISOString());
     }
   } catch (error) {
     logError('rhythmStorage.setFirstUseDate', error);
@@ -118,9 +120,9 @@ export async function inferRhythmFromBehavior(): Promise<Rhythm | null> {
 
 export async function getRhythm(): Promise<Rhythm | null> {
   try {
-    const data = await AsyncStorage.getItem(STORAGE_KEY);
+    const data = await safeGetItem<Rhythm | null>(STORAGE_KEY, null);
     if (data) {
-      return JSON.parse(data);
+      return data;
     }
 
     // No stored rhythm - try to infer on Day 4+
@@ -151,7 +153,7 @@ export async function getRhythm(): Promise<Rhythm | null> {
 
 export async function saveRhythm(rhythm: Rhythm): Promise<void> {
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(rhythm));
+    await safeSetItem(STORAGE_KEY, rhythm);
     emitDataUpdate(EVENT.RHYTHM);
   } catch (error) {
     logError('rhythmStorage.saveRhythm', error);

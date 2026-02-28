@@ -5,6 +5,10 @@
 
 import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
+import { StorageKeys, scopedKey } from './storageKeys';
+import { generateUniqueId } from './idGenerator';
+
+const DEFAULT_PATIENT_ID = 'default';
 
 export interface SymptomLog {
   id: string;
@@ -17,35 +21,35 @@ export interface SymptomLog {
   date: string; // ISO date (YYYY-MM-DD)
 }
 
-const STORAGE_KEY = '@embermate_symptoms';
+const STORAGE_KEY = StorageKeys.SYMPTOMS;
 
-export async function saveSymptom(symptom: Omit<SymptomLog, 'id'>): Promise<void> {
+export async function saveSymptom(symptom: Omit<SymptomLog, 'id'>, patientId: string = DEFAULT_PATIENT_ID): Promise<void> {
   try {
-    const symptoms = await getSymptoms();
+    const symptoms = await getSymptoms(patientId);
     const newSymptom: SymptomLog = {
       ...symptom,
-      id: Date.now().toString(),
+      id: generateUniqueId(),
     };
     symptoms.push(newSymptom);
-    await safeSetItem(STORAGE_KEY, symptoms);
+    await safeSetItem(scopedKey(STORAGE_KEY, patientId), symptoms);
   } catch (error) {
     logError('symptomStorage.saveSymptom', error);
     throw error;
   }
 }
 
-export async function getSymptoms(): Promise<SymptomLog[]> {
+export async function getSymptoms(patientId: string = DEFAULT_PATIENT_ID): Promise<SymptomLog[]> {
   try {
-    return await safeGetItem<SymptomLog[]>(STORAGE_KEY, []);
+    return await safeGetItem<SymptomLog[]>(scopedKey(STORAGE_KEY, patientId), []);
   } catch (error) {
     logError('symptomStorage.getSymptoms', error);
     return [];
   }
 }
 
-export async function getSymptomsByDate(date: string): Promise<SymptomLog[]> {
+export async function getSymptomsByDate(date: string, patientId: string = DEFAULT_PATIENT_ID): Promise<SymptomLog[]> {
   try {
-    const symptoms = await getSymptoms();
+    const symptoms = await getSymptoms(patientId);
     return symptoms.filter(s => s.date === date);
   } catch (error) {
     logError('symptomStorage.getSymptomsByDate', error);
@@ -53,14 +57,14 @@ export async function getSymptomsByDate(date: string): Promise<SymptomLog[]> {
   }
 }
 
-export async function deleteSymptom(id: string): Promise<boolean> {
+export async function deleteSymptom(id: string, patientId: string = DEFAULT_PATIENT_ID): Promise<boolean> {
   try {
-    const symptoms = await getSymptoms();
+    const symptoms = await getSymptoms(patientId);
     const filtered = symptoms.filter(s => s.id !== id);
     if (filtered.length === symptoms.length) {
       return false; // Symptom not found
     }
-    await safeSetItem(STORAGE_KEY, filtered);
+    await safeSetItem(scopedKey(STORAGE_KEY, patientId), filtered);
     return true;
   } catch (error) {
     logError('symptomStorage.deleteSymptom', error);

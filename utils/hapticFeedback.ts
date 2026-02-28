@@ -4,11 +4,12 @@
 // ============================================================================
 
 import * as Haptics from 'expo-haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
+import { StorageKeys } from './storageKeys';
 
-const HAPTICS_ENABLED_KEY = '@embermate_haptics_enabled';
-const HAPTICS_STRENGTH_KEY = '@embermate_haptics_strength';
+const HAPTICS_ENABLED_KEY = StorageKeys.HAPTICS_ENABLED;
+const HAPTICS_STRENGTH_KEY = StorageKeys.HAPTICS_STRENGTH;
 
 export type HapticStrength = 'light' | 'medium' | 'strong';
 
@@ -21,7 +22,7 @@ export type HapticStrength = 'light' | 'medium' | 'strong';
  */
 export async function isHapticsEnabled(): Promise<boolean> {
   try {
-    const enabled = await AsyncStorage.getItem(HAPTICS_ENABLED_KEY);
+    const enabled = await safeGetItem<string | null>(HAPTICS_ENABLED_KEY, null);
     return enabled !== 'false'; // Default to true
   } catch (error) {
     return true;
@@ -33,7 +34,7 @@ export async function isHapticsEnabled(): Promise<boolean> {
  */
 export async function setHapticsEnabled(enabled: boolean): Promise<void> {
   try {
-    await AsyncStorage.setItem(HAPTICS_ENABLED_KEY, enabled.toString());
+    await safeSetItem(HAPTICS_ENABLED_KEY, enabled.toString());
   } catch (error) {
     logError('hapticFeedback.setHapticsEnabled', error);
   }
@@ -44,7 +45,7 @@ export async function setHapticsEnabled(enabled: boolean): Promise<void> {
  */
 export async function getHapticStrength(): Promise<HapticStrength> {
   try {
-    const strength = await AsyncStorage.getItem(HAPTICS_STRENGTH_KEY);
+    const strength = await safeGetItem<string | null>(HAPTICS_STRENGTH_KEY, null);
     return (strength as HapticStrength) || 'medium';
   } catch (error) {
     return 'medium';
@@ -56,7 +57,7 @@ export async function getHapticStrength(): Promise<HapticStrength> {
  */
 export async function setHapticStrength(strength: HapticStrength): Promise<void> {
   try {
-    await AsyncStorage.setItem(HAPTICS_STRENGTH_KEY, strength);
+    await safeSetItem(HAPTICS_STRENGTH_KEY, strength);
   } catch (error) {
     logError('hapticFeedback.setHapticStrength', error);
   }

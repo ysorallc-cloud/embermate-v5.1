@@ -4,12 +4,14 @@
 // Eases the population process for users migrating from other systems
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createMedication, Medication } from './medicationStorage';
 import { createAppointment, Appointment } from './appointmentStorage';
 import { saveVital } from './vitalsStorage';
 import { Alert } from 'react-native';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { StorageKeys } from './storageKeys';
+import { safeGetItem, safeSetItem } from './safeStorage';
+import { generateUniqueId } from './idGenerator';
 
 interface ImportResult {
   success: boolean;
@@ -22,7 +24,7 @@ interface ImportResult {
   errors: string[];
 }
 
-const SYMPTOMS_KEY = '@EmberMate:symptoms';
+const SYMPTOMS_KEY = StorageKeys.EMBERMATE_SYMPTOMS;
 
 // Import from JSON
 export async function importFromJSON(jsonString: string): Promise<ImportResult> {
@@ -166,20 +168,19 @@ export async function importFromJSON(jsonString: string): Promise<ImportResult> 
     // Import symptoms
     if (data.symptoms && Array.isArray(data.symptoms)) {
       try {
-        const existingData = await AsyncStorage.getItem(SYMPTOMS_KEY);
-        const symptoms = existingData ? JSON.parse(existingData) : [];
-        
+        const symptoms = await safeGetItem<any[]>(SYMPTOMS_KEY, []);
+
         for (const symptom of data.symptoms) {
           symptoms.unshift({
-            id: Date.now().toString() + Math.random(),
+            id: generateUniqueId(),
             timestamp: symptom.timestamp || new Date().toISOString(),
             symptoms: symptom.symptoms || [],
             notes: symptom.notes,
           });
           result.imported.symptoms++;
         }
-        
-        await AsyncStorage.setItem(SYMPTOMS_KEY, JSON.stringify(symptoms.slice(0, 200)));
+
+        await safeSetItem(SYMPTOMS_KEY, symptoms.slice(0, 200));
       } catch (e) {
         result.errors.push('Symptoms import failed');
       }

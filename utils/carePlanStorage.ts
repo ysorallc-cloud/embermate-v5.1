@@ -4,16 +4,18 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
-import { CarePlan, CarePlanOverride, isCarePlan } from './carePlanTypes';
+import { CarePlan, CarePlanOverride, isCarePlan } from '../types/dayState';
 import { generateDefaultCarePlan } from './carePlanDefaults';
 import { devLog, logError } from './devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { StorageKeys } from './storageKeys';
 
-const CARE_PLAN_KEY = '@embermate_care_plan_v1';
-const OVERRIDES_KEY = '@embermate_care_plan_overrides';
-const DAILY_SNAPSHOT_KEY = '@embermate_care_plan_snapshot';
+const CARE_PLAN_KEY = StorageKeys.CARE_PLAN_V1;
+const OVERRIDES_KEY = StorageKeys.CARE_PLAN_OVERRIDES;
+const DAILY_SNAPSHOT_KEY = StorageKeys.CARE_PLAN_SNAPSHOT;
 
 // ============================================================================
 // CARE PLAN CRUD
@@ -24,10 +26,9 @@ const DAILY_SNAPSHOT_KEY = '@embermate_care_plan_snapshot';
  */
 export async function getCarePlan(): Promise<CarePlan | null> {
   try {
-    const data = await AsyncStorage.getItem(CARE_PLAN_KEY);
-    if (!data) return null;
+    const parsed = await safeGetItem<CarePlan | null>(CARE_PLAN_KEY, null);
+    if (!parsed) return null;
 
-    const parsed = JSON.parse(data);
     if (isCarePlan(parsed)) {
       return parsed;
     }
@@ -46,7 +47,7 @@ export async function getCarePlan(): Promise<CarePlan | null> {
 export async function saveCarePlan(plan: CarePlan): Promise<void> {
   try {
     plan.updatedAt = new Date().toISOString();
-    await AsyncStorage.setItem(CARE_PLAN_KEY, JSON.stringify(plan));
+    await safeSetItem(CARE_PLAN_KEY, plan);
     emitDataUpdate(EVENT.CARE_PLAN);
   } catch (error) {
     logError('carePlanStorage.saveCarePlan', error);
@@ -70,7 +71,7 @@ export async function updateCarePlan(updates: Partial<CarePlan>): Promise<CarePl
       updatedAt: new Date().toISOString(),
     };
 
-    await AsyncStorage.setItem(CARE_PLAN_KEY, JSON.stringify(updated));
+    await safeSetItem(CARE_PLAN_KEY, updated);
     emitDataUpdate(EVENT.CARE_PLAN);
     return updated;
   } catch (error) {
@@ -131,10 +132,8 @@ interface DailySnapshot {
  */
 export async function getDailySnapshot(date: string): Promise<CarePlan | null> {
   try {
-    const data = await AsyncStorage.getItem(DAILY_SNAPSHOT_KEY);
-    if (!data) return null;
-
-    const snapshot: DailySnapshot = JSON.parse(data);
+    const snapshot = await safeGetItem<DailySnapshot | null>(DAILY_SNAPSHOT_KEY, null);
+    if (!snapshot) return null;
 
     // Only return if snapshot is for the requested date
     if (snapshot.date === date && isCarePlan(snapshot.carePlan)) {
@@ -159,7 +158,7 @@ export async function setDailySnapshot(date: string, carePlan: CarePlan): Promis
       carePlan: JSON.parse(JSON.stringify(carePlan)), // Deep copy
       createdAt: new Date().toISOString(),
     };
-    await AsyncStorage.setItem(DAILY_SNAPSHOT_KEY, JSON.stringify(snapshot));
+    await safeSetItem(DAILY_SNAPSHOT_KEY, snapshot);
   } catch (error) {
     logError('carePlanStorage.setDailySnapshot', error);
     throw error;
@@ -237,9 +236,7 @@ export async function clearOldSnapshots(): Promise<void> {
  */
 async function getAllOverrides(): Promise<Record<string, CarePlanOverride[]>> {
   try {
-    const data = await AsyncStorage.getItem(OVERRIDES_KEY);
-    if (!data) return {};
-    return JSON.parse(data);
+    return await safeGetItem<Record<string, CarePlanOverride[]>>(OVERRIDES_KEY, {});
   } catch (error) {
     logError('carePlanStorage.getAllOverrides', error);
     return {};
@@ -251,7 +248,7 @@ async function getAllOverrides(): Promise<Record<string, CarePlanOverride[]>> {
  */
 async function saveAllOverrides(overrides: Record<string, CarePlanOverride[]>): Promise<void> {
   try {
-    await AsyncStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides));
+    await safeSetItem(OVERRIDES_KEY, overrides);
   } catch (error) {
     logError('carePlanStorage.saveAllOverrides', error);
     throw error;

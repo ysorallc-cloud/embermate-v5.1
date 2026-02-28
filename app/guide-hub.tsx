@@ -18,6 +18,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { BackButton } from '../components/common/BackButton';
+import { StorageKeys, StorageKeyPrefixes } from '../utils/storageKeys';
+import { safeGetItem } from '../utils/safeStorage';
 
 // ============================================================================
 // DATA
@@ -38,8 +40,8 @@ const QUICK_START_ITEMS: QuickStartItem[] = [
     icon: '\uD83D\uDDD2\uFE0F',
     route: '/care-plan',
     check: async () => {
-      const legacy = await AsyncStorage.getItem('@embermate_care_plan_v1');
-      const bucket = await AsyncStorage.getItem('@embermate_careplan_config_v1:default');
+      const legacy = await safeGetItem<any>(StorageKeys.CARE_PLAN_V1, null);
+      const bucket = await safeGetItem<any>(StorageKeys.CAREPLAN_CONFIG_V1_DEFAULT, null);
       return legacy !== null || bucket !== null;
     },
   },
@@ -49,7 +51,7 @@ const QUICK_START_ITEMS: QuickStartItem[] = [
     icon: '\uD83D\uDC64',
     route: '/patient',
     check: async () => {
-      const name = await AsyncStorage.getItem('@embermate_patient_name');
+      const name = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
       return !!name;
     },
   },
@@ -60,12 +62,11 @@ const QUICK_START_ITEMS: QuickStartItem[] = [
     route: '/log-morning-wellness',
     check: async () => {
       const keys = await AsyncStorage.getAllKeys();
-      const instanceKeys = keys.filter(k => k.startsWith('@embermate_daily_instances_'));
+      const instanceKeys = keys.filter(k => k.startsWith(StorageKeyPrefixes.DAILY_INSTANCES));
       for (const key of instanceKeys) {
-        const raw = await AsyncStorage.getItem(key);
-        if (!raw) continue;
+        const data = await safeGetItem<any>(key, null);
+        if (!data) continue;
         try {
-          const data = JSON.parse(raw);
           const instances = data.instances || data;
           if (Array.isArray(instances) && instances.some((i: any) => i.status === 'completed')) {
             return true;
@@ -239,9 +240,9 @@ export default function GuideHubScreen() {
             try {
               const allKeys = await AsyncStorage.getAllKeys();
               const dismissKeys = allKeys.filter(k =>
-                k === '@embermate_checklist_dismissed' ||
-                k.startsWith('@embermate_prompt_dismissed_') ||
-                k === '@embermate_sample_banner_dismissed' ||
+                k === StorageKeys.CHECKLIST_DISMISSED ||
+                k.startsWith(StorageKeyPrefixes.PROMPT_DISMISSED) ||
+                k === StorageKeys.SAMPLE_BANNER_DISMISSED ||
                 k === 'welcome_banner_dismissed'
               );
               if (dismissKeys.length > 0) {

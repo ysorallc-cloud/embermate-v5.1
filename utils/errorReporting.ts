@@ -4,6 +4,7 @@
 // ============================================================================
 
 import * as Sentry from '@sentry/react-native';
+import { StorageKeyPrefixes } from './storageKeys';
 
 // TODO: Replace with your Sentry DSN from sentry.io project settings
 const SENTRY_DSN = 'YOUR_DSN_HERE';
@@ -45,7 +46,7 @@ export function initErrorReporting(): void {
     beforeBreadcrumb(breadcrumb) {
       // Strip AsyncStorage keys that might contain health data
       if (breadcrumb.category === 'console' && breadcrumb.message) {
-        if (breadcrumb.message.includes('@embermate_')) {
+        if (breadcrumb.message.includes(StorageKeyPrefixes.EMBERMATE_PREFIX)) {
           breadcrumb.message = '[REDACTED - health data key]';
         }
       }

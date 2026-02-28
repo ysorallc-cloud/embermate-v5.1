@@ -7,7 +7,7 @@ import React, { useRef, useState } from 'react';
 import { View, StyleSheet, FlatList, Dimensions, Pressable, Text } from 'react-native';
 import Animated, { useSharedValue, useAnimatedScrollHandler } from 'react-native-reanimated';
 import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeSetItem } from '../../utils/safeStorage';
 
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { PrivacyDisclaimerScreen } from './screens/PrivacyDisclaimerScreen';
@@ -56,8 +56,8 @@ export default function OnboardingFlow() {
 
   const completeOnboarding = async (seedData: boolean = false) => {
     try {
-      await AsyncStorage.setItem('onboarding_completed', 'true');
-      await AsyncStorage.setItem('disclaimer_accepted', 'true');
+      await safeSetItem('onboarding_completed', 'true');
+      await safeSetItem('disclaimer_accepted', 'true');
 
       // Seed sample data if requested
       if (seedData) {

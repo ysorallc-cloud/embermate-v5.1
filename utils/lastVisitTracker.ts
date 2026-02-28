@@ -3,7 +3,7 @@
 // Tracks user visits to show welcome banner after extended absences
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
 
 const LAST_VISIT_KEY = 'last_visit_timestamp';
@@ -15,7 +15,7 @@ const WELCOME_BANNER_DISMISSED_KEY = 'welcome_banner_dismissed';
 export async function recordVisit(): Promise<void> {
   try {
     const now = Date.now();
-    await AsyncStorage.setItem(LAST_VISIT_KEY, now.toString());
+    await safeSetItem(LAST_VISIT_KEY, now.toString());
   } catch (error) {
     logError('lastVisitTracker.recordVisit', error);
   }
@@ -26,7 +26,7 @@ export async function recordVisit(): Promise<void> {
  */
 export async function getDaysSinceLastVisit(): Promise<number> {
   try {
-    const lastVisit = await AsyncStorage.getItem(LAST_VISIT_KEY);
+    const lastVisit = await safeGetItem<string | null>(LAST_VISIT_KEY, null);
 
     if (!lastVisit) {
       return 0; // First visit
@@ -57,7 +57,7 @@ export async function shouldShowWelcomeBanner(): Promise<boolean> {
     }
 
     // Check if already dismissed today
-    const dismissed = await AsyncStorage.getItem(WELCOME_BANNER_DISMISSED_KEY);
+    const dismissed = await safeGetItem<string | null>(WELCOME_BANNER_DISMISSED_KEY, null);
     if (dismissed) {
       const dismissedTime = parseInt(dismissed, 10);
       const hoursSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60);
@@ -80,7 +80,7 @@ export async function shouldShowWelcomeBanner(): Promise<boolean> {
  */
 export async function dismissWelcomeBanner(): Promise<void> {
   try {
-    await AsyncStorage.setItem(
+    await safeSetItem(
       WELCOME_BANNER_DISMISSED_KEY,
       Date.now().toString()
     );

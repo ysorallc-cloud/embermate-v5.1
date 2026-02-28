@@ -17,6 +17,7 @@ import {
   saveBackupToFile,
   EncryptedBackup,
 } from '../cloudBackup';
+import { getSecureItem } from '../secureStorage';
 
 const BACKUP_SETTINGS_KEY = '@embermate_cloud_backup_settings';
 
@@ -84,11 +85,11 @@ describe('CloudBackup', () => {
       const success = await restoreEncryptedBackup(backup!, password);
       expect(success).toBe(true);
 
-      // Verify data is back
-      const medsAfter = await AsyncStorage.getItem('@embermate_medications');
-      expect(medsAfter).not.toBeNull();
-      const meds = JSON.parse(medsAfter!);
-      expect(meds[0].name).toBe('Test Med');
+      // Verify data is back (sensitive keys are now encrypted at rest,
+      // so read via getSecureItem which handles decryption)
+      const meds = await getSecureItem('@embermate_medications', null as any);
+      expect(meds).not.toBeNull();
+      expect((meds as any[])[0].name).toBe('Test Med');
     });
 
     it('should fail restore with wrong password', async () => {

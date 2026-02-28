@@ -3,7 +3,6 @@
 // Auto-generated and custom prep checklists for appointments
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   PrepChecklistItem,
   AppointmentPrepChecklist,
@@ -13,8 +12,10 @@ import { Appointment } from './appointmentStorage';
 import { getMedications } from './medicationStorage';
 import { getTodayVitalsLog } from './centralStorage';
 import { logError } from './devLog';
+import { StorageKeys } from './storageKeys';
+import { safeGetItem, safeSetItem } from './safeStorage';
 
-const PREP_CHECKLIST_KEY = '@embermate_prep_checklists';
+const PREP_CHECKLIST_KEY = StorageKeys.PREP_CHECKLISTS;
 
 // ============================================================================
 // STORAGE OPERATIONS
@@ -25,8 +26,7 @@ const PREP_CHECKLIST_KEY = '@embermate_prep_checklists';
  */
 async function getAllChecklists(): Promise<Record<string, AppointmentPrepChecklist>> {
   try {
-    const data = await AsyncStorage.getItem(PREP_CHECKLIST_KEY);
-    return data ? JSON.parse(data) : {};
+    return await safeGetItem<Record<string, AppointmentPrepChecklist>>(PREP_CHECKLIST_KEY, {});
   } catch (error) {
     logError('prepChecklistStorage.getAllChecklists', error);
     return {};
@@ -40,7 +40,7 @@ async function saveAllChecklists(
   checklists: Record<string, AppointmentPrepChecklist>
 ): Promise<void> {
   try {
-    await AsyncStorage.setItem(PREP_CHECKLIST_KEY, JSON.stringify(checklists));
+    await safeSetItem(PREP_CHECKLIST_KEY, checklists);
   } catch (error) {
     logError('prepChecklistStorage.saveAllChecklists', error);
   }

@@ -5,6 +5,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { resetDailyMedicationStatus } from '../utils/medicationStorage';
 import { initializeSampleData, deduplicateSampleSymptoms } from '../utils/sampleDataGenerator';
 import { ensureDailySnapshot, pruneOldOverrides } from '../utils/carePlanStorage';
@@ -16,6 +17,7 @@ import { purgeIfNeeded } from '../utils/dataRetention';
 import { initErrorReporting, reportError, reportWarning } from '../utils/errorReporting';
 import { checkForUpdates } from '../utils/updateChecker';
 import { getTodayDateString, cleanupDuplicateCarePlanItems } from './carePlanGenerator';
+import { StorageKeys, StorageKeyPrefixes } from '../utils/storageKeys';
 
 interface StartupResult {
   success: boolean;
@@ -68,8 +70,8 @@ export async function runStartupSequence(): Promise<StartupResult> {
   await runPhase(
     'cleanupDuplicates',
     async () => {
-      const CLEANUP_KEY = '@embermate_duplicate_cleanup_v1';
-      const done = await AsyncStorage.getItem(CLEANUP_KEY);
+      const CLEANUP_KEY = StorageKeys.DUPLICATE_CLEANUP_V1;
+      const done = await safeGetItem<string | null>(CLEANUP_KEY, null);
       if (done === 'true') return;
 
       devLog('[Startup] Running one-time duplicate CarePlanItem cleanup...');
@@ -77,13 +79,13 @@ export async function runStartupSequence(): Promise<StartupResult> {
 
       // Also purge ALL daily instance data so it regenerates cleanly
       const allKeys = await AsyncStorage.getAllKeys();
-      const instanceKeys = allKeys.filter(k => k.startsWith('@embermate_instances_v2:'));
+      const instanceKeys = allKeys.filter(k => k.startsWith(StorageKeyPrefixes.INSTANCES_V2));
       if (instanceKeys.length > 0) {
         await AsyncStorage.multiRemove(instanceKeys);
         devLog(`[Startup] Purged ${instanceKeys.length} daily instance keys for clean regeneration`);
       }
 
-      await AsyncStorage.setItem(CLEANUP_KEY, 'true');
+      await safeSetItem(CLEANUP_KEY, 'true');
       devLog(`[Startup] Cleanup complete: removed ${result.removedCount} duplicate items`);
     },
     phases,
@@ -93,11 +95,11 @@ export async function runStartupSequence(): Promise<StartupResult> {
   await runPhase(
     'dailyReset',
     async () => {
-      const lastReset = await AsyncStorage.getItem('@embermate_last_reset_date');
+      const lastReset = await safeGetItem<string | null>(StorageKeys.LAST_RESET_DATE, null);
       const today = getTodayDateString();
       if (lastReset !== today) {
         await resetDailyMedicationStatus();
-        await AsyncStorage.setItem('@embermate_last_reset_date', today);
+        await safeSetItem(StorageKeys.LAST_RESET_DATE, today);
       }
     },
     phases,

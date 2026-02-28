@@ -1,10 +1,11 @@
 // utils/vitalThresholds.ts
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../theme/theme-tokens';
 import { logError } from './devLog';
+import { StorageKeys } from './storageKeys';
+import { safeGetItem } from './safeStorage';
 
-const CUSTOM_THRESHOLDS_KEY = '@embermate_custom_vital_thresholds';
+const CUSTOM_THRESHOLDS_KEY = StorageKeys.CUSTOM_VITAL_THRESHOLDS;
 
 export const VITAL_THRESHOLDS = {
   glucose: {
@@ -66,12 +67,8 @@ let cacheLoaded = false;
 /** Load custom thresholds from storage into cache */
 export const loadCustomThresholds = async () => {
   try {
-    const stored = await AsyncStorage.getItem(CUSTOM_THRESHOLDS_KEY);
-    if (stored) {
-      cachedCustomThresholds = JSON.parse(stored);
-    } else {
-      cachedCustomThresholds = null;
-    }
+    const stored = await safeGetItem<typeof cachedCustomThresholds>(CUSTOM_THRESHOLDS_KEY, null);
+    cachedCustomThresholds = stored;
     cacheLoaded = true;
   } catch (error) {
     logError('vitalThresholds.loadCustomThresholds', error);

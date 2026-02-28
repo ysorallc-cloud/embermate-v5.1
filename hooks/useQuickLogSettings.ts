@@ -5,10 +5,11 @@
 
 import { useState, useEffect } from 'react';
 import { logError } from '../utils/devLog';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { MORE_OPTIONS, QuickLogOption } from '../constants/quickLogOptions';
+import { StorageKeys } from '../utils/storageKeys';
 
-const STORAGE_KEY = '@embermate_quick_log_settings';
+const STORAGE_KEY = StorageKeys.QUICK_LOG_SETTINGS;
 
 interface UseQuickLogSettingsReturn {
   userOptions: QuickLogOption[];
@@ -35,9 +36,9 @@ export const useQuickLogSettings = (): UseQuickLogSettingsReturn => {
 
   const loadSettings = async () => {
     try {
-      const saved = await AsyncStorage.getItem(STORAGE_KEY);
+      const saved = await safeGetItem<string[] | null>(STORAGE_KEY, null);
       if (saved) {
-        setUserOptionIds(JSON.parse(saved));
+        setUserOptionIds(saved);
       }
     } catch (error) {
       logError('useQuickLogSettings.loadSettings', error);
@@ -48,7 +49,7 @@ export const useQuickLogSettings = (): UseQuickLogSettingsReturn => {
 
   const saveSettings = async () => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(userOptionIds));
+      await safeSetItem(STORAGE_KEY, userOptionIds);
     } catch (error) {
       logError('useQuickLogSettings.saveSettings', error);
     }

@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { devLog, logError } from './devLog';
 
 export interface SampleDataOptions {
@@ -181,11 +182,11 @@ export const seedSampleData = async (options: SampleDataOptions = {}) => {
 
     // Store each data type
     for (const [key, value] of Object.entries(dataToStore)) {
-      await AsyncStorage.setItem(`sample_${key}`, JSON.stringify(value));
+      await safeSetItem(`sample_${key}`, value);
     }
 
     // Mark that sample data has been seeded
-    await AsyncStorage.setItem('sample_data_seeded', 'true');
+    await safeSetItem('sample_data_seeded', 'true');
 
     devLog('Sample data seeded successfully');
     return true;
@@ -212,7 +213,7 @@ export const clearSampleData = async () => {
 
 export const hasSampleData = async (): Promise<boolean> => {
   try {
-    const seeded = await AsyncStorage.getItem('sample_data_seeded');
+    const seeded = await safeGetItem<string | null>('sample_data_seeded', null);
     return seeded === 'true';
   } catch (error) {
     logError('sampleData.hasSampleData', error);
@@ -222,7 +223,7 @@ export const hasSampleData = async (): Promise<boolean> => {
 
 export const isOnboardingComplete = async (): Promise<boolean> => {
   try {
-    const completed = await AsyncStorage.getItem('onboarding_completed');
+    const completed = await safeGetItem<string | null>('onboarding_completed', null);
     return completed === 'true';
   } catch (error) {
     logError('sampleData.isOnboardingComplete', error);

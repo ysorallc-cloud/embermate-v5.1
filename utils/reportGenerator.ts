@@ -3,11 +3,12 @@
 // Generates nursing-grade reports for Care Brief with all tracked data
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMedications, getMedicationLogs } from './medicationStorage';
 import { getAppointments } from './appointmentStorage';
 import { getVitals, VitalReading } from './vitalsStorage';
 import { logError } from './devLog';
+import { StorageKeys } from './storageKeys';
+import { safeGetItem } from './safeStorage';
 
 interface VitalLog {
   id: string;
@@ -29,7 +30,7 @@ interface SymptomLog {
   notes?: string;
 }
 
-const SYMPTOMS_KEY = '@EmberMate:symptoms';
+const SYMPTOMS_KEY = StorageKeys.EMBERMATE_SYMPTOMS;
 
 /**
  * Convert VitalReading[] to VitalLog[] format for report generation
@@ -150,7 +151,7 @@ export async function generateComprehensiveReport(): Promise<ComprehensiveReport
   // Load patient name
   let patientName = 'Patient';
   try {
-    const name = await AsyncStorage.getItem('@embermate_patient_name');
+    const name = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
     if (name) patientName = name;
   } catch (e) {}
   
@@ -172,8 +173,7 @@ export async function generateComprehensiveReport(): Promise<ComprehensiveReport
   // Load symptoms
   let symptoms: SymptomLog[] = [];
   try {
-    const symptomsData = await AsyncStorage.getItem(SYMPTOMS_KEY);
-    if (symptomsData) symptoms = JSON.parse(symptomsData);
+    symptoms = await safeGetItem<SymptomLog[]>(SYMPTOMS_KEY, []);
   } catch (e) {}
   
   // 1. Calculate Medication Adherence

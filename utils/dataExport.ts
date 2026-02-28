@@ -10,6 +10,8 @@ import { Alert } from 'react-native';
 import Constants from 'expo-constants';
 import { logError } from './devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { StorageKeys } from './storageKeys';
+import { safeGetItem } from './safeStorage';
 
 /**
  * Export all data as JSON
@@ -79,8 +81,8 @@ export async function exportDataAsJSON(): Promise<void> {
 export async function exportDataAsCSV(): Promise<void> {
   try {
     // Get medication and vitals data
-    const medications = await AsyncStorage.getItem('@embermate_medications');
-    const vitals = await AsyncStorage.getItem('@vitals_readings');
+    const medications = await safeGetItem<any[] | null>(StorageKeys.MEDICATIONS, null);
+    const vitals = await safeGetItem<any[] | null>('@vitals_readings', null);
     const dailyTracking = await AsyncStorage.getAllKeys().then(async (keys) => {
       const trackingKeys = keys.filter((k) => k.startsWith('@daily_tracking_'));
       const data = [];
@@ -95,27 +97,17 @@ export async function exportDataAsCSV(): Promise<void> {
 
     // Add medications
     if (medications) {
-      try {
-        const meds = JSON.parse(medications);
-        for (const med of meds) {
-          const notes = (med.notes || '').replace(/"/g, '""');
-          csv += `Medication,${med.createdAt || ''},${med.name},${med.dosage},"${notes}"\n`;
-        }
-      } catch (e) {
-        logError('dataExport.exportDataAsCSV.parseMedications', e);
+      for (const med of medications) {
+        const notes = (med.notes || '').replace(/"/g, '""');
+        csv += `Medication,${med.createdAt || ''},${med.name},${med.dosage},"${notes}"\n`;
       }
     }
 
     // Add vitals
     if (vitals) {
-      try {
-        const vitalsList = JSON.parse(vitals);
-        for (const vital of vitalsList) {
-          const notes = (vital.notes || '').replace(/"/g, '""');
-          csv += `Vital,${vital.timestamp || ''},${vital.type},${vital.value} ${vital.unit || ''},"${notes}"\n`;
-        }
-      } catch (e) {
-        logError('dataExport.exportDataAsCSV.parseVitals', e);
+      for (const vital of vitals) {
+        const notes = (vital.notes || '').replace(/"/g, '""');
+        csv += `Vital,${vital.timestamp || ''},${vital.type},${vital.value} ${vital.unit || ''},"${notes}"\n`;
       }
     }
 
@@ -169,14 +161,14 @@ export async function generateHealthSummary(): Promise<{
   dateRange: { start: string; end: string };
 }> {
   try {
-    const medications = await AsyncStorage.getItem('@embermate_medications');
-    const vitals = await AsyncStorage.getItem('@vitals_readings');
+    const medications = await safeGetItem<any[] | null>(StorageKeys.MEDICATIONS, null);
+    const vitals = await safeGetItem<any[] | null>('@vitals_readings', null);
     const trackingKeys = (await AsyncStorage.getAllKeys()).filter((k) =>
       k.startsWith('@daily_tracking_')
     );
 
-    const medCount = medications ? JSON.parse(medications).length : 0;
-    const vitalCount = vitals ? JSON.parse(vitals).length : 0;
+    const medCount = medications ? medications.length : 0;
+    const vitalCount = vitals ? vitals.length : 0;
 
     // Get date range from tracking keys
     const dates = trackingKeys

@@ -5,15 +5,16 @@
 
 import { useState, useEffect } from 'react';
 import { logError } from '../utils/devLog';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import {
   WellnessSettings,
   DEFAULT_WELLNESS_SETTINGS,
 } from '../types/wellnessSettings';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
+import { StorageKeys } from '../utils/storageKeys';
 
-const STORAGE_KEY = '@embermate_wellness_settings';
+const STORAGE_KEY = StorageKeys.WELLNESS_SETTINGS;
 
 export const useWellnessSettings = () => {
   const [settings, setSettings] = useState<WellnessSettings>(
@@ -28,9 +29,8 @@ export const useWellnessSettings = () => {
 
   const loadSettings = async () => {
     try {
-      const saved = await AsyncStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
+      const parsed = await safeGetItem<any>(STORAGE_KEY, null);
+      if (parsed) {
         // Migration merge: ensure optionalChecks defaults exist for old stored data
         const merged: WellnessSettings = {
           ...DEFAULT_WELLNESS_SETTINGS,
@@ -67,7 +67,7 @@ export const useWellnessSettings = () => {
 
   const saveSettings = async (newSettings: WellnessSettings) => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
+      await safeSetItem(STORAGE_KEY, newSettings);
       setSettings(newSettings);
       // Notify all subscribers (log screens, Now page) that wellness config changed
       emitDataUpdate(EVENT.WELLNESS);

@@ -7,9 +7,10 @@ import { safeGetItem, safeSetItem } from './safeStorage';
 import { MorningWellnessData, EveningWellnessData } from '../types/timeline';
 import { updateStreak } from './streakStorage';
 import { logError } from './devLog';
+import { StorageKeys } from './storageKeys';
 
-const MORNING_WELLNESS_KEY = '@embermate_morning_wellness';
-const EVENING_WELLNESS_KEY = '@embermate_evening_wellness';
+const MORNING_WELLNESS_KEY = StorageKeys.MORNING_WELLNESS;
+const EVENING_WELLNESS_KEY = StorageKeys.EVENING_WELLNESS;
 
 // ============================================================================
 // MORNING WELLNESS

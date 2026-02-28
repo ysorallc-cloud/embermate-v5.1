@@ -4,8 +4,10 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import * as FileSystem from 'expo-file-system';
 import { logError } from './devLog';
+import { StorageKeys } from './storageKeys';
 
 export interface Photo {
   id: string;
@@ -17,7 +19,7 @@ export interface Photo {
   tags?: string[];
 }
 
-const PHOTOS_KEY = '@embermate_photos';
+const PHOTOS_KEY = StorageKeys.PHOTOS;
 const PHOTOS_DIR = `${FileSystem.documentDirectory}photos/`;
 
 // ============================================================================
@@ -47,9 +49,7 @@ async function ensurePhotosDirectory(): Promise<void> {
  */
 export async function getPhotos(): Promise<Photo[]> {
   try {
-    const data = await AsyncStorage.getItem(PHOTOS_KEY);
-    if (!data) return [];
-    return JSON.parse(data);
+    return await safeGetItem<Photo[]>(PHOTOS_KEY, []);
   } catch (error) {
     logError('photoStorage.getPhotos', error);
     return [];
@@ -122,8 +122,8 @@ export async function savePhoto(
     // Save to AsyncStorage
     const photos = await getPhotos();
     photos.push(photo);
-    await AsyncStorage.setItem(PHOTOS_KEY, JSON.stringify(photos));
-    
+    await safeSetItem(PHOTOS_KEY, photos);
+
     return photo;
   } catch (error) {
     logError('photoStorage.savePhoto', error);
@@ -145,8 +145,8 @@ export async function updatePhoto(
     if (index === -1) return null;
     
     photos[index] = { ...photos[index], ...updates };
-    await AsyncStorage.setItem(PHOTOS_KEY, JSON.stringify(photos));
-    
+    await safeSetItem(PHOTOS_KEY, photos);
+
     return photos[index];
   } catch (error) {
     logError('photoStorage.updatePhoto', error);
@@ -173,7 +173,7 @@ export async function deletePhoto(id: string): Promise<boolean> {
     
     // Remove from metadata
     const updatedPhotos = photos.filter(p => p.id !== id);
-    await AsyncStorage.setItem(PHOTOS_KEY, JSON.stringify(updatedPhotos));
+    await safeSetItem(PHOTOS_KEY, updatedPhotos);
     
     return true;
   } catch (error) {

@@ -392,8 +392,9 @@ export default function NowScreen() {
       if (activePatient && activePatient.name !== 'Patient') {
         setPatientName(activePatient.name);
       } else {
-        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-        const name = await AsyncStorage.getItem('@embermate_patient_name');
+        const { safeGetItem } = await import('../../utils/safeStorage');
+        const { StorageKeys } = await import('../../utils/storageKeys');
+        const name = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
         if (name && name !== 'Patient') {
           setPatientName(name);
           // Migration: sync legacy name to patient registry

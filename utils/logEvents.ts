@@ -10,6 +10,7 @@ import { generateUniqueId } from './idGenerator';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { StorageKeys } from './storageKeys';
 
 // ============================================================================
 // TYPES
@@ -160,7 +161,7 @@ export type LogEvent =
 // STORAGE
 // ============================================================================
 
-const LOG_EVENTS_KEY = '@embermate_log_events';
+const LOG_EVENTS_KEY = StorageKeys.LOG_EVENTS;
 const MAX_EVENTS = 5000;  // Keep last 5000 events
 
 /**

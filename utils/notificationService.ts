@@ -6,12 +6,13 @@
 
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { devLog, logError } from './devLog';
 import { Medication } from './medicationStorage';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { StorageKeys } from './storageKeys';
+import { safeGetItem, safeSetItem } from './safeStorage';
 
-const NOTIFICATION_SETTINGS_KEY = '@embermate_notification_settings';
+const NOTIFICATION_SETTINGS_KEY = StorageKeys.NOTIFICATION_SETTINGS;
 
 export interface NotificationSettings {
   enabled: boolean;
@@ -168,9 +169,7 @@ export async function hasNotificationPermissions(): Promise<boolean> {
  */
 export async function getNotificationSettings(): Promise<NotificationSettings> {
   try {
-    const data = await AsyncStorage.getItem(NOTIFICATION_SETTINGS_KEY);
-    if (!data) return DEFAULT_SETTINGS;
-    return JSON.parse(data);
+    return await safeGetItem<NotificationSettings>(NOTIFICATION_SETTINGS_KEY, DEFAULT_SETTINGS);
   } catch (error) {
     logError('notificationService.getNotificationSettings', error);
     return DEFAULT_SETTINGS;
@@ -182,7 +181,7 @@ export async function getNotificationSettings(): Promise<NotificationSettings> {
  */
 export async function saveNotificationSettings(settings: NotificationSettings): Promise<void> {
   try {
-    await AsyncStorage.setItem(NOTIFICATION_SETTINGS_KEY, JSON.stringify(settings));
+    await safeSetItem(NOTIFICATION_SETTINGS_KEY, settings);
   } catch (error) {
     logError('notificationService.saveNotificationSettings', error);
   }

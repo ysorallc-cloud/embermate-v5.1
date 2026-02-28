@@ -3,11 +3,11 @@
 // Configurable retention policy for log events with automatic purging
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { getLogEvents } from './logEvents';
-import { safeSetItem } from './safeStorage';
 import { logError } from './devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { StorageKeys } from './storageKeys';
 
 // ============================================================================
 // TYPES
@@ -32,9 +32,9 @@ export const RETENTION_OPTIONS: RetentionOption[] = [
 // STORAGE KEYS
 // ============================================================================
 
-const RETENTION_POLICY_KEY = '@embermate_retention_policy';
-const LAST_PURGE_KEY = '@embermate_last_purge_date';
-const LOG_EVENTS_KEY = '@embermate_log_events';
+const RETENTION_POLICY_KEY = StorageKeys.RETENTION_POLICY;
+const LAST_PURGE_KEY = StorageKeys.LAST_PURGE_DATE;
+const LOG_EVENTS_KEY = StorageKeys.LOG_EVENTS;
 
 // ============================================================================
 // POLICY MANAGEMENT
@@ -45,11 +45,7 @@ const LOG_EVENTS_KEY = '@embermate_log_events';
  */
 export async function getRetentionPolicy(): Promise<RetentionPolicy> {
   try {
-    const value = await AsyncStorage.getItem(RETENTION_POLICY_KEY);
-    if (!value) return 'forever';
-
-    const parsed = JSON.parse(value);
-    return parsed as RetentionPolicy;
+    return await safeGetItem<RetentionPolicy>(RETENTION_POLICY_KEY, 'forever');
   } catch {
     return 'forever';
   }
@@ -59,7 +55,7 @@ export async function getRetentionPolicy(): Promise<RetentionPolicy> {
  * Set the retention policy
  */
 export async function setRetentionPolicy(policy: RetentionPolicy): Promise<void> {
-  await AsyncStorage.setItem(RETENTION_POLICY_KEY, JSON.stringify(policy));
+  await safeSetItem(RETENTION_POLICY_KEY, policy);
 }
 
 // ============================================================================
@@ -88,7 +84,7 @@ export async function purgeOldData(): Promise<number> {
   }
 
   // Record the purge timestamp
-  await AsyncStorage.setItem(LAST_PURGE_KEY, getTodayDateString());
+  await safeSetItem(LAST_PURGE_KEY, getTodayDateString());
 
   return removed;
 }
@@ -99,7 +95,7 @@ export async function purgeOldData(): Promise<number> {
  */
 export async function purgeIfNeeded(): Promise<void> {
   try {
-    const lastPurge = await AsyncStorage.getItem(LAST_PURGE_KEY);
+    const lastPurge = await safeGetItem<string | null>(LAST_PURGE_KEY, null);
     const today = getTodayDateString();
 
     if (lastPurge === today) return;

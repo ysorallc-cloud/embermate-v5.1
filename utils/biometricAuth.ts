@@ -4,17 +4,18 @@
 // ============================================================================
 
 import * as LocalAuthentication from 'expo-local-authentication';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { setKeychainItem, getKeychainItem, removeKeychainItem } from './secureStorage';
 import { logError } from './devLog';
+import { StorageKeys } from './storageKeys';
 
-const BIOMETRIC_ENABLED_KEY = '@embermate_biometric_enabled';
-const BIOMETRIC_ENROLLED_KEY = '@embermate_biometric_enrolled';
+const BIOMETRIC_ENABLED_KEY = StorageKeys.BIOMETRIC_ENABLED;
+const BIOMETRIC_ENROLLED_KEY = StorageKeys.BIOMETRIC_ENROLLED;
 const PIN_HASH_KEY = 'embermate_pin_hash';
 const PIN_SALT_KEY = 'embermate_pin_salt';
 const SESSION_TOKEN_KEY = 'embermate_session_token';
-const LAST_ACTIVITY_KEY = '@embermate_last_activity';
-const AUTO_LOCK_TIMEOUT_KEY = '@embermate_auto_lock_timeout';
+const LAST_ACTIVITY_KEY = StorageKeys.LAST_ACTIVITY;
+const AUTO_LOCK_TIMEOUT_KEY = StorageKeys.AUTO_LOCK_TIMEOUT;
 const DEFAULT_TIMEOUT = 300; // 5 minutes
 
 export interface BiometricCapabilities {
@@ -113,8 +114,8 @@ export async function enableBiometricAuth(): Promise<boolean> {
     );
 
     if (authenticated) {
-      await AsyncStorage.setItem(BIOMETRIC_ENABLED_KEY, 'true');
-      await AsyncStorage.setItem(BIOMETRIC_ENROLLED_KEY, 'true');
+      await safeSetItem(BIOMETRIC_ENABLED_KEY, 'true');
+      await safeSetItem(BIOMETRIC_ENROLLED_KEY, 'true');
       return true;
     }
 
@@ -130,7 +131,7 @@ export async function enableBiometricAuth(): Promise<boolean> {
  */
 export async function disableBiometricAuth(): Promise<boolean> {
   try {
-    await AsyncStorage.setItem(BIOMETRIC_ENABLED_KEY, 'false');
+    await safeSetItem(BIOMETRIC_ENABLED_KEY, 'false');
     return true;
   } catch (error) {
     logError('biometricAuth.disableBiometricAuth', error);
@@ -143,7 +144,7 @@ export async function disableBiometricAuth(): Promise<boolean> {
  */
 export async function isBiometricEnabled(): Promise<boolean> {
   try {
-    const enabled = await AsyncStorage.getItem(BIOMETRIC_ENABLED_KEY);
+    const enabled = await safeGetItem<string | null>(BIOMETRIC_ENABLED_KEY, null);
     return enabled === 'true';
   } catch (error) {
     logError('biometricAuth.isBiometricEnabled', error);
@@ -298,7 +299,7 @@ export async function clearSession(): Promise<void> {
 export async function updateLastActivity(): Promise<void> {
   try {
     const timestamp = new Date().toISOString();
-    await AsyncStorage.setItem(LAST_ACTIVITY_KEY, timestamp);
+    await safeSetItem(LAST_ACTIVITY_KEY, timestamp);
   } catch (error) {
     logError('biometricAuth.updateLastActivity', error);
   }
@@ -309,7 +310,7 @@ export async function updateLastActivity(): Promise<void> {
  */
 export async function getTimeSinceLastActivity(): Promise<number> {
   try {
-    const lastActivity = await AsyncStorage.getItem(LAST_ACTIVITY_KEY);
+    const lastActivity = await safeGetItem<string | null>(LAST_ACTIVITY_KEY, null);
 
     if (!lastActivity) {
       return Infinity;
@@ -342,7 +343,7 @@ export async function shouldLockSession(timeoutSeconds: number = 300): Promise<b
  */
 export async function getAutoLockTimeout(): Promise<number> {
   try {
-    const value = await AsyncStorage.getItem(AUTO_LOCK_TIMEOUT_KEY);
+    const value = await safeGetItem<string | null>(AUTO_LOCK_TIMEOUT_KEY, null);
     return value ? parseInt(value, 10) : DEFAULT_TIMEOUT;
   } catch (error) {
     logError('biometricAuth.getAutoLockTimeout', error);
@@ -355,7 +356,7 @@ export async function getAutoLockTimeout(): Promise<number> {
  */
 export async function setAutoLockTimeout(seconds: number): Promise<void> {
   try {
-    await AsyncStorage.setItem(AUTO_LOCK_TIMEOUT_KEY, seconds.toString());
+    await safeSetItem(AUTO_LOCK_TIMEOUT_KEY, seconds.toString());
   } catch (error) {
     logError('biometricAuth.setAutoLockTimeout', error);
   }

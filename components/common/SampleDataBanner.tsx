@@ -14,15 +14,16 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { hasSampleData, detectSampleData } from '../../utils/sampleDataManager';
 import { useDataListener } from '../../lib/events';
 import { logError } from '../../utils/devLog';
+import { StorageKeys } from '../../utils/storageKeys';
 
 // Storage key for banner dismissal
-const BANNER_DISMISSED_KEY = '@embermate_sample_banner_dismissed';
+const BANNER_DISMISSED_KEY = StorageKeys.SAMPLE_BANNER_DISMISSED;
 
 export interface SampleDataBannerProps {
   /** Callback when sample data is cleared */
@@ -59,7 +60,7 @@ export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
   const checkSampleData = async () => {
     try {
       // Check if banner was dismissed
-      const wasDismissed = await AsyncStorage.getItem(BANNER_DISMISSED_KEY);
+      const wasDismissed = await safeGetItem<string | null>(BANNER_DISMISSED_KEY, null);
       if (wasDismissed === 'true') {
         setDismissed(true);
         setVisible(false);
@@ -95,7 +96,7 @@ export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
       setDismissed(true);
     });
 
-    await AsyncStorage.setItem(BANNER_DISMISSED_KEY, 'true');
+    await safeSetItem(BANNER_DISMISSED_KEY, 'true');
   };
 
   const handleSetup = () => {

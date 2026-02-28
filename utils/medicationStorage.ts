@@ -3,12 +3,14 @@
 // AsyncStorage CRUD operations for medications
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { checkMultipleInteractions, DrugInteraction } from './drugInteractions';
 import { safeGetItem, safeSetItem } from './safeStorage';
 import { generateUniqueId } from './idGenerator';
 import { logError } from './devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { StorageKeys, scopedKey } from './storageKeys';
+
+const DEFAULT_PATIENT_ID = 'default';
 
 export interface Medication {
   id: string;
@@ -49,9 +51,9 @@ export interface MedicationLog {
   notes?: string;
 }
 
-const MEDICATIONS_KEY = '@embermate_medications';
-const MEDICATION_LOGS_KEY = '@embermate_medication_logs';
-const LAST_RESET_DATE_KEY = '@embermate_last_med_reset';
+const MEDICATIONS_KEY = StorageKeys.MEDICATIONS;
+const MEDICATION_LOGS_KEY = StorageKeys.MEDICATION_LOGS;
+const LAST_RESET_DATE_KEY = StorageKeys.LAST_MED_RESET;
 
 // ============================================================================
 // CRUD OPERATIONS
@@ -61,16 +63,16 @@ const LAST_RESET_DATE_KEY = '@embermate_last_med_reset';
  * Get all medications
  * Automatically resets daily "taken" status if it's a new day
  */
-export async function getMedications(): Promise<Medication[]> {
+export async function getMedications(patientId: string = DEFAULT_PATIENT_ID): Promise<Medication[]> {
   try {
     // Check if we need to reset daily status
-    await checkAndResetDaily();
+    await checkAndResetDaily(patientId);
 
-    const medications = await safeGetItem<Medication[]>(MEDICATIONS_KEY, []);
+    const medications = await safeGetItem<Medication[]>(scopedKey(MEDICATIONS_KEY, patientId), []);
 
     // If empty, return default medications for first-time users
     if (medications.length === 0) {
-      const hasSeenOnboarding = await AsyncStorage.getItem('@embermate_onboarding_complete');
+      const hasSeenOnboarding = await safeGetItem<string | null>(StorageKeys.ONBOARDING_COMPLETE, null);
       if (!hasSeenOnboarding) {
         return getDefaultMedications();
       }
@@ -86,15 +88,15 @@ export async function getMedications(): Promise<Medication[]> {
 /**
  * Check if it's a new day and reset medication status if needed
  */
-async function checkAndResetDaily(): Promise<void> {
+async function checkAndResetDaily(patientId: string = DEFAULT_PATIENT_ID): Promise<void> {
   try {
     const today = getTodayDateString(); // YYYY-MM-DD
-    const lastResetDate = await AsyncStorage.getItem(LAST_RESET_DATE_KEY);
+    const lastResetDate = await safeGetItem<string | null>(scopedKey(LAST_RESET_DATE_KEY, patientId), null);
 
     if (lastResetDate !== today) {
       // It's a new day, reset all medication taken status
-      await resetDailyMedicationStatus();
-      await AsyncStorage.setItem(LAST_RESET_DATE_KEY, today);
+      await resetDailyMedicationStatus(patientId);
+      await safeSetItem(scopedKey(LAST_RESET_DATE_KEY, patientId), today);
     }
   } catch (error) {
     logError('medicationStorage.checkAndResetDaily', error);
@@ -104,9 +106,9 @@ async function checkAndResetDaily(): Promise<void> {
 /**
  * Get a single medication by ID
  */
-export async function getMedication(id: string): Promise<Medication | null> {
+export async function getMedication(id: string, patientId: string = DEFAULT_PATIENT_ID): Promise<Medication | null> {
   try {
-    const medications = await getMedications();
+    const medications = await getMedications(patientId);
     return medications.find(m => m.id === id) || null;
   } catch (error) {
     logError('medicationStorage.getMedication', error);
@@ -118,16 +120,17 @@ export async function getMedication(id: string): Promise<Medication | null> {
  * Create a new medication
  */
 export async function createMedication(
-  medication: Omit<Medication, 'id' | 'createdAt'>
+  medication: Omit<Medication, 'id' | 'createdAt'>,
+  patientId: string = DEFAULT_PATIENT_ID
 ): Promise<Medication> {
   try {
     // Check for duplicate
-    const duplicate = await checkDuplicateMedication(medication.name);
+    const duplicate = await checkDuplicateMedication(medication.name, patientId);
     if (duplicate) {
       throw new Error(`Similar medication already exists: ${duplicate.name}`);
     }
 
-    const medications = await getMedications();
+    const medications = await getMedications(patientId);
 
     // Generate unique ID that won't collide
     const newMedication: Medication = {
@@ -139,7 +142,7 @@ export async function createMedication(
     medications.push(newMedication);
 
     // Use safe storage to prevent corruption
-    const success = await safeSetItem(MEDICATIONS_KEY, medications);
+    const success = await safeSetItem(scopedKey(MEDICATIONS_KEY, patientId), medications);
 
     if (!success) {
       throw new Error('Failed to save medication to storage');
@@ -157,10 +160,11 @@ export async function createMedication(
  */
 export async function updateMedication(
   id: string,
-  updates: Partial<Medication>
+  updates: Partial<Medication>,
+  patientId: string = DEFAULT_PATIENT_ID
 ): Promise<Medication | null> {
   try {
-    const medications = await getMedications();
+    const medications = await getMedications(patientId);
     const index = medications.findIndex(m => m.id === id);
 
     if (index === -1) {
@@ -170,7 +174,7 @@ export async function updateMedication(
 
     medications[index] = { ...medications[index], ...updates };
 
-    const success = await safeSetItem(MEDICATIONS_KEY, medications);
+    const success = await safeSetItem(scopedKey(MEDICATIONS_KEY, patientId), medications);
 
     if (!success) {
       logError('medicationStorage.updateMedication', 'Failed to save updated medication');
@@ -187,9 +191,9 @@ export async function updateMedication(
 /**
  * Delete a medication (soft delete by setting active: false)
  */
-export async function deleteMedication(id: string): Promise<boolean> {
+export async function deleteMedication(id: string, patientId: string = DEFAULT_PATIENT_ID): Promise<boolean> {
   try {
-    return (await updateMedication(id, { active: false })) !== null;
+    return (await updateMedication(id, { active: false }, patientId)) !== null;
   } catch (error) {
     logError('medicationStorage.deleteMedication', error);
     return false;
@@ -202,23 +206,24 @@ export async function deleteMedication(id: string): Promise<boolean> {
 export async function markMedicationTaken(
   id: string,
   taken: boolean = true,
-  notes?: string
+  notes?: string,
+  patientId: string = DEFAULT_PATIENT_ID
 ): Promise<boolean> {
   try {
     const timestamp = new Date().toISOString();
-    
+
     // Update medication status
     const updated = await updateMedication(id, {
       taken,
       lastTaken: taken ? timestamp : undefined,
-    });
-    
+    }, patientId);
+
     if (!updated) {
       return false;
     }
-    
+
     // Log the event
-    await logMedicationEvent(id, taken, notes);
+    await logMedicationEvent(id, taken, notes, patientId);
     
     return true;
   } catch (error) {
@@ -237,10 +242,11 @@ export async function markMedicationTaken(
 export async function logMedicationEvent(
   medicationId: string,
   taken: boolean,
-  notes?: string
+  notes?: string,
+  patientId: string = DEFAULT_PATIENT_ID
 ): Promise<void> {
   try {
-    const logs = await getMedicationLogs();
+    const logs = await getMedicationLogs(patientId);
     const newLog: MedicationLog = {
       medicationId,
       timestamp: new Date().toISOString(),
@@ -252,7 +258,7 @@ export async function logMedicationEvent(
     // Keep only last 1000 logs to prevent storage overflow
     const trimmedLogs = logs.slice(-1000);
 
-    await safeSetItem(MEDICATION_LOGS_KEY, trimmedLogs);
+    await safeSetItem(scopedKey(MEDICATION_LOGS_KEY, patientId), trimmedLogs);
   } catch (error) {
     logError('medicationStorage.logMedicationEvent', error);
   }
@@ -261,16 +267,16 @@ export async function logMedicationEvent(
 /**
  * Get all medication logs
  */
-export async function getMedicationLogs(): Promise<MedicationLog[]> {
-  return await safeGetItem<MedicationLog[]>(MEDICATION_LOGS_KEY, []);
+export async function getMedicationLogs(patientId: string = DEFAULT_PATIENT_ID): Promise<MedicationLog[]> {
+  return await safeGetItem<MedicationLog[]>(scopedKey(MEDICATION_LOGS_KEY, patientId), []);
 }
 
 /**
  * Get logs for a specific medication
  */
-export async function getMedicationLogsById(medicationId: string): Promise<MedicationLog[]> {
+export async function getMedicationLogsById(medicationId: string, patientId: string = DEFAULT_PATIENT_ID): Promise<MedicationLog[]> {
   try {
-    const logs = await getMedicationLogs();
+    const logs = await getMedicationLogs(patientId);
     return logs.filter(log => log.medicationId === medicationId);
   } catch (error) {
     logError('medicationStorage.getMedicationLogsById', error);
@@ -284,13 +290,14 @@ export async function getMedicationLogsById(medicationId: string): Promise<Medic
  */
 export async function calculateAdherence(
   medicationId: string,
-  days: number = 7
+  days: number = 7,
+  patientId: string = DEFAULT_PATIENT_ID
 ): Promise<number> {
   try {
-    const medication = await getMedication(medicationId);
+    const medication = await getMedication(medicationId, patientId);
     if (!medication) return 0;
 
-    const logs = await getMedicationLogsById(medicationId);
+    const logs = await getMedicationLogsById(medicationId, patientId);
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
 
@@ -299,7 +306,7 @@ export async function calculateAdherence(
     );
 
     // Count how many times this medication name is scheduled per day
-    const allMedications = await getMedications();
+    const allMedications = await getMedications(patientId);
     const dosesPerDay = allMedications.filter(
       med => med.name.toLowerCase() === medication.name.toLowerCase() && med.active
     ).length;
@@ -319,10 +326,11 @@ export async function calculateAdherence(
  */
 export async function calculateAdherenceByName(
   medicationName: string,
-  days: number = 7
+  days: number = 7,
+  patientId: string = DEFAULT_PATIENT_ID
 ): Promise<number> {
   try {
-    const allMedications = await getMedications();
+    const allMedications = await getMedications(patientId);
     const matchingMeds = allMedications.filter(
       med => med.name.toLowerCase() === medicationName.toLowerCase() && med.active
     );
@@ -333,7 +341,7 @@ export async function calculateAdherenceByName(
     cutoffDate.setDate(cutoffDate.getDate() - days);
 
     // Get logs for all matching medication IDs
-    const allLogs = await getMedicationLogs();
+    const allLogs = await getMedicationLogs(patientId);
     const recentLogs = allLogs.filter(
       log =>
         matchingMeds.some(med => med.id === log.medicationId) &&
@@ -359,10 +367,10 @@ export async function calculateAdherenceByName(
 /**
  * Reset medications to default (for demo/testing)
  */
-export async function resetMedications(): Promise<void> {
+export async function resetMedications(patientId: string = DEFAULT_PATIENT_ID): Promise<void> {
   try {
     const defaults = getDefaultMedications();
-    await safeSetItem(MEDICATIONS_KEY, defaults);
+    await safeSetItem(scopedKey(MEDICATIONS_KEY, patientId), defaults);
   } catch (error) {
     logError('medicationStorage.resetMedications', error);
   }
@@ -376,12 +384,12 @@ export async function resetMedications(): Promise<void> {
  * DO NOT call getMedications() here - it triggers checkAndResetDaily()
  * which calls this function again, causing stack overflow/OOM.
  */
-export async function resetDailyMedicationStatus(): Promise<void> {
+export async function resetDailyMedicationStatus(patientId: string = DEFAULT_PATIENT_ID): Promise<void> {
   try {
     // Read directly from storage - DO NOT use getMedications() to avoid recursion
-    const medications = await safeGetItem<Medication[]>(MEDICATIONS_KEY, []);
+    const medications = await safeGetItem<Medication[]>(scopedKey(MEDICATIONS_KEY, patientId), []);
     const reset = medications.map(med => ({ ...med, taken: false }));
-    await safeSetItem(MEDICATIONS_KEY, reset);
+    await safeSetItem(scopedKey(MEDICATIONS_KEY, patientId), reset);
   } catch (error) {
     logError('medicationStorage.resetDailyMedicationStatus', error);
   }
@@ -480,10 +488,11 @@ function getDefaultMedications(): Medication[] {
  * Get medications needing refill
  */
 export async function getMedicationsNeedingRefill(
-  daysWarning: number = 7
+  daysWarning: number = 7,
+  patientId: string = DEFAULT_PATIENT_ID
 ): Promise<Medication[]> {
   try {
-    const medications = await getMedications();
+    const medications = await getMedications(patientId);
     return medications.filter(m => 
       m.active && 
       m.daysSupply !== undefined && 
@@ -500,10 +509,11 @@ export async function getMedicationsNeedingRefill(
  */
 export async function updateMedicationSupply(
   id: string,
-  pillsTaken: number = 1
+  pillsTaken: number = 1,
+  patientId: string = DEFAULT_PATIENT_ID
 ): Promise<Medication | null> {
   try {
-    const medication = await getMedication(id);
+    const medication = await getMedication(id, patientId);
     if (!medication || medication.pillsRemaining === undefined) {
       return null;
     }
@@ -525,7 +535,7 @@ export async function updateMedicationSupply(
       updates.refillDate = refillDate.toISOString();
     }
     
-    return await updateMedication(id, updates);
+    return await updateMedication(id, updates, patientId);
   } catch (error) {
     logError('medicationStorage.updateMedicationSupply', error);
     return null;
@@ -538,10 +548,11 @@ export async function updateMedicationSupply(
 export async function addMedicationRefill(
   id: string,
   pillsAdded: number,
-  daysSupply?: number
+  daysSupply?: number,
+  patientId: string = DEFAULT_PATIENT_ID
 ): Promise<Medication | null> {
   try {
-    const medication = await getMedication(id);
+    const medication = await getMedication(id, patientId);
     if (!medication) {
       return null;
     }
@@ -553,7 +564,7 @@ export async function addMedicationRefill(
       refillDate: undefined, // Clear refill date
     };
     
-    return await updateMedication(id, updates);
+    return await updateMedication(id, updates, patientId);
   } catch (error) {
     logError('medicationStorage.addMedicationRefill', error);
     return null;
@@ -601,10 +612,11 @@ const KNOWN_INTERACTIONS = [
  * Check for duplicate medications
  */
 export async function checkDuplicateMedication(
-  name: string
+  name: string,
+  patientId: string = DEFAULT_PATIENT_ID
 ): Promise<Medication | null> {
   try {
-    const medications = await getMedications();
+    const medications = await getMedications(patientId);
     const normalized = name.toLowerCase().trim();
     
     return medications.find(m => 
@@ -620,9 +632,9 @@ export async function checkDuplicateMedication(
 /**
  * Check for medication interactions using local drug interactions database
  */
-export async function checkMedicationInteractions(): Promise<DrugInteraction[]> {
+export async function checkMedicationInteractions(patientId: string = DEFAULT_PATIENT_ID): Promise<DrugInteraction[]> {
   try {
-    const medications = await getMedications();
+    const medications = await getMedications(patientId);
     const activeMedicationNames = medications
       .filter(m => m.active)
       .map(m => m.name);

@@ -25,7 +25,8 @@ import {
   removeCaregiver,
   CaregiverProfile,
 } from '../utils/collaborativeCare';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeSetItem } from '../utils/safeStorage';
+import { StorageKeys } from '../utils/storageKeys';
 
 export default function CaregiverManagementScreen() {
   const router = useRouter();
@@ -67,7 +68,7 @@ export default function CaregiverManagementScreen() {
           ? { ...c, permissions: newPermissions }
           : c
       );
-      await AsyncStorage.setItem('@embermate_caregivers', JSON.stringify(updated));
+      await safeSetItem(StorageKeys.CAREGIVERS, updated);
       emitDataUpdate(EVENT.CARE_PLAN);
     }
   };

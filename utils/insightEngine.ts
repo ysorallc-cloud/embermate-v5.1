@@ -5,11 +5,13 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { getMedications, getMedicationLogs, Medication, MedicationLog } from './medicationStorage';
 import { getVitalsInRange, VitalReading } from './vitalsStorage';
 import { getDailyTrackingLogs, DailyTrackingLog } from './dailyTrackingStorage';
 import { logError } from './devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { StorageKeys } from './storageKeys';
 
 // ============================================================================
 // TYPES
@@ -42,7 +44,7 @@ export interface InsightAction {
   data?: any;
 }
 
-const DISMISSED_INSIGHTS_KEY = '@embermate_dismissed_insights';
+const DISMISSED_INSIGHTS_KEY = StorageKeys.DISMISSED_INSIGHTS;
 
 // ============================================================================
 // MEDICATION ADHERENCE ANALYZER
@@ -500,12 +502,11 @@ export async function getAllInsights(): Promise<InsightData[]> {
  */
 export async function dismissInsight(insightId: string): Promise<void> {
   try {
-    const dismissed = await AsyncStorage.getItem(DISMISSED_INSIGHTS_KEY);
-    const dismissedList = dismissed ? JSON.parse(dismissed) : {};
+    const dismissedList = await safeGetItem<Record<string, number>>(DISMISSED_INSIGHTS_KEY, {});
 
     dismissedList[insightId] = Date.now();
 
-    await AsyncStorage.setItem(DISMISSED_INSIGHTS_KEY, JSON.stringify(dismissedList));
+    await safeSetItem(DISMISSED_INSIGHTS_KEY, dismissedList);
   } catch (error) {
     logError('insightEngine.dismissInsight', error);
   }
@@ -516,10 +517,7 @@ export async function dismissInsight(insightId: string): Promise<void> {
  */
 export async function wasRecentlyDismissed(insightId: string): Promise<boolean> {
   try {
-    const dismissed = await AsyncStorage.getItem(DISMISSED_INSIGHTS_KEY);
-    if (!dismissed) return false;
-
-    const dismissedList = JSON.parse(dismissed);
+    const dismissedList = await safeGetItem<Record<string, number>>(DISMISSED_INSIGHTS_KEY, {});
     const dismissedTime = dismissedList[insightId];
 
     if (!dismissedTime) return false;

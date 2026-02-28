@@ -3,8 +3,9 @@
 // Stores user-defined quick action patterns and preferences
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
+import { StorageKeys } from './storageKeys';
 
 export interface UserPattern {
   id: string;
@@ -37,8 +38,8 @@ export interface UserPreferences {
   showQuickActions: boolean;
 }
 
-const PATTERNS_KEY = '@embermate_user_patterns';
-const PREFERENCES_KEY = '@embermate_user_preferences';
+const PATTERNS_KEY = StorageKeys.USER_PATTERNS;
+const PREFERENCES_KEY = StorageKeys.USER_PREFERENCES;
 
 // Default patterns provided for new users
 const DEFAULT_PATTERNS: UserPattern[] = [
@@ -93,13 +94,13 @@ const DEFAULT_PREFERENCES: UserPreferences = {
  */
 export async function getUserPatterns(): Promise<UserPattern[]> {
   try {
-    const data = await AsyncStorage.getItem(PATTERNS_KEY);
+    const data = await safeGetItem<UserPattern[] | null>(PATTERNS_KEY, null);
     if (!data) {
       // Return default patterns for first-time users
-      await AsyncStorage.setItem(PATTERNS_KEY, JSON.stringify(DEFAULT_PATTERNS));
+      await safeSetItem(PATTERNS_KEY, DEFAULT_PATTERNS);
       return DEFAULT_PATTERNS;
     }
-    return JSON.parse(data);
+    return data;
   } catch (error) {
     logError('userPatternStorage.getUserPatterns', error);
     return DEFAULT_PATTERNS;
@@ -120,7 +121,7 @@ export async function createUserPattern(
       usageCount: 0,
     };
     patterns.push(newPattern);
-    await AsyncStorage.setItem(PATTERNS_KEY, JSON.stringify(patterns));
+    await safeSetItem(PATTERNS_KEY, patterns);
     return newPattern;
   } catch (error) {
     logError('userPatternStorage.createUserPattern', error);
@@ -138,7 +139,7 @@ export async function updatePatternUsage(patternId: string): Promise<void> {
     if (index !== -1) {
       patterns[index].usageCount += 1;
       patterns[index].lastUsed = new Date().toISOString();
-      await AsyncStorage.setItem(PATTERNS_KEY, JSON.stringify(patterns));
+      await safeSetItem(PATTERNS_KEY, patterns);
     }
   } catch (error) {
     logError('userPatternStorage.updatePatternUsage', error);
@@ -182,12 +183,12 @@ export async function suggestPatternsForTime(time: Date = new Date()): Promise<U
  */
 export async function getUserPreferences(): Promise<UserPreferences> {
   try {
-    const data = await AsyncStorage.getItem(PREFERENCES_KEY);
+    const data = await safeGetItem<UserPreferences | null>(PREFERENCES_KEY, null);
     if (!data) {
-      await AsyncStorage.setItem(PREFERENCES_KEY, JSON.stringify(DEFAULT_PREFERENCES));
+      await safeSetItem(PREFERENCES_KEY, DEFAULT_PREFERENCES);
       return DEFAULT_PREFERENCES;
     }
-    return JSON.parse(data);
+    return data;
   } catch (error) {
     logError('userPatternStorage.getUserPreferences', error);
     return DEFAULT_PREFERENCES;
@@ -203,7 +204,7 @@ export async function updateUserPreferences(
   try {
     const prefs = await getUserPreferences();
     const updated = { ...prefs, ...updates };
-    await AsyncStorage.setItem(PREFERENCES_KEY, JSON.stringify(updated));
+    await safeSetItem(PREFERENCES_KEY, updated);
     return updated;
   } catch (error) {
     logError('userPatternStorage.updateUserPreferences', error);
@@ -218,7 +219,7 @@ export async function deleteUserPattern(patternId: string): Promise<void> {
   try {
     const patterns = await getUserPatterns();
     const filtered = patterns.filter(p => p.id !== patternId);
-    await AsyncStorage.setItem(PATTERNS_KEY, JSON.stringify(filtered));
+    await safeSetItem(PATTERNS_KEY, filtered);
   } catch (error) {
     logError('userPatternStorage.deleteUserPattern', error);
     throw error;

@@ -7,6 +7,7 @@ import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
 import { GlobalKeys } from '../utils/storageKeys';
+import { hashData } from '../utils/secureStorage';
 import {
   SubscriptionState,
   SubscriptionTier,
@@ -14,13 +15,13 @@ import {
 } from '../types/subscription';
 
 // ============================================================================
-// PROMO CODES (local validation list)
+// PROMO CODES (SHA-256 hashed — no plaintext codes in source)
 // ============================================================================
 
-const VALID_PROMO_CODES: Record<string, { tier: SubscriptionTier; durationDays: number }> = {
-  EMBER2026: { tier: 'premium', durationDays: 365 },
-  CAREGIVER: { tier: 'premium', durationDays: 90 },
-  BETAUSER: { tier: 'premium', durationDays: 180 },
+const HASHED_PROMO_CODES: Record<string, { tier: SubscriptionTier; durationDays: number }> = {
+  'f00472e3c02be1ceaca8afeefbf4c58ca763b115d10a1946943fd8ad50a4e679': { tier: 'premium', durationDays: 365 },
+  '2254b04f8190aa7dc555b1c694bb0aa905308a531cf2e0d87dcc12573aae34b4': { tier: 'premium', durationDays: 90 },
+  '036ee9a8dd27f1360eab0a62ef259a5522c4b6029754aef4192bae4abb7947b8': { tier: 'premium', durationDays: 180 },
 };
 
 // ============================================================================
@@ -63,7 +64,8 @@ export async function setSubscriptionTier(
  */
 export async function activatePromoCode(code: string): Promise<boolean> {
   const normalized = code.trim().toUpperCase();
-  const promo = VALID_PROMO_CODES[normalized];
+  const codeHash = await hashData(normalized);
+  const promo = HASHED_PROMO_CODES[codeHash];
   if (!promo) return false;
 
   const expiresAt = new Date(

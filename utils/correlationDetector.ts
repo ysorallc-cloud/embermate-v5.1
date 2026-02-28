@@ -9,6 +9,7 @@ import { getMedicationLogs } from './medicationStorage';
 import { getSymptoms, SymptomLog } from './symptomStorage';
 import { getDailyTrackingLogs, DailyTrackingLog } from './dailyTrackingStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
 
@@ -325,16 +326,15 @@ export async function detectCorrelations(): Promise<DetectedPattern[]> {
  */
 async function getCachedCorrelations(): Promise<DetectedPattern[] | null> {
   try {
-    const cached = await AsyncStorage.getItem(CACHE_KEY);
+    const cached = await safeGetItem<{ timestamp: number; patterns: DetectedPattern[] } | null>(CACHE_KEY, null);
     if (!cached) return null;
-    
-    const { timestamp, patterns } = JSON.parse(cached);
-    const age = Date.now() - timestamp;
-    
+
+    const age = Date.now() - cached.timestamp;
+
     if (age < CACHE_DURATION) {
-      return patterns;
+      return cached.patterns;
     }
-    
+
     return null;
   } catch (error) {
     return null;
@@ -350,7 +350,7 @@ async function cacheCorrelations(patterns: DetectedPattern[]): Promise<void> {
       timestamp: Date.now(),
       patterns,
     };
-    await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+    await safeSetItem(CACHE_KEY, cache);
   } catch (error) {
     logError('correlationDetector.cacheCorrelations', error);
   }

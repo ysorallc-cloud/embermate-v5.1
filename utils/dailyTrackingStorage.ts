@@ -5,6 +5,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
 
 export interface DailyTrackingLog {
@@ -56,7 +57,7 @@ export async function saveDailyTracking(
     const key = `${STORAGE_KEY_PREFIX}${date}`;
     const existing = await getDailyTracking(date);
     const updated = { ...existing, date, ...trackingData };
-    await AsyncStorage.setItem(key, JSON.stringify(updated));
+    await safeSetItem(key, updated);
   } catch (error) {
     logError('dailyTrackingStorage.saveDailyTracking', error);
     throw error;
@@ -69,8 +70,7 @@ export async function saveDailyTracking(
 export async function getDailyTracking(date: string): Promise<DailyTrackingLog | null> {
   try {
     const key = `${STORAGE_KEY_PREFIX}${date}`;
-    const data = await AsyncStorage.getItem(key);
-    return data ? JSON.parse(data) : null;
+    return await safeGetItem<DailyTrackingLog | null>(key, null);
   } catch (error) {
     logError('dailyTrackingStorage.getDailyTracking', error);
     return null;

@@ -11,8 +11,10 @@ import { devLog, logError } from './devLog';
 import { saveSymptom } from './symptomStorage';
 import { saveDailyTracking } from './dailyTrackingStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { Medication } from './medicationStorage';
 import { DataOrigin } from './sampleDataManager';
+import { StorageKeys } from './storageKeys';
 import {
   CarePlan,
   CarePlanItem,
@@ -32,7 +34,7 @@ import { saveCarePlanConfig } from '../storage/carePlanConfigRepo';
 import { createDefaultCarePlanConfig } from '../types/carePlanConfig';
 import { ensureDailyInstances, getTodayDateString } from '../services/carePlanGenerator';
 
-const SAMPLE_DATA_INITIALIZED_KEY = '@embermate_sample_data_initialized';
+const SAMPLE_DATA_INITIALIZED_KEY = StorageKeys.SAMPLE_DATA_INITIALIZED;
 
 /**
  * Helper to add origin tag to sample data
@@ -463,25 +465,25 @@ export async function createSampleCarePlanItems(): Promise<void> {
 export const initializeSampleData = async (): Promise<boolean> => {
   try {
     // Check if already initialized
-    const initialized = await AsyncStorage.getItem(SAMPLE_DATA_INITIALIZED_KEY);
+    const initialized = await safeGetItem<string | null>(SAMPLE_DATA_INITIALIZED_KEY, null);
     if (initialized === 'true') {
       return false;
     }
 
     // Save medications
-    await AsyncStorage.setItem('@embermate_medications', JSON.stringify(getSampleMedications()));
+    await safeSetItem(StorageKeys.MEDICATIONS, getSampleMedications());
 
     // Save vitals
-    await AsyncStorage.setItem('@vitals_readings', JSON.stringify(getSampleVitals()));
+    await safeSetItem('@vitals_readings', getSampleVitals());
 
     // Save mood logs
-    await AsyncStorage.setItem('@embermate_central_mood_logs', JSON.stringify(getSampleMoodLogs()));
+    await safeSetItem(StorageKeys.CENTRAL_MOOD_LOGS, getSampleMoodLogs());
 
     // Save appointments
-    await AsyncStorage.setItem('@embermate_appointments', JSON.stringify(getSampleAppointments()));
+    await safeSetItem(StorageKeys.APPOINTMENTS, getSampleAppointments());
 
     // Save caregivers
-    await AsyncStorage.setItem('@embermate_caregivers', JSON.stringify(getSampleCaregivers()));
+    await safeSetItem(StorageKeys.CAREGIVERS, getSampleCaregivers());
 
     // Create sample Care Plan items (wellness, meds, meals, vitals)
     await createSampleCarePlanItems();
@@ -514,7 +516,7 @@ export const initializeSampleData = async (): Promise<boolean> => {
     }
 
     // Mark as initialized
-    await AsyncStorage.setItem(SAMPLE_DATA_INITIALIZED_KEY, 'true');
+    await safeSetItem(SAMPLE_DATA_INITIALIZED_KEY, 'true');
 
     return true;
   } catch (error) {
@@ -540,7 +542,7 @@ export const resetSampleData = async (): Promise<void> => {
  */
 export async function generateSampleCorrelationData(): Promise<void> {
   // Idempotency guard: skip if correlation data already exists
-  const correlationFlag = await AsyncStorage.getItem('@embermate_sample_correlation_generated');
+  const correlationFlag = await safeGetItem<string | null>(StorageKeys.SAMPLE_CORRELATION_GENERATED, null);
   if (correlationFlag === 'true') {
     devLog('Sample correlation data already exists, skipping generation');
     return;
@@ -630,7 +632,7 @@ export async function generateSampleCorrelationData(): Promise<void> {
   await AsyncStorage.multiSet(medLogBatch);
 
   // Mark as generated to prevent duplicate runs
-  await AsyncStorage.setItem('@embermate_sample_correlation_generated', 'true');
+  await safeSetItem(StorageKeys.SAMPLE_CORRELATION_GENERATED, 'true');
 
   devLog('Sample data generation complete!');
   devLog('Expected correlations:');
@@ -653,7 +655,7 @@ export async function clearSampleCorrelationData(): Promise<void> {
   );
 
   await AsyncStorage.multiRemove(keysToRemove);
-  await AsyncStorage.removeItem('@embermate_sample_correlation_generated');
+  await AsyncStorage.removeItem(StorageKeys.SAMPLE_CORRELATION_GENERATED);
 
   // Remove sample-origin entries from the global symptoms array
   await removeSampleSymptoms();
@@ -666,13 +668,12 @@ export async function clearSampleCorrelationData(): Promise<void> {
  */
 async function removeSampleSymptoms(): Promise<number> {
   try {
-    const raw = await AsyncStorage.getItem('@embermate_symptoms');
-    if (!raw) return 0;
-    const symptoms: any[] = JSON.parse(raw);
+    const symptoms = await safeGetItem<any[]>(StorageKeys.SYMPTOMS, []);
+    if (symptoms.length === 0) return 0;
     const userOnly = symptoms.filter(s => s.origin !== 'sample');
     const removed = symptoms.length - userOnly.length;
     if (removed > 0) {
-      await AsyncStorage.setItem('@embermate_symptoms', JSON.stringify(userOnly));
+      await safeSetItem(StorageKeys.SYMPTOMS, userOnly);
       devLog(`[removeSampleSymptoms] Removed ${removed} sample symptoms`);
     }
     return removed;
@@ -688,9 +689,8 @@ async function removeSampleSymptoms(): Promise<number> {
  */
 export async function deduplicateSampleSymptoms(): Promise<number> {
   try {
-    const raw = await AsyncStorage.getItem('@embermate_symptoms');
-    if (!raw) return 0;
-    const symptoms: any[] = JSON.parse(raw);
+    const symptoms = await safeGetItem<any[]>(StorageKeys.SYMPTOMS, []);
+    if (symptoms.length === 0) return 0;
     const seen = new Set<string>();
     const deduped = symptoms.filter(s => {
       const key = `${s.symptom}|${s.timestamp}|${s.severity}`;
@@ -700,7 +700,7 @@ export async function deduplicateSampleSymptoms(): Promise<number> {
     });
     const removed = symptoms.length - deduped.length;
     if (removed > 0) {
-      await AsyncStorage.setItem('@embermate_symptoms', JSON.stringify(deduped));
+      await safeSetItem(StorageKeys.SYMPTOMS, deduped);
       devLog(`[deduplicateSampleSymptoms] Removed ${removed} duplicate symptoms`);
     }
     return removed;
@@ -715,9 +715,7 @@ export async function deduplicateSampleSymptoms(): Promise<number> {
  */
 export async function hasSampleData(): Promise<boolean> {
   try {
-    const raw = await AsyncStorage.getItem('@embermate_symptoms');
-    if (!raw) return false;
-    const symptoms: any[] = JSON.parse(raw);
+    const symptoms = await safeGetItem<any[]>(StorageKeys.SYMPTOMS, []);
     const sampleCount = symptoms.filter(s => s.origin === 'sample').length;
     return sampleCount >= 7;
   } catch {

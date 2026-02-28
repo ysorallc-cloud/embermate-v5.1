@@ -4,11 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing } from '../../theme/theme-tokens';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
 import { StorageKeys } from '../../utils/storageKeys';
 import { logError } from '../../utils/devLog';
+import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import {
   getMedicalInfo,
   saveMedicalInfo,
@@ -70,11 +70,11 @@ export default function PatientScreen() {
   const loadBasicInfo = async () => {
     try {
       const [name, rel, dob, gen, lang] = await Promise.all([
-        AsyncStorage.getItem(StorageKeys.PATIENT_NAME),
-        AsyncStorage.getItem('@embermate_patient_relationship'),
-        AsyncStorage.getItem('@embermate_patient_dob'),
-        AsyncStorage.getItem('@embermate_patient_gender'),
-        AsyncStorage.getItem('@embermate_patient_language'),
+        safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null),
+        safeGetItem<string | null>(StorageKeys.PATIENT_RELATIONSHIP, null),
+        safeGetItem<string | null>(StorageKeys.PATIENT_DOB, null),
+        safeGetItem<string | null>(StorageKeys.PATIENT_GENDER, null),
+        safeGetItem<string | null>(StorageKeys.PATIENT_LANGUAGE, null),
       ]);
       if (name) setPatientName(name);
       if (rel) setRelationship(rel);
@@ -88,7 +88,7 @@ export default function PatientScreen() {
 
   const saveBasicField = async (key: string, value: string) => {
     try {
-      await AsyncStorage.setItem(key, value);
+      await safeSetItem(key, value);
     } catch (error) {
       logError('PatientScreen.saveBasicField', error);
     }
@@ -247,7 +247,7 @@ export default function PatientScreen() {
                     style={styles.inlineInput}
                     value={relationship}
                     onChangeText={setRelationship}
-                    onBlur={() => saveBasicField('@embermate_patient_relationship', relationship)}
+                    onBlur={() => saveBasicField(StorageKeys.PATIENT_RELATIONSHIP, relationship)}
                     placeholder="e.g. Mom, Dad, Spouse"
                     placeholderTextColor={Colors.textMuted}
                     accessibilityLabel="Relationship to patient"
@@ -263,7 +263,7 @@ export default function PatientScreen() {
                     style={styles.inlineInput}
                     value={dateOfBirth}
                     onChangeText={setDateOfBirth}
-                    onBlur={() => saveBasicField('@embermate_patient_dob', dateOfBirth)}
+                    onBlur={() => saveBasicField(StorageKeys.PATIENT_DOB, dateOfBirth)}
                     placeholder="e.g. Mar 15, 1947"
                     placeholderTextColor={Colors.textMuted}
                     accessibilityLabel="Date of birth"
@@ -279,7 +279,7 @@ export default function PatientScreen() {
                     style={styles.inlineInput}
                     value={gender}
                     onChangeText={setGender}
-                    onBlur={() => saveBasicField('@embermate_patient_gender', gender)}
+                    onBlur={() => saveBasicField(StorageKeys.PATIENT_GENDER, gender)}
                     placeholder="e.g. Female"
                     placeholderTextColor={Colors.textMuted}
                     accessibilityLabel="Gender"
@@ -299,7 +299,7 @@ export default function PatientScreen() {
                     style={styles.inlineInput}
                     value={primaryLanguage}
                     onChangeText={setPrimaryLanguage}
-                    onBlur={() => saveBasicField('@embermate_patient_language', primaryLanguage)}
+                    onBlur={() => saveBasicField(StorageKeys.PATIENT_LANGUAGE, primaryLanguage)}
                     placeholder="e.g. English"
                     placeholderTextColor={Colors.textMuted}
                     accessibilityLabel="Primary language"

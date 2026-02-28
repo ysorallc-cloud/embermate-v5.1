@@ -4,9 +4,11 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
 import { devLog, logError } from './devLog';
+import { StorageKeys, StorageKeyPrefixes } from './storageKeys';
 
 // ============================================================================
 // TYPES
@@ -50,29 +52,29 @@ export interface SampleDataStatus {
 
 const SAMPLE_DATA_KEYS = {
   // Core data
-  medications: '@embermate_medications',
+  medications: StorageKeys.MEDICATIONS,
   vitals: '@vitals_readings',
-  moodLogs: '@embermate_central_mood_logs',
-  appointments: '@embermate_appointments',
-  caregivers: '@embermate_caregivers',
-  notes: '@embermate_notes',
-  symptoms: '@embermate_symptoms',
+  moodLogs: StorageKeys.CENTRAL_MOOD_LOGS,
+  appointments: StorageKeys.APPOINTMENTS,
+  caregivers: StorageKeys.CAREGIVERS,
+  notes: StorageKeys.NOTES,
+  symptoms: StorageKeys.SYMPTOMS,
 
   // CarePlanConfig
-  carePlanConfig: '@embermate_careplan_config_v1:default',
+  carePlanConfig: StorageKeys.CAREPLAN_CONFIG_V1_DEFAULT,
 
   // Initialization flags
-  initialized: '@embermate_sample_data_initialized',
-  sampleDataCleared: '@embermate_sample_data_cleared',
-  firstCarePlanCreated: '@embermate_first_care_plan_created',
+  initialized: StorageKeys.SAMPLE_DATA_INITIALIZED,
+  sampleDataCleared: StorageKeys.SAMPLE_DATA_CLEARED,
+  firstCarePlanCreated: StorageKeys.FIRST_CARE_PLAN_CREATED,
 
   // Prefixes for date-based keys
   prefixes: {
     symptomLogs: '@symptom_logs_',
     dailyTracking: '@daily_tracking_',
     medicationLogs: '@medication_logs_',
-    carePlanInstances: '@embermate_instances_v2:',
-    carePlanLogs: '@embermate_logs_v2:',
+    carePlanInstances: StorageKeyPrefixes.INSTANCES_V2,
+    carePlanLogs: StorageKeyPrefixes.LOGS_V2,
   },
 };
 
@@ -98,58 +100,40 @@ export async function detectSampleData(): Promise<SampleDataStatus> {
 
   try {
     // Check medications
-    const medsJson = await AsyncStorage.getItem(SAMPLE_DATA_KEYS.medications);
-    if (medsJson) {
-      const meds = JSON.parse(medsJson);
-      counts.medications = meds.filter((m: OriginTagged & { id?: string }) =>
-        m.origin === 'sample' || isSampleId(m, 'med-')
-      ).length;
-    }
+    const meds = await safeGetItem<(OriginTagged & { id?: string })[]>(SAMPLE_DATA_KEYS.medications, []);
+    counts.medications = meds.filter(m =>
+      m.origin === 'sample' || isSampleId(m, 'med-')
+    ).length;
 
     // Check vitals
-    const vitalsJson = await AsyncStorage.getItem(SAMPLE_DATA_KEYS.vitals);
-    if (vitalsJson) {
-      const vitals = JSON.parse(vitalsJson);
-      counts.vitals = vitals.filter((v: OriginTagged & { id?: string }) =>
-        v.origin === 'sample' || (v.id && v.id.startsWith('vital-'))
-      ).length;
-    }
+    const vitals = await safeGetItem<(OriginTagged & { id?: string })[]>(SAMPLE_DATA_KEYS.vitals, []);
+    counts.vitals = vitals.filter(v =>
+      v.origin === 'sample' || (v.id && v.id.startsWith('vital-'))
+    ).length;
 
     // Check mood logs
-    const moodJson = await AsyncStorage.getItem(SAMPLE_DATA_KEYS.moodLogs);
-    if (moodJson) {
-      const moods = JSON.parse(moodJson);
-      counts.moodLogs = moods.filter((m: OriginTagged & { id?: string }) =>
-        m.origin === 'sample' || (m.id && m.id.startsWith('mood-'))
-      ).length;
-    }
+    const moods = await safeGetItem<(OriginTagged & { id?: string })[]>(SAMPLE_DATA_KEYS.moodLogs, []);
+    counts.moodLogs = moods.filter(m =>
+      m.origin === 'sample' || (m.id && m.id.startsWith('mood-'))
+    ).length;
 
     // Check appointments
-    const apptsJson = await AsyncStorage.getItem(SAMPLE_DATA_KEYS.appointments);
-    if (apptsJson) {
-      const appts = JSON.parse(apptsJson);
-      counts.appointments = appts.filter((a: OriginTagged & { id?: string }) =>
-        a.origin === 'sample' || (a.id && a.id.startsWith('appt-'))
-      ).length;
-    }
+    const appts = await safeGetItem<(OriginTagged & { id?: string })[]>(SAMPLE_DATA_KEYS.appointments, []);
+    counts.appointments = appts.filter(a =>
+      a.origin === 'sample' || (a.id && a.id.startsWith('appt-'))
+    ).length;
 
     // Check caregivers
-    const caregiversJson = await AsyncStorage.getItem(SAMPLE_DATA_KEYS.caregivers);
-    if (caregiversJson) {
-      const caregivers = JSON.parse(caregiversJson);
-      counts.caregivers = caregivers.filter((c: OriginTagged & { id?: string }) =>
-        c.origin === 'sample' || (c.id && c.id.startsWith('cg-'))
-      ).length;
-    }
+    const caregivers = await safeGetItem<(OriginTagged & { id?: string })[]>(SAMPLE_DATA_KEYS.caregivers, []);
+    counts.caregivers = caregivers.filter(c =>
+      c.origin === 'sample' || (c.id && c.id.startsWith('cg-'))
+    ).length;
 
     // Check symptoms
-    const symptomsJson = await AsyncStorage.getItem(SAMPLE_DATA_KEYS.symptoms);
-    if (symptomsJson) {
-      const symptoms = JSON.parse(symptomsJson);
-      counts.symptoms = symptoms.filter((s: OriginTagged) =>
-        s.origin === 'sample'
-      ).length;
-    }
+    const symptoms = await safeGetItem<OriginTagged[]>(SAMPLE_DATA_KEYS.symptoms, []);
+    counts.symptoms = symptoms.filter(s =>
+      s.origin === 'sample'
+    ).length;
 
     // Check date-based keys
     const allKeys = await AsyncStorage.getAllKeys();
@@ -157,23 +141,17 @@ export async function detectSampleData(): Promise<SampleDataStatus> {
     // Count daily tracking with sample data
     const trackingKeys = allKeys.filter(k => k.startsWith(SAMPLE_DATA_KEYS.prefixes.dailyTracking));
     for (const key of trackingKeys) {
-      const data = await AsyncStorage.getItem(key);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (parsed.origin === 'sample') {
-          counts.dailyTracking++;
-        }
+      const parsed = await safeGetItem<OriginTagged | null>(key, null);
+      if (parsed && parsed.origin === 'sample') {
+        counts.dailyTracking++;
       }
     }
 
     // Check notes
-    const notesJson = await AsyncStorage.getItem(SAMPLE_DATA_KEYS.notes);
-    if (notesJson) {
-      const notes = JSON.parse(notesJson);
-      counts.notes = notes.filter((n: OriginTagged) =>
-        n.origin === 'sample'
-      ).length;
-    }
+    const notes = await safeGetItem<OriginTagged[]>(SAMPLE_DATA_KEYS.notes, []);
+    counts.notes = notes.filter(n =>
+      n.origin === 'sample'
+    ).length;
 
   } catch (error) {
     logError('sampleDataManager.detectSampleData', error);
@@ -194,16 +172,15 @@ export async function detectSampleData(): Promise<SampleDataStatus> {
 export async function hasSampleData(): Promise<boolean> {
   try {
     // Check if already cleared
-    const cleared = await AsyncStorage.getItem(SAMPLE_DATA_KEYS.sampleDataCleared);
+    const cleared = await safeGetItem<string | null>(SAMPLE_DATA_KEYS.sampleDataCleared, null);
     if (cleared === 'true') {
       return false;
     }
 
     // Quick check - look for sample medications (by origin tag or legacy ID pattern)
-    const medsJson = await AsyncStorage.getItem(SAMPLE_DATA_KEYS.medications);
-    if (medsJson) {
-      const meds = JSON.parse(medsJson);
-      const hasSample = meds.some((m: OriginTagged & { id?: string }) =>
+    const meds = await safeGetItem<(OriginTagged & { id?: string })[]>(SAMPLE_DATA_KEYS.medications, []);
+    if (meds.length > 0) {
+      const hasSample = meds.some(m =>
         m.origin === 'sample' || (m.id && m.id.startsWith('med-'))
       );
       if (hasSample) return true;
@@ -270,13 +247,10 @@ export async function clearSampleData(): Promise<{
     const trackingKeys = allKeys.filter(k => k.startsWith(SAMPLE_DATA_KEYS.prefixes.dailyTracking));
     for (const key of trackingKeys) {
       try {
-        const data = await AsyncStorage.getItem(key);
-        if (data) {
-          const parsed = JSON.parse(data);
-          if (parsed.origin === 'sample') {
-            await AsyncStorage.removeItem(key);
-            clearedCount++;
-          }
+        const parsed = await safeGetItem<OriginTagged | null>(key, null);
+        if (parsed && parsed.origin === 'sample') {
+          await AsyncStorage.removeItem(key);
+          clearedCount++;
         }
       } catch (e) {
         errors.push(`Failed to clear ${key}`);
@@ -291,7 +265,7 @@ export async function clearSampleData(): Promise<{
     }
 
     // 9. Clear sample CarePlan items (IDs starting with 'sample-')
-    const carePlanItemKeys = allKeys.filter(k => k.startsWith('@embermate_regimen_items_v2:'));
+    const carePlanItemKeys = allKeys.filter(k => k.startsWith(StorageKeyPrefixes.REGIMEN_ITEMS_V2));
     for (const key of carePlanItemKeys) {
       const removed = await filterSampleFromArray(key, 'sample-');
       clearedCount += removed;
@@ -312,7 +286,7 @@ export async function clearSampleData(): Promise<{
     await AsyncStorage.removeItem('@correlation_cache');
 
     // 13. Mark sample data as cleared
-    await AsyncStorage.setItem(SAMPLE_DATA_KEYS.sampleDataCleared, 'true');
+    await safeSetItem(SAMPLE_DATA_KEYS.sampleDataCleared, 'true');
 
     // 14. Emit global refresh event
     emitDataUpdate(EVENT.SAMPLE_DATA_CLEARED);
@@ -343,11 +317,8 @@ export async function clearSampleData(): Promise<{
  */
 async function filterSampleFromArray(key: string, sampleIdPrefix?: string): Promise<number> {
   try {
-    const json = await AsyncStorage.getItem(key);
-    if (!json) return 0;
-
-    const items = JSON.parse(json);
-    if (!Array.isArray(items)) return 0;
+    const items = await safeGetItem<any[]>(key, []);
+    if (!Array.isArray(items) || items.length === 0) return 0;
 
     const originalCount = items.length;
 
@@ -370,7 +341,7 @@ async function filterSampleFromArray(key: string, sampleIdPrefix?: string): Prom
 
     if (removedCount > 0) {
       if (filtered.length > 0) {
-        await AsyncStorage.setItem(key, JSON.stringify(filtered));
+        await safeSetItem(key, filtered);
       } else {
         await AsyncStorage.removeItem(key);
       }
@@ -398,7 +369,7 @@ function isSampleId(item: { id?: string }, prefix: string): boolean {
  * Check if user has created their first real Care Plan
  */
 export async function hasCreatedFirstCarePlan(): Promise<boolean> {
-  const created = await AsyncStorage.getItem(SAMPLE_DATA_KEYS.firstCarePlanCreated);
+  const created = await safeGetItem<string | null>(SAMPLE_DATA_KEYS.firstCarePlanCreated, null);
   return created === 'true';
 }
 
@@ -406,7 +377,7 @@ export async function hasCreatedFirstCarePlan(): Promise<boolean> {
  * Mark that user has created their first Care Plan
  */
 export async function markFirstCarePlanCreated(): Promise<void> {
-  await AsyncStorage.setItem(SAMPLE_DATA_KEYS.firstCarePlanCreated, 'true');
+  await safeSetItem(SAMPLE_DATA_KEYS.firstCarePlanCreated, 'true');
 }
 
 /**
@@ -420,7 +391,7 @@ export async function shouldPromptSampleDataClear(): Promise<boolean> {
   const [hasSample, hasCarePlan, cleared] = await Promise.all([
     hasSampleData(),
     hasCreatedFirstCarePlan(),
-    AsyncStorage.getItem(SAMPLE_DATA_KEYS.sampleDataCleared),
+    safeGetItem<string | null>(SAMPLE_DATA_KEYS.sampleDataCleared, null),
   ]);
 
   // Prompt if sample data exists, hasn't been cleared, and first care plan is being created

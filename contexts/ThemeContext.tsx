@@ -5,10 +5,11 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useColorScheme } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { Colors, _syncColors } from '../theme/theme-tokens';
 import { LightColors } from '../theme/light-tokens';
 import { HighContrastDarkOverrides, HighContrastLightOverrides } from '../theme/high-contrast-tokens';
+import { StorageKeys } from '../utils/storageKeys';
 
 // ============================================================================
 // TYPES
@@ -31,8 +32,8 @@ interface ThemeContextValue {
   setHighContrast: (enabled: boolean) => void;
 }
 
-const STORAGE_KEY = '@embermate_theme';
-const HC_STORAGE_KEY = '@embermate_high_contrast';
+const STORAGE_KEY = StorageKeys.THEME;
+const HC_STORAGE_KEY = StorageKeys.HIGH_CONTRAST;
 
 // ============================================================================
 // CONTEXT
@@ -60,8 +61,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Load saved preferences
   useEffect(() => {
     Promise.all([
-      AsyncStorage.getItem(STORAGE_KEY),
-      AsyncStorage.getItem(HC_STORAGE_KEY),
+      safeGetItem<string | null>(STORAGE_KEY, null),
+      safeGetItem<string | null>(HC_STORAGE_KEY, null),
     ]).then(([themeValue, hcValue]) => {
       if (themeValue === 'dark' || themeValue === 'light' || themeValue === 'system') {
         setThemeModeState(themeValue);
@@ -75,12 +76,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setThemeMode = useCallback((mode: ThemeMode) => {
     setThemeModeState(mode);
-    AsyncStorage.setItem(STORAGE_KEY, mode);
+    safeSetItem(STORAGE_KEY, mode);
   }, []);
 
   const setHighContrast = useCallback((enabled: boolean) => {
     setHighContrastState(enabled);
-    AsyncStorage.setItem(HC_STORAGE_KEY, enabled ? 'true' : 'false');
+    safeSetItem(HC_STORAGE_KEY, enabled ? 'true' : 'false');
   }, []);
 
   // Resolve 'system' to actual theme

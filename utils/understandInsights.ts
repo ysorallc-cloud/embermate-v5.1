@@ -5,6 +5,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { detectCorrelations, DetectedPattern, hasSufficientData } from './correlationDetector';
 import { getAllInsights, InsightData } from './insightEngine';
 import { logError } from './devLog';
@@ -499,8 +500,8 @@ function generateSuggestion(pattern: DetectedPattern): string | undefined {
 
 async function getSuggestionDismissals(): Promise<Record<string, boolean>> {
   try {
-    const data = await AsyncStorage.getItem(SUGGESTION_DISMISSALS_KEY);
-    return data ? JSON.parse(data) : {};
+    const data = await safeGetItem<Record<string, boolean>>(SUGGESTION_DISMISSALS_KEY, {});
+    return data;
   } catch {
     return {};
   }
@@ -510,7 +511,7 @@ export async function dismissSuggestion(suggestionId: string): Promise<void> {
   try {
     const dismissals = await getSuggestionDismissals();
     dismissals[suggestionId] = true;
-    await AsyncStorage.setItem(SUGGESTION_DISMISSALS_KEY, JSON.stringify(dismissals));
+    await safeSetItem(SUGGESTION_DISMISSALS_KEY, dismissals);
   } catch (error) {
     logError('understandInsights.dismissSuggestion', error);
   }
@@ -856,7 +857,7 @@ export async function loadUnderstandPageData(timeRange: TimeRange): Promise<Unde
 
 async function isSampleDataDismissed(): Promise<boolean> {
   try {
-    const value = await AsyncStorage.getItem(SAMPLE_DATA_DISMISSED_KEY);
+    const value = await safeGetItem<string | null>(SAMPLE_DATA_DISMISSED_KEY, null);
     return value === 'true';
   } catch {
     return false;
@@ -865,7 +866,7 @@ async function isSampleDataDismissed(): Promise<boolean> {
 
 export async function dismissSampleData(): Promise<void> {
   try {
-    await AsyncStorage.setItem(SAMPLE_DATA_DISMISSED_KEY, 'true');
+    await safeSetItem(SAMPLE_DATA_DISMISSED_KEY, 'true');
   } catch (error) {
     logError('understandInsights.dismissSampleData', error);
   }
@@ -886,7 +887,7 @@ export async function resetSampleDataDismissal(): Promise<void> {
 
 export async function hasSampleDataBeenSeen(): Promise<boolean> {
   try {
-    const value = await AsyncStorage.getItem(SAMPLE_DATA_SEEN_KEY);
+    const value = await safeGetItem<string | null>(SAMPLE_DATA_SEEN_KEY, null);
     return value === 'true';
   } catch {
     return false;
@@ -895,7 +896,7 @@ export async function hasSampleDataBeenSeen(): Promise<boolean> {
 
 export async function markSampleDataSeen(): Promise<void> {
   try {
-    await AsyncStorage.setItem(SAMPLE_DATA_SEEN_KEY, 'true');
+    await safeSetItem(SAMPLE_DATA_SEEN_KEY, 'true');
   } catch (error) {
     logError('understandInsights.markSampleDataSeen', error);
   }
@@ -908,7 +909,7 @@ export async function markSampleDataSeen(): Promise<void> {
 
 export async function hasConfidenceBeenExplained(): Promise<boolean> {
   try {
-    const value = await AsyncStorage.getItem(CONFIDENCE_EXPLAINED_KEY);
+    const value = await safeGetItem<string | null>(CONFIDENCE_EXPLAINED_KEY, null);
     return value === 'true';
   } catch {
     return false;
@@ -917,7 +918,7 @@ export async function hasConfidenceBeenExplained(): Promise<boolean> {
 
 export async function markConfidenceExplained(): Promise<void> {
   try {
-    await AsyncStorage.setItem(CONFIDENCE_EXPLAINED_KEY, 'true');
+    await safeSetItem(CONFIDENCE_EXPLAINED_KEY, 'true');
   } catch (error) {
     logError('understandInsights.markConfidenceExplained', error);
   }

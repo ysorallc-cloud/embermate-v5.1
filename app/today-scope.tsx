@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { navigate } from '../lib/navigate';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { useTodayScope } from '../hooks/useTodayScope';
 import { useCarePlan } from '../hooks/useCarePlan';
@@ -27,8 +27,9 @@ import { BucketType, BUCKET_META } from '../types/carePlanConfig';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import { InfoModal, InfoIconButton } from '../components/common/InfoModal';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { StorageKeys } from '../utils/storageKeys';
 
-const FIRST_TIME_BANNER_KEY = '@embermate_today_scope_first_time_banner_dismissed';
+const FIRST_TIME_BANNER_KEY = StorageKeys.TODAY_SCOPE_FIRST_TIME_BANNER_DISMISSED;
 
 // ============================================================================
 // ITEM ROW COMPONENT
@@ -90,7 +91,7 @@ export default function TodayScopeScreen() {
   useEffect(() => {
     const checkFirstTimeBanner = async () => {
       try {
-        const dismissed = await AsyncStorage.getItem(FIRST_TIME_BANNER_KEY);
+        const dismissed = await safeGetItem<string | null>(FIRST_TIME_BANNER_KEY, null);
         if (dismissed !== 'true') {
           setShowFirstTimeBanner(true);
         }
@@ -104,7 +105,7 @@ export default function TodayScopeScreen() {
   const dismissFirstTimeBanner = async () => {
     setShowFirstTimeBanner(false);
     try {
-      await AsyncStorage.setItem(FIRST_TIME_BANNER_KEY, 'true');
+      await safeSetItem(FIRST_TIME_BANNER_KEY, 'true');
     } catch (error) {
       // Ignore errors
     }

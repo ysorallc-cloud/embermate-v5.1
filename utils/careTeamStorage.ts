@@ -3,8 +3,12 @@
 // AsyncStorage CRUD operations for care team members
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
+import { StorageKeys, scopedKey } from './storageKeys';
+import { generateUniqueId } from './idGenerator';
+
+const DEFAULT_PATIENT_ID = 'default';
 
 export interface CareTeamMember {
   id: string;
@@ -20,7 +24,7 @@ export interface CareTeamMember {
   avatarColor?: string; // For UI display
 }
 
-const CARE_TEAM_KEY = '@embermate_care_team';
+const CARE_TEAM_KEY = StorageKeys.CARE_TEAM;
 
 // ============================================================================
 // CRUD OPERATIONS
@@ -29,13 +33,13 @@ const CARE_TEAM_KEY = '@embermate_care_team';
 /**
  * Get all care team members
  */
-export async function getCareTeam(): Promise<CareTeamMember[]> {
+export async function getCareTeam(patientId: string = DEFAULT_PATIENT_ID): Promise<CareTeamMember[]> {
   try {
-    const data = await AsyncStorage.getItem(CARE_TEAM_KEY);
+    const data = await safeGetItem<CareTeamMember[] | null>(scopedKey(CARE_TEAM_KEY, patientId), null);
     if (!data) {
       return getDefaultCareTeam();
     }
-    return JSON.parse(data);
+    return data;
   } catch (error) {
     logError('careTeamStorage.getCareTeam', error);
     return getDefaultCareTeam();
@@ -45,9 +49,9 @@ export async function getCareTeam(): Promise<CareTeamMember[]> {
 /**
  * Get a single care team member by ID
  */
-export async function getCareTeamMember(id: string): Promise<CareTeamMember | null> {
+export async function getCareTeamMember(id: string, patientId: string = DEFAULT_PATIENT_ID): Promise<CareTeamMember | null> {
   try {
-    const team = await getCareTeam();
+    const team = await getCareTeam(patientId);
     return team.find(m => m.id === id) || null;
   } catch (error) {
     logError('careTeamStorage.getCareTeamMember', error);
@@ -58,9 +62,9 @@ export async function getCareTeamMember(id: string): Promise<CareTeamMember | nu
 /**
  * Get emergency contacts only
  */
-export async function getEmergencyContacts(): Promise<CareTeamMember[]> {
+export async function getEmergencyContacts(patientId: string = DEFAULT_PATIENT_ID): Promise<CareTeamMember[]> {
   try {
-    const team = await getCareTeam();
+    const team = await getCareTeam(patientId);
     return team
       .filter(m => m.isEmergencyContact && m.phone)
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -74,18 +78,19 @@ export async function getEmergencyContacts(): Promise<CareTeamMember[]> {
  * Create a new care team member
  */
 export async function createCareTeamMember(
-  member: Omit<CareTeamMember, 'id' | 'createdAt'>
+  member: Omit<CareTeamMember, 'id' | 'createdAt'>,
+  patientId: string = DEFAULT_PATIENT_ID
 ): Promise<CareTeamMember> {
   try {
-    const team = await getCareTeam();
+    const team = await getCareTeam(patientId);
     const newMember: CareTeamMember = {
       ...member,
-      id: Date.now().toString(),
+      id: generateUniqueId(),
       createdAt: new Date().toISOString(),
       avatarColor: getRandomAvatarColor(),
     };
     team.push(newMember);
-    await AsyncStorage.setItem(CARE_TEAM_KEY, JSON.stringify(team));
+    await safeSetItem(scopedKey(CARE_TEAM_KEY, patientId), team);
     return newMember;
   } catch (error) {
     logError('careTeamStorage.createCareTeamMember', error);
@@ -98,18 +103,19 @@ export async function createCareTeamMember(
  */
 export async function updateCareTeamMember(
   id: string,
-  updates: Partial<CareTeamMember>
+  updates: Partial<CareTeamMember>,
+  patientId: string = DEFAULT_PATIENT_ID
 ): Promise<CareTeamMember | null> {
   try {
-    const team = await getCareTeam();
+    const team = await getCareTeam(patientId);
     const index = team.findIndex(m => m.id === id);
-    
+
     if (index === -1) {
       return null;
     }
-    
+
     team[index] = { ...team[index], ...updates };
-    await AsyncStorage.setItem(CARE_TEAM_KEY, JSON.stringify(team));
+    await safeSetItem(scopedKey(CARE_TEAM_KEY, patientId), team);
     return team[index];
   } catch (error) {
     logError('careTeamStorage.updateCareTeamMember', error);
@@ -120,16 +126,16 @@ export async function updateCareTeamMember(
 /**
  * Delete a care team member
  */
-export async function deleteCareTeamMember(id: string): Promise<boolean> {
+export async function deleteCareTeamMember(id: string, patientId: string = DEFAULT_PATIENT_ID): Promise<boolean> {
   try {
-    const team = await getCareTeam();
+    const team = await getCareTeam(patientId);
     const filtered = team.filter(m => m.id !== id);
-    
+
     if (filtered.length === team.length) {
       return false; // Nothing was deleted
     }
-    
-    await AsyncStorage.setItem(CARE_TEAM_KEY, JSON.stringify(filtered));
+
+    await safeSetItem(scopedKey(CARE_TEAM_KEY, patientId), filtered);
     return true;
   } catch (error) {
     logError('careTeamStorage.deleteCareTeamMember', error);
@@ -140,18 +146,18 @@ export async function deleteCareTeamMember(id: string): Promise<boolean> {
 /**
  * Reorder care team members (for emergency contact priority)
  */
-export async function reorderCareTeam(orderedIds: string[]): Promise<boolean> {
+export async function reorderCareTeam(orderedIds: string[], patientId: string = DEFAULT_PATIENT_ID): Promise<boolean> {
   try {
-    const team = await getCareTeam();
+    const team = await getCareTeam(patientId);
     const reordered = orderedIds
       .map(id => team.find(m => m.id === id))
       .filter(Boolean) as CareTeamMember[];
-    
+
     // Add any members not in the ordered list at the end
     const remaining = team.filter(m => !orderedIds.includes(m.id));
     const final = [...reordered, ...remaining];
-    
-    await AsyncStorage.setItem(CARE_TEAM_KEY, JSON.stringify(final));
+
+    await safeSetItem(scopedKey(CARE_TEAM_KEY, patientId), final);
     return true;
   } catch (error) {
     logError('careTeamStorage.reorderCareTeam', error);
@@ -169,12 +175,12 @@ export async function reorderCareTeam(orderedIds: string[]): Promise<boolean> {
 export function formatPhoneNumber(phone: string): string {
   // Remove non-digits
   const digits = phone.replace(/\D/g, '');
-  
+
   // US format: (123) 456-7890
   if (digits.length === 10) {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
   }
-  
+
   // International or other formats
   return phone;
 }
@@ -209,10 +215,10 @@ function getRandomAvatarColor(): string {
 /**
  * Reset care team to default
  */
-export async function resetCareTeam(): Promise<void> {
+export async function resetCareTeam(patientId: string = DEFAULT_PATIENT_ID): Promise<void> {
   try {
     const defaults = getDefaultCareTeam();
-    await AsyncStorage.setItem(CARE_TEAM_KEY, JSON.stringify(defaults));
+    await safeSetItem(scopedKey(CARE_TEAM_KEY, patientId), defaults);
   } catch (error) {
     logError('careTeamStorage.resetCareTeam', error);
   }
@@ -268,9 +274,9 @@ function getDefaultCareTeam(): CareTeamMember[] {
 /**
  * Count emergency contacts
  */
-export async function countEmergencyContacts(): Promise<number> {
+export async function countEmergencyContacts(patientId: string = DEFAULT_PATIENT_ID): Promise<number> {
   try {
-    const contacts = await getEmergencyContacts();
+    const contacts = await getEmergencyContacts(patientId);
     return contacts.length;
   } catch (error) {
     logError('careTeamStorage.countEmergencyContacts', error);

@@ -3,7 +3,7 @@
 // Handles migration from old systems to new regimen-based CarePlan
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { getMedications, Medication } from '../utils/medicationStorage';
 import {
   getActiveCarePlan,
@@ -19,12 +19,13 @@ import {
 } from '../types/carePlan';
 import { generateUniqueId } from '../utils/idGenerator';
 import { logError } from '../utils/devLog';
+import { StorageKeys } from '../utils/storageKeys';
 
 // ============================================================================
 // MIGRATION STATUS TRACKING
 // ============================================================================
 
-const MIGRATION_KEY = '@embermate_migration_status_v1';
+const MIGRATION_KEY = StorageKeys.MIGRATION_STATUS_V1;
 
 interface MigrationStatus {
   medicationsToCarePlan: boolean;
@@ -35,8 +36,7 @@ interface MigrationStatus {
 
 export async function getMigrationStatus(): Promise<MigrationStatus | null> {
   try {
-    const status = await AsyncStorage.getItem(MIGRATION_KEY);
-    return status ? JSON.parse(status) : null;
+    return await safeGetItem<MigrationStatus | null>(MIGRATION_KEY, null);
   } catch (error) {
     logError('migrationService.getMigrationStatus', error);
     return null;
@@ -45,7 +45,7 @@ export async function getMigrationStatus(): Promise<MigrationStatus | null> {
 
 async function setMigrationStatus(status: MigrationStatus): Promise<void> {
   try {
-    await AsyncStorage.setItem(MIGRATION_KEY, JSON.stringify(status));
+    await safeSetItem(MIGRATION_KEY, status);
   } catch (error) {
     logError('migrationService.setMigrationStatus', error);
   }

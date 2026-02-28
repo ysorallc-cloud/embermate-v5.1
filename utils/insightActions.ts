@@ -5,8 +5,10 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { devLog, logError } from './devLog';
+import { StorageKeys } from './storageKeys';
+import { safeGetItem, safeSetItem } from './safeStorage';
 
-const INSIGHT_ACTIONS_KEY = '@embermate_insight_actions';
+const INSIGHT_ACTIONS_KEY = StorageKeys.INSIGHT_ACTIONS;
 
 export interface InsightActionLog {
   insightId: string;
@@ -33,7 +35,7 @@ export async function logInsightAction(
     // Keep only last 500 logs to prevent storage overflow
     const trimmedLogs = logs.slice(-500);
 
-    await AsyncStorage.setItem(INSIGHT_ACTIONS_KEY, JSON.stringify(trimmedLogs));
+    await safeSetItem(INSIGHT_ACTIONS_KEY, trimmedLogs);
 
     devLog(`Insight action logged: ${actionId} for insight ${insightId}`);
   } catch (error) {
@@ -46,8 +48,7 @@ export async function logInsightAction(
  */
 export async function getInsightActionLogs(): Promise<InsightActionLog[]> {
   try {
-    const logs = await AsyncStorage.getItem(INSIGHT_ACTIONS_KEY);
-    return logs ? JSON.parse(logs) : [];
+    return await safeGetItem<InsightActionLog[]>(INSIGHT_ACTIONS_KEY, []);
   } catch (error) {
     logError('insightActions.getInsightActionLogs', error);
     return [];

@@ -3,11 +3,13 @@
 // Family sharing, activity feed, and care coordination
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { getMedications, Medication } from './medicationStorage';
 import { getAppointments, Appointment } from './appointmentStorage';
 import { getCareTeam, CareTeamMember } from './careTeamStorage';
 import { logError } from './devLog';
+import { generateUniqueId } from './idGenerator';
+import { StorageKeys } from './storageKeys';
 
 // ============================================================================
 // TYPES
@@ -75,11 +77,11 @@ export interface CaregiverProfile {
 // STORAGE KEYS
 // ============================================================================
 
-const SHARE_INVITES_KEY = '@embermate_share_invites';
-const CARE_ACTIVITIES_KEY = '@embermate_care_activities';
-const CARE_NOTES_KEY = '@embermate_care_notes';
-const CAREGIVERS_KEY = '@embermate_caregivers';
-const CURRENT_USER_KEY = '@embermate_current_user';
+const SHARE_INVITES_KEY = StorageKeys.SHARE_INVITES;
+const CARE_ACTIVITIES_KEY = StorageKeys.CARE_ACTIVITIES;
+const CARE_NOTES_KEY = StorageKeys.CARE_NOTES;
+const CAREGIVERS_KEY = StorageKeys.CAREGIVERS;
+const CURRENT_USER_KEY = StorageKeys.CURRENT_USER;
 
 // ============================================================================
 // SHARE INVITE SYSTEM
@@ -97,7 +99,7 @@ export async function generateShareCode(
     const invites = await getShareInvites();
     
     const invite: ShareInvite = {
-      id: Date.now().toString(),
+      id: generateUniqueId(),
       code: generateSixDigitCode(),
       patientName,
       createdBy,
@@ -108,8 +110,8 @@ export async function generateShareCode(
     };
     
     invites.push(invite);
-    await AsyncStorage.setItem(SHARE_INVITES_KEY, JSON.stringify(invites));
-    
+    await safeSetItem(SHARE_INVITES_KEY, invites);
+
     // Log activity
     await logActivity({
       type: 'caregiver_joined',
@@ -150,8 +152,8 @@ export async function useShareCode(
     // Mark invite as used
     invite.used = true;
     invite.usedBy = caregiverName;
-    await AsyncStorage.setItem(SHARE_INVITES_KEY, JSON.stringify(invites));
-    
+    await safeSetItem(SHARE_INVITES_KEY, invites);
+
     // Create caregiver profile
     const caregiver = await addCaregiver({
       name: caregiverName,
@@ -181,8 +183,7 @@ export async function useShareCode(
  */
 export async function getShareInvites(): Promise<ShareInvite[]> {
   try {
-    const data = await AsyncStorage.getItem(SHARE_INVITES_KEY);
-    return data ? JSON.parse(data) : [];
+    return await safeGetItem<ShareInvite[]>(SHARE_INVITES_KEY, []);
   } catch (error) {
     logError('collaborativeCare.getShareInvites', error);
     return [];
@@ -225,14 +226,14 @@ export async function addCaregiver(
     
     const caregiver: CaregiverProfile = {
       ...data,
-      id: Date.now().toString(),
+      id: generateUniqueId(),
       joinedAt: new Date().toISOString(),
       avatarColor: getRandomColor(),
     };
     
     caregivers.push(caregiver);
-    await AsyncStorage.setItem(CAREGIVERS_KEY, JSON.stringify(caregivers));
-    
+    await safeSetItem(CAREGIVERS_KEY, caregivers);
+
     return caregiver;
   } catch (error) {
     logError('collaborativeCare.addCaregiver', error);
@@ -245,8 +246,7 @@ export async function addCaregiver(
  */
 export async function getCaregivers(): Promise<CaregiverProfile[]> {
   try {
-    const data = await AsyncStorage.getItem(CAREGIVERS_KEY);
-    return data ? JSON.parse(data) : [];
+    return await safeGetItem<CaregiverProfile[]>(CAREGIVERS_KEY, []);
   } catch (error) {
     logError('collaborativeCare.getCaregivers', error);
     return [];
@@ -260,7 +260,7 @@ export async function removeCaregiver(caregiverId: string): Promise<boolean> {
   try {
     const caregivers = await getCaregivers();
     const filtered = caregivers.filter(c => c.id !== caregiverId);
-    await AsyncStorage.setItem(CAREGIVERS_KEY, JSON.stringify(filtered));
+    await safeSetItem(CAREGIVERS_KEY, filtered);
     return true;
   } catch (error) {
     logError('collaborativeCare.removeCaregiver', error);
@@ -281,7 +281,7 @@ export async function logActivity(activity: Omit<CareActivity, 'id'>): Promise<v
     
     const newActivity: CareActivity = {
       ...activity,
-      id: Date.now().toString(),
+      id: generateUniqueId(),
     };
     
     activities.unshift(newActivity); // Add to beginning
@@ -289,7 +289,7 @@ export async function logActivity(activity: Omit<CareActivity, 'id'>): Promise<v
     // Keep only last 500 activities
     const trimmed = activities.slice(0, 500);
     
-    await AsyncStorage.setItem(CARE_ACTIVITIES_KEY, JSON.stringify(trimmed));
+    await safeSetItem(CARE_ACTIVITIES_KEY, trimmed);
   } catch (error) {
     logError('collaborativeCare.logActivity', error);
   }
@@ -300,8 +300,7 @@ export async function logActivity(activity: Omit<CareActivity, 'id'>): Promise<v
  */
 export async function getCareActivities(limit: number = 50): Promise<CareActivity[]> {
   try {
-    const data = await AsyncStorage.getItem(CARE_ACTIVITIES_KEY);
-    const activities = data ? JSON.parse(data) : [];
+    const activities = await safeGetItem<CareActivity[]>(CARE_ACTIVITIES_KEY, []);
     return activities.slice(0, limit);
   } catch (error) {
     logError('collaborativeCare.getCareActivities', error);
@@ -340,14 +339,14 @@ export async function addCareNote(
     
     const newNote: CareNote = {
       ...note,
-      id: Date.now().toString(),
+      id: generateUniqueId(),
       timestamp: new Date().toISOString(),
       readBy: [note.authorId], // Author has read it
     };
     
     notes.unshift(newNote);
-    await AsyncStorage.setItem(CARE_NOTES_KEY, JSON.stringify(notes));
-    
+    await safeSetItem(CARE_NOTES_KEY, notes);
+
     // Log activity
     await logActivity({
       type: 'note_added',
@@ -372,8 +371,7 @@ export async function addCareNote(
  */
 export async function getCareNotes(): Promise<CareNote[]> {
   try {
-    const data = await AsyncStorage.getItem(CARE_NOTES_KEY);
-    return data ? JSON.parse(data) : [];
+    return await safeGetItem<CareNote[]>(CARE_NOTES_KEY, []);
   } catch (error) {
     logError('collaborativeCare.getCareNotes', error);
     return [];
@@ -390,7 +388,7 @@ export async function markNoteAsRead(noteId: string, userId: string): Promise<vo
     
     if (note && !note.readBy.includes(userId)) {
       note.readBy.push(userId);
-      await AsyncStorage.setItem(CARE_NOTES_KEY, JSON.stringify(notes));
+      await safeSetItem(CARE_NOTES_KEY, notes);
     }
   } catch (error) {
     logError('collaborativeCare.markNoteAsRead', error);
@@ -419,7 +417,7 @@ export async function getUnreadNoteCount(userId: string): Promise<number> {
  */
 export async function setCurrentUser(caregiver: CaregiverProfile): Promise<void> {
   try {
-    await AsyncStorage.setItem(CURRENT_USER_KEY, JSON.stringify(caregiver));
+    await safeSetItem(CURRENT_USER_KEY, caregiver);
   } catch (error) {
     logError('collaborativeCare.setCurrentUser', error);
   }
@@ -430,8 +428,7 @@ export async function setCurrentUser(caregiver: CaregiverProfile): Promise<void>
  */
 export async function getCurrentUser(): Promise<CaregiverProfile | null> {
   try {
-    const data = await AsyncStorage.getItem(CURRENT_USER_KEY);
-    return data ? JSON.parse(data) : null;
+    return await safeGetItem<CaregiverProfile | null>(CURRENT_USER_KEY, null);
   } catch (error) {
     logError('collaborativeCare.getCurrentUser', error);
     return null;

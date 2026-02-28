@@ -5,6 +5,10 @@
 
 import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
+import { generateUniqueId } from './idGenerator';
+import { scopedKey } from './storageKeys';
+
+const DEFAULT_PATIENT_ID = 'default';
 
 export type VitalType =
   | 'glucose'
@@ -29,15 +33,15 @@ const STORAGE_KEY = '@vitals_readings';
 /**
  * Save a vital reading
  */
-export async function saveVital(vital: Omit<VitalReading, 'id'>): Promise<void> {
+export async function saveVital(vital: Omit<VitalReading, 'id'>, patientId: string = DEFAULT_PATIENT_ID): Promise<void> {
   try {
-    const vitals = await getVitals();
+    const vitals = await getVitals(patientId);
     const newVital: VitalReading = {
       ...vital,
-      id: Date.now().toString(),
+      id: generateUniqueId(),
     };
     vitals.push(newVital);
-    await safeSetItem(STORAGE_KEY, vitals);
+    await safeSetItem(scopedKey(STORAGE_KEY, patientId), vitals);
   } catch (error) {
     logError('vitalsStorage.saveVital', error);
     throw error;
@@ -47,9 +51,9 @@ export async function saveVital(vital: Omit<VitalReading, 'id'>): Promise<void> 
 /**
  * Get all vital readings
  */
-export async function getVitals(): Promise<VitalReading[]> {
+export async function getVitals(patientId: string = DEFAULT_PATIENT_ID): Promise<VitalReading[]> {
   try {
-    return await safeGetItem<VitalReading[]>(STORAGE_KEY, []);
+    return await safeGetItem<VitalReading[]>(scopedKey(STORAGE_KEY, patientId), []);
   } catch (error) {
     logError('vitalsStorage.getVitals', error);
     return [];
@@ -59,9 +63,9 @@ export async function getVitals(): Promise<VitalReading[]> {
 /**
  * Get vitals by type
  */
-export async function getVitalsByType(type: VitalType): Promise<VitalReading[]> {
+export async function getVitalsByType(type: VitalType, patientId: string = DEFAULT_PATIENT_ID): Promise<VitalReading[]> {
   try {
-    const vitals = await getVitals();
+    const vitals = await getVitals(patientId);
     return vitals.filter((v) => v.type === type).sort((a, b) =>
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
@@ -76,10 +80,11 @@ export async function getVitalsByType(type: VitalType): Promise<VitalReading[]> 
  */
 export async function getVitalsInRange(
   startDate: string,
-  endDate: string
+  endDate: string,
+  patientId: string = DEFAULT_PATIENT_ID
 ): Promise<VitalReading[]> {
   try {
-    const vitals = await getVitals();
+    const vitals = await getVitals(patientId);
     const start = new Date(startDate).getTime();
     const end = new Date(endDate).getTime();
 
@@ -99,9 +104,9 @@ export async function getVitalsInRange(
  * Check if vitals were logged for a specific date
  * Returns the most recent timestamp if vitals exist for that date
  */
-export async function getVitalsCompletionForDate(date: string): Promise<Date | null> {
+export async function getVitalsCompletionForDate(date: string, patientId: string = DEFAULT_PATIENT_ID): Promise<Date | null> {
   try {
-    const vitals = await getVitals();
+    const vitals = await getVitals(patientId);
 
     // Filter vitals for the specific date
     const dateVitals = vitals.filter((v) => {
@@ -126,11 +131,11 @@ export async function getVitalsCompletionForDate(date: string): Promise<Date | n
 /**
  * Delete a vital reading
  */
-export async function deleteVital(id: string): Promise<void> {
+export async function deleteVital(id: string, patientId: string = DEFAULT_PATIENT_ID): Promise<void> {
   try {
-    const vitals = await getVitals();
+    const vitals = await getVitals(patientId);
     const filtered = vitals.filter((v) => v.id !== id);
-    await safeSetItem(STORAGE_KEY, filtered);
+    await safeSetItem(scopedKey(STORAGE_KEY, patientId), filtered);
   } catch (error) {
     logError('vitalsStorage.deleteVital', error);
     throw error;
@@ -140,9 +145,9 @@ export async function deleteVital(id: string): Promise<void> {
 /**
  * Clear all vitals
  */
-export async function clearVitals(): Promise<void> {
+export async function clearVitals(patientId: string = DEFAULT_PATIENT_ID): Promise<void> {
   try {
-    await safeSetItem(STORAGE_KEY, []);
+    await safeSetItem(scopedKey(STORAGE_KEY, patientId), []);
   } catch (error) {
     logError('vitalsStorage.clearVitals', error);
     throw error;
@@ -152,9 +157,9 @@ export async function clearVitals(): Promise<void> {
 /**
  * Get vitals for a specific date
  */
-export async function getVitalsForDate(date: string): Promise<VitalReading[]> {
+export async function getVitalsForDate(date: string, patientId: string = DEFAULT_PATIENT_ID): Promise<VitalReading[]> {
   try {
-    const vitals = await getVitals();
+    const vitals = await getVitals(patientId);
     return vitals.filter((v: VitalReading) => {
       const vitalDate = new Date(v.timestamp).toISOString().split('T')[0];
       return vitalDate === date;
@@ -169,10 +174,11 @@ export async function getVitalsForDate(date: string): Promise<VitalReading[]> {
  * Get latest vitals by types
  */
 export async function getLatestVitalsByTypes(
-  types: VitalType[]
+  types: VitalType[],
+  patientId: string = DEFAULT_PATIENT_ID
 ): Promise<Record<string, VitalReading | null>> {
   try {
-    const vitals = await getVitals();
+    const vitals = await getVitals(patientId);
     const result: Record<string, VitalReading | null> = {};
 
     for (const type of types) {

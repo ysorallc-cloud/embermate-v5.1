@@ -9,9 +9,10 @@ import { generateUniqueId } from './idGenerator';
 import { Appointment, CalendarEvent, CalendarItem, AppointmentType, ReminderTime } from '../types/calendar';
 import { format, parseISO, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { logError } from './devLog';
+import { StorageKeys } from './storageKeys';
 
-const APPOINTMENTS_KEY = '@embermate_appointments_v2';
-const EVENTS_KEY = '@embermate_calendar_events';
+const APPOINTMENTS_KEY = StorageKeys.APPOINTMENTS_V2;
+const EVENTS_KEY = StorageKeys.CALENDAR_EVENTS;
 
 // ============================================================================
 // APPOINTMENT OPERATIONS

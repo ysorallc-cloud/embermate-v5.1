@@ -4,7 +4,7 @@
 // Detects orphaned references and provides fix actions
 // ============================================================================
 
-import { CarePlan, CarePlanItem, CarePlanRoutine } from './carePlanTypes';
+import { CarePlan, CarePlanItem, CarePlanRoutine } from '../types/dayState';
 import { getMedications, Medication } from './medicationStorage';
 import { getUpcomingAppointments, Appointment } from './appointmentStorage';
 

@@ -4,7 +4,7 @@
 // Used by Now page and Record page for consistent routing
 // ============================================================================
 
-import { CarePlanItemType, DayStateItem, DayStateRoutine } from '../carePlanTypes';
+import { CarePlanItemType, DayStateItem, DayStateRoutine } from '../../types/dayState';
 import { ScheduleEntry } from '../../types/schedule';
 import { Appointment } from '../appointmentStorage';
 

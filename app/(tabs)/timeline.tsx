@@ -15,10 +15,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem } from '../../utils/safeStorage';
 import { Colors, Spacing } from '../../theme/theme-tokens';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { logError } from '../../utils/devLog';
+import { StorageKeys } from '../../utils/storageKeys';
 
 type TimeRange = '7days' | '30days' | '3months';
 
@@ -32,8 +33,8 @@ export default function InsightsScreen() {
     // Check if user declined sample data
     const checkSampleDataStatus = async () => {
       try {
-        const userDeclined = await AsyncStorage.getItem('@embermate_user_declined_sample_data');
-        const hasData = await AsyncStorage.getItem('@embermate_demo_data_seeded');
+        const userDeclined = await safeGetItem<string | null>(StorageKeys.USER_DECLINED_SAMPLE_DATA, null);
+        const hasData = await safeGetItem<string | null>(StorageKeys.DEMO_DATA_SEEDED, null);
         // Only show sample data if user didn't decline AND data was actually seeded
         setShowSampleData(userDeclined !== 'true' && hasData === 'true');
       } catch (error) {

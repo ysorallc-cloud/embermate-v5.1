@@ -16,14 +16,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import { VITAL_THRESHOLDS, VitalType, loadCustomThresholds } from '../utils/vitalThresholds';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
+import { StorageKeys } from '../utils/storageKeys';
 
-const STORAGE_KEY = '@embermate_custom_vital_thresholds';
+const STORAGE_KEY = StorageKeys.CUSTOM_VITAL_THRESHOLDS;
 
 interface ThresholdValues {
   low: number;
@@ -54,9 +56,9 @@ export default function VitalThresholdSettings() {
 
   const loadCustomThresholds = async () => {
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      const stored = await safeGetItem<CustomThresholds | null>(STORAGE_KEY, null);
       if (stored) {
-        setCustomThresholds(JSON.parse(stored));
+        setCustomThresholds(stored);
       }
     } catch (error) {
       logError('VitalThresholdSettings.loadCustomThresholds', error);
@@ -215,7 +217,7 @@ export default function VitalThresholdSettings() {
       }
 
       if (Object.keys(toSave).length > 0) {
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+        await safeSetItem(STORAGE_KEY, toSave);
       } else {
         await AsyncStorage.removeItem(STORAGE_KEY);
       }

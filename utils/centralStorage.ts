@@ -5,20 +5,25 @@
 
 import { encryptedGetRaw, encryptedSetRaw } from './safeStorage';
 import { logError } from './devLog';
+import { withKeyLock } from './keyLock';
+import { StorageKeys, scopedKey } from './storageKeys';
+import { generateUniqueId } from './idGenerator';
+
+const DEFAULT_PATIENT_ID = 'default';
 
 // Maximum entries per log array to prevent unbounded AsyncStorage growth
 const MAX_LOG_ENTRIES = 1000;
 
 // Storage keys
 const KEYS = {
-  MEDICATION_LOGS: '@embermate_central_med_logs',
-  VITALS_LOGS: '@embermate_central_vitals_logs',
-  MOOD_LOGS: '@embermate_central_mood_logs',
-  SYMPTOM_LOGS: '@embermate_central_symptom_logs',
-  SLEEP_LOGS: '@embermate_central_sleep_logs',
-  MEALS_LOGS: '@embermate_central_meals_logs',
-  WATER_LOGS: '@embermate_central_water_logs',
-  NOTES_LOGS: '@embermate_central_notes_logs',
+  MEDICATION_LOGS: StorageKeys.CENTRAL_MED_LOGS,
+  VITALS_LOGS: StorageKeys.CENTRAL_VITALS_LOGS,
+  MOOD_LOGS: StorageKeys.CENTRAL_MOOD_LOGS,
+  SYMPTOM_LOGS: StorageKeys.CENTRAL_SYMPTOM_LOGS,
+  SLEEP_LOGS: StorageKeys.CENTRAL_SLEEP_LOGS,
+  MEALS_LOGS: StorageKeys.CENTRAL_MEALS_LOGS,
+  WATER_LOGS: StorageKeys.CENTRAL_WATER_LOGS,
+  NOTES_LOGS: StorageKeys.CENTRAL_NOTES_LOGS,
 };
 
 // ============================================================================
@@ -98,28 +103,31 @@ export interface NotesLog {
 // MEDICATION FUNCTIONS
 // ============================================================================
 
-export const saveMedicationLog = async (data: Omit<MedicationLog, 'id'>): Promise<void> => {
-  try {
-    const existingData = await encryptedGetRaw(KEYS.MEDICATION_LOGS);
-    const logs: MedicationLog[] = existingData ? JSON.parse(existingData) : [];
+export const saveMedicationLog = async (data: Omit<MedicationLog, 'id'>, patientId: string = DEFAULT_PATIENT_ID): Promise<void> => {
+  const key = scopedKey(KEYS.MEDICATION_LOGS, patientId);
+  return withKeyLock(key, async () => {
+    try {
+      const existingData = await encryptedGetRaw(key);
+      const logs: MedicationLog[] = existingData ? JSON.parse(existingData) : [];
 
-    const newLog: MedicationLog = {
-      id: Date.now().toString(),
-      ...data,
-    };
+      const newLog: MedicationLog = {
+        id: generateUniqueId(),
+        ...data,
+      };
 
-    logs.unshift(newLog);
-    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await encryptedSetRaw(KEYS.MEDICATION_LOGS, JSON.stringify(logs));
-  } catch (error) {
-    logError('centralStorage.saveMedicationLog', error);
-    throw error;
-  }
+      logs.unshift(newLog);
+      if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
+      await encryptedSetRaw(key, JSON.stringify(logs));
+    } catch (error) {
+      logError('centralStorage.saveMedicationLog', error);
+      throw error;
+    }
+  });
 };
 
-export const getMedicationLogs = async (): Promise<MedicationLog[]> => {
+export const getMedicationLogs = async (patientId: string = DEFAULT_PATIENT_ID): Promise<MedicationLog[]> => {
   try {
-    const data = await encryptedGetRaw(KEYS.MEDICATION_LOGS);
+    const data = await encryptedGetRaw(scopedKey(KEYS.MEDICATION_LOGS, patientId));
     return data ? JSON.parse(data) : [];
   } catch (error) {
     logError('centralStorage.getMedicationLogs', error);
@@ -127,9 +135,9 @@ export const getMedicationLogs = async (): Promise<MedicationLog[]> => {
   }
 };
 
-export const getTodayMedicationLog = async (): Promise<MedicationLog | null> => {
+export const getTodayMedicationLog = async (patientId: string = DEFAULT_PATIENT_ID): Promise<MedicationLog | null> => {
   try {
-    const logs = await getMedicationLogs();
+    const logs = await getMedicationLogs(patientId);
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
@@ -142,41 +150,43 @@ export const getTodayMedicationLog = async (): Promise<MedicationLog | null> => 
 // VITALS FUNCTIONS
 // ============================================================================
 
-export const saveVitalsLog = async (data: Omit<VitalsLog, 'id'>): Promise<void> => {
-  try {
-    const existingData = await encryptedGetRaw(KEYS.VITALS_LOGS);
-    const logs: VitalsLog[] = existingData ? JSON.parse(existingData) : [];
+export const saveVitalsLog = async (data: Omit<VitalsLog, 'id'>, patientId: string = DEFAULT_PATIENT_ID): Promise<void> => {
+  const key = scopedKey(KEYS.VITALS_LOGS, patientId);
+  return withKeyLock(key, async () => {
+    try {
+      const existingData = await encryptedGetRaw(key);
+      const logs: VitalsLog[] = existingData ? JSON.parse(existingData) : [];
 
-    const newLog: VitalsLog = {
-      id: Date.now().toString(),
-      ...data,
-    };
+      const newLog: VitalsLog = {
+        id: generateUniqueId(),
+        ...data,
+      };
 
-    logs.unshift(newLog);
-    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await encryptedSetRaw(KEYS.VITALS_LOGS, JSON.stringify(logs));
-  } catch (error) {
-    logError('centralStorage.saveVitalsLog', error);
-    throw error;
-  }
+      logs.unshift(newLog);
+      if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
+      await encryptedSetRaw(key, JSON.stringify(logs));
+    } catch (error) {
+      logError('centralStorage.saveVitalsLog', error);
+      throw error;
+    }
+  });
 };
 
-export const getVitalsLogs = async (): Promise<VitalsLog[]> => {
+export const getVitalsLogs = async (patientId: string = DEFAULT_PATIENT_ID): Promise<VitalsLog[]> => {
   try {
-    const data = await encryptedGetRaw(KEYS.VITALS_LOGS);
+    const data = await encryptedGetRaw(scopedKey(KEYS.VITALS_LOGS, patientId));
     if (!data || typeof data !== 'string') return [];
     const parsed = JSON.parse(data);
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
-    // Corrupted data — clear it silently to stop recurring errors
-    try { await encryptedSetRaw(KEYS.VITALS_LOGS, JSON.stringify([])); } catch {}
+    logError('centralStorage.getVitalsLogs', error);
     return [];
   }
 };
 
-export const getTodayVitalsLog = async (): Promise<VitalsLog | null> => {
+export const getTodayVitalsLog = async (patientId: string = DEFAULT_PATIENT_ID): Promise<VitalsLog | null> => {
   try {
-    const logs = await getVitalsLogs();
+    const logs = await getVitalsLogs(patientId);
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
@@ -189,28 +199,31 @@ export const getTodayVitalsLog = async (): Promise<VitalsLog | null> => {
 // MOOD FUNCTIONS
 // ============================================================================
 
-export const saveMoodLog = async (data: Omit<MoodLog, 'id'>): Promise<void> => {
-  try {
-    const existingData = await encryptedGetRaw(KEYS.MOOD_LOGS);
-    const logs: MoodLog[] = existingData ? JSON.parse(existingData) : [];
+export const saveMoodLog = async (data: Omit<MoodLog, 'id'>, patientId: string = DEFAULT_PATIENT_ID): Promise<void> => {
+  const key = scopedKey(KEYS.MOOD_LOGS, patientId);
+  return withKeyLock(key, async () => {
+    try {
+      const existingData = await encryptedGetRaw(key);
+      const logs: MoodLog[] = existingData ? JSON.parse(existingData) : [];
 
-    const newLog: MoodLog = {
-      id: Date.now().toString(),
-      ...data,
-    };
+      const newLog: MoodLog = {
+        id: generateUniqueId(),
+        ...data,
+      };
 
-    logs.unshift(newLog);
-    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await encryptedSetRaw(KEYS.MOOD_LOGS, JSON.stringify(logs));
-  } catch (error) {
-    logError('centralStorage.saveMoodLog', error);
-    throw error;
-  }
+      logs.unshift(newLog);
+      if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
+      await encryptedSetRaw(key, JSON.stringify(logs));
+    } catch (error) {
+      logError('centralStorage.saveMoodLog', error);
+      throw error;
+    }
+  });
 };
 
-export const getMoodLogs = async (): Promise<MoodLog[]> => {
+export const getMoodLogs = async (patientId: string = DEFAULT_PATIENT_ID): Promise<MoodLog[]> => {
   try {
-    const data = await encryptedGetRaw(KEYS.MOOD_LOGS);
+    const data = await encryptedGetRaw(scopedKey(KEYS.MOOD_LOGS, patientId));
     return data ? JSON.parse(data) : [];
   } catch (error) {
     logError('centralStorage.getMoodLogs', error);
@@ -218,9 +231,9 @@ export const getMoodLogs = async (): Promise<MoodLog[]> => {
   }
 };
 
-export const getTodayMoodLog = async (): Promise<MoodLog | null> => {
+export const getTodayMoodLog = async (patientId: string = DEFAULT_PATIENT_ID): Promise<MoodLog | null> => {
   try {
-    const logs = await getMoodLogs();
+    const logs = await getMoodLogs(patientId);
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
@@ -233,28 +246,31 @@ export const getTodayMoodLog = async (): Promise<MoodLog | null> => {
 // SYMPTOM FUNCTIONS
 // ============================================================================
 
-export const saveSymptomLog = async (data: Omit<SymptomLog, 'id'>): Promise<void> => {
-  try {
-    const existingData = await encryptedGetRaw(KEYS.SYMPTOM_LOGS);
-    const logs: SymptomLog[] = existingData ? JSON.parse(existingData) : [];
+export const saveSymptomLog = async (data: Omit<SymptomLog, 'id'>, patientId: string = DEFAULT_PATIENT_ID): Promise<void> => {
+  const key = scopedKey(KEYS.SYMPTOM_LOGS, patientId);
+  return withKeyLock(key, async () => {
+    try {
+      const existingData = await encryptedGetRaw(key);
+      const logs: SymptomLog[] = existingData ? JSON.parse(existingData) : [];
 
-    const newLog: SymptomLog = {
-      id: Date.now().toString(),
-      ...data,
-    };
+      const newLog: SymptomLog = {
+        id: generateUniqueId(),
+        ...data,
+      };
 
-    logs.unshift(newLog);
-    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await encryptedSetRaw(KEYS.SYMPTOM_LOGS, JSON.stringify(logs));
-  } catch (error) {
-    logError('centralStorage.saveSymptomLog', error);
-    throw error;
-  }
+      logs.unshift(newLog);
+      if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
+      await encryptedSetRaw(key, JSON.stringify(logs));
+    } catch (error) {
+      logError('centralStorage.saveSymptomLog', error);
+      throw error;
+    }
+  });
 };
 
-export const getSymptomLogs = async (): Promise<SymptomLog[]> => {
+export const getSymptomLogs = async (patientId: string = DEFAULT_PATIENT_ID): Promise<SymptomLog[]> => {
   try {
-    const data = await encryptedGetRaw(KEYS.SYMPTOM_LOGS);
+    const data = await encryptedGetRaw(scopedKey(KEYS.SYMPTOM_LOGS, patientId));
     return data ? JSON.parse(data) : [];
   } catch (error) {
     logError('centralStorage.getSymptomLogs', error);
@@ -262,9 +278,9 @@ export const getSymptomLogs = async (): Promise<SymptomLog[]> => {
   }
 };
 
-export const getTodaySymptomLog = async (): Promise<SymptomLog | null> => {
+export const getTodaySymptomLog = async (patientId: string = DEFAULT_PATIENT_ID): Promise<SymptomLog | null> => {
   try {
-    const logs = await getSymptomLogs();
+    const logs = await getSymptomLogs(patientId);
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
@@ -277,28 +293,31 @@ export const getTodaySymptomLog = async (): Promise<SymptomLog | null> => {
 // SLEEP FUNCTIONS
 // ============================================================================
 
-export const saveSleepLog = async (data: Omit<SleepLog, 'id'>): Promise<void> => {
-  try {
-    const existingData = await encryptedGetRaw(KEYS.SLEEP_LOGS);
-    const logs: SleepLog[] = existingData ? JSON.parse(existingData) : [];
+export const saveSleepLog = async (data: Omit<SleepLog, 'id'>, patientId: string = DEFAULT_PATIENT_ID): Promise<void> => {
+  const key = scopedKey(KEYS.SLEEP_LOGS, patientId);
+  return withKeyLock(key, async () => {
+    try {
+      const existingData = await encryptedGetRaw(key);
+      const logs: SleepLog[] = existingData ? JSON.parse(existingData) : [];
 
-    const newLog: SleepLog = {
-      id: Date.now().toString(),
-      ...data,
-    };
+      const newLog: SleepLog = {
+        id: generateUniqueId(),
+        ...data,
+      };
 
-    logs.unshift(newLog);
-    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await encryptedSetRaw(KEYS.SLEEP_LOGS, JSON.stringify(logs));
-  } catch (error) {
-    logError('centralStorage.saveSleepLog', error);
-    throw error;
-  }
+      logs.unshift(newLog);
+      if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
+      await encryptedSetRaw(key, JSON.stringify(logs));
+    } catch (error) {
+      logError('centralStorage.saveSleepLog', error);
+      throw error;
+    }
+  });
 };
 
-export const getSleepLogs = async (): Promise<SleepLog[]> => {
+export const getSleepLogs = async (patientId: string = DEFAULT_PATIENT_ID): Promise<SleepLog[]> => {
   try {
-    const data = await encryptedGetRaw(KEYS.SLEEP_LOGS);
+    const data = await encryptedGetRaw(scopedKey(KEYS.SLEEP_LOGS, patientId));
     return data ? JSON.parse(data) : [];
   } catch (error) {
     logError('centralStorage.getSleepLogs', error);
@@ -306,9 +325,9 @@ export const getSleepLogs = async (): Promise<SleepLog[]> => {
   }
 };
 
-export const getTodaySleepLog = async (): Promise<SleepLog | null> => {
+export const getTodaySleepLog = async (patientId: string = DEFAULT_PATIENT_ID): Promise<SleepLog | null> => {
   try {
-    const logs = await getSleepLogs();
+    const logs = await getSleepLogs(patientId);
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
@@ -321,28 +340,31 @@ export const getTodaySleepLog = async (): Promise<SleepLog | null> => {
 // MEALS FUNCTIONS
 // ============================================================================
 
-export const saveMealsLog = async (data: Omit<MealsLog, 'id'>): Promise<void> => {
-  try {
-    const existingData = await encryptedGetRaw(KEYS.MEALS_LOGS);
-    const logs: MealsLog[] = existingData ? JSON.parse(existingData) : [];
+export const saveMealsLog = async (data: Omit<MealsLog, 'id'>, patientId: string = DEFAULT_PATIENT_ID): Promise<void> => {
+  const key = scopedKey(KEYS.MEALS_LOGS, patientId);
+  return withKeyLock(key, async () => {
+    try {
+      const existingData = await encryptedGetRaw(key);
+      const logs: MealsLog[] = existingData ? JSON.parse(existingData) : [];
 
-    const newLog: MealsLog = {
-      id: Date.now().toString(),
-      ...data,
-    };
+      const newLog: MealsLog = {
+        id: generateUniqueId(),
+        ...data,
+      };
 
-    logs.unshift(newLog);
-    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await encryptedSetRaw(KEYS.MEALS_LOGS, JSON.stringify(logs));
-  } catch (error) {
-    logError('centralStorage.saveMealsLog', error);
-    throw error;
-  }
+      logs.unshift(newLog);
+      if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
+      await encryptedSetRaw(key, JSON.stringify(logs));
+    } catch (error) {
+      logError('centralStorage.saveMealsLog', error);
+      throw error;
+    }
+  });
 };
 
-export const getMealsLogs = async (): Promise<MealsLog[]> => {
+export const getMealsLogs = async (patientId: string = DEFAULT_PATIENT_ID): Promise<MealsLog[]> => {
   try {
-    const data = await encryptedGetRaw(KEYS.MEALS_LOGS);
+    const data = await encryptedGetRaw(scopedKey(KEYS.MEALS_LOGS, patientId));
     return data ? JSON.parse(data) : [];
   } catch (error) {
     logError('centralStorage.getMealsLogs', error);
@@ -350,9 +372,9 @@ export const getMealsLogs = async (): Promise<MealsLog[]> => {
   }
 };
 
-export const getTodayMealsLog = async (): Promise<MealsLog | null> => {
+export const getTodayMealsLog = async (patientId: string = DEFAULT_PATIENT_ID): Promise<MealsLog | null> => {
   try {
-    const logs = await getMealsLogs();
+    const logs = await getMealsLogs(patientId);
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
@@ -365,28 +387,31 @@ export const getTodayMealsLog = async (): Promise<MealsLog | null> => {
 // WATER FUNCTIONS
 // ============================================================================
 
-export const saveWaterLog = async (data: Omit<WaterLog, 'id'>): Promise<void> => {
-  try {
-    const existingData = await encryptedGetRaw(KEYS.WATER_LOGS);
-    const logs: WaterLog[] = existingData ? JSON.parse(existingData) : [];
+export const saveWaterLog = async (data: Omit<WaterLog, 'id'>, patientId: string = DEFAULT_PATIENT_ID): Promise<void> => {
+  const key = scopedKey(KEYS.WATER_LOGS, patientId);
+  return withKeyLock(key, async () => {
+    try {
+      const existingData = await encryptedGetRaw(key);
+      const logs: WaterLog[] = existingData ? JSON.parse(existingData) : [];
 
-    const newLog: WaterLog = {
-      id: Date.now().toString(),
-      ...data,
-    };
+      const newLog: WaterLog = {
+        id: generateUniqueId(),
+        ...data,
+      };
 
-    logs.unshift(newLog);
-    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await encryptedSetRaw(KEYS.WATER_LOGS, JSON.stringify(logs));
-  } catch (error) {
-    logError('centralStorage.saveWaterLog', error);
-    throw error;
-  }
+      logs.unshift(newLog);
+      if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
+      await encryptedSetRaw(key, JSON.stringify(logs));
+    } catch (error) {
+      logError('centralStorage.saveWaterLog', error);
+      throw error;
+    }
+  });
 };
 
-export const getWaterLogs = async (): Promise<WaterLog[]> => {
+export const getWaterLogs = async (patientId: string = DEFAULT_PATIENT_ID): Promise<WaterLog[]> => {
   try {
-    const data = await encryptedGetRaw(KEYS.WATER_LOGS);
+    const data = await encryptedGetRaw(scopedKey(KEYS.WATER_LOGS, patientId));
     return data ? JSON.parse(data) : [];
   } catch (error) {
     logError('centralStorage.getWaterLogs', error);
@@ -394,9 +419,9 @@ export const getWaterLogs = async (): Promise<WaterLog[]> => {
   }
 };
 
-export const getTodayWaterLog = async (): Promise<WaterLog | null> => {
+export const getTodayWaterLog = async (patientId: string = DEFAULT_PATIENT_ID): Promise<WaterLog | null> => {
   try {
-    const logs = await getWaterLogs();
+    const logs = await getWaterLogs(patientId);
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
@@ -405,58 +430,64 @@ export const getTodayWaterLog = async (): Promise<WaterLog | null> => {
   }
 };
 
-export const updateTodayWaterLog = async (glasses: number): Promise<void> => {
-  try {
-    const existingData = await encryptedGetRaw(KEYS.WATER_LOGS);
-    const logs: WaterLog[] = existingData ? JSON.parse(existingData) : [];
-    const today = new Date().toDateString();
+export const updateTodayWaterLog = async (glasses: number, patientId: string = DEFAULT_PATIENT_ID): Promise<void> => {
+  const key = scopedKey(KEYS.WATER_LOGS, patientId);
+  return withKeyLock(key, async () => {
+    try {
+      const existingData = await encryptedGetRaw(key);
+      const logs: WaterLog[] = existingData ? JSON.parse(existingData) : [];
+      const today = new Date().toDateString();
 
-    // Find and update today's log, or create a new one
-    const todayIndex = logs.findIndex(log => new Date(log.timestamp).toDateString() === today);
+      // Find and update today's log, or create a new one
+      const todayIndex = logs.findIndex(log => new Date(log.timestamp).toDateString() === today);
 
-    if (todayIndex >= 0) {
-      logs[todayIndex].glasses = glasses;
-    } else {
-      logs.unshift({
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-        glasses,
-      });
+      if (todayIndex >= 0) {
+        logs[todayIndex].glasses = glasses;
+      } else {
+        logs.unshift({
+          id: generateUniqueId(),
+          timestamp: new Date().toISOString(),
+          glasses,
+        });
+      }
+
+      await encryptedSetRaw(key, JSON.stringify(logs));
+    } catch (error) {
+      logError('centralStorage.updateTodayWaterLog', error);
+      throw error;
     }
-
-    await encryptedSetRaw(KEYS.WATER_LOGS, JSON.stringify(logs));
-  } catch (error) {
-    logError('centralStorage.updateTodayWaterLog', error);
-    throw error;
-  }
+  });
 };
 
 // ============================================================================
 // NOTES FUNCTIONS
 // ============================================================================
 
-export const saveNotesLog = async (data: Omit<NotesLog, 'id'>): Promise<void> => {
-  try {
-    const existingData = await encryptedGetRaw(KEYS.NOTES_LOGS);
-    const logs: NotesLog[] = existingData ? JSON.parse(existingData) : [];
+export const saveNotesLog = async (data: Omit<NotesLog, 'id'>, patientId: string = DEFAULT_PATIENT_ID): Promise<void> => {
+  const key = scopedKey(KEYS.NOTES_LOGS, patientId);
+  return withKeyLock(key, async () => {
+    try {
+      const existingData = await encryptedGetRaw(key);
+      const logs: NotesLog[] = existingData ? JSON.parse(existingData) : [];
 
-    const newLog: NotesLog = {
-      id: Date.now().toString(),
-      ...data,
-    };
+      const newLog: NotesLog = {
+        id: generateUniqueId(),
+        ...data,
+      };
 
-    logs.unshift(newLog);
-    if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
-    await encryptedSetRaw(KEYS.NOTES_LOGS, JSON.stringify(logs));
-  } catch (error) {
-    logError('centralStorage.saveNotesLog', error);
-    throw error;
-  }
+      logs.unshift(newLog);
+      if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
+      await encryptedSetRaw(key, JSON.stringify(logs));
+    } catch (error) {
+      logError('centralStorage.saveNotesLog', error);
+      throw error;
+    }
+  });
 };
 
-export const getNotesLogs = async (): Promise<NotesLog[]> => {
+export const getNotesLogs = async (patientId: string = DEFAULT_PATIENT_ID): Promise<NotesLog[]> => {
   try {
-    const data = await encryptedGetRaw(KEYS.NOTES_LOGS);
+    const data = await encryptedGetRaw(scopedKey(KEYS.NOTES_LOGS, patientId));
     return data ? JSON.parse(data) : [];
   } catch (error) {
     logError('centralStorage.getNotesLogs', error);
@@ -464,9 +495,9 @@ export const getNotesLogs = async (): Promise<NotesLog[]> => {
   }
 };
 
-export const getTodayNotesLog = async (): Promise<NotesLog | null> => {
+export const getTodayNotesLog = async (patientId: string = DEFAULT_PATIENT_ID): Promise<NotesLog | null> => {
   try {
-    const logs = await getNotesLogs();
+    const logs = await getNotesLogs(patientId);
     const today = new Date().toDateString();
     return logs.find(log => new Date(log.timestamp).toDateString() === today) || null;
   } catch (error) {
@@ -490,17 +521,17 @@ export interface TodayLogStatus {
   notes: boolean;
 }
 
-export const getTodayLogStatus = async (): Promise<TodayLogStatus> => {
+export const getTodayLogStatus = async (patientId: string = DEFAULT_PATIENT_ID): Promise<TodayLogStatus> => {
   try {
     const [meds, vitals, mood, symptoms, sleep, meals, water, notes] = await Promise.all([
-      getTodayMedicationLog(),
-      getTodayVitalsLog(),
-      getTodayMoodLog(),
-      getTodaySymptomLog(),
-      getTodaySleepLog(),
-      getTodayMealsLog(),
-      getTodayWaterLog(),
-      getTodayNotesLog(),
+      getTodayMedicationLog(patientId),
+      getTodayVitalsLog(patientId),
+      getTodayMoodLog(patientId),
+      getTodaySymptomLog(patientId),
+      getTodaySleepLog(patientId),
+      getTodayMealsLog(patientId),
+      getTodayWaterLog(patientId),
+      getTodayNotesLog(patientId),
     ]);
 
     return {

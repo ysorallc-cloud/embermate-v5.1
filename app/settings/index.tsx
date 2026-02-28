@@ -22,6 +22,7 @@ import { navigate, navigateReplace } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../theme/theme-tokens';
+import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { useTheme, ThemeMode } from '../../contexts/ThemeContext';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
 import { generateSampleCorrelationData, clearSampleCorrelationData, hasSampleData } from '../../utils/sampleDataGenerator';
@@ -29,7 +30,7 @@ import { StorageKeys } from '../../utils/storageKeys';
 import { getMedications } from '../../utils/medicationStorage';
 import { getAppointments, getUpcomingAppointments } from '../../utils/appointmentStorage';
 import { getCaregivers } from '../../utils/collaborativeCare';
-import { exportBackup, clearAllData } from '../../utils/dataBackup';
+import { exportBackup, clearAllData } from '../../utils/cloudBackup';
 import { AppStrings } from '../../constants/strings';
 import { logError } from '../../utils/devLog';
 import { checkFeatureAccess } from '../../utils/featureGate';
@@ -101,7 +102,7 @@ export default function SettingsScreen() {
 
   const loadLastModified = async () => {
     try {
-      const timestamp = await AsyncStorage.getItem('@EmberMate:settings_modified');
+      const timestamp = await safeGetItem<string | null>(StorageKeys.SETTINGS_MODIFIED, null);
       if (timestamp) {
         const date = new Date(timestamp);
         setLastModified(date.toLocaleDateString());
@@ -113,7 +114,7 @@ export default function SettingsScreen() {
 
   const updateLastModified = async () => {
     try {
-      await AsyncStorage.setItem('@EmberMate:settings_modified', new Date().toISOString());
+      await safeSetItem(StorageKeys.SETTINGS_MODIFIED, new Date().toISOString());
       await loadLastModified();
     } catch (error) {
       logError('SettingsScreen.updateLastModified', error);
@@ -122,7 +123,7 @@ export default function SettingsScreen() {
 
   const loadTimePreference = async () => {
     try {
-      const preference = await AsyncStorage.getItem('@EmberMate:use_24_hour_time');
+      const preference = await safeGetItem<string | null>(StorageKeys.USE_24_HOUR_TIME, null);
       setUse24HourTime(preference === 'true');
     } catch (error) {
       logError('SettingsScreen.loadTimePreference', error);
@@ -133,7 +134,7 @@ export default function SettingsScreen() {
     try {
       const newValue = !use24HourTime;
       setUse24HourTime(newValue);
-      await AsyncStorage.setItem('@EmberMate:use_24_hour_time', newValue.toString());
+      await safeSetItem(StorageKeys.USE_24_HOUR_TIME, newValue.toString());
       await updateLastModified();
     } catch (error) {
       logError('SettingsScreen.toggleTimeFormat', error);
@@ -147,7 +148,7 @@ export default function SettingsScreen() {
 
   const loadPatientName = async () => {
     try {
-      const name = await AsyncStorage.getItem(StorageKeys.PATIENT_NAME);
+      const name = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
       if (name) setPatientName(name);
     } catch (error) {
       logError('SettingsScreen.loadPatientName', error);

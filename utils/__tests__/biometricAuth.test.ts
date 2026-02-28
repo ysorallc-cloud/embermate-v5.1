@@ -12,6 +12,7 @@ import {
   getTimeSinceLastActivity,
   shouldLockSession,
 } from '../biometricAuth';
+import { safeSetItem } from '../safeStorage';
 
 // biometricAuth imports secureStorage which wraps expo-secure-store (already mocked in jest.setup.js)
 // expo-crypto is also mocked in jest.setup.js with deterministic hashing
@@ -135,7 +136,7 @@ describe('biometricAuth', () => {
     });
 
     it('should disable biometric auth', async () => {
-      await AsyncStorage.setItem('@embermate_biometric_enabled', 'true');
+      await safeSetItem('@embermate_biometric_enabled', 'true');
       expect(await isBiometricEnabled()).toBe(true);
 
       await disableBiometricAuth();

@@ -3,7 +3,7 @@
 // Maps CarePlan items to correct log screens with context params
 // ============================================================================
 
-import { CarePlanItemType } from './carePlanTypes';
+import { CarePlanItemType } from '../types/dayState';
 import { ScheduleEntry } from '../types/schedule';
 
 // ============================================================================

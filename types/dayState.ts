@@ -1,9 +1,11 @@
 // ============================================================================
-// CARE PLAN TYPES
-// Single source of truth for care plan data structures
+// DAY STATE & ROUTINE-BASED CARE PLAN TYPES
+// Routine-based architecture types (time-windowed routines + derived state).
+// Separated from types/carePlan.ts (regimen-based architecture) to avoid
+// naming conflicts. No file should import from both.
 // ============================================================================
 
-// Item types that can be tracked in a care plan
+// Item types that can be tracked in a routine-based care plan
 export type CarePlanItemType =
   | 'meds'
   | 'vitals'
@@ -48,7 +50,7 @@ export interface CarePlanRoutine {
   items: CarePlanItem[];
 }
 
-// The full care plan
+// The full routine-based care plan
 export interface CarePlan {
   id: string;
   version: number;

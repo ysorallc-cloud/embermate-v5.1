@@ -3,7 +3,7 @@
 // Generates a realistic default care plan for new users
 // ============================================================================
 
-import { CarePlan, CarePlanRoutine, CarePlanItem } from './carePlanTypes';
+import { CarePlan, CarePlanRoutine, CarePlanItem } from '../types/dayState';
 
 // ============================================================================
 // PLAN TEMPLATES

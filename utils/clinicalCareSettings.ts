@@ -3,10 +3,11 @@
 // AsyncStorage-backed toggle for clinical care opt-in (Tier 3)
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
+import { StorageKeys } from './storageKeys';
 
-const CLINICAL_CARE_KEY = '@embermate_clinical_care_settings';
+const CLINICAL_CARE_KEY = StorageKeys.CLINICAL_CARE_SETTINGS;
 
 export interface ClinicalCareSettings {
   enabled: boolean;
@@ -23,9 +24,7 @@ export interface ClinicalCareSettings {
 
 export async function getClinicalCareSettings(): Promise<ClinicalCareSettings> {
   try {
-    const data = await AsyncStorage.getItem(CLINICAL_CARE_KEY);
-    if (!data) return { enabled: false };
-    return JSON.parse(data);
+    return await safeGetItem<ClinicalCareSettings>(CLINICAL_CARE_KEY, { enabled: false });
   } catch (error) {
     logError('clinicalCareSettings.get', error);
     return { enabled: false };
@@ -45,7 +44,7 @@ export async function setClinicalCareEnabled(enabled: boolean): Promise<void> {
       enabled,
       enabledAt: enabled ? new Date().toISOString() : existing.enabledAt,
     };
-    await AsyncStorage.setItem(CLINICAL_CARE_KEY, JSON.stringify(updated));
+    await safeSetItem(CLINICAL_CARE_KEY, updated);
   } catch (error) {
     logError('clinicalCareSettings.setEnabled', error);
   }
@@ -53,7 +52,7 @@ export async function setClinicalCareEnabled(enabled: boolean): Promise<void> {
 
 export async function saveClinicalCareSettings(settings: ClinicalCareSettings): Promise<void> {
   try {
-    await AsyncStorage.setItem(CLINICAL_CARE_KEY, JSON.stringify(settings));
+    await safeSetItem(CLINICAL_CARE_KEY, settings);
   } catch (error) {
     logError('clinicalCareSettings.save', error);
   }

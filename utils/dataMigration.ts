@@ -8,8 +8,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setSecureItem } from './secureStorage';
 import { isSensitiveKey } from './safeStorage';
 import { devLog, logError } from './devLog';
+import { StorageKeys } from './storageKeys';
 
-const MIGRATION_FLAG = '@embermate_encryption_migrated_v1';
+const MIGRATION_FLAG = StorageKeys.ENCRYPTION_MIGRATED_V1;
 
 export async function migrateToEncryptedStorage(): Promise<void> {
   try {

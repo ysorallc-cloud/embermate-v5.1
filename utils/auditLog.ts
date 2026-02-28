@@ -5,8 +5,10 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { devLog, logError } from './devLog';
+import { StorageKeys } from './storageKeys';
+import { safeGetItem, safeSetItem } from './safeStorage';
 
-const AUDIT_LOG_KEY = '@embermate_audit_log';
+const AUDIT_LOG_KEY = StorageKeys.AUDIT_LOG;
 const MAX_LOG_ENTRIES = 1000; // Keep last 1000 entries
 
 export enum AuditEventType {
@@ -103,7 +105,7 @@ export async function logAuditEvent(
 
     // Audit logs are operational metadata (sanitized, no PHI) — plain storage
     // avoids decrypt-all/re-encrypt-all overhead on every event
-    await AsyncStorage.setItem(AUDIT_LOG_KEY, JSON.stringify(trimmedLogs));
+    await safeSetItem(AUDIT_LOG_KEY, trimmedLogs);
 
     // Log to console in development
     devLog(`[AUDIT] ${severity} - ${eventType}: ${description}`, metadata);
@@ -118,9 +120,7 @@ export async function logAuditEvent(
  */
 export async function getAuditLogs(): Promise<AuditLogEntry[]> {
   try {
-    const stored = await AsyncStorage.getItem(AUDIT_LOG_KEY);
-    if (!stored) return [];
-    return JSON.parse(stored) as AuditLogEntry[];
+    return await safeGetItem<AuditLogEntry[]>(AUDIT_LOG_KEY, []);
   } catch (error) {
     logError('auditLog.getAuditLogs', error);
     return [];

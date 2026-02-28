@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setSecureItem, getSecureItem } from './secureStorage';
 import { devLog, logError } from './devLog';
+import { StorageKeys, GlobalKeys } from './storageKeys';
 
 // ============================================================================
 // SENSITIVE KEY ROUTING
@@ -13,26 +14,26 @@ import { devLog, logError } from './devLog';
 // ============================================================================
 
 export const SENSITIVE_KEY_PREFIXES = [
-  '@embermate_medical_info',
-  '@embermate_emergency_contacts',
-  '@embermate_central_vitals_logs',
-  '@embermate_central_med_logs',
-  '@embermate_central_mood_logs',
-  '@embermate_central_symptom_logs',
-  '@embermate_central_sleep_logs',
-  '@embermate_central_notes_logs',   // notes may contain medical observations
-  '@embermate_medication',          // catches @embermate_medications, @embermate_medication_logs, etc.
-  '@embermate_wellness_morning',
-  '@embermate_wellness_evening',
-  '@embermate_morning_wellness',    // wellnessCheckStorage.ts key
-  '@embermate_evening_wellness',    // wellnessCheckStorage.ts key
-  '@embermate_patient_registry',
-  '@embermate_vitals',               // catches @embermate_vitals_*
+  StorageKeys.MEDICAL_INFO,
+  StorageKeys.EMERGENCY_CONTACTS,
+  StorageKeys.CENTRAL_VITALS_LOGS,
+  StorageKeys.CENTRAL_MED_LOGS,
+  StorageKeys.CENTRAL_MOOD_LOGS,
+  StorageKeys.CENTRAL_SYMPTOM_LOGS,
+  StorageKeys.CENTRAL_SLEEP_LOGS,
+  StorageKeys.CENTRAL_NOTES_LOGS,   // notes may contain medical observations
+  StorageKeys.MEDICATION,           // catches @embermate_medications, @embermate_medication_logs, etc.
+  StorageKeys.WELLNESS_MORNING,
+  StorageKeys.WELLNESS_EVENING,
+  StorageKeys.MORNING_WELLNESS,     // wellnessCheckStorage.ts key
+  StorageKeys.EVENING_WELLNESS,     // wellnessCheckStorage.ts key
+  GlobalKeys.PATIENT_REGISTRY,
+  StorageKeys.VITALS,                // catches @embermate_vitals_*
   '@vitals_readings',                // vitalsStorage.ts key
-  '@embermate_symptoms',
-  '@embermate_appointments',         // doctor names, locations, medical reasons
-  '@embermate_care_plan',            // medical conditions, treatment plans
-  '@embermate_careplan',             // carePlanRepo keys
+  StorageKeys.SYMPTOMS,
+  StorageKeys.APPOINTMENTS,          // doctor names, locations, medical reasons
+  StorageKeys.CARE_PLAN,             // medical conditions, treatment plans
+  StorageKeys.CAREPLAN,              // carePlanRepo keys
   'medical_info',                    // medicalInfo.ts key (no @ prefix)
   'emergency_contacts',              // emergencyContacts.ts key (no @ prefix)
 ];

@@ -36,7 +36,8 @@ import {
   importEncryptedBackup,
   isBackupEncrypted,
   getBackupPreview,
-} from '../../utils/dataBackup';
+  restoreLegacyBackup,
+} from '../../utils/cloudBackup';
 import { logError } from '../../utils/devLog';
 
 export default function BackupSettingsScreen() {
@@ -174,8 +175,7 @@ export default function BackupSettingsScreen() {
                 setLoading(true);
                 try {
                   const backup = JSON.parse(content);
-                  const { restoreFromBackup } = await import('../../utils/dataBackup');
-                  const success = await restoreFromBackup(backup);
+                  const success = await restoreLegacyBackup(backup);
 
                   if (success) {
                     Alert.alert('Restore Complete', 'Your data has been restored successfully.');

@@ -3,7 +3,8 @@
 // Aggregates today's care data into a compact handoff summary
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StorageKeys } from './storageKeys';
+import { safeGetItem } from './safeStorage';
 import { getMorningWellness, getEveningWellness } from './wellnessCheckStorage';
 import { getUpcomingAppointments } from './appointmentStorage';
 import { getTodayVitalsLog, getMealsLogs, getTodaySleepLog, getTodayWaterLog } from './centralStorage';
@@ -638,7 +639,7 @@ export async function buildCareBrief(): Promise<CareBrief> {
         getTodayWaterLog(),
         getMedicalInfo(),
         getClinicalCareSettings(),
-        AsyncStorage.getItem('@embermate_patient_name').then(n => n || 'Patient').catch(() => 'Patient'),
+        safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null).then(n => n || 'Patient'),
         getEmergencyContacts(),
         getPatientRegistry(),
       ]);

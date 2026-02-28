@@ -3,15 +3,16 @@
 // Track and manage streaks for wellness checks, medications, vitals, self-care
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { StreakData, Achievement, DEFAULT_STREAK_DATA, ACHIEVEMENTS } from '../types/streaks';
 import { subDays } from 'date-fns';
 import { devLog, logError } from './devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { maybeRequestReview } from './appReview';
+import { StorageKeys } from './storageKeys';
 
-const STREAKS_KEY = '@EmberMate:streaks';
-const ACHIEVEMENTS_KEY = '@EmberMate:achievements';
+const STREAKS_KEY = StorageKeys.STREAKS;
+const ACHIEVEMENTS_KEY = StorageKeys.ACHIEVEMENTS;
 
 // ============================================
 // STREAK MANAGEMENT
@@ -22,8 +23,7 @@ const ACHIEVEMENTS_KEY = '@EmberMate:achievements';
  */
 export const getStreaks = async (): Promise<StreakData> => {
   try {
-    const data = await AsyncStorage.getItem(STREAKS_KEY);
-    return data ? JSON.parse(data) : DEFAULT_STREAK_DATA;
+    return await safeGetItem<StreakData>(STREAKS_KEY, DEFAULT_STREAK_DATA);
   } catch (error) {
     logError('streakStorage.getStreaks', error);
     return DEFAULT_STREAK_DATA;
@@ -35,7 +35,7 @@ export const getStreaks = async (): Promise<StreakData> => {
  */
 export const saveStreaks = async (streaks: StreakData): Promise<void> => {
   try {
-    await AsyncStorage.setItem(STREAKS_KEY, JSON.stringify(streaks));
+    await safeSetItem(STREAKS_KEY, streaks);
   } catch (error) {
     logError('streakStorage.saveStreaks', error);
   }
@@ -91,8 +91,7 @@ export const resetStreak = async (type: keyof StreakData): Promise<void> => {
  */
 export const getAchievements = async (): Promise<Achievement[]> => {
   try {
-    const data = await AsyncStorage.getItem(ACHIEVEMENTS_KEY);
-    return data ? JSON.parse(data) : [];
+    return await safeGetItem<Achievement[]>(ACHIEVEMENTS_KEY, []);
   } catch (error) {
     logError('streakStorage.getAchievements', error);
     return [];
@@ -148,7 +147,7 @@ const awardAchievement = async (
     };
 
     achievements.push(newAchievement);
-    await AsyncStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(achievements));
+    await safeSetItem(ACHIEVEMENTS_KEY, achievements);
 
     // Trigger celebration (could be a notification or in-app animation)
     await triggerCelebration(newAchievement);

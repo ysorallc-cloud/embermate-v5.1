@@ -16,7 +16,7 @@ import {
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
-import { DayState, DayStateRoutine, DayStateItem } from '../../utils/carePlanTypes';
+import { DayState, DayStateRoutine, DayStateItem } from '../../types/dayState';
 
 // ============================================================================
 // TYPES

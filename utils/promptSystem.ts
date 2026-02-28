@@ -4,15 +4,16 @@
 // Designed to lower anxiety, not raise it
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
+import { StorageKeys } from './storageKeys';
 
 // Storage keys
-const LAST_OPEN_KEY = '@embermate_last_app_open';
-const PROMPT_DISMISSED_KEY = '@embermate_prompt_dismissed';
-const ONBOARDING_COMPLETE_KEY = '@embermate_onboarding_complete';
-const NOTIFICATION_PROMPT_DISMISSED_KEY = '@embermate_notification_prompt_dismissed';
-const NOTIFICATION_PROMPT_TRIGGERED_KEY = '@embermate_notification_prompt_triggered';
+const LAST_OPEN_KEY = StorageKeys.LAST_APP_OPEN;
+const PROMPT_DISMISSED_KEY = StorageKeys.PROMPT_DISMISSED;
+const ONBOARDING_COMPLETE_KEY = StorageKeys.ONBOARDING_COMPLETE;
+const NOTIFICATION_PROMPT_DISMISSED_KEY = StorageKeys.NOTIFICATION_PROMPT_DISMISSED;
+const NOTIFICATION_PROMPT_TRIGGERED_KEY = StorageKeys.NOTIFICATION_PROMPT_TRIGGERED;
 
 // ============================================================================
 // TYPES
@@ -235,7 +236,7 @@ export function getClosurePrompt(): ClosurePrompt {
 
 export async function recordAppOpen(): Promise<void> {
   try {
-    await AsyncStorage.setItem(LAST_OPEN_KEY, new Date().toISOString());
+    await safeSetItem(LAST_OPEN_KEY, new Date().toISOString());
   } catch (error) {
     logError('promptSystem.recordAppOpen', error);
   }
@@ -243,7 +244,7 @@ export async function recordAppOpen(): Promise<void> {
 
 export async function getHoursSinceLastOpen(): Promise<number> {
   try {
-    const lastOpen = await AsyncStorage.getItem(LAST_OPEN_KEY);
+    const lastOpen = await safeGetItem<string | null>(LAST_OPEN_KEY, null);
     if (!lastOpen) return 999; // First time user
 
     const lastOpenDate = new Date(lastOpen);
@@ -258,7 +259,7 @@ export async function getHoursSinceLastOpen(): Promise<number> {
 
 export async function isFirstOpenOfDay(): Promise<boolean> {
   try {
-    const lastOpen = await AsyncStorage.getItem(LAST_OPEN_KEY);
+    const lastOpen = await safeGetItem<string | null>(LAST_OPEN_KEY, null);
     if (!lastOpen) return true;
 
     const lastOpenDate = new Date(lastOpen);
@@ -275,7 +276,7 @@ export async function dismissPrompt(promptType: PromptType): Promise<void> {
   try {
     const today = new Date().toDateString();
     const key = `${PROMPT_DISMISSED_KEY}_${promptType}_${today}`;
-    await AsyncStorage.setItem(key, 'true');
+    await safeSetItem(key, 'true');
   } catch (error) {
     logError('promptSystem.dismissPrompt', error);
   }
@@ -285,7 +286,7 @@ export async function isPromptDismissed(promptType: PromptType): Promise<boolean
   try {
     const today = new Date().toDateString();
     const key = `${PROMPT_DISMISSED_KEY}_${promptType}_${today}`;
-    const dismissed = await AsyncStorage.getItem(key);
+    const dismissed = await safeGetItem<string | null>(key, null);
     return dismissed === 'true';
   } catch (error) {
     logError('promptSystem.isPromptDismissed', error);
@@ -299,7 +300,7 @@ export async function isPromptDismissed(promptType: PromptType): Promise<boolean
 
 export async function isOnboardingComplete(): Promise<boolean> {
   try {
-    const complete = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
+    const complete = await safeGetItem<string | null>(ONBOARDING_COMPLETE_KEY, null);
     return complete === 'true';
   } catch (error) {
     logError('promptSystem.isOnboardingComplete', error);
@@ -309,7 +310,7 @@ export async function isOnboardingComplete(): Promise<boolean> {
 
 export async function completeOnboarding(): Promise<void> {
   try {
-    await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+    await safeSetItem(ONBOARDING_COMPLETE_KEY, 'true');
   } catch (error) {
     logError('promptSystem.completeOnboarding', error);
   }
@@ -322,7 +323,7 @@ export async function completeOnboarding(): Promise<void> {
 
 export async function isNotificationPromptDismissed(): Promise<boolean> {
   try {
-    const dismissed = await AsyncStorage.getItem(NOTIFICATION_PROMPT_DISMISSED_KEY);
+    const dismissed = await safeGetItem<string | null>(NOTIFICATION_PROMPT_DISMISSED_KEY, null);
     return dismissed === 'true';
   } catch (error) {
     logError('promptSystem.isNotificationPromptDismissed', error);
@@ -332,7 +333,7 @@ export async function isNotificationPromptDismissed(): Promise<boolean> {
 
 export async function dismissNotificationPrompt(): Promise<void> {
   try {
-    await AsyncStorage.setItem(NOTIFICATION_PROMPT_DISMISSED_KEY, 'true');
+    await safeSetItem(NOTIFICATION_PROMPT_DISMISSED_KEY, 'true');
   } catch (error) {
     logError('promptSystem.dismissNotificationPrompt', error);
   }
@@ -343,7 +344,7 @@ export async function triggerNotificationPrompt(): Promise<void> {
     // Only trigger if not already dismissed
     const dismissed = await isNotificationPromptDismissed();
     if (!dismissed) {
-      await AsyncStorage.setItem(NOTIFICATION_PROMPT_TRIGGERED_KEY, 'true');
+      await safeSetItem(NOTIFICATION_PROMPT_TRIGGERED_KEY, 'true');
     }
   } catch (error) {
     logError('promptSystem.triggerNotificationPrompt', error);
@@ -362,7 +363,7 @@ export async function shouldShowNotificationPrompt(): Promise<boolean> {
     if (dismissed) return false;
 
     // 3. Must have been triggered by a relevant action
-    const triggered = await AsyncStorage.getItem(NOTIFICATION_PROMPT_TRIGGERED_KEY);
+    const triggered = await safeGetItem<string | null>(NOTIFICATION_PROMPT_TRIGGERED_KEY, null);
     if (triggered !== 'true') return false;
 
     return true;

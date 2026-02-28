@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem } from '../utils/safeStorage';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { format } from 'date-fns';
@@ -32,6 +32,7 @@ import {
 } from '../utils/centralStorage';
 import { getCareActivities, CareActivity } from '../utils/collaborativeCare';
 import { logError } from '../utils/devLog';
+import { StorageKeys } from '../utils/storageKeys';
 
 // ============================================================================
 // TYPES
@@ -109,8 +110,8 @@ export default function DailyCareReportScreen() {
   const loadReportData = async () => {
     try {
       // Load patient and caregiver names
-      const patientName = await AsyncStorage.getItem('@embermate_patient_name') || 'Patient';
-      const caregiverName = await AsyncStorage.getItem('@embermate_caregiver_name') || 'Primary Caregiver';
+      const patientName = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null) || 'Patient';
+      const caregiverName = await safeGetItem<string | null>(StorageKeys.CAREGIVER_NAME, null) || 'Primary Caregiver';
 
       // Load medications
       const meds = await getMedications();

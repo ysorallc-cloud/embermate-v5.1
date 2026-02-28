@@ -3,11 +3,12 @@
 // No ML, no percentages. Just counts and modes.
 // ============================================================================
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { getMealsLogs, MealsLog, getVitalsLogs, VitalsLog } from './centralStorage';
 import { getMedications, Medication } from './medicationStorage';
 import { logError } from './devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { StorageKeys } from './storageKeys';
 
 // ============================================================================
 // CONSTANTS - Do not overthink these
@@ -21,9 +22,9 @@ export const CONFIDENT_BASELINE = 5;
 // ============================================================================
 
 const KEYS = {
-  FIRST_USE_DATE: '@embermate_first_use_date',
-  BASELINE_CONFIRMATIONS: '@embermate_baseline_confirmations',
-  BASELINE_DISMISSALS: '@embermate_baseline_dismissals',
+  FIRST_USE_DATE: StorageKeys.FIRST_USE_DATE,
+  BASELINE_CONFIRMATIONS: StorageKeys.BASELINE_CONFIRMATIONS,
+  BASELINE_DISMISSALS: StorageKeys.BASELINE_DISMISSALS,
 };
 
 // ============================================================================
@@ -132,7 +133,7 @@ export function getBaselineLanguage(confidence: ConfidenceLevel): {
 
 export async function getFirstUseDate(): Promise<string | null> {
   try {
-    return await AsyncStorage.getItem(KEYS.FIRST_USE_DATE);
+    return await safeGetItem<string | null>(KEYS.FIRST_USE_DATE, null);
   } catch (error) {
     logError('baselineStorage.getFirstUseDate', error);
     return null;
@@ -143,7 +144,7 @@ export async function setFirstUseDate(): Promise<void> {
   try {
     const existing = await getFirstUseDate();
     if (!existing) {
-      await AsyncStorage.setItem(KEYS.FIRST_USE_DATE, new Date().toISOString());
+      await safeSetItem(KEYS.FIRST_USE_DATE, new Date().toISOString());
     }
   } catch (error) {
     logError('baselineStorage.setFirstUseDate', error);
@@ -432,8 +433,7 @@ export async function getAllTodayVsBaseline(): Promise<TodayVsBaseline[]> {
 
 async function getBaselineConfirmations(): Promise<BaselineCategory[]> {
   try {
-    const data = await AsyncStorage.getItem(KEYS.BASELINE_CONFIRMATIONS);
-    return data ? JSON.parse(data) : [];
+    return await safeGetItem<BaselineCategory[]>(KEYS.BASELINE_CONFIRMATIONS, []);
   } catch (error) {
     return [];
   }
@@ -441,8 +441,7 @@ async function getBaselineConfirmations(): Promise<BaselineCategory[]> {
 
 async function getBaselineDismissals(): Promise<BaselineCategory[]> {
   try {
-    const data = await AsyncStorage.getItem(KEYS.BASELINE_DISMISSALS);
-    return data ? JSON.parse(data) : [];
+    return await safeGetItem<BaselineCategory[]>(KEYS.BASELINE_DISMISSALS, []);
   } catch (error) {
     return [];
   }
@@ -456,7 +455,7 @@ export async function confirmBaseline(category: BaselineCategory): Promise<void>
     const confirmations = await getBaselineConfirmations();
     if (!confirmations.includes(category)) {
       confirmations.push(category);
-      await AsyncStorage.setItem(KEYS.BASELINE_CONFIRMATIONS, JSON.stringify(confirmations));
+      await safeSetItem(KEYS.BASELINE_CONFIRMATIONS, confirmations);
     }
   } catch (error) {
     logError('baselineStorage.confirmBaseline', error);
@@ -471,7 +470,7 @@ export async function rejectBaseline(category: BaselineCategory): Promise<void> 
     // Remove from confirmations if present
     const confirmations = await getBaselineConfirmations();
     const filtered = confirmations.filter(c => c !== category);
-    await AsyncStorage.setItem(KEYS.BASELINE_CONFIRMATIONS, JSON.stringify(filtered));
+    await safeSetItem(KEYS.BASELINE_CONFIRMATIONS, filtered);
   } catch (error) {
     logError('baselineStorage.rejectBaseline', error);
   }
@@ -485,7 +484,7 @@ export async function dismissBaselinePrompt(category: BaselineCategory): Promise
     const dismissals = await getBaselineDismissals();
     if (!dismissals.includes(category)) {
       dismissals.push(category);
-      await AsyncStorage.setItem(KEYS.BASELINE_DISMISSALS, JSON.stringify(dismissals));
+      await safeSetItem(KEYS.BASELINE_DISMISSALS, dismissals);
     }
   } catch (error) {
     logError('baselineStorage.dismissBaselinePrompt', error);

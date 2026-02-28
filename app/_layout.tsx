@@ -7,7 +7,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, StyleSheet, Platform, useWindowDimensions, AppState, AppStateStatus, TouchableOpacity } from 'react-native';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { requestNotificationPermissions } from '../utils/notificationService';
 import { useNotificationHandler } from '../utils/useNotificationHandler';
 import { runStartupSequence } from '../services/appStartup';
@@ -18,6 +18,7 @@ import { PatientProvider } from '../contexts/PatientContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
 
 import { Colors } from '../theme/theme-tokens';
+import { StorageKeys } from '../utils/storageKeys';
 function WebContainer({ children }: { children: React.ReactNode }) {
   const { width, height } = useWindowDimensions();
 
@@ -111,14 +112,14 @@ function RootLayout() {
   async function requestNotificationPermissionsOnStartup() {
     try {
       // Only request on first launch or if not yet requested
-      const hasAskedBefore = await AsyncStorage.getItem('@embermate_notification_permissions_asked');
+      const hasAskedBefore = await safeGetItem<string | null>(StorageKeys.NOTIFICATION_PERMISSIONS_ASKED, null);
 
       if (!hasAskedBefore) {
         // Wait a moment to let UI settle before showing permission dialog
         // Store ref for cleanup on unmount
         notificationTimerRef.current = setTimeout(async () => {
           await requestNotificationPermissions();
-          await AsyncStorage.setItem('@embermate_notification_permissions_asked', 'true');
+          await safeSetItem(StorageKeys.NOTIFICATION_PERMISSIONS_ASKED, 'true');
           notificationTimerRef.current = null;
         }, 1000);
       }

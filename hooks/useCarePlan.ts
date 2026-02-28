@@ -11,7 +11,7 @@ import {
   CarePlan,
   DayState,
   CarePlanOverride,
-} from '../utils/carePlanTypes';
+} from '../types/dayState';
 import {
   getCarePlan,
   getEffectiveCarePlan,

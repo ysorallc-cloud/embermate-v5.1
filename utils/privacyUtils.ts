@@ -6,16 +6,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import { devLog, logError } from './devLog';
+import { StorageKeys } from './storageKeys';
+import { safeGetItem } from './safeStorage';
 
 /**
  * Get count of people in care circle
  */
 export async function getCareCircleCount(): Promise<number> {
   try {
-    const careCircle = await AsyncStorage.getItem('@embermate_care_circle');
-    if (!careCircle) return 0;
-
-    const members = JSON.parse(careCircle);
+    const members = await safeGetItem<any[]>(StorageKeys.CARE_CIRCLE, []);
     return Array.isArray(members) ? members.length : 0;
   } catch (error) {
     logError('privacyUtils.getCareCircleCount', error);
@@ -124,7 +123,7 @@ export async function deleteAllUserData(): Promise<void> {
       (key) =>
         !key.startsWith('system_') &&
         !key.startsWith('app_') &&
-        !key.startsWith('@EmberMate:use_24')
+        !key.startsWith(StorageKeys.USE_24_HOUR_TIME)
     );
 
     // Delete all user data

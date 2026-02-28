@@ -1,12 +1,14 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { navigate } from '../../lib/navigate';
 import { useDataListener } from '../../lib/events';
+import { StorageKeys, StorageKeyPrefixes } from '../../utils/storageKeys';
 
-const DISMISSED_KEY = '@embermate_checklist_dismissed';
+const DISMISSED_KEY = StorageKeys.CHECKLIST_DISMISSED;
 
 interface ChecklistItem {
   id: string;
@@ -24,8 +26,8 @@ const items: ChecklistItem[] = [
     route: '/care-plan',
     check: async () => {
       // Check both legacy and bucket-based care plan keys
-      const legacy = await AsyncStorage.getItem('@embermate_care_plan_v1');
-      const bucket = await AsyncStorage.getItem('@embermate_careplan_config_v1:default');
+      const legacy = await safeGetItem<any>(StorageKeys.CARE_PLAN_V1, null);
+      const bucket = await safeGetItem<any>(StorageKeys.CAREPLAN_CONFIG_V1_DEFAULT, null);
       return legacy !== null || bucket !== null;
     },
   },
@@ -35,7 +37,7 @@ const items: ChecklistItem[] = [
     description: 'Personalize the app with their name',
     route: '/patient',
     check: async () => {
-      const name = await AsyncStorage.getItem('@embermate_patient_name');
+      const name = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
       return !!name;
     },
   },
@@ -47,12 +49,11 @@ const items: ChecklistItem[] = [
     check: async () => {
       // Check if any daily care instance has been completed
       const keys = await AsyncStorage.getAllKeys();
-      const instanceKeys = keys.filter(k => k.startsWith('@embermate_daily_instances_'));
+      const instanceKeys = keys.filter(k => k.startsWith(StorageKeyPrefixes.DAILY_INSTANCES));
       for (const key of instanceKeys) {
-        const raw = await AsyncStorage.getItem(key);
-        if (!raw) continue;
+        const data = await safeGetItem<any>(key, null);
+        if (!data) continue;
         try {
-          const data = JSON.parse(raw);
           const instances = data.instances || data;
           if (Array.isArray(instances) && instances.some((i: any) => i.status === 'completed')) {
             return true;
@@ -73,7 +74,7 @@ export function GettingStartedChecklist() {
     if (checkingRef.current) return;
     checkingRef.current = true;
     try {
-      const wasDismissed = await AsyncStorage.getItem(DISMISSED_KEY);
+      const wasDismissed = await safeGetItem<string | null>(DISMISSED_KEY, null);
       if (wasDismissed === 'true') {
         setDismissed(true);
         return;
@@ -138,7 +139,7 @@ export function GettingStartedChecklist() {
         style={styles.dismiss}
         onPress={async () => {
           setDismissed(true);
-          await AsyncStorage.setItem(DISMISSED_KEY, 'true');
+          await safeSetItem(DISMISSED_KEY, 'true');
         }}
       >
         <Text style={styles.dismissText}>Dismiss</Text>

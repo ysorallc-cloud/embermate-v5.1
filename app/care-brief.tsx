@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import { navigate } from '../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { getMedications, getMedicationLogs, Medication } from '../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../utils/appointmentStorage';
@@ -23,6 +23,7 @@ import { generateAndSharePDF, ReportData, PatientInfo } from '../utils/pdfExport
 import { logError } from '../utils/devLog';
 import { logAuditEvent, AuditEventType, AuditSeverity } from '../utils/auditLog';
 import { getEmergencyContacts, CareTeamMember } from '../utils/careTeamStorage';
+import { StorageKeys } from '../utils/storageKeys';
 
 export default function CareBriefScreen() {
   const router = useRouter();
@@ -50,7 +51,7 @@ export default function CareBriefScreen() {
 
   const loadData = async () => {
     try {
-      const name = await AsyncStorage.getItem('@embermate_patient_name');
+      const name = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
       if (name) setPatientName(name);
     } catch (e) {}
     try {
@@ -74,14 +75,14 @@ export default function CareBriefScreen() {
 
   const checkFirstView = async () => {
     try {
-      const hasViewedBefore = await AsyncStorage.getItem('@care_brief_viewed');
+      const hasViewedBefore = await safeGetItem<string | null>('@care_brief_viewed', null);
       const firstView = !hasViewedBefore;
       setIsFirstView(firstView);
       
       // Auto-expand critical context on first view
       if (firstView) {
         setCriticalContextExpanded(true);
-        await AsyncStorage.setItem('@care_brief_viewed', 'true');
+        await safeSetItem('@care_brief_viewed', 'true');
       }
     } catch (e) {
       logError('CareBriefScreen.checkFirstView', e);

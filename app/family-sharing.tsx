@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem } from '../utils/safeStorage';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import {
@@ -28,6 +28,7 @@ import {
   ShareInvite,
   CaregiverProfile,
 } from '../utils/collaborativeCare';
+import { StorageKeys } from '../utils/storageKeys';
 
 export default function FamilySharingScreen() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function FamilySharingScreen() {
   }, []);
 
   const loadData = async () => {
-    const name = await AsyncStorage.getItem('@embermate_patient_name');
+    const name = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
     if (name) setPatientName(name);
     
     const loadedInvites = await getShareInvites();
