@@ -1,6 +1,6 @@
 // ============================================================================
-// TAB LAYOUT - 4 Tabs (Now, Journal, Understand, Support)
-// V4 with renamed navigation for clarity
+// TAB LAYOUT - 3 Tabs (Now, Journal, Understand)
+// V5 — Team/Support moved to Settings > Care Team (Premium)
 // ============================================================================
 
 import { Tabs } from 'expo-router';
@@ -101,10 +101,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="support"
         options={{
-          title: 'Team',
-          tabBarIcon: ({ focused }) => <TabIcon icon="👥" focused={focused} accentGlow={colors.accentGlow} accent={colors.accent} />,
-          tabBarAccessibilityLabel: 'Support tab. Manage care circle and family',
-          tabBarButtonTestID: 'tab-support',
+          href: null, // Moved to Settings > Care Team (Premium)
         }}
       />
       <Tabs.Screen

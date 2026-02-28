@@ -40,7 +40,47 @@ export async function checkFeatureAccess(feature: GatedFeature): Promise<Feature
       return { allowed: true, currentTier: state.tier };
 
     case 'advanced_insights':
-      // Currently free for all tiers
+      if (!limits.advancedInsights) {
+        return {
+          allowed: false,
+          reason: 'Advanced Insights is a Premium feature.',
+          currentTier: state.tier,
+          requiredTier: 'premium',
+        };
+      }
+      return { allowed: true, currentTier: state.tier };
+
+    case 'care_team':
+      if (!limits.careTeam) {
+        return {
+          allowed: false,
+          reason: 'Care Team collaboration is a Premium feature.',
+          currentTier: state.tier,
+          requiredTier: 'premium',
+        };
+      }
+      return { allowed: true, currentTier: state.tier };
+
+    case 'activity_feed':
+      if (!limits.activityFeed) {
+        return {
+          allowed: false,
+          reason: 'Activity Feed is a Premium feature.',
+          currentTier: state.tier,
+          requiredTier: 'premium',
+        };
+      }
+      return { allowed: true, currentTier: state.tier };
+
+    case 'correlation_reports':
+      if (!limits.correlationReports) {
+        return {
+          allowed: false,
+          reason: 'Correlation Reports is a Premium feature.',
+          currentTier: state.tier,
+          requiredTier: 'premium',
+        };
+      }
       return { allowed: true, currentTier: state.tier };
 
     default:

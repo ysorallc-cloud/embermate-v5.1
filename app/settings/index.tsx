@@ -32,6 +32,7 @@ import { getCaregivers } from '../../utils/collaborativeCare';
 import { exportBackup, clearAllData } from '../../utils/dataBackup';
 import { AppStrings } from '../../constants/strings';
 import { logError } from '../../utils/devLog';
+import { checkFeatureAccess } from '../../utils/featureGate';
 
 // Settings category definitions
 interface SettingItem {
@@ -399,6 +400,55 @@ export default function SettingsScreen() {
       ],
     },
     {
+      id: 'careTeam',
+      icon: '👥',
+      title: 'Care Team',
+      items: [
+        {
+          id: 'manage-caregivers',
+          icon: '👤',
+          title: 'Manage Caregivers',
+          subtitle: `${caregiverCount} connected`,
+          onPress: async () => {
+            const result = await checkFeatureAccess('care_team');
+            if (result.allowed) {
+              router.push('/caregiver-management');
+            } else {
+              Alert.alert('Premium Feature', result.reason || 'Upgrade to access Care Team features.');
+            }
+          },
+        },
+        {
+          id: 'family-sharing',
+          icon: '🔗',
+          title: 'Family Sharing',
+          subtitle: 'Invite & manage access',
+          onPress: async () => {
+            const result = await checkFeatureAccess('care_team');
+            if (result.allowed) {
+              router.push('/family-sharing');
+            } else {
+              Alert.alert('Premium Feature', result.reason || 'Upgrade to access Care Team features.');
+            }
+          },
+        },
+        {
+          id: 'care-team-activity',
+          icon: '📋',
+          title: 'Care Team Activity',
+          subtitle: 'Recent caregiver actions',
+          onPress: async () => {
+            const result = await checkFeatureAccess('activity_feed');
+            if (result.allowed) {
+              router.push('/family-activity');
+            } else {
+              Alert.alert('Premium Feature', result.reason || 'Upgrade to access Activity Feed.');
+            }
+          },
+        },
+      ],
+    },
+    {
       id: 'privacy',
       icon: '🔒',
       title: 'Privacy & Data',
@@ -490,7 +540,7 @@ export default function SettingsScreen() {
         },
       ],
     },
-  ], [patientName, medicationCount, appointmentCount, use24HourTime, hasSample]);
+  ], [patientName, medicationCount, appointmentCount, caregiverCount, use24HourTime, hasSample]);
 
   // Filter settings based on search query
   const filteredCategories = useMemo(() => {

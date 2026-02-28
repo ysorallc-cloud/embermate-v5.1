@@ -376,10 +376,10 @@ export default function NowScreen() {
 
   // Live sync: reload data when any storage module emits an update
   useDataListener(useCallback((category: string) => {
-    if ([EVENT.MEDICATION, EVENT.VITALS, EVENT.WATER, EVENT.MOOD, EVENT.WELLNESS,
+    if (([EVENT.MEDICATION, EVENT.VITALS, EVENT.WATER, EVENT.MOOD, EVENT.WELLNESS,
          EVENT.LOGS, EVENT.CARE_PLAN, EVENT.CARE_PLAN_CONFIG, EVENT.APPOINTMENTS,
          EVENT.DAILY_INSTANCES, EVENT.CARE_PLAN_ITEMS, EVENT.SAMPLE_DATA_CLEARED,
-         EVENT.SYMPTOMS, EVENT.NOTES].includes(category)) {
+         EVENT.SYMPTOMS, EVENT.NOTES] as string[]).includes(category)) {
       loadData();
       // Also refresh care tasks so timeline + stats update immediately
       refreshCareTasks();

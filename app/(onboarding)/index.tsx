@@ -1,6 +1,6 @@
 // ============================================================================
-// ONBOARDING FLOW - Value-Driven 7-Slide Experience
-// Problem → Solution → Outcomes → Features → How → Privacy → Start
+// ONBOARDING FLOW - Streamlined 3-Screen Experience
+// Welcome → Privacy/Disclaimer → Get Started
 // ============================================================================
 
 import React, { useRef, useState } from 'react';
@@ -9,14 +9,9 @@ import Animated, { useSharedValue, useAnimatedScrollHandler } from 'react-native
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// New improved screens
-import { ProblemScreen } from './screens/ProblemScreen';
-import { SolutionScreen } from './screens/SolutionScreen';
-import { OutcomesScreen } from './screens/OutcomesScreen';
-import { FeaturesScreen } from './screens/FeaturesScreen';
-import { HowItWorksScreen } from './screens/HowItWorksScreen';
-import { PrivacyScreen } from './screens/PrivacyScreen';
-import { ReadyToStartScreen } from './screens/ReadyToStartScreen';
+import { WelcomeScreen } from './screens/WelcomeScreen';
+import { PrivacyDisclaimerScreen } from './screens/PrivacyDisclaimerScreen';
+import { GetStartedScreen } from './screens/GetStartedScreen';
 
 import { PaginationDots } from './components/PaginationDots';
 import { seedSampleData } from '../../utils/sampleData';
@@ -27,21 +22,18 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
-// Improved 7-screen flow: Problem → Solution → Outcomes → Features → How → Privacy → Start
+// Streamlined 3-screen flow: Welcome → Privacy/Disclaimer → Get Started
 const ONBOARDING_SCREENS = [
-  { id: '1', component: ProblemScreen, title: 'Problem' },
-  { id: '2', component: SolutionScreen, title: 'Solution' },
-  { id: '3', component: OutcomesScreen, title: 'Outcomes' },
-  { id: '4', component: FeaturesScreen, title: 'Features' },
-  { id: '5', component: HowItWorksScreen, title: 'How It Works' },
-  { id: '6', component: PrivacyScreen, title: 'Privacy' },
-  { id: '7', component: ReadyToStartScreen, title: 'Ready' },
+  { id: '1', component: WelcomeScreen, title: 'Welcome' },
+  { id: '2', component: PrivacyDisclaimerScreen, title: 'Privacy' },
+  { id: '3', component: GetStartedScreen, title: 'Get Started' },
 ];
 
 export default function OnboardingFlow() {
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -56,14 +48,6 @@ export default function OnboardingFlow() {
         animated: true,
       });
     }
-  };
-
-  const handleSkip = async () => {
-    // Skip to last screen
-    flatListRef.current?.scrollToIndex({
-      index: ONBOARDING_SCREENS.length - 1,
-      animated: true,
-    });
   };
 
   const handleAcceptDisclaimer = async (seedData: boolean) => {
@@ -98,17 +82,22 @@ export default function OnboardingFlow() {
   }).current;
 
   const renderItem = ({ item, index }: any) => {
-    const ScreenComponent = item.component;
-
-    // Last screen with accept handler
-    if (index === ONBOARDING_SCREENS.length - 1) {
-      return <ReadyToStartScreen onAccept={handleAcceptDisclaimer} />;
+    if (index === 0) {
+      return <WelcomeScreen />;
+    }
+    if (index === 1) {
+      return <PrivacyDisclaimerScreen onDisclaimerAccepted={setDisclaimerAccepted} />;
+    }
+    if (index === 2) {
+      return <GetStartedScreen onComplete={handleAcceptDisclaimer} />;
     }
 
+    const ScreenComponent = item.component;
     return <ScreenComponent />;
   };
 
   const isLastScreen = currentIndex === ONBOARDING_SCREENS.length - 1;
+  const isNextDisabled = currentIndex === 1 && !disclaimerAccepted;
 
   return (
     <View style={styles.container}>
@@ -127,17 +116,11 @@ export default function OnboardingFlow() {
         bounces={false}
       />
 
-      {/* Navigation footer - hidden on last screen */}
+      {/* Navigation footer - hidden on last screen (it has its own buttons) */}
       {!isLastScreen && (
         <View style={styles.footer}>
-          <Pressable
-            onPress={handleSkip}
-            style={styles.skipButton}
-            accessibilityLabel="Skip onboarding"
-            accessibilityRole="button"
-          >
-            <Text style={styles.skipText}>Skip</Text>
-          </Pressable>
+          {/* Empty spacer for layout balance */}
+          <View style={styles.spacer} />
 
           <PaginationDots
             count={ONBOARDING_SCREENS.length}
@@ -147,9 +130,11 @@ export default function OnboardingFlow() {
 
           <Pressable
             onPress={handleNext}
-            style={styles.nextButton}
+            style={[styles.nextButton, isNextDisabled && styles.nextButtonDisabled]}
+            disabled={isNextDisabled}
             accessibilityLabel="Next onboarding screen"
             accessibilityRole="button"
+            accessibilityState={{ disabled: isNextDisabled }}
           >
             <Text style={styles.nextText}>Next</Text>
           </Pressable>
@@ -177,14 +162,8 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
     backgroundColor: 'rgba(10, 10, 15, 0.6)',
   },
-  skipButton: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+  spacer: {
     minWidth: 80,
-  },
-  skipText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
   },
   nextButton: {
     backgroundColor: Colors.accent,
@@ -193,6 +172,9 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     minWidth: 80,
     alignItems: 'center',
+  },
+  nextButtonDisabled: {
+    opacity: 0.4,
   },
   nextText: {
     ...Typography.label,
