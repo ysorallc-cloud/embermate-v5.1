@@ -730,24 +730,6 @@ export default function UnderstandScreen() {
     );
   }, [providerPrep, timeRange, pageData?.correlationCards, enabledBuckets, hasActiveJourney]);
 
-  // Loading state
-  if (loading && !pageData) {
-    return (
-      <View style={styles.container}>
-        <AuroraBackground variant="hub" />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.accent} />
-          <Text style={styles.loadingText}>Analyzing patterns...</Text>
-        </View>
-      </View>
-    );
-  }
-
-  const adherencePct = Math.round(pageData?.adherenceRate ?? 0);
-  const dosesLogged = pageData?.dosesLogged ?? 0;
-  const dosesScheduled = pageData?.dosesScheduled ?? 0;
-  const daysTracked = pageData?.daysOfData ?? 0;
-
   // Filter correlation cards by enabled buckets
   const CARD_BUCKET_KEYWORDS: Record<string, BucketType[]> = {
     sleep: ['sleep'], mood: ['wellness'], hydration: ['water'],
@@ -767,6 +749,24 @@ export default function UnderstandScreen() {
     });
   }, [pageData?.correlationCards, enabledBuckets]);
 
+  // Loading state
+  if (loading && !pageData) {
+    return (
+      <View style={styles.container}>
+        <AuroraBackground variant="hub" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={styles.loadingText}>Analyzing patterns...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const adherencePct = Math.round(pageData?.adherenceRate ?? 0);
+  const dosesLogged = pageData?.dosesLogged ?? 0;
+  const dosesScheduled = pageData?.dosesScheduled ?? 0;
+  const daysTracked = pageData?.daysOfData ?? 0;
+
   const patternsFound = filteredCorrelationCards.length;
 
   return (
@@ -784,7 +784,7 @@ export default function UnderstandScreen() {
         >
           {/* Header */}
           <ScreenHeader
-            title="Understand"
+            title="Insights"
             subtitle={`Last ${timeRange} days`}
             rightAction={
               pageData && !pageData.isSampleData && pageData.daysOfData >= 7
@@ -898,7 +898,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.xl,
+    padding: 16,
   },
   loadingContainer: {
     flex: 1,

@@ -31,19 +31,14 @@ describe('Navigation User Flows', () => {
   test('Journal tab links to valid routes', () => {
     const source = readSourceFile('app/(tabs)/journal.tsx');
 
-    // Journal should link to calendar and care-summary-export
     if (source.includes("'/calendar'")) {
       expect(fileExists('calendar')).toBe(true);
-    }
-    if (source.includes("'/care-summary-export'")) {
-      expect(fileExists('care-summary-export')).toBe(true);
     }
   });
 
   test('Now tab links to valid routes', () => {
     const source = readSourceFile('app/(tabs)/now.tsx');
 
-    // Now tab links to various logging screens
     if (source.includes("'/log-water'")) {
       expect(fileExists('log-water')).toBe(true);
     }
@@ -58,39 +53,19 @@ describe('Navigation User Flows', () => {
   test('Understand tab links to valid routes', () => {
     const source = readSourceFile('app/(tabs)/understand.tsx');
 
-    // Understand links to trends and medication-report
     if (source.includes("'/trends'")) {
       expect(fileExists('trends')).toBe(true);
     }
-    if (source.includes("'/medication-report'")) {
-      expect(fileExists('medication-report')).toBe(true);
-    }
     if (source.includes("'/settings'")) {
       expect(fileExists('settings')).toBe(true);
     }
   });
 
-  test('Support tab links to valid routes', () => {
-    const source = readSourceFile('app/(tabs)/support.tsx');
-
-    // Support links to care-summary-export, settings, etc.
-    if (source.includes("'/care-summary-export'")) {
-      expect(fileExists('care-summary-export')).toBe(true);
-    }
-    if (source.includes("'/settings'")) {
-      expect(fileExists('settings')).toBe(true);
-    }
-    if (source.includes("'/data-privacy-settings'")) {
-      expect(fileExists('data-privacy-settings')).toBe(true);
-    }
-  });
-
-  test('medication-report screen exists', () => {
-    expect(fileExists('medication-report')).toBe(true);
-  });
-
-  test('_layout.tsx registers medication-report route', () => {
-    const source = readSourceFile('app/_layout.tsx');
-    expect(source).toContain('medication-report');
+  test('deprecated routes are consolidated in redirects map', () => {
+    const redirects = readSourceFile('lib/redirects.ts');
+    expect(redirects).toContain('care-brief');
+    expect(redirects).toContain('care-summary-export');
+    expect(redirects).toContain('medication-report');
+    expect(redirects).toContain('daily-care-report');
   });
 });

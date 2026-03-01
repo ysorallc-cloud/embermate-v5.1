@@ -177,13 +177,10 @@ function RootLayout() {
           <Stack.Screen name="care-report" />
           <Stack.Screen name="care-journey" />
           <Stack.Screen name="provider-prep" />
-          <Stack.Screen name="care-brief" />
-          <Stack.Screen name="care-summary-export" />
           <Stack.Screen name="family-sharing" />
           <Stack.Screen name="family-activity" />
           <Stack.Screen name="caregiver-management" />
           <Stack.Screen name="notification-settings" />
-          <Stack.Screen name="medication-report" />
           <Stack.Screen name="care-plan" />
           <Stack.Screen name="log-medication-plan-item" />
           <Stack.Screen name="vital-threshold-settings" />
@@ -193,7 +190,6 @@ function RootLayout() {
           <Stack.Screen name="data-privacy-settings" />
           <Stack.Screen name="correlation-report" />
           <Stack.Screen name="log-note" />
-          <Stack.Screen name="daily-care-report" />
           <Stack.Screen name="appointment-confirmation" />
           <Stack.Screen name="settings" />
           <Stack.Screen name="medication-confirm" />
@@ -201,8 +197,6 @@ function RootLayout() {
           <Stack.Screen name="log-sleep" />
           <Stack.Screen name="log-activity" />
           <Stack.Screen name="quick-log-more" />
-          <Stack.Screen name="daily-checkin" />
-          <Stack.Screen name="log-hydration" />
           <Stack.Screen name="log-bathroom" />
           <Stack.Screen name="guide-hub" />
           <Stack.Screen name="hub" />

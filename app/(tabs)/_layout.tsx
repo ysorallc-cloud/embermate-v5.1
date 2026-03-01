@@ -92,28 +92,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="understand"
         options={{
-          title: 'Understand',
+          title: 'Insights',
           tabBarIcon: ({ focused }) => <TabIcon icon="📊" focused={focused} accentGlow={colors.accentGlow} accent={colors.accent} />,
-          tabBarAccessibilityLabel: 'Understand tab. View health patterns and insights',
+          tabBarAccessibilityLabel: 'Insights tab. View health patterns and insights',
           tabBarButtonTestID: 'tab-understand',
-        }}
-      />
-      <Tabs.Screen
-        name="support"
-        options={{
-          href: null, // Moved to Settings > Care Team (Premium)
-        }}
-      />
-      <Tabs.Screen
-        name="timeline"
-        options={{
-          href: null, // Hidden route
-        }}
-      />
-      <Tabs.Screen
-        name="family-tab"
-        options={{
-          href: null, // Redirect old route to care
         }}
       />
     </Tabs>

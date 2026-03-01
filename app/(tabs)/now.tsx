@@ -22,7 +22,15 @@ import { getDailyTracking } from '../../utils/dailyTrackingStorage';
 import {
   getTodayVitalsLog,
   getTodayMealsLog,
+  updateTodayWaterLog,
+  getTodayWaterLog,
 } from '../../utils/centralStorage';
+import { safeGetItem } from '../../utils/safeStorage';
+import { StorageKeys } from '../../utils/storageKeys';
+import { getMedicationLogs } from '../../utils/medicationStorage';
+import { updatePatient } from '../../storage/patientRegistry';
+import { checkTodayVitalsExceedances } from '../../utils/vitalsGuidance';
+import { getVitalsByType } from '../../utils/vitalsStorage';
 import { recordVisit } from '../../utils/lastVisitTracker';
 
 // Prompt Components
@@ -71,11 +79,14 @@ import { useNowInsights } from '../../hooks/useNowInsights';
 // Extracted components
 import { ProgressRings } from '../../components/now/ProgressRings';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { SectionHeader } from '../../components/aurora/SectionHeader';
+import { MorningMedsBanner } from '../../components/now/MorningMedsBanner';
 import { TimelineSection } from '../../components/now/TimelineSection';
 import { RoutineSheet } from '../../components/now/RoutineSheet';
 import { UpNextCard } from '../../components/now/UpNextCard';
 import { VitalsGuidance } from '../../components/now/VitalsGuidance';
 import { HandoffPromptCard } from '../../components/now/HandoffPromptCard';
+import { QuickLogFAB } from '../../components/now/QuickLogFAB';
 import type { TimeWindow } from '../../utils/nowHelpers';
 
 function getGreeting(): string {
@@ -173,7 +184,6 @@ export default function NowScreen() {
   const handleWaterUpdate = useCallback(async (newGlasses: number) => {
     try {
       setWaterGlasses(newGlasses);
-      const { updateTodayWaterLog } = await import('../../utils/centralStorage');
       await updateTodayWaterLog(newGlasses);
       emitDataUpdate(EVENT.WATER);
     } catch (error) {
@@ -398,14 +408,11 @@ export default function NowScreen() {
       if (activePatient && activePatient.name !== 'Patient') {
         setPatientName(activePatient.name);
       } else {
-        const { safeGetItem } = await import('../../utils/safeStorage');
-        const { StorageKeys } = await import('../../utils/storageKeys');
         const name = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
         if (name && name !== 'Patient') {
           setPatientName(name);
           // Migration: sync legacy name to patient registry
           try {
-            const { updatePatient } = await import('../../storage/patientRegistry');
             await updatePatient(activePatient?.id || 'default', { name });
           } catch {}
         } else {
@@ -435,7 +442,6 @@ export default function NowScreen() {
       }
 
       // Count meds taken TODAY (not the global .taken flag which persists across days)
-      const { getMedicationLogs } = await import('../../utils/medicationStorage');
       const allMedLogs = await getMedicationLogs();
       const todayStr = new Date().toDateString();
       const todayTakenIds = new Set(
@@ -451,7 +457,6 @@ export default function NowScreen() {
 
       // Load water intake for today
       try {
-        const { getTodayWaterLog } = await import('../../utils/centralStorage');
         const waterLog = await getTodayWaterLog();
         setWaterGlasses(waterLog?.glasses ?? 0);
       } catch {
@@ -460,11 +465,9 @@ export default function NowScreen() {
 
       // Check vitals for threshold exceedances (Task 4.1)
       try {
-        const { checkTodayVitalsExceedances } = await import('../../utils/vitalsGuidance');
         const exceedances = await checkTodayVitalsExceedances();
         setVitalsExceedances(exceedances);
         if (exceedances.length > 0) {
-          const { getVitalsByType } = await import('../../utils/vitalsStorage');
           const recent = await getVitalsByType(exceedances[0].type as any);
           setVitalsRecentReadings(recent.slice(0, 5));
         }
@@ -528,8 +531,8 @@ export default function NowScreen() {
       >
         {/* Header: greeting + date left, patient chip right */}
         <ScreenHeader
-          title={getGreeting()}
-          subtitle={`${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })} \u00B7 ${patientName}`}
+          title="Now"
+          subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
           rightAction={
             <TouchableOpacity
               onPress={() => setShowPatientSwitcher(true)}
@@ -618,112 +621,11 @@ export default function NowScreen() {
         )}
 
         <View style={styles.content}>
-          {/* Morning Briefing — single consolidated prompt card */}
-          {briefing?.shouldShow && (
-            <MorningBriefing
-              patientName={patientName}
-              itemCount={todayStats.meds.total + todayStats.vitals.total + todayStats.meals.total}
-              lastVisitHours={briefing.lastVisitHours}
-              orientationMessage={briefing.orientationMessage}
-              closureMessage={briefing.closureMessage}
-              regulationMessage={briefing.regulationMessage}
-              baselineToConfirm={briefing.baselineToConfirm}
-              todayVsBaseline={briefing.todayVsBaseline}
-              isFirstUse={showOnboarding}
-              onDismiss={handlers.dismissBriefing}
-              onBaselineConfirm={handlers.handleBaselineConfirm}
-              onBaselineDismiss={handlers.handleBaselineDismiss}
-            />
-          )}
-
-          {/* Sample Data Banner */}
-          <SampleDataBanner compact />
-
-          {/* Getting Started Checklist */}
-          {!showOnboarding && <GettingStartedChecklist />}
-
-          {/* Baseline Status Messages */}
-          {briefing && briefing.todayVsBaseline.length > 0 && !showOnboarding && (
-            <View style={styles.baselineStatusContainer}>
-              {briefing.todayVsBaseline.map(comparison => {
-                const message = getBaselineStatusMessage(comparison);
-                if (!message) return null;
-                return (
-                  <View key={comparison.category} style={[
-                    styles.baselineStatus,
-                    comparison.matchesBaseline && styles.baselineStatusMatch,
-                    comparison.belowBaseline && styles.baselineStatusBelow,
-                  ]}>
-                    <Text style={styles.baselineStatusMain}>{message.main}</Text>
-                    {message.sub && (
-                      <Text style={styles.baselineStatusSub}>{message.sub}</Text>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-          )}
-
-          {/* Data Integrity Warning */}
-          {integrityWarnings && integrityWarnings.length > 0 && (
-            <DataIntegrityBanner
-              issueCount={integrityWarnings.length}
-              onFix={() => navigate('/care-plan')}
-            />
-          )}
-
-          {/* Empty State: No Medications */}
-          {medications.length === 0 && !showOnboarding && (
-            <NoMedicationsBanner />
-          )}
-
-          {/* Empty State: No Care Plan */}
-          {!hasAnyCarePlan && !showOnboarding && !carePlanConfigLoading && (
-            <NoCarePlanBanner onSetup={() => navigate('/care-plan')} />
-          )}
-
-          {/* 1. UP NEXT — highest priority item */}
-          {todayTimeline.nextUp && !selectedCategory && (
-            <UpNextCard
-              instance={todayTimeline.nextUp}
-              onLogNow={handleTimelineItemPress}
-              onSkip={handleSkipInstance}
-            />
-          )}
-
-          {/* Vitals Guidance — inline decision support (Task 4.1) */}
-          {vitalsExceedances.length > 0 && !vitalsGuidanceDismissed && (
-            <VitalsGuidance
-              exceedance={vitalsExceedances[0]}
-              medications={medications}
-              recentReadings={vitalsRecentReadings}
-              onDismiss={() => setVitalsGuidanceDismissed(true)}
-            />
-          )}
-
-          {/* Appointment Prep Card — within 14 days (Task 4.5) */}
-          {upcomingPrepAppointment && (
-            <TouchableOpacity
-              style={styles.appointmentPrepCard}
-              onPress={() => navigate(`/provider-prep?appointmentId=${upcomingPrepAppointment.id}`)}
-              activeOpacity={0.7}
-              accessibilityLabel="Prepare for upcoming appointment"
-              accessibilityRole="button"
-            >
-              <Text style={styles.appointmentPrepIcon}>{'\uD83D\uDCCB'}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.appointmentPrepTitle}>
-                  {upcomingPrepAppointment.provider || 'Appointment'} — Visit Prep
-                </Text>
-                <Text style={styles.appointmentPrepSubtitle}>
-                  {Math.ceil((new Date(upcomingPrepAppointment.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days away
-                </Text>
-              </View>
-              <Text style={styles.appointmentPrepArrow}>{'\u203A'}</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* 2. CARE PLAN PROGRESS — linear tiles */}
+          {/* 1. CARE PLAN PROGRESS — visible immediately after header */}
+          <SectionHeader
+            title="Today's Progress"
+            action={{ label: 'Care Plan', onPress: () => navigate('/care-plan') }}
+          />
           <View accessibilityLiveRegion="polite" accessibilityRole="summary">
             <ProgressRings
               todayStats={todayStats}
@@ -737,7 +639,14 @@ export default function NowScreen() {
             />
           </View>
 
-          {/* 3. TIMELINE DETAILS */}
+          {/* 1.5 MORNING MEDS BANNER — batch confirm */}
+          <MorningMedsBanner
+            pendingCount={allPending.filter((i: any) => i.itemType === 'medication').length}
+            pendingInstanceIds={allPending.filter((i: any) => i.itemType === 'medication').map((i: any) => i.id)}
+            onConfirmAll={handleBatchMedConfirm}
+          />
+
+          {/* 2. TIMELINE DETAILS */}
           <TimelineSection
             allPending={allPending}
             completed={todayTimeline.completed}
@@ -754,7 +663,7 @@ export default function NowScreen() {
             onStartRoutine={setActiveRoutineWindow}
           />
 
-          {/* Empty states */}
+          {/* 3. Empty states */}
           {!hasRegimenInstances && !hasBucketCarePlan && !carePlan && (
             <View style={styles.emptyTimeline}>
               <Text style={styles.emptyTimelineText}>No Care Plan set up yet</Text>
@@ -777,9 +686,10 @@ export default function NowScreen() {
             </View>
           )}
 
-          {/* Handoff Prompt — after 4pm (Task 4.2) */}
+          {/* 4. Handoff Prompt — after 4pm */}
           <HandoffPromptCard completedCount={todayTimeline.completed.length} />
 
+          {/* 5. All-done / encouragement messages */}
           {hasRegimenInstances &&
             allPending.length === 0 &&
             todayTimeline.completed.length > 0 && (() => {
@@ -809,7 +719,87 @@ export default function NowScreen() {
               );
             })()}
 
-          {/* Encouraging footer with care insight */}
+          {/* ─── Below the fold: secondary content ─── */}
+          <SectionHeader title="Check In" showRule />
+
+          {/* 6. UP NEXT — highest priority item */}
+          {todayTimeline.nextUp && !selectedCategory && (
+            <UpNextCard
+              instance={todayTimeline.nextUp}
+              onLogNow={handleTimelineItemPress}
+              onSkip={handleSkipInstance}
+            />
+          )}
+
+          {/* 7. Vitals Guidance — inline decision support */}
+          {vitalsExceedances.length > 0 && !vitalsGuidanceDismissed && (
+            <VitalsGuidance
+              exceedance={vitalsExceedances[0]}
+              medications={medications}
+              recentReadings={vitalsRecentReadings}
+              onDismiss={() => setVitalsGuidanceDismissed(true)}
+            />
+          )}
+
+          {/* 8. Appointment Prep Card — within 14 days */}
+          {upcomingPrepAppointment && (
+            <TouchableOpacity
+              style={styles.appointmentPrepCard}
+              onPress={() => navigate(`/provider-prep?appointmentId=${upcomingPrepAppointment.id}`)}
+              activeOpacity={0.7}
+              accessibilityLabel="Prepare for upcoming appointment"
+              accessibilityRole="button"
+            >
+              <Text style={styles.appointmentPrepIcon}>{'\uD83D\uDCCB'}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.appointmentPrepTitle}>
+                  {upcomingPrepAppointment.provider || 'Appointment'} — Visit Prep
+                </Text>
+                <Text style={styles.appointmentPrepSubtitle}>
+                  {Math.ceil((new Date(upcomingPrepAppointment.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days away
+                </Text>
+              </View>
+              <Text style={styles.appointmentPrepArrow}>{'\u203A'}</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* 9. Morning Briefing — consolidated prompt card */}
+          {briefing?.shouldShow && (
+            <MorningBriefing
+              patientName={patientName}
+              itemCount={todayStats.meds.total + todayStats.vitals.total + todayStats.meals.total}
+              lastVisitHours={briefing.lastVisitHours}
+              orientationMessage={briefing.orientationMessage}
+              closureMessage={briefing.closureMessage}
+              regulationMessage={briefing.regulationMessage}
+              baselineToConfirm={briefing.baselineToConfirm}
+              todayVsBaseline={briefing.todayVsBaseline}
+              isFirstUse={showOnboarding}
+              onDismiss={handlers.dismissBriefing}
+              onBaselineConfirm={handlers.handleBaselineConfirm}
+              onBaselineDismiss={handlers.handleBaselineDismiss}
+            />
+          )}
+
+
+          {/* 13. Data Integrity Warning */}
+          {integrityWarnings && integrityWarnings.length > 0 && (
+            <DataIntegrityBanner
+              issueCount={integrityWarnings.length}
+              onFix={() => navigate('/care-plan')}
+            />
+          )}
+
+          {/* 14. Empty State Banners */}
+          {medications.length === 0 && !showOnboarding && (
+            <NoMedicationsBanner />
+          )}
+
+          {!hasAnyCarePlan && !showOnboarding && !carePlanConfigLoading && (
+            <NoCarePlanBanner onSetup={() => navigate('/care-plan')} />
+          )}
+
+          {/* 15. Footer */}
           <View style={styles.footerSection}>
             <Text style={styles.footerMessage}>
               {careInsight
@@ -840,6 +830,8 @@ export default function NowScreen() {
       </ScrollView>
       </SafeAreaView>
 
+      <QuickLogFAB />
+
       {/* Routine Sheet — batch logging for a time window */}
       {activeRoutineWindow && (
         <RoutineSheet
@@ -866,7 +858,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   // closureContainer and orientationContainer removed — prompts consolidated into MorningBriefing
   content: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 0,
   },
 
@@ -965,34 +957,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   coffeeDismissText: {
     fontSize: 12,
     color: c.textMuted,
-  },
-  baselineStatusContainer: {
-    marginBottom: 16,
-    gap: 6,
-  },
-  baselineStatus: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: c.glass,
-  },
-  baselineStatusMatch: {
-    borderLeftWidth: 3,
-    borderLeftColor: c.greenGlow,
-  },
-  baselineStatusBelow: {
-    borderLeftWidth: 3,
-    borderLeftColor: c.amberGlow,
-  },
-  baselineStatusMain: {
-    fontSize: 13,
-    color: c.textBright,
-    lineHeight: 18,
-  },
-  baselineStatusSub: {
-    fontSize: 12,
-    color: c.textHalf,
-    marginTop: 2,
   },
   emptyTimeline: {
     backgroundColor: c.glass,

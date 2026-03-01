@@ -11,6 +11,10 @@ export interface SubscriptionState {
   expiresAt: string | null;
   source: 'none' | 'app_store' | 'google_play' | 'promo_code';
   version: number;
+  /** Base64-encoded App Store / Play Store purchase receipt */
+  purchaseReceipt?: string;
+  /** ISO timestamp of last successful receipt validation */
+  receiptValidatedAt?: string;
 }
 
 export interface TierLimits {
@@ -23,7 +27,7 @@ export interface TierLimits {
 }
 
 export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
-  free: { maxPatients: 1, pdfExport: false, advancedInsights: false, careTeam: false, activityFeed: false, correlationReports: false },
+  free: { maxPatients: 1, pdfExport: true, advancedInsights: false, careTeam: false, activityFeed: false, correlationReports: false },
   premium: { maxPatients: 10, pdfExport: true, advancedInsights: true, careTeam: true, activityFeed: true, correlationReports: true },
 };
 
