@@ -517,15 +517,20 @@ function TimelineModeBContent({
 
                   if (isFinished) {
                     const statusText = isMissed ? 'Missed' : instance.status === 'skipped' ? 'Skipped' : 'Done';
+                    const Wrapper = isMissed ? TouchableOpacity : View;
+                    const wrapperProps = isMissed
+                      ? { onPress: () => onItemPress(instance), activeOpacity: 0.7 }
+                      : {};
                     return (
-                      <View
+                      <Wrapper
                         key={instance.id}
+                        {...wrapperProps}
                         style={[
                           styles.timelineItem,
-                          styles.timelineItemDone,
+                          !isMissed && styles.timelineItemDone,
                           index < items.length - 1 && styles.timelineItemBorder,
                         ]}
-                        accessibilityLabel={`${instance.itemName}, ${statusText}`}
+                        accessibilityLabel={`${instance.itemName}, ${statusText}${isMissed ? '. Tap to log late.' : ''}`}
                       >
                         <View style={styles.timelineDotWrap}>
                           <View style={[
@@ -543,10 +548,14 @@ function TimelineModeBContent({
                             {parseTimeForDisplay(instance.scheduledTime) || statusText}
                           </Text>
                         </View>
-                        <Text style={[styles.timelineStatusText, isMissed && styles.timelineStatusMissed]}>
-                          {statusText}
-                        </Text>
-                      </View>
+                        {isMissed ? (
+                          <Text style={styles.logLateText}>Log Late</Text>
+                        ) : (
+                          <Text style={[styles.timelineStatusText]}>
+                            {statusText}
+                          </Text>
+                        )}
+                      </Wrapper>
                     );
                   }
 
@@ -932,6 +941,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   timelineStatusMissed: {
     color: 'rgba(245, 158, 11, 0.6)',
+  },
+  logLateText: {
+    fontSize: 11,
+    color: c.accent,
+    fontWeight: '500',
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
 
   // ============================================================================

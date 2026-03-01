@@ -84,27 +84,8 @@ function getProgressPercent(completed: number, total: number) {
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   section: {
-    marginBottom: 12,
+    marginBottom: 4,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 7,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: c.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 1.4,
-  },
-  manageLink: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: c.accent,
-  },
-
   // 4-col strip (wraps to second row if >4 tiles)
   strip: {
     flexDirection: 'row',
@@ -286,19 +267,6 @@ export function ProgressRings({
 
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>TODAY'S PROGRESS</Text>
-        {onManagePress && (
-          <TouchableOpacity
-            onPress={onManagePress}
-            activeOpacity={0.7}
-            accessibilityLabel="Manage Care Plan"
-            accessibilityRole="link"
-          >
-            <Text style={styles.manageLink}>Care Plan</Text>
-          </TouchableOpacity>
-        )}
-      </View>
       <View style={styles.strip}>
         {tileItems.map(item => renderCell(item))}
       </View>

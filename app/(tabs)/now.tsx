@@ -44,9 +44,6 @@ import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PatientSwitcherModal } from '../../components/now/PatientSwitcherModal';
 import { usePatient } from '../../contexts/PatientContext';
-// WelcomeBackBanner now folded into MorningBriefing
-import { SampleDataBanner } from '../../components/common/SampleDataBanner';
-
 // CarePlan System
 import { useCarePlan } from '../../hooks/useCarePlan';
 import { useCareTasks } from '../../hooks/useCareTasks';
@@ -1000,6 +997,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   footerSection: {
     alignItems: 'center',
     paddingVertical: 24,
+    paddingRight: 76,
     marginTop: 12,
     borderTopWidth: 1,
     borderTopColor: c.glassHover,

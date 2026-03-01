@@ -31,7 +31,6 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import {
   loadUnderstandPageData,
   dismissSuggestion,
-  dismissSampleData,
   markConfidenceExplained,
   getRouteOrFallback,
   TimeRange,
@@ -309,111 +308,6 @@ function VitalRow({ vital, onPress }: VitalRowProps) {
 }
 
 // ============================================================================
-// MENU ITEM COMPONENT
-// ============================================================================
-
-interface MenuItemProps {
-  item: MenuItem;
-}
-
-const ICON_BG_COLORS: Record<string, string> = {
-  green: Colors.greenLight,
-  amber: Colors.amberLight,
-  teal: Colors.accentLight,
-  sage: 'rgba(110, 231, 183, 0.10)',
-  blue: Colors.blueLight,
-  purple: Colors.purpleLight,
-};
-
-const BADGE_COLORS: Record<string, { bg: string; color: string }> = {
-  good:  { bg: 'rgba(16, 185, 129, 0.14)', color: Colors.green },
-  warn:  { bg: 'rgba(245, 158, 11, 0.14)', color: Colors.amber },
-  alert: { bg: 'rgba(239, 68, 68, 0.14)', color: '#FCA5A5' },
-  info:  { bg: Colors.accentLight, color: Colors.accent },
-  soon:  { bg: 'rgba(110, 231, 183, 0.12)', color: '#6EE7B7' },
-};
-
-function MenuItemRow({ item }: MenuItemProps) {
-  const badgeStyle = item.badgeStyle ? BADGE_COLORS[item.badgeStyle] : null;
-
-  return (
-    <TouchableOpacity
-      style={[_styles.menuItem, item.elevated && _styles.menuItemElevated]}
-      onPress={item.onPress}
-      activeOpacity={0.7}
-      accessibilityRole="button"
-      accessibilityLabel={`${item.title}, ${item.subtitle}`}
-    >
-      <View style={[_styles.menuIconWrap, { backgroundColor: ICON_BG_COLORS[item.iconBg] || Colors.accentLight }]}>
-        <Text style={_styles.menuIconText}>{item.icon}</Text>
-      </View>
-      <View style={_styles.menuBody}>
-        <Text style={_styles.menuTitle}>{item.title}</Text>
-        <Text style={_styles.menuSub}>{item.subtitle}</Text>
-      </View>
-      <View style={_styles.menuRight}>
-        {item.badge && badgeStyle && (
-          <View style={[_styles.menuBadge, { backgroundColor: badgeStyle.bg }]}>
-            <Text style={[_styles.menuBadgeText, { color: badgeStyle.color }]}>{item.badge}</Text>
-          </View>
-        )}
-        <Text style={_styles.menuChevron}>{'\u203A'}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-// ============================================================================
-// SAMPLE DATA BANNER
-// ============================================================================
-
-interface SampleDataBannerProps {
-  onDismiss: () => void;
-  previouslySeen?: boolean;
-}
-
-function SampleDataBanner({ onDismiss, previouslySeen }: SampleDataBannerProps) {
-  if (previouslySeen) {
-    return (
-      <TouchableOpacity
-        style={_styles.sampleBannerCompact}
-        onPress={onDismiss}
-        activeOpacity={0.7}
-        accessibilityRole="button"
-        accessibilityLabel="Dismiss preview mode banner"
-      >
-        <Text style={_styles.sampleBannerCompactText}>
-          Preview mode — <Text style={_styles.sampleBannerCompactLink}>start tracking for real patterns</Text>
-        </Text>
-      </TouchableOpacity>
-    );
-  }
-
-  return (
-    <View style={_styles.sampleBanner}>
-      <View style={_styles.sampleBannerContent}>
-        <Text style={_styles.sampleBannerIcon}>{'\u2728'}</Text>
-        <View style={_styles.sampleBannerText}>
-          <Text style={_styles.sampleBannerTitle}>Preview Mode</Text>
-          <Text style={_styles.sampleBannerSubtitle}>
-            This is sample data showing what insights will look like. Start tracking to see your real patterns.
-          </Text>
-        </View>
-      </View>
-      <TouchableOpacity
-        style={_styles.sampleBannerDismiss}
-        onPress={onDismiss}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        accessibilityRole="button"
-        accessibilityLabel="Got it, dismiss preview mode"
-      >
-        <Text style={_styles.sampleBannerDismissText}>Got it</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-// ============================================================================
 // VITALS COMPUTATION HELPERS
 // ============================================================================
 
@@ -637,11 +531,6 @@ export default function UnderstandScreen() {
     setRefreshing(false);
   }, [timeRange]);
 
-  const handleDismissSampleData = async () => {
-    await dismissSampleData();
-    await loadData();
-  };
-
   const navigateToRoute = (route: string | undefined) => {
     if (!route) return;
     const validRoute = getRouteOrFallback(route);
@@ -793,14 +682,6 @@ export default function UnderstandScreen() {
             }
           />
 
-          {/* Sample Data Banner */}
-          {pageData?.isSampleData && (
-            <SampleDataBanner
-              onDismiss={handleDismissSampleData}
-              previouslySeen={pageData.sampleDataPreviouslySeen}
-            />
-          )}
-
           {/* Data Building Banner */}
           {pageData && !pageData.isSampleData && pageData.daysOfData < 7 && (
             <View style={styles.dataBuildingBanner}>
@@ -857,11 +738,31 @@ export default function UnderstandScreen() {
             </View>
           )}
 
-          {/* 5. MORE MENU */}
-          <Text style={styles.menuLabel}>MORE</Text>
-          <View style={styles.menuList}>
+          {/* 5. QUICK ACTIONS */}
+          <TouchableOpacity
+            style={styles.allTrendsLink}
+            onPress={() => navigate('/trends')}
+            activeOpacity={0.7}
+            accessibilityRole="link"
+            accessibilityLabel="All Trends"
+          >
+            <Text style={styles.allTrendsText}>All Trends {'\u2192'}</Text>
+          </TouchableOpacity>
+
+          <View style={styles.quickActionsGrid}>
             {menuItems.map(item => (
-              <MenuItemRow key={item.id} item={item} />
+              <TouchableOpacity
+                key={item.id}
+                style={styles.quickActionCard}
+                onPress={item.onPress}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.title}, ${item.subtitle}`}
+              >
+                <Text style={styles.quickActionIcon}>{item.icon}</Text>
+                <Text style={styles.quickActionTitle} numberOfLines={1}>{item.title}</Text>
+                <Text style={styles.quickActionSub} numberOfLines={2}>{item.subtitle}</Text>
+              </TouchableOpacity>
             ))}
           </View>
 
@@ -1171,139 +1072,48 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginTop: 1,
   },
 
-  // More Menu
-  menuLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    color: c.textMuted,
-    textTransform: 'uppercase',
-    paddingHorizontal: 2,
-    marginBottom: 8,
+  // Quick Actions
+  allTrendsLink: {
+    alignSelf: 'flex-end',
+    marginBottom: 10,
     marginTop: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
   },
-  menuList: {
+  allTrendsText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: c.accent,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  quickActionCard: {
+    width: '48%' as unknown as number,
     backgroundColor: c.glassDim,
     borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 13,
-    paddingHorizontal: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: c.borderLight,
-  },
-  menuItemElevated: {
-    backgroundColor: c.sageHint,
-    borderBottomColor: c.sageLight,
-  },
-  menuIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  menuIconText: {
-    fontSize: 17,
-  },
-  menuBody: {
-    flex: 1,
-  },
-  menuTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.textPrimary,
-  },
-  menuSub: {
-    fontSize: 11,
-    color: c.textMuted,
-    marginTop: 2,
-  },
-  menuRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  menuBadge: {
-    paddingVertical: 2,
-    paddingHorizontal: 7,
-    borderRadius: 8,
-  },
-  menuBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  menuChevron: {
-    fontSize: 16,
-    color: c.glassStrong,
-  },
-
-  // Sample Data Banner
-  sampleBanner: {
-    backgroundColor: c.purpleLight,
-    borderWidth: 1,
-    borderColor: c.purpleStrong,
+    borderColor: c.glassBorder,
     borderRadius: 14,
     padding: 14,
-    marginBottom: 20,
+    flexGrow: 1,
+    flexBasis: '46%',
   },
-  sampleBannerContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    marginBottom: 10,
+  quickActionIcon: {
+    fontSize: 20,
+    marginBottom: 6,
   },
-  sampleBannerIcon: {
-    fontSize: 18,
-    marginTop: 2,
-  },
-  sampleBannerText: {
-    flex: 1,
-  },
-  sampleBannerTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.purpleBright,
-    marginBottom: 4,
-  },
-  sampleBannerSubtitle: {
-    fontSize: 13,
-    color: c.textSecondary,
-    lineHeight: 18,
-  },
-  sampleBannerDismiss: {
-    alignSelf: 'flex-end',
-    backgroundColor: c.purpleWash,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 8,
-  },
-  sampleBannerDismissText: {
+  quickActionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: c.purpleBright,
+    color: c.textPrimary,
+    marginBottom: 2,
   },
-  sampleBannerCompact: {
-    backgroundColor: c.purpleFaint,
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginBottom: 16,
-  },
-  sampleBannerCompactText: {
-    fontSize: 12,
-    color: 'rgba(167, 139, 250, 0.7)',
-    textAlign: 'center',
-  },
-  sampleBannerCompactLink: {
-    color: c.purpleBright,
-    fontWeight: '500',
+  quickActionSub: {
+    fontSize: 11,
+    color: c.textMuted,
+    lineHeight: 15,
   },
 
   // Data Building Banner
