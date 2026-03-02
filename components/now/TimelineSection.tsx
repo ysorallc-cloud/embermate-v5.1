@@ -495,7 +495,7 @@ function TimelineModeBContent({
                 {TIME_WINDOW_LABELS[window]}
               </Text>
               <Text style={styles.timeGroupCount}>
-                {pendingCount > 0 ? `${pendingCount} remaining` : `${items.length} done`}
+                {pendingCount > 0 ? `${pendingCount} remaining` : `Complete \u2713`}
               </Text>
               {isCurrent && pendingCount > 0 && onStartRoutine && (
                 <TouchableOpacity
@@ -776,7 +776,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // MODE B — Clean Timeline
   // ============================================================================
   timeGroup: {
-    marginBottom: 4,
+    marginBottom: 12,
   },
   timeGroupHeader: {
     flexDirection: 'row',
@@ -837,14 +837,17 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.background,
   },
   timeGroupItems: {
-    paddingLeft: 0,
+    marginLeft: 4,
+    paddingLeft: 16,
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255, 255, 255, 0.04)',
   },
 
   // Timeline item (pending)
   timelineItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 4,
     gap: 10,
   },
