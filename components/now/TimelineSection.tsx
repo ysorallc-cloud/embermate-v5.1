@@ -414,10 +414,21 @@ function TimelineModeBContent({
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const allItems = [...allPending, ...completed];
+  const grouped = groupByTimeWindow(allItems);
+
+  // Change 2: Default collapse based on completion status, not time-of-day
   const [collapsedWindows, setCollapsedWindows] = useState<Set<TimeWindow>>(() => {
-    const current = getCurrentTimeWindow();
     const allWindows: TimeWindow[] = ['morning', 'afternoon', 'evening', 'night'];
-    return new Set(allWindows.filter(w => w !== current));
+    const windowGroups = groupByTimeWindow([...allPending, ...completed]);
+    return new Set(allWindows.filter(w => {
+      const items = windowGroups[w];
+      if (items.length === 0) return false;
+      const allDone = items.every(i =>
+        i.status === 'completed' || i.status === 'skipped' || i.status === 'missed'
+      );
+      return allDone; // collapse completed windows
+    }));
   });
 
   const toggleWindow = (window: TimeWindow) => {
@@ -429,27 +440,12 @@ function TimelineModeBContent({
     });
   };
 
-  const allItems = [...allPending, ...completed];
-  const grouped = groupByTimeWindow(allItems);
   const currentWindow = getCurrentTimeWindow();
   const windowOrder: TimeWindow[] = ['morning', 'afternoon', 'evening', 'night'];
 
   return (
     <>
-      {/* Section header */}
-      <View style={styles.timelineSectionHeader}>
-        <Text style={styles.sectionTitle}>COMING UP TODAY</Text>
-        <TouchableOpacity
-          onPress={() => navigate('/today-scope')}
-          activeOpacity={0.7}
-          accessibilityLabel="Adjust today's plan"
-          accessibilityRole="link"
-        >
-          <Text style={styles.adjustTodayLink}>Adjust Today</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Time-grouped list */}
+      {/* Time-grouped list — section header is rendered by now.tsx SectionHeaderRow */}
       {windowOrder.map((window) => {
         const items = grouped[window];
         if (items.length === 0) return null;
@@ -459,14 +455,13 @@ function TimelineModeBContent({
         const pendingCount = items.filter(i => i.status === 'pending').length;
         const doneCount = items.length - pendingCount;
 
-        // Past window fully complete → show receipt instead of expanded list
-        const isPastWindow = windowOrder.indexOf(window) < windowOrder.indexOf(currentWindow);
+        // Completed windows render as normal collapsible headers (green dot, collapsed by default)
         const allDone = items.every(i =>
           i.status === 'completed' || i.status === 'skipped' || i.status === 'missed'
         );
-        if (allDone && isPastWindow && items.length > 0) {
-          return <WindowReceipt key={window} window={window} items={items} />;
-        }
+        const hasOverdueItems = items.some(i =>
+          i.status === 'pending' && isOverdue(i.scheduledTime)
+        );
 
         return (
           <View key={window} style={styles.timeGroup}>
@@ -482,6 +477,12 @@ function TimelineModeBContent({
               accessibilityRole="button"
               accessibilityState={{ expanded: !isCollapsed }}
             >
+              <View style={[
+                styles.windowDot,
+                allDone ? styles.windowDotGreen
+                  : hasOverdueItems ? styles.windowDotRed
+                  : styles.windowDotAmber,
+              ]} />
               <Text style={styles.timeGroupChevron}>
                 {isCollapsed ? '\u25B6' : '\u25BC'}
               </Text>
@@ -585,19 +586,9 @@ function TimelineModeBContent({
                           <Text style={styles.timelineSub} numberOfLines={1}>{subtitle}</Text>
                         ) : null}
                       </View>
-                      {delta && delta.tone !== 'late' && (
-                        <View style={[
-                          styles.timelineBadge,
-                          delta.tone === 'soon' && styles.timelineBadgeSoon,
-                        ]}>
-                          <Text style={[
-                            styles.timelineBadgeText,
-                            delta.tone === 'soon' && styles.timelineBadgeTextSoon,
-                          ]}>
-                            {delta.text}
-                          </Text>
-                        </View>
-                      )}
+                      <View style={styles.timelineLogButton}>
+                        <Text style={styles.timelineLogButtonText}>Log</Text>
+                      </View>
                     </TouchableOpacity>
                   );
                 })}
@@ -797,6 +788,20 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.accentDim,
     borderRadius: 8,
   },
+  windowDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  windowDotGreen: {
+    backgroundColor: c.green,
+  },
+  windowDotAmber: {
+    backgroundColor: c.amber,
+  },
+  windowDotRed: {
+    backgroundColor: c.red,
+  },
   timeGroupChevron: {
     fontSize: 8,
     color: c.textMuted,
@@ -867,6 +872,21 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   timelineSub: {
     fontSize: 10,
     color: c.textMuted,
+  },
+
+  // Log button for pending items in time windows
+  timelineLogButton: {
+    backgroundColor: 'rgba(20, 184, 166, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderRadius: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  timelineLogButtonText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: c.accent,
   },
 
   // Timeline badges (right side)

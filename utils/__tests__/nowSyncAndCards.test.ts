@@ -124,9 +124,10 @@ describe('S6: Overdue language changes', () => {
     expect(labelOverdueMatch![0]).not.toContain('redBright');
   });
 
-  test('TimelineSection does not render overdue badge text on items', () => {
-    // The delta badge should be hidden when tone === 'late'
-    expect(timelineSectionSrc).toContain("delta.tone !== 'late'");
+  test('TimelineSection renders Log button instead of time badges on pending items', () => {
+    // Pending items in time windows show a "Log" button, not time delta badges
+    expect(timelineSectionSrc).toContain('timelineLogButton');
+    expect(timelineSectionSrc).toContain('timelineLogButtonText');
   });
 });
 
@@ -149,8 +150,8 @@ describe('S7: ScreenHeader purpose prop', () => {
     expect(purposeMatch![0]).toContain('c.textSecondary');
   });
 
-  test('Now page passes purpose prop', () => {
-    expect(nowSrc).toContain('purpose="What needs your attention today."');
+  test('Now page does not pass purpose prop (v2: removed for clean header)', () => {
+    expect(nowSrc).not.toContain('purpose="What needs your attention today."');
   });
 });
 

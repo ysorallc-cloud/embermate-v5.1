@@ -1,7 +1,6 @@
 // File: utils/__tests__/footerFabOverlap.test.ts
-// PURPOSE: Verify footer is inside cardEncouragement which provides padding,
-// and that the encouragement card has sufficient padding to clear the FAB zone.
-// Updated for refined card layout: footer is now inside cardEncouragement.
+// PURPOSE: Verify footer section has sufficient padding to clear the FAB zone.
+// Updated for v2 flat layout: footer is now a flat zone (no card wrapper).
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -11,11 +10,11 @@ describe('Footer / FAB overlap fix', () => {
     join(__dirname, '../../app/(tabs)/now.tsx'), 'utf8'
   );
 
-  test('cardEncouragement wraps the footer section with padding >= 16', () => {
-    const match = content.match(/cardEncouragement:\s*\{([^}]+)\}/);
+  test('footerSection has paddingTop >= 16 for FAB clearance', () => {
+    const match = content.match(/footerSection:\s*\{([^}]+)\}/);
     expect(match).toBeTruthy();
     const style = match![1];
-    const paddingMatch = style.match(/padding:\s*(\d+)/);
+    const paddingMatch = style.match(/paddingTop:\s*(\d+)/);
     expect(paddingMatch).toBeTruthy();
     expect(parseInt(paddingMatch![1])).toBeGreaterThanOrEqual(16);
   });

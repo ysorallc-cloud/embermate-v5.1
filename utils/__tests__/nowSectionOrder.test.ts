@@ -15,12 +15,8 @@ describe('Now screen section order', () => {
     expect(rings).toBeLessThan(timeline);
   });
 
-  test('UpNextCard appears before TimelineSection (both inside Schedule card)', () => {
-    const upNext = render.indexOf('UpNextCard');
-    const timeline = render.indexOf('TimelineSection');
-    expect(upNext).toBeGreaterThan(-1);
-    expect(timeline).toBeGreaterThan(-1);
-    expect(upNext).toBeLessThan(timeline);
+  test('UpNextCard is removed (overdue items appear inline in time windows)', () => {
+    expect(render).not.toContain('UpNextCard');
   });
 
   test('ProgressRings appears before footer', () => {

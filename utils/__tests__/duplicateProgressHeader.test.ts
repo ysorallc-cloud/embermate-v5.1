@@ -16,14 +16,14 @@ describe('Duplicate progress header fix', () => {
     expect(content).not.toMatch(/Manage Care Plan/);
   });
 
-  test('Now screen uses SectionHeaderRow "At a Glance" instead of old SectionHeader', () => {
+  test('Now screen uses SectionHeaderRow "Today\'s Progress" instead of old SectionHeader', () => {
     const content = readFileSync(
       join(__dirname, '../../app/(tabs)/now.tsx'), 'utf8'
     );
-    // Old SectionHeader with "Today's Progress" should be gone
-    expect(content).not.toMatch(/<SectionHeader[\s\S]*?Today's Progress/);
-    // New SectionHeaderRow with "At a Glance" should exist
-    expect(content).toContain('title="At a Glance"');
+    // Old SectionHeader component should not be used
+    expect(content).not.toMatch(/<SectionHeader\s/);
+    // New SectionHeaderRow with "Today's Progress" should exist
+    expect(content).toContain('title="Today\'s Progress"');
   });
 
   test('ProgressRings still renders the tile strip', () => {

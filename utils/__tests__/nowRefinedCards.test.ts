@@ -1,6 +1,6 @@
 /**
- * Tests for the Now page refined card layout redesign.
- * Verifies the 4 card zones, SectionHeaderRow, GlanceSummary, and style structure.
+ * Tests for the Now page v2 flat layout redesign.
+ * Verifies zone dividers, flat section headers (no icons), and correct zone order.
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -8,68 +8,69 @@ import * as path from 'path';
 const nowTsxPath = path.resolve(__dirname, '../../app/(tabs)/now.tsx');
 const nowSource = fs.readFileSync(nowTsxPath, 'utf-8');
 
-describe('Now page refined card layout', () => {
-  test('four card styles exist (cardGlance, cardSchedule, cardUpcoming, cardEncouragement)', () => {
-    expect(nowSource).toContain('cardGlance:');
-    expect(nowSource).toContain('cardSchedule:');
-    expect(nowSource).toContain('cardUpcoming:');
-    expect(nowSource).toContain('cardEncouragement:');
+describe('Now page v2 flat layout', () => {
+  test('zoneDivider style exists with correct properties', () => {
+    const dividerMatch = nowSource.match(/zoneDivider:\s*\{[^}]+\}/);
+    expect(dividerMatch).not.toBeNull();
+    const block = dividerMatch![0];
+    expect(block).toContain('height: 1');
+    expect(block).toContain("rgba(255, 255, 255, 0.04)");
   });
 
-  test('SectionHeaderRow renders with icons in correct order', () => {
-    // At a Glance should appear before Today's Schedule in the render
-    const glanceHeaderIdx = nowSource.indexOf('icon="📊"');
-    const scheduleHeaderIdx = nowSource.indexOf('icon="🗓️"');
-    const upcomingHeaderIdx = nowSource.indexOf('icon="📋"');
-
-    expect(glanceHeaderIdx).toBeGreaterThan(-1);
-    expect(scheduleHeaderIdx).toBeGreaterThan(-1);
-    expect(upcomingHeaderIdx).toBeGreaterThan(-1);
-    expect(glanceHeaderIdx).toBeLessThan(scheduleHeaderIdx);
-    expect(scheduleHeaderIdx).toBeLessThan(upcomingHeaderIdx);
+  test('no card wrapper styles remain (cardGlance, cardSchedule, cardUpcoming, cardEncouragement)', () => {
+    expect(nowSource).not.toContain('cardGlance:');
+    expect(nowSource).not.toContain('cardSchedule:');
+    expect(nowSource).not.toContain('cardUpcoming:');
+    expect(nowSource).not.toContain('cardEncouragement:');
   });
 
-  test('Glance summary exists in render before ProgressRings', () => {
-    const glanceSummaryIdx = nowSource.indexOf('<GlanceSummary');
-    const progressRingsIdx = nowSource.indexOf('<ProgressRings');
-
-    expect(glanceSummaryIdx).toBeGreaterThan(-1);
-    expect(progressRingsIdx).toBeGreaterThan(-1);
-    expect(glanceSummaryIdx).toBeLessThan(progressRingsIdx);
+  test('section headers have no emoji icon props', () => {
+    // SectionHeaderRow should not accept or render icon prop
+    expect(nowSource).not.toMatch(/icon="📊"/);
+    expect(nowSource).not.toMatch(/icon="🗓️"/);
+    expect(nowSource).not.toMatch(/icon="📋"/);
+    // No sectionHeaderIcon style
+    expect(nowSource).not.toContain('sectionHeaderIcon:');
   });
 
-  test('cardGlance has teal top border', () => {
-    // Extract the cardGlance style block
-    const cardGlanceMatch = nowSource.match(/cardGlance:\s*\{[^}]+\}/);
-    expect(cardGlanceMatch).not.toBeNull();
-    const block = cardGlanceMatch![0];
-    expect(block).toContain('borderTopWidth: 2');
-    expect(block).toContain('borderTopColor: c.accent');
+  test('section titles are correct: Today\'s Progress, Today\'s Schedule, Upcoming This Week', () => {
+    expect(nowSource).toContain('title="Today\'s Progress"');
+    expect(nowSource).toContain('title="Today\'s Schedule"');
+    expect(nowSource).toContain('title="Upcoming This Week"');
   });
 
-  test('cardSchedule has no accent border color', () => {
-    const cardScheduleMatch = nowSource.match(/cardSchedule:\s*\{[^}]+\}/);
-    expect(cardScheduleMatch).not.toBeNull();
-    const block = cardScheduleMatch![0];
-    // Should have glassBorder only, no accent or green border color
-    expect(block).not.toContain('c.accent');
-    expect(block).not.toContain('c.green');
-    expect(block).not.toContain('borderTopColor');
-    expect(block).not.toContain('borderLeftColor');
+  test('sections appear in correct order', () => {
+    const progressIdx = nowSource.indexOf('title="Today\'s Progress"');
+    const scheduleIdx = nowSource.indexOf('title="Today\'s Schedule"');
+    const upcomingIdx = nowSource.indexOf('title="Upcoming This Week"');
+
+    expect(progressIdx).toBeGreaterThan(-1);
+    expect(scheduleIdx).toBeGreaterThan(-1);
+    expect(upcomingIdx).toBeGreaterThan(-1);
+    expect(progressIdx).toBeLessThan(scheduleIdx);
+    expect(scheduleIdx).toBeLessThan(upcomingIdx);
   });
 
-  test('cardUpcoming has green left border', () => {
-    const cardUpcomingMatch = nowSource.match(/cardUpcoming:\s*\{[^}]+\}/);
-    expect(cardUpcomingMatch).not.toBeNull();
-    const block = cardUpcomingMatch![0];
-    expect(block).toContain('borderLeftWidth: 3');
-    expect(block).toContain('borderLeftColor: c.greenBright');
+  test('GlanceSummary component is removed', () => {
+    expect(nowSource).not.toContain('<GlanceSummary');
+    expect(nowSource).not.toContain('function GlanceSummary');
   });
 
-  test('old standalone SectionHeader "Today\'s Progress" is removed from render', () => {
-    // Should NOT contain <SectionHeader as a JSX element (import is also removed)
+  test('old standalone SectionHeader is not imported', () => {
     expect(nowSource).not.toMatch(/<SectionHeader\s/);
-    // Should not import SectionHeader
     expect(nowSource).not.toMatch(/import\s+\{[^}]*SectionHeader[^}]*\}\s+from\s+['"].*SectionHeader/);
+  });
+
+  test('appointmentPrepCard has its own green-tinted background', () => {
+    const cardMatch = nowSource.match(/appointmentPrepCard:\s*\{[^}]+\}/);
+    expect(cardMatch).not.toBeNull();
+    const block = cardMatch![0];
+    expect(block).toContain('rgba(20, 55, 45, 0.3)');
+    expect(block).toContain('borderRadius: 10');
+  });
+
+  test('no purpose prop on Now page ScreenHeader', () => {
+    // The purpose prop should not be passed in Now page
+    expect(nowSource).not.toContain('purpose="What needs your attention today."');
   });
 });
