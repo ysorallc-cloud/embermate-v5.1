@@ -2,7 +2,7 @@
 // CARE PLAN HOME — Three-zone layout: Tracking, Daily Schedule, Available
 // ============================================================================
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { navigate } from '../../lib/navigate';
 import {
   View,
@@ -187,6 +187,8 @@ export default function CarePlanHomeScreen() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [addItemWindow, setAddItemWindow] = useState<string | null>(null);
   const [medSeedingTemplate, setMedSeedingTemplate] = useState<{ name: string; suggestions: TemplateMedSuggestion[] } | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const availableSectionY = useRef<number>(0);
 
   // Split buckets into enabled and disabled
   const allBuckets: BucketType[] = [...PRIMARY_BUCKETS, ...SECONDARY_BUCKETS, ...OPTIONAL_BUCKETS];
@@ -468,6 +470,7 @@ export default function CarePlanHomeScreen() {
         </View>
 
         <ScrollView
+          ref={scrollViewRef}
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -528,15 +531,17 @@ export default function CarePlanHomeScreen() {
             <Text style={styles.emptyText}>No categories enabled. Enable one below to start tracking.</Text>
           )}
 
-          <TouchableOpacity
-            style={styles.addCategoryLink}
-            onPress={() => {
-              // Scroll to Available section — for now just a visual anchor
-            }}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.addCategoryText}>+ Add category</Text>
-          </TouchableOpacity>
+          {disabledBuckets.length > 0 && (
+            <TouchableOpacity
+              style={styles.addCategoryLink}
+              onPress={() => {
+                scrollViewRef.current?.scrollTo({ y: availableSectionY.current, animated: true });
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.addCategoryText}>+ Add category</Text>
+            </TouchableOpacity>
+          )}
 
           {/* ═══ ZONE 2: DAILY SCHEDULE ═══ */}
           {scheduleItems.length > 0 && (
@@ -567,7 +572,9 @@ export default function CarePlanHomeScreen() {
           {/* ═══ ZONE 3: AVAILABLE ═══ */}
           {disabledBuckets.length > 0 && (
             <>
-              <SectionHeaderRow title={"Available"} />
+              <View onLayout={(e) => { availableSectionY.current = e.nativeEvent.layout.y; }}>
+                <SectionHeaderRow title={"Available"} />
+              </View>
               {disabledBuckets.map(bucket => (
                 <View key={bucket} style={styles.availRow}>
                   <Text style={styles.availEmoji}>{BUCKET_META[bucket].emoji}</Text>
