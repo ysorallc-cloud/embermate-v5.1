@@ -1,10 +1,8 @@
 // ============================================================================
-// CARE PLAN HOME
-// Main entry point for configuring Care Plan buckets
-// "Choose what to track and how reminders work"
+// CARE PLAN HOME — Three-zone layout: Tracking, Daily Schedule, Available
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { navigate } from '../../lib/navigate';
 import {
   View,
@@ -29,6 +27,8 @@ import {
   PRIMARY_BUCKETS,
   SECONDARY_BUCKETS,
   OPTIONAL_BUCKETS,
+  TIME_OF_DAY_DEFAULTS,
+  MealsBucketConfig,
 } from '../../types/carePlanConfig';
 import { InfoModal, InfoIconButton } from '../../components/common/InfoModal';
 import { CARE_PLAN_TEMPLATES, CarePlanTemplate, TemplateMedSuggestion } from '../../constants/carePlanTemplates';
@@ -36,64 +36,30 @@ import { TemplateMedSeedingModal } from '../../components/careplan/TemplateMedSe
 import { AddItemSheet } from '../../components/careplan/AddItemSheet';
 
 // ============================================================================
-// BUCKET CARD COMPONENT
+// HELPERS
 // ============================================================================
 
-interface BucketCardProps {
-  bucket: BucketType;
-  enabled: boolean;
-  statusText: string | null;
-  onToggle: (enabled: boolean) => void;
-  onConfigure: () => void;
+function formatTimeLabel(time: string): string {
+  const [h, m] = time.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${period}`;
 }
 
-function BucketCard({ bucket, enabled, statusText, onToggle, onConfigure }: BucketCardProps) {
-  const meta = BUCKET_META[bucket];
+// ============================================================================
+// SECTION HEADER ROW
+// ============================================================================
 
+function SectionHeaderRow({ title, action, onAction }: {
+  title: string;
+  action?: string;
+  onAction?: () => void;
+}) {
   return (
-    <View style={[styles.bucketCard, enabled && styles.bucketCardEnabled]}>
-      <TouchableOpacity
-        style={styles.bucketCardMain}
-        onPress={onConfigure}
-        activeOpacity={0.7}
-        accessibilityLabel={`${meta.name}, ${enabled ? 'enabled' : 'disabled'}`}
-        accessibilityRole="switch"
-        accessibilityState={{ checked: enabled }}
-      >
-        <View style={styles.bucketCardLeft}>
-          <Text style={styles.bucketEmoji}>{meta.emoji}</Text>
-          <View style={styles.bucketInfo}>
-            <Text style={[styles.bucketName, enabled && styles.bucketNameEnabled]}>
-              {meta.name}
-            </Text>
-            <Text style={styles.bucketInsight} numberOfLines={2}>
-              {meta.aiInsight}
-            </Text>
-            {enabled && statusText && (
-              <Text style={styles.bucketStatus}>{statusText}</Text>
-            )}
-          </View>
-        </View>
-        <View style={styles.bucketCardRight}>
-          <Switch
-            value={enabled}
-            onValueChange={onToggle}
-            trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
-            thumbColor={enabled ? Colors.textPrimary : Colors.switchThumbOff}
-            ios_backgroundColor={Colors.glassStrong}
-          />
-        </View>
-      </TouchableOpacity>
-      {enabled && (
-        <TouchableOpacity
-          style={styles.configureButton}
-          onPress={onConfigure}
-          activeOpacity={0.7}
-          accessibilityLabel={`Configure ${meta.name}`}
-          accessibilityRole="button"
-        >
-          <Text style={styles.configureText}>Configure</Text>
-          <Text style={styles.configureChevron}>›</Text>
+    <View style={styles.sectionHeaderRow}>
+      <Text style={styles.sectionHeaderTitle}>{title}</Text>
+      {action && onAction && (
+        <TouchableOpacity onPress={onAction} activeOpacity={0.7}>
+          <Text style={styles.sectionHeaderAction}>{action} {'\u2192'}</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -101,7 +67,47 @@ function BucketCard({ bucket, enabled, statusText, onToggle, onConfigure }: Buck
 }
 
 // ============================================================================
-// AI INSIGHT CARD - Contextual tips
+// CATEGORY ROW — replaces BucketCard
+// ============================================================================
+
+interface CategoryRowProps {
+  bucket: BucketType;
+  emoji: string;
+  name: string;
+  detail: string | null;
+  enabled: boolean;
+  onToggle: (enabled: boolean) => void;
+  onPress: () => void;
+}
+
+function CategoryRow({ bucket, emoji, name, detail, enabled, onToggle, onPress }: CategoryRowProps) {
+  return (
+    <TouchableOpacity
+      style={styles.categoryRow}
+      onPress={onPress}
+      activeOpacity={0.7}
+      accessibilityLabel={`${name}, ${enabled ? 'enabled' : 'disabled'}. Tap to configure.`}
+      accessibilityRole="button"
+    >
+      <Text style={styles.categoryEmoji}>{emoji}</Text>
+      <View style={styles.categoryInfo}>
+        <Text style={styles.categoryName}>{name}</Text>
+        {detail && <Text style={styles.categoryDetail}>{detail}</Text>}
+      </View>
+      <Switch
+        value={enabled}
+        onValueChange={onToggle}
+        trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
+        thumbColor={enabled ? Colors.textPrimary : Colors.switchThumbOff}
+        ios_backgroundColor={Colors.glassStrong}
+      />
+      <Text style={styles.categoryChevron}>{'\u203A'}</Text>
+    </TouchableOpacity>
+  );
+}
+
+// ============================================================================
+// AI INSIGHT CARD
 // ============================================================================
 
 interface AIInsightCardProps {
@@ -119,7 +125,7 @@ function AIInsightCard({ icon, title, message, onDismiss }: AIInsightCardProps) 
         <Text style={styles.aiInsightTitle}>{title}</Text>
         {onDismiss && (
           <TouchableOpacity onPress={onDismiss} style={styles.aiInsightDismiss} accessibilityLabel={`Dismiss ${title} insight`} accessibilityRole="button">
-            <Text style={styles.aiInsightDismissText}>×</Text>
+            <Text style={styles.aiInsightDismissText}>{'\u00D7'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -129,7 +135,7 @@ function AIInsightCard({ icon, title, message, onDismiss }: AIInsightCardProps) 
 }
 
 // ============================================================================
-// TEMPLATE CARD COMPONENT
+// TEMPLATE CARD
 // ============================================================================
 
 interface TemplateCardProps {
@@ -181,9 +187,8 @@ export default function CarePlanHomeScreen() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [addItemWindow, setAddItemWindow] = useState<string | null>(null);
   const [medSeedingTemplate, setMedSeedingTemplate] = useState<{ name: string; suggestions: TemplateMedSuggestion[] } | null>(null);
-  const [showAddMore, setShowAddMore] = useState(false);
 
-  // Split buckets into enabled (main grid) and disabled (collapsible section)
+  // Split buckets into enabled and disabled
   const allBuckets: BucketType[] = [...PRIMARY_BUCKETS, ...SECONDARY_BUCKETS, ...OPTIONAL_BUCKETS];
   const enabledBucketSet = new Set(enabledBuckets);
   const disabledBuckets = allBuckets.filter(b => !enabledBucketSet.has(b));
@@ -200,40 +205,23 @@ export default function CarePlanHomeScreen() {
   }, [toggleBucket]);
 
   const handleConfigureBucket = useCallback((bucket: BucketType) => {
-    // Navigate to bucket-specific configuration screen
     switch (bucket) {
-      case 'meds':
-        navigate('/care-plan/meds');
-        break;
-      case 'vitals':
-        navigate('/care-plan/vitals');
-        break;
-      case 'meals':
-        navigate('/care-plan/meals');
-        break;
-      case 'water':
-        navigate('/care-plan/water');
-        break;
-      case 'sleep':
-        navigate('/care-plan/sleep');
-        break;
-      case 'activity':
-        navigate('/care-plan/activity');
-        break;
-      case 'appointments':
-        navigate('/appointments');
-        break;
-      default:
-        break;
+      case 'meds': navigate('/care-plan/meds'); break;
+      case 'vitals': navigate('/care-plan/vitals'); break;
+      case 'meals': navigate('/care-plan/meals'); break;
+      case 'water': navigate('/care-plan/water'); break;
+      case 'sleep': navigate('/care-plan/sleep'); break;
+      case 'activity': navigate('/care-plan/activity'); break;
+      case 'appointments': navigate('/appointments'); break;
+      default: break;
     }
-  }, [router]);
+  }, []);
 
   const dismissInsight = useCallback((id: string) => {
     setDismissedInsights(prev => [...prev, id]);
   }, []);
 
   const applyTemplate = useCallback(async (template: CarePlanTemplate) => {
-    // Ensure config exists
     let currentConfig = config;
     if (!currentConfig) {
       currentConfig = await initializeConfig();
@@ -241,14 +229,12 @@ export default function CarePlanHomeScreen() {
 
     const enabledSet = new Set(template.enabledBuckets);
 
-    // Disable buckets NOT in the template
     for (const bucket of BUCKET_TYPES) {
       if (!enabledSet.has(bucket)) {
         await updateBucket(bucket, { enabled: false });
       }
     }
 
-    // Enable each bucket from the template and apply suggested settings
     for (const bucket of template.enabledBuckets) {
       const suggestion = template.suggestedSettings[bucket];
       const updates: Partial<BucketConfig> = { enabled: true };
@@ -260,7 +246,6 @@ export default function CarePlanHomeScreen() {
 
       await updateBucket(bucket, updates);
 
-      // Apply bucket-specific settings via updateConfig
       if (suggestion) {
         const bucketSpecific: Record<string, any> = {};
         if (suggestion.vitalTypes) bucketSpecific.vitalTypes = suggestion.vitalTypes;
@@ -274,7 +259,6 @@ export default function CarePlanHomeScreen() {
       }
     }
 
-    // After applying template settings, show med seeding modal if applicable
     if (template.suggestedMedications && template.suggestedMedications.length > 0) {
       setMedSeedingTemplate({
         name: template.name,
@@ -283,33 +267,120 @@ export default function CarePlanHomeScreen() {
     }
   }, [config, initializeConfig, updateBucket]);
 
-  // Determine which contextual insight to show (rule-based, non-LLM)
+  // ============================================================================
+  // DAILY SCHEDULE — build chronological schedule from config
+  // ============================================================================
+
+  const scheduleItems = useMemo(() => {
+    if (!config) return [];
+    const items: { time: string; label: string }[] = [];
+
+    // Wellness — morning, afternoon, evening when enabled
+    if (config.wellness?.enabled) {
+      items.push(
+        { time: '07:00', label: 'Morning wellness' },
+        { time: '13:00', label: 'Afternoon wellness' },
+        { time: '20:00', label: 'Evening wellness' },
+      );
+    }
+
+    // Meals — use timesOfDay from config
+    if (config.meals?.enabled) {
+      const mealsConfig = config.meals as MealsBucketConfig;
+      const times = mealsConfig.timesOfDay || ['morning', 'midday', 'evening'];
+      const mealNames: Record<string, string> = {
+        morning: 'Breakfast', midday: 'Lunch', evening: 'Dinner',
+      };
+      times.forEach(tod => {
+        items.push({
+          time: TIME_OF_DAY_DEFAULTS[tod] || '08:00',
+          label: mealNames[tod] || 'Meal',
+        });
+      });
+    }
+
+    // Vitals
+    if (config.vitals?.enabled) {
+      const times = config.vitals.timesOfDay || ['morning'];
+      times.forEach(tod => {
+        items.push({
+          time: TIME_OF_DAY_DEFAULTS[tod] || '08:00',
+          label: 'Vitals check',
+        });
+      });
+    }
+
+    // Water
+    if (config.water?.enabled) {
+      items.push({ time: '08:00', label: 'Water tracking' });
+    }
+
+    // Sleep
+    if (config.sleep?.enabled) {
+      items.push({ time: '22:00', label: 'Sleep log' });
+    }
+
+    // Activity
+    if (config.activity?.enabled) {
+      const times = config.activity.timesOfDay || ['morning'];
+      times.forEach(tod => {
+        items.push({
+          time: TIME_OF_DAY_DEFAULTS[tod] || '09:00',
+          label: 'Activity',
+        });
+      });
+    }
+
+    // Medications — from meds config
+    if (config.meds?.enabled) {
+      const medsConfig = config.meds;
+      const medications = medsConfig.medications || [];
+      medications.filter(m => m.active).forEach(med => {
+        const time = med.scheduledTimeHHmm || TIME_OF_DAY_DEFAULTS[med.timesOfDay?.[0]] || '08:00';
+        items.push({ time, label: med.name });
+      });
+    }
+
+    // Sort chronologically
+    items.sort((a, b) => a.time.localeCompare(b.time));
+
+    // Group by time
+    const grouped = new Map<string, string[]>();
+    items.forEach(({ time, label }) => {
+      if (!grouped.has(time)) grouped.set(time, []);
+      grouped.get(time)!.push(label);
+    });
+
+    return Array.from(grouped.entries()).map(([time, labels]) => ({ time, labels }));
+  }, [config]);
+
+  // ============================================================================
+  // CONTEXTUAL INSIGHT
+  // ============================================================================
+
   const getContextualInsight = useCallback(() => {
     if (!config) return null;
 
-    // Priority 1: No buckets enabled - suggest starting simple
     if (!hasCarePlan && !dismissedInsights.includes('start-simple')) {
       return {
         id: 'start-simple',
-        icon: '💡',
+        icon: '\uD83D\uDCA1',
         title: 'Start simple',
         message: 'Try enabling Medications and Mood first. You can add more categories anytime.',
       };
     }
 
-    // Priority 2: Meds enabled but no medications added
     if (config.meds.enabled) {
       const medsConfig = config.meds;
       if (!medsConfig.medications?.length && !dismissedInsights.includes('add-meds')) {
         return {
           id: 'add-meds',
-          icon: '💊',
+          icon: '\uD83D\uDC8A',
           title: 'Add medications',
           message: 'Tap Configure on Medications to add your first medication and set up reminders.',
         };
       }
 
-      // Priority 3: Medication supply tracking without threshold
       const medsWithSupply = (medsConfig.medications || []).filter(m => m.supplyEnabled && m.active);
       const medsNeedingRefill = medsWithSupply.filter(m =>
         m.daysSupply !== undefined && m.refillThresholdDays !== undefined &&
@@ -318,44 +389,41 @@ export default function CarePlanHomeScreen() {
       if (medsNeedingRefill.length > 0 && !dismissedInsights.includes('refill-reminder')) {
         return {
           id: 'refill-reminder',
-          icon: '🔔',
+          icon: '\uD83D\uDD14',
           title: 'Refill reminder',
           message: `${medsNeedingRefill[0].name} supply is running low. Consider ordering a refill soon.`,
         };
       }
     }
 
-    // Priority 4: Many buckets enabled - suggest focus
     const enabledCount = enabledBuckets.length;
     if (enabledCount >= 6 && !dismissedInsights.includes('focus-suggestion')) {
       return {
         id: 'focus-suggestion',
-        icon: '🎯',
+        icon: '\uD83C\uDFAF',
         title: 'Focus for better habits',
         message: "You've enabled many categories. Consider starting with 2-3 that matter most, then add more once those feel natural.",
       };
     }
 
-    // Priority 5: Vitals enabled but no types selected
     if (config.vitals.enabled) {
       const vitalsConfig = config.vitals;
       if ((!vitalsConfig.vitalTypes || vitalsConfig.vitalTypes.length === 0) && !dismissedInsights.includes('select-vitals')) {
         return {
           id: 'select-vitals',
-          icon: '📊',
+          icon: '\uD83D\uDCCA',
           title: 'Choose vitals to track',
           message: 'Tap Configure on Vitals to select which measurements to track.',
         };
       }
     }
 
-    // Priority 6: No notifications enabled on any bucket (when buckets are enabled)
     if (hasCarePlan && config) {
       const anyNotificationsEnabled = enabledBuckets.some((bucket: BucketType) => config[bucket]?.notificationsEnabled);
       if (!anyNotificationsEnabled && !dismissedInsights.includes('enable-notifications')) {
         return {
           id: 'enable-notifications',
-          icon: '🔔',
+          icon: '\uD83D\uDD14',
           title: 'Stay on track',
           message: 'Enable reminders on any category to get gentle notifications when things are due.',
         };
@@ -391,10 +459,12 @@ export default function CarePlanHomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
-            <Text style={styles.backIcon}>←</Text>
+            <Text style={styles.backIcon}>{'\u2190'}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerLabel}>CARE PLAN</Text>
-          <View style={{ width: 44 }} />
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerLabel}>CARE PLAN</Text>
+          </View>
+          <InfoIconButton onPress={() => setShowInfoModal(true)} />
         </View>
 
         <ScrollView
@@ -402,17 +472,6 @@ export default function CarePlanHomeScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Title Section */}
-          <View style={styles.titleSection}>
-            <View style={styles.titleRow}>
-              <Text style={styles.title}>Care Plan</Text>
-              <InfoIconButton onPress={() => setShowInfoModal(true)} />
-            </View>
-            <Text style={styles.subtitle}>
-              Build what happens at each part of the day.
-            </Text>
-          </View>
-
           {/* Info Modal */}
           <InfoModal
             visible={showInfoModal}
@@ -422,32 +481,10 @@ export default function CarePlanHomeScreen() {
             hint="Use 'Adjust Today' from the Now screen for one-day changes that reset tomorrow."
           />
 
-          {/* How Your Care Plan Works - Explanatory Panel */}
-          <View style={styles.howItWorksCard}>
-            <View style={styles.howItWorksHeader}>
-              <Text style={styles.howItWorksIcon}>📋</Text>
-              <Text style={styles.howItWorksTitle}>How your Care Plan works</Text>
-            </View>
-            <View style={styles.howItWorksList}>
-              <Text style={styles.howItWorksItem}>
-                • Your Care Plan defines what you track and when.
-              </Text>
-              <Text style={styles.howItWorksItem}>
-                • <Text style={styles.howItWorksBold}>Now</Text> shows what's next. <Text style={styles.howItWorksBold}>Record</Text> saves what happened.
-              </Text>
-              <Text style={styles.howItWorksItem}>
-                • <Text style={styles.howItWorksBold}>Understand</Text> finds patterns from what you log.
-              </Text>
-            </View>
-            <Text style={styles.howItWorksStorage}>
-              Your data is saved on your device.
-            </Text>
-          </View>
-
-          {/* Quick Start Templates — shown when no buckets enabled */}
+          {/* Quick Start Templates — only when no care plan exists */}
           {!hasCarePlan && (
             <>
-              <Text style={styles.sectionLabel}>QUICK START</Text>
+              <Text style={styles.templateIntroLabel}>QUICK START</Text>
               <Text style={styles.templateIntro}>
                 Choose a template to get started, then customize as needed.
               </Text>
@@ -471,128 +508,83 @@ export default function CarePlanHomeScreen() {
             />
           )}
 
-          {/* Routines — grouped by time of day */}
-          <Text style={styles.sectionLabel}>ROUTINES</Text>
+          {/* ═══ ZONE 1: TRACKING ═══ */}
+          <SectionHeaderRow title={"Tracking"} />
 
-          {(['morning', 'midday', 'evening'] as const).map((window) => {
-            const windowLabel = window === 'midday' ? 'Afternoon' : window.charAt(0).toUpperCase() + window.slice(1);
-            const windowEmoji = window === 'morning' ? '🌅' : window === 'midday' ? '☀️' : '🌙';
+          {enabledBuckets.map(bucket => (
+            <CategoryRow
+              key={bucket}
+              bucket={bucket}
+              emoji={BUCKET_META[bucket].emoji}
+              name={BUCKET_META[bucket].name}
+              detail={getBucketStatus(bucket)}
+              enabled={true}
+              onToggle={(val) => handleToggleBucket(bucket, val)}
+              onPress={() => handleConfigureBucket(bucket)}
+            />
+          ))}
 
-            // Find buckets scheduled in this window
-            const bucketsInWindow = BUCKET_TYPES.filter(b =>
-              config?.[b]?.enabled && config[b]?.timesOfDay?.includes(window)
-            );
+          {enabledBuckets.length === 0 && hasCarePlan && (
+            <Text style={styles.emptyText}>No categories enabled. Enable one below to start tracking.</Text>
+          )}
 
-            // Check if wellness is scheduled in this window
-            const hasWellness = window === 'morning' || window === 'midday' || window === 'evening';
-            const wellnessLabel = window === 'morning' ? 'Morning wellness check'
-              : window === 'midday' ? 'Afternoon wellness check'
-              : 'Evening wellness check';
+          <TouchableOpacity
+            style={styles.addCategoryLink}
+            onPress={() => {
+              // Scroll to Available section — for now just a visual anchor
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.addCategoryText}>+ Add category</Text>
+          </TouchableOpacity>
 
-            const itemCount = bucketsInWindow.length + (hasWellness ? 1 : 0);
+          {/* ═══ ZONE 2: DAILY SCHEDULE ═══ */}
+          {scheduleItems.length > 0 && (
+            <>
+              <SectionHeaderRow
+                title={"Daily Schedule"}
+                action="Edit Times"
+                onAction={() => {
+                  if (enabledBuckets.length > 0) {
+                    handleConfigureBucket(enabledBuckets[0]);
+                  }
+                }}
+              />
 
-            return (
-              <View key={window} style={styles.routineSection}>
-                <View style={styles.routineHeader}>
-                  <Text style={styles.routineEmoji}>{windowEmoji}</Text>
-                  <View style={styles.routineHeaderText}>
-                    <Text style={styles.routineTitle}>{windowLabel}</Text>
-                    <Text style={styles.routineCount}>
-                      {itemCount} {itemCount === 1 ? 'item' : 'items'}
-                    </Text>
+              {scheduleItems.map(({ time, labels }) => (
+                <View key={time} style={styles.schedRow}>
+                  <Text style={styles.schedTime}>{formatTimeLabel(time)}</Text>
+                  <View style={styles.schedChips}>
+                    {labels.map(label => (
+                      <Text key={label} style={styles.schedChip}>{label}</Text>
+                    ))}
                   </View>
                 </View>
-
-                {/* Wellness check for this window */}
-                {hasWellness && (
-                  <TouchableOpacity
-                    style={styles.routineItem}
-                    onPress={() => navigate('/care-plan/wellness')}
-                    activeOpacity={0.7}
-                    accessibilityLabel={`Configure ${wellnessLabel}`}
-                    accessibilityRole="button"
-                  >
-                    <Text style={styles.routineItemEmoji}>☀️</Text>
-                    <View style={styles.routineItemInfo}>
-                      <Text style={styles.routineItemName}>{wellnessLabel}</Text>
-                      <Text style={styles.routineItemSub}>Wellness check</Text>
-                    </View>
-                    <Text style={styles.routineItemChevron}>›</Text>
-                  </TouchableOpacity>
-                )}
-
-                {/* Buckets in this window */}
-                {bucketsInWindow.map(bucket => (
-                  <BucketCard
-                    key={`${window}-${bucket}`}
-                    bucket={bucket}
-                    enabled={config?.[bucket]?.enabled ?? false}
-                    statusText={getBucketStatus(bucket)}
-                    onToggle={(enabled) => handleToggleBucket(bucket, enabled)}
-                    onConfigure={() => handleConfigureBucket(bucket)}
-                  />
-                ))}
-
-                {bucketsInWindow.length === 0 && !hasWellness && (
-                  <Text style={styles.routineEmpty}>No items scheduled</Text>
-                )}
-
-                <TouchableOpacity
-                  style={styles.addItemButton}
-                  onPress={() => setAddItemWindow(window)}
-                  activeOpacity={0.7}
-                  accessibilityLabel={`Add item to ${windowLabel}`}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.addItemText}>+ Add item</Text>
-                </TouchableOpacity>
-              </View>
-            );
-          })}
-
-          {/* Enabled categories — main tile grid */}
-          {enabledBuckets.length > 0 && (
-            <>
-              <Text style={styles.sectionLabel}>YOUR CATEGORIES</Text>
-              {enabledBuckets.map(bucket => (
-                <BucketCard
-                  key={bucket}
-                  bucket={bucket}
-                  enabled={true}
-                  statusText={getBucketStatus(bucket)}
-                  onToggle={(enabled) => handleToggleBucket(bucket, enabled)}
-                  onConfigure={() => handleConfigureBucket(bucket)}
-                />
               ))}
             </>
           )}
 
-          {/* Disabled categories — collapsible "Add more" section */}
+          {/* ═══ ZONE 3: AVAILABLE ═══ */}
           {disabledBuckets.length > 0 && (
             <>
-              <TouchableOpacity
-                style={styles.addMoreHeader}
-                onPress={() => setShowAddMore(!showAddMore)}
-                activeOpacity={0.7}
-                accessibilityLabel={showAddMore ? 'Collapse add more categories' : 'Expand add more categories'}
-                accessibilityRole="button"
-              >
-                <Text style={styles.addMoreTitle}>
-                  Add more categories
-                </Text>
-                <Text style={styles.addMoreChevron}>
-                  {showAddMore ? '▾' : '▸'}
-                </Text>
-              </TouchableOpacity>
-              {showAddMore && disabledBuckets.map(bucket => (
-                <BucketCard
-                  key={bucket}
-                  bucket={bucket}
-                  enabled={false}
-                  statusText={null}
-                  onToggle={(enabled) => handleToggleBucket(bucket, enabled)}
-                  onConfigure={() => handleConfigureBucket(bucket)}
-                />
+              <SectionHeaderRow title={"Available"} />
+              {disabledBuckets.map(bucket => (
+                <View key={bucket} style={styles.availRow}>
+                  <Text style={styles.availEmoji}>{BUCKET_META[bucket].emoji}</Text>
+                  <View style={styles.availInfo}>
+                    <Text style={styles.availName}>{BUCKET_META[bucket].name}</Text>
+                    <Text style={styles.availDesc} numberOfLines={2}>{BUCKET_META[bucket].aiInsight}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.enableBtn}
+                    onPress={() => handleToggleBucket(bucket, true)}
+                    activeOpacity={0.7}
+                    accessibilityLabel={`Enable ${BUCKET_META[bucket].name}`}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.enableBtnText}>Enable</Text>
+                  </TouchableOpacity>
+                </View>
               ))}
             </>
           )}
@@ -609,7 +601,7 @@ export default function CarePlanHomeScreen() {
         onClose={() => setAddItemWindow(null)}
       />
 
-      {/* Med Seeding Modal — shown after applying a template with suggested meds */}
+      {/* Med Seeding Modal */}
       {medSeedingTemplate && (
         <TemplateMedSeedingModal
           visible={!!medSeedingTemplate}
@@ -663,6 +655,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: Colors.textPrimary,
   },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
   headerLabel: {
     fontSize: 11,
     color: Colors.textMuted,
@@ -679,206 +675,149 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // Title Section
-  titleSection: {
-    marginBottom: Spacing.xl,
-  },
-  titleRow: {
+  // Section Header Row
+  sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
+    justifyContent: 'space-between',
+    paddingTop: 20,
+    paddingBottom: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.04)',
+    marginTop: 8,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: Colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: Colors.textSecondary,
-    lineHeight: 22,
-  },
-
-  // Section Labels
-  sectionLabel: {
+  sectionHeaderTitle: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textHalf,
-    letterSpacing: 1,
-    marginBottom: Spacing.md,
-    marginTop: Spacing.xl,
-  },
-  addMoreHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.md,
-    marginTop: Spacing.xl,
-    borderTopWidth: 1,
-    borderTopColor: Colors.glassBorder,
-  },
-  addMoreTitle: {
-    fontSize: 14,
-    fontWeight: '500',
     color: Colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
-  addMoreChevron: {
-    fontSize: 14,
-    color: Colors.textMuted,
+  sectionHeaderAction: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.accent,
   },
 
-  // Bucket Card
-  bucketCard: {
-    backgroundColor: Colors.glassFaint,
+  // Category Row (Zone 1: Tracking)
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.025)',
+    gap: 10,
+  },
+  categoryEmoji: {
+    fontSize: 20,
+    width: 32,
+    textAlign: 'center',
+  },
+  categoryInfo: {
+    flex: 1,
+  },
+  categoryName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  categoryDetail: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  categoryChevron: {
+    fontSize: 18,
+    color: Colors.textMuted,
+    marginLeft: 4,
+  },
+
+  // Add category link
+  addCategoryLink: {
+    paddingVertical: 10,
+  },
+  addCategoryText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.accent,
+  },
+  emptyText: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    paddingVertical: 12,
+  },
+
+  // Schedule Row (Zone 2: Daily Schedule)
+  schedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    gap: 8,
+  },
+  schedTime: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    width: 56,
+    textAlign: 'right',
+  },
+  schedChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    flex: 1,
+  },
+  schedChip: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
+    borderColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,255,255,0.02)',
     overflow: 'hidden',
   },
-  bucketCardEnabled: {
-    borderColor: Colors.sageGlow,
-    backgroundColor: Colors.sageHint,
-  },
-  bucketCardMain: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  bucketCardLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.md,
-  },
-  bucketEmoji: {
-    fontSize: 28,
-    marginTop: 2,
-  },
-  bucketInfo: {
-    flex: 1,
-  },
-  bucketName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  bucketNameEnabled: {
-    color: Colors.accent,
-  },
-  bucketInsight: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  bucketStatus: {
-    fontSize: 12,
-    color: Colors.accent,
-    marginTop: 6,
-    fontWeight: '500',
-  },
-  bucketCardRight: {
-    paddingTop: 4,
-  },
-  configureButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.sageBorder,
-    backgroundColor: Colors.sageHint,
-  },
-  configureText: {
-    fontSize: 14,
-    color: Colors.accent,
-    fontWeight: '500',
-  },
-  configureChevron: {
-    fontSize: 18,
-    color: Colors.accent,
-  },
 
-  // Routine Sections
-  routineSection: {
-    backgroundColor: Colors.glassFaint,
-    borderWidth: 1,
-    borderColor: Colors.glassActive,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
-  },
-  routineHeader: {
+  // Available Row (Zone 3: Available)
+  availRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.025)',
+    gap: 10,
   },
-  routineEmoji: {
-    fontSize: 22,
-  },
-  routineHeaderText: {
-    flex: 1,
-  },
-  routineTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  routineCount: {
-    fontSize: 12,
-    color: Colors.textHalf,
-    marginTop: 2,
-  },
-  routineItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.glassActive,
-    gap: Spacing.md,
-  },
-  routineItemEmoji: {
+  availEmoji: {
     fontSize: 20,
+    width: 32,
+    textAlign: 'center',
+    opacity: 0.5,
   },
-  routineItemInfo: {
+  availInfo: {
     flex: 1,
   },
-  routineItemName: {
+  availName: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: Colors.textMuted,
   },
-  routineItemSub: {
-    fontSize: 12,
-    color: Colors.textHalf,
+  availDesc: {
+    fontSize: 11,
+    color: Colors.textTertiary,
     marginTop: 2,
+    lineHeight: 15,
   },
-  routineItemChevron: {
-    fontSize: 18,
-    color: Colors.accent,
+  enableBtn: {
+    backgroundColor: 'rgba(20, 184, 166, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
   },
-  routineEmpty: {
-    fontSize: 13,
-    color: Colors.textHalf,
-    fontStyle: 'italic',
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.glassActive,
-  },
-  addItemButton: {
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.glassActive,
-    marginTop: Spacing.sm,
-  },
-  addItemText: {
-    fontSize: 13,
-    fontWeight: '500',
+  enableBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
     color: Colors.accent,
   },
 
@@ -923,6 +862,14 @@ const styles = StyleSheet.create({
   },
 
   // Templates
+  templateIntroLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.textHalf,
+    letterSpacing: 1,
+    marginBottom: Spacing.md,
+    marginTop: Spacing.xl,
+  },
   templateIntro: {
     fontSize: 14,
     color: Colors.textSecondary,
@@ -961,47 +908,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.accent,
     fontWeight: '500',
-  },
-
-  // How It Works Card
-  howItWorksCard: {
-    backgroundColor: Colors.blueFaint,
-    borderWidth: 1,
-    borderColor: Colors.blueWash,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.xl,
-  },
-  howItWorksHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  howItWorksIcon: {
-    fontSize: 18,
-  },
-  howItWorksTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.blueBright,
-  },
-  howItWorksList: {
-    gap: 6,
-  },
-  howItWorksItem: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.75)',
-    lineHeight: 19,
-  },
-  howItWorksBold: {
-    fontWeight: '600',
-    color: Colors.blueBright,
-  },
-  howItWorksStorage: {
-    fontSize: 12,
-    color: Colors.textHalf,
-    marginTop: Spacing.md,
-    fontStyle: 'italic',
   },
 });
