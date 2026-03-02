@@ -3,7 +3,7 @@
 // "What's happening right now?" — Quick status and timeline
 // ============================================================================
 
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -117,6 +117,38 @@ function SectionHeaderRow({
           <Text style={s.sectionHeaderAction}>{action} →</Text>
         </TouchableOpacity>
       )}
+    </View>
+  );
+}
+
+// ============================================================================
+// INLINE COMPONENT — Insight banner (amber left border, dismissable)
+// ============================================================================
+
+function InsightBanner({
+  icon,
+  message,
+  onDismiss,
+  styles: s,
+}: {
+  icon: string;
+  message: string;
+  onDismiss: () => void;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  return (
+    <View style={s.insightBanner}>
+      <Text style={s.insightIcon}>{icon}</Text>
+      <Text style={s.insightMessage}>{message}</Text>
+      <TouchableOpacity
+        onPress={onDismiss}
+        style={s.insightDismiss}
+        accessibilityLabel="Dismiss insight"
+        accessibilityRole="button"
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Text style={s.insightDismissText}>{'\u2715'}</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -239,9 +271,19 @@ export default function NowScreen() {
 
   // Extracted hooks
   const { showOnboarding, briefing, handlers, getBaselineStatusMessage, computePrompts: computePromptsHook, checkNotificationPrompt: checkNotifPrompt, loadBaselines } = useNowPrompts(todayStats, dailyTracking);
-  const { aiInsight, careInsight } = useNowInsights(
+  const { insight } = useNowInsights(
     todayStats, instancesState, today, medications, appointments, dailyTracking
   );
+  const [insightDismissed, setInsightDismissed] = useState(false);
+  const [lastInsightMsg, setLastInsightMsg] = useState<string | null>(null);
+
+  // Reset dismiss when insight changes
+  useEffect(() => {
+    if (insight?.message && insight.message !== lastInsightMsg) {
+      setInsightDismissed(false);
+      setLastInsightMsg(insight.message);
+    }
+  }, [insight?.message]);
 
   // ============================================================================
   // TODAY TIMELINE - Built from DailyCareInstances
@@ -637,6 +679,16 @@ export default function NowScreen() {
 
         <View style={styles.content}>
 
+          {/* ═══ INSIGHT BANNER ═══ */}
+          {insight && !insightDismissed && (
+            <InsightBanner
+              icon={insight.icon}
+              message={insight.message}
+              onDismiss={() => setInsightDismissed(true)}
+              styles={styles}
+            />
+          )}
+
           {/* ═══ ZONE 1: TODAY'S PROGRESS ═══ */}
           <SectionHeaderRow
             title="Today's Progress"
@@ -778,9 +830,7 @@ export default function NowScreen() {
           {/* Footer message + coffee link */}
           <View style={styles.footerSection}>
             <Text style={styles.footerMessage}>
-              {careInsight
-                ? careInsight.message
-                : allPending.length === 0 && todayTimeline.completed.length > 0
+              {allPending.length === 0 && todayTimeline.completed.length > 0
                 ? 'You showed up today, and that matters.'
                 : allPending.length <= 2 && allPending.length > 0
                 ? 'Almost there. You\'re doing more than you think.'
@@ -1002,6 +1052,39 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginVertical: 16,
     paddingHorizontal: 20,
   },
+  // Insight banner
+  insightBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    borderLeftWidth: 2,
+    borderLeftColor: c.amber ?? '#FBBF24',
+    backgroundColor: 'rgba(245,158,11,0.03)',
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+    padding: 10,
+    paddingRight: 32,
+    marginBottom: 8,
+  },
+  insightIcon: {
+    fontSize: 14,
+  },
+  insightMessage: {
+    flex: 1,
+    fontSize: 12,
+    color: c.textSecondary,
+    lineHeight: 18,
+  },
+  insightDismiss: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  insightDismissText: {
+    fontSize: 12,
+    color: c.textMuted,
+  },
+
   footerSection: {
     alignItems: 'center',
     paddingTop: 20,

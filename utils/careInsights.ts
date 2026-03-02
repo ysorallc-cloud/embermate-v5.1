@@ -1,6 +1,12 @@
 // ============================================================================
 // CARE INSIGHT & AI INSIGHT GENERATORS
 // Pure functions - no React hooks needed
+//
+// Priority tiers (highest wins):
+// P1: Cross-category dependency (2+ categories)
+// P2: Appointment preparation (upcoming appointment)
+// P3: Multi-day pattern (requires recent history)
+// P4: Time-sensitive reminder
 // ============================================================================
 
 import type { TodayStats, CareInsight, AIInsight } from './nowHelpers';
@@ -8,139 +14,219 @@ import type { Appointment } from './appointmentStorage';
 import type { Medication } from './medicationStorage';
 
 // ============================================================================
-// CARE INSIGHT GENERATOR
-// Rules:
-// ✅ Pattern awareness, preventative suggestions, positive reinforcement, dependency awareness
-// ❌ Countdown reminders, "not logged" warnings, urgency alerts, fear-based language
+// RECENT HISTORY TYPE — built by useNowInsights from multi-day data
+// ============================================================================
+export interface RecentHistory {
+  lunchSkipCount: number;     // lunches missed in last 5 days
+  avgSystolic: number | null; // avg systolic BP over last 7 days (null if <3 readings)
+  avgDiastolic: number | null;
+  bpReadingCount: number;
+  consecutiveMedDays: number; // consecutive days with 100% med adherence
+  daysTracked: number;
+}
+
+// BP medication name patterns
+const BP_MED_PATTERNS = ['lisinopril', 'amlodipine', 'metoprolol', 'losartan', 'atenolol', 'hydrochlorothiazide', 'blood pressure'];
+const DIABETES_MED_PATTERNS = ['metformin', 'glipizide', 'insulin', 'jardiance', 'ozempic', 'diabetes'];
+
+function matchesMedPattern(name: string, patterns: string[]): boolean {
+  const lower = name.toLowerCase();
+  return patterns.some(p => lower.includes(p));
+}
+
+function findMedName(instances: any[], patterns: string[]): string | null {
+  const med = instances.find(i =>
+    i.itemType === 'medication' && matchesMedPattern(i.itemName || '', patterns)
+  );
+  return med?.itemName || null;
+}
+
+// ============================================================================
+// CARE INSIGHT GENERATOR — Priority tiers P1-P3
+// Every insight requires a specific data condition. No defaults.
 // ============================================================================
 
 export function generateCareInsight(
   stats: TodayStats,
   instances: any[],
   completedCount: number,
-  consecutiveLoggingDays: number = 0
+  recentHistory: RecentHistory | null = null,
+  upcomingAppointments: Appointment[] = []
 ): CareInsight | null {
-  const insights: CareInsight[] = [];
   const now = new Date();
   const currentHour = now.getHours();
 
-  // Calculate some useful metrics
-  const totalItems = stats.meds.total + stats.vitals.total + (stats.wellness?.total ?? 0) + stats.meals.total;
-  const totalCompleted = stats.meds.completed + stats.vitals.completed + (stats.wellness?.completed ?? 0) + stats.meals.completed;
-  const completionRate = totalItems > 0 ? totalCompleted / totalItems : 0;
-
-  // Check for vitals + medication dependency pattern
-  const hasPendingMeds = instances.some(i => i.itemType === 'medication' && i.status === 'pending');
+  // Useful data points
   const hasVitalsNotLogged = stats.vitals.total > 0 && stats.vitals.completed === 0;
-  const hasBPMedication = instances.some(i =>
-    i.itemType === 'medication' &&
-    i.itemName.toLowerCase().includes('blood pressure') ||
-    i.itemName.toLowerCase().includes('lisinopril') ||
-    i.itemName.toLowerCase().includes('amlodipine') ||
-    i.itemName.toLowerCase().includes('metoprolol')
+  const hasPendingBPMed = instances.some(i =>
+    i.itemType === 'medication' && i.status === 'pending' &&
+    matchesMedPattern(i.itemName || '', BP_MED_PATTERNS)
+  );
+  const completedDiabetesMed = instances.find(i =>
+    i.itemType === 'medication' && i.status === 'completed' &&
+    matchesMedPattern(i.itemName || '', DIABETES_MED_PATTERNS)
+  );
+  const completedMedWithName = instances.find(i =>
+    i.itemType === 'medication' && i.status === 'completed'
   );
 
-  // DEPENDENCY AWARENESS: Vitals before BP medication
-  if (hasBPMedication && hasVitalsNotLogged && hasPendingMeds && currentHour >= 6 && currentHour < 12) {
-    insights.push({
+  // ── P1: Cross-category dependency ──────────────────────────────────────
+  // BP med pending + vitals not logged + morning
+  if (hasPendingBPMed && hasVitalsNotLogged && currentHour >= 6 && currentHour < 12) {
+    const medName = findMedName(instances, BP_MED_PATTERNS) || 'blood pressure medication';
+    return {
       icon: '📊',
       title: 'A quick check first',
-      message: 'Logging vitals before blood pressure medication helps track how well it\'s working.',
+      message: `Log vitals before taking ${medName} — helps track if the dose is working.`,
       type: 'dependency',
-      confidence: 0.8,
-    });
+      confidence: 0.95,
+    };
   }
 
-  // PATTERN AWARENESS: Morning medication timing
-  if (stats.meds.total > 0 && stats.meds.completed === 0 && currentHour >= 9 && currentHour < 11) {
-    const morningMeds = instances.filter(i =>
-      i.itemType === 'medication' && i.status === 'pending' &&
-      new Date(i.scheduledTime).getHours() < 12
+  // Diabetes med taken + no water + past noon
+  if (completedDiabetesMed && (stats.hydration?.completed ?? 0) === 0 && currentHour >= 12) {
+    const medName = completedDiabetesMed.itemName || 'diabetes medication';
+    return {
+      icon: '💧',
+      title: 'Hydration check',
+      message: `No water logged and ${medName} was taken. Adequate hydration helps with this medication.`,
+      type: 'dependency',
+      confidence: 0.9,
+    };
+  }
+
+  // Meds completed + no meals + past noon
+  if (completedMedWithName && stats.meals.total > 0 && stats.meals.completed === 0 &&
+      stats.meds.completed > 0 && currentHour >= 12) {
+    const medName = completedMedWithName.itemName || 'medication';
+    return {
+      icon: '🍽️',
+      title: 'Food and medication',
+      message: `No meals logged and ${medName} was taken on an empty stomach. Some medications absorb better with food.`,
+      type: 'preventative',
+      confidence: 0.85,
+    };
+  }
+
+  // ── P2: Appointment preparation ────────────────────────────────────────
+  if (upcomingAppointments.length > 0) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    const tomorrowAppt = upcomingAppointments.find(a =>
+      !a.cancelled && !a.completed && a.date === tomorrowStr
     );
-    if (morningMeds.length > 0) {
-      insights.push({
-        icon: '💊',
-        title: 'Consistent timing helps',
-        message: 'Taking medications at the same time each day can improve their effectiveness.',
-        type: 'pattern',
-        confidence: 0.75,
-      });
+
+    if (tomorrowAppt) {
+      // Check if BP was logged today and is elevated
+      if (stats.vitals.completed > 0 && recentHistory?.avgSystolic != null) {
+        // Use today's latest reading if available via avgSystolic proxy
+        const sys = recentHistory.avgSystolic;
+        const dia = recentHistory.avgDiastolic ?? 0;
+        if (sys >= 140 || dia >= 90) {
+          return {
+            icon: '🩺',
+            title: 'Visit tomorrow',
+            message: `${tomorrowAppt.specialty || 'Doctor'} visit tomorrow — BP was ${Math.round(sys)}/${Math.round(dia)} today. Worth mentioning.`,
+            type: 'dependency',
+            confidence: 0.9,
+          };
+        }
+      }
+
+      // Generic appointment prep
+      const totalToday = stats.meds.total + stats.vitals.total;
+      const completedToday = stats.meds.completed + stats.vitals.completed;
+      if (totalToday > 0 && completedToday < totalToday) {
+        return {
+          icon: '🩺',
+          title: 'Visit tomorrow',
+          message: `${tomorrowAppt.provider} visit tomorrow. Today's logs will be useful for the appointment.`,
+          type: 'dependency',
+          confidence: 0.8,
+        };
+      }
     }
   }
 
-  // PREVENTATIVE: Logging vitals helps detect changes
-  if (stats.vitals.total > 0 && stats.vitals.completed > 0 && stats.meds.total > 0) {
-    insights.push({
-      icon: '📈',
-      title: 'Building your baseline',
-      message: 'Regular vitals logging helps detect dosage changes early.',
-      type: 'preventative',
-      confidence: 0.7,
-    });
+  // ── P3: Multi-day patterns (requires recentHistory) ────────────────────
+  if (recentHistory) {
+    // Lunch skipped ≥3 of last 5 days
+    if (recentHistory.lunchSkipCount >= 3) {
+      return {
+        icon: '🍽️',
+        title: 'Pattern detected',
+        message: `Lunch has been skipped ${recentHistory.lunchSkipCount} of the last 5 days. Consider adjusting the schedule.`,
+        type: 'pattern',
+        confidence: 0.85,
+      };
+    }
+
+    // BP average elevated (≥135 sys or ≥85 dia) with ≥3 readings
+    if (recentHistory.bpReadingCount >= 3 &&
+        recentHistory.avgSystolic != null && recentHistory.avgDiastolic != null &&
+        (recentHistory.avgSystolic >= 135 || recentHistory.avgDiastolic >= 85)) {
+      return {
+        icon: '📊',
+        title: 'BP trend',
+        message: `Blood pressure has averaged ${Math.round(recentHistory.avgSystolic)}/${Math.round(recentHistory.avgDiastolic)} this week — slightly above recommended range.`,
+        type: 'pattern',
+        confidence: 0.85,
+      };
+    }
+
+    // ≥7 consecutive days 100% med adherence
+    if (recentHistory.consecutiveMedDays >= 7) {
+      return {
+        icon: '💊',
+        title: 'Great consistency',
+        message: `All medications taken on time for ${recentHistory.consecutiveMedDays} days straight.`,
+        type: 'reinforcement',
+        confidence: 0.9,
+      };
+    }
   }
 
-  // REINFORCEMENT: Consistent logging streak
-  if (consecutiveLoggingDays >= 3) {
-    insights.push({
-      icon: '✨',
-      title: 'Great consistency',
-      message: `You've logged consistently for ${consecutiveLoggingDays} days. That builds strong health baselines.`,
-      type: 'reinforcement',
-      confidence: 0.9,
-    });
+  // ── P4: Time-sensitive reminders ───────────────────────────────────────
+  // Evening meds pending (4-8 PM)
+  if (currentHour >= 16 && currentHour < 20) {
+    const eveningMedsPending = instances.filter(i =>
+      i.itemType === 'medication' && i.status === 'pending' &&
+      new Date(i.scheduledTime).getHours() >= 16
+    );
+    if (eveningMedsPending.length > 0) {
+      return {
+        icon: '💊',
+        title: 'Evening meds',
+        message: `${eveningMedsPending.length} evening medication${eveningMedsPending.length > 1 ? 's' : ''} remaining.`,
+        type: 'pattern',
+        confidence: 0.75,
+      };
+    }
   }
 
-  // REINFORCEMENT: Good progress today
-  if (completionRate >= 0.5 && completionRate < 1.0 && totalCompleted >= 3) {
-    insights.push({
-      icon: '👍',
-      title: 'Solid progress today',
-      message: 'You\'re over halfway through today\'s care tasks.',
-      type: 'reinforcement',
-      confidence: 0.8,
-    });
-  }
-
-  // REINFORCEMENT: All complete celebration (soft version)
-  if (completionRate === 1.0 && totalItems > 0) {
-    insights.push({
-      icon: '✓',
-      title: 'Today\'s care complete',
-      message: 'All scheduled tasks are logged. Great work.',
-      type: 'reinforcement',
-      confidence: 1.0,
-    });
-  }
-
-  // PREVENTATIVE: Meal logging for medication absorption
-  if (stats.meals.total > 0 && stats.meals.completed === 0 && stats.meds.total > 0 && currentHour >= 12) {
-    insights.push({
-      icon: '🍽️',
-      title: 'Food and medication',
-      message: 'Some medications work better with food. Logging meals helps track this.',
-      type: 'preventative',
-      confidence: 0.65,
-    });
-  }
-
-  // PATTERN AWARENESS: Mood affects medication adherence
-  if ((stats.wellness?.total ?? 0) > 0 && (stats.wellness?.completed ?? 0) > 0) {
-    insights.push({
-      icon: '😊',
-      title: 'Mood tracking helps',
-      message: 'Mood patterns can reveal how medications are affecting daily life.',
-      type: 'pattern',
-      confidence: 0.7,
-    });
-  }
-
-  // Filter to only high-confidence insights (>= 0.6 threshold)
-  const highConfidenceInsights = insights.filter(i => i.confidence >= 0.6);
-
-  // Return the highest confidence insight
-  if (highConfidenceInsights.length > 0) {
-    highConfidenceInsights.sort((a, b) => b.confidence - a.confidence);
-    return highConfidenceInsights[0];
+  // Evening wellness pending + morning wellness done (past 7 PM)
+  if (currentHour >= 19) {
+    const morningWellnessDone = instances.some(i =>
+      (i.itemType === 'wellness' || i.itemType === 'mood') &&
+      i.status === 'completed' &&
+      new Date(i.scheduledTime).getHours() < 12
+    );
+    const eveningWellnessPending = instances.some(i =>
+      (i.itemType === 'wellness' || i.itemType === 'mood') &&
+      i.status === 'pending' &&
+      new Date(i.scheduledTime).getHours() >= 16
+    );
+    if (morningWellnessDone && eveningWellnessPending) {
+      return {
+        icon: '🌅',
+        title: 'Evening check-in',
+        message: 'Evening wellness check not yet logged. It helps compare to this morning\'s check-in.',
+        type: 'pattern',
+        confidence: 0.7,
+      };
+    }
   }
 
   return null;
@@ -217,7 +303,7 @@ export function generateAIInsight(
     insights.push({
       icon: '💊',
       title: `${eveningMedsRemaining} evening med${eveningMedsRemaining > 1 ? 's' : ''} remaining`,
-      message: 'Consistent timing helps.',
+      message: 'Timing consistency improves effectiveness.',
       type: 'reminder',
     });
   }
@@ -279,21 +365,6 @@ export function generateAIInsight(
       title: 'Nothing logged yet today',
       message: 'Start with whatever feels natural.',
       type: 'suggestion',
-    });
-  }
-
-  // POSITIVE: Good progress with items remaining
-  const progressPercent = (stats.meds.total > 0 ? stats.meds.completed / stats.meds.total : 0) +
-                         (stats.vitals.total > 0 ? stats.vitals.completed / stats.vitals.total : 0) +
-                         ((stats.wellness?.total ?? 0) > 0 ? (stats.wellness?.completed ?? 0) / (stats.wellness?.total ?? 0) : 0) +
-                         (stats.meals.total > 0 ? stats.meals.completed / stats.meals.total : 0);
-  const avgProgress = progressPercent / 4;
-  if (avgProgress >= 0.5 && timelineUpcoming > 0 && timelineOverdue === 0) {
-    insights.push({
-      icon: '📋',
-      title: `${timelineUpcoming} item${timelineUpcoming > 1 ? 's' : ''} left today`,
-      message: 'Over halfway done.',
-      type: 'positive',
     });
   }
 
