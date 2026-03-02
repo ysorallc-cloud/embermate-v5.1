@@ -6,7 +6,8 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { devLog, logError } from '../utils/devLog';
-import { useDataListener } from '../lib/events';
+import { useDataListener, emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import {
   DailyCareInstance,
   DailySchedule,
@@ -321,7 +322,7 @@ export function useDailyCareInstances(
         data,
         { notes, source: 'record' }
       );
-      // Data will refresh via listener
+      emitDataUpdate(EVENT.DAILY_INSTANCES);
       return result;
     } catch (err) {
       logError('useDailyCareInstances.completeInstance', err);
@@ -342,7 +343,7 @@ export function useDailyCareInstances(
         undefined,
         { notes, source: 'record' }
       );
-      // Data will refresh via listener
+      emitDataUpdate(EVENT.DAILY_INSTANCES);
     } catch (err) {
       logError('useDailyCareInstances.skipInstance', err);
       throw err;
@@ -355,7 +356,7 @@ export function useDailyCareInstances(
   const markMissed = useCallback(async (instanceId: string) => {
     try {
       await updateDailyInstanceStatus(patientId, targetDate, instanceId, 'missed');
-      // Data will refresh via listener
+      emitDataUpdate(EVENT.DAILY_INSTANCES);
     } catch (err) {
       logError('useDailyCareInstances.markMissed', err);
       throw err;

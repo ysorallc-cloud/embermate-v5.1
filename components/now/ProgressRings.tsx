@@ -16,7 +16,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import type { StatData, TodayStats } from '../../utils/nowHelpers';
 import { getUrgencyStatus, getCategoryUrgencyStatus, type UrgencyStatus } from '../../utils/nowUrgency';
 import type { UrgencyTier, UrgencyTone } from '../../utils/urgency';
-import type { BucketType } from '../../types/carePlanConfig';
+import { type BucketType, PRIMARY_BUCKETS } from '../../types/carePlanConfig';
 
 // ============================================================================
 // BUCKET → TILE MAPPING
@@ -41,7 +41,7 @@ const BUCKET_TILE_MAP: Record<string, Omit<TileItem, 'bucket'>> = {
   custom:    { icon: '\uD83D\uDCCB', label: 'Tasks',    statKey: 'custom',   itemType: 'custom' },
 };
 
-const DEFAULT_BUCKETS: BucketType[] = ['meds', 'vitals', 'meals', 'wellness'];
+// Use PRIMARY_BUCKETS from types/carePlanConfig as the default
 
 // Bar color per bucket
 const BUCKET_BAR_COLOR: Record<string, string> = {
@@ -171,7 +171,7 @@ export function ProgressRings({
 
   // Build dynamic items from enabled buckets
   const tileItems: TileItem[] = useMemo(() => {
-    const buckets = enabledBuckets.length > 0 ? enabledBuckets : DEFAULT_BUCKETS;
+    const buckets = enabledBuckets.length > 0 ? enabledBuckets : PRIMARY_BUCKETS;
     const items = buckets
       .filter(b => BUCKET_TILE_MAP[b])
       .map(b => ({ bucket: b, ...BUCKET_TILE_MAP[b] }));

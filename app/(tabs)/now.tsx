@@ -75,7 +75,7 @@ import { useNowInsights } from '../../hooks/useNowInsights';
 // Extracted components
 import { ProgressRings } from '../../components/now/ProgressRings';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { SectionHeader } from '../../components/aurora/SectionHeader';
+// SectionHeader replaced by inline SectionHeaderRow
 import { MorningMedsBanner } from '../../components/now/MorningMedsBanner';
 import { TimelineSection } from '../../components/now/TimelineSection';
 import { RoutineSheet } from '../../components/now/RoutineSheet';
@@ -95,6 +95,98 @@ import { logError } from '../../utils/devLog';
 import { useDataListener, emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
 import { GettingStartedChecklist } from '../../components/guidance';
+
+// ============================================================================
+// INLINE COMPONENTS — Section header row + Glance summary
+// ============================================================================
+
+function SectionHeaderRow({
+  icon,
+  title,
+  action,
+  onAction,
+  colors: c,
+  styles: s,
+}: {
+  icon: string;
+  title: string;
+  action?: string;
+  onAction?: () => void;
+  colors: typeof Colors;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  return (
+    <View style={s.sectionHeaderRow}>
+      <Text style={s.sectionHeaderIcon}>{icon}</Text>
+      <Text style={s.sectionHeaderTitle}>{title}</Text>
+      {action && onAction && (
+        <TouchableOpacity onPress={onAction} accessibilityRole="button" accessibilityLabel={action}>
+          <Text style={s.sectionHeaderAction}>{action} →</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+function GlanceSummary({
+  todayStats,
+  overdueItems,
+  colors: c,
+  styles: s,
+}: {
+  todayStats: TodayStats;
+  overdueItems: any[];
+  colors: typeof Colors;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const done = (todayStats.meds?.completed ?? 0) +
+    (todayStats.vitals?.completed ?? 0) +
+    (todayStats.meals?.completed ?? 0) +
+    (todayStats.sleep?.completed ?? 0) +
+    (todayStats.activity?.completed ?? 0) +
+    (todayStats.wellness?.completed ?? 0) +
+    (todayStats.custom?.completed ?? 0);
+  const total = (todayStats.meds?.total ?? 0) +
+    (todayStats.vitals?.total ?? 0) +
+    (todayStats.meals?.total ?? 0) +
+    (todayStats.sleep?.total ?? 0) +
+    (todayStats.activity?.total ?? 0) +
+    (todayStats.wellness?.total ?? 0) +
+    (todayStats.custom?.total ?? 0);
+
+  const pct = total > 0 ? done / total : 0;
+  const contextMsg = total === 0
+    ? 'Set up your Care Plan to track progress.'
+    : pct >= 1
+    ? 'All done for today!'
+    : pct >= 0.7
+    ? 'Almost there — keep going!'
+    : pct >= 0.4
+    ? 'You\'re making progress.'
+    : 'Just getting started.';
+
+  const topOverdue = overdueItems[0];
+
+  return (
+    <View style={s.glanceSummary}>
+      <View style={s.glanceStatusRow}>
+        <Text style={s.glanceDone}>{done}</Text>
+        <Text style={s.glanceOf}> of </Text>
+        <Text style={s.glanceDone}>{total}</Text>
+        <Text style={s.glanceOf}> done. </Text>
+        <Text style={s.glanceMsg}>{contextMsg}</Text>
+      </View>
+      {topOverdue && (
+        <View style={s.glanceAttnRow}>
+          <View style={s.attnDot} />
+          <Text style={s.glanceAttn} numberOfLines={1}>
+            {topOverdue.itemName || 'Item'} needs attention
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function NowScreen() {
   const { colors } = useTheme();
@@ -522,6 +614,7 @@ export default function NowScreen() {
         <ScreenHeader
           title="Now"
           subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+          purpose="What needs your attention today."
           rightAction={
             <TouchableOpacity
               onPress={() => setShowPatientSwitcher(true)}
@@ -610,154 +703,191 @@ export default function NowScreen() {
         )}
 
         <View style={styles.content}>
-          {/* 1. UP NEXT — single most important action */}
-          {todayTimeline.nextUp && !selectedCategory && (
-            <UpNextCard
-              instance={todayTimeline.nextUp}
-              onLogNow={handleTimelineItemPress}
-              onSkip={handleSkipInstance}
-            />
-          )}
 
-          {/* 2. MORNING MEDS BANNER — batch confirm */}
-          <MorningMedsBanner
-            pendingCount={allPending.filter((i: any) => i.itemType === 'medication').length}
-            pendingInstanceIds={allPending.filter((i: any) => i.itemType === 'medication').map((i: any) => i.id)}
-            onConfirmAll={handleBatchMedConfirm}
+          {/* ═══ SECTION 1: AT A GLANCE ═══ */}
+          <SectionHeaderRow
+            icon="📊"
+            title="At a Glance"
+            action="Care Plan"
+            onAction={() => navigate('/care-plan')}
+            colors={colors}
+            styles={styles}
           />
-
-          {/* 3. TIMELINE — what's happening today */}
-          <TimelineSection
-            allPending={allPending}
-            completed={todayTimeline.completed}
-            hasRegimenInstances={!!hasRegimenInstances}
-            selectedCategory={selectedCategory}
-            onClearCategory={handleClearCategory}
-            onItemPress={handleTimelineItemPress}
-            onBatchMedConfirm={handleBatchMedConfirm}
-            todayStats={todayStats}
-            enabledBuckets={enabledBuckets}
-            waterGlasses={waterGlasses}
-            waterGoal={waterGoal}
-            onWaterUpdate={handleWaterUpdate}
-            onStartRoutine={setActiveRoutineWindow}
-          />
-
-          {/* 4. Empty states */}
-          {!hasRegimenInstances && !hasBucketCarePlan && !carePlan && (
-            <View style={styles.emptyTimeline}>
-              <Text style={styles.emptyTimelineText}>No Care Plan set up yet</Text>
-              <Text style={styles.emptyTimelineSubtext}>Add medications or items to see your timeline</Text>
-            </View>
-          )}
-
-          {!hasRegimenInstances && (hasBucketCarePlan || carePlan) && (
-            <View style={styles.emptyTimeline}>
-              <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
-              <Text style={styles.emptyTimelineSubtext}>Check your Care Plan settings</Text>
-            </View>
-          )}
-
-          {hasRegimenInstances &&
-            allPending.length === 0 &&
-            todayTimeline.completed.length === 0 && (
-            <View style={styles.emptyTimeline}>
-              <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
-            </View>
-          )}
-
-          {/* 5. Appointment Prep Card — within 14 days */}
-          {upcomingPrepAppointment && (
-            <TouchableOpacity
-              style={styles.appointmentPrepCard}
-              onPress={() => navigate(`/provider-prep?appointmentId=${upcomingPrepAppointment.id}`)}
-              activeOpacity={0.7}
-              accessibilityLabel="Prepare for upcoming appointment"
-              accessibilityRole="button"
-            >
-              <Text style={styles.appointmentPrepIcon}>{'\uD83D\uDCCB'}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.appointmentPrepTitle}>
-                  {upcomingPrepAppointment.provider || 'Appointment'} — Visit Prep
-                </Text>
-                <Text style={styles.appointmentPrepSubtitle}>
-                  {Math.ceil((new Date(upcomingPrepAppointment.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days away
-                </Text>
-              </View>
-              <Text style={styles.appointmentPrepArrow}>{'\u203A'}</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* 6. PROGRESS SUMMARY — below the fold */}
-          <SectionHeader
-            title="Today's Progress"
-            action={{ label: 'Care Plan', onPress: () => navigate('/care-plan') }}
-          />
-          <View accessibilityLiveRegion="polite" accessibilityRole="summary">
-            <ProgressRings
+          <View style={styles.cardGlance}>
+            <GlanceSummary
               todayStats={todayStats}
-              enabledBuckets={enabledBuckets}
-              nextUp={todayTimeline?.nextUp}
-              instances={instancesState?.instances || []}
-              selectedCategory={selectedCategory}
-              onRingPress={handleRingPress}
-              onManagePress={() => navigate('/care-plan')}
-              patientName={patientName}
+              overdueItems={todayTimeline.overdue}
+              colors={colors}
+              styles={styles}
             />
+            <View accessibilityLiveRegion="polite" accessibilityRole="summary">
+              <ProgressRings
+                todayStats={todayStats}
+                enabledBuckets={enabledBuckets}
+                nextUp={todayTimeline?.nextUp}
+                instances={instancesState?.instances || []}
+                selectedCategory={selectedCategory}
+                onRingPress={handleRingPress}
+                onManagePress={() => navigate('/care-plan')}
+                patientName={patientName}
+              />
+            </View>
           </View>
 
-          {/* 7. All-done / encouragement */}
-          {hasRegimenInstances &&
-            allPending.length === 0 &&
-            todayTimeline.completed.length > 0 && (() => {
-              const hasMissed = todayTimeline.completed.some(i => i.status === 'missed');
-              if (hasMissed) {
+          {/* ═══ SECTION 2: TODAY'S SCHEDULE ═══ */}
+          <SectionHeaderRow
+            icon="🗓️"
+            title="Today's Schedule"
+            action="Adjust Today"
+            onAction={() => navigate('/today-scope')}
+            colors={colors}
+            styles={styles}
+          />
+          <View style={styles.cardSchedule}>
+            {/* Up Next — single most important action */}
+            {todayTimeline.nextUp && !selectedCategory && (
+              <UpNextCard
+                instance={todayTimeline.nextUp}
+                onLogNow={handleTimelineItemPress}
+                onSkip={handleSkipInstance}
+              />
+            )}
+
+            {/* Morning Meds Banner — batch confirm */}
+            <MorningMedsBanner
+              pendingCount={allPending.filter((i: any) => i.itemType === 'medication').length}
+              pendingInstanceIds={allPending.filter((i: any) => i.itemType === 'medication').map((i: any) => i.id)}
+              onConfirmAll={handleBatchMedConfirm}
+            />
+
+            {/* Timeline — what's happening today */}
+            <TimelineSection
+              allPending={allPending}
+              completed={todayTimeline.completed}
+              hasRegimenInstances={!!hasRegimenInstances}
+              selectedCategory={selectedCategory}
+              onClearCategory={handleClearCategory}
+              onItemPress={handleTimelineItemPress}
+              onBatchMedConfirm={handleBatchMedConfirm}
+              todayStats={todayStats}
+              enabledBuckets={enabledBuckets}
+              waterGlasses={waterGlasses}
+              waterGoal={waterGoal}
+              onWaterUpdate={handleWaterUpdate}
+              onStartRoutine={setActiveRoutineWindow}
+            />
+
+            {/* Empty states */}
+            {!hasRegimenInstances && !hasBucketCarePlan && !carePlan && (
+              <View style={styles.emptyTimeline}>
+                <Text style={styles.emptyTimelineText}>No Care Plan set up yet</Text>
+                <Text style={styles.emptyTimelineSubtext}>Add medications or items to see your timeline</Text>
+              </View>
+            )}
+
+            {!hasRegimenInstances && (hasBucketCarePlan || carePlan) && (
+              <View style={styles.emptyTimeline}>
+                <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
+                <Text style={styles.emptyTimelineSubtext}>Check your Care Plan settings</Text>
+              </View>
+            )}
+
+            {hasRegimenInstances &&
+              allPending.length === 0 &&
+              todayTimeline.completed.length === 0 && (
+              <View style={styles.emptyTimeline}>
+                <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
+              </View>
+            )}
+          </View>
+
+          {/* ═══ SECTION 3: UPCOMING ═══ */}
+          {upcomingPrepAppointment && (
+            <>
+              <SectionHeaderRow
+                icon="📋"
+                title="Upcoming"
+                colors={colors}
+                styles={styles}
+              />
+              <View style={styles.cardUpcoming}>
+                <TouchableOpacity
+                  style={styles.appointmentPrepCard}
+                  onPress={() => navigate(`/provider-prep?appointmentId=${upcomingPrepAppointment.id}`)}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Prepare for upcoming appointment"
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.appointmentPrepIcon}>{'\uD83D\uDCCB'}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.appointmentPrepTitle}>
+                      {upcomingPrepAppointment.provider || 'Appointment'} — Visit Prep
+                    </Text>
+                    <Text style={styles.appointmentPrepSubtitle}>
+                      {Math.ceil((new Date(upcomingPrepAppointment.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days away
+                    </Text>
+                  </View>
+                  <Text style={styles.appointmentPrepArrow}>{'\u203A'}</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
+          {/* ═══ SECTION 4: ENCOURAGEMENT ═══ */}
+          <View style={styles.cardEncouragement}>
+            {/* All-done / encouragement */}
+            {hasRegimenInstances &&
+              allPending.length === 0 &&
+              todayTimeline.completed.length > 0 && (() => {
+                const hasMissed = todayTimeline.completed.some(i => i.status === 'missed');
+                if (hasMissed) {
+                  return (
+                    <Text
+                      style={styles.encouragementText}
+                      accessible={true}
+                      accessibilityRole="text"
+                    >
+                      You're doing a great job. Every bit of care matters.
+                    </Text>
+                  );
+                }
                 return (
-                  <Text
-                    style={styles.encouragementText}
+                  <View
+                    style={styles.allDoneMessage}
                     accessible={true}
                     accessibilityRole="text"
+                    accessibilityLabel="All caught up! All care plan items are complete for today."
+                    accessibilityLiveRegion="polite"
                   >
-                    You're doing a great job. Every bit of care matters.
-                  </Text>
+                    <Text style={styles.allDoneEmoji}>🎉</Text>
+                    <Text style={styles.allDoneText}>All caught up!</Text>
+                  </View>
                 );
-              }
-              return (
-                <View
-                  style={styles.allDoneMessage}
-                  accessible={true}
-                  accessibilityRole="text"
-                  accessibilityLabel="All caught up! All care plan items are complete for today."
-                  accessibilityLiveRegion="polite"
-                >
-                  <Text style={styles.allDoneEmoji}>🎉</Text>
-                  <Text style={styles.allDoneText}>All caught up!</Text>
-                </View>
-              );
-            })()}
+              })()}
 
-          {/* 8. Footer */}
-          <View style={styles.footerSection}>
-            <Text style={styles.footerMessage}>
-              {careInsight
-                ? careInsight.message
-                : allPending.length === 0 && todayTimeline.completed.length > 0
-                ? 'You showed up today, and that matters.'
-                : allPending.length <= 2 && allPending.length > 0
-                ? 'Almost there. You\'re doing more than you think.'
-                : 'Caregiving is hard. You\'re not behind \u2014 you\'re showing up.'}
-            </Text>
-            <TouchableOpacity
-              onPress={coffeeMoment.startReset}
-              style={styles.footerCoffeeLink}
-              activeOpacity={0.7}
-              accessibilityLabel="Take a 1-minute breathing pause"
-              accessibilityRole="button"
-            >
-              <Text style={styles.footerCoffeeLinkText}>
-                {'\u2615'}  Take a 1-minute pause
+            {/* Footer message + coffee link */}
+            <View style={styles.footerSection}>
+              <Text style={styles.footerMessage}>
+                {careInsight
+                  ? careInsight.message
+                  : allPending.length === 0 && todayTimeline.completed.length > 0
+                  ? 'You showed up today, and that matters.'
+                  : allPending.length <= 2 && allPending.length > 0
+                  ? 'Almost there. You\'re doing more than you think.'
+                  : 'Caregiving is hard. You\'re not behind \u2014 you\'re showing up.'}
               </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={coffeeMoment.startReset}
+                style={styles.footerCoffeeLink}
+                activeOpacity={0.7}
+                accessibilityLabel="Take a 1-minute breathing pause"
+                accessibilityRole="button"
+              >
+                <Text style={styles.footerCoffeeLinkText}>
+                  {'\u2615'}  Take a 1-minute pause
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
         </View>
@@ -895,6 +1025,114 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 12,
     color: c.textMuted,
   },
+  // ── Section Header Row ──
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  sectionHeaderIcon: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  sectionHeaderTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    color: c.textMuted,
+    textTransform: 'uppercase',
+    flex: 1,
+  },
+  sectionHeaderAction: {
+    fontSize: 12,
+    color: c.accent,
+    fontWeight: '500',
+  },
+
+  // ── Card Zones ──
+  cardGlance: {
+    backgroundColor: 'rgba(10, 28, 26, 0.8)',
+    borderRadius: 16,
+    borderTopWidth: 2,
+    borderTopColor: c.accent,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    padding: 16,
+    marginBottom: 4,
+    overflow: 'hidden',
+  },
+  cardSchedule: {
+    backgroundColor: 'rgba(6, 18, 16, 0.85)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    padding: 16,
+    marginBottom: 4,
+    overflow: 'hidden',
+  },
+  cardUpcoming: {
+    backgroundColor: 'rgba(12, 30, 24, 0.7)',
+    borderRadius: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: c.greenBright,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    padding: 16,
+    marginBottom: 4,
+    overflow: 'hidden',
+  },
+  cardEncouragement: {
+    backgroundColor: 'rgba(255, 255, 255, 0.012)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.035)',
+    padding: 16,
+    marginBottom: 4,
+    marginTop: 12,
+    overflow: 'hidden',
+  },
+
+  // ── Glance Summary ──
+  glanceSummary: {
+    marginBottom: 12,
+  },
+  glanceStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+  },
+  glanceDone: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: c.textPrimary,
+  },
+  glanceOf: {
+    fontSize: 14,
+    color: c.textSecondary,
+  },
+  glanceMsg: {
+    fontSize: 14,
+    color: c.textMuted,
+  },
+  glanceAttnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  attnDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: c.red,
+    marginRight: 8,
+  },
+  glanceAttn: {
+    fontSize: 13,
+    color: c.redBright,
+    flex: 1,
+  },
+
   emptyTimeline: {
     backgroundColor: c.glass,
     borderRadius: 8,
@@ -936,10 +1174,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   footerSection: {
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    paddingRight: 76,
-    marginTop: 4,
+    paddingVertical: 4,
   },
   footerMessage: {
     fontSize: 13,
@@ -966,12 +1201,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   appointmentPrepCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: c.sageTint,
-    borderWidth: 1,
-    borderColor: c.sageBorder,
+    backgroundColor: 'transparent',
     borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
+    padding: 0,
+    marginBottom: 0,
     gap: 10,
   },
   appointmentPrepIcon: {

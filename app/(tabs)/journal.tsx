@@ -252,7 +252,7 @@ export default function JournalTab() {
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
             }
           >
-            <ScreenHeader title="Journal" subtitle={`${dayName}, ${dateStr}`} />
+            <ScreenHeader title="Journal" subtitle={`${dayName}, ${dateStr}`} purpose="A record of today's care." />
             <View style={s.errorContainer}>
               <Text style={s.errorIcon}>{'\u26A0\uFE0F'}</Text>
               <Text style={s.errorText}>{error}</Text>
@@ -435,6 +435,7 @@ export default function JournalTab() {
           <ScreenHeader
             title="Journal"
             subtitle={`${dayName}, ${dateStr}`}
+            purpose="A record of today's care."
             style={s.journalHeader}
             rightAction={
               <TouchableOpacity

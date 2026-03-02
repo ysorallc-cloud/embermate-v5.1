@@ -1,5 +1,6 @@
 // File: utils/__tests__/duplicateProgressHeader.test.ts
-// PURPOSE: Verify only one "Today's Progress" header exists
+// PURPOSE: Verify no duplicate progress header and new SectionHeaderRow is used
+// Updated for refined card layout: SectionHeader replaced by SectionHeaderRow
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -15,13 +16,14 @@ describe('Duplicate progress header fix', () => {
     expect(content).not.toMatch(/Manage Care Plan/);
   });
 
-  test('Now screen still has exactly one SectionHeader for progress', () => {
+  test('Now screen uses SectionHeaderRow "At a Glance" instead of old SectionHeader', () => {
     const content = readFileSync(
       join(__dirname, '../../app/(tabs)/now.tsx'), 'utf8'
     );
-    // The SectionHeader wrapper in now.tsx should remain
-    const matches = content.match(/SectionHeader[\s\S]*?Today's Progress/g) || [];
-    expect(matches.length).toBe(1);
+    // Old SectionHeader with "Today's Progress" should be gone
+    expect(content).not.toMatch(/<SectionHeader[\s\S]*?Today's Progress/);
+    // New SectionHeaderRow with "At a Glance" should exist
+    expect(content).toContain('title="At a Glance"');
   });
 
   test('ProgressRings still renders the tile strip', () => {

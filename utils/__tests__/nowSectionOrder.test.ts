@@ -1,4 +1,5 @@
 // File: utils/__tests__/nowSectionOrder.test.ts
+// Updated for refined card layout: ProgressRings now in "At a Glance" (before Schedule)
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -6,18 +7,20 @@ describe('Now screen section order', () => {
   const src = readFileSync(join(__dirname, '../../app/(tabs)/now.tsx'), 'utf8');
   const render = src.slice(src.indexOf('<View style={styles.content}'));
 
-  test('UpNextCard appears before TimelineSection', () => {
+  test('ProgressRings appears in At a Glance before Today\'s Schedule', () => {
+    const rings = render.indexOf('ProgressRings');
+    const timeline = render.indexOf('TimelineSection');
+    expect(rings).toBeGreaterThan(-1);
+    expect(timeline).toBeGreaterThan(-1);
+    expect(rings).toBeLessThan(timeline);
+  });
+
+  test('UpNextCard appears before TimelineSection (both inside Schedule card)', () => {
     const upNext = render.indexOf('UpNextCard');
     const timeline = render.indexOf('TimelineSection');
     expect(upNext).toBeGreaterThan(-1);
     expect(timeline).toBeGreaterThan(-1);
     expect(upNext).toBeLessThan(timeline);
-  });
-
-  test('TimelineSection appears before ProgressRings', () => {
-    const timeline = render.indexOf('TimelineSection');
-    const rings = render.indexOf('ProgressRings');
-    expect(timeline).toBeLessThan(rings);
   });
 
   test('ProgressRings appears before footer', () => {

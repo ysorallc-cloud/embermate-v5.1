@@ -6,6 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 interface ScreenHeaderProps {
   title: string;
   subtitle?: string;
+  purpose?: string;
   style?: ViewStyle;
   leftAction?: React.ReactNode;
   rightAction?: React.ReactNode;
@@ -13,9 +14,12 @@ interface ScreenHeaderProps {
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    paddingHorizontal: 20,
-    paddingTop: 6,
-    paddingBottom: 6,
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 16,
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: c.glassBorder,
   },
   headerRow: {
     flexDirection: 'row',
@@ -26,17 +30,18 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '600',
+    fontSize: 32,
+    fontWeight: '300',
     color: c.textPrimary,
-    marginBottom: 2,
-    letterSpacing: -0.4,
+    marginBottom: 0,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: '400',
     color: c.textTertiary,
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
+    marginTop: 6,
   },
   leftAction: {
     marginBottom: 8,
@@ -45,11 +50,18 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingTop: 2,
     paddingLeft: 12,
   },
+  purpose: {
+    fontSize: 12,
+    color: c.textSecondary,
+    marginTop: 3,
+    letterSpacing: 0.1,
+  },
 });
 
 export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   title,
   subtitle,
+  purpose,
   style,
   leftAction,
   rightAction,
@@ -66,13 +78,9 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
       )}
       <View style={styles.headerRow}>
         <View style={styles.titleContainer}>
-          <Text
-            style={styles.title}
-            numberOfLines={1}
-            adjustsFontSizeToFit={true}
-            minimumFontScale={0.8}
-          >{title}</Text>
+          <Text style={styles.title} numberOfLines={1}>{title}</Text>
           {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+          {purpose && <Text style={styles.purpose}>{purpose}</Text>}
         </View>
         {rightAction && (
           <View style={styles.rightAction}>

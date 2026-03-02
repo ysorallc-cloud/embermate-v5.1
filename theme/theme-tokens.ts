@@ -144,7 +144,7 @@ export const Colors = {
   amberBright: '#FBBF24',
   amberBrightTint: 'rgba(251, 191, 36, 0.1)',
   amberBrightStrong: 'rgba(251, 191, 36, 0.8)',
-  greenBright: '#22C55E',
+  greenBright: '#34D399',
   redBright: '#F87171',
   blueBright: '#60A5FA',
   skyBright: '#38BDF8',
@@ -168,6 +168,7 @@ export const Colors = {
   textBright: 'rgba(255, 255, 255, 0.8)',
   textAlmostFull: 'rgba(255, 255, 255, 0.9)',
   textNearFull: 'rgba(255, 255, 255, 0.95)',
+  textHighContrast: 'rgba(255, 255, 255, 0.95)',
 
   // Borders
   border: 'rgba(255, 255, 255, 0.08)',

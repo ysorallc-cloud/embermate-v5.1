@@ -585,15 +585,13 @@ function TimelineModeBContent({
                           <Text style={styles.timelineSub} numberOfLines={1}>{subtitle}</Text>
                         ) : null}
                       </View>
-                      {delta && (
+                      {delta && delta.tone !== 'late' && (
                         <View style={[
                           styles.timelineBadge,
-                          delta.tone === 'late' && styles.timelineBadgeLate,
                           delta.tone === 'soon' && styles.timelineBadgeSoon,
                         ]}>
                           <Text style={[
                             styles.timelineBadgeText,
-                            delta.tone === 'late' && styles.timelineBadgeTextLate,
                             delta.tone === 'soon' && styles.timelineBadgeTextSoon,
                           ]}>
                             {delta.text}

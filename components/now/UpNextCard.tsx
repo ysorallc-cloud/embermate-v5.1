@@ -78,7 +78,7 @@ export function UpNextCard({ instance, onLogNow, onSkip }: UpNextCardProps) {
       {/* Left: label + name */}
       <View style={styles.left}>
         <Text style={[styles.label, itemIsOverdue && styles.labelOverdue]}>
-          {itemIsOverdue ? 'OVERDUE' : 'UP NEXT'}
+          {itemIsOverdue ? 'NEEDS ATTENTION' : 'UP NEXT'}
         </Text>
         <Text style={styles.itemName} numberOfLines={1}>
           {instance.itemName}
@@ -146,7 +146,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 2,
   },
   labelOverdue: {
-    color: c.redBright,
+    color: c.amberBright,
   },
   itemName: {
     fontSize: 14,

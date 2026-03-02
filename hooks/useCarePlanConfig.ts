@@ -5,7 +5,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { logError } from '../utils/devLog';
-import { useDataListener } from '../lib/events';
+import { useDataListener, emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import {
   CarePlanConfig,
   BucketType,
@@ -136,6 +137,7 @@ export function useCarePlanConfig(
   const toggleBucket = useCallback(async (bucket: BucketType, enabled: boolean) => {
     const updatedConfig = await setBucketEnabled(patientId, bucket, enabled);
     setConfig(updatedConfig);
+    emitDataUpdate(EVENT.CARE_PLAN_CONFIG);
   }, [patientId]);
 
   /**
@@ -144,6 +146,7 @@ export function useCarePlanConfig(
   const updateBucket = useCallback(async (bucket: BucketType, updates: Partial<BucketConfig>) => {
     const updatedConfig = await updateBucketConfig(patientId, bucket, updates);
     setConfig(updatedConfig);
+    emitDataUpdate(EVENT.CARE_PLAN_CONFIG);
   }, [patientId]);
 
   /**

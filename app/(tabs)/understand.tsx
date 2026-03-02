@@ -646,6 +646,7 @@ export default function UnderstandScreen() {
           <ScreenHeader
             title="Insights"
             subtitle={`Last ${timeRange} days`}
+            purpose="Patterns and trends over time."
             rightAction={
               pageData && !pageData.isSampleData && pageData.daysOfData >= 7
                 ? <TimeRangeToggle value={timeRange} onChange={setTimeRange} />
