@@ -41,15 +41,22 @@ describe('Window header status dots', () => {
     expect(block).toContain('windowDot');
   });
 
-  test('dot color is computed from window items: green when all done, red when any overdue, amber otherwise', () => {
-    // Should have a function or inline logic that computes the dot color
-    // based on items in that window
-    // Look for the logic that determines dot color variant
+  test('dot color is computed from window items: green when all done, red when overdue/missed, amber otherwise', () => {
     expect(src).toContain('windowDotGreen');
     expect(src).toContain('windowDotAmber');
     expect(src).toContain('windowDotRed');
     // Should reference isOverdue or overdue check for red determination
     expect(src).toMatch(/hasOverdue|isOverdue/);
+    // Missed items should make dot red, not green
+    expect(src).toContain('hasMissedItems');
+  });
+
+  test('missed items prevent green dot and default collapse', () => {
+    // allDone must exclude missed status — green only for completed/skipped
+    const allDoneMatch = src.match(/const allDone = !hasMissedItems && items\.every/);
+    expect(allDoneMatch).not.toBeNull();
+    // hasOverdueItems includes hasMissedItems
+    expect(src).toMatch(/const hasOverdueItems = hasMissedItems \|\|/);
   });
 });
 
@@ -76,6 +83,19 @@ describe('Window default collapse based on completion', () => {
     const initBlock = stateInit![0];
     // Should reference status checks for completed/skipped/missed or allDone
     expect(initBlock).toMatch(/completed|skipped|allDone|every/);
+  });
+
+  test('pending and done item names use identical font size', () => {
+    const pendingMatch = src.match(/timelineName:\s*\{[^}]+\}/);
+    const doneMatch = src.match(/timelineNameDone:\s*\{[^}]+\}/);
+    expect(pendingMatch).not.toBeNull();
+    expect(doneMatch).not.toBeNull();
+    // Extract fontSize from both
+    const pendingSize = pendingMatch![0].match(/fontSize:\s*(\d+)/);
+    const doneSize = doneMatch![0].match(/fontSize:\s*(\d+)/);
+    expect(pendingSize).not.toBeNull();
+    expect(doneSize).not.toBeNull();
+    expect(pendingSize![1]).toBe(doneSize![1]);
   });
 
   test('chevron is removed — dot + label + count is sufficient', () => {

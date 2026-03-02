@@ -424,10 +424,11 @@ function TimelineModeBContent({
     return new Set(allWindows.filter(w => {
       const items = windowGroups[w];
       if (items.length === 0) return false;
+      // Only collapse when truly done — missed items still need attention
       const allDone = items.every(i =>
-        i.status === 'completed' || i.status === 'skipped' || i.status === 'missed'
+        i.status === 'completed' || i.status === 'skipped'
       );
-      return allDone; // collapse completed windows
+      return allDone; // collapse completed windows, NOT missed
     }));
   });
 
@@ -455,11 +456,15 @@ function TimelineModeBContent({
         const pendingCount = items.filter(i => i.status === 'pending').length;
         const doneCount = items.length - pendingCount;
 
-        // Completed windows render as normal collapsible headers (green dot, collapsed by default)
-        const allDone = items.every(i =>
-          i.status === 'completed' || i.status === 'skipped' || i.status === 'missed'
+        // Dot color must match what the expanded children show:
+        // Green only when every item is completed/skipped (no missed, no pending)
+        // Red when any pending item is overdue OR any item is missed
+        // Amber otherwise (has pending items)
+        const hasMissedItems = items.some(i => i.status === 'missed');
+        const allDone = !hasMissedItems && items.every(i =>
+          i.status === 'completed' || i.status === 'skipped'
         );
-        const hasOverdueItems = items.some(i =>
+        const hasOverdueItems = hasMissedItems || items.some(i =>
           i.status === 'pending' && isOverdue(i.scheduledTime)
         );
 
@@ -861,7 +866,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   timelineName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     color: c.textPrimary,
     marginBottom: 1,
@@ -938,7 +943,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.amber,
   },
   timelineNameDone: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
     color: c.textMuted,
     textDecorationLine: 'line-through',
