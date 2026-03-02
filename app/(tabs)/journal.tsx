@@ -31,7 +31,7 @@ import { logAuditEvent, AuditEventType, AuditSeverity } from '../../utils/auditL
 import { useDataListener } from '../../lib/events';
 import { isBiometricEnabled, shouldLockSession, requireAuthentication, updateLastActivity, getAutoLockTimeout } from '../../utils/biometricAuth';
 import { getNotesLogs, NotesLog } from '../../utils/centralStorage';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenHeader } from '../../components/ScreenHeader';
 
 // ============================================================================
@@ -82,10 +82,11 @@ interface JournalSectionProps {
   color: string;
   labelColor?: string;
   badge?: { text: string; variant: 'done' | 'pending' | 'missed' | 'info' };
+  onBadgePress?: () => void;
   children: React.ReactNode;
 }
 
-function JournalSection({ icon, label, color, labelColor, badge, children }: JournalSectionProps) {
+function JournalSection({ icon, label, color, labelColor, badge, onBadgePress, children }: JournalSectionProps) {
   return (
     <View style={[_s.journalSection, { borderLeftColor: color }]}>
       <View style={_s.journalSectionHeader}>
@@ -93,7 +94,14 @@ function JournalSection({ icon, label, color, labelColor, badge, children }: Jou
           {icon && <Text style={_s.journalSectionIcon}>{icon}</Text>}
           <Text style={[_s.journalSectionLabel, labelColor ? { color: labelColor } : null]}>{label}</Text>
         </View>
-        {badge && <Badge text={badge.text} variant={badge.variant} />}
+        {badge && (
+          onBadgePress && (badge.variant === 'pending' || badge.variant === 'missed')
+            ? <TouchableOpacity onPress={onBadgePress} activeOpacity={0.7}
+                accessibilityRole="link" accessibilityLabel={`Log ${label}`}>
+                <Badge text={badge.text + ' \u2192'} variant={badge.variant} />
+              </TouchableOpacity>
+            : <Badge text={badge.text} variant={badge.variant} />
+        )}
       </View>
       {children}
     </View>
@@ -106,6 +114,7 @@ function JournalSection({ icon, label, color, labelColor, badge, children }: Jou
 
 export default function JournalTab() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const s = useMemo(() => createStyles(colors), [colors]);
   const [brief, setBrief] = useState<CareBrief | null>(null);
   const [loading, setLoading] = useState(true);
@@ -238,12 +247,12 @@ export default function JournalTab() {
         <SafeAreaView style={{ flex: 1 }} edges={['top']}>
           <ScrollView
             style={s.scrollView}
-            contentContainerStyle={s.scrollContent}
+            contentContainerStyle={[s.scrollContent, { paddingBottom: insets.bottom + 70 }]}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
             }
           >
-            <ScreenHeader title="Journal" subtitle={`${dayName}, ${dateStr} \u00B7 Self`} />
+            <ScreenHeader title="Journal" subtitle={`${dayName}, ${dateStr}`} />
             <View style={s.errorContainer}>
               <Text style={s.errorIcon}>{'\u26A0\uFE0F'}</Text>
               <Text style={s.errorText}>{error}</Text>
@@ -416,7 +425,7 @@ export default function JournalTab() {
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
           style={s.scrollView}
-          contentContainerStyle={s.scrollContent}
+          contentContainerStyle={[s.scrollContent, { paddingBottom: insets.bottom + 70 }]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
@@ -425,7 +434,7 @@ export default function JournalTab() {
           {/* ─── HEADER ─── */}
           <ScreenHeader
             title="Journal"
-            subtitle={`${dayName}, ${dateStr}${brief?.patient.name ? ` \u00B7 ${brief.patient.name}` : ''}`}
+            subtitle={`${dayName}, ${dateStr}`}
             style={s.journalHeader}
             rightAction={
               <TouchableOpacity
@@ -514,6 +523,7 @@ export default function JournalTab() {
                 text: hasVitals ? 'Logged' : 'Not recorded',
                 variant: hasVitals ? 'done' : 'pending',
               }}
+              onBadgePress={!hasVitals ? () => navigate('/log-vitals') : undefined}
             >
               {hasVitals && brief.vitals.readings ? (
                 <>
@@ -587,6 +597,7 @@ export default function JournalTab() {
                 text: mealsDone >= mealsTotal && mealsTotal > 0 ? `${mealsTotal} meals` : `${mealsDone}/${mealsTotal} meals`,
                 variant: mealsDone >= mealsTotal && mealsTotal > 0 ? 'done' : 'pending',
               }}
+              onBadgePress={mealsDone < mealsTotal ? () => navigate('/log-meal') : undefined}
             >
               <Text style={s.narrativeLine}>{buildMealsNarrative()}</Text>
             </JournalSection>
@@ -604,6 +615,7 @@ export default function JournalTab() {
                   ? { text: `Mood: ${brief.mood.morningWellness.mood || 'Logged'}`, variant: 'info' as const }
                   : { text: 'Pending', variant: 'pending' as const }
               }
+              onBadgePress={!hasMorning ? () => navigate('/log-morning-wellness') : undefined}
             >
               {buildWellnessNarrative().map((line, i) => (
                 <Text key={i} style={s.narrativeLine}>{line}</Text>
@@ -644,6 +656,28 @@ export default function JournalTab() {
                 })}
               </Text>
             </JournalSection>
+          )}
+
+          {/* ─── QUICK LOG ─── */}
+          {brief && (!hasVitals || mealsDone < mealsTotal || !hasMorning) && (
+            <View style={s.quickLogRow}>
+              <Text style={s.quickLogLabel}>Quick log</Text>
+              {!hasVitals && (
+                <TouchableOpacity onPress={() => navigate('/log-vitals')} style={s.quickLogChip}>
+                  <Text style={s.quickLogChipText}>Vitals</Text>
+                </TouchableOpacity>
+              )}
+              {mealsDone < mealsTotal && (
+                <TouchableOpacity onPress={() => navigate('/log-meal')} style={s.quickLogChip}>
+                  <Text style={s.quickLogChipText}>Meal</Text>
+                </TouchableOpacity>
+              )}
+              {!hasMorning && (
+                <TouchableOpacity onPress={() => navigate('/log-morning-wellness')} style={s.quickLogChip}>
+                  <Text style={s.quickLogChipText}>Wellness</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
 
           {/* ─── TIMESTAMP ─── */}
@@ -713,7 +747,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 32,
   },
   loadingContainer: {
     flex: 1,
@@ -892,6 +925,33 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   vitalUnit: {
     fontSize: 10,
     color: c.textMuted,
+  },
+
+  // Quick Log
+  quickLogRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    flexWrap: 'wrap',
+  },
+  quickLogLabel: {
+    fontSize: 12,
+    color: c.textMuted,
+    fontWeight: '500',
+  },
+  quickLogChip: {
+    backgroundColor: c.accentLight,
+    borderWidth: 1,
+    borderColor: c.accentBorder,
+    borderRadius: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  quickLogChipText: {
+    fontSize: 11,
+    color: c.accent,
+    fontWeight: '600',
   },
 
   // Timestamp

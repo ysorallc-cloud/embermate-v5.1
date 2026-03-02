@@ -36,7 +36,6 @@ import { recordVisit } from '../../utils/lastVisitTracker';
 // Prompt Components
 import {
   OnboardingPrompt,
-  MorningBriefing,
 } from '../../components/prompts';
 
 // Aurora Components
@@ -81,8 +80,6 @@ import { MorningMedsBanner } from '../../components/now/MorningMedsBanner';
 import { TimelineSection } from '../../components/now/TimelineSection';
 import { RoutineSheet } from '../../components/now/RoutineSheet';
 import { UpNextCard } from '../../components/now/UpNextCard';
-import { VitalsGuidance } from '../../components/now/VitalsGuidance';
-import { HandoffPromptCard } from '../../components/now/HandoffPromptCard';
 import { QuickLogFAB } from '../../components/now/QuickLogFAB';
 import type { TimeWindow } from '../../utils/nowHelpers';
 
@@ -93,12 +90,7 @@ function getGreeting(): string {
   return 'Good Evening';
 }
 
-// Banners
-import {
-  NoMedicationsBanner,
-  NoCarePlanBanner,
-  DataIntegrityBanner,
-} from '../../components/common/ConsistencyBanner';
+// Banners (removed: NoMedicationsBanner, NoCarePlanBanner, DataIntegrityBanner)
 import { logError } from '../../utils/devLog';
 import { useDataListener, emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
@@ -618,32 +610,23 @@ export default function NowScreen() {
         )}
 
         <View style={styles.content}>
-          {/* 1. CARE PLAN PROGRESS — visible immediately after header */}
-          <SectionHeader
-            title="Today's Progress"
-            action={{ label: 'Care Plan', onPress: () => navigate('/care-plan') }}
-          />
-          <View accessibilityLiveRegion="polite" accessibilityRole="summary">
-            <ProgressRings
-              todayStats={todayStats}
-              enabledBuckets={enabledBuckets}
-              nextUp={todayTimeline?.nextUp}
-              instances={instancesState?.instances || []}
-              selectedCategory={selectedCategory}
-              onRingPress={handleRingPress}
-              onManagePress={() => navigate('/care-plan')}
-              patientName={patientName}
+          {/* 1. UP NEXT — single most important action */}
+          {todayTimeline.nextUp && !selectedCategory && (
+            <UpNextCard
+              instance={todayTimeline.nextUp}
+              onLogNow={handleTimelineItemPress}
+              onSkip={handleSkipInstance}
             />
-          </View>
+          )}
 
-          {/* 1.5 MORNING MEDS BANNER — batch confirm */}
+          {/* 2. MORNING MEDS BANNER — batch confirm */}
           <MorningMedsBanner
             pendingCount={allPending.filter((i: any) => i.itemType === 'medication').length}
             pendingInstanceIds={allPending.filter((i: any) => i.itemType === 'medication').map((i: any) => i.id)}
             onConfirmAll={handleBatchMedConfirm}
           />
 
-          {/* 2. TIMELINE DETAILS */}
+          {/* 3. TIMELINE — what's happening today */}
           <TimelineSection
             allPending={allPending}
             completed={todayTimeline.completed}
@@ -660,7 +643,7 @@ export default function NowScreen() {
             onStartRoutine={setActiveRoutineWindow}
           />
 
-          {/* 3. Empty states */}
+          {/* 4. Empty states */}
           {!hasRegimenInstances && !hasBucketCarePlan && !carePlan && (
             <View style={styles.emptyTimeline}>
               <Text style={styles.emptyTimelineText}>No Care Plan set up yet</Text>
@@ -683,10 +666,47 @@ export default function NowScreen() {
             </View>
           )}
 
-          {/* 4. Handoff Prompt — after 4pm */}
-          <HandoffPromptCard completedCount={todayTimeline.completed.length} />
+          {/* 5. Appointment Prep Card — within 14 days */}
+          {upcomingPrepAppointment && (
+            <TouchableOpacity
+              style={styles.appointmentPrepCard}
+              onPress={() => navigate(`/provider-prep?appointmentId=${upcomingPrepAppointment.id}`)}
+              activeOpacity={0.7}
+              accessibilityLabel="Prepare for upcoming appointment"
+              accessibilityRole="button"
+            >
+              <Text style={styles.appointmentPrepIcon}>{'\uD83D\uDCCB'}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.appointmentPrepTitle}>
+                  {upcomingPrepAppointment.provider || 'Appointment'} — Visit Prep
+                </Text>
+                <Text style={styles.appointmentPrepSubtitle}>
+                  {Math.ceil((new Date(upcomingPrepAppointment.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days away
+                </Text>
+              </View>
+              <Text style={styles.appointmentPrepArrow}>{'\u203A'}</Text>
+            </TouchableOpacity>
+          )}
 
-          {/* 5. All-done / encouragement messages */}
+          {/* 6. PROGRESS SUMMARY — below the fold */}
+          <SectionHeader
+            title="Today's Progress"
+            action={{ label: 'Care Plan', onPress: () => navigate('/care-plan') }}
+          />
+          <View accessibilityLiveRegion="polite" accessibilityRole="summary">
+            <ProgressRings
+              todayStats={todayStats}
+              enabledBuckets={enabledBuckets}
+              nextUp={todayTimeline?.nextUp}
+              instances={instancesState?.instances || []}
+              selectedCategory={selectedCategory}
+              onRingPress={handleRingPress}
+              onManagePress={() => navigate('/care-plan')}
+              patientName={patientName}
+            />
+          </View>
+
+          {/* 7. All-done / encouragement */}
           {hasRegimenInstances &&
             allPending.length === 0 &&
             todayTimeline.completed.length > 0 && (() => {
@@ -716,87 +736,7 @@ export default function NowScreen() {
               );
             })()}
 
-          {/* ─── Below the fold: secondary content ─── */}
-          <SectionHeader title="Check In" showRule />
-
-          {/* 6. UP NEXT — highest priority item */}
-          {todayTimeline.nextUp && !selectedCategory && (
-            <UpNextCard
-              instance={todayTimeline.nextUp}
-              onLogNow={handleTimelineItemPress}
-              onSkip={handleSkipInstance}
-            />
-          )}
-
-          {/* 7. Vitals Guidance — inline decision support */}
-          {vitalsExceedances.length > 0 && !vitalsGuidanceDismissed && (
-            <VitalsGuidance
-              exceedance={vitalsExceedances[0]}
-              medications={medications}
-              recentReadings={vitalsRecentReadings}
-              onDismiss={() => setVitalsGuidanceDismissed(true)}
-            />
-          )}
-
-          {/* 8. Appointment Prep Card — within 14 days */}
-          {upcomingPrepAppointment && (
-            <TouchableOpacity
-              style={styles.appointmentPrepCard}
-              onPress={() => navigate(`/provider-prep?appointmentId=${upcomingPrepAppointment.id}`)}
-              activeOpacity={0.7}
-              accessibilityLabel="Prepare for upcoming appointment"
-              accessibilityRole="button"
-            >
-              <Text style={styles.appointmentPrepIcon}>{'\uD83D\uDCCB'}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.appointmentPrepTitle}>
-                  {upcomingPrepAppointment.provider || 'Appointment'} — Visit Prep
-                </Text>
-                <Text style={styles.appointmentPrepSubtitle}>
-                  {Math.ceil((new Date(upcomingPrepAppointment.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days away
-                </Text>
-              </View>
-              <Text style={styles.appointmentPrepArrow}>{'\u203A'}</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* 9. Morning Briefing — consolidated prompt card */}
-          {briefing?.shouldShow && (
-            <MorningBriefing
-              patientName={patientName}
-              itemCount={todayStats.meds.total + todayStats.vitals.total + todayStats.meals.total}
-              lastVisitHours={briefing.lastVisitHours}
-              orientationMessage={briefing.orientationMessage}
-              closureMessage={briefing.closureMessage}
-              regulationMessage={briefing.regulationMessage}
-              baselineToConfirm={briefing.baselineToConfirm}
-              todayVsBaseline={briefing.todayVsBaseline}
-              isFirstUse={showOnboarding}
-              onDismiss={handlers.dismissBriefing}
-              onBaselineConfirm={handlers.handleBaselineConfirm}
-              onBaselineDismiss={handlers.handleBaselineDismiss}
-            />
-          )}
-
-
-          {/* 13. Data Integrity Warning */}
-          {integrityWarnings && integrityWarnings.length > 0 && (
-            <DataIntegrityBanner
-              issueCount={integrityWarnings.length}
-              onFix={() => navigate('/care-plan')}
-            />
-          )}
-
-          {/* 14. Empty State Banners */}
-          {medications.length === 0 && !showOnboarding && (
-            <NoMedicationsBanner />
-          )}
-
-          {!hasAnyCarePlan && !showOnboarding && !carePlanConfigLoading && (
-            <NoCarePlanBanner onSetup={() => navigate('/care-plan')} />
-          )}
-
-          {/* 15. Footer */}
+          {/* 8. Footer */}
           <View style={styles.footerSection}>
             <Text style={styles.footerMessage}>
               {careInsight
@@ -996,25 +936,24 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   footerSection: {
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     paddingRight: 76,
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: c.glassHover,
+    marginTop: 4,
   },
   footerMessage: {
-    fontSize: 14,
+    fontSize: 13,
     fontStyle: 'italic',
     color: c.textMuted,
     textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: 24,
+    lineHeight: 18,
+    paddingHorizontal: 16,
   },
   footerCoffeeLink: {
-    marginTop: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
+    marginTop: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
     backgroundColor: c.glassDim,
     borderWidth: 1,
     borderColor: c.glassBorder,

@@ -111,19 +111,14 @@ export function WindowReceipt({ window: windowKey, items }: WindowReceiptProps) 
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    marginBottom: 4,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: c.greenTint,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.15)',
+    marginBottom: 2,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    gap: 6,
   },
   checkmark: {
     fontSize: 12,

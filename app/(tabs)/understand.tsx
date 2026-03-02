@@ -570,35 +570,6 @@ export default function UnderstandScreen() {
       requiredBuckets: [], // Always visible — aggregates all data
     });
 
-    const patternCount = pageData?.correlationCards.length ?? 0;
-    items.push({
-      id: 'patterns',
-      icon: '\uD83D\uDD17',
-      iconBg: 'teal',
-      title: 'Patterns Detected',
-      subtitle: 'Sleep & mood \u00B7 Hydration & energy',
-      badge: patternCount > 0 ? `${patternCount} pattern${patternCount !== 1 ? 's' : ''}` : undefined,
-      badgeStyle: 'info',
-      onPress: () => {
-        if (patternCount > 0) {
-          setShowPatternsSheet(true);
-        } else {
-          navigate('/trends');
-        }
-      },
-      requiredBuckets: [], // Always visible — patterns span multiple buckets
-    });
-
-    items.push({
-      id: 'vitals-trends',
-      icon: '\uD83D\uDCC8',
-      iconBg: 'blue',
-      title: 'Vital Signs Trends',
-      subtitle: 'BP, glucose, heart rate over time',
-      onPress: () => navigate('/trends'),
-      requiredBuckets: ['vitals'],
-    });
-
     // Care Journey — only visible when a journey is active (Task 4.4)
     if (hasActiveJourney) {
       items.push({
@@ -725,7 +696,12 @@ export default function UnderstandScreen() {
           {/* 4. VITALS AT A GLANCE */}
           {vitalSummaries.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>VITALS AT A GLANCE {'\u00B7'} LAST {timeRange} DAYS</Text>
+              <View style={styles.vitalsSectionHeader}>
+                <Text style={styles.sectionLabel}>VITALS AT A GLANCE {'\u00B7'} LAST {timeRange} DAYS</Text>
+                <TouchableOpacity onPress={() => navigate('/trends')} activeOpacity={0.7}>
+                  <Text style={styles.trendsLink}>All Trends {'\u2192'}</Text>
+                </TouchableOpacity>
+              </View>
               <View style={styles.vitalsCard}>
                 {vitalSummaries.map((vital) => (
                   <VitalRow
@@ -739,16 +715,6 @@ export default function UnderstandScreen() {
           )}
 
           {/* 5. QUICK ACTIONS */}
-          <TouchableOpacity
-            style={styles.allTrendsLink}
-            onPress={() => navigate('/trends')}
-            activeOpacity={0.7}
-            accessibilityRole="link"
-            accessibilityLabel="All Trends"
-          >
-            <Text style={styles.allTrendsText}>All Trends {'\u2192'}</Text>
-          </TouchableOpacity>
-
           <View style={styles.quickActionsGrid}>
             {menuItems.map(item => (
               <TouchableOpacity
@@ -761,7 +727,6 @@ export default function UnderstandScreen() {
               >
                 <Text style={styles.quickActionIcon}>{item.icon}</Text>
                 <Text style={styles.quickActionTitle} numberOfLines={1}>{item.title}</Text>
-                <Text style={styles.quickActionSub} numberOfLines={2}>{item.subtitle}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -1072,48 +1037,44 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginTop: 1,
   },
 
-  // Quick Actions
-  allTrendsLink: {
-    alignSelf: 'flex-end',
-    marginBottom: 10,
-    marginTop: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 2,
+  // Vitals Header
+  vitalsSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  allTrendsText: {
-    fontSize: 13,
-    fontWeight: '600',
+  trendsLink: {
+    fontSize: 12,
     color: c.accent,
+    fontWeight: '500',
   },
+
+  // Quick Actions
   quickActionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
   quickActionCard: {
-    width: '48%' as unknown as number,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     backgroundColor: c.glassDim,
     borderWidth: 1,
     borderColor: c.glassBorder,
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 10,
+    padding: 12,
     flexGrow: 1,
     flexBasis: '46%',
   },
   quickActionIcon: {
-    fontSize: 20,
-    marginBottom: 6,
+    fontSize: 18,
   },
   quickActionTitle: {
     fontSize: 13,
     fontWeight: '600',
     color: c.textPrimary,
-    marginBottom: 2,
-  },
-  quickActionSub: {
-    fontSize: 11,
-    color: c.textMuted,
-    lineHeight: 15,
   },
 
   // Data Building Banner
