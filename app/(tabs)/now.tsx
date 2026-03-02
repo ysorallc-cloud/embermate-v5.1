@@ -534,6 +534,7 @@ export default function NowScreen() {
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -828,6 +829,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingTop: 16,
   },
   // closureContainer and orientationContainer removed — prompts consolidated into MorningBriefing
   content: {

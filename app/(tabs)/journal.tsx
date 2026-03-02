@@ -626,6 +626,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
+    paddingTop: 16,
   },
   loadingContainer: {
     flex: 1,
