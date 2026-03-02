@@ -66,6 +66,11 @@ export interface UnderstandPageData {
   adherenceRate: number;       // Period-based med adherence %
   dosesLogged: number;         // completedCount for the period
   dosesScheduled: number;      // completedCount + skippedCount for the period
+  avgMealsPerDay: number;
+  avgHydrationPerDay: number;
+  avgSleepHours: number;
+  avgWellnessPerDay: number;
+  lunchSkipRate: number;
   isSampleData?: boolean;
   sampleDataPreviouslySeen?: boolean; // True if preview was dismissed before
   showConfidenceExplanation?: boolean; // True if one-time explanation should show
@@ -155,6 +160,11 @@ async function getSampleData(timeRange: TimeRange): Promise<UnderstandPageData> 
     adherenceRate: 0,
     dosesLogged: 0,
     dosesScheduled: 0,
+    avgMealsPerDay: 0,
+    avgHydrationPerDay: 0,
+    avgSleepHours: 0,
+    avgWellnessPerDay: 0,
+    lunchSkipRate: 0,
     isSampleData: true,
     sampleDataPreviouslySeen: previouslySeen,
   };
@@ -532,6 +542,11 @@ interface CarePlanStats {
   adherenceRate: number;
   uniqueDays: number;
   carePlanItems: CarePlanItem[];
+  avgMealsPerDay: number;
+  avgHydrationPerDay: number;
+  avgSleepHours: number;
+  avgWellnessPerDay: number;
+  lunchSkipRate: number;
 }
 
 async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanStats> {
@@ -559,6 +574,14 @@ async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanS
     let skippedCount = 0;
     const uniqueDays = new Set<string>();
 
+    // Category tracking for averages
+    const mealsPerDay: Record<string, number> = {};
+    const hydrationPerDay: Record<string, number> = {};
+    const sleepPerDay: Record<string, number> = {};
+    const wellnessPerDay: Record<string, number> = {};
+    let lunchCount = 0;
+    let lunchSkipped = 0;
+
     for (const log of logs) {
       uniqueDays.add(log.date);
       const itemType = log.carePlanItemId ? itemTypeMap.get(log.carePlanItemId) : undefined;
@@ -578,15 +601,43 @@ async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanS
           break;
         case 'mood':
           moodLogs++;
+          wellnessPerDay[log.date] = (wellnessPerDay[log.date] || 0) + 1;
           break;
-        case 'nutrition':
+        case 'nutrition': {
           mealLogs++;
+          mealsPerDay[log.date] = (mealsPerDay[log.date] || 0) + 1;
+          const data = log.data as any;
+          if (data?.mealType === 'lunch') {
+            lunchCount++;
+            if (log.outcome === 'skipped') lunchSkipped++;
+          }
+          if (data?.type === 'hydration' && typeof data?.glasses === 'number') {
+            hydrationPerDay[log.date] = (hydrationPerDay[log.date] || 0) + data.glasses;
+          }
+          if (data?.type === 'sleep' && typeof data?.hours === 'number') {
+            sleepPerDay[log.date] = data.hours;
+          }
           break;
+        }
+      }
+
+      // Also check log data directly for hydration/sleep items not typed as nutrition
+      const logData = log.data as any;
+      if (logData?.type === 'hydration' && typeof logData?.glasses === 'number' && itemType !== 'nutrition') {
+        hydrationPerDay[log.date] = (hydrationPerDay[log.date] || 0) + logData.glasses;
+      }
+      if (logData?.type === 'sleep' && typeof logData?.hours === 'number' && itemType !== 'nutrition') {
+        sleepPerDay[log.date] = logData.hours;
       }
     }
 
     const total = completedCount + skippedCount;
     const adherenceRate = total > 0 ? (completedCount / total) * 100 : 0;
+
+    const mealDays = Object.values(mealsPerDay);
+    const hydrationDays = Object.values(hydrationPerDay);
+    const sleepDays = Object.values(sleepPerDay);
+    const wellnessDays = Object.values(wellnessPerDay);
 
     return {
       totalLogs: logs.length,
@@ -599,6 +650,11 @@ async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanS
       adherenceRate,
       uniqueDays: uniqueDays.size,
       carePlanItems: items,
+      avgMealsPerDay: mealDays.length > 0 ? mealDays.reduce((a, b) => a + b, 0) / mealDays.length : 0,
+      avgHydrationPerDay: hydrationDays.length > 0 ? hydrationDays.reduce((a, b) => a + b, 0) / hydrationDays.length : 0,
+      avgSleepHours: sleepDays.length > 0 ? sleepDays.reduce((a, b) => a + b, 0) / sleepDays.length : 0,
+      avgWellnessPerDay: wellnessDays.length > 0 ? wellnessDays.reduce((a, b) => a + b, 0) / wellnessDays.length : 0,
+      lunchSkipRate: lunchCount > 0 ? lunchSkipped / lunchCount : 0,
     };
   } catch (error) {
     logError('understandInsights.getCarePlanStatsForRange', error);
@@ -613,6 +669,11 @@ async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanS
       adherenceRate: 0,
       uniqueDays: 0,
       carePlanItems: [],
+      avgMealsPerDay: 0,
+      avgHydrationPerDay: 0,
+      avgSleepHours: 0,
+      avgWellnessPerDay: 0,
+      lunchSkipRate: 0,
     };
   }
 }
@@ -821,6 +882,11 @@ export async function loadUnderstandPageData(timeRange: TimeRange): Promise<Unde
       adherenceRate: carePlanStats.adherenceRate,
       dosesLogged: carePlanStats.completedCount,
       dosesScheduled: carePlanStats.completedCount + carePlanStats.skippedCount,
+      avgMealsPerDay: carePlanStats.avgMealsPerDay,
+      avgHydrationPerDay: carePlanStats.avgHydrationPerDay,
+      avgSleepHours: carePlanStats.avgSleepHours,
+      avgWellnessPerDay: carePlanStats.avgWellnessPerDay,
+      lunchSkipRate: carePlanStats.lunchSkipRate,
       isSampleData: false,
       showConfidenceExplanation: shouldShowConfidenceExplanation,
     };
@@ -846,6 +912,11 @@ export async function loadUnderstandPageData(timeRange: TimeRange): Promise<Unde
       adherenceRate: 0,
       dosesLogged: 0,
       dosesScheduled: 0,
+      avgMealsPerDay: 0,
+      avgHydrationPerDay: 0,
+      avgSleepHours: 0,
+      avgWellnessPerDay: 0,
+      lunchSkipRate: 0,
       isSampleData: false,
     };
   }
@@ -922,6 +993,67 @@ export async function markConfidenceExplained(): Promise<void> {
   } catch (error) {
     logError('understandInsights.markConfidenceExplained', error);
   }
+}
+
+// ============================================================================
+// ACTIONABLE SUGGESTIONS (IG-2)
+// ============================================================================
+
+export interface ActionableSuggestion {
+  id: string;
+  text: string;
+  icon: string;
+}
+
+export function generateActionableSuggestions(stats: CarePlanStats): ActionableSuggestion[] {
+  const suggestions: ActionableSuggestion[] = [];
+
+  // Low hydration
+  if (stats.avgHydrationPerDay > 0 && stats.avgHydrationPerDay < 6) {
+    suggestions.push({
+      id: 'low-hydration',
+      text: `Averaging ${stats.avgHydrationPerDay.toFixed(1)} glasses/day — try adding one more at lunch.`,
+      icon: '\uD83D\uDCA7',
+    });
+  }
+
+  // Lunch skip rate
+  if (stats.lunchSkipRate > 0.3) {
+    suggestions.push({
+      id: 'lunch-skips',
+      text: `Lunch was skipped ${Math.round(stats.lunchSkipRate * 100)}% of the time — a light snack counts.`,
+      icon: '\uD83C\uDF5E',
+    });
+  }
+
+  // Low sleep
+  if (stats.avgSleepHours > 0 && stats.avgSleepHours < 7) {
+    suggestions.push({
+      id: 'low-sleep',
+      text: `Averaging ${stats.avgSleepHours.toFixed(1)} hrs of sleep — winding down 30 min earlier may help.`,
+      icon: '\uD83D\uDE34',
+    });
+  }
+
+  // Low medication adherence
+  if (stats.medicationLogs > 0 && stats.adherenceRate < 80) {
+    suggestions.push({
+      id: 'med-adherence',
+      text: `Medication adherence is at ${Math.round(stats.adherenceRate)}% — setting a reminder could help.`,
+      icon: '\uD83D\uDC8A',
+    });
+  }
+
+  // Low wellness tracking
+  if (stats.avgWellnessPerDay > 0 && stats.avgWellnessPerDay < 1) {
+    suggestions.push({
+      id: 'low-wellness',
+      text: 'Mood is logged less than once a day — even a quick check-in helps spot trends.',
+      icon: '\uD83E\uDDE0',
+    });
+  }
+
+  return suggestions.slice(0, 3);
 }
 
 // ============================================================================

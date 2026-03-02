@@ -33,11 +33,13 @@ import {
   dismissSuggestion,
   markConfidenceExplained,
   getRouteOrFallback,
+  generateActionableSuggestions,
   TimeRange,
   UnderstandPageData,
   StandOutInsight,
   PositiveObservation,
   CorrelationCard,
+  ActionableSuggestion,
 } from '../../utils/understandInsights';
 import { logError } from '../../utils/devLog';
 import { useDataListener } from '../../lib/events';
@@ -122,69 +124,50 @@ function TimeRangeToggle({ value, onChange }: TimeRangeToggleProps) {
 }
 
 // ============================================================================
-// STAT SPOTLIGHT — hero card + secondary chip row
+// SCORECARD STRIP — 4 compact metric cards (IG-1)
 // ============================================================================
 
-interface StatSpotlightProps {
+interface ScorecardProps {
   adherencePct: number;
-  dosesLogged: number;
-  dosesScheduled: number;
   daysTracked: number;
-  patternsFound: number;
+  avgHydration: number;
+  avgSleep: number;
 }
 
-function StatSpotlight({ adherencePct, dosesLogged, dosesScheduled, daysTracked, patternsFound }: StatSpotlightProps) {
-  return (
-    <>
-      {/* Hero card — adherence */}
-      <View style={_styles.heroCard}>
-        <View style={_styles.heroTopBar} />
-        <Text style={_styles.heroLabel}>MED ADHERENCE</Text>
-        <View style={_styles.heroNumRow}>
-          <Text style={_styles.heroNum}>{adherencePct}</Text>
-          <Text style={_styles.heroUnit}>%</Text>
-        </View>
-        <Text style={_styles.heroContext}>
-          {dosesLogged} of {dosesScheduled} doses logged
-        </Text>
-      </View>
+function Scorecard({ adherencePct, daysTracked, avgHydration, avgSleep }: ScorecardProps) {
+  const metrics = [
+    { label: 'Adherence', value: `${adherencePct}%`, icon: '\uD83D\uDC8A' },
+    { label: 'Days', value: `${daysTracked}`, icon: '\uD83D\uDCC5' },
+    { label: 'Hydration', value: avgHydration > 0 ? `${avgHydration.toFixed(1)}` : '\u2014', icon: '\uD83D\uDCA7' },
+    { label: 'Sleep', value: avgSleep > 0 ? `${avgSleep.toFixed(1)}h` : '\u2014', icon: '\uD83D\uDE34' },
+  ];
 
-      {/* Secondary chips */}
-      <View style={_styles.chipRow}>
-        <View style={_styles.chip}>
-          <Text style={_styles.chipVal}>{daysTracked}</Text>
-          <Text style={_styles.chipLabel}>Days tracked</Text>
+  return (
+    <View style={_styles.scorecardStrip}>
+      {metrics.map(m => (
+        <View key={m.label} style={_styles.scorecardItem}>
+          <Text style={_styles.scorecardIcon}>{m.icon}</Text>
+          <Text style={_styles.scorecardValue}>{m.value}</Text>
+          <Text style={_styles.scorecardLabel}>{m.label}</Text>
         </View>
-        <View style={_styles.chip}>
-          <Text style={_styles.chipVal}>
-            {patternsFound}<Text style={_styles.chipValDim}> found</Text>
-          </Text>
-          <Text style={_styles.chipLabel}>Patterns</Text>
-        </View>
-      </View>
-    </>
+      ))}
+    </View>
   );
 }
 
 // ============================================================================
-// INSIGHT CALLOUT — left-bordered green callout
+// SUGGESTION ROW — amber left-bordered actionable suggestion (IG-2)
 // ============================================================================
 
-interface InsightCalloutProps {
-  observations: PositiveObservation[];
+interface SuggestionRowProps {
+  suggestion: ActionableSuggestion;
 }
 
-function InsightCallout({ observations }: InsightCalloutProps) {
-  if (observations.length === 0) return null;
-
+function SuggestionRow({ suggestion }: SuggestionRowProps) {
   return (
-    <View style={_styles.insightCallout}>
-      {observations.map((obs) => (
-        <View key={obs.id} style={_styles.insightCalloutRow}>
-          <Text style={_styles.insightCalloutCheck}>{'\u2713'}</Text>
-          <Text style={_styles.insightCalloutText}>{obs.text}</Text>
-        </View>
-      ))}
+    <View style={_styles.suggestionCard}>
+      <Text style={_styles.suggestionIcon}>{suggestion.icon}</Text>
+      <Text style={_styles.suggestionText}>{suggestion.text}</Text>
     </View>
   );
 }
@@ -453,6 +436,86 @@ function sparkY(value: number, allValues: number[]): number {
 }
 
 // ============================================================================
+// CATEGORY TRENDS (IG-3)
+// ============================================================================
+
+function computeCategoryTrends(stats: { avgMealsPerDay: number; avgHydrationPerDay: number; avgWellnessPerDay: number; avgSleepHours: number; uniqueDays: number }): VitalSummary[] {
+  const trends: VitalSummary[] = [];
+
+  if (stats.uniqueDays < 2) return trends;
+
+  // Meals
+  if (stats.avgMealsPerDay > 0) {
+    const isGood = stats.avgMealsPerDay >= 2.5;
+    trends.push({
+      icon: '\uD83C\uDF7D\uFE0F',
+      name: 'Meals',
+      description: isGood ? 'On track' : 'Below 3/day avg',
+      descriptionTone: isGood ? 'normal' : 'warn',
+      value: `${stats.avgMealsPerDay.toFixed(1)}/day`,
+      valueTone: isGood ? 'normal' : 'warn',
+      trend: isGood ? '\u2192 stable' : '\u2193 low',
+      trendTone: isGood ? 'stable' : 'up',
+      sparkPoints: '',
+      sparkColor: 'rgba(20, 184, 166, 0.65)',
+    });
+  }
+
+  // Hydration
+  if (stats.avgHydrationPerDay > 0) {
+    const isGood = stats.avgHydrationPerDay >= 6;
+    trends.push({
+      icon: '\uD83D\uDCA7',
+      name: 'Hydration',
+      description: isGood ? 'Meeting target' : 'Below target',
+      descriptionTone: isGood ? 'normal' : 'warn',
+      value: `${stats.avgHydrationPerDay.toFixed(1)} glasses`,
+      valueTone: isGood ? 'normal' : 'warn',
+      trend: isGood ? '\u2192 stable' : 'needs attention',
+      trendTone: isGood ? 'stable' : 'up',
+      sparkPoints: '',
+      sparkColor: 'rgba(20, 184, 166, 0.65)',
+    });
+  }
+
+  // Wellness
+  if (stats.avgWellnessPerDay > 0) {
+    const isGood = stats.avgWellnessPerDay >= 1;
+    trends.push({
+      icon: '\uD83E\uDDE0',
+      name: 'Wellness',
+      description: isGood ? 'Regular check-ins' : 'Infrequent',
+      descriptionTone: isGood ? 'normal' : 'warn',
+      value: `${stats.avgWellnessPerDay.toFixed(1)}/day`,
+      valueTone: 'normal',
+      trend: isGood ? '\u2192 stable' : 'log more',
+      trendTone: isGood ? 'stable' : 'up',
+      sparkPoints: '',
+      sparkColor: 'rgba(20, 184, 166, 0.65)',
+    });
+  }
+
+  // Sleep
+  if (stats.avgSleepHours > 0) {
+    const isGood = stats.avgSleepHours >= 7;
+    trends.push({
+      icon: '\uD83D\uDE34',
+      name: 'Sleep',
+      description: isGood ? 'Healthy range' : 'Below 7 hrs',
+      descriptionTone: isGood ? 'normal' : 'warn',
+      value: `${stats.avgSleepHours.toFixed(1)} hrs`,
+      valueTone: isGood ? 'normal' : 'warn',
+      trend: isGood ? '\u2192 stable' : 'needs attention',
+      trendTone: isGood ? 'stable' : 'up',
+      sparkPoints: '',
+      sparkColor: 'rgba(20, 184, 166, 0.65)',
+    });
+  }
+
+  return trends;
+}
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -466,6 +529,8 @@ export default function UnderstandScreen() {
   const [pageData, setPageData] = useState<UnderstandPageData | null>(null);
   const [providerPrep, setProviderPrep] = useState<ProviderPrepData | null>(null);
   const [vitalSummaries, setVitalSummaries] = useState<VitalSummary[]>([]);
+  const [categoryTrends, setCategoryTrends] = useState<VitalSummary[]>([]);
+  const [suggestions, setSuggestions] = useState<ActionableSuggestion[]>([]);
   const [showPatternsSheet, setShowPatternsSheet] = useState(false);
   const [hasActiveJourney, setHasActiveJourney] = useState(false);
   const { enabledBuckets } = useEnabledBuckets();
@@ -487,6 +552,21 @@ export default function UnderstandScreen() {
       setLoading(true);
       const data = await loadUnderstandPageData(timeRange);
       setPageData(data);
+
+      // Compute suggestions and category trends from stats
+      setSuggestions(generateActionableSuggestions({
+        totalLogs: 0, medicationLogs: 0, vitalsLogs: 0, moodLogs: 0, mealLogs: 0,
+        completedCount: data.dosesLogged, skippedCount: (data.dosesScheduled - data.dosesLogged),
+        adherenceRate: data.adherenceRate, uniqueDays: data.daysOfData, carePlanItems: [],
+        avgMealsPerDay: data.avgMealsPerDay, avgHydrationPerDay: data.avgHydrationPerDay,
+        avgSleepHours: data.avgSleepHours, avgWellnessPerDay: data.avgWellnessPerDay,
+        lunchSkipRate: data.lunchSkipRate,
+      }));
+      setCategoryTrends(computeCategoryTrends({
+        avgMealsPerDay: data.avgMealsPerDay, avgHydrationPerDay: data.avgHydrationPerDay,
+        avgWellnessPerDay: data.avgWellnessPerDay, avgSleepHours: data.avgSleepHours,
+        uniqueDays: data.daysOfData,
+      }));
 
       try {
         const now = new Date();
@@ -623,11 +703,9 @@ export default function UnderstandScreen() {
   }
 
   const adherencePct = Math.round(pageData?.adherenceRate ?? 0);
-  const dosesLogged = pageData?.dosesLogged ?? 0;
-  const dosesScheduled = pageData?.dosesScheduled ?? 0;
   const daysTracked = pageData?.daysOfData ?? 0;
-
-  const patternsFound = filteredCorrelationCards.length;
+  const avgHydration = pageData?.avgHydrationPerDay ?? 0;
+  const avgSleep = pageData?.avgSleepHours ?? 0;
 
   return (
     <View style={styles.container}>
@@ -666,19 +744,27 @@ export default function UnderstandScreen() {
             </View>
           )}
 
-          {/* 1. STAT SPOTLIGHT */}
-          <StatSpotlight
+          {/* 1. SCORECARD STRIP (IG-1) */}
+          <Scorecard
             adherencePct={adherencePct}
-            dosesLogged={dosesLogged}
-            dosesScheduled={dosesScheduled}
             daysTracked={daysTracked}
-            patternsFound={patternsFound}
+            avgHydration={avgHydration}
+            avgSleep={avgSleep}
           />
 
-          {/* 2. INSIGHT CALLOUT */}
-          {pageData && pageData.positiveObservations.length > 0 && (
-            <InsightCallout observations={pageData.positiveObservations} />
-          )}
+          {/* 2. ACTIONABLE SUGGESTIONS (IG-2) */}
+          {suggestions.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>SUGGESTIONS</Text>
+              {suggestions.map(s => (
+                <SuggestionRow key={s.id} suggestion={s} />
+              ))}
+            </View>
+          ) : pageData && !pageData.isSampleData && pageData.daysOfData >= 3 ? (
+            <View style={styles.steadyBanner}>
+              <Text style={styles.steadyText}>Everything looks steady. Keep it up!</Text>
+            </View>
+          ) : null}
 
           {/* 3. PATTERNS DETECTED — filtered by enabled buckets */}
           {filteredCorrelationCards.length > 0 && (
@@ -694,16 +780,23 @@ export default function UnderstandScreen() {
             </View>
           )}
 
-          {/* 4. VITALS AT A GLANCE */}
-          {vitalSummaries.length > 0 && (
+          {/* 4. TRENDS (IG-6 renamed, IG-3 category trends added) */}
+          {(vitalSummaries.length > 0 || categoryTrends.length > 0) && (
             <View style={styles.section}>
               <View style={styles.vitalsSectionHeader}>
-                <Text style={styles.sectionLabel}>VITALS AT A GLANCE {'\u00B7'} LAST {timeRange} DAYS</Text>
+                <Text style={styles.sectionLabel}>TRENDS {'\u00B7'} LAST {timeRange} DAYS</Text>
                 <TouchableOpacity onPress={() => navigate('/trends')} activeOpacity={0.7}>
                   <Text style={styles.trendsLink}>All Trends {'\u2192'}</Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.vitalsCard}>
+                {categoryTrends.map((vital) => (
+                  <VitalRow
+                    key={vital.name}
+                    vital={vital}
+                    onPress={() => navigate('/trends')}
+                  />
+                ))}
                 {vitalSummaries.map((vital) => (
                   <VitalRow
                     key={vital.name}
@@ -803,110 +896,74 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.accent,
   },
 
-  // Hero Card — adherence
-  heroCard: {
-    backgroundColor: c.accentLight,
-    borderWidth: 1,
-    borderColor: c.accentBorder,
-    borderRadius: 18,
-    padding: 18,
-    paddingTop: 0,
-    marginBottom: 10,
-    overflow: 'hidden',
-  },
-  heroTopBar: {
-    height: 3,
-    backgroundColor: c.accent,
-    marginHorizontal: -18,
-    marginBottom: 14,
-  },
-  heroLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    color: c.textMuted,
-    marginBottom: 2,
-  },
-  heroNumRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  heroNum: {
-    fontSize: 40,
-    fontWeight: '200',
-    color: c.accent,
-    lineHeight: 46,
-  },
-  heroUnit: {
-    fontSize: 18,
-    fontWeight: '400',
-    color: c.textMuted,
-    marginLeft: 2,
-  },
-  heroContext: {
-    fontSize: 12,
-    color: c.textTertiary,
-    marginTop: 2,
-  },
-
-  // Chip Row — secondary stats
-  chipRow: {
+  // Scorecard Strip (IG-1)
+  scorecardStrip: {
     flexDirection: 'row',
     gap: 8,
     marginBottom: 14,
   },
-  chip: {
+  scorecardItem: {
     flex: 1,
     backgroundColor: c.glassDim,
     borderWidth: 1,
     borderColor: c.glassBorder,
     borderRadius: 12,
     paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 6,
+    alignItems: 'center',
   },
-  chipVal: {
+  scorecardIcon: {
     fontSize: 16,
-    fontWeight: '500',
+    marginBottom: 4,
+  },
+  scorecardValue: {
+    fontSize: 16,
+    fontWeight: '600',
     color: c.textPrimary,
+    fontVariant: ['tabular-nums'] as any,
   },
-  chipValDim: {
-    fontSize: 13,
-    fontWeight: '400',
+  scorecardLabel: {
+    fontSize: 10,
     color: c.textMuted,
-  },
-  chipLabel: {
-    fontSize: 11,
-    color: c.textMuted,
-    marginTop: 1,
+    marginTop: 2,
   },
 
-  // Insight Callout — left-bordered green
-  insightCallout: {
+  // Suggestion Card (IG-2)
+  suggestionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
     borderLeftWidth: 3,
-    borderLeftColor: c.green,
-    backgroundColor: c.greenTint,
+    borderLeftColor: c.amber,
+    backgroundColor: c.glassDim,
     borderRadius: 12,
     padding: 12,
     paddingLeft: 14,
-    marginBottom: 14,
+    marginBottom: 8,
   },
-  insightCalloutRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginBottom: 6,
-  },
-  insightCalloutCheck: {
-    color: c.green,
-    fontSize: 12,
-    fontWeight: '700',
+  suggestionIcon: {
+    fontSize: 16,
     marginTop: 1,
   },
-  insightCalloutText: {
+  suggestionText: {
     fontSize: 13,
     color: c.textSecondary,
     lineHeight: 19,
     flex: 1,
+  },
+
+  // Steady state banner (IG-2)
+  steadyBanner: {
+    backgroundColor: c.greenTint,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 14,
+    alignItems: 'center',
+  },
+  steadyText: {
+    fontSize: 13,
+    color: c.green,
+    fontWeight: '500',
   },
 
   // Pattern Card
