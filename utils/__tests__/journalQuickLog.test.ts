@@ -1,25 +1,19 @@
 // File: utils/__tests__/journalQuickLog.test.ts
+// Updated for journal redesign — quick log buttons removed.
+// Journal is a record, not an input screen.
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-describe('Journal quick log row', () => {
+describe('Journal quick log removed', () => {
   const src = readFileSync(join(__dirname, '../../app/(tabs)/journal.tsx'), 'utf8');
   const render = src.slice(src.indexOf('return ('));
 
-  test('quick log row exists in render', () => {
-    expect(render).toMatch(/quickLog/i);
+  test('quick log row is removed from render', () => {
+    expect(render).not.toContain('quickLogRow');
+    expect(render).not.toContain('quickLogChip');
   });
 
-  test('appears before timestamp in render', () => {
-    const ql = render.indexOf('quickLogRow');
-    const ts = render.indexOf('s.timestamp');
-    expect(ql).toBeGreaterThan(-1);
-    expect(ts).toBeGreaterThan(-1);
-    expect(ql).toBeLessThan(ts);
-  });
-
-  test('contains navigation targets', () => {
-    expect(src).toContain("'/log-vitals'");
-    expect(src).toContain("'/log-meal'");
+  test('share action still exists', () => {
+    expect(src).toContain('/care-report');
   });
 });

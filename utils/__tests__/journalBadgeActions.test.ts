@@ -1,27 +1,20 @@
 // File: utils/__tests__/journalBadgeActions.test.ts
+// Updated for journal redesign — badges and JournalSection removed,
+// replaced by data rows with status dots.
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-describe('Journal badge actions', () => {
+describe('Journal data row actions', () => {
   const src = readFileSync(join(__dirname, '../../app/(tabs)/journal.tsx'), 'utf8');
 
-  test('JournalSection accepts onBadgePress prop', () => {
-    expect(src).toMatch(/onBadgePress/);
+  test('data rows use colored status dots', () => {
+    expect(src).toContain('dataRowDot');
+    expect(src).toContain('dotGreen');
+    expect(src).toContain('dotAmber');
+    expect(src).toContain('dotRed');
   });
 
-  test('Badge uses TouchableOpacity when onBadgePress provided', () => {
-    expect(src).toMatch(/TouchableOpacity[\s\S]*?badge/i);
-  });
-
-  test('Vitals section links to /log-vitals', () => {
-    expect(src).toContain("'/log-vitals'");
-  });
-
-  test('Meals section links to /log-meal', () => {
-    expect(src).toContain("'/log-meal'");
-  });
-
-  test('Wellness section links to /log-morning-wellness', () => {
-    expect(src).toMatch(/log-morning-wellness|log-wellness/);
+  test('Share button links to /care-report', () => {
+    expect(src).toContain('/care-report');
   });
 });

@@ -177,6 +177,8 @@ export function useCarePlanConfig(
   ): Promise<MedicationPlanItem | null> => {
     const updated = await updateMedicationInPlan(patientId, id, updates);
     await loadConfig();
+    emitDataUpdate(EVENT.CARE_PLAN_ITEMS);
+    emitDataUpdate(EVENT.DAILY_INSTANCES);
     return updated;
   }, [patientId, loadConfig]);
 
@@ -186,6 +188,8 @@ export function useCarePlanConfig(
   const removeMedication = useCallback(async (id: string) => {
     await removeMedicationFromPlan(patientId, id);
     await loadConfig();
+    emitDataUpdate(EVENT.CARE_PLAN_ITEMS);
+    emitDataUpdate(EVENT.DAILY_INSTANCES);
   }, [patientId, loadConfig]);
 
   /**

@@ -1,7 +1,6 @@
 // ============================================================================
-// JOURNAL PAGE - "Nurse Handoff at a Glance"
-// Clinical handoff document metaphor with narrative prose sections.
-// Color-coded left borders, export surfaced at top, vitals as horizontal strip.
+// JOURNAL PAGE - Briefing-style layout with narrative summary + data rows
+// Three zones: Today's Summary, Details, Tomorrow
 // ============================================================================
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
@@ -51,61 +50,6 @@ function formatTime(t: string): string {
   const min = parts[1];
   const period = hr >= 12 ? 'PM' : 'AM';
   return `${hr % 12 || 12}:${min} ${period}`;
-}
-
-// ============================================================================
-// BADGE COMPONENT
-// ============================================================================
-
-function Badge({ text, variant = 'done' }: { text: string; variant?: 'done' | 'pending' | 'missed' | 'info' }) {
-  const badgeStyles: Record<string, { bg: string; border: string; color: string }> = {
-    done: { bg: Colors.greenTint, border: Colors.greenBorder, color: Colors.green },
-    pending: { bg: Colors.amberFaint, border: Colors.amberBorder, color: Colors.amberBright },
-    missed: { bg: Colors.redFaint, border: Colors.redBorder, color: Colors.redBright },
-    info: { bg: Colors.glass, border: Colors.border, color: Colors.textMuted },
-  };
-  const bs = badgeStyles[variant] || badgeStyles.info;
-  return (
-    <View style={[_s.badge, { backgroundColor: bs.bg, borderColor: bs.border }]}>
-      <Text style={[_s.badgeText, { color: bs.color }]}>{text}</Text>
-    </View>
-  );
-}
-
-// ============================================================================
-// JOURNAL SECTION — card with colored left border
-// ============================================================================
-
-interface JournalSectionProps {
-  icon?: string;
-  label: string;
-  color: string;
-  labelColor?: string;
-  badge?: { text: string; variant: 'done' | 'pending' | 'missed' | 'info' };
-  onBadgePress?: () => void;
-  children: React.ReactNode;
-}
-
-function JournalSection({ icon, label, color, labelColor, badge, onBadgePress, children }: JournalSectionProps) {
-  return (
-    <View style={[_s.journalSection, { borderLeftColor: color }]}>
-      <View style={_s.journalSectionHeader}>
-        <View style={_s.journalSectionHeaderLeft}>
-          {icon && <Text style={_s.journalSectionIcon}>{icon}</Text>}
-          <Text style={[_s.journalSectionLabel, labelColor ? { color: labelColor } : null]}>{label}</Text>
-        </View>
-        {badge && (
-          onBadgePress && (badge.variant === 'pending' || badge.variant === 'missed')
-            ? <TouchableOpacity onPress={onBadgePress} activeOpacity={0.7}
-                accessibilityRole="link" accessibilityLabel={`Log ${label}`}>
-                <Badge text={badge.text + ' \u2192'} variant={badge.variant} />
-              </TouchableOpacity>
-            : <Badge text={badge.text} variant={badge.variant} />
-        )}
-      </View>
-      {children}
-    </View>
-  );
 }
 
 // ============================================================================
@@ -252,7 +196,7 @@ export default function JournalTab() {
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
             }
           >
-            <ScreenHeader title="Journal" subtitle={`${dayName}, ${dateStr}`} purpose="A record of today's care." />
+            <ScreenHeader title="Journal" subtitle={`${dayName}, ${dateStr}`} />
             <View style={s.errorContainer}>
               <Text style={s.errorIcon}>{'\u26A0\uFE0F'}</Text>
               <Text style={s.errorText}>{error}</Text>
@@ -275,46 +219,10 @@ export default function JournalTab() {
   const mealsTotal = brief?.meals.total ?? 0;
 
   const hasVitals = brief?.vitals.recorded ?? false;
-  const hasWellness = brief?.mood.morningWellness != null;
   const hasMorning = brief?.mood.morningWellness != null;
   const hasEvening = brief?.mood.eveningWellness != null;
 
   const waterGlasses = brief?.hydration.glasses ?? 0;
-
-  // Flags
-  const hasVitalsFlag = brief?.vitals?.readings &&
-    ((brief.vitals.readings.systolic ?? 0) > 140 ||
-     (brief.vitals.readings.diastolic ?? 0) > 90 ||
-     ((brief.vitals.readings.oxygen ?? 100) < 92));
-  const hasSideEffects = brief?.medications.some(m => m.sideEffects && m.sideEffects.length > 0);
-  const hasAttentionItems = brief && brief.attentionItems.length > 0;
-  const showNeedsAttention = hasVitalsFlag || hasSideEffects || hasAttentionItems;
-
-  // Notes
-  interface AggregatedNote {
-    time: string;
-    text: string;
-    timestamp: number;
-  }
-  const aggregatedNotes: AggregatedNote[] = [];
-  brief?.medications?.forEach(med => {
-    if (med.sideEffects && med.sideEffects.length > 0) {
-      const ts = med.takenAt || med.scheduledTime;
-      aggregatedNotes.push({
-        time: ts ? formatTime(ts) : '',
-        text: `${med.name}: ${med.sideEffects.join(', ')}`,
-        timestamp: ts ? new Date(ts).getTime() : 0,
-      });
-    }
-  });
-  todayNotes.forEach(note => {
-    aggregatedNotes.push({
-      time: formatTime(note.timestamp),
-      text: note.content,
-      timestamp: new Date(note.timestamp).getTime(),
-    });
-  });
-  aggregatedNotes.sort((a, b) => b.timestamp - a.timestamp);
 
   // Appointment
   const daysUntilAppt = brief?.nextAppointment
@@ -323,96 +231,149 @@ export default function JournalTab() {
   const showAppointment = brief?.nextAppointment && daysUntilAppt != null && daysUntilAppt <= 7;
 
   // ============================================================================
-  // NARRATIVE BUILDERS
+  // BRIEFING NARRATIVE
   // ============================================================================
-
-  function buildMedNarrative(): string[] {
-    if (!brief || brief.medications.length === 0) return [];
-    const lines: string[] = [];
-
-    // Group by status
-    const taken = brief.medications.filter(m => m.status === 'completed');
-    const missed = brief.medications.filter(m => m.status === 'missed');
-    const pending = brief.medications.filter(m => m.status !== 'completed' && m.status !== 'missed');
-
-    for (const med of taken) {
-      const timeStr = med.takenAt ? formatTime(med.takenAt) : '';
-      lines.push(`${med.name} taken${timeStr ? ` at ${timeStr}` : ' on schedule'}.`);
+  function getBriefingText(): string {
+    if (!brief) return '';
+    // Prefer handoffNarrative, fall back to statusNarrative, then build one
+    if (brief.handoffNarrative && brief.handoffNarrative.trim().length > 0) {
+      return brief.handoffNarrative;
     }
-    for (const med of missed) {
-      const missedFormatted = med.scheduledTime ? formatTime(med.scheduledTime) : '';
-      const scheduledStr = missedFormatted ? ` (scheduled ${missedFormatted})` : '';
-      lines.push(`${med.name} missed${scheduledStr}.`);
+    if (brief.statusNarrative && brief.statusNarrative.trim().length > 0) {
+      return brief.statusNarrative;
     }
-    for (const med of pending) {
-      const pendingFormatted = med.scheduledTime ? formatTime(med.scheduledTime) : '';
-      const scheduledStr = pendingFormatted ? ` at ${pendingFormatted}` : '';
-      lines.push(`${med.name} pending${scheduledStr}.`);
-    }
-    return lines;
+    return buildHandoffSummary(brief, medsDone, medsTotal, allMedsDone, hasVitals);
   }
 
-  function buildMealsNarrative(): string {
-    if (!brief) return '';
-    const parts: string[] = [];
+  // ============================================================================
+  // DATA ROW HELPERS
+  // ============================================================================
+  type DotColor = 'green' | 'amber' | 'red';
 
+  function getMedsDotColor(): DotColor {
+    if (medsMissed > 0) return 'red';
+    if (allMedsDone) return 'green';
+    return 'amber';
+  }
+
+  function getMedsDetail(): string {
+    if (!brief || medsTotal === 0) return 'No medications scheduled.';
+    const taken = brief.medications.filter(m => m.status === 'completed');
+    const names = taken.map(m => m.name).join(', ');
+    if (allMedsDone) return `${names} \u2014 all taken on schedule`;
+    const missed = brief.medications.filter(m => m.status === 'missed');
+    if (missed.length > 0) return `${missed.map(m => m.name).join(', ')} missed`;
+    const pending = brief.medications.filter(m => m.status !== 'completed' && m.status !== 'missed');
+    return `${taken.length} taken, ${pending.length} pending`;
+  }
+
+  function getMedsValue(): string {
+    return `${medsDone}/${medsTotal}`;
+  }
+
+  function getVitalsDotColor(): DotColor {
+    if (!hasVitals) return 'amber';
+    const r = brief?.vitals?.readings;
+    if (r && ((r.systolic ?? 0) > 140 || (r.diastolic ?? 0) > 90 || ((r.oxygen ?? 100) < 92))) return 'red';
+    return 'green';
+  }
+
+  function getVitalsDetail(): string {
+    if (!hasVitals) return 'Not recorded yet';
+    const r = brief?.vitals?.readings;
+    if (!r) return 'Logged';
+    const parts: string[] = [];
+    if (r.systolic != null && r.diastolic != null) parts.push(`BP ${r.systolic}/${r.diastolic}`);
+    if (r.heartRate != null) parts.push(`HR ${r.heartRate}`);
+    if (r.glucose != null) parts.push(`Glucose ${r.glucose} mg/dL`);
+    if (r.temperature != null) parts.push(`Temp ${r.temperature}\u00B0F`);
+    if (r.oxygen != null) parts.push(`SpO\u2082 ${r.oxygen}%`);
+    return parts.join(' \u00B7 ');
+  }
+
+  function getVitalsValue(): string {
+    return hasVitals ? 'Logged' : 'Pending';
+  }
+
+  function getMealsDotColor(): DotColor {
+    if (mealsDone >= mealsTotal && mealsTotal > 0) return 'green';
+    if (mealsDone === 0 && mealsTotal > 0) return 'red';
+    return 'amber';
+  }
+
+  function getMealsDetail(): string {
+    if (!brief) return '';
     const completedMeals = brief.meals.meals.filter(m => m.status === 'completed');
     if (completedMeals.length > 0) {
-      const mealTimes = completedMeals
-        .map(m => {
-          const name = m.name || '';
-          const time = m.scheduledTime ? formatTime(m.scheduledTime) : '';
-          return time ? `${name.toLowerCase()} at ${time}` : name.toLowerCase();
-        })
-        .filter(Boolean);
-      if (mealTimes.length > 0) {
-        const capitalized = mealTimes[0].charAt(0).toUpperCase() + mealTimes[0].slice(1);
-        parts.push(mealTimes.length === 1 ? `${capitalized}.` : `${capitalized}, ${mealTimes.slice(1).join(', ')}.`);
-      }
-    } else if (mealsTotal > 0) {
-      parts.push('No meals logged yet.');
+      const mealNames = completedMeals.map(m => {
+        const name = m.name || '';
+        const time = m.scheduledTime ? formatTime(m.scheduledTime) : '';
+        return time ? `${name} at ${time}` : name;
+      }).join(', ');
+      const notLogged = mealsTotal - mealsDone;
+      return notLogged > 0
+        ? `${mealNames}. ${notLogged} not logged.`
+        : mealNames;
     }
+    return mealsTotal > 0 ? 'No meals logged yet' : 'No meals scheduled';
+  }
 
-    const waterGoal = 8;
-    parts.push(`Hydration: ${waterGlasses} of ${waterGoal} glasses${waterGlasses >= waterGoal ? ' \u2014 goal met.' : waterGlasses > 0 ? ' \u2014 slightly under goal.' : '.'}`);
+  function getHydrationDotColor(): DotColor {
+    if (waterGlasses >= 8) return 'green';
+    if (waterGlasses === 0) return 'red';
+    return 'amber';
+  }
 
+  function getWellnessDotColor(): DotColor {
+    if (hasMorning && hasEvening) return 'green';
+    if (!hasMorning && !hasEvening) return 'amber';
+    return 'amber';
+  }
+
+  function getWellnessDetail(): string {
+    if (!brief) return '';
+    const parts: string[] = [];
+    if (hasMorning && brief.mood.morningWellness) {
+      const mw = brief.mood.morningWellness;
+      const labels: string[] = [];
+      if (mw.mood) labels.push(mw.mood.toLowerCase());
+      if (mw.orientation) labels.push(mw.orientation.toLowerCase());
+      parts.push(`Morning check complete${labels.length > 0 ? ` \u2014 ${labels.join(', ')}` : ''}.`);
+    }
+    if (hasEvening && brief.mood.eveningWellness) {
+      parts.push('Evening check complete.');
+    } else if (!hasEvening) {
+      parts.push('Evening check pending.');
+    }
+    if (!hasMorning && !hasEvening) {
+      return 'No wellness checks completed yet';
+    }
     return parts.join(' ');
   }
 
-  function buildWellnessNarrative(): string[] {
-    if (!brief) return [];
-    const lines: string[] = [];
+  function getWellnessValue(): string {
+    const done = (hasMorning ? 1 : 0) + (hasEvening ? 1 : 0);
+    return `${done}/2`;
+  }
 
-    if (hasMorning && brief.mood.morningWellness) {
-      const mw = brief.mood.morningWellness;
-      const morningParts: string[] = [];
-      if (mw.mood) morningParts.push(`mood ${mw.mood.toLowerCase()}`);
-      if (mw.orientation) morningParts.push(`orientation ${mw.orientation.toLowerCase()}`);
-      if (morningParts.length > 0) {
-        lines.push(`Morning wellness: ${morningParts.join(', ')}.`);
-      }
-    }
+  function getSleepDotColor(): DotColor {
+    if (!brief?.sleep.logged) return 'amber';
+    return 'green';
+  }
 
-    if (brief.sleep.logged && brief.sleep.hours != null) {
-      lines.push(`Sleep logged ${brief.sleep.hours} hrs${brief.sleep.quality ? ` (${String(brief.sleep.quality).toLowerCase()})` : ''}.`);
-    }
+  function getSleepDetail(): string {
+    if (!brief?.sleep.logged) return 'Not logged';
+    const parts: string[] = [];
+    if (brief.sleep.hours != null) parts.push(`${brief.sleep.hours} hours`);
+    if (brief.sleep.quality != null) parts.push(`quality rated ${brief.sleep.quality}/5`);
+    return parts.join(' \u2014 ');
+  }
 
-    if (hasEvening && brief.mood.eveningWellness) {
-      const ew = brief.mood.eveningWellness;
-      const eveningParts: string[] = [];
-      if (ew.painLevel) eveningParts.push(`pain level ${ew.painLevel}`);
-      if (ew.dayRating) eveningParts.push(`day rated ${String(ew.dayRating).toLowerCase()}`);
-      if (ew.alertness) eveningParts.push(`alertness ${String(ew.alertness).toLowerCase()}`);
-      if (eveningParts.length > 0) {
-        lines.push(`Evening check: ${eveningParts.join(', ')}.`);
-      }
-    }
-
-    if (!hasMorning && !hasEvening && !brief.sleep.logged) {
-      lines.push('No wellness checks completed yet.');
-    }
-
-    return lines;
+  function getSleepValue(): string {
+    if (!brief?.sleep.logged) return 'Pending';
+    if (brief.sleep.quality != null && brief.sleep.quality >= 4) return 'Good';
+    if (brief.sleep.quality != null && brief.sleep.quality <= 2) return 'Poor';
+    return 'Logged';
   }
 
   // ============================================================================
@@ -435,7 +396,6 @@ export default function JournalTab() {
           <ScreenHeader
             title="Journal"
             subtitle={`${dayName}, ${dateStr}`}
-            purpose="A record of today's care."
             style={s.journalHeader}
             rightAction={
               <TouchableOpacity
@@ -450,235 +410,153 @@ export default function JournalTab() {
             }
           />
 
-          {/* ─── FLAGS ─── */}
-          {showNeedsAttention && (
-            <JournalSection
-              icon={'\uD83D\uDEA9'}
-              label="Flags"
-              color={Colors.redBright}
-              labelColor={Colors.redBright}
-              badge={{ text: `${(hasVitalsFlag ? 1 : 0) + (hasSideEffects ? 1 : 0) + (brief?.attentionItems.length ?? 0)} alert${((hasVitalsFlag ? 1 : 0) + (hasSideEffects ? 1 : 0) + (brief?.attentionItems.length ?? 0)) === 1 ? '' : 's'}`, variant: 'missed' }}
-            >
-              {hasVitalsFlag && brief?.vitals?.readings && (
-                <View style={s.flagItem}>
-                  {brief.vitals.readings.systolic != null && brief.vitals.readings.diastolic != null && (
-                    <>
-                      <Text style={s.flagValue}>BP {brief.vitals.readings.systolic}/{brief.vitals.readings.diastolic}</Text>
-                      <Text style={s.flagDot}>{'\u00B7'}</Text>
-                      <Text style={s.flagThreshold}>Above threshold (140/90)</Text>
-                    </>
-                  )}
-                  {brief.vitals.readings.oxygen != null && brief.vitals.readings.oxygen < 92 && (
-                    <>
-                      <Text style={s.flagValue}>SpO2 {brief.vitals.readings.oxygen}%</Text>
-                      <Text style={s.flagDot}>{'\u00B7'}</Text>
-                      <Text style={s.flagThreshold}>Below 92%</Text>
-                    </>
-                  )}
-                </View>
-              )}
-              {hasSideEffects && brief?.medications
-                .filter(m => m.sideEffects && m.sideEffects.length > 0)
-                .map((m, i) => (
-                  <View key={i} style={s.flagItem}>
-                    <Text style={s.flagValue}>{m.name}</Text>
-                    <Text style={s.flagDot}>{'\u00B7'}</Text>
-                    <Text style={s.flagThreshold}>{m.sideEffects!.join(', ')}</Text>
-                  </View>
-                ))
-              }
-              {hasAttentionItems && brief?.attentionItems.map((item, i) => (
-                <View key={`attn-${i}`} style={s.flagItem}>
-                  <Text style={s.flagThreshold}>{item.text}</Text>
-                </View>
-              ))}
-            </JournalSection>
-          )}
+          {/* ═══ ZONE 1: TODAY'S SUMMARY ═══ */}
+          <View style={s.sectionHeader}>
+            <Text style={s.sectionTitle}>Today's Summary</Text>
+          </View>
 
-          {/* ─── MEDICATIONS — narrative prose ─── */}
+          <Text style={s.briefingText}>{getBriefingText()}</Text>
+
+          <View style={s.zoneDivider} />
+
+          {/* ═══ ZONE 2: DETAILS ═══ */}
+          <View style={s.sectionHeader}>
+            <Text style={s.sectionTitle}>{"Details"}</Text>
+          </View>
+
+          {/* Medications row */}
           {brief && medsTotal > 0 && (
-            <JournalSection
-              icon={'\uD83D\uDC8A'}
-              label="Medications"
-              color='#F59E0B'
-              labelColor='#FBBF24'
-              badge={{
-                text: medsMissed > 0 ? `${medsMissed} missed` : `${medsDone}/${medsTotal} taken`,
-                variant: medsMissed > 0 ? 'missed' : allMedsDone ? 'done' : 'pending',
-              }}
-            >
-              {buildMedNarrative().map((line, i) => (
-                <Text key={i} style={s.narrativeLine}>{line}</Text>
-              ))}
-            </JournalSection>
-          )}
-
-          {/* ─── VITALS — horizontal inline strip ─── */}
-          {brief && brief.vitals.scheduled && (
-            <JournalSection
-              icon={'\uD83D\uDCCA'}
-              label="Vitals"
-              color='#3B82F6'
-              labelColor='#60A5FA'
-              badge={{
-                text: hasVitals ? 'Logged' : 'Not recorded',
-                variant: hasVitals ? 'done' : 'pending',
-              }}
-              onBadgePress={!hasVitals ? () => navigate('/log-vitals') : undefined}
-            >
-              {hasVitals && brief.vitals.readings ? (
-                <>
-                  <View style={s.vitalsRow}>
-                    {brief.vitals.readings.systolic != null && brief.vitals.readings.diastolic != null && (
-                      <View style={s.vitalItem}>
-                        <Text style={s.vitalLabel}>BP</Text>
-                        <Text style={s.vitalValue}>
-                          {brief.vitals.readings.systolic}
-                          <Text style={s.vitalUnit}>/{brief.vitals.readings.diastolic}</Text>
-                        </Text>
-                      </View>
-                    )}
-                    {brief.vitals.readings.heartRate != null && (
-                      <View style={s.vitalItem}>
-                        <Text style={s.vitalLabel}>Heart Rate</Text>
-                        <Text style={s.vitalValue}>
-                          {brief.vitals.readings.heartRate}
-                          <Text style={s.vitalUnit}> bpm</Text>
-                        </Text>
-                      </View>
-                    )}
-                    {brief.vitals.readings.temperature != null && (
-                      <View style={s.vitalItem}>
-                        <Text style={s.vitalLabel}>Temp</Text>
-                        <Text style={s.vitalValue}>
-                          {brief.vitals.readings.temperature}
-                          <Text style={s.vitalUnit}>{'\u00B0'}F</Text>
-                        </Text>
-                      </View>
-                    )}
-                    {brief.vitals.readings.oxygen != null && (
-                      <View style={s.vitalItem}>
-                        <Text style={s.vitalLabel}>SpO{'\u2082'}</Text>
-                        <Text style={s.vitalValue}>
-                          {brief.vitals.readings.oxygen}
-                          <Text style={s.vitalUnit}>%</Text>
-                        </Text>
-                      </View>
-                    )}
-                    {brief.vitals.readings.glucose != null && (
-                      <View style={s.vitalItem}>
-                        <Text style={s.vitalLabel}>Glucose</Text>
-                        <Text style={s.vitalValue}>
-                          {brief.vitals.readings.glucose}
-                          <Text style={s.vitalUnit}> mg/dL</Text>
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  {!hasVitalsFlag && (
-                    <Text style={[s.narrativeLine, { marginTop: 10 }]}>
-                      All readings within normal range. No flagged values.
-                    </Text>
-                  )}
-                </>
-              ) : (
-                <Text style={s.narrativeLine}>Not recorded yet.</Text>
-              )}
-            </JournalSection>
-          )}
-
-          {/* ─── MEALS & HYDRATION — narrative prose ─── */}
-          {brief && (mealsTotal > 0 || brief.hydration.logged) && (
-            <JournalSection
-              icon={'\uD83C\uDF7D\uFE0F'}
-              label="Meals & Hydration"
-              color='#10B981'
-              labelColor='#34D399'
-              badge={{
-                text: mealsDone >= mealsTotal && mealsTotal > 0 ? `${mealsTotal} meals` : `${mealsDone}/${mealsTotal} meals`,
-                variant: mealsDone >= mealsTotal && mealsTotal > 0 ? 'done' : 'pending',
-              }}
-              onBadgePress={mealsDone < mealsTotal ? () => navigate('/log-meal') : undefined}
-            >
-              <Text style={s.narrativeLine}>{buildMealsNarrative()}</Text>
-            </JournalSection>
-          )}
-
-          {/* ─── WELLNESS — narrative prose ─── */}
-          {brief && (
-            <JournalSection
-              icon={'\uD83C\uDF05'}
-              label="Wellness"
-              color='#8B5CF6'
-              labelColor='#A78BFA'
-              badge={
-                brief.mood.morningWellness
-                  ? { text: `Mood: ${brief.mood.morningWellness.mood || 'Logged'}`, variant: 'info' as const }
-                  : { text: 'Pending', variant: 'pending' as const }
-              }
-              onBadgePress={!hasMorning ? () => navigate('/log-morning-wellness') : undefined}
-            >
-              {buildWellnessNarrative().map((line, i) => (
-                <Text key={i} style={s.narrativeLine}>{line}</Text>
-              ))}
-            </JournalSection>
-          )}
-
-          {/* ─── NOTES & SYMPTOMS ─── */}
-          {aggregatedNotes.length > 0 && (
-            <JournalSection
-              icon={'\uD83D\uDCDD'}
-              label="Notes & Symptoms"
-              color={Colors.amberBright}
-              labelColor='#FBBF24'
-            >
-              {aggregatedNotes.map((note, i) => (
-                <Text key={i} style={s.narrativeLine}>
-                  {note.time ? `${note.time} \u2014 ` : ''}{note.text}
-                </Text>
-              ))}
-            </JournalSection>
-          )}
-
-          {/* ─── NEXT APPOINTMENT ─── */}
-          {showAppointment && brief?.nextAppointment && (
-            <JournalSection
-              icon={'\uD83D\uDCC5'}
-              label={brief.nextAppointment.provider}
-              color={Colors.sky}
-              badge={{
-                text: daysUntilAppt === 0 ? 'Today' : daysUntilAppt === 1 ? 'Tomorrow' : `${daysUntilAppt} days`,
-                variant: 'info',
-              }}
-            >
-              <Text style={s.narrativeLine}>
-                {brief.nextAppointment.specialty} {'\u00B7'} {new Date(brief.nextAppointment.date).toLocaleDateString('en-US', {
-                  weekday: 'short', month: 'short', day: 'numeric',
-                })}
-              </Text>
-            </JournalSection>
-          )}
-
-          {/* ─── QUICK LOG ─── */}
-          {brief && (!hasVitals || mealsDone < mealsTotal || !hasMorning) && (
-            <View style={s.quickLogRow}>
-              <Text style={s.quickLogLabel}>Quick log</Text>
-              {!hasVitals && (
-                <TouchableOpacity onPress={() => navigate('/log-vitals')} style={s.quickLogChip}>
-                  <Text style={s.quickLogChipText}>Vitals</Text>
-                </TouchableOpacity>
-              )}
-              {mealsDone < mealsTotal && (
-                <TouchableOpacity onPress={() => navigate('/log-meal')} style={s.quickLogChip}>
-                  <Text style={s.quickLogChipText}>Meal</Text>
-                </TouchableOpacity>
-              )}
-              {!hasMorning && (
-                <TouchableOpacity onPress={() => navigate('/log-morning-wellness')} style={s.quickLogChip}>
-                  <Text style={s.quickLogChipText}>Wellness</Text>
-                </TouchableOpacity>
-              )}
+            <View style={s.dataRow}>
+              <View style={[s.dataRowDot, s[`dot${getMedsDotColor().charAt(0).toUpperCase() + getMedsDotColor().slice(1)}` as keyof ReturnType<typeof createStyles>] as any]} />
+              <View style={s.dataRowInfo}>
+                <Text style={s.dataRowLabel}>Medications</Text>
+                <Text style={s.dataRowDetail}>{getMedsDetail()}</Text>
+              </View>
+              <Text style={s.dataRowValue}>{getMedsValue()}</Text>
             </View>
+          )}
+
+          {/* Vitals row */}
+          {brief && brief.vitals.scheduled && (
+            <View style={s.dataRow}>
+              <View style={[s.dataRowDot, s[`dot${getVitalsDotColor().charAt(0).toUpperCase() + getVitalsDotColor().slice(1)}` as keyof ReturnType<typeof createStyles>] as any]} />
+              <View style={s.dataRowInfo}>
+                <Text style={s.dataRowLabel}>Vitals</Text>
+                <Text style={s.dataRowDetail}>{getVitalsDetail()}</Text>
+              </View>
+              <Text style={s.dataRowValue}>{getVitalsValue()}</Text>
+            </View>
+          )}
+
+          {/* Meals row */}
+          {brief && mealsTotal > 0 && (
+            <View style={s.dataRow}>
+              <View style={[s.dataRowDot, s[`dot${getMealsDotColor().charAt(0).toUpperCase() + getMealsDotColor().slice(1)}` as keyof ReturnType<typeof createStyles>] as any]} />
+              <View style={s.dataRowInfo}>
+                <Text style={s.dataRowLabel}>Meals</Text>
+                <Text style={s.dataRowDetail}>{getMealsDetail()}</Text>
+              </View>
+              <Text style={s.dataRowValue}>{`${mealsDone}/${mealsTotal}`}</Text>
+            </View>
+          )}
+
+          {/* Hydration row */}
+          {brief && (
+            <View style={s.dataRow}>
+              <View style={[s.dataRowDot, s[`dot${getHydrationDotColor().charAt(0).toUpperCase() + getHydrationDotColor().slice(1)}` as keyof ReturnType<typeof createStyles>] as any]} />
+              <View style={s.dataRowInfo}>
+                <Text style={s.dataRowLabel}>Hydration</Text>
+                <Text style={s.dataRowDetail}>{waterGlasses > 0 ? `${waterGlasses} glasses logged` : 'No water intake logged today'}</Text>
+              </View>
+              <Text style={s.dataRowValue}>{`${waterGlasses}/8`}</Text>
+            </View>
+          )}
+
+          {/* Wellness row */}
+          {brief && (
+            <View style={s.dataRow}>
+              <View style={[s.dataRowDot, s[`dot${getWellnessDotColor().charAt(0).toUpperCase() + getWellnessDotColor().slice(1)}` as keyof ReturnType<typeof createStyles>] as any]} />
+              <View style={s.dataRowInfo}>
+                <Text style={s.dataRowLabel}>Wellness</Text>
+                <Text style={s.dataRowDetail}>{getWellnessDetail()}</Text>
+              </View>
+              <Text style={s.dataRowValue}>{getWellnessValue()}</Text>
+            </View>
+          )}
+
+          {/* Sleep row */}
+          {brief && (
+            <View style={[s.dataRow, s.dataRowLast]}>
+              <View style={[s.dataRowDot, s[`dot${getSleepDotColor().charAt(0).toUpperCase() + getSleepDotColor().slice(1)}` as keyof ReturnType<typeof createStyles>] as any]} />
+              <View style={s.dataRowInfo}>
+                <Text style={s.dataRowLabel}>Sleep</Text>
+                <Text style={s.dataRowDetail}>{getSleepDetail()}</Text>
+              </View>
+              <Text style={s.dataRowValue}>{getSleepValue()}</Text>
+            </View>
+          )}
+
+          {/* ═══ INSIGHT CALLOUTS ═══ */}
+          {brief?.interpretations?.medications && (
+            <View style={s.insightCallout}>
+              <Text style={s.insightLabel}>Suggestion</Text>
+              <Text style={s.insightText}>{brief.interpretations.medications}</Text>
+            </View>
+          )}
+          {brief?.interpretations?.vitals && (
+            <View style={s.insightCallout}>
+              <Text style={s.insightLabel}>Suggestion</Text>
+              <Text style={s.insightText}>{brief.interpretations.vitals}</Text>
+            </View>
+          )}
+          {brief?.interpretations?.nutrition && (
+            <View style={s.insightCallout}>
+              <Text style={s.insightLabel}>Suggestion</Text>
+              <Text style={s.insightText}>{brief.interpretations.nutrition}</Text>
+            </View>
+          )}
+
+          <View style={s.zoneDivider} />
+
+          {/* ═══ ZONE 3: TOMORROW ═══ */}
+          {showAppointment && brief?.nextAppointment && (
+            <>
+              <View style={s.sectionHeader}>
+                <Text style={s.sectionTitle}>{"Tomorrow"}</Text>
+              </View>
+
+              <TouchableOpacity
+                style={s.appointmentRow}
+                onPress={() => navigate(`/provider-prep?appointmentId=next`)}
+                activeOpacity={0.7}
+                accessibilityLabel={`Prepare for ${brief.nextAppointment.provider} appointment`}
+                accessibilityRole="button"
+              >
+                <Text style={s.appointmentIcon}>{'\uD83E\uDE7A'}</Text>
+                <View style={s.appointmentInfo}>
+                  <Text style={s.appointmentTitle}>{brief.nextAppointment.provider} {'\u2014'} {brief.nextAppointment.specialty}</Text>
+                  <Text style={s.appointmentSub}>
+                    {new Date(brief.nextAppointment.date).toLocaleDateString('en-US', {
+                      weekday: 'short', month: 'short', day: 'numeric',
+                    })}
+                    {brief.nextAppointment.date && (() => {
+                      const d = new Date(brief.nextAppointment!.date);
+                      const h = d.getHours();
+                      return h > 0 ? ` \u00B7 ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` : '';
+                    })()}
+                  </Text>
+                  <View style={s.prepBar}>
+                    <View style={[s.prepDot, s.prepDotTodo]} />
+                    <View style={[s.prepDot, s.prepDotTodo]} />
+                    <View style={[s.prepDot, s.prepDotTodo]} />
+                    <View style={[s.prepDot, s.prepDotTodo]} />
+                  </View>
+                </View>
+                <Text style={s.appointmentArrow}>{'\u203A'}</Text>
+              </TouchableOpacity>
+
+              <View style={s.zoneDivider} />
+            </>
           )}
 
           {/* ─── TIMESTAMP ─── */}
@@ -788,27 +666,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   authGateButton: { backgroundColor: c.accent, paddingHorizontal: 32, paddingVertical: 14, borderRadius: BorderRadius.lg },
   authGateButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
 
-  // ─── NARRATIVE HEADER ───
+  // ─── HEADER ───
   journalHeader: {
     borderBottomWidth: 1,
     borderBottomColor: c.glassBorder,
     marginBottom: 16,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  headerIconBtn: {
-    backgroundColor: c.glassDim,
-    borderWidth: 1,
-    borderColor: c.glassBorder,
-    borderRadius: 8,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-  },
-  headerIconBtnText: {
-    fontSize: 12,
   },
   headerHandoffBtn: {
     backgroundColor: c.accentDim,
@@ -824,138 +686,158 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.accent,
   },
 
-  // ─── FLAGS ───
-  flagItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 8,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: c.redFaint,
-    marginBottom: 4,
-  },
-  flagValue: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: c.redBright,
-  },
-  flagDot: {
-    fontSize: 10,
-    color: c.textMuted,
-  },
-  flagThreshold: {
-    fontSize: 10,
-    color: c.redBright,
-    flex: 1,
-  },
-
-  // ─── BADGE ───
-  badge: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-
-  // ─── JOURNAL SECTION ───
-  journalSection: {
-    marginBottom: 16,
-    borderLeftWidth: 3,
-    borderLeftColor: c.accent,
-    backgroundColor: c.glassDim,
-    borderRadius: 12,
-    padding: 14,
-    paddingLeft: 16,
-  },
-  journalSectionHeader: {
+  // ─── SECTION HEADER ───
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    paddingTop: 18,
+    paddingBottom: 10,
   },
-  journalSectionHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  journalSectionIcon: {
-    fontSize: 14,
-  },
-  journalSectionLabel: {
+  sectionTitle: {
     fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    color: c.textPrimary,
-  },
-
-  // ─── NARRATIVE PROSE ───
-  narrativeLine: {
-    fontSize: 13,
-    color: c.textSecondary,
-    lineHeight: 20,
-    marginBottom: 6,
-  },
-
-  // ─── VITALS HORIZONTAL STRIP ───
-  vitalsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
-  vitalItem: {
-    flex: 1,
-    minWidth: 60,
-  },
-  vitalLabel: {
-    fontSize: 10,
-    color: c.textMuted,
-    marginBottom: 2,
-    letterSpacing: 0.3,
-  },
-  vitalValue: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: c.textPrimary,
-  },
-  vitalUnit: {
-    fontSize: 10,
-    color: c.textMuted,
-  },
-
-  // Quick Log
-  quickLogRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    flexWrap: 'wrap',
-  },
-  quickLogLabel: {
-    fontSize: 12,
-    color: c.textMuted,
-    fontWeight: '500',
-  },
-  quickLogChip: {
-    backgroundColor: c.accentLight,
-    borderWidth: 1,
-    borderColor: c.accentBorder,
-    borderRadius: 14,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-  },
-  quickLogChipText: {
-    fontSize: 11,
-    color: c.accent,
     fontWeight: '600',
+    color: c.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
 
-  // Timestamp
+  // ─── ZONE DIVIDER ───
+  zoneDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    marginHorizontal: -16,
+  },
+
+  // ─── BRIEFING ───
+  briefingText: {
+    fontSize: 13.5,
+    color: c.textPrimary,
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+
+  // ─── DATA ROWS ───
+  dataRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 8,
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.025)',
+  },
+  dataRowLast: {
+    borderBottomWidth: 0,
+  },
+  dataRowDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 5,
+  },
+  dotGreen: {
+    backgroundColor: c.green,
+  },
+  dotAmber: {
+    backgroundColor: c.amberBright,
+  },
+  dotRed: {
+    backgroundColor: c.redBright,
+  },
+  dataRowInfo: {
+    flex: 1,
+  },
+  dataRowLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: c.textPrimary,
+  },
+  dataRowDetail: {
+    fontSize: 11,
+    color: c.textSecondary,
+    marginTop: 1,
+    lineHeight: 16,
+  },
+  dataRowValue: {
+    fontSize: 11,
+    color: c.textMuted,
+  },
+
+  // ─── INSIGHT CALLOUT ───
+  insightCallout: {
+    marginVertical: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: c.amberBright,
+    backgroundColor: 'rgba(245,158,11,0.03)',
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  insightLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: c.amberBright,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 3,
+  },
+  insightText: {
+    fontSize: 11.5,
+    color: c.textSecondary,
+    lineHeight: 18,
+  },
+
+  // ─── APPOINTMENT / TOMORROW ───
+  appointmentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    marginTop: 4,
+    borderRadius: 10,
+    backgroundColor: 'rgba(20,55,45,0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(40,80,65,0.3)',
+  },
+  appointmentIcon: {
+    fontSize: 18,
+  },
+  appointmentInfo: {
+    flex: 1,
+  },
+  appointmentTitle: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: c.textPrimary,
+  },
+  appointmentSub: {
+    fontSize: 10,
+    color: c.textMuted,
+    marginTop: 2,
+  },
+  appointmentArrow: {
+    fontSize: 14,
+    color: c.textMuted,
+  },
+  prepBar: {
+    flexDirection: 'row',
+    gap: 4,
+    marginTop: 6,
+  },
+  prepDot: {
+    width: 20,
+    height: 3,
+    borderRadius: 2,
+  },
+  prepDotDone: {
+    backgroundColor: c.green,
+  },
+  prepDotTodo: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+
+  // ─── TIMESTAMP ───
   timestamp: {
     fontSize: 10,
     color: c.textTertiary,
@@ -964,6 +846,3 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     lineHeight: 16,
   },
 });
-
-// Static styles for module-scope sub-components (benefit from _syncColors)
-const _s = createStyles(Colors);

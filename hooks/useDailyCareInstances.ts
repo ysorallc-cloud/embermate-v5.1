@@ -223,6 +223,10 @@ export function useDailyCareInstances(
   // Refresh instances from storage without re-running ensureDailyInstances
   // (which emits events and would cause an infinite loop)
   const refreshFromStorage = useCallback(async () => {
+    if (loadingRef.current) {
+      devLog('[useDailyCareInstances] refreshFromStorage skipped (loadInstances in progress)');
+      return;
+    }
     try {
       const dayInstances = await listDailyInstances(patientId, targetDate);
       setInstances(dayInstances.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime)));
@@ -231,11 +235,18 @@ export function useDailyCareInstances(
     }
   }, [patientId, targetDate]);
 
-  // Listen for relevant data updates — debounced, read-only refresh
+  // Listen for relevant data updates — two tiers of response
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useDataListener((category) => {
-    if (['dailyInstances', 'carePlanItems', 'carePlan', 'logs', 'sampleDataCleared', 'patient'].includes(category)) {
-      devLog('[useDailyCareInstances] useDataListener received event:', category);
+    // Tier 1: Config/item structure changes → full regeneration (ensureDailyInstances)
+    if (['carePlanConfig', 'carePlanItems'].includes(category)) {
+      devLog('[useDailyCareInstances] config change detected, full reload:', category);
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = setTimeout(() => { loadInstances(); }, 300);
+    }
+    // Tier 2: Instance status / log changes → read-only refresh
+    else if (['dailyInstances', 'carePlan', 'logs', 'sampleDataCleared', 'patient'].includes(category)) {
+      devLog('[useDailyCareInstances] data change, read-only refresh:', category);
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = setTimeout(() => { refreshFromStorage(); }, 300);
     }
