@@ -78,10 +78,10 @@ describe('Window default collapse based on completion', () => {
     expect(initBlock).toMatch(/completed|skipped|allDone|every/);
   });
 
-  test('chevron caret still renders for expand/collapse toggle', () => {
-    // The chevron (▸/▾ or ▶/▼) should still be present for user toggling
-    expect(src).toContain('timeGroupChevron');
-    // Should have both collapsed and expanded caret characters
-    expect(src).toMatch(/\\u25B6|\\u25BC|▸|▾|▶|▼/);
+  test('chevron is removed — dot + label + count is sufficient', () => {
+    // No chevron render in JSX (the ▶/▼ Text element was deleted)
+    expect(src).not.toMatch(/\\u25B6|\\u25BC/);
+    // TouchableOpacity wrapper still exists for tap-to-toggle
+    expect(src).toContain('toggleWindow(window)');
   });
 });

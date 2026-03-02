@@ -15,7 +15,7 @@ interface ScreenHeaderProps {
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingTop: 32,
+    paddingTop: 44,
     paddingBottom: 16,
     marginBottom: 12,
     borderBottomWidth: 1,

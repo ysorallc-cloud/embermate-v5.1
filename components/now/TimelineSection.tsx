@@ -483,9 +483,6 @@ function TimelineModeBContent({
                   : hasOverdueItems ? styles.windowDotRed
                   : styles.windowDotAmber,
               ]} />
-              <Text style={styles.timeGroupChevron}>
-                {isCollapsed ? '\u25B6' : '\u25BC'}
-              </Text>
               <Text style={[
                 styles.timeGroupTitle,
                 isCurrent && styles.timeGroupTitleCurrent,
