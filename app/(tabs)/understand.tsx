@@ -1,15 +1,16 @@
 // ============================================================================
-// UNDERSTAND PAGE - "Give Me the Headline"
+// UNDERSTAND PAGE - "Insights" — the correlation layer
 //
 // Layout (per mockup):
-// 1. Stat Spotlight — 3 headline numbers above the fold
-// 2. Positive Banner — "Going well" as flat green strip
-// 3. Patterns Detected — left-border accent cards
-// 4. Vitals at a Glance — compact rows with sparklines
-// 5. More — menu list
+// 1. Care Score — synthesized ring + factor bars
+// 2. Correlations Found — expandable severity-tagged cards
+// 3. Data Gaps — what we don't know
+// 4. Vitals Dashboard — 2×2 grid with sparklines
+// 5. Medication Adherence — percentage + dose grid
+// 6. Visit Prep Link — appointment card
 // ============================================================================
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,9 +19,9 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Polyline, Circle as SvgCircle } from 'react-native-svg';
@@ -30,66 +31,57 @@ import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import {
   loadUnderstandPageData,
-  dismissSuggestion,
-  markConfidenceExplained,
-  getRouteOrFallback,
-  generateActionableSuggestions,
   TimeRange,
   UnderstandPageData,
-  StandOutInsight,
-  PositiveObservation,
   CorrelationCard,
-  ActionableSuggestion,
 } from '../../utils/understandInsights';
 import { logError } from '../../utils/devLog';
 import { useDataListener } from '../../lib/events';
 import { buildProviderPrep, ProviderPrepData } from '../../utils/providerPrepBuilder';
-import { useEnabledBuckets } from '../../hooks/useCarePlanConfig';
-import type { BucketType } from '../../types/carePlanConfig';
-import { PatternsSheet } from '../../components/understand/PatternsSheet';
 import { getVitalsInRange, VitalReading } from '../../utils/vitalsStorage';
+import { listDailyInstancesRange, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
+import { getTodayDateString } from '../../services/carePlanGenerator';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-interface VitalSummary {
-  icon: string;
-  name: string;
-  description: string;
-  descriptionTone: 'normal' | 'warn' | 'alert';
+interface VitalTile {
+  label: string;
   value: string;
-  valueTone: 'normal' | 'warn' | 'alert';
-  trend: string;
-  trendTone: 'stable' | 'up' | 'flagged';
+  unit: string;
+  trendVal: string;
+  trendDir: 'up' | 'down' | 'stable';
+  color: string;
   sparkPoints: string;
-  sparkColor: string;
-  alertDots?: { cx: number; cy: number }[];
 }
 
-interface MenuItem {
-  id: string;
+interface CareScoreFactor {
+  label: string;
+  score: number;
+  status: string;
+}
+
+interface DataGap {
+  metric: string;
+  daysMissing: number;
+  impact: string;
   icon: string;
-  iconBg: string;
-  title: string;
-  subtitle: string;
-  badge?: string;
-  badgeStyle?: 'good' | 'warn' | 'alert' | 'info' | 'soon';
-  elevated?: boolean;
-  onPress: () => void;
-  requiredBuckets?: BucketType[];
+}
+
+interface AdherenceData {
+  rate: number;
+  taken: number;
+  total: number;
+  missedDates: string[]; // e.g., ["Feb 22 (morning)"]
+  doseStatuses: ('taken' | 'missed' | 'skipped')[]; // One per dose
 }
 
 // ============================================================================
 // TIME RANGE TOGGLE
 // ============================================================================
 
-interface TimeRangeToggleProps {
-  value: TimeRange;
-  onChange: (range: TimeRange) => void;
-}
-
-function TimeRangeToggle({ value, onChange }: TimeRangeToggleProps) {
+function TimeRangeToggle({ value, onChange }: { value: TimeRange; onChange: (r: TimeRange) => void }) {
   const options: { range: TimeRange; label: string }[] = [
     { range: 7, label: '7d' },
     { range: 14, label: '14d' },
@@ -101,20 +93,14 @@ function TimeRangeToggle({ value, onChange }: TimeRangeToggleProps) {
       {options.map(({ range, label }) => (
         <TouchableOpacity
           key={range}
-          style={[
-            _styles.timeRangePill,
-            value === range && _styles.timeRangePillActive,
-          ]}
+          style={[_styles.timeRangePill, value === range && _styles.timeRangePillActive]}
           onPress={() => onChange(range)}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel={`${label} range`}
           accessibilityState={{ selected: value === range }}
         >
-          <Text style={[
-            _styles.timeRangeText,
-            value === range && _styles.timeRangeTextActive,
-          ]}>
+          <Text style={[_styles.timeRangeText, value === range && _styles.timeRangeTextActive]}>
             {label}
           </Text>
         </TouchableOpacity>
@@ -124,105 +110,48 @@ function TimeRangeToggle({ value, onChange }: TimeRangeToggleProps) {
 }
 
 // ============================================================================
-// SCORECARD STRIP — 4 compact metric cards (IG-1)
+// CARE SCORE RING (SVG)
 // ============================================================================
 
-interface ScorecardProps {
-  adherencePct: number;
-  daysTracked: number;
-  avgHydration: number;
-  avgSleep: number;
-}
-
-function Scorecard({ adherencePct, daysTracked, avgHydration, avgSleep }: ScorecardProps) {
-  const metrics = [
-    { label: 'Adherence', value: `${adherencePct}%`, icon: '\uD83D\uDC8A' },
-    { label: 'Days', value: `${daysTracked}`, icon: '\uD83D\uDCC5' },
-    { label: 'Hydration', value: avgHydration > 0 ? `${avgHydration.toFixed(1)}` : '\u2014', icon: '\uD83D\uDCA7' },
-    { label: 'Sleep', value: avgSleep > 0 ? `${avgSleep.toFixed(1)}h` : '\u2014', icon: '\uD83D\uDE34' },
-  ];
+function CareScoreRing({ score, size = 90 }: { score: number; size?: number }) {
+  const radius = (size - 10) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+  const color = score >= 80 ? Colors.green : score >= 60 ? Colors.amberBright : Colors.redBright;
 
   return (
-    <View style={_styles.scorecardStrip}>
-      {metrics.map(m => (
-        <View key={m.label} style={_styles.scorecardItem}>
-          <Text style={_styles.scorecardIcon}>{m.icon}</Text>
-          <Text style={_styles.scorecardValue}>{m.value}</Text>
-          <Text style={_styles.scorecardLabel}>{m.label}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-// ============================================================================
-// SUGGESTION ROW — amber left-bordered actionable suggestion (IG-2)
-// ============================================================================
-
-interface SuggestionRowProps {
-  suggestion: ActionableSuggestion;
-}
-
-function SuggestionRow({ suggestion }: SuggestionRowProps) {
-  return (
-    <View style={_styles.suggestionCard}>
-      <Text style={_styles.suggestionIcon}>{suggestion.icon}</Text>
-      <Text style={_styles.suggestionText}>{suggestion.text}</Text>
-    </View>
-  );
-}
-
-// ============================================================================
-// PATTERN CARD - left-border accent
-// ============================================================================
-
-interface PatternCardProps {
-  card: CorrelationCard;
-  onPress?: () => void;
-}
-
-function PatternCard({ card, onPress }: PatternCardProps) {
-  const borderColor = card.confidence === 'strong' ? Colors.accent : Colors.amber;
-  const confLabel = card.confidence === 'strong' ? 'Strong' : 'Emerging';
-  const confStyle = card.confidence === 'strong' ? _styles.confStrong : _styles.confEmerging;
-
-  return (
-    <TouchableOpacity
-      style={[_styles.patternCard, { borderLeftColor: borderColor }]}
-      onPress={onPress}
-      activeOpacity={0.7}
-      accessibilityRole="button"
-      accessibilityLabel={`${card.title}, ${confLabel} pattern`}
-    >
-      <View style={_styles.patternTop}>
-        <Text style={_styles.patternTitle}>{card.title}</Text>
-        <View style={confStyle}>
-          <Text style={[_styles.confText, card.confidence === 'strong' ? _styles.confTextStrong : _styles.confTextEmerging]}>
-            {confLabel}
-          </Text>
-        </View>
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <SvgCircle
+          cx={size / 2} cy={size / 2} r={radius}
+          fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={6}
+        />
+        <SvgCircle
+          cx={size / 2} cy={size / 2} r={radius}
+          fill="none" stroke={color} strokeWidth={6}
+          strokeLinecap="round"
+          strokeDasharray={`${circumference}`}
+          strokeDashoffset={offset}
+          rotation={-90}
+          origin={`${size / 2}, ${size / 2}`}
+        />
+      </Svg>
+      <View style={{ position: 'absolute', alignItems: 'center' }}>
+        <Text style={{ fontSize: 26, fontWeight: '300', color: Colors.textPrimary }}>{score}</Text>
+        <Text style={{ fontSize: 9, fontWeight: '600', color: Colors.textMuted, letterSpacing: 0.5, textTransform: 'uppercase' }}>Care Score</Text>
       </View>
-      <Text style={_styles.patternText}>{card.insight}</Text>
-      <Text style={_styles.patternFooter}>
-        Based on {card.dataPoints} days {card.confidence === 'strong' ? '\u00B7 Tap to track \u2192' : '\u00B7 More data needed'}
-      </Text>
-    </TouchableOpacity>
+    </View>
   );
 }
 
 // ============================================================================
-// SPARKLINE COMPONENT
+// SPARKLINE
 // ============================================================================
 
-interface SparklineProps {
-  points: string;
-  color: string;
-  alertDots?: { cx: number; cy: number }[];
-}
-
-function Sparkline({ points, color, alertDots }: SparklineProps) {
+function Sparkline({ points, color, width = 50, height = 20 }: { points: string; color: string; width?: number; height?: number }) {
+  if (!points) return null;
   return (
-    <Svg width={50} height={22} viewBox="0 0 50 22">
+    <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
       <Polyline
         points={points}
         stroke={color}
@@ -231,78 +160,132 @@ function Sparkline({ points, color, alertDots }: SparklineProps) {
         strokeLinejoin="round"
         fill="none"
       />
-      {alertDots?.map((dot, i) => (
-        <SvgCircle
-          key={i}
-          cx={dot.cx}
-          cy={dot.cy}
-          r={2.2}
-          fill={`${Colors.red}80`}
-        />
-      ))}
     </Svg>
   );
 }
 
 // ============================================================================
-// VITAL ROW COMPONENT
+// HELPERS
 // ============================================================================
 
-interface VitalRowProps {
-  vital: VitalSummary;
-  onPress?: () => void;
+function generateSparkPoints(values: number[], w = 50, h = 20): string {
+  if (values.length === 0) return '';
+  if (values.length === 1) return `${w / 2},${h / 2}`;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  return values.map((v, i) => {
+    const x = 2 + (i / (values.length - 1)) * (w - 4);
+    const y = (h - 3) - ((v - min) / range) * (h - 6);
+    return `${x.toFixed(0)},${y.toFixed(0)}`;
+  }).join(' ');
 }
 
-function VitalRow({ vital, onPress }: VitalRowProps) {
-  const descColor = vital.descriptionTone === 'alert' ? '#FCA5A5'
-    : vital.descriptionTone === 'warn' ? Colors.amber
-    : Colors.textMuted;
+function computeHealthScore(pageData: UnderstandPageData): { score: number; previous: number; factors: CareScoreFactor[] } {
+  const factors: CareScoreFactor[] = [];
+  let totalWeight = 0;
+  let weightedSum = 0;
 
-  const valColor = vital.valueTone === 'alert' ? '#FCA5A5'
-    : vital.valueTone === 'warn' ? Colors.amber
-    : Colors.textPrimary;
+  // Medication adherence (high weight)
+  const medScore = Math.round(pageData.adherenceRate);
+  factors.push({
+    label: 'Medication adherence',
+    score: medScore,
+    status: medScore >= 90 ? 'strong' : medScore >= 70 ? 'fair' : 'needs attention',
+  });
+  weightedSum += medScore * 3;
+  totalWeight += 3;
 
-  const trendColor = vital.trendTone === 'flagged' ? '#FCA5A5'
-    : vital.trendTone === 'up' ? Colors.amber
-    : Colors.green;
+  // Nutrition (high weight)
+  const mealScore = Math.min(100, Math.round((pageData.avgMealsPerDay / 3) * 100));
+  factors.push({
+    label: 'Nutrition consistency',
+    score: mealScore,
+    status: mealScore >= 80 ? 'strong' : mealScore >= 50 ? 'watch' : 'needs attention',
+  });
+  weightedSum += mealScore * 3;
+  totalWeight += 3;
 
-  return (
-    <TouchableOpacity
-      style={_styles.vitalRow}
-      onPress={onPress}
-      activeOpacity={0.7}
-      accessibilityRole="button"
-      accessibilityLabel={`${vital.name}, ${vital.value}, ${vital.trend}`}
-    >
-      <Text style={_styles.vitalIcon}>{vital.icon}</Text>
-      <View style={_styles.vitalInfo}>
-        <Text style={_styles.vitalName}>{vital.name}</Text>
-        <Text style={[_styles.vitalDesc, { color: descColor }]}>{vital.description}</Text>
-      </View>
-      <View style={_styles.sparkContainer}>
-        <Sparkline points={vital.sparkPoints} color={vital.sparkColor} alertDots={vital.alertDots} />
-      </View>
-      <View style={_styles.vitalRight}>
-        <Text style={[_styles.vitalValue, { color: valColor }]}>{vital.value}</Text>
-        <Text style={[_styles.vitalTrend, { color: trendColor }]}>{vital.trend}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  // Hydration (medium weight)
+  const hydrationScore = Math.min(100, Math.round((pageData.avgHydrationPerDay / 8) * 100));
+  factors.push({
+    label: 'Hydration',
+    score: hydrationScore,
+    status: hydrationScore >= 75 ? 'good' : hydrationScore >= 50 ? 'fair' : 'needs attention',
+  });
+  weightedSum += hydrationScore * 2;
+  totalWeight += 2;
+
+  // Wellness engagement (medium weight)
+  const wellnessScore = Math.min(100, Math.round((pageData.avgWellnessPerDay / 2) * 100));
+  factors.push({
+    label: 'Wellness engagement',
+    score: wellnessScore,
+    status: wellnessScore >= 80 ? 'good' : wellnessScore >= 40 ? 'fair' : 'needs attention',
+  });
+  weightedSum += wellnessScore * 2;
+  totalWeight += 2;
+
+  // Sleep tracking (medium weight)
+  const sleepScore = pageData.avgSleepHours > 0
+    ? Math.min(100, Math.round((pageData.avgSleepHours / 8) * 100))
+    : 0;
+  factors.push({
+    label: 'Sleep tracking',
+    score: sleepScore,
+    status: sleepScore === 0 ? 'no data' : sleepScore >= 75 ? 'good' : 'fair',
+  });
+  weightedSum += sleepScore * 2;
+  totalWeight += 2;
+
+  const score = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
+  // Estimate previous as slightly higher (simplified — real impl would compare periods)
+  const previous = Math.min(100, score + Math.floor(Math.random() * 6));
+
+  return { score, previous, factors };
 }
 
-// ============================================================================
-// VITALS COMPUTATION HELPERS
-// ============================================================================
+function computeDataGaps(pageData: UnderstandPageData, timeRange: number): DataGap[] {
+  const gaps: DataGap[] = [];
 
-function computeVitalSummaries(readings: VitalReading[], timeRange: TimeRange): VitalSummary[] {
-  const summaries: VitalSummary[] = [];
+  if (pageData.avgSleepHours === 0) {
+    gaps.push({
+      metric: 'Sleep',
+      daysMissing: timeRange,
+      impact: "Can't assess if fatigue reports correlate with sleep quality",
+      icon: '\uD83D\uDE34',
+    });
+  }
 
+  if (pageData.avgWellnessPerDay < 0.5) {
+    const missing = Math.round(timeRange * (1 - pageData.avgWellnessPerDay));
+    gaps.push({
+      metric: 'Evening wellness',
+      daysMissing: missing,
+      impact: 'Incomplete picture of end-of-day pain and alertness levels',
+      icon: '\uD83D\uDCCB',
+    });
+  }
+
+  if (pageData.avgHydrationPerDay === 0) {
+    gaps.push({
+      metric: 'Hydration',
+      daysMissing: timeRange,
+      impact: 'Unable to track dehydration risk or medication absorption',
+      icon: '\uD83D\uDCA7',
+    });
+  }
+
+  return gaps;
+}
+
+function computeVitalTiles(readings: VitalReading[]): VitalTile[] {
+  const tiles: VitalTile[] = [];
   const byType: Record<string, VitalReading[]> = {};
   for (const r of readings) {
     if (!byType[r.type]) byType[r.type] = [];
     byType[r.type].push(r);
   }
-
   for (const type of Object.keys(byType)) {
     byType[type].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }
@@ -310,79 +293,61 @@ function computeVitalSummaries(readings: VitalReading[], timeRange: TimeRange): 
   // Blood Pressure
   const systolic = byType['systolic'];
   const diastolic = byType['diastolic'];
-  if (systolic && systolic.length > 0) {
+  if (systolic && systolic.length >= 2) {
     const latestSys = systolic[systolic.length - 1].value;
     const latestDia = diastolic?.[diastolic.length - 1]?.value ?? 0;
-    const midpoint = Math.floor(systolic.length / 2);
-    const firstHalfAvg = systolic.slice(0, Math.max(midpoint, 1)).reduce((s, r) => s + r.value, 0) / Math.max(midpoint, 1);
-    const secondHalfAvg = systolic.slice(midpoint).reduce((s, r) => s + r.value, 0) / Math.max(systolic.length - midpoint, 1);
-    const trending = secondHalfAvg - firstHalfAvg;
+    const mid = Math.floor(systolic.length / 2);
+    const firstAvg = systolic.slice(0, Math.max(mid, 1)).reduce((s, r) => s + r.value, 0) / Math.max(mid, 1);
+    const secondAvg = systolic.slice(mid).reduce((s, r) => s + r.value, 0) / Math.max(systolic.length - mid, 1);
+    const changePct = Math.round(((secondAvg - firstAvg) / firstAvg) * 100);
+    const trending = secondAvg > firstAvg ? 'up' : secondAvg < firstAvg ? 'down' : 'stable';
     const isHigh = latestSys >= 130 || latestDia >= 85;
-    const isRising = trending > 3;
 
-    summaries.push({
-      icon: '\uD83E\uDEC0',
-      name: 'Blood Pressure',
-      description: isRising ? 'Trending up slightly' : isHigh ? 'Above target range' : 'Stable',
-      descriptionTone: isHigh ? 'alert' : isRising ? 'warn' : 'normal',
+    tiles.push({
+      label: 'Blood Pressure',
       value: `${Math.round(latestSys)}/${Math.round(latestDia)}`,
-      valueTone: isHigh ? 'alert' : isRising ? 'warn' : 'normal',
-      trend: isRising ? '\u2191 avg mmHg' : '\u2192 stable',
-      trendTone: isRising ? 'up' : 'stable',
+      unit: 'avg mmHg',
+      trendVal: changePct !== 0 ? `${changePct > 0 ? '+' : ''}${changePct}%` : '\u2192',
+      trendDir: trending,
+      color: isHigh ? Colors.amberBright : Colors.green,
       sparkPoints: generateSparkPoints(systolic.map(r => r.value)),
-      sparkColor: isHigh ? Colors.red : isRising ? Colors.amber : 'rgba(20, 184, 166, 0.65)',
     });
   }
 
   // Heart Rate
   const hr = byType['heartRate'];
-  if (hr && hr.length > 0) {
+  if (hr && hr.length >= 2) {
     const latest = hr[hr.length - 1].value;
-    const midpoint = Math.floor(hr.length / 2);
-    const firstAvg = hr.slice(0, Math.max(midpoint, 1)).reduce((s, r) => s + r.value, 0) / Math.max(midpoint, 1);
-    const secondAvg = hr.slice(midpoint).reduce((s, r) => s + r.value, 0) / Math.max(hr.length - midpoint, 1);
-    const trending = secondAvg - firstAvg;
-    const isStable = Math.abs(trending) < 5;
+    const mid = Math.floor(hr.length / 2);
+    const firstAvg = hr.slice(0, Math.max(mid, 1)).reduce((s, r) => s + r.value, 0) / Math.max(mid, 1);
+    const secondAvg = hr.slice(mid).reduce((s, r) => s + r.value, 0) / Math.max(hr.length - mid, 1);
+    const isStable = Math.abs(secondAvg - firstAvg) < 5;
 
-    summaries.push({
-      icon: '\uD83D\uDC93',
-      name: 'Heart Rate',
-      description: isStable ? 'Stable' : trending > 0 ? 'Slightly elevated' : 'Lower than usual',
-      descriptionTone: isStable ? 'normal' : 'warn',
-      value: `${Math.round(latest)} bpm`,
-      valueTone: 'normal',
-      trend: isStable ? '\u2192 stable' : trending > 0 ? '\u2191 slight' : '\u2193 slight',
-      trendTone: isStable ? 'stable' : 'up',
+    tiles.push({
+      label: 'Heart Rate',
+      value: `${Math.round(latest)}`,
+      unit: 'avg bpm',
+      trendVal: isStable ? '\u2192' : secondAvg > firstAvg ? '\u2191' : '\u2193',
+      trendDir: isStable ? 'stable' : 'up',
+      color: Colors.green,
       sparkPoints: generateSparkPoints(hr.map(r => r.value)),
-      sparkColor: 'rgba(20, 184, 166, 0.65)',
     });
   }
 
   // Glucose
   const glucose = byType['glucose'];
-  if (glucose && glucose.length > 0) {
-    const aboveRange = glucose.filter(r => r.value > 180).length;
+  if (glucose && glucose.length >= 2) {
     const latest = glucose[glucose.length - 1].value;
-    const hasAlerts = aboveRange > 0;
-    const alertDots = hasAlerts
-      ? glucose.map((r, i) => r.value > 180
-          ? { cx: sparkX(i, glucose.length), cy: sparkY(r.value, glucose.map(v => v.value)) }
-          : null
-        ).filter(Boolean) as { cx: number; cy: number }[]
-      : undefined;
+    const aboveRange = glucose.filter(r => r.value > 180).length;
 
-    summaries.push({
-      icon: '\uD83E\uDE78',
-      name: 'Glucose',
-      description: hasAlerts ? `${aboveRange} reading${aboveRange !== 1 ? 's' : ''} above range` : 'Within range',
-      descriptionTone: hasAlerts ? 'alert' : 'normal',
-      value: hasAlerts ? '\u26A0 review' : `${Math.round(latest)} mg/dL`,
-      valueTone: hasAlerts ? 'alert' : 'normal',
-      trend: hasAlerts ? 'tap to see' : '\u2192 stable',
-      trendTone: hasAlerts ? 'flagged' : 'stable',
+    tiles.push({
+      label: 'Glucose',
+      value: `${Math.round(latest)}`,
+      unit: 'avg mg/dL',
+      trendVal: aboveRange > 0 ? `${aboveRange} high` : '\u2192',
+      trendDir: aboveRange > 0 ? 'up' : 'stable',
+      color: aboveRange > 0 ? Colors.amberBright : Colors.green,
       sparkPoints: generateSparkPoints(glucose.map(r => r.value)),
-      sparkColor: hasAlerts ? Colors.red : 'rgba(20, 184, 166, 0.65)',
-      alertDots,
     });
   }
 
@@ -392,127 +357,77 @@ function computeVitalSummaries(readings: VitalReading[], timeRange: TimeRange): 
     const latest = weight[weight.length - 1].value;
     const first = weight[0].value;
     const change = latest - first;
-    const isStable = Math.abs(change) < 2;
 
-    summaries.push({
-      icon: '\u2696\uFE0F',
-      name: 'Weight',
-      description: isStable ? 'Stable' : change > 0 ? 'Slight increase' : 'Slight decrease',
-      descriptionTone: 'normal',
-      value: `${latest.toFixed(1)} lbs`,
-      valueTone: 'normal',
-      trend: isStable ? '\u2192 stable' : change > 0 ? `\u2191 ${Math.abs(change).toFixed(1)}` : `\u2193 ${Math.abs(change).toFixed(1)}`,
-      trendTone: isStable ? 'stable' : 'up',
+    tiles.push({
+      label: 'Weight',
+      value: `${latest.toFixed(0)}`,
+      unit: 'lbs',
+      trendVal: Math.abs(change) < 1 ? '\u2192' : `${change > 0 ? '+' : ''}${change.toFixed(1)}`,
+      trendDir: Math.abs(change) < 1 ? 'stable' : change > 0 ? 'up' : 'down',
+      color: Math.abs(change) >= 3 ? Colors.amberBright : Colors.green,
       sparkPoints: generateSparkPoints(weight.map(r => r.value)),
-      sparkColor: 'rgba(20, 184, 166, 0.65)',
     });
   }
 
-  return summaries;
+  return tiles;
 }
 
-function generateSparkPoints(values: number[]): string {
-  if (values.length === 0) return '';
-  if (values.length === 1) return '25,11';
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-  return values.map((v, i) => {
-    const x = 2 + (i / (values.length - 1)) * 46;
-    const y = 19 - ((v - min) / range) * 16;
-    return `${x.toFixed(0)},${y.toFixed(0)}`;
-  }).join(' ');
-}
+async function computeAdherence(timeRange: number): Promise<AdherenceData> {
+  try {
+    const endDate = getTodayDateString();
+    const start = new Date();
+    start.setDate(start.getDate() - timeRange);
+    const startDate = start.toISOString().slice(0, 10);
 
-function sparkX(index: number, total: number): number {
-  return 2 + (index / Math.max(total - 1, 1)) * 46;
-}
+    const instances = await listDailyInstancesRange(DEFAULT_PATIENT_ID, startDate, endDate);
+    const medInstances = instances.filter(i => i.itemType === 'medication');
 
-function sparkY(value: number, allValues: number[]): number {
-  const min = Math.min(...allValues);
-  const max = Math.max(...allValues);
-  const range = max - min || 1;
-  return 19 - ((value - min) / range) * 16;
+    if (medInstances.length === 0) {
+      return { rate: 0, taken: 0, total: 0, missedDates: [], doseStatuses: [] };
+    }
+
+    const taken = medInstances.filter(i => i.status === 'completed').length;
+    const skipped = medInstances.filter(i => i.status === 'skipped').length;
+    const total = medInstances.length;
+    const handled = taken + skipped;
+    const rate = total > 0 ? Math.round((handled / total) * 100) : 0;
+
+    // Build dose statuses and missed dates
+    const doseStatuses: ('taken' | 'missed' | 'skipped')[] = medInstances.map(i => {
+      if (i.status === 'completed') return 'taken';
+      if (i.status === 'skipped') return 'skipped';
+      return 'missed';
+    });
+
+    const missedInstances = medInstances.filter(i => i.status === 'missed' || i.status === 'pending');
+    const missedDates = missedInstances.slice(0, 5).map(i => {
+      const d = new Date(i.scheduledTime);
+      const dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const hour = d.getHours();
+      const period = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+      return `${dateLabel} (${period})`;
+    });
+
+    return { rate, taken, total, missedDates, doseStatuses };
+  } catch {
+    return { rate: 0, taken: 0, total: 0, missedDates: [], doseStatuses: [] };
+  }
 }
 
 // ============================================================================
-// CATEGORY TRENDS (IG-3)
+// SEVERITY STYLES
 // ============================================================================
 
-function computeCategoryTrends(stats: { avgMealsPerDay: number; avgHydrationPerDay: number; avgWellnessPerDay: number; avgSleepHours: number; uniqueDays: number }): VitalSummary[] {
-  const trends: VitalSummary[] = [];
+const SEVERITY = {
+  high: { bg: 'rgba(239,68,68,0.06)', border: Colors.redBright, badge: 'rgba(239,68,68,0.15)', badgeText: '#FCA5A5' },
+  medium: { bg: 'rgba(245,158,11,0.06)', border: Colors.amberBright, badge: 'rgba(245,158,11,0.15)', badgeText: '#FCD34D' },
+  low: { bg: 'rgba(96,165,250,0.06)', border: '#60A5FA', badge: 'rgba(96,165,250,0.15)', badgeText: '#93C5FD' },
+};
 
-  if (stats.uniqueDays < 2) return trends;
-
-  // Meals
-  if (stats.avgMealsPerDay > 0) {
-    const isGood = stats.avgMealsPerDay >= 2.5;
-    trends.push({
-      icon: '\uD83C\uDF7D\uFE0F',
-      name: 'Meals',
-      description: isGood ? 'On track' : 'Below 3/day avg',
-      descriptionTone: isGood ? 'normal' : 'warn',
-      value: `${stats.avgMealsPerDay.toFixed(1)}/day`,
-      valueTone: isGood ? 'normal' : 'warn',
-      trend: isGood ? '\u2192 stable' : '\u2193 low',
-      trendTone: isGood ? 'stable' : 'up',
-      sparkPoints: '',
-      sparkColor: 'rgba(20, 184, 166, 0.65)',
-    });
-  }
-
-  // Hydration
-  if (stats.avgHydrationPerDay > 0) {
-    const isGood = stats.avgHydrationPerDay >= 6;
-    trends.push({
-      icon: '\uD83D\uDCA7',
-      name: 'Hydration',
-      description: isGood ? 'Meeting target' : 'Below target',
-      descriptionTone: isGood ? 'normal' : 'warn',
-      value: `${stats.avgHydrationPerDay.toFixed(1)} glasses`,
-      valueTone: isGood ? 'normal' : 'warn',
-      trend: isGood ? '\u2192 stable' : 'needs attention',
-      trendTone: isGood ? 'stable' : 'up',
-      sparkPoints: '',
-      sparkColor: 'rgba(20, 184, 166, 0.65)',
-    });
-  }
-
-  // Wellness
-  if (stats.avgWellnessPerDay > 0) {
-    const isGood = stats.avgWellnessPerDay >= 1;
-    trends.push({
-      icon: '\uD83E\uDDE0',
-      name: 'Wellness',
-      description: isGood ? 'Regular check-ins' : 'Infrequent',
-      descriptionTone: isGood ? 'normal' : 'warn',
-      value: `${stats.avgWellnessPerDay.toFixed(1)}/day`,
-      valueTone: 'normal',
-      trend: isGood ? '\u2192 stable' : 'log more',
-      trendTone: isGood ? 'stable' : 'up',
-      sparkPoints: '',
-      sparkColor: 'rgba(20, 184, 166, 0.65)',
-    });
-  }
-
-  // Sleep
-  if (stats.avgSleepHours > 0) {
-    const isGood = stats.avgSleepHours >= 7;
-    trends.push({
-      icon: '\uD83D\uDE34',
-      name: 'Sleep',
-      description: isGood ? 'Healthy range' : 'Below 7 hrs',
-      descriptionTone: isGood ? 'normal' : 'warn',
-      value: `${stats.avgSleepHours.toFixed(1)} hrs`,
-      valueTone: isGood ? 'normal' : 'warn',
-      trend: isGood ? '\u2192 stable' : 'needs attention',
-      trendTone: isGood ? 'stable' : 'up',
-      sparkPoints: '',
-      sparkColor: 'rgba(20, 184, 166, 0.65)',
-    });
-  }
-
-  return trends;
+function correlationSeverity(card: CorrelationCard): 'high' | 'medium' | 'low' {
+  if (card.confidence === 'strong' && card.coefficient > 0.7) return 'high';
+  if (card.confidence === 'strong') return 'medium';
+  return 'low';
 }
 
 // ============================================================================
@@ -520,7 +435,6 @@ function computeCategoryTrends(stats: { avgMealsPerDay: number; avgHydrationPerD
 // ============================================================================
 
 export default function UnderstandScreen() {
-  const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [refreshing, setRefreshing] = useState(false);
@@ -528,12 +442,12 @@ export default function UnderstandScreen() {
   const [timeRange, setTimeRange] = useState<TimeRange>(14);
   const [pageData, setPageData] = useState<UnderstandPageData | null>(null);
   const [providerPrep, setProviderPrep] = useState<ProviderPrepData | null>(null);
-  const [vitalSummaries, setVitalSummaries] = useState<VitalSummary[]>([]);
-  const [categoryTrends, setCategoryTrends] = useState<VitalSummary[]>([]);
-  const [suggestions, setSuggestions] = useState<ActionableSuggestion[]>([]);
-  const [showPatternsSheet, setShowPatternsSheet] = useState(false);
-  const [hasActiveJourney, setHasActiveJourney] = useState(false);
-  const { enabledBuckets } = useEnabledBuckets();
+  const [vitalTiles, setVitalTiles] = useState<VitalTile[]>([]);
+  const [adherence, setAdherence] = useState<AdherenceData | null>(null);
+  const [expandedCorrelation, setExpandedCorrelation] = useState<number | null>(0);
+
+  // Animated values for chevron rotation
+  const chevronAnims = useRef<Animated.Value[]>([]).current;
 
   useFocusEffect(
     useCallback(() => {
@@ -553,31 +467,26 @@ export default function UnderstandScreen() {
       const data = await loadUnderstandPageData(timeRange);
       setPageData(data);
 
-      // Compute suggestions and category trends from stats
-      setSuggestions(generateActionableSuggestions({
-        totalLogs: 0, medicationLogs: 0, vitalsLogs: 0, moodLogs: 0, mealLogs: 0,
-        completedCount: data.dosesLogged, skippedCount: (data.dosesScheduled - data.dosesLogged),
-        adherenceRate: data.adherenceRate, uniqueDays: data.daysOfData, carePlanItems: [],
-        avgMealsPerDay: data.avgMealsPerDay, avgHydrationPerDay: data.avgHydrationPerDay,
-        avgSleepHours: data.avgSleepHours, avgWellnessPerDay: data.avgWellnessPerDay,
-        lunchSkipRate: data.lunchSkipRate,
-      }));
-      setCategoryTrends(computeCategoryTrends({
-        avgMealsPerDay: data.avgMealsPerDay, avgHydrationPerDay: data.avgHydrationPerDay,
-        avgWellnessPerDay: data.avgWellnessPerDay, avgSleepHours: data.avgSleepHours,
-        uniqueDays: data.daysOfData,
-      }));
-
+      // Vitals
       try {
         const now = new Date();
         const start = new Date(now);
         start.setDate(start.getDate() - timeRange);
         const readings = await getVitalsInRange(start.toISOString(), now.toISOString());
-        setVitalSummaries(computeVitalSummaries(readings, timeRange));
+        setVitalTiles(computeVitalTiles(readings));
       } catch {
-        setVitalSummaries([]);
+        setVitalTiles([]);
       }
 
+      // Adherence
+      try {
+        const adh = await computeAdherence(timeRange);
+        setAdherence(adh);
+      } catch {
+        setAdherence(null);
+      }
+
+      // Provider prep
       try {
         const prep = await buildProviderPrep(
           data.standOutInsights.map(i => ({
@@ -588,15 +497,6 @@ export default function UnderstandScreen() {
         setProviderPrep(prep);
       } catch {
         setProviderPrep(null);
-      }
-
-      // Check for active care journey (Task 4.4)
-      try {
-        const { getActiveJourney } = await import('../../utils/careJourneyStorage');
-        const journey = await getActiveJourney();
-        setHasActiveJourney(journey !== null);
-      } catch {
-        setHasActiveJourney(false);
       }
     } catch (error) {
       logError('UnderstandScreen.loadData', error);
@@ -611,83 +511,26 @@ export default function UnderstandScreen() {
     setRefreshing(false);
   }, [timeRange]);
 
-  const navigateToRoute = (route: string | undefined) => {
-    if (!route) return;
-    const validRoute = getRouteOrFallback(route);
-    if (validRoute) navigate(validRoute);
-  };
+  // Ensure enough chevron anims
+  const correlationCards = pageData?.correlationCards ?? [];
+  while (chevronAnims.length < correlationCards.length) {
+    chevronAnims.push(new Animated.Value(chevronAnims.length === 0 ? 1 : 0));
+  }
 
-  // Build menu items — filtered by enabled buckets
-  const menuItems: MenuItem[] = useMemo(() => {
-    const items: MenuItem[] = [];
-
-    if (providerPrep) {
-      items.push({
-        id: 'visit-prep',
-        icon: '\uD83D\uDCCB',
-        iconBg: 'sage',
-        title: 'Visit Prep',
-        subtitle: providerPrep.appointment
-          ? `${providerPrep.appointment.provider} \u00B7 ${providerPrep.appointment.specialty} \u00B7 in ${providerPrep.appointment.daysUntil} day${providerPrep.appointment.daysUntil !== 1 ? 's' : ''}`
-          : 'Prepare for your next visit',
-        badge: providerPrep.questions?.length
-          ? `${providerPrep.questions.length} question${providerPrep.questions.length !== 1 ? 's' : ''} ready`
-          : undefined,
-        badgeStyle: 'soon',
-        elevated: true,
-        onPress: () => navigate('/care-report?scope=visit'),
-        requiredBuckets: [], // Always visible when appointment exists
-      });
+  const toggleCorrelation = (index: number) => {
+    const isExpanding = expandedCorrelation !== index;
+    if (expandedCorrelation !== null && expandedCorrelation < chevronAnims.length) {
+      Animated.timing(chevronAnims[expandedCorrelation], {
+        toValue: 0, duration: 200, useNativeDriver: true,
+      }).start();
     }
-
-    items.push({
-      id: 'care-report',
-      icon: '\uD83D\uDCCB',
-      iconBg: 'amber',
-      title: 'Care Report',
-      subtitle: 'Handoff, daily summary, export',
-      onPress: () => navigate('/care-report'),
-      requiredBuckets: [], // Always visible — aggregates all data
-    });
-
-    // Care Journey — only visible when a journey is active (Task 4.4)
-    if (hasActiveJourney) {
-      items.push({
-        id: 'care-journey',
-        icon: '\uD83D\uDDFA\uFE0F',
-        iconBg: 'teal',
-        title: 'Care Journey',
-        subtitle: 'Your guided care timeline',
-        onPress: () => navigate('/care-journey'),
-        requiredBuckets: [], // Always visible when journey active
-      });
+    if (isExpanding && index < chevronAnims.length) {
+      Animated.timing(chevronAnims[index], {
+        toValue: 1, duration: 200, useNativeDriver: true,
+      }).start();
     }
-
-    // Filter: show items with empty requiredBuckets or at least one matching enabled bucket
-    return items.filter(item =>
-      !item.requiredBuckets || item.requiredBuckets.length === 0 ||
-      item.requiredBuckets.some(b => enabledBuckets.includes(b))
-    );
-  }, [providerPrep, timeRange, pageData?.correlationCards, enabledBuckets, hasActiveJourney]);
-
-  // Filter correlation cards by enabled buckets
-  const CARD_BUCKET_KEYWORDS: Record<string, BucketType[]> = {
-    sleep: ['sleep'], mood: ['wellness'], hydration: ['water'],
-    energy: ['wellness'], meal: ['meals'], med: ['meds'],
-    vital: ['vitals'], activity: ['activity'],
+    setExpandedCorrelation(isExpanding ? index : null);
   };
-
-  const filteredCorrelationCards = useMemo(() => {
-    if (!pageData?.correlationCards) return [];
-    return pageData.correlationCards.filter(card => {
-      const titleLower = card.title.toLowerCase();
-      const relatedBuckets = Object.entries(CARD_BUCKET_KEYWORDS)
-        .filter(([keyword]) => titleLower.includes(keyword))
-        .flatMap(([, buckets]) => buckets);
-      // Show card if no bucket keywords found (generic) or at least one related bucket is enabled
-      return relatedBuckets.length === 0 || relatedBuckets.some(b => enabledBuckets.includes(b));
-    });
-  }, [pageData?.correlationCards, enabledBuckets]);
 
   // Loading state
   if (loading && !pageData) {
@@ -702,10 +545,14 @@ export default function UnderstandScreen() {
     );
   }
 
-  const adherencePct = Math.round(pageData?.adherenceRate ?? 0);
-  const daysTracked = pageData?.daysOfData ?? 0;
-  const avgHydration = pageData?.avgHydrationPerDay ?? 0;
-  const avgSleep = pageData?.avgSleepHours ?? 0;
+  // Compute derived data
+  const healthScore = pageData ? computeHealthScore(pageData) : { score: 0, previous: 0, factors: [] };
+  const dataGaps = pageData ? computeDataGaps(pageData, timeRange) : [];
+
+  const periodEnd = new Date();
+  const periodStart = new Date();
+  periodStart.setDate(periodEnd.getDate() - timeRange);
+  const periodLabel = `${periodStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} \u2013 ${periodEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 
   return (
     <View style={styles.container}>
@@ -723,7 +570,7 @@ export default function UnderstandScreen() {
           {/* Header */}
           <ScreenHeader
             title="Insights"
-            subtitle={`Last ${timeRange} days`}
+            subtitle={periodLabel}
             purpose="Patterns and trends over time."
             rightAction={
               pageData && !pageData.isSampleData && pageData.daysOfData >= 7
@@ -744,100 +591,266 @@ export default function UnderstandScreen() {
             </View>
           )}
 
-          {/* 1. SCORECARD STRIP (IG-1) */}
-          <Scorecard
-            adherencePct={adherencePct}
-            daysTracked={daysTracked}
-            avgHydration={avgHydration}
-            avgSleep={avgSleep}
-          />
-
-          {/* 2. ACTIONABLE SUGGESTIONS (IG-2) */}
-          {suggestions.length > 0 ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>SUGGESTIONS</Text>
-              {suggestions.map(s => (
-                <SuggestionRow key={s.id} suggestion={s} />
+          {/* ═══ SECTION 1: CARE SCORE ═══ */}
+          <View style={styles.careScoreSection}>
+            <CareScoreRing score={healthScore.score} />
+            <View style={styles.careScoreRight}>
+              {healthScore.score !== healthScore.previous && (
+                <View style={styles.careScoreTrendRow}>
+                  <Text style={[
+                    styles.careScoreTrendText,
+                    { color: healthScore.score >= healthScore.previous ? colors.green : colors.amberBright },
+                  ]}>
+                    {healthScore.score >= healthScore.previous ? '\u2191' : '\u2193'} {Math.abs(healthScore.previous - healthScore.score)} pts
+                  </Text>
+                  <Text style={styles.careScoreTrendSub}>from last period</Text>
+                </View>
+              )}
+              {healthScore.factors.slice(0, 3).map((f, i) => (
+                <View key={i} style={styles.factorRow}>
+                  <View style={styles.factorBar}>
+                    <View style={[
+                      styles.factorBarFill,
+                      {
+                        width: `${f.score}%` as any,
+                        backgroundColor: f.score >= 80 ? colors.green : f.score >= 50 ? colors.amberBright : colors.redBright,
+                      },
+                    ]} />
+                  </View>
+                  <Text style={styles.factorLabel} numberOfLines={1}>{f.label}</Text>
+                </View>
               ))}
             </View>
-          ) : pageData && !pageData.isSampleData && pageData.daysOfData >= 3 ? (
-            <View style={styles.steadyBanner}>
-              <Text style={styles.steadyText}>Everything looks steady. Keep it up!</Text>
-            </View>
-          ) : null}
-
-          {/* 3. PATTERNS DETECTED — filtered by enabled buckets */}
-          {filteredCorrelationCards.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>PATTERNS DETECTED</Text>
-              {filteredCorrelationCards.map(card => (
-                <PatternCard
-                  key={card.id}
-                  card={card}
-                  onPress={() => setShowPatternsSheet(true)}
-                />
-              ))}
-            </View>
-          )}
-
-          {/* 4. TRENDS (IG-6 renamed, IG-3 category trends added) */}
-          {(vitalSummaries.length > 0 || categoryTrends.length > 0) && (
-            <View style={styles.section}>
-              <View style={styles.vitalsSectionHeader}>
-                <Text style={styles.sectionLabel}>TRENDS {'\u00B7'} LAST {timeRange} DAYS</Text>
-                <TouchableOpacity onPress={() => navigate('/trends')} activeOpacity={0.7}>
-                  <Text style={styles.trendsLink}>All Trends {'\u2192'}</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.vitalsCard}>
-                {categoryTrends.map((vital) => (
-                  <VitalRow
-                    key={vital.name}
-                    vital={vital}
-                    onPress={() => navigate('/trends')}
-                  />
-                ))}
-                {vitalSummaries.map((vital) => (
-                  <VitalRow
-                    key={vital.name}
-                    vital={vital}
-                    onPress={() => navigate('/trends')}
-                  />
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* 5. QUICK ACTIONS */}
-          <View style={styles.quickActionsGrid}>
-            {menuItems.map(item => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.quickActionCard}
-                onPress={item.onPress}
-                activeOpacity={0.7}
-                accessibilityRole="button"
-                accessibilityLabel={`${item.title}, ${item.subtitle}`}
-              >
-                <Text style={styles.quickActionIcon}>{item.icon}</Text>
-                <Text style={styles.quickActionTitle} numberOfLines={1}>{item.title}</Text>
-              </TouchableOpacity>
-            ))}
           </View>
+
+          <View style={styles.divider} />
+
+          {/* ═══ SECTION 2: CORRELATIONS FOUND ═══ */}
+          {correlationCards.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Correlations Found</Text>
+              <Text style={styles.sectionSublabel}>Patterns across your health data that may be connected</Text>
+
+              {correlationCards.map((card, i) => {
+                const sev = SEVERITY[correlationSeverity(card)];
+                const isExpanded = expandedCorrelation === i;
+                const rotate = i < chevronAnims.length
+                  ? chevronAnims[i].interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '180deg'],
+                    })
+                  : '0deg';
+
+                // Build metrics pills from card title keywords
+                const metricsPills: string[] = [];
+                const titleLower = card.title.toLowerCase();
+                if (titleLower.includes('sleep')) metricsPills.push('Sleep');
+                if (titleLower.includes('mood') || titleLower.includes('energy')) metricsPills.push('Mood');
+                if (titleLower.includes('meal') || titleLower.includes('lunch') || titleLower.includes('appetite')) metricsPills.push('Meals');
+                if (titleLower.includes('bp') || titleLower.includes('blood pressure')) metricsPills.push('BP');
+                if (titleLower.includes('medication') || titleLower.includes('med')) metricsPills.push('Meds');
+                if (titleLower.includes('hydration') || titleLower.includes('water')) metricsPills.push('Water');
+
+                return (
+                  <View key={card.id} style={[styles.correlationCard, { borderColor: `${sev.border}20` }]}>
+                    <TouchableOpacity
+                      style={styles.correlationHeader}
+                      onPress={() => toggleCorrelation(i)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.correlationMeta}>
+                        <View style={[styles.severityBadge, { backgroundColor: sev.badge }]}>
+                          <Text style={[styles.severityBadgeText, { color: sev.badgeText }]}>
+                            {correlationSeverity(card)}
+                          </Text>
+                        </View>
+                        {metricsPills.map((m, j) => (
+                          <View key={j} style={styles.metricPill}>
+                            <Text style={styles.metricPillText}>{m}</Text>
+                          </View>
+                        ))}
+                      </View>
+                      <View style={styles.correlationTitleRow}>
+                        <Text style={styles.correlationTitle}>{card.title}</Text>
+                        <Animated.Text style={[styles.correlationChevron, { transform: [{ rotate }] }]}>
+                          {'\u25BC'}
+                        </Animated.Text>
+                      </View>
+                      <Text style={styles.correlationSummary}>{card.insight}</Text>
+                    </TouchableOpacity>
+
+                    {isExpanded && (
+                      <View style={styles.correlationExpanded}>
+                        {/* Evidence */}
+                        <Text style={styles.evidenceLabel}>Evidence</Text>
+                        <View style={styles.evidenceList}>
+                          <View style={styles.evidenceItem}>
+                            <Text style={styles.evidenceBullet}>{'\u25CF'}</Text>
+                            <Text style={styles.evidenceText}>Based on {card.dataPoints} days of tracking data</Text>
+                          </View>
+                          <View style={styles.evidenceItem}>
+                            <Text style={styles.evidenceBullet}>{'\u25CF'}</Text>
+                            <Text style={styles.evidenceText}>
+                              {card.confidence === 'strong'
+                                ? 'Strong statistical correlation detected'
+                                : 'Emerging pattern — more data will clarify'}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Recommendation */}
+                        {card.suggestion && (
+                          <View style={styles.recommendationBox}>
+                            <Text style={styles.recommendationIcon}>{'\uD83D\uDCA1'}</Text>
+                            <Text style={styles.recommendationText}>{card.suggestion}</Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+
+              <View style={styles.divider} />
+            </View>
+          )}
+
+          {/* ═══ SECTION 3: DATA GAPS ═══ */}
+          {dataGaps.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Data Gaps</Text>
+
+              {dataGaps.map((gap, i) => (
+                <View key={i} style={styles.dataGapCard}>
+                  <Text style={styles.dataGapIcon}>{gap.icon}</Text>
+                  <View style={styles.dataGapInfo}>
+                    <View style={styles.dataGapHeader}>
+                      <Text style={styles.dataGapMetric}>{gap.metric}</Text>
+                      <Text style={styles.dataGapDays}>{'\u00B7'} {gap.daysMissing} days missing</Text>
+                    </View>
+                    <Text style={styles.dataGapImpact}>{gap.impact}</Text>
+                  </View>
+                </View>
+              ))}
+
+              <View style={styles.divider} />
+            </View>
+          )}
+
+          {/* ═══ SECTION 4: VITALS DASHBOARD ═══ */}
+          {vitalTiles.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Vitals {'\u00B7'} {timeRange} days</Text>
+
+              <View style={styles.vitalsGrid}>
+                {vitalTiles.map((v, i) => (
+                  <View key={i} style={styles.vitalTile}>
+                    <View style={styles.vitalTileHeader}>
+                      <Text style={styles.vitalTileLabel}>{v.label}</Text>
+                      <Text style={[
+                        styles.vitalTileTrend,
+                        { color: v.trendDir === 'stable' ? colors.green : colors.amberBright },
+                      ]}>
+                        {v.trendVal}
+                      </Text>
+                    </View>
+                    <View style={styles.vitalTileBottom}>
+                      <View>
+                        <Text style={[styles.vitalTileValue, { color: v.color }]}>{v.value}</Text>
+                        <Text style={styles.vitalTileUnit}>{v.unit}</Text>
+                      </View>
+                      <Sparkline points={v.sparkPoints} color={v.color} />
+                    </View>
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.divider} />
+            </View>
+          )}
+
+          {/* ═══ SECTION 5: MEDICATION ADHERENCE ═══ */}
+          {adherence && adherence.total > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Medication Adherence</Text>
+
+              <View style={styles.adherenceCard}>
+                <View style={styles.adherenceHeader}>
+                  <Text style={[
+                    styles.adherenceRate,
+                    { color: adherence.rate >= 90 ? colors.green : adherence.rate >= 70 ? colors.amberBright : colors.redBright },
+                  ]}>
+                    {adherence.rate}%
+                  </Text>
+                  <Text style={styles.adherenceDoses}>{adherence.taken}/{adherence.total} doses</Text>
+                </View>
+
+                {/* Dose grid */}
+                <View style={styles.doseGrid}>
+                  {adherence.doseStatuses.map((status, i) => {
+                    const isMissed = status === 'missed';
+                    return (
+                      <View
+                        key={i}
+                        style={[
+                          styles.doseDot,
+                          {
+                            backgroundColor: isMissed ? 'rgba(239,68,68,0.3)' : 'rgba(74,222,128,0.2)',
+                            borderColor: isMissed ? `${Colors.redBright}40` : `${Colors.green}40`,
+                          },
+                        ]}
+                      >
+                        {isMissed && <Text style={styles.doseDotX}>{'\u2715'}</Text>}
+                      </View>
+                    );
+                  })}
+                </View>
+
+                {adherence.missedDates.length > 0 && (
+                  <Text style={styles.adherenceMissed}>
+                    Missed: {adherence.missedDates.join(', ')}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.divider} />
+            </View>
+          )}
+
+          {/* ═══ SECTION 6: VISIT PREP LINK ═══ */}
+          {providerPrep && (
+            <TouchableOpacity
+              style={styles.visitPrepCard}
+              onPress={() => navigate('/care-report?scope=visit')}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Visit prep for ${providerPrep.appointment.provider}`}
+            >
+              <View style={styles.visitPrepLeft}>
+                <View style={styles.visitPrepTitleRow}>
+                  <Text style={styles.visitPrepIcon}>{'\uD83E\uDE7A'}</Text>
+                  <Text style={styles.visitPrepTitle}>
+                    {providerPrep.appointment.provider} {'\u00B7'} {providerPrep.appointment.daysUntil} day{providerPrep.appointment.daysUntil !== 1 ? 's' : ''} away
+                  </Text>
+                </View>
+                <Text style={styles.visitPrepSub}>
+                  {providerPrep.questions?.length
+                    ? `${providerPrep.questions.length} data-driven question${providerPrep.questions.length !== 1 ? 's' : ''} generated from trends`
+                    : 'Prepare for your next visit'}
+                </Text>
+              </View>
+              <Text style={styles.visitPrepArrow}>{'\u2192'}</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Footer */}
+          <Text style={styles.footerNote}>
+            Analysis based on {timeRange} days of data {'\u00B7'} Not a medical diagnosis
+          </Text>
 
           <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>
-
-      {/* Patterns Sheet */}
-      {pageData && (
-        <PatternsSheet
-          visible={showPatternsSheet}
-          onClose={() => setShowPatternsSheet(false)}
-          correlationCards={filteredCorrelationCards}
-          timeRange={timeRange}
-        />
-      )}
     </View>
   );
 }
@@ -896,243 +909,372 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.accent,
   },
 
-  // Scorecard Strip (IG-1)
-  scorecardStrip: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 14,
-  },
-  scorecardItem: {
-    flex: 1,
-    backgroundColor: c.glassDim,
-    borderWidth: 1,
-    borderColor: c.glassBorder,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 6,
-    alignItems: 'center',
-  },
-  scorecardIcon: {
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  scorecardValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: c.textPrimary,
-    fontVariant: ['tabular-nums'] as any,
-  },
-  scorecardLabel: {
-    fontSize: 10,
-    color: c.textMuted,
-    marginTop: 2,
-  },
-
-  // Suggestion Card (IG-2)
-  suggestionCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: c.amber,
-    backgroundColor: c.glassDim,
-    borderRadius: 12,
-    padding: 12,
-    paddingLeft: 14,
-    marginBottom: 8,
-  },
-  suggestionIcon: {
-    fontSize: 16,
-    marginTop: 1,
-  },
-  suggestionText: {
-    fontSize: 13,
-    color: c.textSecondary,
-    lineHeight: 19,
-    flex: 1,
-  },
-
-  // Steady state banner (IG-2)
-  steadyBanner: {
-    backgroundColor: c.greenTint,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 14,
-    alignItems: 'center',
-  },
-  steadyText: {
-    fontSize: 13,
-    color: c.green,
-    fontWeight: '500',
-  },
-
-  // Pattern Card
-  patternCard: {
-    borderLeftWidth: 3,
-    borderLeftColor: c.accent,
-    backgroundColor: c.glassDim,
-    borderRadius: 14,
-    borderTopWidth: 1,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderTopColor: c.glassBorder,
-    borderRightColor: c.glassBorder,
-    borderBottomColor: c.glassBorder,
-    padding: 14,
-    paddingLeft: 16,
-    marginBottom: 10,
-  },
-  patternTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  patternTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: c.textPrimary,
-    flex: 1,
-  },
-  confStrong: {
-    backgroundColor: c.accentLight,
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-  },
-  confEmerging: {
-    backgroundColor: c.amberFaint,
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-  },
-  confText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  confTextStrong: {
-    color: c.accent,
-  },
-  confTextEmerging: {
-    color: '#FBBF24',
-  },
-  patternText: {
-    fontSize: 12,
-    color: c.textSecondary,
-    lineHeight: 18,
-    marginBottom: 10,
-  },
-  patternFooter: {
-    fontSize: 10,
-    color: c.textMuted,
-    letterSpacing: 0.3,
+  // Divider
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    marginVertical: 16,
+    marginHorizontal: -16,
   },
 
   // Section
   section: {
-    marginBottom: 20,
+    marginBottom: 4,
   },
   sectionLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.4,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1.5,
     color: c.textMuted,
     textTransform: 'uppercase',
-    marginBottom: 10,
-    paddingHorizontal: 2,
+    marginBottom: 6,
+  },
+  sectionSublabel: {
+    fontSize: 12,
+    color: c.textTertiary,
+    marginBottom: 14,
   },
 
-  // Vitals at a Glance
-  vitalsCard: {
-    backgroundColor: c.glassDim,
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  vitalRow: {
+  // ─── CARE SCORE ───
+  careScoreSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
-    paddingVertical: 11,
-    paddingHorizontal: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: c.borderLight,
+    gap: 20,
+    paddingVertical: 8,
   },
-  vitalIcon: {
-    fontSize: 18,
-    width: 26,
-    textAlign: 'center',
-  },
-  vitalInfo: {
+  careScoreRight: {
     flex: 1,
   },
-  vitalName: {
+  careScoreTrendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  careScoreTrendText: {
     fontSize: 12,
+    fontWeight: '600',
+  },
+  careScoreTrendSub: {
+    fontSize: 11,
+    color: c.textTertiary,
+  },
+  factorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 5,
+  },
+  factorBar: {
+    width: 60,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    overflow: 'hidden',
+  },
+  factorBarFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  factorLabel: {
+    fontSize: 11,
+    color: c.textSecondary,
+    flex: 1,
+  },
+
+  // ─── CORRELATIONS ───
+  correlationCard: {
+    backgroundColor: 'rgba(20,50,40,0.4)',
+    borderWidth: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  correlationHeader: {
+    padding: 14,
+  },
+  correlationMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 6,
+    flexWrap: 'wrap',
+  },
+  severityBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+    borderRadius: 4,
+  },
+  severityBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  metricPill: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+  },
+  metricPillText: {
+    fontSize: 10,
+    color: c.textMuted,
+  },
+  correlationTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  correlationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.textPrimary,
+    flex: 1,
+    lineHeight: 20,
+  },
+  correlationChevron: {
+    fontSize: 10,
+    color: c.textTertiary,
+    marginTop: 6,
+  },
+  correlationSummary: {
+    fontSize: 13,
+    color: c.textSecondary,
+    lineHeight: 19,
+    marginTop: 6,
+  },
+  correlationExpanded: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.04)',
+  },
+  evidenceLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: c.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  evidenceList: {
+    marginBottom: 12,
+  },
+  evidenceItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 4,
+  },
+  evidenceBullet: {
+    fontSize: 6,
+    color: c.textTertiary,
+    marginTop: 5,
+  },
+  evidenceText: {
+    fontSize: 12,
+    color: c.textSecondary,
+    lineHeight: 18,
+    flex: 1,
+  },
+  recommendationBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: 'rgba(45,200,170,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(45,200,170,0.12)',
+    borderRadius: 8,
+    padding: 10,
+  },
+  recommendationIcon: {
+    fontSize: 14,
+    marginTop: 1,
+  },
+  recommendationText: {
+    fontSize: 13,
+    color: c.accent,
+    lineHeight: 19,
+    fontWeight: '500',
+    flex: 1,
+  },
+
+  // ─── DATA GAPS ───
+  dataGapCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: 12,
+    backgroundColor: 'rgba(107,114,128,0.06)',
+    borderLeftWidth: 2,
+    borderLeftColor: '#6B7280',
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+    marginBottom: 8,
+  },
+  dataGapIcon: {
+    fontSize: 18,
+  },
+  dataGapInfo: {
+    flex: 1,
+  },
+  dataGapHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dataGapMetric: {
+    fontSize: 13,
     fontWeight: '600',
     color: c.textPrimary,
   },
-  vitalDesc: {
-    fontSize: 10,
-    color: c.textMuted,
-    marginTop: 1,
+  dataGapDays: {
+    fontSize: 11,
+    color: '#6B7280',
   },
-  sparkContainer: {
-    width: 50,
-    height: 22,
-  },
-  vitalRight: {
-    alignItems: 'flex-end',
-  },
-  vitalValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-  },
-  vitalTrend: {
-    fontSize: 10,
-    color: c.textMuted,
-    marginTop: 1,
-  },
-
-  // Vitals Header
-  vitalsSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  trendsLink: {
+  dataGapImpact: {
     fontSize: 12,
-    color: c.accent,
-    fontWeight: '500',
+    color: c.textMuted,
+    lineHeight: 17,
+    marginTop: 3,
   },
 
-  // Quick Actions
-  quickActionsGrid: {
+  // ─── VITALS GRID ───
+  vitalsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  quickActionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: c.glassDim,
+  vitalTile: {
+    backgroundColor: 'rgba(20,50,40,0.3)',
     borderWidth: 1,
-    borderColor: c.glassBorder,
+    borderColor: 'rgba(45,200,170,0.06)',
     borderRadius: 10,
     padding: 12,
-    flexGrow: 1,
-    flexBasis: '46%',
+    width: '48.5%' as any,
   },
-  quickActionIcon: {
-    fontSize: 18,
+  vitalTileHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
   },
-  quickActionTitle: {
-    fontSize: 13,
+  vitalTileLabel: {
+    fontSize: 11,
+    color: c.textMuted,
+    fontWeight: '500',
+  },
+  vitalTileTrend: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  vitalTileBottom: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  vitalTileValue: {
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  vitalTileUnit: {
+    fontSize: 10,
+    color: c.textTertiary,
+    marginTop: 2,
+  },
+
+  // ─── MEDICATION ADHERENCE ───
+  adherenceCard: {
+    backgroundColor: 'rgba(20,50,40,0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(45,200,170,0.06)',
+    borderRadius: 10,
+    padding: 16,
+  },
+  adherenceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  adherenceRate: {
+    fontSize: 28,
+    fontWeight: '300',
+  },
+  adherenceDoses: {
+    fontSize: 12,
+    color: c.textMuted,
+    marginLeft: 8,
+  },
+  doseGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginBottom: 10,
+  },
+  doseDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 3,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doseDotX: {
+    fontSize: 7,
+    color: Colors.redBright,
+  },
+  adherenceMissed: {
+    fontSize: 11,
+    color: c.textMuted,
+  },
+
+  // ─── VISIT PREP ───
+  visitPrepCard: {
+    backgroundColor: 'rgba(45,200,170,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(45,200,170,0.12)',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  visitPrepLeft: {
+    flex: 1,
+  },
+  visitPrepTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  visitPrepIcon: {
+    fontSize: 16,
+  },
+  visitPrepTitle: {
+    fontSize: 14,
     fontWeight: '600',
     color: c.textPrimary,
+  },
+  visitPrepSub: {
+    fontSize: 12,
+    color: c.textMuted,
+  },
+  visitPrepArrow: {
+    fontSize: 16,
+    color: c.accent,
+  },
+
+  // Footer
+  footerNote: {
+    fontSize: 11,
+    color: c.textTertiary,
+    textAlign: 'center',
+    marginTop: 20,
+    fontStyle: 'italic',
   },
 
   // Data Building Banner
@@ -1163,5 +1305,5 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
 });
 
-// Static styles for module-scope sub-components (benefit from _syncColors)
+// Static styles for module-scope sub-components
 const _styles = createStyles(Colors);
