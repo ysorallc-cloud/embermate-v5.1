@@ -34,7 +34,7 @@ export function MorningMedsBanner({
       <View style={styles.content}>
         <Text style={[styles.emoji]}>💊</Text>
         <View style={styles.textContainer}>
-          <Text style={[styles.title, { color: colors.text }]}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>
             {pendingCount} med{pendingCount !== 1 ? 's' : ''} due now
           </Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
@@ -59,7 +59,6 @@ export function MorningMedsBanner({
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 12,
     borderWidth: 1,

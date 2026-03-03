@@ -241,11 +241,13 @@ export default function NowScreen() {
   // SINGLE SOURCE OF TRUTH: Compute stats from useCareTasks hook
   // ============================================================================
   const todayStats = useMemo((): TodayStats => {
-    if (careTasksState && careTasksState.tasks.length > 0 && careTasksState.date === today) {
+    // Derive directly from instancesState (the freshest source) instead of
+    // careTasksState which can lag behind after completions.
+    if (instancesState && instancesState.instances.length > 0 && instancesState.date === today) {
       const getTypeStats = (itemType: string): StatData => {
-        const typeTasks = careTasksState.tasks.filter(t => t.type === itemType);
-        const completed = typeTasks.filter(t => t.status === 'completed').length;
-        return { completed, total: typeTasks.length };
+        const typeInstances = instancesState.instances.filter(i => i.itemType === itemType);
+        const completed = typeInstances.filter(i => i.status === 'completed').length;
+        return { completed, total: typeInstances.length };
       };
 
       const customStats = getTypeStats('custom');
@@ -267,7 +269,7 @@ export default function NowScreen() {
       }
     }
     return legacyStats;
-  }, [careTasksState, legacyStats, today, waterGlasses, waterGoal]);
+  }, [instancesState, legacyStats, today, waterGlasses, waterGoal]);
 
   // Extracted hooks
   const { showOnboarding, briefing, handlers, getBaselineStatusMessage, computePrompts: computePromptsHook, checkNotificationPrompt: checkNotifPrompt, loadBaselines } = useNowPrompts(todayStats, dailyTracking);
@@ -590,6 +592,7 @@ export default function NowScreen() {
         <ScreenHeader
           title="Now"
           subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+          purpose="What's happening today."
           rightAction={
             <TouchableOpacity
               onPress={() => setShowPatientSwitcher(true)}
@@ -630,38 +633,7 @@ export default function NowScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Coffee Moment Banner */}
-        {coffeeMoment.showBanner && (
-          <View style={styles.coffeeBanner}>
-            <Text style={styles.coffeeBannerIcon}>☕</Text>
-            <View style={styles.coffeeBannerContent}>
-              <Text style={styles.coffeeBannerText}>
-                You have a few overdue items. Take 60 seconds before continuing.
-              </Text>
-              <View style={styles.coffeeBannerActions}>
-                <TouchableOpacity
-                  style={styles.coffeeResetButton}
-                  onPress={coffeeMoment.startReset}
-                  activeOpacity={0.7}
-                  accessibilityLabel="Start 1-minute breathing reset"
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.coffeeResetText}>Start 1-Minute Reset</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={coffeeMoment.dismissBanner}
-                  activeOpacity={0.7}
-                  accessibilityLabel="Dismiss coffee moment"
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.coffeeDismissText}>Dismiss</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Coffee Moment Modal */}
+        {/* Coffee Moment Modal (banner removed — footer pause link is the entry point) */}
         <CoffeeMomentMinimal
           visible={coffeeMoment.showModal}
           onClose={coffeeMoment.closeModal}
@@ -696,7 +668,7 @@ export default function NowScreen() {
             onAction={() => navigate('/care-plan')}
             styles={styles}
           />
-          <View accessibilityLiveRegion="polite" accessibilityRole="summary">
+          <View style={styles.sectionCard} accessibilityLiveRegion="polite" accessibilityRole="summary">
             <ProgressRings
               todayStats={todayStats}
               enabledBuckets={enabledBuckets}
@@ -709,8 +681,6 @@ export default function NowScreen() {
             />
           </View>
 
-          <View style={styles.zoneDivider} />
-
           {/* ═══ ZONE 2: TODAY'S SCHEDULE ═══ */}
           <SectionHeaderRow
             title="Today's Schedule"
@@ -719,54 +689,54 @@ export default function NowScreen() {
             styles={styles}
           />
 
-          {/* Morning Meds Banner — batch confirm */}
-          <MorningMedsBanner
-            pendingCount={allPending.filter((i: any) => i.itemType === 'medication').length}
-            pendingInstanceIds={allPending.filter((i: any) => i.itemType === 'medication').map((i: any) => i.id)}
-            onConfirmAll={handleBatchMedConfirm}
-          />
+          <View style={styles.sectionCard}>
+            {/* Morning Meds Banner — batch confirm */}
+            <MorningMedsBanner
+              pendingCount={allPending.filter((i: any) => i.itemType === 'medication').length}
+              pendingInstanceIds={allPending.filter((i: any) => i.itemType === 'medication').map((i: any) => i.id)}
+              onConfirmAll={handleBatchMedConfirm}
+            />
 
-          {/* Timeline — what's happening today */}
-          <TimelineSection
-            allPending={allPending}
-            completed={todayTimeline.completed}
-            hasRegimenInstances={!!hasRegimenInstances}
-            selectedCategory={selectedCategory}
-            onClearCategory={handleClearCategory}
-            onItemPress={handleTimelineItemPress}
-            onBatchMedConfirm={handleBatchMedConfirm}
-            todayStats={todayStats}
-            enabledBuckets={enabledBuckets}
-            waterGlasses={waterGlasses}
-            waterGoal={waterGoal}
-            onWaterUpdate={handleWaterUpdate}
-            onStartRoutine={setActiveRoutineWindow}
-          />
+            {/* Timeline — what's happening today */}
+            <TimelineSection
+              allPending={allPending}
+              completed={todayTimeline.completed}
+              hasRegimenInstances={!!hasRegimenInstances}
+              selectedCategory={selectedCategory}
+              onClearCategory={handleClearCategory}
+              onItemPress={handleTimelineItemPress}
+              onBatchMedConfirm={handleBatchMedConfirm}
+              todayStats={todayStats}
+              enabledBuckets={enabledBuckets}
+              waterGlasses={waterGlasses}
+              waterGoal={waterGoal}
+              onWaterUpdate={handleWaterUpdate}
+              onStartRoutine={setActiveRoutineWindow}
+            />
 
-          {/* Empty states */}
-          {!hasRegimenInstances && !hasBucketCarePlan && !carePlan && (
-            <View style={styles.emptyTimeline}>
-              <Text style={styles.emptyTimelineText}>No Care Plan set up yet</Text>
-              <Text style={styles.emptyTimelineSubtext}>Add medications or items to see your timeline</Text>
-            </View>
-          )}
+            {/* Empty states */}
+            {!hasRegimenInstances && !hasBucketCarePlan && !carePlan && (
+              <View style={styles.emptyTimeline}>
+                <Text style={styles.emptyTimelineText}>No Care Plan set up yet</Text>
+                <Text style={styles.emptyTimelineSubtext}>Add medications or items to see your timeline</Text>
+              </View>
+            )}
 
-          {!hasRegimenInstances && (hasBucketCarePlan || carePlan) && (
-            <View style={styles.emptyTimeline}>
-              <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
-              <Text style={styles.emptyTimelineSubtext}>Check your Care Plan settings</Text>
-            </View>
-          )}
+            {!hasRegimenInstances && (hasBucketCarePlan || carePlan) && (
+              <View style={styles.emptyTimeline}>
+                <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
+                <Text style={styles.emptyTimelineSubtext}>Check your Care Plan settings</Text>
+              </View>
+            )}
 
-          {hasRegimenInstances &&
-            allPending.length === 0 &&
-            todayTimeline.completed.length === 0 && (
-            <View style={styles.emptyTimeline}>
-              <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
-            </View>
-          )}
-
-          <View style={styles.zoneDivider} />
+            {hasRegimenInstances &&
+              allPending.length === 0 &&
+              todayTimeline.completed.length === 0 && (
+              <View style={styles.emptyTimeline}>
+                <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
+              </View>
+            )}
+          </View>
 
           {/* ═══ ZONE 3: UPCOMING THIS WEEK ═══ */}
           {upcomingPrepAppointment && (
@@ -775,24 +745,26 @@ export default function NowScreen() {
                 title="Upcoming This Week"
                 styles={styles}
               />
-              <TouchableOpacity
-                style={styles.appointmentPrepCard}
-                onPress={() => navigate(`/provider-prep?appointmentId=${upcomingPrepAppointment.id}`)}
-                activeOpacity={0.7}
-                accessibilityLabel="Prepare for upcoming appointment"
-                accessibilityRole="button"
-              >
-                <Text style={styles.appointmentPrepIcon}>{'\uD83E\uDE7A'}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.appointmentPrepTitle}>
-                    {upcomingPrepAppointment.provider || 'Appointment'} — Visit Prep
-                  </Text>
-                  <Text style={styles.appointmentPrepSubtitle}>
-                    {Math.ceil((new Date(upcomingPrepAppointment.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days away
-                  </Text>
-                </View>
-                <Text style={styles.appointmentPrepArrow}>{'\u203A'}</Text>
-              </TouchableOpacity>
+              <View style={styles.sectionCard}>
+                <TouchableOpacity
+                  style={styles.appointmentPrepCard}
+                  onPress={() => navigate(`/provider-prep?appointmentId=${upcomingPrepAppointment.id}`)}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Prepare for upcoming appointment"
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.appointmentPrepIcon}>{'\uD83E\uDE7A'}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.appointmentPrepTitle}>
+                      {upcomingPrepAppointment.provider || 'Appointment'} — Visit Prep
+                    </Text>
+                    <Text style={styles.appointmentPrepSubtitle}>
+                      {Math.ceil((new Date(upcomingPrepAppointment.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days away
+                    </Text>
+                  </View>
+                  <Text style={styles.appointmentPrepArrow}>{'\u203A'}</Text>
+                </TouchableOpacity>
+              </View>
             </>
           )}
 
@@ -941,50 +913,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.accent,
     fontWeight: '500',
   },
-  coffeeBanner: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginBottom: 8,
-    padding: 14,
-    backgroundColor: c.purpleFaint,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: c.purpleBorder,
-  },
-  coffeeBannerIcon: {
-    fontSize: 24,
-    marginRight: 12,
-    marginTop: 2,
-  },
-  coffeeBannerContent: {
-    flex: 1,
-  },
-  coffeeBannerText: {
-    fontSize: 13,
-    color: c.textBright,
-    lineHeight: 19,
-    marginBottom: 10,
-  },
-  coffeeBannerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  coffeeResetButton: {
-    backgroundColor: c.purple,
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-  },
-  coffeeResetText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: c.textPrimary,
-  },
-  coffeeDismissText: {
-    fontSize: 12,
-    color: c.textMuted,
-  },
   // ── Section Header Row ──
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -1006,11 +934,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '500',
   },
 
-  // ── Zone Divider ──
-  zoneDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    marginHorizontal: -16,
+  // ── Section Card wrapper ──
+  sectionCard: {
+    backgroundColor: c.glass,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
   },
 
   emptyTimeline: {

@@ -8,8 +8,8 @@ export default null;
 
 export const LightColors = {
   // Base
-  background: '#F8FFFE',
-  backgroundAlt: '#EFF8F6',
+  background: '#F5F5F0',
+  backgroundAlt: '#EDEDE8',
 
   // Surfaces
   glass: 'rgba(0, 0, 0, 0.03)',
@@ -175,33 +175,33 @@ export const LightColors = {
   borderStrong: 'rgba(13, 148, 136, 0.3)',
 
   // Tab Bar
-  tabBarBackground: '#F8FFFE',
+  tabBarBackground: '#F5F5F0',
   tabBarBorder: 'rgba(13, 148, 136, 0.15)',
   tabBarActive: '#0D9488',
   tabBarInactive: '#6B7280',
 
   // Overlay & Menu
   overlay: 'rgba(0, 0, 0, 0.5)',
-  menuSurface: '#FFFFFF',
+  menuSurface: '#FEFEFE',
 
   // Gradients
-  gradientBackground: ['#F8FFFE', '#EFF8F6'],
+  gradientBackground: ['#F5F5F0', '#EDEDE8'],
   gradientAuroraToday: ['rgba(13, 148, 136, 0.06)', 'transparent'],
   gradientAuroraHub: ['rgba(99, 102, 241, 0.06)', 'transparent'],
   gradientAuroraFamily: ['rgba(124, 58, 237, 0.06)', 'transparent'],
 
   // Backwards compatibility
-  backgroundGradientStart: '#F8FFFE',
-  backgroundGradientEnd: '#EFF8F6',
-  cardBackground: '#FFFFFF',
+  backgroundGradientStart: '#F5F5F0',
+  backgroundGradientEnd: '#EDEDE8',
+  cardBackground: '#FAFAF7',
 
   // Background variants
   backgroundDark: '#E5E7EB',
   backgroundDeep: '#EFF8F6',
-  backgroundElevated: '#FFFFFF',
+  backgroundElevated: '#FAFAF7',
 
   // Additional background/input
-  inputBackground: '#FFFFFF',
+  inputBackground: '#FAFAF7',
 
   // Switch tokens
   switchThumbOn: '#FFFFFF',

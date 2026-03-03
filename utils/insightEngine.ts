@@ -54,7 +54,7 @@ const DISMISSED_INSIGHTS_KEY = StorageKeys.DISMISSED_INSIGHTS;
 /**
  * Analyze medication adherence patterns
  */
-export async function analyzeMedicationAdherence(): Promise<InsightData | null> {
+export async function analyzeMedicationAdherence(lookbackDays: number = 7): Promise<InsightData | null> {
   try {
     const medications = await getMedications();
     const activeMeds = medications.filter(m => m.active);
@@ -63,18 +63,20 @@ export async function analyzeMedicationAdherence(): Promise<InsightData | null> 
       return null;
     }
 
-    // Get logs from last 7 days
+    const activeMedIds = new Set(activeMeds.map(m => m.id));
+
+    // Get logs from last N days
     const logs = await getMedicationLogs();
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - lookbackDays);
 
     const recentLogs = logs.filter(
-      log => new Date(log.timestamp) >= sevenDaysAgo
+      log => new Date(log.timestamp) >= cutoff && activeMedIds.has(log.medicationId)
     );
 
-    // Calculate expected vs actual doses
+    // Calculate expected vs actual doses (1 dose per med per day)
     const expectedDosesPerDay = activeMeds.length;
-    const totalExpectedDoses = expectedDosesPerDay * 7;
+    const totalExpectedDoses = expectedDosesPerDay * lookbackDays;
     const takenDoses = recentLogs.filter(log => log.taken).length;
 
     const adherenceRate = totalExpectedDoses > 0
@@ -88,7 +90,7 @@ export async function analyzeMedicationAdherence(): Promise<InsightData | null> 
 
     // Analyze which days have most missed doses
     const missedByDay: { [key: string]: number } = {};
-    const allLogs = logs.filter(log => new Date(log.timestamp) >= sevenDaysAgo);
+    const allLogs = recentLogs;
 
     for (const log of allLogs) {
       if (!log.taken) {
@@ -591,8 +593,8 @@ export async function generateProviderQuestions(
       }
     }
 
-    // Check medication adherence
-    const adherenceInsight = await analyzeMedicationAdherence();
+    // Check medication adherence over the visit window
+    const adherenceInsight = await analyzeMedicationAdherence(daysSinceLastVisit);
     if (adherenceInsight && (adherenceInsight.specificData.percentage ?? 100) < 80) {
       questions.push({
         id: `med-adherence-${appointmentId}`,

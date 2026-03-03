@@ -23,12 +23,11 @@ import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import {
   MedsBucketConfig,
   MedicationPlanItem,
-  PRIORITY_OPTIONS,
   formatTimeForDisplay,
 } from '../../types/carePlanConfig';
-import { NotificationConfigSheet } from '../../components/careplan/NotificationConfigSheet';
-import type { NotificationConfig, NotificationTiming } from '../../types/notifications';
-import type { ReminderTiming } from '../../types/carePlanConfig';
+import { COMMON_MEDICATIONS, TIME_SLOTS } from '../../components/medication/medicationFormHelpers';
+import { emitDataUpdate } from '../../lib/events';
+import { EVENT } from '../../lib/eventNames';
 
 // ============================================================================
 // MEDICATION ITEM COMPONENT
@@ -39,10 +38,10 @@ interface MedicationItemProps {
   onEdit: () => void;
   onToggleActive: (active: boolean) => void;
   onRemove: () => void;
-  onNotificationPress: () => void;
+  onToggleNotification: () => void;
 }
 
-function MedicationItem({ medication, onEdit, onToggleActive, onRemove, onNotificationPress }: MedicationItemProps) {
+function MedicationItem({ medication, onEdit, onToggleActive, onRemove, onToggleNotification }: MedicationItemProps) {
   const timeDisplay = medication.customTimes?.length
     ? medication.customTimes.map(t => formatTimeForDisplay(t)).join(', ')
     : medication.timesOfDay?.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ') || 'No time set';
@@ -78,10 +77,10 @@ function MedicationItem({ medication, onEdit, onToggleActive, onRemove, onNotifi
           {/* Notification Bell Toggle */}
           <TouchableOpacity
             style={styles.notificationButton}
-            onPress={onNotificationPress}
+            onPress={onToggleNotification}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel={notificationsEnabled ? `${medication.name} notifications on, tap to configure` : `${medication.name} notifications off, tap to configure`}
-            accessibilityRole="button"
+            accessibilityLabel={notificationsEnabled ? `${medication.name} reminders on, tap to turn off` : `${medication.name} reminders off, tap to turn on`}
+            accessibilityRole="switch"
             accessibilityState={{ checked: notificationsEnabled }}
           >
             <Text style={[styles.notificationIcon, !notificationsEnabled && styles.notificationIconOff]}>
@@ -125,6 +124,245 @@ function MedicationItem({ medication, onEdit, onToggleActive, onRemove, onNotifi
 }
 
 // ============================================================================
+// QUICK ADD PANEL
+// ============================================================================
+
+interface QuickAddPanelProps {
+  visible: boolean;
+  onClose: () => void;
+  onAdd: (med: { name: string; dosage: string; timeSlot: string }) => void;
+  onFullForm: () => void;
+}
+
+function QuickAddPanel({ visible, onClose, onAdd, onFullForm }: QuickAddPanelProps) {
+  const [selectedMed, setSelectedMed] = useState<typeof COMMON_MEDICATIONS[0] | null>(null);
+  const [selectedDosage, setSelectedDosage] = useState('');
+  const [selectedTime, setSelectedTime] = useState('morning');
+  const [showMedDropdown, setShowMedDropdown] = useState(false);
+  const [showDosageDropdown, setShowDosageDropdown] = useState(false);
+
+  if (!visible) return null;
+
+  const handleAdd = () => {
+    if (selectedMed && selectedDosage) {
+      onAdd({ name: selectedMed.name, dosage: selectedDosage, timeSlot: selectedTime });
+      setSelectedMed(null);
+      setSelectedDosage('');
+    }
+  };
+
+  return (
+    <View style={quickAddStyles.container}>
+      <View style={quickAddStyles.header}>
+        <Text style={quickAddStyles.headerTitle}>Quick Add</Text>
+        <TouchableOpacity onPress={onFullForm}>
+          <Text style={quickAddStyles.fullFormLink}>Full form {'\u2192'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Medication Dropdown */}
+      <View style={{ zIndex: 20, marginBottom: 10 }}>
+        <TouchableOpacity
+          style={[quickAddStyles.dropdown, showMedDropdown && quickAddStyles.dropdownOpen]}
+          onPress={() => { setShowMedDropdown(!showMedDropdown); setShowDosageDropdown(false); }}
+          activeOpacity={0.7}
+        >
+          <Text style={[quickAddStyles.dropdownText, !selectedMed && quickAddStyles.dropdownPlaceholder]} numberOfLines={1}>
+            {selectedMed?.name || 'Select medication...'}
+          </Text>
+          <Text style={[quickAddStyles.dropdownArrow, showMedDropdown && quickAddStyles.dropdownArrowFlipped]}>{'\u25BC'}</Text>
+        </TouchableOpacity>
+        {showMedDropdown && (
+          <ScrollView style={quickAddStyles.dropdownList} nestedScrollEnabled>
+            {COMMON_MEDICATIONS.map((med, idx) => (
+              <TouchableOpacity
+                key={med.name}
+                style={[quickAddStyles.dropdownItem, idx < COMMON_MEDICATIONS.length - 1 && quickAddStyles.dropdownItemBorder]}
+                onPress={() => {
+                  setSelectedMed(med);
+                  setSelectedDosage(med.commonDosages[0] || '');
+                  setShowMedDropdown(false);
+                }}
+              >
+                <Text style={quickAddStyles.dropdownItemText}>{med.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+      </View>
+
+      {/* Dosage Dropdown */}
+      <View style={{ zIndex: 10, marginBottom: 12 }}>
+        <TouchableOpacity
+          style={[quickAddStyles.dropdown, showDosageDropdown && quickAddStyles.dropdownOpen, !selectedMed && { opacity: 0.5 }]}
+          onPress={() => { if (selectedMed) { setShowDosageDropdown(!showDosageDropdown); setShowMedDropdown(false); } }}
+          activeOpacity={selectedMed ? 0.7 : 1}
+        >
+          <Text style={[quickAddStyles.dropdownText, !selectedDosage && quickAddStyles.dropdownPlaceholder]} numberOfLines={1}>
+            {selectedDosage || (selectedMed ? 'Select dosage...' : 'Select med first')}
+          </Text>
+          <Text style={[quickAddStyles.dropdownArrow, showDosageDropdown && quickAddStyles.dropdownArrowFlipped]}>{'\u25BC'}</Text>
+        </TouchableOpacity>
+        {showDosageDropdown && selectedMed && (
+          <ScrollView style={quickAddStyles.dropdownList} nestedScrollEnabled>
+            {selectedMed.commonDosages.map((dose, idx) => (
+              <TouchableOpacity
+                key={dose}
+                style={[quickAddStyles.dropdownItem, idx < selectedMed.commonDosages.length - 1 && quickAddStyles.dropdownItemBorder]}
+                onPress={() => { setSelectedDosage(dose); setShowDosageDropdown(false); }}
+              >
+                <Text style={quickAddStyles.dropdownItemText}>{dose}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+      </View>
+
+      {/* Time Slot Selector */}
+      <View style={quickAddStyles.timeRow}>
+        {TIME_SLOTS.map(slot => (
+          <TouchableOpacity
+            key={slot.key}
+            style={[quickAddStyles.timeButton, selectedTime === slot.key && quickAddStyles.timeButtonActive]}
+            onPress={() => setSelectedTime(slot.key)}
+            activeOpacity={0.7}
+          >
+            <Text style={quickAddStyles.timeIcon}>{slot.icon}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Add Button */}
+      <TouchableOpacity
+        style={[quickAddStyles.addButton, (!selectedMed || !selectedDosage) && quickAddStyles.addButtonDisabled]}
+        onPress={handleAdd}
+        disabled={!selectedMed || !selectedDosage}
+        activeOpacity={0.7}
+      >
+        <Text style={[quickAddStyles.addButtonText, (!selectedMed || !selectedDosage) && quickAddStyles.addButtonTextDisabled]}>
+          {selectedMed ? `Add ${selectedMed.name}` : 'Add Medication'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const quickAddStyles = StyleSheet.create({
+  container: {
+    backgroundColor: 'rgba(20, 184, 166, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 184, 166, 0.4)',
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginTop: 4,
+    marginBottom: Spacing.lg,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  headerTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.accent,
+  },
+  fullFormLink: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  dropdown: {
+    backgroundColor: Colors.glassFaint,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    padding: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dropdownOpen: {
+    borderColor: Colors.accent,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  dropdownText: {
+    fontSize: 14,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  dropdownPlaceholder: {
+    color: Colors.textMuted,
+  },
+  dropdownArrow: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    marginLeft: 8,
+  },
+  dropdownArrowFlipped: {
+    transform: [{ rotate: '180deg' }],
+  },
+  dropdownList: {
+    backgroundColor: Colors.backgroundElevated,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    maxHeight: 160,
+  },
+  dropdownItem: {
+    padding: 10,
+  },
+  dropdownItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  dropdownItemText: {
+    fontSize: 13,
+    color: Colors.textPrimary,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 12,
+  },
+  timeButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  timeButtonActive: {
+    backgroundColor: 'rgba(20, 184, 166, 0.08)',
+    borderColor: 'rgba(20, 184, 166, 0.4)',
+  },
+  timeIcon: {
+    fontSize: 18,
+  },
+  addButton: {
+    backgroundColor: Colors.accent,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  addButtonDisabled: {
+    backgroundColor: Colors.glassStrong,
+  },
+  addButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.background,
+  },
+  addButtonTextDisabled: {
+    color: Colors.textMuted,
+  },
+});
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -133,29 +371,20 @@ export default function MedsBucketScreen() {
   const {
     config,
     loading,
-    toggleBucket,
-    updateBucket,
     updateMedication,
     removeMedication,
     getActiveMedications,
+    addMedication,
   } = useCarePlanConfig();
 
   const medsConfig = config?.meds as MedsBucketConfig | undefined;
   const medications = medsConfig?.medications || [];
-  const enabled = medsConfig?.enabled ?? false;
-  const priority = medsConfig?.priority ?? 'recommended';
 
-  // Notification config sheet state
-  const [notificationSheetVisible, setNotificationSheetVisible] = useState(false);
-  const [selectedMedForNotification, setSelectedMedForNotification] = useState<MedicationPlanItem | null>(null);
+  // Quick add panel state
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
-  const handleToggleEnabled = useCallback(async (value: boolean) => {
-    await toggleBucket('meds', value);
-  }, [toggleBucket]);
-
-  const handleChangePriority = useCallback(async (newPriority: 'required' | 'recommended' | 'optional') => {
-    await updateBucket('meds', { priority: newPriority });
-  }, [updateBucket]);
 
   const handleToggleMedActive = useCallback(async (medId: string, active: boolean) => {
     await updateMedication(medId, { active });
@@ -175,29 +404,46 @@ export default function MedsBucketScreen() {
     navigate('/medication-form?source=careplan');
   }, [router]);
 
-  const handleNotificationPress = useCallback((med: MedicationPlanItem) => {
-    setSelectedMedForNotification(med);
-    setNotificationSheetVisible(true);
-  }, []);
+  const handleQuickAdd = useCallback(async (med: { name: string; dosage: string; timeSlot: string }) => {
+    try {
+      const timeSlotToTime: Record<string, string> = {
+        morning: '08:00', afternoon: '13:00', evening: '18:00', bedtime: '22:00',
+      };
 
-  const handleSaveNotificationConfig = useCallback(async (config: NotificationConfig) => {
-    if (!selectedMedForNotification) return;
+      if (addMedication) {
+        await addMedication({
+          name: med.name,
+          dosage: med.dosage,
+          timesOfDay: [med.timeSlot as any],
+          customTimes: [timeSlotToTime[med.timeSlot] || '08:00'],
+          scheduledTimeHHmm: timeSlotToTime[med.timeSlot] || '08:00',
+          active: true,
+          supplyEnabled: true,
+          daysSupply: 30,
+          refillThresholdDays: 7,
+          notificationsEnabled: true,
+          scheduleFrequency: 'daily',
+        });
+      }
 
-    // Convert NotificationTiming to ReminderTiming (they're compatible except before_5)
-    const timing = config.timing === 'before_5' ? 'at_time' : config.timing as ReminderTiming;
+      emitDataUpdate(EVENT.MEDICATION);
+      emitDataUpdate(EVENT.CARE_PLAN_ITEMS);
+      emitDataUpdate(EVENT.DAILY_INSTANCES);
 
-    await updateMedication(selectedMedForNotification.id, {
-      notificationsEnabled: config.enabled,
-      reminderTiming: timing,
-      reminderCustomMinutes: config.customMinutesBefore,
-      followUpEnabled: config.followUp.enabled,
-      followUpInterval: config.followUp.intervalMinutes,
-      followUpMaxAttempts: config.followUp.maxAttempts,
+      setToastMessage(`${med.name} ${med.dosage} added!`);
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 2500);
+      setShowQuickAdd(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add medication');
+    }
+  }, [addMedication]);
+
+  const handleToggleNotification = useCallback(async (med: MedicationPlanItem) => {
+    await updateMedication(med.id, {
+      notificationsEnabled: !(med.notificationsEnabled ?? true),
     });
-
-    setNotificationSheetVisible(false);
-    setSelectedMedForNotification(null);
-  }, [selectedMedForNotification, updateMedication]);
+  }, [updateMedication]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -219,157 +465,67 @@ export default function MedsBucketScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Title */}
-          <View style={styles.titleSection}>
-            <Text style={styles.title}>Medications</Text>
-            <Text style={styles.subtitle}>
-              Keeps dosing and adherence accurate for reports and patterns.
-            </Text>
-          </View>
+          {/* Medications List */}
+          <Text style={styles.sectionLabel}>YOUR MEDICATIONS</Text>
 
-          {/* Enable Toggle */}
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Track Medications</Text>
-              <Text style={styles.settingDescription}>
-                Enable medication tracking in your Care Plan
+          {medications.length === 0 && !showQuickAdd && (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyEmoji}>💊</Text>
+              <Text style={styles.emptyTitle}>No medications added</Text>
+              <Text style={styles.emptySubtitle}>
+                Add your medications to track doses and get reminders.
               </Text>
             </View>
-            <Switch
-              value={enabled}
-              onValueChange={handleToggleEnabled}
-              trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
-              thumbColor={enabled ? Colors.textPrimary : Colors.switchThumbOff}
-              ios_backgroundColor={Colors.glassStrong}
+          )}
+
+          {medications.map(med => (
+            <MedicationItem
+              key={med.id}
+              medication={med}
+              onEdit={() => handleEditMed(med.id)}
+              onToggleActive={(active) => handleToggleMedActive(med.id, active)}
+              onRemove={() => handleRemoveMed(med.id)}
+              onToggleNotification={() => handleToggleNotification(med)}
             />
-          </View>
+          ))}
 
-          {enabled && (
-            <>
-              {/* Priority Selector */}
-              <Text style={styles.sectionLabel}>PRIORITY</Text>
-              <View style={styles.priorityContainer}>
-                {PRIORITY_OPTIONS.map(option => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.priorityOption,
-                      priority === option.value && styles.priorityOptionSelected,
-                    ]}
-                    onPress={() => handleChangePriority(option.value)}
-                    activeOpacity={0.7}
-                    accessibilityLabel={`${option.label} priority, ${option.description}`}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: priority === option.value }}
-                  >
-                    <Text style={[
-                      styles.priorityLabel,
-                      priority === option.value && styles.priorityLabelSelected,
-                    ]}>
-                      {option.label}
-                    </Text>
-                    <Text style={styles.priorityDescription}>{option.description}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+          {/* Inline Quick Add Panel */}
+          <QuickAddPanel
+            visible={showQuickAdd}
+            onClose={() => setShowQuickAdd(false)}
+            onAdd={handleQuickAdd}
+            onFullForm={handleAddMed}
+          />
 
-              {/* Medications List */}
-              <View style={styles.medsHeaderRow}>
-                <Text style={styles.sectionLabel}>YOUR MEDICATIONS</Text>
-                <TouchableOpacity onPress={handleAddMed} accessibilityLabel="Add medication" accessibilityRole="button">
-                  <Text style={styles.addButtonText}>+ Add</Text>
-                </TouchableOpacity>
-              </View>
-
-              {medications.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyEmoji}>💊</Text>
-                  <Text style={styles.emptyTitle}>No medications added</Text>
-                  <Text style={styles.emptySubtitle}>
-                    Add your medications to track doses and get reminders.
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={handleAddMed}
-                    activeOpacity={0.7}
-                    accessibilityLabel="Add medication"
-                    accessibilityRole="button"
-                  >
-                    <Text style={styles.addButtonTextLarge}>+ Add Medication</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <>
-                  {medications.map(med => (
-                    <MedicationItem
-                      key={med.id}
-                      medication={med}
-                      onEdit={() => handleEditMed(med.id)}
-                      onToggleActive={(active) => handleToggleMedActive(med.id, active)}
-                      onRemove={() => handleRemoveMed(med.id)}
-                      onNotificationPress={() => handleNotificationPress(med)}
-                    />
-                  ))}
-                  <TouchableOpacity
-                    style={styles.addButtonOutline}
-                    onPress={handleAddMed}
-                    activeOpacity={0.7}
-                    accessibilityLabel="Add another medication"
-                    accessibilityRole="button"
-                  >
-                    <Text style={styles.addButtonText}>+ Add Another Medication</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-
-              {/* Notifications Setting */}
-              <Text style={styles.sectionLabel}>NOTIFICATIONS</Text>
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Medication Reminders</Text>
-                  <Text style={styles.settingDescription}>
-                    Get notified when medications are due
-                  </Text>
-                </View>
-                <Switch
-                  value={medsConfig?.notificationsEnabled ?? false}
-                  onValueChange={(value) => updateBucket('meds', { notificationsEnabled: value })}
-                  trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
-                  thumbColor={(medsConfig?.notificationsEnabled ?? false) ? Colors.textPrimary : Colors.switchThumbOff}
-                  ios_backgroundColor={Colors.glassStrong}
-                />
-              </View>
-            </>
+          {/* Single add button — always visible when Quick Add is closed */}
+          {!showQuickAdd && (
+            <TouchableOpacity
+              style={styles.addButtonOutline}
+              onPress={() => setShowQuickAdd(true)}
+              activeOpacity={0.7}
+              accessibilityLabel={medications.length > 0 ? 'Add another medication' : 'Add medication'}
+              accessibilityRole="button"
+            >
+              <Text style={styles.addButtonText}>
+                {medications.length > 0 ? '+ Add Another Medication' : '+ Add Medication'}
+              </Text>
+            </TouchableOpacity>
           )}
 
           {/* Bottom spacing */}
           <View style={{ height: 40 }} />
         </ScrollView>
 
-        {/* Notification Config Sheet */}
-        {selectedMedForNotification && (
-          <NotificationConfigSheet
-            visible={notificationSheetVisible}
-            itemId={selectedMedForNotification.id}
-            itemName={selectedMedForNotification.name}
-            itemType="medication"
-            currentConfig={selectedMedForNotification.notificationsEnabled !== undefined ? {
-              enabled: selectedMedForNotification.notificationsEnabled,
-              timing: selectedMedForNotification.reminderTiming || 'at_time',
-              customMinutesBefore: selectedMedForNotification.reminderCustomMinutes,
-              followUp: {
-                enabled: selectedMedForNotification.followUpEnabled ?? true,
-                intervalMinutes: selectedMedForNotification.followUpInterval ?? 30,
-                maxAttempts: selectedMedForNotification.followUpMaxAttempts ?? 3,
-              },
-            } : undefined}
-            onSave={handleSaveNotificationConfig}
-            onClose={() => {
-              setNotificationSheetVisible(false);
-              setSelectedMedForNotification(null);
-            }}
-          />
+        {/* Confirmation Toast */}
+        {toastVisible && (
+          <View style={styles.toast}>
+            <View style={styles.toastIcon}>
+              <Text style={styles.toastIconText}>{'\u2713'}</Text>
+            </View>
+            <Text style={styles.toastText}>{toastMessage}</Text>
+          </View>
         )}
+
       </LinearGradient>
     </SafeAreaView>
   );
@@ -427,22 +583,6 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // Title
-  titleSection: {
-    marginBottom: Spacing.xl,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: Colors.textSecondary,
-    lineHeight: 22,
-  },
-
   // Section Labels
   sectionLabel: {
     fontSize: 11,
@@ -453,70 +593,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xl,
   },
 
-  // Setting Row
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.glassFaint,
-    borderWidth: 1,
-    borderColor: Colors.glassActive,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  settingInfo: {
-    flex: 1,
-    marginRight: Spacing.md,
-  },
-  settingLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  settingDescription: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-  },
-
-  // Priority
-  priorityContainer: {
-    gap: Spacing.sm,
-  },
-  priorityOption: {
-    backgroundColor: Colors.glassFaint,
-    borderWidth: 1,
-    borderColor: Colors.glassActive,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-  },
-  priorityOptionSelected: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.sageFaint,
-  },
-  priorityLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginBottom: 2,
-  },
-  priorityLabelSelected: {
-    color: Colors.accent,
-  },
-  priorityDescription: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-  },
-
-  // Meds Header Row
-  medsHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.md,
-  },
   addButtonText: {
     fontSize: 14,
     color: Colors.accent,
@@ -639,17 +715,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
     lineHeight: 20,
   },
-  addButton: {
-    backgroundColor: Colors.accent,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-  },
-  addButtonTextLarge: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.background,
-  },
   addButtonOutline: {
     alignItems: 'center',
     paddingVertical: Spacing.lg,
@@ -657,5 +722,40 @@ const styles = StyleSheet.create({
     borderColor: Colors.sageGlow,
     borderRadius: BorderRadius.md,
     borderStyle: 'dashed',
+  },
+
+  // Toast
+  toast: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.3)',
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    zIndex: 50,
+  },
+  toastIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#22c55e',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toastIconText: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '700',
+  },
+  toastText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#22c55e',
   },
 });
