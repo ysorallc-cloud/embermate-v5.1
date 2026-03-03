@@ -37,7 +37,10 @@ Use this checklist to ensure EmberMate is ready for submission to both Apple App
 - [ ] App icon (1024x1024) created and tested
 - [ ] Adaptive icon (Android) created
 - [ ] Splash screen image finalized
-- [ ] Screenshots captured (all required sizes)
+- [x] Screenshots captured for 6.7" (1290×2796) — 5 unique PNGs
+- [ ] Screenshots captured for 6.5" (1284×2778)
+- [ ] Screenshots captured for 5.5" (1242×2208)
+- [ ] Screenshots captured for 12.9" iPad Pro (2048×2732)
 - [ ] Feature graphic created (Google Play - 1024x500)
 - [ ] App preview video created (optional but recommended)
 
@@ -83,7 +86,7 @@ Use this checklist to ensure EmberMate is ready for submission to both Apple App
 - [ ] Copyright: © 2025 [Your Company Name]
 
 ### Screenshots (Required)
-- [ ] 6.7" iPhone (1290x2796): 4-10 screenshots
+- [x] 6.7" iPhone (1290x2796): 5 screenshots ✅
 - [ ] 6.5" iPhone (1284x2778): 4-10 screenshots
 - [ ] 5.5" iPhone (1242x2208): 4-10 screenshots
 - [ ] 12.9" iPad Pro (2048x2732): 4-10 screenshots

@@ -282,8 +282,9 @@ npm test -- utils/__tests__/secureStorage.test.ts
    - Show export history in Settings
 
 4. **Enhanced Tamper Detection**
-   - Jailbreak/root detection
+   - ✅ Jailbreak/root detection (path-based, `utils/deviceIntegrity.ts` — integrated in `_layout.tsx` and `appStartup.ts`)
    - Code integrity verification
+   - [ ] Upgrade to native library detection (e.g. `jail-monkey` or `react-native-device-integrity`) for stronger coverage
 
 ### Medium Priority (Post-Launch v1.1)
 

@@ -17,6 +17,7 @@ import { logError } from '../utils/devLog';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { PatientProvider } from '../contexts/PatientContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors } from '../theme/theme-tokens';
 import { StorageKeys } from '../utils/storageKeys';
@@ -60,6 +61,7 @@ function WebContainer({ children }: { children: React.ReactNode }) {
 function RootLayout() {
   // Handle notification taps
   useNotificationHandler();
+  const insets = useSafeAreaInsets();
   const notificationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [locked, setLocked] = useState(false);
   const [lockoutInfo, setLockoutInfo] = useState<PINLockoutInfo | null>(null);
@@ -200,7 +202,7 @@ function RootLayout() {
       <WebContainer>
         <StatusBar style="auto" />
         {integrityWarning && (
-          <View style={styles.integrityBanner}>
+          <View style={[styles.integrityBanner, { paddingTop: insets.top + 10 }]}>
             <Text style={styles.integrityText}>
               {'\u26A0\uFE0F'} This device may be jailbroken or rooted. Your health data could be at risk. Use a secure device for best protection.
             </Text>

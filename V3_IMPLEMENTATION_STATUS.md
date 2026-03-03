@@ -115,3 +115,28 @@ Run `npm start` to test:
 - Export functions stubbed (can integrate real PDF generation)
 - Navigation structure complete and scalable
 - Design system consistent throughout
+
+## 📱 Store Submission Readiness
+
+### Screenshots
+- ✅ HTML template at 1290×2796 (Apple 6.7" Super Retina XDR)
+- ✅ 5 unique PNGs generated with per-slide content
+- [ ] Additional sizes needed: 6.5" (1284×2778), 5.5" (1242×2208), 12.9" iPad Pro (2048×2732)
+
+### Upgrade / Premium Flow
+- ✅ `app/upgrade.tsx` — Feature comparison table, promo code input, restore purchases
+- ✅ Routed as modal in `_layout.tsx`
+- ❌ No IAP library installed — cannot complete real purchases
+- [ ] Install `react-native-purchases` (RevenueCat), configure product IDs, wire paywall
+
+### Device Integrity
+- ✅ `utils/deviceIntegrity.ts` — Path-based jailbreak/root detection (iOS + Android)
+- ✅ Integrated in `_layout.tsx` (warning banner) and `appStartup.ts` (Phase 7)
+- [ ] Consider upgrading to native library for stronger detection post-launch
+
+### Remaining Blockers
+1. **IAP library** — #1 blocker for both App Store and Google Play
+2. **EAS credentials** — Placeholders in `eas.json`, fill before `eas submit`
+3. **Legal URL hosting** — `docs/privacy.html` and `docs/terms.html` need deployment to ysorallc.org
+4. **Real Sentry DSN** — Replace `YOUR_DSN_HERE` in `app.json` for production error reporting
+5. **Encryption self-classification** — File in App Store Connect before first submission
