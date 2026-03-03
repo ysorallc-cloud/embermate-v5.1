@@ -579,8 +579,20 @@ export default function UnderstandScreen() {
             }
           />
 
+          {/* Empty State for brand-new users */}
+          {pageData && !pageData.isSampleData && pageData.daysOfData === 0 && (
+            <View style={styles.dataBuildingBanner}>
+              <Text style={styles.dataBuildingEmoji}>{'\uD83D\uDCCA'}</Text>
+              <Text style={styles.dataBuildingTitle}>No data yet</Text>
+              <Text style={styles.dataBuildingSubtitle}>
+                Start logging medications, vitals, or mood from the Now tab.{'\n'}
+                Insights and patterns will appear here after a few days of tracking.
+              </Text>
+            </View>
+          )}
+
           {/* Data Building Banner */}
-          {pageData && !pageData.isSampleData && pageData.daysOfData < 7 && (
+          {pageData && !pageData.isSampleData && pageData.daysOfData > 0 && pageData.daysOfData < 7 && (
             <View style={styles.dataBuildingBanner}>
               <Text style={styles.dataBuildingEmoji}>{'\uD83D\uDCCA'}</Text>
               <Text style={styles.dataBuildingTitle}>Building your picture</Text>

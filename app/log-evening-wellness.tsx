@@ -17,7 +17,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
 import { useWellnessSettings } from '../hooks/useWellnessSettings';
 import { saveEveningWellness, skipEveningWellness } from '../utils/wellnessCheckStorage';
@@ -96,7 +97,6 @@ const MOBILITY_OPTIONS = [
 ] as const;
 
 export default function LogEveningWellnessScreen() {
-  const router = useRouter();
   const { instanceId: routeInstanceId } = useLocalSearchParams<{ instanceId?: string }>();
   const { settings } = useWellnessSettings();
   const eveningOptional = settings.evening.optionalChecks ?? {};
@@ -157,7 +157,7 @@ export default function LogEveningWellnessScreen() {
               } catch (e) {
                 console.warn('Could not update care plan instance:', e);
               }
-              router.back();
+              navigateBack();
             } catch (error) {
               Alert.alert('Error', 'Failed to skip wellness check');
             }
@@ -201,7 +201,7 @@ export default function LogEveningWellnessScreen() {
       } catch (e) {
         console.warn('Could not update care plan instance:', e);
       }
-      router.back();
+      navigateBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to save wellness check');
       setIsSubmitting(false);
@@ -216,7 +216,7 @@ export default function LogEveningWellnessScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
+          <TouchableOpacity style={styles.backButton} onPress={() => navigateBack()} accessibilityLabel="Go back" accessibilityRole="button">
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Evening Wellness Check</Text>

@@ -74,10 +74,20 @@ export async function setSubscriptionTier(
  *   Response: { valid: boolean, expiresAt?: string, productId?: string }
  */
 export async function validateReceipt(_receipt: string): Promise<boolean> {
-  console.warn(
-    'Receipt validation: server endpoint not yet implemented. Returning true as placeholder.'
-  );
-  return true;
+  if (__DEV__) {
+    console.warn(
+      'Receipt validation: server endpoint not yet implemented. Returning true for dev testing.'
+    );
+    return true;
+  }
+
+  // TODO: Integrate RevenueCat or implement server-side receipt validation:
+  //   1. POST receipt to your backend → Apple/Google verification endpoint
+  //   2. Backend verifies with App Store / Google Play and returns validity + expiry
+  //   3. Replace this stub with the response from your backend
+  // Until then, reject in production to prevent free premium access.
+  console.warn('Receipt validation: no server endpoint configured. Rejecting receipt in production.');
+  return false;
 }
 
 /**

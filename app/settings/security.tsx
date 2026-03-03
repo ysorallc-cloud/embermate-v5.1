@@ -30,7 +30,9 @@ import {
   getTimeSinceLastActivity,
   getAutoLockTimeout as loadAutoLockTimeout,
   setAutoLockTimeout as saveAutoLockTimeout,
+  getPINLockoutInfo,
   BiometricCapabilities,
+  PINLockoutInfo,
 } from '../../utils/biometricAuth';
 import {
   getRecentAuditLogs,
@@ -51,6 +53,7 @@ export default function SecuritySettingsScreen() {
   const [recentActivity, setRecentActivity] = useState<AuditLogEntry[]>([]);
   const [auditStats, setAuditStats] = useState<any>(null);
   const [lastActivity, setLastActivity] = useState<string>('');
+  const [lockoutInfo, setLockoutInfo] = useState<PINLockoutInfo | null>(null);
 
   useEffect(() => {
     loadSecurityStatus();
@@ -70,6 +73,9 @@ export default function SecuritySettingsScreen() {
 
       const timeout = await loadAutoLockTimeout();
       setAutoLockTimeout(timeout);
+
+      const lockout = await getPINLockoutInfo();
+      setLockoutInfo(lockout);
 
       if (timeSince < Infinity) {
         const minutes = Math.floor(timeSince / 60);
@@ -306,6 +312,16 @@ export default function SecuritySettingsScreen() {
               </View>
               <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
             </TouchableOpacity>
+
+            {/* PIN Lockout Status */}
+            {lockoutInfo?.locked && (
+              <View style={styles.lockoutBanner}>
+                <Ionicons name="warning" size={18} color={Colors.amber} />
+                <Text style={styles.lockoutText}>
+                  PIN locked — too many failed attempts. Try again in {lockoutInfo.lockoutSeconds}s
+                </Text>
+              </View>
+            )}
 
             {/* Auto-lock Timeout */}
             <TouchableOpacity style={styles.settingItem} onPress={handleAutoLockChange} accessibilityLabel={`Auto-lock timeout, lock after ${autoLockTimeout / 60} minutes`} accessibilityRole="button">
@@ -652,5 +668,22 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     textAlign: 'center',
     paddingVertical: Spacing.xl,
+  },
+  lockoutBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: 'rgba(234, 179, 8, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(234, 179, 8, 0.25)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  lockoutText: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.amber,
+    lineHeight: 18,
   },
 });

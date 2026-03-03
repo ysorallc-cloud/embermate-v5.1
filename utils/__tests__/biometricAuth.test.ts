@@ -11,6 +11,7 @@ import {
   updateLastActivity,
   getTimeSinceLastActivity,
   shouldLockSession,
+  getPINLockoutInfo,
 } from '../biometricAuth';
 import { safeSetItem } from '../safeStorage';
 
@@ -141,6 +142,90 @@ describe('biometricAuth', () => {
 
       await disableBiometricAuth();
       expect(await isBiometricEnabled()).toBe(false);
+    });
+  });
+
+  describe('PIN lockout and rate limiting', () => {
+    it('should start with no lockout and 3 attempts remaining', async () => {
+      const info = await getPINLockoutInfo();
+      expect(info.locked).toBe(false);
+      expect(info.attemptsRemaining).toBe(3);
+      expect(info.lockoutSeconds).toBe(0);
+    });
+
+    it('should decrement attempts on wrong PIN', async () => {
+      await setupPIN('1234');
+
+      await verifyPIN('0000'); // fail 1
+      let info = await getPINLockoutInfo();
+      expect(info.attemptsRemaining).toBe(2);
+
+      await verifyPIN('0000'); // fail 2
+      info = await getPINLockoutInfo();
+      expect(info.attemptsRemaining).toBe(1);
+    });
+
+    it('should lock after 3 failed attempts', async () => {
+      await setupPIN('1234');
+
+      await verifyPIN('0000'); // fail 1
+      await verifyPIN('0000'); // fail 2
+      await verifyPIN('0000'); // fail 3
+
+      const info = await getPINLockoutInfo();
+      expect(info.locked).toBe(true);
+      expect(info.attemptsRemaining).toBe(0);
+      expect(info.lockoutSeconds).toBeGreaterThan(0);
+      expect(info.lockoutSeconds).toBeLessThanOrEqual(30);
+    });
+
+    it('should reject verification when locked out', async () => {
+      await setupPIN('1234');
+
+      await verifyPIN('0000'); // fail 1
+      await verifyPIN('0000'); // fail 2
+      await verifyPIN('0000'); // fail 3
+
+      // Even correct PIN should be rejected during lockout
+      const result = await verifyPIN('1234');
+      expect(result).toBe(false);
+    });
+
+    it('should reset attempts on successful verification', async () => {
+      await setupPIN('1234');
+
+      await verifyPIN('0000'); // fail 1
+      await verifyPIN('0000'); // fail 2
+
+      // Correct PIN
+      await verifyPIN('1234');
+
+      const info = await getPINLockoutInfo();
+      expect(info.locked).toBe(false);
+      expect(info.attemptsRemaining).toBe(3);
+    });
+
+    it('should escalate lockout duration on repeated lockouts', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2025-01-15T10:00:00.000Z'));
+      await setupPIN('1234');
+
+      // First lockout (3 fails → 30s)
+      await verifyPIN('0000');
+      await verifyPIN('0000');
+      await verifyPIN('0000');
+      let info = await getPINLockoutInfo();
+      expect(info.lockoutSeconds).toBeLessThanOrEqual(30);
+
+      // Advance past the lockout
+      jest.setSystemTime(new Date('2025-01-15T10:01:00.000Z'));
+
+      // Second lockout (4th fail → 60s)
+      await verifyPIN('0000');
+      info = await getPINLockoutInfo();
+      expect(info.locked).toBe(true);
+      expect(info.lockoutSeconds).toBeLessThanOrEqual(60);
+
+      jest.useRealTimers();
     });
   });
 

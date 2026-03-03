@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import { saveMoodLog } from '../utils/centralStorage';
@@ -33,7 +34,6 @@ const MOODS = [
 ];
 
 export default function LogMoodScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams();
 
   // Parse CarePlan context from navigation params
@@ -102,11 +102,11 @@ export default function LogMoodScreen() {
       setShowConfirmation(true);
 
       navigationTimeoutRef.current = setTimeout(() => {
-        router.back();
+        navigateBack();
       }, 800);
     } catch (error) {
       logError('LogMoodScreen.handleMoodSelect', error);
-      router.back();
+      navigateBack();
     }
   };
 

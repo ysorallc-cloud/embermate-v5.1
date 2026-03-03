@@ -4,10 +4,11 @@
 // ============================================================================
 
 import * as Sentry from '@sentry/react-native';
+import Constants from 'expo-constants';
 import { StorageKeyPrefixes } from './storageKeys';
 
-// TODO: Replace with your Sentry DSN from sentry.io project settings
-const SENTRY_DSN = 'YOUR_DSN_HERE';
+// Read DSN from app.json extra config; falls back to placeholder when unconfigured
+const SENTRY_DSN = Constants.expoConfig?.extra?.sentryDsn ?? 'YOUR_DSN_HERE';
 
 let initialized = false;
 

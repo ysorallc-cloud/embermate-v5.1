@@ -19,8 +19,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { navigate } from '../lib/navigate';
+import { useLocalSearchParams } from 'expo-router';
+import { navigate, navigateBack } from '../lib/navigate';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { useCarePlanConfig } from '../hooks/useCarePlanConfig';
 import { MedicationPlanItem, formatTimeForDisplay } from '../types/carePlanConfig';
@@ -67,7 +67,6 @@ interface MedicationDisplayData {
 }
 
 export default function LogMedicationPlanItemScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams();
 
   // Get medication ID and instance ID from params
@@ -156,13 +155,13 @@ export default function LogMedicationPlanItemScreen() {
       }
 
       await hapticSuccess();
-      router.back();
+      navigateBack();
     } catch (error) {
       logError('LogMedicationPlanItemScreen.handleMarkTaken', error);
       Alert.alert('Error', 'Failed to log medication');
       setSaving(false);
     }
-  }, [medicationData, sideEffects, notes, instanceId, completeInstance, router]);
+  }, [medicationData, sideEffects, notes, instanceId, completeInstance]);
 
   // Handle Skip
   const handleSkip = useCallback(async () => {
@@ -180,13 +179,13 @@ export default function LogMedicationPlanItemScreen() {
       }
 
       await hapticLight();
-      router.back();
+      navigateBack();
     } catch (error) {
       logError('LogMedicationPlanItemScreen.handleSkip', error);
       Alert.alert('Error', 'Failed to skip medication');
       setSaving(false);
     }
-  }, [skipReason, notes, instanceId, skipInstance, router]);
+  }, [skipReason, notes, instanceId, skipInstance]);
 
   // Handle Snooze (navigate back for now - future: implement snooze)
   const handleSnooze = useCallback(() => {
@@ -199,12 +198,12 @@ export default function LogMedicationPlanItemScreen() {
           text: 'Snooze',
           onPress: () => {
             hapticLight();
-            router.back();
+            navigateBack();
           }
         },
       ]
     );
-  }, [router]);
+  }, []);
 
   if (loading) {
     return (
@@ -232,7 +231,7 @@ export default function LogMedicationPlanItemScreen() {
             <Text style={styles.errorText}>Medication not found</Text>
             <TouchableOpacity
               style={styles.backLink}
-              onPress={() => router.back()}
+              onPress={() => navigateBack()}
               accessibilityLabel="Go back"
               accessibilityRole="button"
             >
@@ -260,7 +259,7 @@ export default function LogMedicationPlanItemScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => navigateBack()}
             accessibilityLabel="Go back"
             accessibilityRole="button"
           >

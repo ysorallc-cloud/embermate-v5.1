@@ -91,9 +91,21 @@ export default function InteractionsScreen() {
           <View style={styles.infoBanner}>
             <Ionicons name="information-circle" size={20} color={Colors.accent} />
             <Text style={styles.infoText}>
-              This is a screening tool based on common drug interactions. Always consult your
+              This screens against 22 common drug interactions. Always consult your
               healthcare provider or pharmacist for complete interaction information.
             </Text>
+          </View>
+
+          {/* Limitation Banner */}
+          <View style={styles.limitationBanner}>
+            <Ionicons name="alert-circle" size={20} color={Colors.amber} style={styles.limitationIcon} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.limitationTitle}>Limited Database</Text>
+              <Text style={styles.limitationText}>
+                This checks 22 common interactions only. Always verify with your pharmacist
+                for a complete screening.
+              </Text>
+            </View>
           </View>
 
           {/* Summary Cards */}
@@ -186,13 +198,37 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 140, 148, 0.1)',
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   infoText: {
     flex: 1,
     fontSize: 13,
     color: Colors.textSecondary,
     lineHeight: 18,
+  },
+  limitationBanner: {
+    flexDirection: 'row',
+    gap: 10,
+    backgroundColor: 'rgba(234, 179, 8, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(234, 179, 8, 0.25)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  limitationIcon: {
+    marginTop: 2,
+  },
+  limitationTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.amber,
+    marginBottom: 2,
+  },
+  limitationText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 17,
   },
   summaryCards: {
     flexDirection: 'row',

@@ -12,3 +12,11 @@ export function navigate(route: RouteParam) {
 export function navigateReplace(route: RouteParam) {
   router.replace(route as Href);
 }
+
+export function navigateBack() {
+  router.back();
+}
+
+export function canNavigateBack() {
+  return router.canGoBack();
+}

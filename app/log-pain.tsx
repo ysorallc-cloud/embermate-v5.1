@@ -16,7 +16,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
 import { saveSymptom } from '../utils/symptomStorage';
 import { logError } from '../utils/devLog';
@@ -54,7 +55,6 @@ function getSeverityLabel(value: number): string {
 }
 
 export default function LogPainScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams();
   const [severity, setSeverity] = useState<number | null>(null);
   const [bodyLocation, setBodyLocation] = useState<string | null>(null);
@@ -94,7 +94,7 @@ export default function LogPainScreen() {
         }
       }
 
-      router.back();
+      navigateBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to log pain. Please try again.');
       logError('LogPainScreen.handleSave', error);

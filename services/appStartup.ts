@@ -16,6 +16,7 @@ import { loadCustomThresholds } from '../utils/vitalThresholds';
 import { purgeIfNeeded } from '../utils/dataRetention';
 import { initErrorReporting, reportError, reportWarning } from '../utils/errorReporting';
 import { checkForUpdates } from '../utils/updateChecker';
+import { shouldShowIntegrityWarning } from '../utils/deviceIntegrity';
 import { getTodayDateString, cleanupDuplicateCarePlanItems } from './carePlanGenerator';
 import { StorageKeys, StorageKeyPrefixes } from '../utils/storageKeys';
 
@@ -123,6 +124,9 @@ export async function runStartupSequence(): Promise<StartupResult> {
 
   // Phase 6: Sample data (safe to fail, dev-oriented)
   await runPhase('sampleData', () => initializeSampleData(), phases);
+
+  // Phase 7: Device integrity check (safe to fail, non-blocking)
+  await runPhase('deviceIntegrity', () => shouldShowIntegrityWarning(), phases);
 
   const totalMs = Date.now() - startTotal;
   const success = phases.filter((p) => !p.ok).length === 0;

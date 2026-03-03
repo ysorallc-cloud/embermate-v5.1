@@ -17,7 +17,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { navigateBack } from '../lib/navigate';
 import { Colors, BorderRadius, Spacing } from '../theme/theme-tokens';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import { saveDailyTracking, getDailyTracking } from '../utils/dailyTrackingStorage';
@@ -32,7 +33,6 @@ import { EVENT } from '../lib/eventNames';
 const QUALITY_LABELS = ['Very Poor', 'Poor', 'Fair', 'Good', 'Excellent'];
 
 export default function LogSleep() {
-  const router = useRouter();
   const params = useLocalSearchParams();
   const [hours, setHours] = useState('');
   const [quality, setQuality] = useState<number | null>(null);
@@ -109,7 +109,7 @@ export default function LogSleep() {
       }
 
       await hapticSuccess();
-      router.back();
+      navigateBack();
     } catch (error) {
       logError('LogSleep.handleSave', error);
       Alert.alert('Error', 'Failed to save sleep data');

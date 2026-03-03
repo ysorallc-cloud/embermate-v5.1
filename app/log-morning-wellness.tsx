@@ -16,7 +16,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
 import { saveMorningWellness, skipMorningWellness } from '../utils/wellnessCheckStorage';
 import { listDailyInstances, logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
@@ -65,7 +66,6 @@ const DECISION_MAKING_OPTIONS = [
 const TOTAL_SECTIONS = 5;
 
 export default function LogMorningWellnessScreen() {
-  const router = useRouter();
   const { instanceId: routeInstanceId } = useLocalSearchParams<{ instanceId?: string }>();
   const [sleepQuality, setSleepQuality] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
   const [mood, setMood] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
@@ -109,7 +109,7 @@ export default function LogMorningWellnessScreen() {
               } catch (e) {
                 console.warn('Could not update care plan instance:', e);
               }
-              router.back();
+              navigateBack();
             } catch (error) {
               Alert.alert('Error', 'Failed to skip wellness check');
             }
@@ -145,7 +145,7 @@ export default function LogMorningWellnessScreen() {
       } catch (e) {
         console.warn('Could not update care plan instance:', e);
       }
-      router.back();
+      navigateBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to save wellness check');
       setIsSubmitting(false);
@@ -162,7 +162,7 @@ export default function LogMorningWellnessScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => navigateBack()}
             accessibilityLabel="Go back"
             accessibilityRole="button"
           >

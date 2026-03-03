@@ -17,7 +17,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { navigateBack } from '../lib/navigate';
 import { Colors, BorderRadius, Spacing } from '../theme/theme-tokens';
 import { saveDailyTracking, getDailyTracking } from '../utils/dailyTrackingStorage';
 import { saveMealsLog, getTodayMealsLog, MealsLog } from '../utils/centralStorage';
@@ -71,7 +72,6 @@ const QUICK_FOODS: Record<string, { label: string; icon: string }[]> = {
 };
 
 export default function LogMeal() {
-  const router = useRouter();
   const params = useLocalSearchParams();
 
   // Parse CarePlan context from navigation params
@@ -236,7 +236,7 @@ export default function LogMeal() {
       }
 
       await hapticSuccess();
-      router.back();
+      navigateBack();
     } catch (error) {
       logError('LogMeal.handleSave', error);
       Alert.alert('Error', 'Failed to save meal data');
@@ -264,7 +264,7 @@ export default function LogMeal() {
             <View style={styles.header}>
               <TouchableOpacity
                 style={styles.backButton}
-                onPress={() => router.back()}
+                onPress={() => navigateBack()}
                 accessibilityLabel="Go back"
                 accessibilityRole="button"
               >

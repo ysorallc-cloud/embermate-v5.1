@@ -11,7 +11,8 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { navigateBack } from '../lib/navigate';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { Colors, Spacing } from '../theme/theme-tokens';
 import { getTodayWaterLog, updateTodayWaterLog } from '../utils/centralStorage';
@@ -24,7 +25,6 @@ import { getTodayDateString } from '../services/carePlanGenerator';
 const WATER_GOAL = 8;
 
 export default function LogWaterScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams();
   const [glasses, setGlasses] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -76,7 +76,7 @@ export default function LogWaterScreen() {
       }
 
       emitDataUpdate(EVENT.WATER);
-      router.back();
+      navigateBack();
     } catch (error) {
       logError('LogWaterScreen.handleSave', error);
       Alert.alert('Error', 'Failed to save water intake');
@@ -95,7 +95,7 @@ export default function LogWaterScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => navigateBack()}
             accessibilityLabel="Go back"
             accessibilityRole="button"
           >

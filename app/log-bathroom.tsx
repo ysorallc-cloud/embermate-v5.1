@@ -12,7 +12,7 @@ import {
   TextInput,
   Animated,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { navigateBack, canNavigateBack, navigateReplace } from '../lib/navigate';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
@@ -36,7 +36,6 @@ const URINATION_OPTIONS = [
 ];
 
 export default function LogBathroomScreen() {
-  const router = useRouter();
   const [bowel, setBowel] = useState<string | null>(null);
   const [urination, setUrination] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
@@ -51,7 +50,7 @@ export default function LogBathroomScreen() {
         useNativeDriver: true,
       }).start();
       const timer = setTimeout(() => {
-        router.canGoBack() ? router.back() : router.replace('/(tabs)/now');
+        canNavigateBack() ? navigateBack() : navigateReplace('/(tabs)/now');
       }, 1200);
       return () => clearTimeout(timer);
     }

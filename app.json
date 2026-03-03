@@ -118,6 +118,7 @@
       "typedRoutes": true
     },
     "extra": {
+      "sentryDsn": "YOUR_DSN_HERE",
       "eas": {
         "projectId": "c1c2cfb3-2d20-485c-9e9d-29a53d853228"
       },

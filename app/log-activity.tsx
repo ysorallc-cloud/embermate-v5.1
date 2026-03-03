@@ -13,7 +13,8 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { navigateBack } from '../lib/navigate';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { Colors } from '../theme/theme-tokens';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
@@ -31,7 +32,6 @@ const ACTIVITY_TYPES = [
 ];
 
 export default function LogActivityScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams();
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [duration, setDuration] = useState('');
@@ -75,7 +75,7 @@ export default function LogActivityScreen() {
         }
       }
 
-      router.back();
+      navigateBack();
     } catch (error) {
       logError('LogActivityScreen.handleSave', error);
       Alert.alert('Error', 'Failed to save activity');
@@ -92,7 +92,7 @@ export default function LogActivityScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => navigateBack()}
             accessibilityLabel="Go back"
             accessibilityRole="button"
           >

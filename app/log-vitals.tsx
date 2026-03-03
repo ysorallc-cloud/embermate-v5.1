@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
 import { saveVital } from '../utils/vitalsStorage';
 import { saveVitalsLog } from '../utils/centralStorage';
@@ -19,7 +20,6 @@ import { getTodayDateString } from '../services/carePlanGenerator';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 
 export default function LogVitalsScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams();
 
   // Parse CarePlan context from navigation params
@@ -104,7 +104,7 @@ export default function LogVitalsScreen() {
 
       await hapticSuccess();
       emitDataUpdate(EVENT.VITALS);
-      router.back();
+      navigateBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to log vitals');
       logError('LogVitalsScreen.handleSave', error);

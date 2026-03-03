@@ -11,7 +11,8 @@ import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { requestNotificationPermissions } from '../utils/notificationService';
 import { useNotificationHandler } from '../utils/useNotificationHandler';
 import { runStartupSequence } from '../services/appStartup';
-import { isBiometricEnabled, shouldLockSession, requireAuthentication, updateLastActivity, getAutoLockTimeout } from '../utils/biometricAuth';
+import { isBiometricEnabled, shouldLockSession, requireAuthentication, updateLastActivity, getAutoLockTimeout, getPINLockoutInfo, PINLockoutInfo } from '../utils/biometricAuth';
+import { shouldShowIntegrityWarning } from '../utils/deviceIntegrity';
 import { logError } from '../utils/devLog';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { PatientProvider } from '../contexts/PatientContext';
@@ -61,6 +62,9 @@ function RootLayout() {
   useNotificationHandler();
   const notificationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [locked, setLocked] = useState(false);
+  const [lockoutInfo, setLockoutInfo] = useState<PINLockoutInfo | null>(null);
+  const [integrityWarning, setIntegrityWarning] = useState(false);
+  const lockoutTimerRef = useRef<NodeJS.Timeout | null>(null);
   const appStateRef = useRef(AppState.currentState);
 
   const checkSessionLock = useCallback(async () => {
@@ -75,17 +79,39 @@ function RootLayout() {
     }
   }, []);
 
-  const handleUnlock = useCallback(async () => {
-    const success = await requireAuthentication();
-    if (success) {
-      await updateLastActivity();
-      setLocked(false);
+  const refreshLockout = useCallback(async () => {
+    const info = await getPINLockoutInfo();
+    setLockoutInfo(info);
+    // If locked, set a timer to refresh countdown
+    if (info.locked && info.lockoutSeconds > 0) {
+      lockoutTimerRef.current = setTimeout(() => refreshLockout(), 1000);
     }
   }, []);
+
+  const handleUnlock = useCallback(async () => {
+    const info = await getPINLockoutInfo();
+    if (info.locked) {
+      setLockoutInfo(info);
+      return;
+    }
+    const success = await requireAuthentication();
+    if (success) {
+      setLockoutInfo(null);
+      await updateLastActivity();
+      setLocked(false);
+    } else {
+      await refreshLockout();
+    }
+  }, [refreshLockout]);
 
   useEffect(() => {
     // Orchestrated startup: error reporting → migrations → daily reset → cleanup
     runStartupSequence();
+
+    // Check device integrity (jailbreak/root) — non-blocking warning
+    shouldShowIntegrityWarning().then(compromised => {
+      if (compromised) setIntegrityWarning(true);
+    });
 
     // Notification permissions handled separately (needs delay for UX)
     requestNotificationPermissionsOnStartup();
@@ -105,6 +131,10 @@ function RootLayout() {
       if (notificationTimerRef.current) {
         clearTimeout(notificationTimerRef.current);
         notificationTimerRef.current = null;
+      }
+      if (lockoutTimerRef.current) {
+        clearTimeout(lockoutTimerRef.current);
+        lockoutTimerRef.current = null;
       }
     };
   }, [checkSessionLock]);
@@ -130,6 +160,7 @@ function RootLayout() {
   }
 
   if (locked) {
+    const isLockedOut = lockoutInfo?.locked;
     return (
       <ErrorBoundary>
         <WebContainer>
@@ -137,9 +168,25 @@ function RootLayout() {
           <View style={styles.lockScreen}>
             <Text style={styles.lockIcon}>{'\uD83D\uDD12'}</Text>
             <Text style={styles.lockTitle}>EmberMate Locked</Text>
-            <Text style={styles.lockSubtitle}>Authenticate to continue</Text>
-            <TouchableOpacity style={styles.lockButton} onPress={handleUnlock} accessibilityRole="button">
-              <Text style={styles.lockButtonText}>Unlock</Text>
+            <Text style={styles.lockSubtitle}>
+              {isLockedOut
+                ? `Too many attempts. Try again in ${lockoutInfo.lockoutSeconds}s`
+                : 'Authenticate to continue'}
+            </Text>
+            {!isLockedOut && lockoutInfo && lockoutInfo.attemptsRemaining < 3 && (
+              <Text style={styles.lockAttempts}>
+                {lockoutInfo.attemptsRemaining} attempt{lockoutInfo.attemptsRemaining !== 1 ? 's' : ''} remaining
+              </Text>
+            )}
+            <TouchableOpacity
+              style={[styles.lockButton, isLockedOut && styles.lockButtonDisabled]}
+              onPress={handleUnlock}
+              disabled={isLockedOut}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.lockButtonText, isLockedOut && styles.lockButtonTextDisabled]}>
+                {isLockedOut ? 'Locked Out' : 'Unlock'}
+              </Text>
             </TouchableOpacity>
           </View>
         </WebContainer>
@@ -152,6 +199,16 @@ function RootLayout() {
       <ThemeProvider>
       <WebContainer>
         <StatusBar style="auto" />
+        {integrityWarning && (
+          <View style={styles.integrityBanner}>
+            <Text style={styles.integrityText}>
+              {'\u26A0\uFE0F'} This device may be jailbroken or rooted. Your health data could be at risk. Use a secure device for best protection.
+            </Text>
+            <TouchableOpacity onPress={() => setIntegrityWarning(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={styles.integrityDismiss}>Dismiss</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         <PatientProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
@@ -167,6 +224,7 @@ function RootLayout() {
           <Stack.Screen name="appointments" />
           <Stack.Screen name="photos" />
           <Stack.Screen name="emergency" />
+          <Stack.Screen name="upgrade" options={{ presentation: 'modal' }} />
           <Stack.Screen name="log-vitals" />
           <Stack.Screen name="log-water" />
           <Stack.Screen name="log-meal" />
@@ -258,6 +316,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600' as const,
     color: '#FFFFFF',
+  },
+  lockAttempts: {
+    fontSize: 13,
+    color: Colors.amber ?? '#fbbf24',
+    marginBottom: 12,
+  },
+  lockButtonDisabled: {
+    backgroundColor: Colors.border ?? '#333',
+    opacity: 0.6,
+  },
+  lockButtonTextDisabled: {
+    color: Colors.textMuted ?? '#888',
+  },
+  integrityBanner: {
+    backgroundColor: 'rgba(234, 179, 8, 0.12)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(234, 179, 8, 0.3)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  integrityText: {
+    flex: 1,
+    fontSize: 12,
+    color: Colors.amber ?? '#fbbf24',
+    lineHeight: 17,
+  },
+  integrityDismiss: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: Colors.amber ?? '#fbbf24',
   },
 });
 

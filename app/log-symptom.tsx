@@ -16,7 +16,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { navigate, navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
 import { saveSymptom } from '../utils/symptomStorage';
 import { logError } from '../utils/devLog';
@@ -32,7 +33,6 @@ const COMMON_SYMPTOMS = [
 ];
 
 export default function LogSymptomScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams();
   const [selectedSymptom, setSelectedSymptom] = useState('');
   const [customSymptom, setCustomSymptom] = useState('');
@@ -43,7 +43,7 @@ export default function LogSymptomScreen() {
   const handleSymptomSelect = (symptom: string) => {
     if (symptom === 'Pain') {
       const instanceId = params.instanceId as string | undefined;
-      router.push(instanceId ? `/log-pain?instanceId=${instanceId}` : '/log-pain');
+      navigate(instanceId ? `/log-pain?instanceId=${instanceId}` : '/log-pain');
       return;
     }
     setSelectedSymptom(symptom);
@@ -82,7 +82,7 @@ export default function LogSymptomScreen() {
         }
       }
 
-      router.back();
+      navigateBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to log symptom. Please try again.');
       logError('LogSymptomScreen.handleSave', error);

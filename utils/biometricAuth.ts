@@ -14,9 +14,71 @@ const BIOMETRIC_ENROLLED_KEY = StorageKeys.BIOMETRIC_ENROLLED;
 const PIN_HASH_KEY = 'embermate_pin_hash';
 const PIN_SALT_KEY = 'embermate_pin_salt';
 const SESSION_TOKEN_KEY = 'embermate_session_token';
+const PIN_ATTEMPTS_KEY = '@embermate_pin_attempts';
+const PIN_LOCKOUT_UNTIL_KEY = '@embermate_pin_lockout_until';
 const LAST_ACTIVITY_KEY = StorageKeys.LAST_ACTIVITY;
 const AUTO_LOCK_TIMEOUT_KEY = StorageKeys.AUTO_LOCK_TIMEOUT;
 const DEFAULT_TIMEOUT = 300; // 5 minutes
+
+// Lockout schedule: after 3 free attempts, escalating delays
+const MAX_FREE_ATTEMPTS = 3;
+const LOCKOUT_SECONDS = [30, 60, 300, 900, 1800]; // 30s, 1m, 5m, 15m, 30m
+
+export interface PINLockoutInfo {
+  locked: boolean;
+  attemptsRemaining: number;
+  lockoutSeconds: number;
+}
+
+/**
+ * Get current PIN lockout status
+ */
+export async function getPINLockoutInfo(): Promise<PINLockoutInfo> {
+  try {
+    const attemptsStr = await safeGetItem<string | null>(PIN_ATTEMPTS_KEY, null);
+    const lockoutUntilStr = await safeGetItem<string | null>(PIN_LOCKOUT_UNTIL_KEY, null);
+    const attempts = attemptsStr ? parseInt(attemptsStr, 10) : 0;
+
+    if (lockoutUntilStr) {
+      const lockoutUntil = new Date(lockoutUntilStr).getTime();
+      const now = Date.now();
+      if (lockoutUntil > now) {
+        return {
+          locked: true,
+          attemptsRemaining: 0,
+          lockoutSeconds: Math.ceil((lockoutUntil - now) / 1000),
+        };
+      }
+    }
+
+    return {
+      locked: false,
+      attemptsRemaining: Math.max(0, MAX_FREE_ATTEMPTS - attempts),
+      lockoutSeconds: 0,
+    };
+  } catch (error) {
+    logError('biometricAuth.getPINLockoutInfo', error);
+    return { locked: false, attemptsRemaining: MAX_FREE_ATTEMPTS, lockoutSeconds: 0 };
+  }
+}
+
+async function recordPINFailure(): Promise<void> {
+  const attemptsStr = await safeGetItem<string | null>(PIN_ATTEMPTS_KEY, null);
+  const attempts = (attemptsStr ? parseInt(attemptsStr, 10) : 0) + 1;
+  await safeSetItem(PIN_ATTEMPTS_KEY, attempts.toString());
+
+  if (attempts >= MAX_FREE_ATTEMPTS) {
+    const lockoutIndex = Math.min(attempts - MAX_FREE_ATTEMPTS, LOCKOUT_SECONDS.length - 1);
+    const seconds = LOCKOUT_SECONDS[lockoutIndex];
+    const lockoutUntil = new Date(Date.now() + seconds * 1000).toISOString();
+    await safeSetItem(PIN_LOCKOUT_UNTIL_KEY, lockoutUntil);
+  }
+}
+
+async function resetPINAttempts(): Promise<void> {
+  await safeSetItem(PIN_ATTEMPTS_KEY, '0');
+  await safeSetItem(PIN_LOCKOUT_UNTIL_KEY, '');
+}
 
 export interface BiometricCapabilities {
   isAvailable: boolean;
@@ -170,12 +232,12 @@ export async function setupPIN(pin: string): Promise<boolean> {
       .map((b: number) => b.toString(16).padStart(2, '0'))
       .join('');
 
-    // Iterated hash for key stretching (1000 rounds)
+    // Iterated hash for key stretching (100,000 rounds — matches cloudBackup.ts PBKDF2 level)
     let hash = await crypto.digestStringAsync(
       crypto.CryptoDigestAlgorithm.SHA256,
       salt + pin
     );
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 100000; i++) {
       hash = await crypto.digestStringAsync(
         crypto.CryptoDigestAlgorithm.SHA256,
         hash + salt
@@ -196,6 +258,12 @@ export async function setupPIN(pin: string): Promise<boolean> {
  */
 export async function verifyPIN(pin: string): Promise<boolean> {
   try {
+    // Check lockout before attempting verification
+    const lockout = await getPINLockoutInfo();
+    if (lockout.locked) {
+      return false;
+    }
+
     const storedHash = await getKeychainItem(PIN_HASH_KEY);
     const salt = await getKeychainItem(PIN_SALT_KEY);
 
@@ -207,16 +275,44 @@ export async function verifyPIN(pin: string): Promise<boolean> {
     let pinHash: string;
 
     if (salt) {
-      // Salted + iterated hash (current format)
+      // Current format: 100k iterations
       pinHash = await crypto.digestStringAsync(
         crypto.CryptoDigestAlgorithm.SHA256,
         salt + pin
       );
-      for (let i = 0; i < 1000; i++) {
+      for (let i = 0; i < 100000; i++) {
         pinHash = await crypto.digestStringAsync(
           crypto.CryptoDigestAlgorithm.SHA256,
           pinHash + salt
         );
+      }
+
+      if (pinHash === storedHash) {
+        await resetPINAttempts();
+        await updateLastActivity();
+        await createSession();
+        return true;
+      }
+
+      // Legacy fallback: try 1k iterations for PINs set before the upgrade
+      let legacyHash = await crypto.digestStringAsync(
+        crypto.CryptoDigestAlgorithm.SHA256,
+        salt + pin
+      );
+      for (let i = 0; i < 1000; i++) {
+        legacyHash = await crypto.digestStringAsync(
+          crypto.CryptoDigestAlgorithm.SHA256,
+          legacyHash + salt
+        );
+      }
+
+      if (legacyHash === storedHash) {
+        // Auto-upgrade: re-hash at 100k and store
+        await resetPINAttempts();
+        await setupPIN(pin);
+        await updateLastActivity();
+        await createSession();
+        return true;
       }
     } else {
       // Legacy unsalted hash (will be upgraded on next setupPIN)
@@ -224,14 +320,18 @@ export async function verifyPIN(pin: string): Promise<boolean> {
         crypto.CryptoDigestAlgorithm.SHA256,
         pin
       );
+
+      if (pinHash === storedHash) {
+        // Auto-upgrade to salted + 100k iterations
+        await resetPINAttempts();
+        await setupPIN(pin);
+        await updateLastActivity();
+        await createSession();
+        return true;
+      }
     }
 
-    if (pinHash === storedHash) {
-      await updateLastActivity();
-      await createSession();
-      return true;
-    }
-
+    await recordPINFailure();
     return false;
   } catch (error) {
     logError('biometricAuth.verifyPIN', error);

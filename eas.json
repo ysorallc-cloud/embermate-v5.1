@@ -44,11 +44,13 @@
   "submit": {
     "production": {
       "ios": {
+        "_setup_instructions": "1. Log in at appstoreconnect.apple.com → Users & Access → copy your Apple ID email. 2. Go to Apps → your app → General → App Information → copy Apple ID (numeric). 3. Go to developer.apple.com → Membership → copy Team ID.",
         "appleId": "YOUR_APPLE_ID",
         "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
         "appleTeamId": "YOUR_TEAM_ID"
       },
       "android": {
+        "_setup_instructions": "1. Go to Google Cloud Console → IAM → Service Accounts → Create. 2. Grant 'Service Account User' role. 3. Create JSON key → download to project root as google-service-account.json. 4. In Google Play Console → Setup → API access → link the service account.",
         "serviceAccountKeyPath": "./google-service-account.json",
         "track": "internal"
       }

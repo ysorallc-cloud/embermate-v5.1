@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
 import { saveNote } from '../utils/noteStorage';
 import { logError } from '../utils/devLog';
@@ -14,7 +15,6 @@ import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRe
 import { SubScreenHeader } from '../components/SubScreenHeader';
 
 export default function LogNoteScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams();
   const [content, setContent] = useState('');
   const [saving, setSaving] = useState(false);
@@ -48,7 +48,7 @@ export default function LogNoteScreen() {
         }
       }
 
-      router.back();
+      navigateBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to save note');
       logError('LogNoteScreen.handleSave', error);

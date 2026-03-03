@@ -1,6 +1,7 @@
 // ============================================================================
-// JOURNAL PAGE - Briefing-style layout with narrative summary + data rows
-// Three zones: Today's Summary, Details, Tomorrow
+// JOURNAL PAGE - Narrative intelligence layer (shift-change briefing)
+// Six sections: Narrative, Handoff Notes, Patterns, Before Bed, Visit Prep,
+//               Day at a Glance
 // ============================================================================
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
@@ -13,6 +14,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  Animated,
+  Share,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
@@ -23,6 +26,7 @@ import {
   CareBrief,
   MedicationDetail,
 } from '../../utils/careSummaryBuilder';
+import { getAllInsights, InsightData, generateProviderQuestions, ProviderQuestion } from '../../utils/insightEngine';
 import { logError } from '../../utils/devLog';
 import { useCareTasks } from '../../hooks/useCareTasks';
 import { getTodayDateString } from '../../services/carePlanGenerator';
@@ -32,6 +36,7 @@ import { isBiometricEnabled, shouldLockSession, requireAuthentication, updateLas
 import { getNotesLogs, NotesLog } from '../../utils/centralStorage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { CarePlanTask } from '../../types/carePlanTask';
 
 // ============================================================================
 // HELPERS
@@ -74,6 +79,10 @@ export default function JournalTab() {
   const [error, setError] = useState<string | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
   const [todayNotes, setTodayNotes] = useState<NotesLog[]>([]);
+  const [insights, setInsights] = useState<InsightData[]>([]);
+  const [expandedPattern, setExpandedPattern] = useState<number | null>(null);
+  const [providerQuestions, setProviderQuestions] = useState<ProviderQuestion[]>([]);
+  const chevronAnims = useRef<Animated.Value[]>([]).current;
   const { state: careTasksState } = useCareTasks(getTodayDateString());
 
   const loadReport = useCallback(async () => {
@@ -91,6 +100,29 @@ export default function JournalTab() {
         setTodayNotes(filtered);
       } catch {
         setTodayNotes([]);
+      }
+
+      // Load insights
+      try {
+        const allInsights = await getAllInsights();
+        setInsights(allInsights);
+      } catch {
+        setInsights([]);
+      }
+
+      // Load provider questions if appointment is near
+      if (data.nextAppointment) {
+        const daysUntil = Math.max(0, Math.ceil(
+          (new Date(data.nextAppointment.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+        ));
+        if (daysUntil <= 7) {
+          try {
+            const questions = await generateProviderQuestions('next', daysUntil);
+            setProviderQuestions(questions);
+          } catch {
+            setProviderQuestions([]);
+          }
+        }
       }
     } catch (err) {
       logError('JournalTab.loadReport', err);
@@ -244,7 +276,6 @@ export default function JournalTab() {
   // ============================================================================
   function getBriefingText(): string {
     if (!brief) return '';
-    // Prefer handoffNarrative, fall back to statusNarrative, then build one
     if (brief.handoffNarrative && brief.handoffNarrative.trim().length > 0) {
       return brief.handoffNarrative;
     }
@@ -255,124 +286,37 @@ export default function JournalTab() {
   }
 
   // ============================================================================
-  // DATA ROW HELPERS
+  // HELPERS FOR DAY AT A GLANCE
   // ============================================================================
-  type DotColor = 'green' | 'amber' | 'red';
+  type DotColor = 'green' | 'amber' | 'red' | 'muted';
 
   function getMedsDotColor(): DotColor {
+    if (medsTotal === 0) return 'muted';
     if (medsMissed > 0) return 'red';
     if (allMedsDone) return 'green';
     return 'amber';
-  }
-
-  function getMedsDetail(): string {
-    if (!brief || medsTotal === 0) return 'No medications scheduled.';
-    const taken = brief.medications.filter(m => m.status === 'completed' || m.status === 'skipped');
-    const names = taken.map(m => m.name).join(', ');
-    if (allMedsDone) return `${names} \u2014 all taken on schedule`;
-    const missed = brief.medications.filter(m => m.status === 'missed');
-    if (missed.length > 0 && taken.length > 0) return `${names} taken. ${missed.map(m => m.name).join(', ')} missed`;
-    if (missed.length > 0) return `${missed.map(m => m.name).join(', ')} missed`;
-    const pending = brief.medications.filter(m => m.status === 'pending');
-    return `${taken.length} taken, ${pending.length} pending`;
   }
 
   function getMedsValue(): string {
     return `${medsDone}/${medsTotal}`;
   }
 
-  function getVitalsDotColor(): DotColor {
-    if (!hasVitals) return 'amber';
-    const r = brief?.vitals?.readings;
-    if (r && ((r.systolic ?? 0) > 140 || (r.diastolic ?? 0) > 90 || ((r.oxygen ?? 100) < 92))) return 'red';
-    return 'green';
-  }
-
-  function getVitalsDetail(): string {
-    if (!hasVitals) return 'Not recorded yet';
-    const r = brief?.vitals?.readings;
-    if (!r) return 'Logged';
-    const parts: string[] = [];
-    if (r.systolic != null && r.diastolic != null) parts.push(`BP ${r.systolic}/${r.diastolic}`);
-    if (r.heartRate != null) parts.push(`HR ${r.heartRate}`);
-    if (r.glucose != null) parts.push(`Glucose ${r.glucose} mg/dL`);
-    if (r.temperature != null) parts.push(`Temp ${r.temperature}\u00B0F`);
-    if (r.oxygen != null) parts.push(`SpO\u2082 ${r.oxygen}%`);
-    return parts.join(' \u00B7 ');
-  }
-
-  function getVitalsValue(): string {
-    return hasVitals ? 'Logged' : 'Pending';
-  }
-
   function getMealsDotColor(): DotColor {
+    if (mealsTotal === 0) return 'muted';
     if (mealsMissed > 0) return 'red';
     if (mealsDone >= mealsTotal && mealsTotal > 0) return 'green';
-    if (mealsDone === 0 && mealsTotal > 0) return 'amber';
     return 'amber';
-  }
-
-  function getMealsDetail(): string {
-    if (!brief) return '';
-    const completedMeals = brief.meals.meals.filter(m => m.status === 'completed' || m.status === 'skipped');
-    const missedMeals = brief.meals.meals.filter(m => m.status === 'missed');
-    if (completedMeals.length > 0) {
-      const mealNames = completedMeals.map(m => {
-        const name = m.name || '';
-        const time = m.scheduledTime ? formatTime(m.scheduledTime) : '';
-        return time ? `${name} at ${time}` : name;
-      }).join(', ');
-      if (missedMeals.length > 0) {
-        return `${mealNames}. ${missedMeals.map(m => m.name).join(', ')} missed.`;
-      }
-      const notLogged = mealsTotal - mealsDone;
-      return notLogged > 0
-        ? `${mealNames}. ${notLogged} not logged.`
-        : mealNames;
-    }
-    if (missedMeals.length > 0) {
-      return `${missedMeals.map(m => m.name).join(', ')} missed`;
-    }
-    return mealsTotal > 0 ? 'No meals logged yet' : 'No meals scheduled';
   }
 
   function getHydrationDotColor(): DotColor {
     if (waterGlasses >= 8) return 'green';
-    if (waterGlasses === 0) return 'red';
+    if (waterGlasses === 0) return 'muted';
     return 'amber';
   }
 
   function getWellnessDotColor(): DotColor {
     if (hasMorning && hasEvening) return 'green';
-    if (!hasMorning && !hasEvening) return 'amber';
     return 'amber';
-  }
-
-  function getWellnessDetail(): string {
-    if (!brief) return '';
-    const parts: string[] = [];
-    if (hasMorning && brief.mood.morningWellness) {
-      const mw = brief.mood.morningWellness;
-      const details: string[] = [];
-      if (mw.mood) details.push(`mood ${mw.mood.toLowerCase()}`);
-      if (mw.sleepQuality > 0) details.push(`sleep ${SLEEP_QUALITY_WORDS[mw.sleepQuality] || `${mw.sleepQuality}/5`}`);
-      if (mw.orientation) details.push(mw.orientation.toLowerCase());
-      parts.push(`Morning: ${details.length > 0 ? details.join(', ') : 'complete'}.`);
-    }
-    if (hasEvening && brief.mood.eveningWellness) {
-      const ew = brief.mood.eveningWellness;
-      const details: string[] = [];
-      if (ew.dayRating > 0) details.push(`day rated ${ew.dayRating}/5`);
-      if (ew.painLevel) details.push(`pain ${ew.painLevel.toLowerCase()}`);
-      if (ew.alertness) details.push(ew.alertness.toLowerCase());
-      parts.push(`Evening: ${details.length > 0 ? details.join(', ') : 'complete'}.`);
-    } else if (!hasEvening) {
-      parts.push('Evening check pending.');
-    }
-    if (!hasMorning && !hasEvening) {
-      return 'No wellness checks completed yet';
-    }
-    return parts.join(' ');
   }
 
   function getWellnessValue(): string {
@@ -381,24 +325,225 @@ export default function JournalTab() {
   }
 
   function getSleepDotColor(): DotColor {
-    if (!brief?.sleep.logged) return 'amber';
+    if (!brief?.sleep.logged) return 'muted';
     return 'green';
   }
 
-  function getSleepDetail(): string {
-    if (!brief?.sleep.logged) return 'Tap to log last night\u2019s sleep';
-    const parts: string[] = [];
-    if (brief.sleep.hours != null) parts.push(`${brief.sleep.hours} hours`);
-    if (brief.sleep.quality != null) parts.push(`quality ${SLEEP_QUALITY_WORDS[brief.sleep.quality] || `${brief.sleep.quality}/5`}`);
-    return parts.length > 0 ? parts.join(', ') : 'Logged';
-  }
-
   function getSleepValue(): string {
-    if (!brief?.sleep.logged) return 'Log';
-    if (brief.sleep.quality != null && brief.sleep.quality >= 4) return 'Good';
-    if (brief.sleep.quality != null && brief.sleep.quality <= 2) return 'Poor';
+    if (!brief?.sleep.logged) return '\u2014';
+    if (brief.sleep.hours != null) return `${brief.sleep.hours}h`;
     return 'Logged';
   }
+
+  function getVitalsDotColor(): DotColor {
+    if (!hasVitals) return 'muted';
+    const r = brief?.vitals?.readings;
+    if (r && ((r.systolic ?? 0) > 140 || (r.diastolic ?? 0) > 90 || ((r.oxygen ?? 100) < 92))) return 'red';
+    return 'green';
+  }
+
+  function getVitalsValue(): string {
+    if (!hasVitals) return '\u2014';
+    const r = brief?.vitals?.readings;
+    if (r?.systolic != null && r?.diastolic != null) return `${r.systolic}/${r.diastolic}`;
+    return 'Logged';
+  }
+
+  function dotColorToStyle(dc: DotColor) {
+    switch (dc) {
+      case 'green': return colors.green;
+      case 'amber': return colors.amberBright;
+      case 'red': return colors.redBright;
+      default: return colors.textTertiary;
+    }
+  }
+
+  // ============================================================================
+  // HANDOFF NOTES
+  // ============================================================================
+  type HandoffType = 'done' | 'watch' | 'flag';
+  interface HandoffItem { icon: string; text: string; type: HandoffType; }
+
+  function buildHandoffNotes(): HandoffItem[] {
+    if (!brief) return [];
+    const items: HandoffItem[] = [];
+
+    // Completed meds with times
+    for (const med of brief.medications) {
+      if ((med.status === 'completed' || med.status === 'skipped') && med.takenAt) {
+        items.push({
+          icon: '\uD83D\uDC8A',
+          text: `${med.name} taken at ${formatTime(med.takenAt)}`,
+          type: 'done',
+        });
+      }
+    }
+
+    // Attention items
+    if (brief.attentionItems) {
+      for (const ai of brief.attentionItems) {
+        const text = ai.text || ai.title || '';
+        let type: HandoffType = 'watch';
+        if (/miss|skip|overdue/i.test(text)) type = 'flag';
+        const icon = type === 'flag' ? '\uD83D\uDED1' : '\uD83D\uDC41\uFE0F';
+        items.push({ icon, text, type });
+      }
+    }
+
+    // Interpretations
+    if (brief.interpretations?.medications) {
+      items.push({ icon: '\uD83D\uDC8A', text: brief.interpretations.medications, type: 'watch' });
+    }
+    if (brief.interpretations?.vitals) {
+      items.push({ icon: '\uD83C\uDF21\uFE0F', text: brief.interpretations.vitals, type: 'watch' });
+    }
+    if (brief.interpretations?.nutrition) {
+      items.push({ icon: '\uD83C\uDF5E', text: brief.interpretations.nutrition, type: 'watch' });
+    }
+
+    return items;
+  }
+
+  // ============================================================================
+  // BEFORE BED
+  // ============================================================================
+  interface BeforeBedItem { icon: string; text: string; route: string; }
+
+  function buildBeforeBedItems(): BeforeBedItem[] {
+    const items: BeforeBedItem[] = [];
+
+    // Pending evening/night tasks
+    if (careTasksState) {
+      const eveningTasks = careTasksState.byWindow['evening'] || [];
+      const nightTasks = careTasksState.byWindow['night'] || [];
+      for (const task of [...eveningTasks, ...nightTasks]) {
+        if (task.status === 'pending') {
+          items.push({
+            icon: task.emoji || '\u2705',
+            text: task.title,
+            route: task.primaryAction?.route || '',
+          });
+        }
+      }
+    }
+
+    // Unlogged sleep
+    if (brief && !brief.sleep.logged) {
+      items.push({ icon: '\uD83D\uDE34', text: 'Log sleep when she goes to bed', route: '/log-sleep' });
+    }
+
+    // Unlogged evening wellness
+    if (brief && !hasEvening && new Date().getHours() >= 17) {
+      items.push({ icon: '\uD83D\uDCCB', text: 'Evening wellness check', route: '/log-evening-wellness' });
+    }
+
+    return items;
+  }
+
+  // ============================================================================
+  // SHARE
+  // ============================================================================
+  async function handleShareJournal() {
+    if (!brief) return;
+    const lines: string[] = [];
+    lines.push(`\uD83D\uDCD6 Daily Journal \u2014 ${dayName}, ${dateStr}`);
+    lines.push('');
+    lines.push(getBriefingText());
+    lines.push('');
+
+    // Handoff
+    const handoff = buildHandoffNotes();
+    if (handoff.length > 0) {
+      lines.push('HANDOFF NOTES');
+      for (const h of handoff) {
+        lines.push(`${h.icon} ${h.text}`);
+      }
+      lines.push('');
+    }
+
+    // Quick stats
+    lines.push('DAY AT A GLANCE');
+    lines.push(`Meds: ${getMedsValue()} | Meals: ${mealsDone}/${mealsTotal} | Water: ${waterGlasses}/8`);
+    lines.push(`Wellness: ${getWellnessValue()} | Sleep: ${getSleepValue()}`);
+
+    if (showAppointment && brief.nextAppointment) {
+      lines.push('');
+      lines.push(`Next: ${brief.nextAppointment.provider} in ${daysUntilAppt} days`);
+    }
+
+    lines.push('');
+    lines.push('\u2014 Shared from EmberMate');
+
+    try {
+      await Share.share({ message: lines.join('\n'), title: `Journal \u2014 ${dateStr}` });
+    } catch { /* user cancelled */ }
+  }
+
+  // ============================================================================
+  // PATTERN EXPAND/COLLAPSE
+  // ============================================================================
+  // Ensure we have enough animated values
+  while (chevronAnims.length < insights.length) {
+    chevronAnims.push(new Animated.Value(0));
+  }
+
+  const togglePattern = (index: number) => {
+    const expanding = expandedPattern !== index;
+    // Collapse previous
+    if (expandedPattern != null && expandedPattern < chevronAnims.length) {
+      Animated.timing(chevronAnims[expandedPattern], {
+        toValue: 0, duration: 200, useNativeDriver: true,
+      }).start();
+    }
+    if (expanding) {
+      Animated.timing(chevronAnims[index], {
+        toValue: 1, duration: 200, useNativeDriver: true,
+      }).start();
+      setExpandedPattern(index);
+    } else {
+      setExpandedPattern(null);
+    }
+  };
+
+  // ============================================================================
+  // SEVERITY HELPERS
+  // ============================================================================
+  function handoffBorderColor(type: HandoffType): string {
+    switch (type) {
+      case 'flag': return colors.redBright;
+      case 'watch': return colors.amberBright;
+      case 'done': return colors.green;
+    }
+  }
+
+  function handoffBgColor(type: HandoffType): string {
+    switch (type) {
+      case 'flag': return 'rgba(239,68,68,0.06)';
+      case 'watch': return 'rgba(245,158,11,0.05)';
+      case 'done': return 'rgba(74,222,128,0.05)';
+    }
+  }
+
+  function patternBorderColor(severity: string): string {
+    if (severity === 'alert') return colors.redBright;
+    if (severity === 'warning') return colors.amberBright;
+    return 'rgba(96,165,250,0.3)';
+  }
+
+  // ============================================================================
+  // BUILD DATA
+  // ============================================================================
+  const handoffNotes = buildHandoffNotes();
+  const beforeBedItems = buildBeforeBedItems();
+
+  const glanceStats = [
+    { label: 'Meds', value: getMedsValue(), color: dotColorToStyle(getMedsDotColor()) },
+    { label: 'Meals', value: `${mealsDone}/${mealsTotal}`, color: dotColorToStyle(getMealsDotColor()) },
+    { label: 'Water', value: `${waterGlasses}/8`, color: dotColorToStyle(getHydrationDotColor()) },
+    { label: 'Wellness', value: getWellnessValue(), color: dotColorToStyle(getWellnessDotColor()) },
+    { label: 'Sleep', value: getSleepValue(), color: dotColorToStyle(getSleepDotColor()) },
+    ...(hasVitals ? [{ label: 'BP', value: getVitalsValue(), color: dotColorToStyle(getVitalsDotColor()) }] : []),
+  ];
 
   // ============================================================================
   // RENDER — MAIN
@@ -424,228 +569,192 @@ export default function JournalTab() {
             style={s.journalHeader}
             rightAction={
               <TouchableOpacity
-                style={s.headerHandoffBtn}
-                onPress={() => navigate('/care-report?scope=today')}
+                style={s.headerShareBtn}
+                onPress={handleShareJournal}
                 activeOpacity={0.7}
-                accessibilityLabel="Share care report"
+                accessibilityLabel="Share journal"
                 accessibilityRole="button"
               >
-                <Text style={s.headerHandoffBtnText}>{'\uD83D\uDCCB'} Share</Text>
+                <Text style={s.headerShareBtnText}>{'\uD83D\uDCCB'} Share</Text>
               </TouchableOpacity>
             }
           />
 
-          {/* ═══ ZONE 1: TODAY'S SUMMARY ═══ */}
-          <View style={s.sectionHeader}>
-            <Text style={s.sectionTitle}>Today's Summary</Text>
-          </View>
+          {/* ═══════════════════════════════════════════════════════
+              SECTION 1: THE NARRATIVE
+              ═══════════════════════════════════════════════════════ */}
+          <Text style={s.narrativeText}>{getBriefingText()}</Text>
 
-          <Text style={s.briefingText}>{getBriefingText()}</Text>
+          {/* First-use guidance when nothing logged today */}
+          {medsTotal === 0 && mealsTotal === 0 && waterGlasses === 0 && !hasMorning && !hasEvening && !hasVitals && (
+            <View style={s.firstUseCard}>
+              <Text style={s.firstUseTitle}>Your journal builds as you log</Text>
+              <Text style={s.firstUseText}>
+                Track medications, meals, vitals, or mood from the Now tab and your daily summary will appear here.
+              </Text>
+            </View>
+          )}
 
-          <View style={s.zoneDivider} />
+          <View style={s.divider} />
 
-          {/* ═══ ZONE 2: DETAILS ═══ */}
-          <View style={s.sectionHeader}>
-            <Text style={s.sectionTitle}>{"Details"}</Text>
-          </View>
-
-          {/* Medications row */}
-          {brief && medsTotal > 0 && (
-            <View style={s.dataRow}>
-              <View style={[s.dataRowDot, s[`dot${getMedsDotColor().charAt(0).toUpperCase() + getMedsDotColor().slice(1)}` as keyof ReturnType<typeof createStyles>] as any]} />
-              <View style={s.dataRowInfo}>
-                <Text style={s.dataRowLabel}>Medications</Text>
-                <Text style={s.dataRowDetail}>{getMedsDetail()}</Text>
+          {/* ═══════════════════════════════════════════════════════
+              SECTION 2: HANDOFF NOTES
+              ═══════════════════════════════════════════════════════ */}
+          {handoffNotes.length > 0 && (
+            <>
+              <View style={s.sectionHeader}>
+                <Text style={s.sectionTitle}>Handoff Notes</Text>
               </View>
-              <Text style={s.dataRowValue}>{getMedsValue()}</Text>
-            </View>
+              {handoffNotes.map((item, i) => (
+                <View
+                  key={`handoff-${i}`}
+                  style={[
+                    s.handoffItem,
+                    {
+                      borderLeftColor: handoffBorderColor(item.type),
+                      backgroundColor: handoffBgColor(item.type),
+                    },
+                  ]}
+                >
+                  <Text style={s.handoffIcon}>{item.icon}</Text>
+                  <Text style={s.handoffText}>{item.text}</Text>
+                </View>
+              ))}
+              <View style={s.divider} />
+            </>
           )}
 
-          {/* Vitals row */}
-          {brief && brief.vitals.scheduled && (
-            <View style={s.dataRow}>
-              <View style={[s.dataRowDot, s[`dot${getVitalsDotColor().charAt(0).toUpperCase() + getVitalsDotColor().slice(1)}` as keyof ReturnType<typeof createStyles>] as any]} />
-              <View style={s.dataRowInfo}>
-                <Text style={s.dataRowLabel}>Vitals</Text>
-                <Text style={s.dataRowDetail}>{getVitalsDetail()}</Text>
+          {/* ═══════════════════════════════════════════════════════
+              SECTION 3: PATTERNS TO WATCH
+              ═══════════════════════════════════════════════════════ */}
+          {insights.length > 0 && (
+            <>
+              <View style={s.sectionHeader}>
+                <Text style={s.sectionTitle}>Patterns to Watch</Text>
               </View>
-              <Text style={s.dataRowValue}>{getVitalsValue()}</Text>
-            </View>
+              {insights.map((insight, i) => {
+                const isExpanded = expandedPattern === i;
+                const rotation = chevronAnims[i]
+                  ? chevronAnims[i].interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '180deg'],
+                    })
+                  : '0deg';
+
+                return (
+                  <TouchableOpacity
+                    key={insight.id}
+                    style={[
+                      s.patternCard,
+                      { borderColor: patternBorderColor(insight.severity) + '30' },
+                    ]}
+                    onPress={() => togglePattern(i)}
+                    activeOpacity={0.8}
+                    accessibilityLabel={`Pattern: ${insight.title}. ${isExpanded ? 'Collapse' : 'Expand'}`}
+                    accessibilityRole="button"
+                  >
+                    <View style={s.patternHeader}>
+                      <Text style={s.patternTitle}>{insight.title}</Text>
+                      <Animated.Text
+                        style={[s.patternChevron, { transform: [{ rotate: rotation }] }]}
+                      >
+                        {'\u25BC'}
+                      </Animated.Text>
+                    </View>
+                    {isExpanded && (
+                      <View style={s.patternDetail}>
+                        <Text style={s.patternContext}>{insight.context}</Text>
+                        {insight.actions.length > 0 && (
+                          <View style={s.patternAction}>
+                            <Text style={s.patternActionArrow}>{'\u2192'}</Text>
+                            <Text style={s.patternActionText}>{insight.actions[0].label}</Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+              <View style={s.divider} />
+            </>
           )}
 
-          {/* Meals row */}
-          {brief && mealsTotal > 0 && (
-            <TouchableOpacity
-              style={s.dataRow}
-              onPress={() => mealsDone < mealsTotal && navigate('/log-meal')}
-              activeOpacity={mealsDone >= mealsTotal ? 1 : 0.7}
-              accessibilityLabel={`Meals: ${mealsDone} of ${mealsTotal}. ${mealsDone < mealsTotal ? 'Tap to log a meal.' : ''}`}
-              accessibilityRole="button"
-            >
-              <View style={[s.dataRowDot, s[`dot${getMealsDotColor().charAt(0).toUpperCase() + getMealsDotColor().slice(1)}` as keyof ReturnType<typeof createStyles>] as any]} />
-              <View style={s.dataRowInfo}>
-                <Text style={s.dataRowLabel}>Meals</Text>
-                <Text style={s.dataRowDetail}>{getMealsDetail()}</Text>
+          {/* ═══════════════════════════════════════════════════════
+              SECTION 4: BEFORE BED
+              ═══════════════════════════════════════════════════════ */}
+          {beforeBedItems.length > 0 && (
+            <>
+              <View style={s.sectionHeader}>
+                <Text style={s.sectionTitle}>Before Bed</Text>
               </View>
-              <Text style={s.dataRowValue}>{`${mealsDone}/${mealsTotal}`}</Text>
-            </TouchableOpacity>
+              {beforeBedItems.map((item, i) => (
+                <TouchableOpacity
+                  key={`bed-${i}`}
+                  style={s.beforeBedItem}
+                  onPress={() => item.route && navigate(item.route)}
+                  activeOpacity={0.7}
+                  accessibilityLabel={item.text}
+                  accessibilityRole="button"
+                >
+                  <View style={s.beforeBedLeft}>
+                    <Text style={s.beforeBedIcon}>{item.icon}</Text>
+                    <Text style={s.beforeBedText}>{item.text}</Text>
+                  </View>
+                  <Text style={s.beforeBedArrow}>{'\u2192'}</Text>
+                </TouchableOpacity>
+              ))}
+              <View style={s.divider} />
+            </>
           )}
 
-          {/* Hydration row */}
-          {brief && (
-            <TouchableOpacity
-              style={s.dataRow}
-              onPress={() => waterGlasses < 8 && navigate('/log-water')}
-              activeOpacity={waterGlasses >= 8 ? 1 : 0.7}
-              accessibilityLabel={`Hydration: ${waterGlasses} of 8 glasses. ${waterGlasses < 8 ? 'Tap to log water.' : ''}`}
-              accessibilityRole="button"
-            >
-              <View style={[s.dataRowDot, s[`dot${getHydrationDotColor().charAt(0).toUpperCase() + getHydrationDotColor().slice(1)}` as keyof ReturnType<typeof createStyles>] as any]} />
-              <View style={s.dataRowInfo}>
-                <Text style={s.dataRowLabel}>Hydration</Text>
-                <Text style={s.dataRowDetail}>{waterGlasses > 0 ? `${waterGlasses} glasses logged` : 'No water intake logged today'}</Text>
-              </View>
-              <Text style={s.dataRowValue}>{`${waterGlasses}/8`}</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Wellness row */}
-          {brief && (
-            <TouchableOpacity
-              style={s.dataRow}
-              onPress={() => {
-                if (!hasMorning) navigate('/log-morning-wellness');
-                else if (!hasEvening) navigate('/log-evening-wellness');
-              }}
-              activeOpacity={hasMorning && hasEvening ? 1 : 0.7}
-              accessibilityLabel={`Wellness: ${getWellnessDetail()}. ${!(hasMorning && hasEvening) ? 'Tap to log.' : ''}`}
-              accessibilityRole="button"
-            >
-              <View style={[s.dataRowDot, s[`dot${getWellnessDotColor().charAt(0).toUpperCase() + getWellnessDotColor().slice(1)}` as keyof ReturnType<typeof createStyles>] as any]} />
-              <View style={s.dataRowInfo}>
-                <Text style={s.dataRowLabel}>Wellness</Text>
-                <Text style={s.dataRowDetail}>{getWellnessDetail()}</Text>
-              </View>
-              <Text style={s.dataRowValue}>{getWellnessValue()}</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Sleep row */}
-          {brief && (
-            <TouchableOpacity
-              style={[s.dataRow, s.dataRowLast]}
-              onPress={() => !brief.sleep.logged && navigate('/log-sleep')}
-              activeOpacity={brief.sleep.logged ? 1 : 0.7}
-              accessibilityLabel={`Sleep: ${getSleepDetail()}. ${!brief.sleep.logged ? 'Tap to log sleep.' : ''}`}
-              accessibilityRole="button"
-            >
-              <View style={[s.dataRowDot, s[`dot${getSleepDotColor().charAt(0).toUpperCase() + getSleepDotColor().slice(1)}` as keyof ReturnType<typeof createStyles>] as any]} />
-              <View style={s.dataRowInfo}>
-                <Text style={s.dataRowLabel}>Sleep</Text>
-                <Text style={s.dataRowDetail}>{getSleepDetail()}</Text>
-              </View>
-              <Text style={[s.dataRowValue, !brief.sleep.logged && s.dataRowValueAction]}>{getSleepValue()}</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* ═══ INSIGHT CALLOUTS ═══ */}
-          {brief?.interpretations?.medications && (
-            <View style={s.insightCallout}>
-              <Text style={s.insightLabel}>Suggestion</Text>
-              <Text style={s.insightText}>{brief.interpretations.medications}</Text>
-            </View>
-          )}
-          {brief?.interpretations?.vitals && (
-            <View style={s.insightCallout}>
-              <Text style={s.insightLabel}>Suggestion</Text>
-              <Text style={s.insightText}>{brief.interpretations.vitals}</Text>
-            </View>
-          )}
-          {brief?.interpretations?.nutrition && (
-            <View style={s.insightCallout}>
-              <Text style={s.insightLabel}>Suggestion</Text>
-              <Text style={s.insightText}>{brief.interpretations.nutrition}</Text>
-            </View>
-          )}
-
-          {/* Pattern-based recommendations */}
-          {brief && !brief.sleep.logged && (
-            <TouchableOpacity
-              style={s.actionCallout}
-              onPress={() => navigate('/log-sleep')}
-              activeOpacity={0.7}
-            >
-              <Text style={s.actionLabel}>Action Needed</Text>
-              <Text style={s.actionText}>Sleep hasn't been logged today. Tracking sleep helps identify patterns that affect mood, medication timing, and overall wellbeing.</Text>
-              <Text style={s.actionLink}>Log Sleep →</Text>
-            </TouchableOpacity>
-          )}
-          {brief && !hasEvening && new Date().getHours() >= 17 && (
-            <TouchableOpacity
-              style={s.actionCallout}
-              onPress={() => navigate('/log-evening-wellness')}
-              activeOpacity={0.7}
-            >
-              <Text style={s.actionLabel}>Action Needed</Text>
-              <Text style={s.actionText}>Evening wellness check hasn't been completed. This helps track end-of-day pain levels, alertness, and overall day rating.</Text>
-              <Text style={s.actionLink}>Complete Evening Check →</Text>
-            </TouchableOpacity>
-          )}
-          {brief && medsMissed > 0 && (
-            <View style={s.insightCallout}>
-              <Text style={s.insightLabel}>Pattern</Text>
-              <Text style={s.insightText}>{medsMissed} medication{medsMissed > 1 ? 's were' : ' was'} missed today. If this is recurring, consider adjusting reminder times or discussing with your provider.</Text>
-            </View>
-          )}
-          {brief && mealsMissed > 0 && (
-            <View style={s.insightCallout}>
-              <Text style={s.insightLabel}>Pattern</Text>
-              <Text style={s.insightText}>{mealsMissed} meal{mealsMissed > 1 ? 's were' : ' was'} missed today. Regular meals support medication absorption and stable energy levels.</Text>
-            </View>
-          )}
-
-          <View style={s.zoneDivider} />
-
-          {/* ═══ ZONE 3: TOMORROW ═══ */}
+          {/* ═══════════════════════════════════════════════════════
+              SECTION 5: VISIT PREP (conditional)
+              ═══════════════════════════════════════════════════════ */}
           {showAppointment && brief?.nextAppointment && (
             <>
               <View style={s.sectionHeader}>
-                <Text style={s.sectionTitle}>{"Tomorrow"}</Text>
+                <Text style={s.sectionTitle}>
+                  Visit Prep {'\u00B7'} {brief.nextAppointment.provider} in {daysUntilAppt} days
+                </Text>
               </View>
-
-              <TouchableOpacity
-                style={s.appointmentRow}
-                onPress={() => navigate(`/provider-prep?appointmentId=next`)}
-                activeOpacity={0.7}
-                accessibilityLabel={`Prepare for ${brief.nextAppointment.provider} appointment`}
-                accessibilityRole="button"
-              >
-                <Text style={s.appointmentIcon}>{'\uD83E\uDE7A'}</Text>
-                <View style={s.appointmentInfo}>
-                  <Text style={s.appointmentTitle}>{brief.nextAppointment.provider} {'\u2014'} {brief.nextAppointment.specialty}</Text>
-                  <Text style={s.appointmentSub}>
-                    {new Date(brief.nextAppointment.date).toLocaleDateString('en-US', {
-                      weekday: 'short', month: 'short', day: 'numeric',
-                    })}
-                    {brief.nextAppointment.date && (() => {
-                      const d = new Date(brief.nextAppointment!.date);
-                      const h = d.getHours();
-                      return h > 0 ? ` \u00B7 ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` : '';
-                    })()}
-                  </Text>
-                  <View style={s.prepBar}>
-                    <View style={[s.prepDot, s.prepDotTodo]} />
-                    <View style={[s.prepDot, s.prepDotTodo]} />
-                    <View style={[s.prepDot, s.prepDotTodo]} />
-                    <View style={[s.prepDot, s.prepDotTodo]} />
-                  </View>
-                </View>
-                <Text style={s.appointmentArrow}>{'\u203A'}</Text>
-              </TouchableOpacity>
-
-              <View style={s.zoneDivider} />
+              <View style={s.visitPrepCard}>
+                {providerQuestions.length > 0 && (
+                  <>
+                    <Text style={s.visitPrepSubhead}>Questions from your data this week:</Text>
+                    {providerQuestions.map((q, i) => (
+                      <View key={q.id} style={s.visitPrepQuestion}>
+                        <Text style={s.visitPrepNum}>{i + 1}.</Text>
+                        <Text style={s.visitPrepText}>{q.question}</Text>
+                      </View>
+                    ))}
+                  </>
+                )}
+                <TouchableOpacity
+                  style={s.visitPrepLink}
+                  onPress={() => navigate('/provider-prep?appointmentId=next')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={s.visitPrepLinkText}>Full Visit Prep {'\u2192'}</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={s.divider} />
             </>
           )}
+
+          {/* ═══════════════════════════════════════════════════════
+              SECTION 6: DAY AT A GLANCE
+              ═══════════════════════════════════════════════════════ */}
+          <View style={s.sectionHeader}>
+            <Text style={s.sectionTitle}>Day at a Glance</Text>
+          </View>
+          <View style={s.glanceGrid}>
+            {glanceStats.map((stat, i) => (
+              <View key={i} style={s.glanceTile}>
+                <Text style={[s.glanceValue, { color: stat.color }]}>{stat.value}</Text>
+                <Text style={s.glanceLabel}>{stat.label}</Text>
+              </View>
+            ))}
+          </View>
 
           {/* ─── TIMESTAMP ─── */}
           {brief && (
@@ -759,9 +868,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   journalHeader: {
     borderBottomWidth: 1,
     borderBottomColor: c.glassBorder,
-    marginBottom: 16,
+    marginBottom: 8,
   },
-  headerHandoffBtn: {
+  headerShareBtn: {
     backgroundColor: c.accentDim,
     borderWidth: 1,
     borderColor: c.accentBorder,
@@ -769,7 +878,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 9,
   },
-  headerHandoffBtnText: {
+  headerShareBtnText: {
     fontSize: 11,
     fontWeight: '600',
     color: c.accent,
@@ -777,189 +886,233 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // ─── SECTION HEADER ───
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingTop: 18,
-    paddingBottom: 10,
+    paddingBottom: 12,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: c.textSecondary,
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
+    letterSpacing: 1.5,
   },
 
-  // ─── ZONE DIVIDER ───
-  zoneDivider: {
+  // ─── DIVIDER ───
+  divider: {
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.04)',
     marginHorizontal: -16,
   },
 
-  // ─── BRIEFING ───
-  briefingText: {
-    fontSize: 16,
+  // ─── SECTION 1: NARRATIVE ───
+  narrativeText: {
+    fontSize: 16.5,
     color: c.textPrimary,
-    lineHeight: 25,
+    lineHeight: 27,
     marginBottom: 20,
+    marginTop: 8,
   },
 
-  // ─── DATA ROWS ───
-  dataRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 12,
-    gap: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.025)',
+  // ─── FIRST-USE GUIDANCE ───
+  firstUseCard: {
+    backgroundColor: 'rgba(255, 140, 148, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 140, 148, 0.2)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
   },
-  dataRowLast: {
-    borderBottomWidth: 0,
+  firstUseTitle: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: c.accent,
+    marginBottom: 4,
   },
-  dataRowDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginTop: 5,
-  },
-  dotGreen: {
-    backgroundColor: c.green,
-  },
-  dotAmber: {
-    backgroundColor: c.amberBright,
-  },
-  dotRed: {
-    backgroundColor: c.redBright,
-  },
-  dataRowInfo: {
-    flex: 1,
-  },
-  dataRowLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: c.textPrimary,
-  },
-  dataRowDetail: {
+  firstUseText: {
     fontSize: 13,
     color: c.textSecondary,
-    marginTop: 2,
     lineHeight: 19,
   },
-  dataRowValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: c.textMuted,
-  },
-  dataRowValueAction: {
-    color: c.accent,
-    fontWeight: '600',
-  },
 
-  // ─── INSIGHT CALLOUT ───
-  insightCallout: {
-    marginVertical: 12,
+  // ─── SECTION 2: HANDOFF NOTES ───
+  handoffItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderLeftWidth: 2,
-    borderLeftColor: c.amberBright,
-    backgroundColor: 'rgba(245,158,11,0.03)',
     borderTopRightRadius: 8,
     borderBottomRightRadius: 8,
+    marginBottom: 8,
   },
-  insightLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: c.amberBright,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 3,
+  handoffIcon: {
+    fontSize: 16,
+    marginTop: 1,
   },
-  insightText: {
-    fontSize: 13,
-    color: c.textSecondary,
-    lineHeight: 20,
-  },
-
-  // ─── ACTION CALLOUT ───
-  actionCallout: {
-    marginVertical: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderLeftWidth: 2,
-    borderLeftColor: c.accent,
-    backgroundColor: 'rgba(45,200,180,0.04)',
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
-  },
-  actionLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: c.accent,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 4,
-  },
-  actionText: {
-    fontSize: 13,
-    color: c.textSecondary,
-    lineHeight: 20,
-    marginBottom: 6,
-  },
-  actionLink: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: c.accent,
-  },
-
-  // ─── APPOINTMENT / TOMORROW ───
-  appointmentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 12,
-    marginTop: 4,
-    borderRadius: 10,
-    backgroundColor: 'rgba(20,55,45,0.3)',
-    borderWidth: 1,
-    borderColor: 'rgba(40,80,65,0.3)',
-  },
-  appointmentIcon: {
-    fontSize: 18,
-  },
-  appointmentInfo: {
+  handoffText: {
     flex: 1,
+    fontSize: 14,
+    lineHeight: 21,
+    color: c.textPrimary,
   },
-  appointmentTitle: {
+
+  // ─── SECTION 3: PATTERNS ───
+  patternCard: {
+    backgroundColor: 'rgba(20,50,40,0.4)',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 10,
+  },
+  patternHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  patternTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: c.textPrimary,
+    flex: 1,
   },
-  appointmentSub: {
+  patternChevron: {
+    fontSize: 11,
+    color: c.textSecondary,
+  },
+  patternDetail: {
+    marginTop: 10,
+  },
+  patternContext: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: c.textSecondary,
+    marginBottom: 10,
+  },
+  patternAction: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: 'rgba(45,200,170,0.08)',
+    borderRadius: 6,
+    padding: 10,
+  },
+  patternActionArrow: {
     fontSize: 12,
-    color: c.textMuted,
+    color: c.accent,
+    marginTop: 1,
+  },
+  patternActionText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: c.accent,
+    flex: 1,
+  },
+
+  // ─── SECTION 4: BEFORE BED ───
+  beforeBedItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(45,200,170,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(45,200,170,0.12)',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+  },
+  beforeBedLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  beforeBedIcon: {
+    fontSize: 18,
+  },
+  beforeBedText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: c.textPrimary,
+    flex: 1,
+  },
+  beforeBedArrow: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.accent,
+  },
+
+  // ─── SECTION 5: VISIT PREP ───
+  visitPrepCard: {
+    backgroundColor: 'rgba(20,50,40,0.4)',
+    borderWidth: 1,
+    borderColor: 'rgba(45,200,170,0.1)',
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 4,
+  },
+  visitPrepSubhead: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: c.textSecondary,
+    marginBottom: 10,
+  },
+  visitPrepQuestion: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 8,
+  },
+  visitPrepNum: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: c.accent,
     marginTop: 2,
   },
-  appointmentArrow: {
-    fontSize: 14,
-    color: c.textMuted,
+  visitPrepText: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: c.textPrimary,
+    flex: 1,
   },
-  prepBar: {
+  visitPrepLink: {
+    marginTop: 10,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.04)',
+    alignItems: 'flex-end',
+  },
+  visitPrepLinkText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: c.accent,
+  },
+
+  // ─── SECTION 6: DAY AT A GLANCE ───
+  glanceGrid: {
     flexDirection: 'row',
-    gap: 4,
-    marginTop: 6,
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 4,
   },
-  prepDot: {
-    width: 20,
-    height: 3,
-    borderRadius: 2,
+  glanceTile: {
+    width: '31%' as any,
+    backgroundColor: 'rgba(20,50,40,0.3)',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
   },
-  prepDotDone: {
-    backgroundColor: c.green,
+  glanceValue: {
+    fontSize: 16,
+    fontWeight: '600',
   },
-  prepDotTodo: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+  glanceLabel: {
+    fontSize: 10,
+    color: c.textSecondary,
+    marginTop: 3,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 
   // ─── TIMESTAMP ───
@@ -967,7 +1120,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 10,
     color: c.textTertiary,
     textAlign: 'center',
-    marginTop: 12,
+    marginTop: 16,
     lineHeight: 16,
+    fontStyle: 'italic',
   },
 });
