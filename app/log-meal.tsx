@@ -38,6 +38,38 @@ const MEAL_TYPES = [
   { id: 'snack', label: 'Snack', icon: '🍎' },
 ];
 
+// Quick food suggestions per meal type
+const QUICK_FOODS: Record<string, { label: string; icon: string }[]> = {
+  breakfast: [
+    { label: 'Eggs & Toast', icon: '🍳' },
+    { label: 'Oatmeal', icon: '🥣' },
+    { label: 'Cereal', icon: '🥣' },
+    { label: 'Yogurt & Fruit', icon: '🫐' },
+    { label: 'Smoothie', icon: '🥤' },
+  ],
+  lunch: [
+    { label: 'Sandwich', icon: '🥪' },
+    { label: 'Salad', icon: '🥗' },
+    { label: 'Soup', icon: '🍲' },
+    { label: 'Leftovers', icon: '📦' },
+    { label: 'Fast Food', icon: '🍔' },
+  ],
+  dinner: [
+    { label: 'Chicken & Veggies', icon: '🍗' },
+    { label: 'Pasta', icon: '🍝' },
+    { label: 'Rice & Protein', icon: '🍚' },
+    { label: 'Takeout', icon: '🥡' },
+    { label: 'Soup & Bread', icon: '🍞' },
+  ],
+  snack: [
+    { label: 'Fruit', icon: '🍎' },
+    { label: 'Nuts', icon: '🥜' },
+    { label: 'Crackers', icon: '🍘' },
+    { label: 'Protein Bar', icon: '🍫' },
+    { label: 'Veggies & Dip', icon: '🥕' },
+  ],
+};
+
 export default function LogMeal() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -48,6 +80,7 @@ export default function LogMeal() {
   const preSelectionHints = carePlanContext ? getPreSelectionHints(carePlanContext) : null;
 
   const [selectedMeals, setSelectedMeals] = useState<string[]>([]);
+  const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<TodayProgress | null>(null);
@@ -106,6 +139,29 @@ export default function LogMeal() {
     );
   };
 
+  const toggleFood = (foodLabel: string) => {
+    setSelectedFoods((prev) =>
+      prev.includes(foodLabel)
+        ? prev.filter((f) => f !== foodLabel)
+        : [...prev, foodLabel]
+    );
+  };
+
+  // Build combined description from quick picks + free text
+  const getFullDescription = (): string => {
+    const parts: string[] = [];
+    if (selectedFoods.length > 0) parts.push(selectedFoods.join(', '));
+    if (description.trim()) parts.push(description.trim());
+    return parts.join(' — ');
+  };
+
+  // Get relevant quick food suggestions based on selected meal types
+  const relevantFoods = selectedMeals.length > 0
+    ? Array.from(new Map(
+        selectedMeals.flatMap(m => QUICK_FOODS[m] || []).map(f => [f.label, f])
+      ).values())
+    : [];
+
   const handleSave = async () => {
     if (selectedMeals.length === 0) {
       Alert.alert('Select Meal', 'Please select at least one meal type');
@@ -124,12 +180,13 @@ export default function LogMeal() {
       // If there's a description, we could save it to notes
       // For now, just save the meal tracking
       const updateData: { meals: typeof meals; notes?: string } = { meals };
+      const fullDescription = getFullDescription();
 
       // Optionally append meal description to notes
-      if (description.trim()) {
+      if (fullDescription) {
         const existing = await getDailyTracking(today);
         const existingNotes = existing?.notes || '';
-        const mealNote = `[Meal] ${selectedMeals.join(', ')}: ${description}`;
+        const mealNote = `[Meal] ${selectedMeals.join(', ')}: ${fullDescription}`;
         updateData.notes = existingNotes
           ? `${existingNotes}\n${mealNote}`
           : mealNote;
@@ -148,7 +205,7 @@ export default function LogMeal() {
       await saveMealsLog({
         timestamp: new Date().toISOString(),
         meals: mealLabels,
-        description: description.trim() || undefined,
+        description: fullDescription || undefined,
       });
 
       // Track CarePlan progress if navigated from CarePlan
@@ -275,6 +332,35 @@ export default function LogMeal() {
             {/* Description (Optional) */}
             <View style={styles.section}>
               <Text style={styles.label}>What did you eat? (optional)</Text>
+
+              {/* Quick food suggestions */}
+              {relevantFoods.length > 0 && (
+                <View style={styles.quickFoodsContainer}>
+                  {relevantFoods.map((food) => {
+                    const isSelected = selectedFoods.includes(food.label);
+                    return (
+                      <TouchableOpacity
+                        key={food.label}
+                        style={[
+                          styles.quickFoodChip,
+                          isSelected && styles.quickFoodChipSelected,
+                        ]}
+                        onPress={() => toggleFood(food.label)}
+                        accessibilityLabel={`${food.label}, ${isSelected ? 'selected' : 'not selected'}`}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: isSelected }}
+                      >
+                        <Text style={styles.quickFoodIcon}>{food.icon}</Text>
+                        <Text style={[
+                          styles.quickFoodLabel,
+                          isSelected && styles.quickFoodLabelSelected,
+                        ]}>{food.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+
               <TextInput
                 style={styles.descriptionInput}
                 placeholder="Oatmeal with berries and coffee..."
@@ -463,6 +549,41 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontSize: 15,
     minHeight: 120,
+  },
+
+  // Quick Food Suggestions
+  quickFoodsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: Spacing.lg,
+  },
+  quickFoodChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surfaceHighlight,
+    borderWidth: 1,
+    borderColor: Colors.accentHint,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    gap: 6,
+  },
+  quickFoodChipSelected: {
+    backgroundColor: Colors.greenLight,
+    borderColor: Colors.green,
+  },
+  quickFoodIcon: {
+    fontSize: 16,
+  },
+  quickFoodLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+  },
+  quickFoodLabelSelected: {
+    color: Colors.green,
+    fontWeight: '600',
   },
 
   // Footer

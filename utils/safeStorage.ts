@@ -58,13 +58,14 @@ export function safeJSONParse<T>(
   try {
     const parsed = JSON.parse(jsonString);
     return parsed as T;
-  } catch (error) {
-    logError('safeStorage.safeJSONParse', error, { key: key || 'unknown' });
-    console.warn(`[SafeStorage] Corrupted data detected. Using default value.`);
+  } catch {
+    // Legacy data written via raw AsyncStorage.setItem (not JSON-stringified).
+    // If the caller expects a string (default is null or string), return as-is.
+    if (defaultValue === null || typeof defaultValue === 'string') {
+      return jsonString as unknown as T;
+    }
 
-    // Log the corrupted data for debugging (first 100 chars)
-    logError('safeStorage.safeJSONParse', `Corrupted data sample: ${jsonString.substring(0, 100)}...`);
-
+    logError('safeStorage.safeJSONParse', `Corrupted data for key ${key || 'unknown'}: ${jsonString.substring(0, 50)}`);
     return defaultValue;
   }
 }
@@ -238,7 +239,10 @@ export async function clearCorruptedData(key: string): Promise<void> {
  */
 export async function encryptedGetRaw(key: string): Promise<string | null> {
   if (isSensitiveKey(key)) {
-    return getSecureItem<string>(key, null as any);
+    const result = await getSecureItem<any>(key, null);
+    if (result === null) return null;
+    // getSecureItem auto-parses JSON — re-stringify so callers get a raw string
+    return typeof result === 'string' ? result : JSON.stringify(result);
   }
   return AsyncStorage.getItem(key);
 }

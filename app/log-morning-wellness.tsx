@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { saveMorningWellness, skipMorningWellness } from '../utils/wellnessCheckStorage';
 import { listDailyInstances, logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
@@ -66,6 +66,7 @@ const TOTAL_SECTIONS = 5;
 
 export default function LogMorningWellnessScreen() {
   const router = useRouter();
+  const { instanceId: routeInstanceId } = useLocalSearchParams<{ instanceId?: string }>();
   const [sleepQuality, setSleepQuality] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
   const [mood, setMood] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
   const [energyLevel, setEnergyLevel] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
@@ -98,7 +99,9 @@ export default function LogMorningWellnessScreen() {
               await skipMorningWellness(today);
               try {
                 const instances = await listDailyInstances(DEFAULT_PATIENT_ID, today);
-                const inst = instances.find(i => i.itemType === 'wellness' && i.windowLabel === 'morning' && i.status === 'pending');
+                const inst = routeInstanceId
+                  ? instances.find(i => i.id === routeInstanceId)
+                  : instances.find(i => i.itemType === 'wellness' && i.windowLabel === 'morning' && i.status === 'pending');
                 if (inst) {
                   await logInstanceCompletion(DEFAULT_PATIENT_ID, today, inst.id, 'skipped');
                   emitDataUpdate(EVENT.DAILY_INSTANCES);
@@ -132,7 +135,9 @@ export default function LogMorningWellnessScreen() {
       });
       try {
         const instances = await listDailyInstances(DEFAULT_PATIENT_ID, today);
-        const inst = instances.find(i => i.itemType === 'wellness' && i.windowLabel === 'morning' && i.status === 'pending');
+        const inst = routeInstanceId
+          ? instances.find(i => i.id === routeInstanceId)
+          : instances.find(i => i.itemType === 'wellness' && i.windowLabel === 'morning' && i.status === 'pending');
         if (inst) {
           await logInstanceCompletion(DEFAULT_PATIENT_ID, today, inst.id, 'completed');
           emitDataUpdate(EVENT.DAILY_INSTANCES);

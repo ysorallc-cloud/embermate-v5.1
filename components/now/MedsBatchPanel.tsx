@@ -77,7 +77,7 @@ export function MedsBatchPanel({
   return (
     <View style={[
       styles.container,
-      hasOverdue ? styles.containerOverdue : styles.containerDefault,
+      styles.containerDefault,
     ]}>
       {/* Header */}
       <View style={styles.header}>
@@ -180,14 +180,15 @@ export function MedsBatchPanel({
       {/* Completed meds */}
       {completedMeds.map((med) => {
         const timeStr = parseTimeForDisplay(med.scheduledTime);
-        const statusText = med.status === 'skipped' ? 'Skipped' : 'Done';
+        const isMissed = med.status === 'missed';
+        const statusText = isMissed ? 'Missed' : med.status === 'skipped' ? 'Skipped' : 'Done';
         return (
           <View key={med.id} style={styles.medRow}>
-            <View style={styles.doneCircle}>
-              <Text style={styles.doneCheck}>{'\u2713'}</Text>
+            <View style={isMissed ? styles.missedCircle : styles.doneCircle}>
+              <Text style={isMissed ? styles.missedIcon : styles.doneCheck}>{isMissed ? '\u2014' : '\u2713'}</Text>
             </View>
             <View style={styles.medDetails}>
-              <Text style={styles.medNameDone}>{med.itemName}</Text>
+              <Text style={isMissed ? styles.medNameMissed : styles.medNameDone}>{med.itemName}</Text>
               <Text style={styles.medMetaDone}>
                 {med.itemDosage ? `${med.itemDosage} \u00B7 ` : ''}
                 {timeStr ? `${timeStr} \u00B7 ` : ''}
@@ -350,10 +351,27 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.green,
     fontWeight: 'bold',
   },
+  missedCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  missedIcon: {
+    fontSize: 13,
+    color: c.amber,
+    fontWeight: 'bold',
+  },
   medNameDone: {
     fontSize: 14,
     color: c.textMuted,
     textDecorationLine: 'line-through',
+  },
+  medNameMissed: {
+    fontSize: 14,
+    color: c.textMuted,
   },
   medMetaDone: {
     fontSize: 12,

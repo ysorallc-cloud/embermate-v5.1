@@ -241,6 +241,28 @@ function generateHTML(data: ReportData, patient?: PatientInfo): string {
   `;
 }
 
+// Generate preview text for in-app display before export
+export function generatePreviewHTML(data: ReportData, patient?: PatientInfo): string {
+  const lines: string[] = [];
+
+  if (patient?.name) {
+    lines.push(`Patient: ${patient.name}`);
+  }
+
+  // The summary field contains the structured report text
+  if (data.summary) {
+    lines.push(data.summary);
+  }
+
+  if (data.notes) {
+    lines.push('');
+    lines.push('Notes:');
+    lines.push(data.notes);
+  }
+
+  return lines.join('\n');
+}
+
 // Generate and share PDF
 export async function generateAndSharePDF(
   data: ReportData,

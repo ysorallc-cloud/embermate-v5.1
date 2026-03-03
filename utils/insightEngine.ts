@@ -13,6 +13,7 @@ import { getDailyChecks, type CaregiverDailyCheck } from './caregiverWellnessSto
 import { logError } from './devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { StorageKeys } from './storageKeys';
+import { listDailyInstancesRange, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 
 // ============================================================================
 // TYPES
@@ -53,9 +54,69 @@ const DISMISSED_INSIGHTS_KEY = StorageKeys.DISMISSED_INSIGHTS;
 
 /**
  * Analyze medication adherence patterns
+ * Uses care plan daily instances as primary source, legacy medication logs as fallback
  */
 export async function analyzeMedicationAdherence(lookbackDays: number = 7): Promise<InsightData | null> {
   try {
+    // Try care plan instances first (matches Now page data)
+    const endDate = getTodayDateString();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - lookbackDays);
+    const startDateStr = startDate.toISOString().slice(0, 10);
+
+    try {
+      const instances = await listDailyInstancesRange(DEFAULT_PATIENT_ID, startDateStr, endDate);
+      const medInstances = instances.filter(i => i.itemType === 'medication');
+
+      if (medInstances.length > 0) {
+        const totalExpectedDoses = medInstances.length;
+        const takenDoses = medInstances.filter(i => i.status === 'completed').length;
+        const skippedDoses = medInstances.filter(i => i.status === 'skipped').length;
+        // Adherence = (completed + skipped) / total — skipped is intentional
+        const handledDoses = takenDoses + skippedDoses;
+        const adherenceRate = totalExpectedDoses > 0
+          ? (handledDoses / totalExpectedDoses) * 100
+          : 100;
+
+        if (adherenceRate >= 90) {
+          return null;
+        }
+
+        const severity: 'info' | 'warning' | 'alert' =
+          adherenceRate < 60 ? 'alert' :
+          adherenceRate < 80 ? 'warning' : 'info';
+
+        return {
+          id: 'medication-adherence',
+          type: 'medication',
+          severity,
+          title: 'Medication Adherence Pattern',
+          specificData: {
+            current: takenDoses,
+            target: totalExpectedDoses,
+            unit: 'doses',
+            percentage: Math.round(adherenceRate),
+          },
+          context: `You've taken ${takenDoses} of ${totalExpectedDoses} scheduled doses in the last ${lookbackDays} days.`,
+          whyItMatters: 'Taking all doses consistently helps manage your health conditions effectively. Missing doses can lead to fluctuations in blood pressure and blood sugar levels.',
+          actions: [
+            {
+              id: 'adjust-reminders',
+              label: 'Adjust Reminder Times',
+              icon: '⏰',
+              type: 'navigate',
+              destination: '/notification-settings',
+            },
+          ],
+          timestamp: new Date(),
+        };
+      }
+    } catch (err) {
+      // Fall through to legacy path
+      logError('insightEngine.analyzeMedicationAdherence.instances', err);
+    }
+
+    // Fallback: Legacy medication logs
     const medications = await getMedications();
     const activeMeds = medications.filter(m => m.active);
 

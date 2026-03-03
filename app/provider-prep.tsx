@@ -15,6 +15,7 @@ import {
   Alert,
   ActivityIndicator,
   Switch,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
@@ -29,7 +30,7 @@ import { SubScreenHeader } from '../components/SubScreenHeader';
 import { getUpcomingAppointments, Appointment } from '../utils/appointmentStorage';
 import { getMedications } from '../utils/medicationStorage';
 import { generateProviderQuestions, ProviderQuestion } from '../utils/insightEngine';
-import { generateAndSharePDF } from '../utils/pdfExport';
+import { generateAndSharePDF, generatePreviewHTML } from '../utils/pdfExport';
 import { safeGetItem } from '../utils/safeStorage';
 import { StorageKeys } from '../utils/storageKeys';
 import { logError } from '../utils/devLog';
@@ -51,6 +52,11 @@ export default function ProviderPrepScreen() {
   const [showMedAdherence, setShowMedAdherence] = useState(true);
   const [showSymptoms, setShowSymptoms] = useState(true);
   const [showQuestions, setShowQuestions] = useState(true);
+
+  // Preview modal
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewHTML, setPreviewHTML] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -117,46 +123,68 @@ export default function ProviderPrepScreen() {
     return Math.max(0, Math.ceil((apptDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
   }, [appointment]);
 
-  const handleExport = useCallback(async () => {
-    try {
-      const patientName = await safeGetItem<string>(StorageKeys.PATIENT_NAME, 'Patient');
+  const buildReportData = useCallback(async () => {
+    const patientName = await safeGetItem<string>(StorageKeys.PATIENT_NAME, 'Patient');
 
-      const selectedQs = questions
-        .filter(q => checkedQuestions.has(q.id))
-        .map(q => q.question);
-      const allQuestions = [...selectedQs, ...customQuestions];
+    const selectedQs = questions
+      .filter(q => checkedQuestions.has(q.id))
+      .map(q => q.question);
+    const allQuestions = [...selectedQs, ...customQuestions];
 
-      const sections: string[] = [];
-      if (appointment) {
-        sections.push(`Provider: ${appointment.provider || 'Provider'}`);
-        sections.push(`Date: ${format(new Date(appointment.date), 'MMMM d, yyyy')}`);
-        sections.push(`Specialty: ${appointment.specialty || 'General'}`);
-        sections.push('');
-      }
+    const sections: string[] = [];
+    if (appointment) {
+      sections.push(`Provider: ${appointment.provider || 'Provider'}`);
+      sections.push(`Date: ${format(new Date(appointment.date), 'MMMM d, yyyy')}`);
+      sections.push(`Specialty: ${appointment.specialty || 'General'}`);
+      sections.push('');
+    }
 
-      if (allQuestions.length > 0) {
-        sections.push('Questions to Ask:');
-        allQuestions.forEach((q, i) => sections.push(`${i + 1}. ${q}`));
-        sections.push('');
-      }
+    if (allQuestions.length > 0) {
+      sections.push('Questions to Ask:');
+      allQuestions.forEach((q, i) => sections.push(`${i + 1}. ${q}`));
+      sections.push('');
+    }
 
-      await generateAndSharePDF({
+    return {
+      reportData: {
         title: `Visit Prep - ${appointment?.provider || 'Provider'}`,
         period: format(new Date(), 'MMMM d, yyyy'),
         periodLabel: 'Prepared',
         summary: sections.join('\n'),
-        details: allQuestions.map((q, i) => ({
+        details: allQuestions.map((q: string, i: number) => ({
           label: `Question ${i + 1}`,
           value: q,
         })),
-      }, {
-        name: patientName || 'Patient',
-      });
+      },
+      patient: { name: patientName || 'Patient' },
+    };
+  }, [appointment, questions, checkedQuestions, customQuestions]);
+
+  const handlePreview = useCallback(async () => {
+    try {
+      const { reportData, patient } = await buildReportData();
+      const html = generatePreviewHTML(reportData, patient);
+      setPreviewHTML(html);
+      setShowPreview(true);
+    } catch (error) {
+      logError('ProviderPrepScreen.handlePreview', error);
+      Alert.alert('Preview Error', 'Unable to generate preview. Please try again.');
+    }
+  }, [buildReportData]);
+
+  const handleExport = useCallback(async () => {
+    try {
+      setExporting(true);
+      const { reportData, patient } = await buildReportData();
+      await generateAndSharePDF(reportData, patient);
+      setShowPreview(false);
     } catch (error) {
       logError('ProviderPrepScreen.handleExport', error);
       Alert.alert('Export Error', 'Unable to generate PDF. Please try again.');
+    } finally {
+      setExporting(false);
     }
-  }, [appointment, questions, checkedQuestions, customQuestions]);
+  }, [buildReportData]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -219,9 +247,9 @@ export default function ProviderPrepScreen() {
           title="Visit Prep"
                     rightAction={
             <TouchableOpacity
-              onPress={handleExport}
+              onPress={handlePreview}
               style={styles.exportButton}
-              accessibilityLabel="Export visit prep as PDF"
+              accessibilityLabel="Preview visit prep report"
               accessibilityRole="button"
             >
               <Text style={styles.exportButtonText}>Export</Text>
@@ -377,9 +405,9 @@ export default function ProviderPrepScreen() {
           {/* Export button */}
           <TouchableOpacity
             style={styles.exportFooterButton}
-            onPress={handleExport}
+            onPress={handlePreview}
             activeOpacity={0.7}
-            accessibilityLabel="Export visit prep as PDF"
+            accessibilityLabel="Preview visit prep report"
             accessibilityRole="button"
           >
             <Text style={styles.exportFooterText}>Export PDF</Text>
@@ -387,6 +415,63 @@ export default function ProviderPrepScreen() {
 
           <View style={{ height: 40 }} />
         </ScrollView>
+
+        {/* Preview Modal */}
+        <Modal
+          visible={showPreview}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowPreview(false)}
+        >
+          <SafeAreaView style={styles.previewContainer} edges={['top', 'bottom']}>
+            <View style={styles.previewHeader}>
+              <TouchableOpacity
+                onPress={() => setShowPreview(false)}
+                style={styles.previewCloseButton}
+                accessibilityLabel="Close preview"
+                accessibilityRole="button"
+              >
+                <Text style={styles.previewCloseText}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.previewTitle}>Report Preview</Text>
+              <TouchableOpacity
+                onPress={handleExport}
+                style={[styles.previewExportButton, exporting && { opacity: 0.5 }]}
+                disabled={exporting}
+                accessibilityLabel="Export as PDF"
+                accessibilityRole="button"
+              >
+                <Text style={styles.previewExportText}>
+                  {exporting ? 'Exporting...' : 'Share PDF'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.previewScroll} contentContainerStyle={styles.previewScrollContent}>
+              <View style={styles.previewCard}>
+                <Text style={styles.previewHTMLNote}>
+                  This is a preview of your report. Tap "Share PDF" to export.
+                </Text>
+              </View>
+              {/* Render a simplified text preview of the report content */}
+              {previewHTML ? (
+                <View style={styles.previewContent}>
+                  {previewHTML.split('\n').filter(Boolean).map((line, i) => (
+                    <Text key={i} style={[
+                      styles.previewLine,
+                      line.startsWith('Provider:') || line.startsWith('Date:') || line.startsWith('Specialty:')
+                        ? styles.previewLineHeader
+                        : line.startsWith('Questions to Ask:')
+                        ? styles.previewLineSectionTitle
+                        : line.match(/^\d+\./)
+                        ? styles.previewLineQuestion
+                        : null,
+                    ]}>{line}</Text>
+                  ))}
+                </View>
+              ) : null}
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
       </SafeAreaView>
     </View>
   );
@@ -626,5 +711,93 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: Colors.textPrimary,
+  },
+
+  // Preview modal
+  previewContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.glassBorder,
+  },
+  previewCloseButton: {
+    padding: 4,
+  },
+  previewCloseText: {
+    fontSize: 15,
+    color: Colors.textMuted,
+  },
+  previewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  previewExportButton: {
+    backgroundColor: Colors.accent,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  previewExportText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  previewScroll: {
+    flex: 1,
+  },
+  previewScrollContent: {
+    padding: 20,
+  },
+  previewCard: {
+    backgroundColor: Colors.glass,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+  },
+  previewHTMLNote: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    textAlign: 'center',
+  },
+  previewContent: {
+    backgroundColor: Colors.glass,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    borderRadius: 12,
+    padding: 20,
+  },
+  previewLine: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+    marginBottom: 2,
+  },
+  previewLineHeader: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  previewLineSectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.accent,
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  previewLineQuestion: {
+    fontSize: 14,
+    color: Colors.textBright,
+    paddingLeft: 8,
+    marginBottom: 4,
   },
 });

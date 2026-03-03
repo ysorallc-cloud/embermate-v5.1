@@ -163,9 +163,9 @@ async function syncMedicationItemsWithConfig(
 
     // 1. CREATE: Add CarePlanItems for config medications that don't have items
     for (const configMed of activeConfigMeds) {
-      // Check if this config med already has a CarePlanItem (by ID or name match)
+      // Check if this config med already has a CarePlanItem (by medicationId first, then name)
       const hasItemById = existingMedIds.has(configMed.id);
-      const hasItemByName = Array.from(existingMedNames).some(itemName =>
+      const hasItemByName = !hasItemById && Array.from(existingMedNames).some(itemName =>
         itemName.includes(configMed.name.toLowerCase()) ||
         configMed.name.toLowerCase().includes(itemName.split(' ')[0])
       );
@@ -852,9 +852,11 @@ export async function cleanupDuplicateCarePlanItems(
 
   // For each item, keep the first one and mark others as duplicates
   for (const item of allItems) {
-    // Use type + name as key so items of the same type but different names
-    // (e.g. Breakfast, Lunch, Dinner) are NOT treated as duplicates
-    const key = `${item.type}:${item.name.toLowerCase()}`;
+    // For medications, use medicationId as primary key (catches name variations
+    // like "Amlodipine 2.5mg" vs "Amlodipine 2.5mg 2.5mg"), falling back to name
+    const key = item.type === 'medication' && item.medicationDetails?.medicationId
+      ? `medication:id:${item.medicationDetails.medicationId}`
+      : `${item.type}:${item.name.toLowerCase()}`;
 
     if (seenByTypeAndName.has(key)) {
       // This is a duplicate

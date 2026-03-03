@@ -246,7 +246,7 @@ export default function NowScreen() {
     if (instancesState && instancesState.instances.length > 0 && instancesState.date === today) {
       const getTypeStats = (itemType: string): StatData => {
         const typeInstances = instancesState.instances.filter(i => i.itemType === itemType);
-        const completed = typeInstances.filter(i => i.status === 'completed').length;
+        const completed = typeInstances.filter(i => i.status === 'completed' || i.status === 'skipped').length;
         return { completed, total: typeInstances.length };
       };
 

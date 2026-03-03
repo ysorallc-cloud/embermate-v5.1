@@ -273,7 +273,6 @@ export function TimelineSection({
     const stat: StatData = todayStats[statKey] ?? { completed: 0, total: 0 };
     const categoryPending = allPending.filter(i => i.itemType === itemType);
     const categoryCompleted = completed.filter(i => i.itemType === itemType);
-    const hasOverdueItems = categoryPending.some(i => isOverdue(i.scheduledTime));
 
     // Meds batch panel
     if (selectedCategory === 'meds' && onBatchMedConfirm) {
@@ -292,7 +291,7 @@ export function TimelineSection({
     return (
       <View style={[
         styles.categoryContainer,
-        hasOverdueItems ? styles.categoryContainerOverdue : styles.categoryContainerDefault,
+        styles.categoryContainerDefault,
       ]}>
         <View style={styles.categoryHeader}>
           <View style={styles.categoryHeaderLeft}>
@@ -317,6 +316,32 @@ export function TimelineSection({
         {categoryPending.map((instance) => {
           const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
           const itemIsOverdue = isOverdue(instance.scheduledTime);
+
+          // Overdue pending items render as "Missed" for consistency
+          if (itemIsOverdue) {
+            return (
+              <TouchableOpacity
+                key={instance.id}
+                style={styles.categoryItemRow}
+                onPress={() => onItemPress(instance)}
+                activeOpacity={0.7}
+                accessibilityLabel={`${instance.itemName}, Missed. Tap to log late.`}
+                accessibilityRole="button"
+              >
+                <View style={[styles.statusCircle, styles.statusCircleMissed]}>
+                  <Text style={styles.statusCircleMissedText}>{'\u2014'}</Text>
+                </View>
+                <View style={styles.categoryItemDetails}>
+                  <Text style={styles.categoryItemNameMissed}>{instance.itemName}</Text>
+                  <Text style={styles.categoryItemTimeDone}>
+                    {timeDisplay ? `${timeDisplay} \u00B7 Missed` : 'Missed'}
+                  </Text>
+                </View>
+                <Text style={styles.logLateText}>Log Late</Text>
+              </TouchableOpacity>
+            );
+          }
+
           const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
           const statusLabel = urgencyInfo.itemUrgency
             ? getDetailedUrgencyLabel(urgencyInfo.itemUrgency)
@@ -329,24 +354,21 @@ export function TimelineSection({
             <View key={instance.id} style={styles.categoryItemRow}>
               <View style={[
                 styles.statusCircle,
-                itemIsOverdue ? styles.statusCircleOverdue : styles.statusCirclePending,
+                styles.statusCirclePending,
               ]}>
                 <Text style={styles.statusCircleText}>
-                  {itemIsOverdue ? '!' : '\u25CB'}
+                  {'\u25CB'}
                 </Text>
               </View>
               <View style={styles.categoryItemDetails}>
                 <Text style={styles.categoryItemName}>{instance.itemName}</Text>
-                <Text style={[
-                  styles.categoryItemTime,
-                  itemIsOverdue && styles.categoryItemTimeOverdue,
-                ]}>
+                <Text style={styles.categoryItemTime}>
                   {timeDisplay ? `${timeDisplay} \u00B7 ${statusLabel}` : statusLabel}
                   {timeDelta ? ` \u00B7 ${timeDelta}` : ''}
                 </Text>
               </View>
               <TouchableOpacity
-                style={[styles.logButton, itemIsOverdue && styles.logButtonOverdue]}
+                style={styles.logButton}
                 onPress={() => onItemPress(instance)}
                 activeOpacity={0.7}
                 accessibilityLabel={`Log ${instance.itemName}`}
@@ -363,12 +385,34 @@ export function TimelineSection({
           const isMissed = instance.status === 'missed';
           const statusText = isMissed ? 'Missed' : instance.status === 'skipped' ? 'Skipped' : 'Done';
 
+          if (isMissed) {
+            return (
+              <TouchableOpacity
+                key={instance.id}
+                style={styles.categoryItemRow}
+                onPress={() => onItemPress(instance)}
+                activeOpacity={0.7}
+                accessibilityLabel={`${instance.itemName}, Missed. Tap to log late.`}
+                accessibilityRole="button"
+              >
+                <View style={[styles.statusCircle, styles.statusCircleMissed]}>
+                  <Text style={styles.statusCircleMissedText}>{'\u2014'}</Text>
+                </View>
+                <View style={styles.categoryItemDetails}>
+                  <Text style={styles.categoryItemNameMissed}>{instance.itemName}</Text>
+                  <Text style={styles.categoryItemTimeDone}>
+                    {timeDisplay ? `${timeDisplay} \u00B7 Missed` : 'Missed'}
+                  </Text>
+                </View>
+                <Text style={styles.logLateText}>Log Late</Text>
+              </TouchableOpacity>
+            );
+          }
+
           return (
             <View key={instance.id} style={styles.categoryItemRow}>
-              <View style={[styles.statusCircle, isMissed ? styles.statusCircleMissed : styles.statusCircleDone]}>
-                <Text style={isMissed ? styles.statusCircleMissedText : styles.statusCircleDoneText}>
-                  {isMissed ? '\u2014' : '\u2713'}
-                </Text>
+              <View style={[styles.statusCircle, styles.statusCircleDone]}>
+                <Text style={styles.statusCircleDoneText}>{'\u2713'}</Text>
               </View>
               <View style={styles.categoryItemDetails}>
                 <Text style={styles.categoryItemNameDone}>{instance.itemName}</Text>
@@ -546,7 +590,7 @@ function TimelineModeBContent({
                           </View>
                         </View>
                         <View style={styles.timelineItemBody}>
-                          <Text style={styles.timelineNameDone} numberOfLines={1}>{instance.itemName}</Text>
+                          <Text style={isMissed ? styles.timelineNameMissed : styles.timelineNameDone} numberOfLines={1}>{instance.itemName}</Text>
                           <Text style={styles.timelineSubDone}>
                             {parseTimeForDisplay(instance.scheduledTime) || statusText}
                           </Text>
@@ -744,6 +788,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '600',
     color: c.textTertiary,
     textDecorationLine: 'line-through',
+    marginBottom: 2,
+  },
+  categoryItemNameMissed: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.textTertiary,
     marginBottom: 2,
   },
   categoryItemTime: {
@@ -951,6 +1001,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textMuted,
     textDecorationLine: 'line-through',
     textDecorationColor: c.glassSubtle,
+    marginBottom: 1,
+  },
+  timelineNameMissed: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: c.textMuted,
     marginBottom: 1,
   },
   timelineSubDone: {
