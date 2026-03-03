@@ -64,8 +64,12 @@ import {
 import {
   type TodayStats,
   type StatData,
+  type TimeWindow,
   isOverdue,
   getRouteForInstanceType,
+  groupByTimeWindow,
+  getCurrentTimeWindow,
+  TIME_WINDOW_HOURS,
   OVERDUE_GRACE_MINUTES,
 } from '../../utils/nowHelpers';
 // Extracted hooks
@@ -79,7 +83,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { MorningMedsBanner } from '../../components/now/MorningMedsBanner';
 import { TimelineSection } from '../../components/now/TimelineSection';
 import { RoutineSheet } from '../../components/now/RoutineSheet';
-import type { TimeWindow } from '../../utils/nowHelpers';
+
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -399,6 +403,35 @@ export default function NowScreen() {
   const allPending = useMemo(() => {
     return [...todayTimeline.overdue, ...todayTimeline.upcoming];
   }, [todayTimeline.overdue, todayTimeline.upcoming]);
+
+  // Window summary for collapsed timeline view
+  const windowSummary = useMemo(() => {
+    if (!instancesState?.instances || instancesState.date !== today) return [];
+    const allInstances = instancesState.instances;
+    const grouped = groupByTimeWindow(allInstances);
+    const currentWindow = getCurrentTimeWindow();
+    const windows: TimeWindow[] = ['morning', 'afternoon', 'evening', 'night'];
+
+    return windows
+      .filter(w => grouped[w].length > 0)
+      .map(w => {
+        const items = grouped[w];
+        const completed = items.filter(i => i.status === 'completed' || i.status === 'skipped').length;
+        const pending = items.filter(i => i.status === 'pending').length;
+        const total = items.length;
+        const allDone = completed === total;
+        const isCurrent = w === currentWindow;
+        return {
+          window: w,
+          label: TIME_WINDOW_HOURS[w].label,
+          total,
+          completed,
+          pending,
+          allDone,
+          isCurrent,
+        };
+      });
+  }, [instancesState?.instances, instancesState?.date, today]);
 
   // Coffee Moment - gentle nudge when task load is high
   const overdueCount = todayTimeline.overdue.length;
@@ -809,54 +842,92 @@ export default function NowScreen() {
             styles={styles}
           />
 
-          {!timelineCollapsed && <View style={styles.sectionCard}>
-            {/* Morning Meds Banner — batch confirm */}
-            <MorningMedsBanner
-              pendingCount={allPending.filter((i: any) => i.itemType === 'medication').length}
-              pendingInstanceIds={allPending.filter((i: any) => i.itemType === 'medication').map((i: any) => i.id)}
-              onConfirmAll={handleBatchMedConfirm}
-            />
-
-            {/* Timeline — what's happening today */}
-            <TimelineSection
-              allPending={allPending}
-              completed={todayTimeline.completed}
-              hasRegimenInstances={!!hasRegimenInstances}
-              selectedCategory={selectedCategory}
-              onClearCategory={handleClearCategory}
-              onItemPress={handleTimelineItemPress}
-              onBatchMedConfirm={handleBatchMedConfirm}
-              todayStats={todayStats}
-              enabledBuckets={enabledBuckets}
-              waterGlasses={waterGlasses}
-              waterGoal={waterGoal}
-              onWaterUpdate={handleWaterUpdate}
-              onStartRoutine={setActiveRoutineWindow}
-            />
-
-            {/* Empty states */}
-            {!hasRegimenInstances && !hasBucketCarePlan && !carePlan && (
-              <View style={styles.emptyTimeline}>
-                <Text style={styles.emptyTimelineText}>No Care Plan set up yet</Text>
-                <Text style={styles.emptyTimelineSubtext}>Add medications or items to see your timeline</Text>
+          {timelineCollapsed ? (
+            /* Collapsed: window summary rows */
+            windowSummary.length > 0 && (
+              <View style={styles.sectionCard}>
+                {windowSummary.map((w) => (
+                  <View
+                    key={w.window}
+                    style={[
+                      styles.windowRow,
+                      w.isCurrent && !w.allDone && styles.windowRowCurrent,
+                    ]}
+                  >
+                    <View style={[styles.windowDot, { backgroundColor: w.allDone ? colors.green : colors.redBright }]} />
+                    <Text style={[styles.windowLabel, w.isCurrent && !w.allDone && styles.windowLabelCurrent]}>
+                      {w.label.toUpperCase()}
+                    </Text>
+                    <Text style={styles.windowStatus}>
+                      {w.allDone ? 'Complete \u2713' : `${w.pending} remaining`}
+                    </Text>
+                    {w.isCurrent && !w.allDone && (
+                      <TouchableOpacity
+                        style={styles.windowStartBtn}
+                        onPress={() => {
+                          setActiveRoutineWindow(w.window);
+                        }}
+                        activeOpacity={0.7}
+                        accessibilityLabel={`Start ${w.label} routine`}
+                        accessibilityRole="button"
+                      >
+                        <Text style={styles.windowStartText}>Start</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
               </View>
-            )}
+            )
+          ) : (
+            <View style={styles.sectionCard}>
+              {/* Morning Meds Banner — batch confirm */}
+              <MorningMedsBanner
+                pendingCount={allPending.filter((i: any) => i.itemType === 'medication').length}
+                pendingInstanceIds={allPending.filter((i: any) => i.itemType === 'medication').map((i: any) => i.id)}
+                onConfirmAll={handleBatchMedConfirm}
+              />
 
-            {!hasRegimenInstances && (hasBucketCarePlan || carePlan) && (
-              <View style={styles.emptyTimeline}>
-                <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
-                <Text style={styles.emptyTimelineSubtext}>Check your Care Plan settings</Text>
-              </View>
-            )}
+              {/* Timeline — what's happening today */}
+              <TimelineSection
+                allPending={allPending}
+                completed={todayTimeline.completed}
+                hasRegimenInstances={!!hasRegimenInstances}
+                selectedCategory={selectedCategory}
+                onClearCategory={handleClearCategory}
+                onItemPress={handleTimelineItemPress}
+                onBatchMedConfirm={handleBatchMedConfirm}
+                todayStats={todayStats}
+                enabledBuckets={enabledBuckets}
+                waterGlasses={waterGlasses}
+                waterGoal={waterGoal}
+                onWaterUpdate={handleWaterUpdate}
+                onStartRoutine={setActiveRoutineWindow}
+              />
 
-            {hasRegimenInstances &&
-              allPending.length === 0 &&
-              todayTimeline.completed.length === 0 && (
-              <View style={styles.emptyTimeline}>
-                <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
-              </View>
-            )}
-          </View>}
+              {/* Empty states */}
+              {!hasRegimenInstances && !hasBucketCarePlan && !carePlan && (
+                <View style={styles.emptyTimeline}>
+                  <Text style={styles.emptyTimelineText}>No Care Plan set up yet</Text>
+                  <Text style={styles.emptyTimelineSubtext}>Add medications or items to see your timeline</Text>
+                </View>
+              )}
+
+              {!hasRegimenInstances && (hasBucketCarePlan || carePlan) && (
+                <View style={styles.emptyTimeline}>
+                  <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
+                  <Text style={styles.emptyTimelineSubtext}>Check your Care Plan settings</Text>
+                </View>
+              )}
+
+              {hasRegimenInstances &&
+                allPending.length === 0 &&
+                todayTimeline.completed.length === 0 && (
+                <View style={styles.emptyTimeline}>
+                  <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* ═══ ZONE 3: UPCOMING THIS WEEK ═══ */}
           {upcomingPrepAppointment && (
@@ -1248,6 +1319,51 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   appointmentPrepArrow: {
     fontSize: 20,
     color: c.textMuted,
+  },
+
+  // ── Collapsed window summary ──
+  windowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  windowRowCurrent: {
+    backgroundColor: 'rgba(20, 184, 166, 0.08)',
+    borderRadius: 10,
+    marginHorizontal: -4,
+    paddingHorizontal: 18,
+  },
+  windowDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  windowLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    color: c.textSecondary,
+  },
+  windowLabelCurrent: {
+    color: c.accent,
+  },
+  windowStatus: {
+    flex: 1,
+    fontSize: 13,
+    color: c.textHalf,
+  },
+  windowStartBtn: {
+    backgroundColor: c.accent,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  windowStartText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: c.textPrimary,
   },
 
   // ── Handoff notes ──

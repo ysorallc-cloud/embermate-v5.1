@@ -37,6 +37,7 @@ import {
 } from '../../utils/understandInsights';
 import { logError } from '../../utils/devLog';
 import { useDataListener } from '../../lib/events';
+import { EVENT } from '../../lib/eventNames';
 import { buildProviderPrep, ProviderPrepData } from '../../utils/providerPrepBuilder';
 import { getVitalsInRange, VitalReading } from '../../utils/vitalsStorage';
 import { listDailyInstancesRange, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
@@ -456,7 +457,12 @@ export default function UnderstandScreen() {
   );
 
   useDataListener(useCallback((cat: string) => {
-    if (['carePlan', 'vitals', 'mood', 'journal', 'medication'].includes(cat)) {
+    if ([
+      EVENT.MEDICATION, EVENT.VITALS, EVENT.WATER, EVENT.MOOD, EVENT.WELLNESS,
+      EVENT.SYMPTOMS, EVENT.LOGS, EVENT.CARE_PLAN, EVENT.CARE_PLAN_CONFIG,
+      EVENT.CARE_PLAN_ITEMS, EVENT.DAILY_INSTANCES, EVENT.APPOINTMENTS,
+      EVENT.NOTES, EVENT.SAMPLE_DATA_CLEARED,
+    ].includes(cat as any)) {
       loadData();
     }
   }, [timeRange]));
@@ -829,30 +835,13 @@ export default function UnderstandScreen() {
             </View>
           )}
 
-          {/* ═══ SECTION 6: VISIT PREP LINK ═══ */}
+          {/* ═══ VISIT CONTEXT NOTE ═══ */}
           {providerPrep && (
-            <TouchableOpacity
-              style={styles.visitPrepCard}
-              onPress={() => navigate('/care-report?scope=visit')}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel={`Visit prep for ${providerPrep.appointment.provider}`}
-            >
-              <View style={styles.visitPrepLeft}>
-                <View style={styles.visitPrepTitleRow}>
-                  <Text style={styles.visitPrepIcon}>{'\uD83E\uDE7A'}</Text>
-                  <Text style={styles.visitPrepTitle}>
-                    {providerPrep.appointment.provider} {'\u00B7'} {providerPrep.appointment.daysUntil} day{providerPrep.appointment.daysUntil !== 1 ? 's' : ''} away
-                  </Text>
-                </View>
-                <Text style={styles.visitPrepSub}>
-                  {providerPrep.questions?.length
-                    ? `${providerPrep.questions.length} data-driven question${providerPrep.questions.length !== 1 ? 's' : ''} generated from trends`
-                    : 'Prepare for your next visit'}
-                </Text>
-              </View>
-              <Text style={styles.visitPrepArrow}>{'\u2192'}</Text>
-            </TouchableOpacity>
+            <View style={styles.visitContextNote}>
+              <Text style={styles.visitContextText}>
+                {'\uD83D\uDCCA'} Insights reflect trends relevant to your {providerPrep.appointment.provider} visit in {providerPrep.appointment.daysUntil} days
+              </Text>
+            </View>
           )}
 
           {/* Footer */}
@@ -1244,40 +1233,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
 
   // ─── VISIT PREP ───
-  visitPrepCard: {
-    backgroundColor: 'rgba(45,200,170,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(45,200,170,0.12)',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  visitContextNote: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    marginBottom: 8,
   },
-  visitPrepLeft: {
-    flex: 1,
-  },
-  visitPrepTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  visitPrepIcon: {
-    fontSize: 16,
-  },
-  visitPrepTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.textPrimary,
-  },
-  visitPrepSub: {
+  visitContextText: {
     fontSize: 12,
-    color: c.textMuted,
-  },
-  visitPrepArrow: {
-    fontSize: 16,
-    color: c.accent,
+    color: c.textTertiary,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
 
   // Footer

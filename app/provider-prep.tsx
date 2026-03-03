@@ -31,12 +31,19 @@ import { getUpcomingAppointments, Appointment } from '../utils/appointmentStorag
 import { getMedications, getMedicationLogs } from '../utils/medicationStorage';
 import { getVitals, VitalReading } from '../utils/vitalsStorage';
 import { getSymptoms, SymptomLog } from '../utils/symptomStorage';
-import { generateProviderQuestions, ProviderQuestion } from '../utils/insightEngine';
+import { generateProviderQuestions } from '../utils/insightEngine';
 import { generateAndSharePDF, generatePreviewHTML } from '../utils/pdfExport';
 import { safeGetItem } from '../utils/safeStorage';
 import { StorageKeys } from '../utils/storageKeys';
 import { logError } from '../utils/devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import {
+  getPrepChecklist,
+  addCustomPrepItem,
+  updatePrepChecklistItem,
+  removeCustomPrepItem,
+} from '../utils/prepChecklistStorage';
+import { AppointmentPrepChecklist, PrepChecklistItem } from '../types/schedule';
 
 export default function ProviderPrepScreen() {
   const { appointmentId } = useLocalSearchParams<{ appointmentId?: string }>();
@@ -44,10 +51,8 @@ export default function ProviderPrepScreen() {
 
   const [loading, setLoading] = useState(true);
   const [appointment, setAppointment] = useState<Appointment | null>(null);
-  const [questions, setQuestions] = useState<ProviderQuestion[]>([]);
-  const [checkedQuestions, setCheckedQuestions] = useState<Set<string>>(new Set());
-  const [customQuestion, setCustomQuestion] = useState('');
-  const [customQuestions, setCustomQuestions] = useState<string[]>([]);
+  const [checklist, setChecklist] = useState<AppointmentPrepChecklist | null>(null);
+  const [customInput, setCustomInput] = useState('');
   const [daysSinceLastVisit, setDaysSinceLastVisit] = useState(30);
 
   // Visit summary toggles
@@ -83,15 +88,39 @@ export default function ProviderPrepScreen() {
       setAppointment(appt);
 
       if (appt) {
-        const apptDate = new Date(appt.date);
-        const now = new Date();
-        const daysUntil = Math.max(0, Math.ceil((apptDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-
         // Estimate days since last visit (use 30 as default)
         setDaysSinceLastVisit(30);
 
-        const generatedQuestions = await generateProviderQuestions(appt.id, 30);
-        setQuestions(generatedQuestions);
+        // Load persisted prep checklist
+        const savedChecklist = await getPrepChecklist(appt);
+
+        // Merge auto-generated insight questions into checklist
+        try {
+          const providerQs = await generateProviderQuestions(appt.id, 30);
+          if (providerQs.length > 0) {
+            const existingLabels = new Set(savedChecklist.items.map(i => i.label));
+            let updated = false;
+            for (const q of providerQs) {
+              if (!existingLabels.has(q.question)) {
+                savedChecklist.items.push({
+                  id: `insight-${q.id}`,
+                  label: q.question,
+                  checked: true,
+                  source: 'auto',
+                });
+                updated = true;
+              }
+            }
+            if (updated) {
+              // Persist the merged checklist
+              await updatePrepChecklistItem(appt.id, savedChecklist.items[0].id, savedChecklist.items[0].checked);
+            }
+          }
+        } catch {
+          // Insight questions failed — proceed with default checklist
+        }
+
+        setChecklist({ ...savedChecklist });
       }
     } catch (error) {
       logError('ProviderPrepScreen.loadData', error);
@@ -100,24 +129,19 @@ export default function ProviderPrepScreen() {
     }
   };
 
-  const toggleQuestion = useCallback((id: string) => {
-    setCheckedQuestions(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
+  const toggleItem = useCallback(async (itemId: string, checked: boolean) => {
+    if (!appointment) return;
+    const updated = await updatePrepChecklistItem(appointment.id, itemId, checked);
+    if (updated) setChecklist({ ...updated });
+  }, [appointment]);
 
-  const addCustomQuestion = useCallback(() => {
-    const trimmed = customQuestion.trim();
-    if (!trimmed) return;
-    setCustomQuestions(prev => [...prev, trimmed]);
-    setCustomQuestion('');
-  }, [customQuestion]);
+  const addCustomItem = useCallback(async () => {
+    const trimmed = customInput.trim();
+    if (!trimmed || !appointment) return;
+    const updated = await addCustomPrepItem(appointment.id, trimmed);
+    if (updated) setChecklist({ ...updated });
+    setCustomInput('');
+  }, [customInput, appointment]);
 
   const daysUntilAppointment = useMemo(() => {
     if (!appointment) return 0;
@@ -129,10 +153,9 @@ export default function ProviderPrepScreen() {
   const buildReportData = useCallback(async () => {
     const patientName = await safeGetItem<string>(StorageKeys.PATIENT_NAME, 'Patient');
 
-    const selectedQs = questions
-      .filter(q => checkedQuestions.has(q.id))
-      .map(q => q.question);
-    const allQuestions = [...selectedQs, ...customQuestions];
+    const allQuestions = checklist
+      ? checklist.items.filter(i => i.checked).map(i => i.label)
+      : [];
 
     const sections: string[] = [];
 
@@ -255,7 +278,7 @@ export default function ProviderPrepScreen() {
       },
       patient: { name: patientName || 'Patient' },
     };
-  }, [appointment, questions, checkedQuestions, customQuestions, showVitals, showMedAdherence, showSymptoms, showQuestions]);
+  }, [appointment, checklist, showVitals, showMedAdherence, showSymptoms, showQuestions]);
 
   const handlePreview = useCallback(async () => {
     try {
@@ -282,30 +305,6 @@ export default function ProviderPrepScreen() {
       setExporting(false);
     }
   }, [buildReportData]);
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return Colors.red;
-      case 'medium': return Colors.amber;
-      default: return Colors.textMuted;
-    }
-  };
-
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'Ask First';
-      case 'medium': return 'Important';
-      default: return 'If Time';
-    }
-  };
-
-  const getPriorityBg = (priority: string) => {
-    switch (priority) {
-      case 'high': return Colors.redFaint;
-      case 'medium': return Colors.amberFaint;
-      default: return Colors.glassDim;
-    }
-  };
 
   if (loading) {
     return (
@@ -373,82 +372,71 @@ export default function ProviderPrepScreen() {
             </View>
           </GlassCard>
 
-          {/* Auto-generated Questions */}
+          {/* Prep Checklist — persisted per appointment */}
           <Text style={styles.sectionTitle}>Questions for Your Provider</Text>
-          {questions.length === 0 && customQuestions.length === 0 && (
+          {(!checklist || checklist.items.length === 0) && (
             <Text style={styles.noQuestionsText}>
               No data-driven questions detected. Add your own below.
             </Text>
           )}
 
-          {questions.map(q => (
+          {checklist && checklist.items.length > 0 && checklist.items.map((item) => (
             <TouchableOpacity
-              key={q.id}
+              key={item.id}
               style={[
                 styles.questionCard,
-                checkedQuestions.has(q.id) && styles.questionCardChecked,
+                item.checked && styles.questionCardChecked,
               ]}
-              onPress={() => toggleQuestion(q.id)}
+              onPress={() => toggleItem(item.id, !item.checked)}
               activeOpacity={0.7}
-              accessibilityLabel={`${checkedQuestions.has(q.id) ? 'Uncheck' : 'Check'}: ${q.question}`}
+              accessibilityLabel={`${item.checked ? 'Uncheck' : 'Check'}: ${item.label}`}
               accessibilityRole="checkbox"
+              accessibilityState={{ checked: item.checked }}
             >
               <View style={styles.questionLeft}>
                 <View style={[
                   styles.checkbox,
-                  checkedQuestions.has(q.id) && styles.checkboxChecked,
+                  item.checked && styles.checkboxChecked,
                 ]}>
-                  {checkedQuestions.has(q.id) && (
+                  {item.checked && (
                     <Text style={styles.checkmark}>{'\u2713'}</Text>
                   )}
                 </View>
               </View>
               <View style={styles.questionContent}>
-                <View style={styles.priorityRow}>
-                  <View style={[styles.priorityPill, { backgroundColor: getPriorityBg(q.priority) }]}>
-                    <Text style={[styles.priorityText, { color: getPriorityColor(q.priority) }]}>
-                      {getPriorityLabel(q.priority)}
-                    </Text>
-                  </View>
-                  <Text style={styles.questionSource}>{q.source}</Text>
-                </View>
-                <Text style={styles.questionText}>{q.question}</Text>
-                {q.dataPoint && (
-                  <Text style={styles.dataPointText}>{q.dataPoint}</Text>
-                )}
+                <Text style={styles.questionText}>{item.label}</Text>
               </View>
+              {item.source === 'custom' && (
+                <TouchableOpacity
+                  onPress={async () => {
+                    if (!appointment) return;
+                    const updated = await removeCustomPrepItem(appointment.id, item.id);
+                    if (updated) setChecklist({ ...updated });
+                  }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityLabel={`Remove question: ${item.label}`}
+                >
+                  <Text style={{ fontSize: 16, color: Colors.textMuted }}>{'\u2715'}</Text>
+                </TouchableOpacity>
+              )}
             </TouchableOpacity>
-          ))}
-
-          {/* Custom questions */}
-          {customQuestions.map((q, i) => (
-            <View key={`custom-${i}`} style={[styles.questionCard, styles.questionCardChecked]}>
-              <View style={styles.questionLeft}>
-                <View style={[styles.checkbox, styles.checkboxChecked]}>
-                  <Text style={styles.checkmark}>{'\u2713'}</Text>
-                </View>
-              </View>
-              <View style={styles.questionContent}>
-                <Text style={styles.questionText}>{q}</Text>
-              </View>
-            </View>
           ))}
 
           {/* Add custom question */}
           <View style={styles.addQuestionRow}>
             <TextInput
               style={styles.addQuestionInput}
-              value={customQuestion}
-              onChangeText={setCustomQuestion}
+              value={customInput}
+              onChangeText={setCustomInput}
               placeholder="Add your own question..."
               placeholderTextColor={Colors.textMuted}
-              onSubmitEditing={addCustomQuestion}
+              onSubmitEditing={addCustomItem}
               returnKeyType="done"
             />
             <TouchableOpacity
-              style={[styles.addButton, !customQuestion.trim() && styles.addButtonDisabled]}
-              onPress={addCustomQuestion}
-              disabled={!customQuestion.trim()}
+              style={[styles.addButton, !customInput.trim() && styles.addButtonDisabled]}
+              onPress={addCustomItem}
+              disabled={!customInput.trim()}
               accessibilityLabel="Add question"
               accessibilityRole="button"
             >
@@ -712,36 +700,11 @@ const styles = StyleSheet.create({
   questionContent: {
     flex: 1,
   },
-  priorityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  priorityPill: {
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  priorityText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  questionSource: {
-    fontSize: 10,
-    color: Colors.textMuted,
-  },
   questionText: {
     fontSize: 14,
     color: Colors.textBright,
     lineHeight: 20,
   },
-  dataPointText: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    marginTop: 4,
-  },
-
   // Add question
   addQuestionRow: {
     flexDirection: 'row',

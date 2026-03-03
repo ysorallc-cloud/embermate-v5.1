@@ -111,8 +111,11 @@ function RootLayout() {
     runStartupSequence();
 
     // Check device integrity (jailbreak/root) — non-blocking warning
-    shouldShowIntegrityWarning().then(compromised => {
-      if (compromised) setIntegrityWarning(true);
+    shouldShowIntegrityWarning().then(async compromised => {
+      if (compromised) {
+        const dismissed = await safeGetItem<boolean>('@integrity_banner_dismissed', false);
+        if (!dismissed) setIntegrityWarning(true);
+      }
     });
 
     // Notification permissions handled separately (needs delay for UX)
@@ -206,7 +209,7 @@ function RootLayout() {
             <Text style={styles.integrityText}>
               {'\u26A0\uFE0F'} This device may be jailbroken or rooted. Your health data could be at risk. Use a secure device for best protection.
             </Text>
-            <TouchableOpacity onPress={() => setIntegrityWarning(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity onPress={() => { setIntegrityWarning(false); safeSetItem('@integrity_banner_dismissed', true); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Text style={styles.integrityDismiss}>Dismiss</Text>
             </TouchableOpacity>
           </View>
@@ -332,9 +335,9 @@ const styles = StyleSheet.create({
     color: Colors.textMuted ?? '#888',
   },
   integrityBanner: {
-    backgroundColor: 'rgba(234, 179, 8, 0.12)',
+    backgroundColor: '#422006',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(234, 179, 8, 0.3)',
+    borderBottomColor: 'rgba(251, 191, 36, 0.4)',
     paddingHorizontal: 16,
     paddingVertical: 10,
     flexDirection: 'row',
@@ -343,14 +346,14 @@ const styles = StyleSheet.create({
   },
   integrityText: {
     flex: 1,
-    fontSize: 12,
-    color: Colors.amber ?? '#fbbf24',
-    lineHeight: 17,
+    fontSize: 13,
+    color: '#FDE68A',
+    lineHeight: 18,
   },
   integrityDismiss: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: Colors.amber ?? '#fbbf24',
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: '#FCD34D',
   },
 });
 

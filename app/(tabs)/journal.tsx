@@ -26,12 +26,13 @@ import {
   CareBrief,
   MedicationDetail,
 } from '../../utils/careSummaryBuilder';
-import { getAllInsights, InsightData, generateProviderQuestions, ProviderQuestion } from '../../utils/insightEngine';
+import { getAllInsights, InsightData } from '../../utils/insightEngine';
 import { logError } from '../../utils/devLog';
 import { useCareTasks } from '../../hooks/useCareTasks';
 import { getTodayDateString } from '../../services/carePlanGenerator';
 import { logAuditEvent, AuditEventType, AuditSeverity } from '../../utils/auditLog';
 import { useDataListener } from '../../lib/events';
+import { EVENT } from '../../lib/eventNames';
 import { isBiometricEnabled, shouldLockSession, requireAuthentication, updateLastActivity, getAutoLockTimeout } from '../../utils/biometricAuth';
 import { getNotesLogs, NotesLog } from '../../utils/centralStorage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -81,7 +82,6 @@ export default function JournalTab() {
   const [todayNotes, setTodayNotes] = useState<NotesLog[]>([]);
   const [insights, setInsights] = useState<InsightData[]>([]);
   const [expandedPattern, setExpandedPattern] = useState<number | null>(null);
-  const [providerQuestions, setProviderQuestions] = useState<ProviderQuestion[]>([]);
   const chevronAnims = useRef<Animated.Value[]>([]).current;
   const { state: careTasksState } = useCareTasks(getTodayDateString());
 
@@ -110,20 +110,6 @@ export default function JournalTab() {
         setInsights([]);
       }
 
-      // Load provider questions if appointment is near
-      if (data.nextAppointment) {
-        const daysUntil = Math.max(0, Math.ceil(
-          (new Date(data.nextAppointment.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-        ));
-        if (daysUntil <= 7) {
-          try {
-            const questions = await generateProviderQuestions('next', daysUntil);
-            setProviderQuestions(questions);
-          } catch {
-            setProviderQuestions([]);
-          }
-        }
-      }
     } catch (err) {
       logError('JournalTab.loadReport', err);
       setError('Unable to load today\u2019s care summary. Pull down to retry.');
@@ -139,9 +125,11 @@ export default function JournalTab() {
 
   const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useDataListener(useCallback((category) => {
-    if (!['dailyInstances', 'carePlanItems', 'logs', 'vitals', 'water',
-          'symptoms', 'mood', 'wellness', 'medication', 'notes',
-          'carePlan', 'carePlanConfig', 'sampleDataCleared'].includes(category)) return;
+    if (![
+      EVENT.DAILY_INSTANCES, EVENT.CARE_PLAN_ITEMS, EVENT.LOGS, EVENT.VITALS,
+      EVENT.WATER, EVENT.SYMPTOMS, EVENT.MOOD, EVENT.WELLNESS, EVENT.MEDICATION,
+      EVENT.NOTES, EVENT.CARE_PLAN, EVENT.CARE_PLAN_CONFIG, EVENT.SAMPLE_DATA_CLEARED,
+    ].includes(category as any)) return;
     if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
     reloadTimerRef.current = setTimeout(() => { loadReport(); }, 500);
   }, [loadReport]));
@@ -382,7 +370,7 @@ export default function JournalTab() {
     // Attention items
     if (brief.attentionItems) {
       for (const ai of brief.attentionItems) {
-        const text = ai.text || ai.title || '';
+        const text = ai.text || '';
         let type: HandoffType = 'watch';
         if (/miss|skip|overdue/i.test(text)) type = 'flag';
         const icon = type === 'flag' ? '\uD83D\uDED1' : '\uD83D\uDC41\uFE0F';
@@ -708,40 +696,6 @@ export default function JournalTab() {
           )}
 
           {/* ═══════════════════════════════════════════════════════
-              SECTION 5: VISIT PREP (conditional)
-              ═══════════════════════════════════════════════════════ */}
-          {showAppointment && brief?.nextAppointment && (
-            <>
-              <View style={s.sectionHeader}>
-                <Text style={s.sectionTitle}>
-                  Visit Prep {'\u00B7'} {brief.nextAppointment.provider} in {daysUntilAppt} days
-                </Text>
-              </View>
-              <View style={s.visitPrepCard}>
-                {providerQuestions.length > 0 && (
-                  <>
-                    <Text style={s.visitPrepSubhead}>Questions from your data this week:</Text>
-                    {providerQuestions.map((q, i) => (
-                      <View key={q.id} style={s.visitPrepQuestion}>
-                        <Text style={s.visitPrepNum}>{i + 1}.</Text>
-                        <Text style={s.visitPrepText}>{q.question}</Text>
-                      </View>
-                    ))}
-                  </>
-                )}
-                <TouchableOpacity
-                  style={s.visitPrepLink}
-                  onPress={() => navigate('/provider-prep?appointmentId=next')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={s.visitPrepLinkText}>Full Visit Prep {'\u2192'}</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={s.divider} />
-            </>
-          )}
-
-          {/* ═══════════════════════════════════════════════════════
               SECTION 6: DAY AT A GLANCE
               ═══════════════════════════════════════════════════════ */}
           <View style={s.sectionHeader}>
@@ -1042,53 +996,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.accent,
   },
 
-  // ─── SECTION 5: VISIT PREP ───
-  visitPrepCard: {
-    backgroundColor: 'rgba(20,50,40,0.4)',
-    borderWidth: 1,
-    borderColor: 'rgba(45,200,170,0.1)',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 4,
-  },
-  visitPrepSubhead: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: c.textSecondary,
-    marginBottom: 10,
-  },
-  visitPrepQuestion: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginBottom: 8,
-  },
-  visitPrepNum: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: c.accent,
-    marginTop: 2,
-  },
-  visitPrepText: {
-    fontSize: 13.5,
-    lineHeight: 20,
-    color: c.textPrimary,
-    flex: 1,
-  },
-  visitPrepLink: {
-    marginTop: 10,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.04)',
-    alignItems: 'flex-end',
-  },
-  visitPrepLinkText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: c.accent,
-  },
-
-  // ─── SECTION 6: DAY AT A GLANCE ───
+  // ─── SECTION 5: DAY AT A GLANCE ───
   glanceGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
