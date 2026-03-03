@@ -43,6 +43,7 @@ import { logError } from '../../utils/devLog';
 export default function BackupSettingsScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Processing...');
   const [settings, setSettings] = useState<CloudBackupSettings | null>(null);
   const [backups, setBackups] = useState<BackupMetadata[]>([]);
   const [password, setPassword] = useState('');
@@ -90,6 +91,7 @@ export default function BackupSettingsScreen() {
       return;
     }
 
+    setLoadingMessage('Encrypting backup...');
     setLoading(true);
     try {
       const result = await quickBackup(password);
@@ -124,6 +126,7 @@ export default function BackupSettingsScreen() {
           text: 'Export Anyway',
           style: 'destructive',
           onPress: async () => {
+            setLoadingMessage('Exporting backup...');
             setLoading(true);
             try {
               await exportBackup(false);
@@ -172,6 +175,7 @@ export default function BackupSettingsScreen() {
             {
               text: 'Restore',
               onPress: async () => {
+                setLoadingMessage('Restoring data...');
                 setLoading(true);
                 try {
                   const backup = JSON.parse(content);
@@ -202,6 +206,7 @@ export default function BackupSettingsScreen() {
       return;
     }
 
+    setLoadingMessage('Decrypting and restoring...');
     setLoading(true);
     try {
       const content = await FileSystem.readAsStringAsync(selectedBackupPath);
@@ -273,7 +278,7 @@ export default function BackupSettingsScreen() {
         >
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.accent} />
-            <Text style={styles.loadingText}>Processing...</Text>
+            <Text style={styles.loadingText}>{loadingMessage}</Text>
           </View>
         </LinearGradient>
       </SafeAreaView>

@@ -36,12 +36,16 @@ export async function getSubscriptionState(): Promise<SubscriptionState> {
 }
 
 /**
- * Set subscription tier with optional source and expiration
+ * Set subscription tier with optional source, expiration, and purchase receipt.
+ * When source is 'app_store' or 'google_play', pass the receipt to enable
+ * server-side validation. Without a receipt, store-based subscriptions will
+ * be rejected by the feature gate.
  */
 export async function setSubscriptionTier(
   tier: SubscriptionTier,
   source?: SubscriptionState['source'],
-  expiresAt?: string | null
+  expiresAt?: string | null,
+  purchaseReceipt?: string
 ): Promise<SubscriptionState> {
   const current = await getSubscriptionState();
   const now = new Date().toISOString();
@@ -52,11 +56,28 @@ export async function setSubscriptionTier(
     expiresAt: expiresAt ?? null,
     source: source ?? (tier === 'free' ? 'none' : current.source),
     version: current.version + 1,
+    ...(purchaseReceipt ? { purchaseReceipt, receiptValidatedAt: now } : {}),
   };
 
   await safeSetItem(GlobalKeys.SUBSCRIPTION_STATE, updated);
   emitDataUpdate(EVENT.SUBSCRIPTION);
   return updated;
+}
+
+/**
+ * Validate a purchase receipt against the server.
+ * PLACEHOLDER: Currently logs a warning and returns true.
+ *
+ * Server endpoint contract (future implementation):
+ *   POST /api/v1/subscriptions/validate-receipt
+ *   Body: { platform: 'ios' | 'android', receipt: string }
+ *   Response: { valid: boolean, expiresAt?: string, productId?: string }
+ */
+export async function validateReceipt(_receipt: string): Promise<boolean> {
+  console.warn(
+    'Receipt validation: server endpoint not yet implemented. Returning true as placeholder.'
+  );
+  return true;
 }
 
 /**

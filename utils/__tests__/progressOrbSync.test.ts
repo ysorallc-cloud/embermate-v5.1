@@ -20,11 +20,11 @@
 // This is the ORIGINAL buggy version for comparison
 // ============================================================================
 
-function computeTodayStats_BUGGY(instances: any[]) {
-  const getTypeStats = (itemType: string) => {
-    const typeInstances = instances.filter((i: any) => i.itemType === itemType);
+function computeTodayStats_BUGGY(instances) {
+  const getTypeStats = (itemType) => {
+    const typeInstances = instances.filter(i => i.itemType === itemType);
     // BUG: Only counts 'completed', ignoring 'skipped'
-    const completed = typeInstances.filter((i: any) => i.status === 'completed').length;
+    const completed = typeInstances.filter(i => i.status === 'completed').length;
     return { completed, total: typeInstances.length };
   };
 
@@ -40,12 +40,12 @@ function computeTodayStats_BUGGY(instances: any[]) {
 // HELPER: Simulates the FIXED todayStats computation
 // ============================================================================
 
-function computeTodayStats_FIXED(instances: any[]) {
-  const getTypeStats = (itemType: string) => {
-    const typeInstances = instances.filter((i: any) => i.itemType === itemType);
+function computeTodayStats_FIXED(instances) {
+  const getTypeStats = (itemType) => {
+    const typeInstances = instances.filter(i => i.itemType === itemType);
     // FIX: Count completed + skipped as "handled"
     const completed = typeInstances.filter(
-      (i: any) => i.status === 'completed' || i.status === 'skipped'
+      i => i.status === 'completed' || i.status === 'skipped'
     ).length;
     return { completed, total: typeInstances.length };
   };
@@ -63,9 +63,9 @@ function computeTodayStats_FIXED(instances: any[]) {
 // This is what the detail cards display as "resolved" items
 // ============================================================================
 
-function getTimelineCompleted(instances: any[]) {
+function getTimelineCompleted(instances) {
   return instances.filter(
-    (i: any) => i.status === 'completed' || i.status === 'skipped' || i.status === 'missed'
+    i => i.status === 'completed' || i.status === 'skipped' || i.status === 'missed'
   );
 }
 
@@ -73,12 +73,12 @@ function getTimelineCompleted(instances: any[]) {
 // HELPER: Simulates MedsBatchPanel status text rendering
 // ============================================================================
 
-function getMedStatusText_BUGGY(status: string) {
+function getMedStatusText_BUGGY(status) {
   // BUG: Only checks for 'skipped', everything else (including 'missed') shows "Done"
   return status === 'skipped' ? 'Skipped' : 'Done';
 }
 
-function getMedStatusText_FIXED(status: string) {
+function getMedStatusText_FIXED(status) {
   // FIX: Properly handle missed status
   if (status === 'missed') return 'Missed';
   if (status === 'skipped') return 'Skipped';
@@ -128,7 +128,7 @@ describe('Progress Orb ↔ Detail Card Sync', () => {
       // MISMATCH: orb says 1 done, detail shows 2 "Done" items
       // This is confusing because MedsBatchPanel shows missed as "Done"
       const detailDoneCount = completedMeds.filter(
-        (m: any) => getMedStatusText_BUGGY(m.status) === 'Done'
+        m => getMedStatusText_BUGGY(m.status) === 'Done'
       ).length;
       expect(detailDoneCount).toBe(2); // Both show "Done" (bug!)
       expect(stats.meds.completed).not.toBe(detailDoneCount); // MISMATCH!
@@ -214,10 +214,10 @@ describe('Progress Orb ↔ Detail Card Sync', () => {
 
       // With the fix, the detail card properly shows 1 "Done" + 1 "Missed"
       const detailDoneCount = completedMeds.filter(
-        (m: any) => getMedStatusText_FIXED(m.status) === 'Done'
+        m => getMedStatusText_FIXED(m.status) === 'Done'
       ).length;
       const detailMissedCount = completedMeds.filter(
-        (m: any) => getMedStatusText_FIXED(m.status) === 'Missed'
+        m => getMedStatusText_FIXED(m.status) === 'Missed'
       ).length;
 
       expect(detailDoneCount).toBe(1);

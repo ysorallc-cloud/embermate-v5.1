@@ -30,6 +30,7 @@ export interface EncryptedBackup {
   salt: string;
   hmac: string;
   data: string;
+  iterations?: number;        // PBKDF2 iteration count (absent = 10,000 for v3.0.0)
   wrappedMasterKey?: string;  // AES-wrapped device master key (hex)
   wrappingSalt?: string;      // Salt used for wrapping key derivation (hex)
 }
@@ -52,14 +53,14 @@ export interface CloudBackupSettings {
 // Constants
 // ============================================================================
 
-const BACKUP_VERSION = '3.0.0'; // v3: real AES-CTR encryption (replaces XOR)
+const BACKUP_VERSION = '3.1.0'; // v3.1: 100k PBKDF2 iterations (up from 10k)
 const BACKUP_DIR = 'EmberMate-Backups';
 const BACKUP_SETTINGS_KEY = StorageKeys.CLOUD_BACKUP_SETTINGS;
-// Intentional tradeoff: OWASP recommends 600,000 iterations for SHA-256, but
-// mobile devices (especially older iPhones) introduce noticeable UI lag above ~10k.
-// 10,000 iterations provides meaningful brute-force resistance while keeping
-// backup/restore under 1 second. Data is local-only — no server-side exposure.
-const PBKDF2_ITERATIONS = 10000;
+// OWASP recommends 600,000 iterations for SHA-256; 100,000 is a practical
+// compromise for mobile devices. A loading indicator masks the ~1-3s latency.
+const PBKDF2_ITERATIONS = 100_000;
+// Legacy v3.0.0 backups used 10,000 iterations — needed for backward compat
+const LEGACY_PBKDF2_ITERATIONS = 10_000;
 const SALT_LENGTH = 32;
 const IV_LENGTH = 16;
 const KEY_LENGTH = 32; // 256 bits
@@ -126,9 +127,9 @@ function constantTimeEqual(a: string, b: string): boolean {
 /**
  * Derive encryption key from password using PBKDF2-like iterated hashing.
  * Note: React Native doesn't have native PBKDF2, so we use iterated SHA-256.
- * Uses PBKDF2_ITERATIONS (10,000) rounds for brute-force resistance.
+ * @param iterations - Number of hash iterations (defaults to PBKDF2_ITERATIONS)
  */
-async function deriveKey(password: string, salt: Uint8Array): Promise<Uint8Array> {
+async function deriveKey(password: string, salt: Uint8Array, iterations: number = PBKDF2_ITERATIONS): Promise<Uint8Array> {
   const saltHex = bytesToHex(salt);
 
   // Start with combined value
@@ -137,8 +138,7 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<Uint8Array
     password + saltHex
   );
 
-  // Use the declared constant for iteration count
-  for (let i = 0; i < PBKDF2_ITERATIONS; i++) {
+  for (let i = 0; i < iterations; i++) {
     hash = await Crypto.digestStringAsync(
       Crypto.CryptoDigestAlgorithm.SHA256,
       hash + saltHex
@@ -302,6 +302,7 @@ export async function createEncryptedBackup(password: string): Promise<Encrypted
       salt: bytesToHex(salt),
       hmac,
       data: encryptedData,
+      iterations: PBKDF2_ITERATIONS,
     };
 
     // Wrap the device master key so it can be restored on another device
@@ -349,13 +350,15 @@ export async function restoreEncryptedBackup(
       throw new Error('Invalid backup format');
     }
 
-    // Derive key from password
+    // Derive key from password using the iteration count stored in the backup.
+    // v3.0.0 backups don't have this field and used 10,000 iterations.
     const salt = hexToBytes(backup.salt);
-    const key = await deriveKey(password, salt);
+    const restoreIterations = backup.iterations ?? LEGACY_PBKDF2_ITERATIONS;
+    const key = await deriveKey(password, salt, restoreIterations);
 
     // Decrypt based on backup version
     let decryptedString: string;
-    if (backup.version === '3.0.0') {
+    if (backup.version === '3.0.0' || backup.version === '3.1.0') {
       // v3: AES-256-CTR + HMAC (verifies HMAC internally with constant-time comparison)
       decryptedString = aesDecrypt(backup.data, key, backup.iv, backup.hmac);
     } else {

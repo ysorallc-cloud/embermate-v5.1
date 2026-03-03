@@ -17,6 +17,7 @@ import { reportError } from '../utils/errorReporting';
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  screenName?: string;
 }
 
 interface State {
@@ -44,6 +45,7 @@ class ErrorBoundary extends Component<Props, State> {
 
     reportError(error, {
       component: 'ErrorBoundary',
+      screenName: this.props.screenName || 'unknown',
       componentStack: errorInfo.componentStack || 'unknown',
     });
   }

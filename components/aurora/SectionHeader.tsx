@@ -4,17 +4,21 @@ import { Colors, Typography, Spacing } from '../../theme/theme-tokens';
 
 interface Props {
   title: string;
+  showRule?: boolean;
   action?: {
     label: string;
     onPress: () => void;
   };
 }
 
-export const SectionHeader: React.FC<Props> = ({ title, action }) => (
-  <View style={styles.container} accessibilityRole="header">
+export const SectionHeader: React.FC<Props> = ({ title, showRule, action }) => (
+  <View style={[styles.container, showRule && styles.containerWithRule]} accessibilityRole="header">
     <Text style={styles.title} accessibilityRole="header">
       {title.toUpperCase()}
     </Text>
+    {showRule && !action && (
+      <View style={styles.rule} />
+    )}
     {action && (
       <TouchableOpacity
         onPress={action.onPress}
@@ -36,9 +40,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
+  containerWithRule: {
+    marginTop: 20,
+  },
   title: {
     ...Typography.caption,
     color: Colors.textMuted,
+  },
+  rule: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.glassBorder,
+    marginLeft: 12,
   },
   action: {
     ...Typography.labelSmall,

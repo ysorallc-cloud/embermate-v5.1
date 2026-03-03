@@ -4,7 +4,7 @@
 // Accessed from medication-schedule screen
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   Platform,
   Alert,
   Switch,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -254,10 +255,11 @@ export default function MedicationFormScreen() {
 
   const [saving, setSaving] = useState(false);
   const [formStep, setFormStep] = useState<1 | 2>(1);
-  const [showMedSuggestions, setShowMedSuggestions] = useState(false);
-  const [showDosageSuggestions, setShowDosageSuggestions] = useState(false);
-  const [medSuggestions, setMedSuggestions] = useState<typeof COMMON_MEDICATIONS>([]);
-  const [dosageSuggestions, setDosageSuggestions] = useState<string[]>([]);
+  const [showMedDropdown, setShowMedDropdown] = useState(false);
+  const [showDosageDropdown, setShowDosageDropdown] = useState(false);
+  const [selectedMedEntry, setSelectedMedEntry] = useState<typeof COMMON_MEDICATIONS[0] | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     if (isEditing) {
@@ -344,45 +346,26 @@ export default function MedicationFormScreen() {
     }
   };
 
-  const handleMedicationNameChange = (text: string) => {
-    setName(text);
-
-    if (text.length >= 1) {
-      // Show medications that start with the text OR contain the text
-      const matches = COMMON_MEDICATIONS.filter(med =>
-        med.name.toLowerCase().includes(text.toLowerCase())
-      );
-      setMedSuggestions(matches);
-      setShowMedSuggestions(matches.length > 0);
-    } else {
-      setShowMedSuggestions(false);
-    }
-  };
-
   const handleSelectMedication = (medication: typeof COMMON_MEDICATIONS[0]) => {
     setName(medication.name);
-    setShowMedSuggestions(false);
-    // Show dosage suggestions for this medication
-    setDosageSuggestions(medication.commonDosages);
-    setShowDosageSuggestions(true);
-  };
-
-  const handleDosageChange = (text: string) => {
-    setDosage(text);
-    
-    // If we have dosage suggestions, filter them
-    if (dosageSuggestions.length > 0) {
-      const matches = dosageSuggestions.filter(d => 
-        d.toLowerCase().includes(text.toLowerCase())
-      );
-      setShowDosageSuggestions(matches.length > 0 && text.length > 0);
+    setSelectedMedEntry(medication);
+    setShowMedDropdown(false);
+    // Auto-select first dosage
+    if (medication.commonDosages.length > 0) {
+      setDosage(medication.commonDosages[0]);
     }
   };
 
   const handleSelectDosage = (selectedDosage: string) => {
     setDosage(selectedDosage);
-    setShowDosageSuggestions(false);
+    setShowDosageDropdown(false);
   };
+
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 2500);
+  }, []);
 
   const handleTimeSlotSelect = (slot: TimeSlot) => {
     setSelectedTimeSlot(slot);
@@ -577,7 +560,8 @@ export default function MedicationFormScreen() {
       emitDataUpdate(EVENT.MEDICATION);
       emitDataUpdate(EVENT.CARE_PLAN_ITEMS);
       emitDataUpdate(EVENT.DAILY_INSTANCES);
-      router.back();
+      showToast(`${name.trim()} ${dosage.trim()} ${isEditing ? 'updated' : 'added'}!`);
+      setTimeout(() => router.back(), 1200);
     } catch (error) {
       setSaving(false);
       logError('MedicationFormScreen.handleSave', error);
@@ -595,87 +579,117 @@ export default function MedicationFormScreen() {
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
-          {/* Medication Name */}
-          <View style={styles.formGroup}>
+          {/* Medication Name — Dropdown Selector */}
+          <View style={[styles.formGroup, { zIndex: 30 }]}>
             <Text style={styles.label} accessibilityRole="text">Medication Name *</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={handleMedicationNameChange}
-              onFocus={() => {
-                // Show suggestions if there's already text
-                if (name.length >= 1) {
-                  const matches = COMMON_MEDICATIONS.filter(med =>
-                    med.name.toLowerCase().includes(name.toLowerCase())
-                  );
-                  setMedSuggestions(matches);
-                  setShowMedSuggestions(matches.length > 0);
-                }
-              }}
-              placeholder="e.g., Lisinopril"
-              placeholderTextColor={Colors.textMuted}
-              autoCapitalize="words"
-              autoCorrect={false}
-              accessibilityLabel="Medication name, required"
-              accessibilityHint="Enter the name of the medication"
-            />
-            {showMedSuggestions && medSuggestions.length > 0 && (
+            <TouchableOpacity
+              style={[styles.dropdownTrigger, showMedDropdown && styles.dropdownTriggerOpen]}
+              onPress={() => { setShowMedDropdown(!showMedDropdown); setShowDosageDropdown(false); }}
+              activeOpacity={0.7}
+              accessibilityLabel={name ? `Selected medication: ${name}. Tap to change.` : 'Select medication'}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.dropdownTriggerText, !name && styles.dropdownPlaceholder]}>
+                {name || 'Select medication...'}
+              </Text>
+              <Text style={[styles.dropdownArrow, showMedDropdown && styles.dropdownArrowOpen]}>{'\u25BC'}</Text>
+            </TouchableOpacity>
+            {showMedDropdown && (
               <ScrollView
-                style={styles.suggestionsContainer}
+                style={styles.dropdownList}
                 nestedScrollEnabled={true}
                 keyboardShouldPersistTaps="handled"
               >
-                {medSuggestions.slice(0, 8).map((med, idx) => (
+                {COMMON_MEDICATIONS.map((med, idx) => (
                   <TouchableOpacity
-                    key={idx}
-                    style={styles.suggestionItem}
+                    key={med.name}
+                    style={[styles.dropdownItem, idx < COMMON_MEDICATIONS.length - 1 && styles.dropdownItemBorder]}
                     onPress={() => handleSelectMedication(med)}
                     activeOpacity={0.7}
                     accessibilityRole="button"
-                    accessibilityLabel={`Select ${med.name}, common dosages: ${med.commonDosages.join(', ')}`}
+                    accessibilityLabel={`${med.name}, ${med.commonDosages.length} dosages`}
                   >
-                    <Text style={styles.suggestionText}>{med.name}</Text>
-                    <Text style={styles.suggestionSubtext}>
-                      Common: {med.commonDosages.join(', ')}
-                    </Text>
+                    <Text style={styles.dropdownItemText}>{med.name}</Text>
+                    <Text style={styles.dropdownItemSubtext}>{med.commonDosages.length} dosages</Text>
                   </TouchableOpacity>
                 ))}
+                {/* Custom option */}
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setShowMedDropdown(false);
+                    setSelectedMedEntry(null);
+                    setName('');
+                    setDosage('');
+                    // Use Alert.prompt on iOS, fallback on Android
+                    if (Platform.OS === 'ios' && Alert.prompt) {
+                      Alert.prompt(
+                        'Custom Medication',
+                        'Enter medication name:',
+                        (text) => { if (text) setName(text); },
+                      );
+                    } else {
+                      Alert.alert('Custom Medication', 'Enter a custom name using the full medication form.');
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.dropdownItemText, { color: Colors.accent }]}>+ Custom medication...</Text>
+                </TouchableOpacity>
               </ScrollView>
             )}
           </View>
 
-          {/* Dosage */}
-          <View style={styles.formGroup}>
+          {/* Dosage — Dropdown Selector */}
+          <View style={[styles.formGroup, { zIndex: 20 }]}>
             <Text style={styles.label} accessibilityRole="text">Dosage *</Text>
-            <TextInput
-              style={styles.input}
-              value={dosage}
-              onChangeText={handleDosageChange}
-              placeholder="e.g., 10mg"
-              placeholderTextColor={Colors.textMuted}
-              autoCorrect={false}
-              accessibilityLabel="Dosage, required"
-              accessibilityHint="Enter the medication dosage"
-            />
-            {showDosageSuggestions && dosageSuggestions.length > 0 && (
-              <ScrollView
-                style={styles.suggestionsContainer}
-                nestedScrollEnabled={true}
-                keyboardShouldPersistTaps="handled"
-              >
-                {dosageSuggestions.map((dose, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.suggestionItem}
-                    onPress={() => handleSelectDosage(dose)}
-                    activeOpacity={0.7}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Select dosage ${dose}`}
+            {selectedMedEntry && selectedMedEntry.commonDosages.length > 0 ? (
+              <>
+                <TouchableOpacity
+                  style={[styles.dropdownTrigger, showDosageDropdown && styles.dropdownTriggerOpen]}
+                  onPress={() => { setShowDosageDropdown(!showDosageDropdown); setShowMedDropdown(false); }}
+                  activeOpacity={0.7}
+                  accessibilityLabel={dosage ? `Selected dosage: ${dosage}. Tap to change.` : 'Select dosage'}
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.dropdownTriggerText, !dosage && styles.dropdownPlaceholder]}>
+                    {dosage || 'Select dosage...'}
+                  </Text>
+                  <Text style={[styles.dropdownArrow, showDosageDropdown && styles.dropdownArrowOpen]}>{'\u25BC'}</Text>
+                </TouchableOpacity>
+                {showDosageDropdown && (
+                  <ScrollView
+                    style={styles.dropdownList}
+                    nestedScrollEnabled={true}
+                    keyboardShouldPersistTaps="handled"
                   >
-                    <Text style={styles.suggestionText}>{dose}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+                    {selectedMedEntry.commonDosages.map((dose, idx) => (
+                      <TouchableOpacity
+                        key={dose}
+                        style={[styles.dropdownItem, idx < selectedMedEntry.commonDosages.length - 1 && styles.dropdownItemBorder]}
+                        onPress={() => handleSelectDosage(dose)}
+                        activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Select dosage ${dose}`}
+                      >
+                        <Text style={styles.dropdownItemText}>{dose}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+              </>
+            ) : (
+              <TextInput
+                style={styles.input}
+                value={dosage}
+                onChangeText={setDosage}
+                placeholder={name ? 'Enter dosage (e.g., 10mg)' : 'Select medication first'}
+                placeholderTextColor={Colors.textMuted}
+                autoCorrect={false}
+                editable={!!name}
+                accessibilityLabel="Dosage, required"
+                accessibilityHint="Enter the medication dosage"
+              />
             )}
           </View>
 
@@ -1094,6 +1108,16 @@ export default function MedicationFormScreen() {
 
           <View style={{ height: 40 }} />
         </ScrollView>
+
+        {/* Confirmation Toast */}
+        {toastVisible && (
+          <View style={styles.toast}>
+            <View style={styles.toastIcon}>
+              <Text style={styles.toastIconText}>{'\u2713'}</Text>
+            </View>
+            <Text style={styles.toastText}>{toastMessage}</Text>
+          </View>
+        )}
       </LinearGradient>
     </SafeAreaView>
   );
@@ -1204,39 +1228,109 @@ const styles = StyleSheet.create({
     color: Colors.accent,
   },
   
-  // SUGGESTION DROPDOWNS
-  suggestionsContainer: {
+  // DROPDOWN SELECTORS
+  dropdownTrigger: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dropdownTriggerOpen: {
+    borderColor: Colors.accent,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  dropdownTriggerText: {
+    fontSize: 16,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  dropdownPlaceholder: {
+    color: Colors.textMuted,
+  },
+  dropdownArrow: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginLeft: 8,
+  },
+  dropdownArrowOpen: {
+    transform: [{ rotate: '180deg' }],
+  },
+  dropdownList: {
     position: 'absolute',
     top: '100%',
     left: 0,
     right: 0,
-    marginTop: 4,
     backgroundColor: Colors.backgroundElevated,
     borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.md,
+    borderColor: Colors.accent,
+    borderTopWidth: 0,
+    borderBottomLeftRadius: BorderRadius.md,
+    borderBottomRightRadius: BorderRadius.md,
     maxHeight: 200,
     zIndex: 1000,
     elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
   },
-  suggestionItem: {
+  dropdownItem: {
     padding: Spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dropdownItemBorder: {
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  suggestionText: {
+  dropdownItemText: {
     fontSize: 15,
     color: Colors.textPrimary,
     fontWeight: '500',
   },
-  suggestionSubtext: {
+  dropdownItemSubtext: {
     fontSize: 12,
     color: Colors.textMuted,
-    marginTop: 2,
+  },
+
+  // TOAST
+  toast: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.3)',
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  toastIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#22c55e',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toastIconText: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '700',
+  },
+  toastText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#22c55e',
   },
 
   // ============================================

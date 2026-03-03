@@ -5,7 +5,45 @@
 
 import { getSubscriptionState } from '../storage/subscriptionRepo';
 import { listPatients } from '../storage/patientRegistry';
-import { GatedFeature, FeatureGateResult, TIER_LIMITS } from '../types/subscription';
+import { GatedFeature, FeatureGateResult, TIER_LIMITS, SubscriptionState } from '../types/subscription';
+
+const RECEIPT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+/**
+ * Returns true if this subscription source requires a validated receipt.
+ */
+function isStoreBased(source: SubscriptionState['source']): boolean {
+  return source === 'app_store' || source === 'google_play';
+}
+
+/**
+ * Check if a store-based premium subscription has a fresh receipt.
+ * Returns a rejection result if the receipt is missing or stale, or null if OK.
+ */
+function checkReceiptFreshness(state: SubscriptionState): FeatureGateResult | null {
+  if (state.tier !== 'premium' || !isStoreBased(state.source)) return null;
+
+  if (!state.purchaseReceipt || !state.receiptValidatedAt) {
+    return {
+      allowed: false,
+      reason: 'Store purchase receipt is missing. Please restore your purchase to re-validate.',
+      currentTier: state.tier,
+      requiredTier: 'premium',
+    };
+  }
+
+  const age = Date.now() - new Date(state.receiptValidatedAt).getTime();
+  if (age > RECEIPT_MAX_AGE_MS) {
+    return {
+      allowed: false,
+      reason: 'Store purchase receipt is stale. Please restore your purchase to re-validate.',
+      currentTier: state.tier,
+      requiredTier: 'premium',
+    };
+  }
+
+  return null;
+}
 
 /**
  * Check if a gated feature is accessible under the current subscription.
@@ -13,6 +51,10 @@ import { GatedFeature, FeatureGateResult, TIER_LIMITS } from '../types/subscript
 export async function checkFeatureAccess(feature: GatedFeature): Promise<FeatureGateResult> {
   const state = await getSubscriptionState();
   const limits = TIER_LIMITS[state.tier];
+
+  // For store-based premium, verify receipt freshness before any feature check
+  const receiptIssue = checkReceiptFreshness(state);
+  if (receiptIssue) return receiptIssue;
 
   switch (feature) {
     case 'multi_patient': {

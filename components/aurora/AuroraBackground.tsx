@@ -24,14 +24,14 @@ const AURORA_CONFIGS: Record<AuroraVariant, {
 }> = {
   today: {
     colors: [
-      'rgba(20, 120, 100, 0.5)',   // Teal
+      'rgba(20, 140, 110, 0.55)',  // Teal — stronger wash
       'rgba(40, 80, 100, 0.25)',   // Blue-teal
       'transparent',
     ],
   },
   now: {
     colors: [
-      'rgba(20, 120, 100, 0.5)',   // Teal (alias for today)
+      'rgba(20, 140, 110, 0.55)',  // Teal — stronger wash
       'rgba(40, 80, 100, 0.25)',
       'transparent',
     ],
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     top: -50,
     left: '-15%',
     right: '-15%',
-    height: 450,
+    height: 500,
   },
   primaryGradient: {
     flex: 1,

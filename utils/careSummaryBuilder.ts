@@ -269,7 +269,7 @@ export interface MealsDetail {
   total: number;
   meals: {
     name: string;
-    status: 'completed' | 'pending';
+    status: 'completed' | 'pending' | 'skipped' | 'missed';
     appetite?: string;
     scheduledTime?: string;
   }[];
@@ -392,7 +392,7 @@ export async function buildShiftReport(): Promise<ShiftReport> {
       );
       return {
         name: inst.itemName,
-        status: (inst.status === 'completed' ? 'completed' : 'pending') as 'completed' | 'pending',
+        status: inst.status as MealsDetail['meals'][number]['status'],
         appetite: matchedMeal?.appetite
           ? APPETITE_LABELS[matchedMeal.appetite] ?? matchedMeal.appetite
           : undefined,
@@ -487,7 +487,7 @@ export async function buildShareSummary(): Promise<ShareSummary> {
   const report = await buildShiftReport();
 
   // Medications: count only, no names or dosages
-  const medsTaken = report.medications.filter(m => m.status === 'completed').length;
+  const medsTaken = report.medications.filter(m => m.status === 'completed' || m.status === 'skipped').length;
   const medsTotal = report.medications.length;
   const medsStatus = medsTotal > 0
     ? `${medsTaken}/${medsTotal} medications logged`
@@ -507,7 +507,7 @@ export async function buildShareSummary(): Promise<ShareSummary> {
     : 'No wellness checks completed';
 
   // Meals: count only
-  const mealsCompleted = report.meals.meals.filter(m => m.status === 'completed').length;
+  const mealsCompleted = report.meals.meals.filter(m => m.status === 'completed' || m.status === 'skipped').length;
   const mealsStatus = report.meals.total > 0
     ? `${mealsCompleted}/${report.meals.total} meals logged`
     : 'No meals scheduled';
@@ -722,7 +722,7 @@ export async function buildCareBrief(): Promise<CareBrief> {
       );
       return {
         name: inst.itemName,
-        status: (inst.status === 'completed' ? 'completed' : 'pending') as 'completed' | 'pending',
+        status: inst.status as MealsDetail['meals'][number]['status'],
         appetite: matchedMeal?.appetite
           ? APPETITE_LABELS[matchedMeal.appetite] ?? matchedMeal.appetite
           : undefined,
@@ -886,13 +886,17 @@ export async function buildCareBrief(): Promise<CareBrief> {
   const handoffParts: string[] = [];
 
   // Day assessment
-  const allMedsTaken = medications.length > 0 && medications.every(m => m.status === 'completed');
+  const allMedsTaken = medications.length > 0 && medications.every(m => m.status === 'completed' || m.status === 'skipped');
+  const missedMeds = medications.filter(m => m.status === 'missed');
   if (medications.length === 0) {
     handoffParts.push(`No medications are scheduled today.`);
   } else if (allMedsTaken) {
     handoffParts.push(`All ${medications.length} medications have been taken.`);
+  } else if (missedMeds.length > 0) {
+    const taken = medications.filter(m => m.status === 'completed' || m.status === 'skipped').length;
+    handoffParts.push(`${taken} of ${medications.length} medications taken. ${missedMeds.map(m => m.name).join(', ')} missed.`);
   } else {
-    const taken = medications.filter(m => m.status === 'completed').length;
+    const taken = medications.filter(m => m.status === 'completed' || m.status === 'skipped').length;
     handoffParts.push(`${taken} of ${medications.length} medications have been logged so far.`);
   }
 
@@ -980,7 +984,8 @@ export function buildStatusNarrative(input: NarrativeInput): string {
   }
 
   // Medications
-  const medsTaken = input.medications.filter(m => m.status === 'completed');
+  const medsTaken = input.medications.filter(m => m.status === 'completed' || m.status === 'skipped');
+  const medsMissed = input.medications.filter(m => m.status === 'missed');
   const medsTotal = input.medications.length;
   if (medsTotal > 0) {
     if (medsTaken.length === medsTotal) {
@@ -993,6 +998,8 @@ export function buildStatusNarrative(input: NarrativeInput): string {
       } else {
         parts.push(`All ${medsTotal} medications taken.`);
       }
+    } else if (medsMissed.length > 0) {
+      parts.push(`${medsTaken.length}/${medsTotal} medications taken. ${medsMissed.map(m => m.name).join(', ')} missed.`);
     } else {
       parts.push(`${medsTaken.length}/${medsTotal} medications logged.`);
     }

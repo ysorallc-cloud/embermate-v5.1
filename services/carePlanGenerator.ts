@@ -163,9 +163,9 @@ async function syncMedicationItemsWithConfig(
 
     // 1. CREATE: Add CarePlanItems for config medications that don't have items
     for (const configMed of activeConfigMeds) {
-      // Check if this config med already has a CarePlanItem (by medicationId first, then name)
+      // Check if this config med already has a CarePlanItem (by ID or name match)
       const hasItemById = existingMedIds.has(configMed.id);
-      const hasItemByName = !hasItemById && Array.from(existingMedNames).some(itemName =>
+      const hasItemByName = Array.from(existingMedNames).some(itemName =>
         itemName.includes(configMed.name.toLowerCase()) ||
         configMed.name.toLowerCase().includes(itemName.split(' ')[0])
       );
@@ -290,8 +290,51 @@ async function syncOtherBucketsWithConfig(
     const nonSyncMealItems = allNutritionItems.filter(i => !i.id.startsWith('sync-meal-'));
 
     // Deactivate any non-sync nutrition items (e.g. sample-meal-breakfast) to prevent duplicates
+    // But first, migrate any completed/skipped instances to the corresponding sync-meal item
+    // so that completions are not lost when the old item is deactivated and its instances removed.
+    const today = getTodayDateString();
+    const todayInstances = await listDailyInstances(patientId, today);
+
     for (const item of nonSyncMealItems) {
       if (item.active) {
+        // Determine which sync-meal item this maps to based on name
+        const itemName = item.name?.toLowerCase() || '';
+        let targetTod: string | null = null;
+        if (itemName.includes('breakfast')) targetTod = 'morning';
+        else if (itemName.includes('lunch')) targetTod = 'midday';
+        else if (itemName.includes('dinner') || itemName.includes('supper')) targetTod = 'evening';
+        else if (itemName.includes('snack')) targetTod = 'night';
+        // Fallback: check schedule window labels
+        if (!targetTod && item.schedule?.times?.[0]?.label) {
+          const label = item.schedule.times[0].label;
+          if (label === 'morning') targetTod = 'morning';
+          else if (label === 'afternoon') targetTod = 'midday';
+          else if (label === 'evening') targetTod = 'evening';
+        }
+
+        const syncTargetId = targetTod ? `sync-meal-${targetTod}` : null;
+        const syncTargetTimeId = targetTod ? `sync-meal-${targetTod}-time` : null;
+
+        if (syncTargetId && syncTargetTimeId) {
+          // Find non-pending instances from the old item
+          const oldInstances = todayInstances.filter(
+            i => i.carePlanItemId === item.id && i.status !== 'pending'
+          );
+          // Check if sync target already has an instance for today
+          const syncAlreadyHasInstance = todayInstances.some(i => i.carePlanItemId === syncTargetId);
+
+          if (oldInstances.length > 0 && !syncAlreadyHasInstance) {
+            // Migrate: remap the first completed instance to the sync item
+            const migrated = oldInstances.map(inst => ({
+              ...inst,
+              carePlanItemId: syncTargetId,
+              windowId: syncTargetTimeId,
+            }));
+            await upsertDailyInstances(patientId, today, migrated);
+            devLog('[syncOtherBucketsWithConfig] Migrated', migrated.length, 'instance(s) from', item.id, 'to', syncTargetId);
+          }
+        }
+
         devLog('[syncOtherBucketsWithConfig] Deactivating non-sync meal item:', item.id);
         await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
         changed = true;
@@ -852,11 +895,9 @@ export async function cleanupDuplicateCarePlanItems(
 
   // For each item, keep the first one and mark others as duplicates
   for (const item of allItems) {
-    // For medications, use medicationId as primary key (catches name variations
-    // like "Amlodipine 2.5mg" vs "Amlodipine 2.5mg 2.5mg"), falling back to name
-    const key = item.type === 'medication' && item.medicationDetails?.medicationId
-      ? `medication:id:${item.medicationDetails.medicationId}`
-      : `${item.type}:${item.name.toLowerCase()}`;
+    // Use type + name as key so items of the same type but different names
+    // (e.g. Breakfast, Lunch, Dinner) are NOT treated as duplicates
+    const key = `${item.type}:${item.name.toLowerCase()}`;
 
     if (seenByTypeAndName.has(key)) {
       // This is a duplicate
