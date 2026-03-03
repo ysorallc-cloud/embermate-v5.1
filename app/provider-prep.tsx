@@ -17,10 +17,10 @@ import {
   Switch,
   Modal,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
@@ -28,7 +28,9 @@ import { GlassCard } from '../components/aurora/GlassCard';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 
 import { getUpcomingAppointments, Appointment } from '../utils/appointmentStorage';
-import { getMedications } from '../utils/medicationStorage';
+import { getMedications, getMedicationLogs } from '../utils/medicationStorage';
+import { getVitals, VitalReading } from '../utils/vitalsStorage';
+import { getSymptoms, SymptomLog } from '../utils/symptomStorage';
 import { generateProviderQuestions, ProviderQuestion } from '../utils/insightEngine';
 import { generateAndSharePDF, generatePreviewHTML } from '../utils/pdfExport';
 import { safeGetItem } from '../utils/safeStorage';
@@ -38,6 +40,7 @@ import { getTodayDateString } from '../services/carePlanGenerator';
 
 export default function ProviderPrepScreen() {
   const { appointmentId } = useLocalSearchParams<{ appointmentId?: string }>();
+  const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [appointment, setAppointment] = useState<Appointment | null>(null);
@@ -132,6 +135,8 @@ export default function ProviderPrepScreen() {
     const allQuestions = [...selectedQs, ...customQuestions];
 
     const sections: string[] = [];
+
+    // Appointment header
     if (appointment) {
       sections.push(`Provider: ${appointment.provider || 'Provider'}`);
       sections.push(`Date: ${format(new Date(appointment.date), 'MMMM d, yyyy')}`);
@@ -139,9 +144,101 @@ export default function ProviderPrepScreen() {
       sections.push('');
     }
 
-    if (allQuestions.length > 0) {
+    // Vitals Trend
+    if (showVitals) {
+      try {
+        const allVitals = await getVitals();
+        const cutoff = subDays(new Date(), 30).toISOString();
+        const recent = allVitals.filter(v => v.timestamp >= cutoff);
+
+        if (recent.length > 0) {
+          sections.push('Vitals Trend (Last 30 Days):');
+
+          const byType = new Map<string, VitalReading[]>();
+          recent.forEach(v => {
+            const arr = byType.get(v.type) || [];
+            arr.push(v);
+            byType.set(v.type, arr);
+          });
+
+          byType.forEach((readings, type) => {
+            const sorted = readings.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+            const latest = sorted[0];
+            const values = sorted.map(r => r.value);
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            const label = type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+            if (min === max) {
+              sections.push(`  ${label}: ${latest.value} ${latest.unit}`);
+            } else {
+              sections.push(`  ${label}: ${latest.value} ${latest.unit} (range: ${min}\u2013${max})`);
+            }
+          });
+          sections.push('');
+        }
+      } catch {
+        // Vitals fetch failed — skip silently
+      }
+    }
+
+    // Med Adherence
+    if (showMedAdherence) {
+      try {
+        const meds = await getMedications();
+        const logs = await getMedicationLogs();
+        const cutoff = subDays(new Date(), 30).toISOString();
+        const recentLogs = logs.filter(l => l.timestamp >= cutoff);
+
+        if (meds.length > 0) {
+          sections.push('Medication Adherence (Last 30 Days):');
+
+          meds.forEach(med => {
+            const medLogs = recentLogs.filter(l => l.medicationId === med.id);
+            const taken = medLogs.filter(l => l.taken).length;
+            const total = medLogs.length;
+            const pct = total > 0 ? Math.round((taken / total) * 100) : 0;
+            sections.push(`  ${med.name} ${med.dosage || ''}: ${pct}% (${taken}/${total} doses)`.trim());
+          });
+          sections.push('');
+        }
+      } catch {
+        // Med adherence fetch failed — skip silently
+      }
+    }
+
+    // Symptom Log
+    if (showSymptoms) {
+      try {
+        const allSymptoms = await getSymptoms();
+        const cutoff = subDays(new Date(), 30).toISOString();
+        const recent = allSymptoms.filter(s => s.timestamp >= cutoff);
+
+        if (recent.length > 0) {
+          sections.push('Recent Symptoms (Last 30 Days):');
+
+          const byName = new Map<string, SymptomLog[]>();
+          recent.forEach(s => {
+            const arr = byName.get(s.symptom) || [];
+            arr.push(s);
+            byName.set(s.symptom, arr);
+          });
+
+          byName.forEach((logs, name) => {
+            const avgSeverity = Math.round(logs.reduce((sum, l) => sum + l.severity, 0) / logs.length);
+            sections.push(`  ${name}: ${logs.length}\u00D7 reported, avg severity ${avgSeverity}/10`);
+          });
+          sections.push('');
+        }
+      } catch {
+        // Symptom fetch failed — skip silently
+      }
+    }
+
+    // Questions
+    if (showQuestions && allQuestions.length > 0) {
       sections.push('Questions to Ask:');
-      allQuestions.forEach((q, i) => sections.push(`${i + 1}. ${q}`));
+      allQuestions.forEach((q, i) => sections.push(`  ${i + 1}. ${q}`));
       sections.push('');
     }
 
@@ -158,7 +255,7 @@ export default function ProviderPrepScreen() {
       },
       patient: { name: patientName || 'Patient' },
     };
-  }, [appointment, questions, checkedQuestions, customQuestions]);
+  }, [appointment, questions, checkedQuestions, customQuestions, showVitals, showMedAdherence, showSymptoms, showQuestions]);
 
   const handlePreview = useCallback(async () => {
     try {
@@ -214,12 +311,12 @@ export default function ProviderPrepScreen() {
     return (
       <View style={styles.container}>
         <AuroraBackground variant="hub" />
-        <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <View style={{ flex: 1, paddingTop: insets.top }}>
           <SubScreenHeader title="Visit Prep" />
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.accent} />
           </View>
-        </SafeAreaView>
+        </View>
       </View>
     );
   }
@@ -228,13 +325,13 @@ export default function ProviderPrepScreen() {
     return (
       <View style={styles.container}>
         <AuroraBackground variant="hub" />
-        <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <View style={{ flex: 1, paddingTop: insets.top }}>
           <SubScreenHeader title="Visit Prep" />
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No upcoming appointments found.</Text>
             <Text style={styles.emptySubtext}>Add an appointment to start preparing.</Text>
           </View>
-        </SafeAreaView>
+        </View>
       </View>
     );
   }
@@ -242,7 +339,7 @@ export default function ProviderPrepScreen() {
   return (
     <View style={styles.container}>
       <AuroraBackground variant="hub" />
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+      <View style={{ flex: 1, paddingTop: insets.top }}>
         <SubScreenHeader
           title="Visit Prep"
                     rightAction={
@@ -460,9 +557,9 @@ export default function ProviderPrepScreen() {
                       styles.previewLine,
                       line.startsWith('Provider:') || line.startsWith('Date:') || line.startsWith('Specialty:')
                         ? styles.previewLineHeader
-                        : line.startsWith('Questions to Ask:')
+                        : line.startsWith('Questions to Ask:') || line.startsWith('Vitals Trend') || line.startsWith('Medication Adherence') || line.startsWith('Recent Symptoms')
                         ? styles.previewLineSectionTitle
-                        : line.match(/^\d+\./)
+                        : line.match(/^\s*\d+\./)
                         ? styles.previewLineQuestion
                         : null,
                     ]}>{line}</Text>
@@ -472,7 +569,7 @@ export default function ProviderPrepScreen() {
             </ScrollView>
           </SafeAreaView>
         </Modal>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }

@@ -1,53 +1,80 @@
 // ============================================================================
-// COFFEE MOMENT SCREEN - Refactored
-// A peaceful break for caregivers with interactive breathing exercise
+// COFFEE MOMENT SCREEN - Sanctuary
+// A peaceful break for caregivers — breathing, resources, templates, helpline
 // ============================================================================
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Linking, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Linking, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Clipboard from 'expo-clipboard';
 
 import { Colors } from '../theme/theme-tokens';
+
 const AFFIRMATIONS = [
-  { emoji: '🌟', text: 'You are doing an incredible job, even on the hard days.' },
-  { emoji: '💪', text: 'Your strength and resilience make a profound difference.' },
-  { emoji: '🌸', text: 'Taking care of yourself is taking care of those you love.' },
-  { emoji: '🕊️', text: 'It\'s okay to rest. You deserve moments of peace.' },
-  { emoji: '✨', text: 'Small steps forward are still progress worth celebrating.' },
-  { emoji: '🌈', text: 'Your compassion is a gift to everyone around you.' },
-  { emoji: '🦋', text: 'You are more capable than you know.' },
-  { emoji: '🌺', text: 'Every breath you take is an act of courage.' },
+  { emoji: '\uD83C\uDF1F', text: 'You are doing an incredible job, even on the hard days.' },
+  { emoji: '\uD83D\uDCAA', text: 'Your strength and resilience make a profound difference.' },
+  { emoji: '\uD83C\uDF38', text: 'Taking care of yourself is taking care of those you love.' },
+  { emoji: '\uD83D\uDD4A\uFE0F', text: 'It\'s okay to rest. You deserve moments of peace.' },
+  { emoji: '\u2728', text: 'Small steps forward are still progress worth celebrating.' },
+  { emoji: '\uD83C\uDF08', text: 'Your compassion is a gift to everyone around you.' },
+  { emoji: '\uD83E\uDD8B', text: 'You are more capable than you know.' },
+  { emoji: '\uD83C\uDF3A', text: 'Every breath you take is an act of courage.' },
 ];
 
 const RESOURCES = [
   {
     title: "Managing Caregiver Stress",
     url: "https://www.nia.nih.gov/health/caregiving/taking-care-yourself-tips-caregivers",
-    icon: "heart-outline"
+    icon: "heart-outline",
+    emoji: "\uD83E\uDDE0",
+    source: "National Institute on Aging",
+    tint: Colors.accent,
+    tintBg: 'rgba(20, 184, 166, 0.10)',
+    tintBorder: 'rgba(20, 184, 166, 0.25)',
+  },
+  {
+    title: "Recognizing Burnout Signs",
+    url: "https://www.helpguide.org/articles/stress/burnout-prevention-and-recovery.htm",
+    icon: "alert-circle-outline",
+    emoji: "\uD83D\uDD25",
+    source: "HelpGuide.org",
+    tint: '#FBBF24',
+    tintBg: 'rgba(251, 191, 36, 0.10)',
+    tintBorder: 'rgba(251, 191, 36, 0.25)',
+  },
+  {
+    title: "Find a Support Group",
+    url: "https://www.caregiver.org/connecting-caregivers/support-groups/",
+    icon: "people-outline",
+    emoji: "\uD83D\uDC65",
+    source: "Family Caregiver Alliance",
+    tint: '#A78BFA',
+    tintBg: 'rgba(167, 139, 250, 0.10)',
+    tintBorder: 'rgba(167, 139, 250, 0.25)',
   },
   {
     title: "Self-Care Strategies",
     url: "https://www.caregiver.org/resource/caregiver-self-care/",
-    icon: "fitness-outline"
-  },
-  {
-    title: "Finding Support Groups",
-    url: "https://www.caregiver.org/connecting-caregivers/support-groups/",
-    icon: "people-outline"
-  },
-  {
-    title: "Recognizing Burnout",
-    url: "https://www.helpguide.org/articles/stress/burnout-prevention-and-recovery.htm",
-    icon: "alert-circle-outline"
+    icon: "fitness-outline",
+    emoji: "\uD83D\uDC86",
+    source: "Family Caregiver Alliance",
+    tint: '#5EEAD4',
+    tintBg: 'rgba(94, 234, 212, 0.10)',
+    tintBorder: 'rgba(94, 234, 212, 0.25)',
   },
   {
     title: "Financial & Legal Planning",
     url: "https://www.aarp.org/caregiving/financial-legal/",
-    icon: "document-text-outline"
-  }
+    icon: "document-text-outline",
+    emoji: "\uD83D\uDCCB",
+    source: "AARP Caregiving",
+    tint: '#38BDF8',
+    tintBg: 'rgba(56, 189, 248, 0.10)',
+    tintBorder: 'rgba(56, 189, 248, 0.25)',
+  },
 ];
 
 const TEMPLATES = [
@@ -93,6 +120,12 @@ const TEMPLATES = [
   },
 ];
 
+const CRISIS_LINE = {
+  name: "Caregiver Action Network",
+  phone: "1-855-227-3640",
+  url: "tel:18552273640",
+};
+
 type BreathPhase = 'inhale' | 'hold' | 'exhale' | 'rest';
 
 export default function CoffeeMoment() {
@@ -102,9 +135,8 @@ export default function CoffeeMoment() {
   const [secondsRemaining, setSecondsRemaining] = useState(4);
   const [cyclesCompleted, setCyclesCompleted] = useState(0);
   const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null);
-  const [showResourcesModal, setShowResourcesModal] = useState(false);
-  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [todaysAffirmation] = useState(AFFIRMATIONS[Math.floor(Math.random() * AFFIRMATIONS.length)]);
+  const [copiedIndex, setCopiedIndex] = useState<string | null>(null);
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0.3)).current;
@@ -191,6 +223,12 @@ export default function CoffeeMoment() {
     }
   };
 
+  const copyPhrase = async (phrase: string, key: string) => {
+    await Clipboard.setStringAsync(phrase);
+    setCopiedIndex(key);
+    setTimeout(() => setCopiedIndex(null), 1500);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient colors={[Colors.backgroundDeep, '#0A1412']} style={styles.gradient}>
@@ -244,162 +282,121 @@ export default function CoffeeMoment() {
 
             {cyclesCompleted > 0 && (
               <Text style={styles.cyclesText}>
-                ✨ {cyclesCompleted} breath cycle{cyclesCompleted !== 1 ? 's' : ''} completed
+                {'\u2728'} {cyclesCompleted} breath cycle{cyclesCompleted !== 1 ? 's' : ''} completed
               </Text>
             )}
           </View>
 
-          {/* Daily Affirmation */}
+          {/* Pause/End controls */}
+          {isBreathing && (
+            <View style={styles.breathControls}>
+              <TouchableOpacity style={styles.breathControlBtn} onPress={stopBreathing}>
+                <Text style={styles.breathControlText}>End</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Affirmation — compact inline card */}
           <View style={styles.affirmationCard}>
             <Text style={styles.affirmationLabel}>Today's affirmation</Text>
-            <Text style={styles.affirmationEmoji}>{todaysAffirmation.emoji}</Text>
-            <Text style={styles.affirmationText}>{todaysAffirmation.text}</Text>
+            <Text style={styles.affirmationText}>
+              {todaysAffirmation.emoji} "{todaysAffirmation.text}"
+            </Text>
           </View>
+
+          {/* ── Resources ── */}
+          <Text style={styles.sectionTitle}>Resources</Text>
+          {RESOURCES.map((resource, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[styles.resourceItem, { backgroundColor: resource.tintBg, borderColor: resource.tintBorder }]}
+              onPress={() => openLink(resource.url)}
+              activeOpacity={0.7}
+              accessibilityLabel={`Open ${resource.title}`}
+              accessibilityRole="link"
+            >
+              <Text style={styles.resourceEmoji}>{resource.emoji}</Text>
+              <View style={styles.resourceInfo}>
+                <Text style={styles.resourceTitle}>{resource.title}</Text>
+                <Text style={styles.resourceSource}>{resource.source}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.25)" />
+            </TouchableOpacity>
+          ))}
+
+          {/* ── Communication Templates ── */}
+          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Quick Phrases</Text>
+          <View style={styles.templateChips}>
+            {TEMPLATES.map((template) => (
+              <TouchableOpacity
+                key={template.id}
+                style={[
+                  styles.templateChip,
+                  expandedTemplate === template.id && styles.templateChipActive,
+                ]}
+                onPress={() => setExpandedTemplate(expandedTemplate === template.id ? null : template.id)}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={template.icon as any}
+                  size={14}
+                  color={expandedTemplate === template.id ? Colors.accent : 'rgba(255,255,255,0.5)'}
+                />
+                <Text style={[
+                  styles.templateChipText,
+                  expandedTemplate === template.id && styles.templateChipTextActive,
+                ]}>
+                  {template.title}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Expanded template phrases */}
+          {expandedTemplate && (
+            <View style={styles.templateExpanded}>
+              <Text style={styles.templateExpandedTitle}>
+                {TEMPLATES.find(t => t.id === expandedTemplate)?.icon && (
+                  <Ionicons name={TEMPLATES.find(t => t.id === expandedTemplate)!.icon as any} size={14} color={Colors.accent} />
+                )}{' '}
+                {TEMPLATES.find(t => t.id === expandedTemplate)?.title}
+              </Text>
+              {TEMPLATES.find(t => t.id === expandedTemplate)?.phrases.map((phrase, index) => {
+                const key = `${expandedTemplate}-${index}`;
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.phraseCard}
+                    onPress={() => copyPhrase(phrase, key)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.phraseText}>"{phrase}"</Text>
+                    <Text style={styles.phraseCopy}>
+                      {copiedIndex === key ? 'Copied \u2713' : 'Copy'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {/* ── Crisis helpline ── */}
+          <TouchableOpacity
+            style={styles.crisisCard}
+            onPress={() => openLink(CRISIS_LINE.url)}
+            activeOpacity={0.7}
+            accessibilityLabel={`Call ${CRISIS_LINE.name}`}
+            accessibilityRole="link"
+          >
+            <Text style={styles.crisisIcon}>{'\uD83D\uDCDE'}</Text>
+            <View style={styles.crisisInfo}>
+              <Text style={styles.crisisTitle}>Need to talk to someone?</Text>
+              <Text style={styles.crisisPhone}>{CRISIS_LINE.name}: {CRISIS_LINE.phone}</Text>
+            </View>
+            <Text style={styles.crisisAction}>Call</Text>
+          </TouchableOpacity>
+
         </ScrollView>
-
-        {/* Fixed Bottom Action Bar */}
-        <View style={styles.bottomActionBar}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => setShowResourcesModal(true)}
-            activeOpacity={0.7}
-            accessibilityLabel="Open resources"
-            accessibilityRole="button"
-          >
-            <Text style={styles.actionButtonIcon}>📚</Text>
-            <Text style={styles.actionButtonText}>Resources</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => setShowTemplatesModal(true)}
-            activeOpacity={0.7}
-            accessibilityLabel="Open communication templates"
-            accessibilityRole="button"
-          >
-            <Text style={styles.actionButtonIcon}>💬</Text>
-            <Text style={styles.actionButtonText}>Templates</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Resources Modal */}
-        <Modal
-          visible={showResourcesModal}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setShowResourcesModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>📚 Helpful Resources</Text>
-                <TouchableOpacity onPress={() => setShowResourcesModal(false)} accessibilityLabel="Close resources" accessibilityRole="button">
-                  <Ionicons name="close" size={28} color={Colors.textNearFull} />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView style={styles.modalScroll}>
-                <Text style={styles.modalSubtitle}>
-                  Articles and guides to support your caregiving journey
-                </Text>
-
-                <View style={styles.resourceList}>
-                  {RESOURCES.map((resource, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={styles.resourceItem}
-                      onPress={() => {
-                        openLink(resource.url);
-                        setShowResourcesModal(false);
-                      }}
-                      activeOpacity={0.7}
-                      accessibilityLabel={`Open ${resource.title}`}
-                      accessibilityRole="link"
-                    >
-                      <View style={styles.resourceIcon}>
-                        <Ionicons name={resource.icon as any} size={20} color="rgba(79, 209, 197, 0.9)" />
-                      </View>
-                      <Text style={styles.resourceTitle}>{resource.title}</Text>
-                      <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Templates Modal */}
-        <Modal
-          visible={showTemplatesModal}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setShowTemplatesModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>💬 Communication Templates</Text>
-                <TouchableOpacity onPress={() => setShowTemplatesModal(false)} accessibilityLabel="Close templates" accessibilityRole="button">
-                  <Ionicons name="close" size={28} color={Colors.textNearFull} />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView style={styles.modalScroll}>
-                <Text style={styles.modalSubtitle}>
-                  Ready-to-use phrases for common situations
-                </Text>
-
-                {TEMPLATES.map((template) => (
-                  <View key={template.id} style={styles.templateContainer}>
-                    <TouchableOpacity
-                      style={[
-                        styles.templateToggle,
-                        expandedTemplate === template.id && styles.templateToggleActive,
-                      ]}
-                      onPress={() =>
-                        setExpandedTemplate(
-                          expandedTemplate === template.id ? null : template.id
-                        )
-                      }
-                      activeOpacity={0.7}
-                      accessibilityLabel={`${template.title} templates`}
-                      accessibilityRole="button"
-                      accessibilityState={{ expanded: expandedTemplate === template.id }}
-                    >
-                      <Ionicons
-                        name={template.icon as any}
-                        size={18}
-                        color={expandedTemplate === template.id ? "rgba(79, 209, 197, 1)" : "rgba(79, 209, 197, 0.7)"}
-                      />
-                      <Text style={[
-                        styles.templateToggleText,
-                        expandedTemplate === template.id && styles.templateToggleTextActive,
-                      ]}>
-                        {template.title}
-                      </Text>
-                      <Ionicons
-                        name={expandedTemplate === template.id ? "chevron-up" : "chevron-down"}
-                        size={20}
-                        color={Colors.textTertiary}
-                      />
-                    </TouchableOpacity>
-
-                    {expandedTemplate === template.id && (
-                      <View style={styles.templatePhrases}>
-                        {template.phrases.map((phrase, index) => (
-                          <View key={index} style={styles.phraseCard}>
-                            <Text style={styles.phraseText}>"{phrase}"</Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          </View>
-        </Modal>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -408,10 +405,10 @@ export default function CoffeeMoment() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.backgroundDeep
+    backgroundColor: Colors.backgroundDeep,
   },
   gradient: {
-    flex: 1
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -423,7 +420,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: Platform.OS === 'web' ? 36 : 28,
     fontWeight: '300',
-    color: Colors.textNearFull
+    color: Colors.textNearFull,
   },
   closeButton: {
     width: 40,
@@ -435,15 +432,15 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
-    paddingHorizontal: Platform.OS === 'web' ? 32 : 20
+    paddingHorizontal: Platform.OS === 'web' ? 32 : 20,
   },
   scrollContent: {
-    paddingBottom: 100, // Space for fixed bottom bar
+    paddingBottom: 40,
   },
   subtitle: {
     fontSize: Platform.OS === 'web' ? 17 : 15,
     color: 'rgba(255,255,255,0.75)',
-    marginBottom: Platform.OS === 'web' ? 32 : 24
+    marginBottom: Platform.OS === 'web' ? 32 : 24,
   },
 
   // Enhanced Breathing Orb - Hero
@@ -514,183 +511,191 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 
-  // Daily Affirmation Card
-  affirmationCard: {
-    backgroundColor: 'rgba(79, 209, 197, 0.08)',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(79, 209, 197, 0.15)',
+  // Breathing controls
+  breathControls: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
     marginBottom: 20,
   },
-  affirmationLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    color: 'rgba(79, 209, 197, 0.8)',
-    marginBottom: 12,
-    fontWeight: '600',
+  breathControlBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
-  affirmationEmoji: {
-    fontSize: 48,
-    marginBottom: 16,
+  breathControlText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.5)',
+  },
+
+  // Affirmation — compact inline
+  affirmationCard: {
+    backgroundColor: 'rgba(20, 184, 166, 0.05)',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.04)',
+    marginBottom: 24,
+  },
+  affirmationLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    color: Colors.accent,
+    marginBottom: 8,
   },
   affirmationText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: 'rgba(255,255,255,0.9)',
-    textAlign: 'center',
-    fontStyle: 'italic',
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-
-  // Fixed Bottom Action Bar
-  bottomActionBar: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
-    backgroundColor: 'rgba(13, 31, 28, 0.95)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(79, 209, 197, 0.15)',
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(79, 209, 197, 0.08)',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(79, 209, 197, 0.2)',
-  },
-  actionButtonIcon: {
-    fontSize: 20,
-  },
-  actionButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.9)',
-  },
-
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: Colors.backgroundDeep,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 20,
-    maxHeight: '85%',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(79, 209, 197, 0.2)',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(79, 209, 197, 0.15)',
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: Colors.textNearFull,
-  },
-  modalScroll: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  modalSubtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
-    marginBottom: 16,
-    lineHeight: 18,
+    color: 'rgba(255,255,255,0.7)',
+    lineHeight: 20,
+    fontStyle: 'italic',
   },
 
-  // Resources (in modal)
-  resourceList: {
-    gap: 8,
-    paddingBottom: 20,
+  // Section titles
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.45)',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginBottom: 10,
   },
+
+  // Resources — inline list with color-coded cards
   resourceItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(79, 209, 197, 0.08)',
-    padding: 14,
-    borderRadius: 10,
+    padding: 12,
+    paddingHorizontal: 14,
+    marginBottom: 6,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(79, 209, 197, 0.2)',
   },
-  resourceIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(79, 209, 197, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  resourceEmoji: {
+    fontSize: 18,
+  },
+  resourceInfo: {
+    flex: 1,
   },
   resourceTitle: {
-    flex: 1,
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
+    fontSize: 13,
     fontWeight: '500',
+    color: 'rgba(255,255,255,0.95)',
+    lineHeight: 18,
+  },
+  resourceSource: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.3)',
+    marginTop: 1,
   },
 
-  // Communication Templates (in modal)
-  templateContainer: {
-    marginBottom: 8,
+  // Template chips
+  templateChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
   },
-  templateToggle: {
+  templateChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(79, 209, 197, 0.08)',
-    borderRadius: 10,
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  templateChipActive: {
+    backgroundColor: 'rgba(20, 184, 166, 0.10)',
+    borderColor: 'rgba(20, 184, 166, 0.25)',
+  },
+  templateChipText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.5)',
+  },
+  templateChipTextActive: {
+    color: Colors.accent,
+  },
+
+  // Expanded template
+  templateExpanded: {
+    backgroundColor: 'rgba(20, 184, 166, 0.05)',
+    borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(79, 209, 197, 0.2)',
+    borderColor: 'rgba(20, 184, 166, 0.25)',
+    marginBottom: 8,
   },
-  templateToggleActive: {
-    backgroundColor: 'rgba(79, 209, 197, 0.15)',
-    borderColor: 'rgba(79, 209, 197, 0.4)',
-  },
-  templateToggleText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.75)',
-  },
-  templateToggleTextActive: {
-    color: Colors.textNearFull,
-  },
-  templatePhrases: {
-    marginTop: 8,
-    gap: 8,
-    paddingLeft: 12,
+  templateExpandedTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.accent,
+    marginBottom: 10,
   },
   phraseCard: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    marginBottom: 4,
     borderRadius: 8,
-    padding: 12,
-    borderLeftWidth: 2,
-    borderLeftColor: 'rgba(79, 209, 197, 0.6)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.04)',
   },
   phraseText: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.85)',
-    lineHeight: 20,
+    flex: 1,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+    lineHeight: 18,
     fontStyle: 'italic',
+  },
+  phraseCopy: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.3)',
+    marginLeft: 8,
+  },
+
+  // Crisis helpline card
+  crisisCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    marginTop: 20,
+    marginBottom: 32,
+    borderRadius: 12,
+    backgroundColor: 'rgba(251, 113, 133, 0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 113, 133, 0.25)',
+  },
+  crisisIcon: {
+    fontSize: 16,
+  },
+  crisisInfo: {
+    flex: 1,
+  },
+  crisisTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FB7185',
+  },
+  crisisPhone: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 1,
+  },
+  crisisAction: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FB7185',
   },
 });

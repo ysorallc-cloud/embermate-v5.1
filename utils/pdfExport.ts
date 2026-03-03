@@ -5,6 +5,7 @@
 import { Alert, Platform, Share } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
 import { logError } from './devLog';
 
 export interface ReportData {
@@ -277,12 +278,16 @@ export async function generateAndSharePDF(
       base64: false,
     });
 
-    // Share the PDF
+    // Rename to a readable filename
+    const safeName = data.title.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '-');
+    const newUri = `${FileSystem.cacheDirectory}${safeName}.pdf`;
+    await FileSystem.moveAsync({ from: uri, to: newUri });
+
+    // Share the PDF (no UTI — ensures full iOS share sheet with Mail, Messages, AirDrop)
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(uri, {
+      await Sharing.shareAsync(newUri, {
         mimeType: 'application/pdf',
         dialogTitle: `Share ${data.title}`,
-        UTI: 'com.adobe.pdf',
       });
       return true;
     } else {

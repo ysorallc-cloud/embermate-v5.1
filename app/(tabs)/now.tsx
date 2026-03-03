@@ -88,11 +88,32 @@ function getGreeting(): string {
   return 'Good Evening';
 }
 
+function formatTime(t: string): string {
+  if (!t) return '';
+  if (t.includes('T')) {
+    const date = new Date(t);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+  const parts = t.split(':');
+  if (parts.length < 2) return t;
+  const hr = parseInt(parts[0]);
+  const min = parts[1];
+  const period = hr >= 12 ? 'PM' : 'AM';
+  return `${hr % 12 || 12}:${min} ${period}`;
+}
+
+type HandoffType = 'done' | 'watch' | 'flag';
+interface HandoffItem { icon: string; text: string; type: HandoffType; }
+interface BeforeBedItem { icon: string; text: string; route: string; }
+
 // Banners (removed: NoMedicationsBanner, NoCarePlanBanner, DataIntegrityBanner)
 import { logError } from '../../utils/devLog';
 import { useDataListener, emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
 import { GettingStartedChecklist } from '../../components/guidance';
+import { buildCareBrief, CareBrief } from '../../utils/careSummaryBuilder';
+import { getAllInsights, InsightData } from '../../utils/insightEngine';
 
 // ============================================================================
 // INLINE COMPONENT — Section header row (flat, no emoji icons)
@@ -102,16 +123,33 @@ function SectionHeaderRow({
   title,
   action,
   onAction,
+  collapsed,
+  onToggleCollapse,
   styles: s,
 }: {
   title: string;
   action?: string;
   onAction?: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
   styles: ReturnType<typeof createStyles>;
 }) {
   return (
     <View style={s.sectionHeaderRow}>
-      <Text style={s.sectionHeaderTitle}>{title}</Text>
+      {onToggleCollapse ? (
+        <TouchableOpacity
+          onPress={onToggleCollapse}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+          accessibilityRole="button"
+          accessibilityLabel={`${title}, ${collapsed ? 'collapsed' : 'expanded'}`}
+          accessibilityState={{ expanded: !collapsed }}
+        >
+          <Text style={s.sectionHeaderTitle}>{title}</Text>
+          <Text style={{ fontSize: 12, color: Colors.textMuted }}>{collapsed ? '\u25B6' : '\u25BC'}</Text>
+        </TouchableOpacity>
+      ) : (
+        <Text style={s.sectionHeaderTitle}>{title}</Text>
+      )}
       {action && onAction && (
         <TouchableOpacity onPress={onAction} accessibilityRole="button" accessibilityLabel={action}>
           <Text style={s.sectionHeaderAction}>{action} →</Text>
@@ -220,6 +258,13 @@ export default function NowScreen() {
   const [vitalsExceedances, setVitalsExceedances] = useState<any[]>([]);
   const [vitalsRecentReadings, setVitalsRecentReadings] = useState<any[]>([]);
   const [vitalsGuidanceDismissed, setVitalsGuidanceDismissed] = useState(false);
+
+  // Timeline collapse state — default collapsed
+  const [timelineCollapsed, setTimelineCollapsed] = useState(true);
+
+  // Handoff / Patterns / Before Bed (mirrored from Journal)
+  const [brief, setBrief] = useState<CareBrief | null>(null);
+  const [patterns, setPatterns] = useState<InsightData[]>([]);
 
   // Appointment prep state (Task 4.5)
   const [upcomingPrepAppointment, setUpcomingPrepAppointment] = useState<any>(null);
@@ -544,6 +589,10 @@ export default function NowScreen() {
         setUpcomingPrepAppointment(null);
       }
 
+      // Load care brief for handoff/patterns/before-bed
+      buildCareBrief().then(data => setBrief(data)).catch(() => {});
+      getAllInsights().then(data => setPatterns(data)).catch(() => setPatterns([]));
+
       // Legacy stats fallback — only used when no regimen instances exist
       const legacyStatsUpdate: TodayStats = {
         meds: { completed: takenMeds, total: totalMeds },
@@ -566,6 +615,75 @@ export default function NowScreen() {
     await loadData();
     setRefreshing(false);
   }, []);
+
+  // ============================================================================
+  // HANDOFF NOTES + BEFORE BED (mirrored from Journal)
+  // ============================================================================
+  function buildHandoffNotes(): HandoffItem[] {
+    if (!brief) return [];
+    const items: HandoffItem[] = [];
+
+    for (const med of brief.medications) {
+      if ((med.status === 'completed' || med.status === 'skipped') && med.takenAt) {
+        items.push({
+          icon: '\uD83D\uDC8A',
+          text: `${med.name} taken at ${formatTime(med.takenAt)}`,
+          type: 'done',
+        });
+      }
+    }
+
+    if (brief.attentionItems) {
+      for (const ai of brief.attentionItems) {
+        const text = ai.text || '';
+        let type: HandoffType = 'watch';
+        if (/miss|skip|overdue/i.test(text)) type = 'flag';
+        const icon = type === 'flag' ? '\uD83D\uDED1' : '\uD83D\uDC41\uFE0F';
+        items.push({ icon, text, type });
+      }
+    }
+
+    if (brief.interpretations?.medications) {
+      items.push({ icon: '\uD83D\uDC8A', text: brief.interpretations.medications, type: 'watch' });
+    }
+    if (brief.interpretations?.vitals) {
+      items.push({ icon: '\uD83C\uDF21\uFE0F', text: brief.interpretations.vitals, type: 'watch' });
+    }
+    if (brief.interpretations?.nutrition) {
+      items.push({ icon: '\uD83C\uDF5E', text: brief.interpretations.nutrition, type: 'watch' });
+    }
+
+    return items;
+  }
+
+  function buildBeforeBedItems(): BeforeBedItem[] {
+    const items: BeforeBedItem[] = [];
+
+    if (careTasksState) {
+      const eveningTasks = careTasksState.byWindow['evening'] || [];
+      const nightTasks = careTasksState.byWindow['night'] || [];
+      for (const task of [...eveningTasks, ...nightTasks]) {
+        if (task.status === 'pending') {
+          items.push({
+            icon: task.emoji || '\u2705',
+            text: task.title,
+            route: task.primaryAction?.route || '',
+          });
+        }
+      }
+    }
+
+    if (brief && !brief.sleep.logged) {
+      items.push({ icon: '\uD83D\uDE34', text: 'Log sleep when she goes to bed', route: '/log-sleep' });
+    }
+
+    const hasEvening = brief?.mood.eveningWellness != null;
+    if (brief && !hasEvening && new Date().getHours() >= 17) {
+      items.push({ icon: '\uD83D\uDCCB', text: 'Evening wellness check', route: '/log-evening-wellness' });
+    }
+
+    return items;
+  }
 
   // ============================================================================
   // RENDER
@@ -686,10 +804,12 @@ export default function NowScreen() {
             title="Today's Schedule"
             action="Adjust Today"
             onAction={() => navigate('/today-scope')}
+            collapsed={timelineCollapsed}
+            onToggleCollapse={() => setTimelineCollapsed(prev => !prev)}
             styles={styles}
           />
 
-          <View style={styles.sectionCard}>
+          {!timelineCollapsed && <View style={styles.sectionCard}>
             {/* Morning Meds Banner — batch confirm */}
             <MorningMedsBanner
               pendingCount={allPending.filter((i: any) => i.itemType === 'medication').length}
@@ -736,7 +856,7 @@ export default function NowScreen() {
                 <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
               </View>
             )}
-          </View>
+          </View>}
 
           {/* ═══ ZONE 3: UPCOMING THIS WEEK ═══ */}
           {upcomingPrepAppointment && (
@@ -767,6 +887,64 @@ export default function NowScreen() {
               </View>
             </>
           )}
+
+          {/* ═══ ZONE 4: WHAT'S HAPPENED ═══ */}
+          {brief && (() => {
+            const handoffNotes = buildHandoffNotes();
+            if (handoffNotes.length === 0) return null;
+            return (
+              <>
+                <SectionHeaderRow title="What's Happened" styles={styles} />
+                <View style={styles.sectionCard}>
+                  {handoffNotes.map((item, i) => (
+                    <View key={`handoff-${i}`} style={styles.handoffRow}>
+                      <Text style={styles.handoffIcon}>{item.icon}</Text>
+                      <Text style={styles.handoffText}>{item.text}</Text>
+                    </View>
+                  ))}
+                </View>
+              </>
+            );
+          })()}
+
+          {/* ═══ ZONE 5: PATTERNS TO WATCH ═══ */}
+          {patterns.length > 0 && (
+            <>
+              <SectionHeaderRow title="Patterns to Watch" styles={styles} />
+              <View style={styles.sectionCard}>
+                {patterns.slice(0, 3).map((p) => (
+                  <View key={p.id} style={styles.patternRow}>
+                    <Text style={styles.patternTitle}>{p.title}</Text>
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
+
+          {/* ═══ ZONE 6: BEFORE BED ═══ */}
+          {brief && new Date().getHours() >= 17 && (() => {
+            const bedItems = buildBeforeBedItems();
+            if (bedItems.length === 0) return null;
+            return (
+              <>
+                <SectionHeaderRow title="Before Bed" styles={styles} />
+                <View style={styles.sectionCard}>
+                  {bedItems.map((item, i) => (
+                    <TouchableOpacity
+                      key={`bed-${i}`}
+                      style={styles.beforeBedRow}
+                      onPress={() => item.route && navigate(item.route)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.beforeBedIcon}>{item.icon}</Text>
+                      <Text style={styles.beforeBedText}>{item.text}</Text>
+                      <Text style={styles.beforeBedArrow}>{'\u2192'}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            );
+          })()}
 
           {/* ═══ FOOTER ═══ */}
           {/* All-done / encouragement */}
@@ -1070,5 +1248,61 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   appointmentPrepArrow: {
     fontSize: 20,
     color: c.textMuted,
+  },
+
+  // ── Handoff notes ──
+  handoffRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border,
+  },
+  handoffIcon: {
+    fontSize: 16,
+  },
+  handoffText: {
+    flex: 1,
+    fontSize: 13,
+    color: c.textSecondary,
+    lineHeight: 18,
+  },
+
+  // ── Patterns ──
+  patternRow: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border,
+  },
+  patternTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: c.textPrimary,
+  },
+
+  // ── Before bed ──
+  beforeBedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border,
+  },
+  beforeBedIcon: {
+    fontSize: 16,
+  },
+  beforeBedText: {
+    flex: 1,
+    fontSize: 13,
+    color: c.textSecondary,
+  },
+  beforeBedArrow: {
+    fontSize: 14,
+    color: c.accent,
   },
 });
