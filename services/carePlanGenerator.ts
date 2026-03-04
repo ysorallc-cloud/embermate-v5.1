@@ -151,27 +151,25 @@ async function syncMedicationItemsWithConfig(
     const allItems = await listCarePlanItems(carePlanId, { activeOnly: false });
     const medicationItems = allItems.filter(item => item.type === 'medication');
 
-    // Build lookup of existing item medication IDs and names
-    const existingMedIds = new Set(
-      medicationItems
-        .filter(item => item.medicationDetails?.medicationId)
-        .map(item => item.medicationDetails!.medicationId)
-    );
-    const existingMedNames = new Set(
-      medicationItems.map(item => item.name.toLowerCase().trim())
-    );
+    // Build lookup of existing items by medicationId AND by exact composed name
+    const existingByMedId = new Map<string, CarePlanItem>();
+    const existingByName = new Map<string, CarePlanItem>();
+    for (const item of medicationItems) {
+      if (item.medicationDetails?.medicationId) {
+        existingByMedId.set(item.medicationDetails.medicationId, item);
+      }
+      existingByName.set(item.name.toLowerCase().trim(), item);
+    }
 
     // 1. CREATE: Add CarePlanItems for config medications that don't have items
     for (const configMed of activeConfigMeds) {
-      // Check if this config med already has a CarePlanItem (by ID or name match)
-      const hasItemById = existingMedIds.has(configMed.id);
-      const hasItemByName = Array.from(existingMedNames).some(itemName =>
-        itemName.includes(configMed.name.toLowerCase()) ||
-        configMed.name.toLowerCase().includes(itemName.split(' ')[0])
-      );
+      // Match by medicationId (most reliable)
+      const matchById = existingByMedId.get(configMed.id);
+      // Match by exact composed name ("Name Dosage")
+      const composedName = `${configMed.name} ${configMed.dosage}`.trim().toLowerCase();
+      const matchByName = existingByName.get(composedName);
 
-      if (!hasItemById && !hasItemByName) {
-        // Create new CarePlanItem for this config medication
+      if (!matchById && !matchByName) {
         const newItem = createCarePlanItemFromConfigMed(configMed, carePlanId);
         devLog('[syncMedicationItemsWithConfig] Creating CarePlanItem for config med:', configMed.name);
         await upsertCarePlanItem(newItem);
@@ -181,15 +179,21 @@ async function syncMedicationItemsWithConfig(
 
     // 2. DEACTIVATE: Remove CarePlanItems that aren't in config
     for (const item of medicationItems) {
-      // Extract medication name from item name (format: "Name Dosage" e.g., "Lisinopril 10mg")
-      const itemNameLower = item.name.toLowerCase().trim();
-      // Check if any config medication name is contained in the item name
-      const hasMatchingConfig = Array.from(activeMedNames).some(configName =>
-        itemNameLower.includes(configName) || configName.includes(itemNameLower.split(' ')[0])
-      );
+      // Check by medicationId first (most reliable)
+      const medId = item.medicationDetails?.medicationId;
+      if (medId && activeMedNames.size > 0) {
+        const matchesById = activeConfigMeds.some(cm => cm.id === medId);
+        if (matchesById) continue; // Item matches config — keep it
+      }
 
-      if (!hasMatchingConfig && item.active) {
-        // Deactivate this item - it's not in the current config
+      // Fallback: check if item name matches any config med's composed name
+      const itemNameLower = item.name.toLowerCase().trim();
+      const matchesByName = activeConfigMeds.some(cm => {
+        const composed = `${cm.name} ${cm.dosage}`.trim().toLowerCase();
+        return itemNameLower === composed || itemNameLower === cm.name.toLowerCase().trim();
+      });
+
+      if (!matchesByName && item.active) {
         devLog('[syncMedicationItemsWithConfig] Deactivating stale medication item:', item.name);
         await upsertCarePlanItem({
           ...item,
@@ -569,6 +573,14 @@ export async function ensureDailyInstances(
   const medsChanged = await syncMedicationItemsWithConfig(carePlan.id, patientId);
   const bucketsChanged = await syncOtherBucketsWithConfig(carePlan.id, patientId);
 
+  // 1.6 If sync changed items, re-run dedup to catch any newly created duplicates
+  if (medsChanged) {
+    const postSyncCleanup = await cleanupDuplicateCarePlanItems(patientId);
+    if (postSyncCleanup.removedCount > 0) {
+      devLog(`[ensureDailyInstances] Post-sync cleanup removed ${postSyncCleanup.removedCount} duplicates`);
+    }
+  }
+
   // 2. Get active items (after sync to reflect current config)
   const items = await listCarePlanItems(carePlan.id, { activeOnly: true });
   if (items.length === 0) {
@@ -893,6 +905,10 @@ export async function cleanupDuplicateCarePlanItems(
   const duplicateIds: string[] = [];
   const affectedTypes: Set<string> = new Set();
 
+  // For medications, also track by medicationId to catch duplicates with
+  // slightly different names but the same underlying medication
+  const seenByMedId = new Map<string, CarePlanItem>();
+
   // For each item, keep the first one and mark others as duplicates
   for (const item of allItems) {
     // Use type + name as key so items of the same type but different names
@@ -900,11 +916,22 @@ export async function cleanupDuplicateCarePlanItems(
     const key = `${item.type}:${item.name.toLowerCase()}`;
 
     if (seenByTypeAndName.has(key)) {
-      // This is a duplicate
+      // Exact name duplicate
+      duplicateIds.push(item.id);
+      affectedTypes.add(item.type);
+    } else if (
+      item.type === 'medication' &&
+      item.medicationDetails?.medicationId &&
+      seenByMedId.has(item.medicationDetails.medicationId)
+    ) {
+      // Same medication ID but different name (e.g. dosage changed) — duplicate
       duplicateIds.push(item.id);
       affectedTypes.add(item.type);
     } else {
       seenByTypeAndName.set(key, item);
+      if (item.type === 'medication' && item.medicationDetails?.medicationId) {
+        seenByMedId.set(item.medicationDetails.medicationId, item);
+      }
     }
   }
 

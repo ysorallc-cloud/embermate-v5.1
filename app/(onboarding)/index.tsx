@@ -1,32 +1,37 @@
 // ============================================================================
-// ONBOARDING FLOW - Streamlined 3-Screen Experience
-// Welcome → Privacy/Disclaimer → Get Started
+// ONBOARDING FLOW - 4-Screen Experience
+// Welcome → Who Is This For → Privacy/Disclaimer → Get Started
 // ============================================================================
 
 import React, { useRef, useState } from 'react';
 import { View, StyleSheet, FlatList, Dimensions, Pressable, Text } from 'react-native';
 import Animated, { useSharedValue, useAnimatedScrollHandler } from 'react-native-reanimated';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { safeSetItem } from '../../utils/safeStorage';
 
 import { WelcomeScreen } from './screens/WelcomeScreen';
+import { WhoIsThisForScreen } from './screens/WhoIsThisForScreen';
 import { PrivacyDisclaimerScreen } from './screens/PrivacyDisclaimerScreen';
 import { GetStartedScreen } from './screens/GetStartedScreen';
 
 import { PaginationDots } from './components/PaginationDots';
 import { seedSampleData } from '../../utils/sampleData';
+import { initializeSampleData } from '../../utils/sampleDataGenerator';
 import { logError } from '../../utils/devLog';
 import { Colors, Typography, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { StorageKeys } from '../../utils/storageKeys';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
-// Streamlined 3-screen flow: Welcome → Privacy/Disclaimer → Get Started
+// 4-screen flow: Welcome → Who Is This For → Privacy/Disclaimer → Get Started
 const ONBOARDING_SCREENS = [
-  { id: '1', component: WelcomeScreen, title: 'Welcome' },
-  { id: '2', component: PrivacyDisclaimerScreen, title: 'Privacy' },
-  { id: '3', component: GetStartedScreen, title: 'Get Started' },
+  { id: '1', title: 'Welcome' },
+  { id: '2', title: 'Who Is This For' },
+  { id: '3', title: 'Privacy' },
+  { id: '4', title: 'Get Started' },
 ];
 
 export default function OnboardingFlow() {
@@ -34,6 +39,7 @@ export default function OnboardingFlow() {
   const scrollX = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+  const [careMode, setCareMode] = useState<'caregiver' | 'self'>('caregiver');
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -50,18 +56,33 @@ export default function OnboardingFlow() {
     }
   };
 
+  const handleSelectCareMode = async (mode: 'caregiver' | 'self') => {
+    setCareMode(mode);
+    await safeSetItem(StorageKeys.CARE_MODE, mode);
+    // Auto-advance to next screen
+    flatListRef.current?.scrollToIndex({
+      index: 2,
+      animated: true,
+    });
+  };
+
   const handleAcceptDisclaimer = async (seedData: boolean) => {
     await completeOnboarding(seedData);
   };
 
   const completeOnboarding = async (seedData: boolean = false) => {
     try {
-      await safeSetItem('onboarding_completed', 'true');
+      await safeSetItem(StorageKeys.ONBOARDING_COMPLETE, 'true');
       await safeSetItem('disclaimer_accepted', 'true');
+      await safeSetItem(StorageKeys.CARE_MODE, careMode);
 
       // Seed sample data if requested
       if (seedData) {
-        await seedSampleData({ daysOfData: 7 });
+        // Clear the initialized flag so initializeSampleData() runs fresh
+        // (may still be set from a previous onboarding cycle)
+        await AsyncStorage.removeItem(StorageKeys.SAMPLE_DATA_INITIALIZED);
+        await seedSampleData({ daysOfData: 14 });
+        await initializeSampleData();
       }
 
       // Navigate to main app
@@ -86,18 +107,20 @@ export default function OnboardingFlow() {
       return <WelcomeScreen />;
     }
     if (index === 1) {
-      return <PrivacyDisclaimerScreen onDisclaimerAccepted={setDisclaimerAccepted} />;
+      return <WhoIsThisForScreen onSelectMode={handleSelectCareMode} />;
     }
     if (index === 2) {
-      return <GetStartedScreen onComplete={handleAcceptDisclaimer} />;
+      return <PrivacyDisclaimerScreen onDisclaimerAccepted={setDisclaimerAccepted} />;
     }
-
-    const ScreenComponent = item.component;
-    return <ScreenComponent />;
+    if (index === 3) {
+      return <GetStartedScreen onComplete={handleAcceptDisclaimer} careMode={careMode} />;
+    }
+    return null;
   };
 
-  const isLastScreen = currentIndex === ONBOARDING_SCREENS.length - 1;
-  const isNextDisabled = currentIndex === 1 && !disclaimerAccepted;
+  // Hide footer on screen 1 (WhoIsThisFor — card tap advances) and screen 3 (GetStarted — own buttons)
+  const showFooter = currentIndex !== 1 && currentIndex !== 3;
+  const isNextDisabled = currentIndex === 2 && !disclaimerAccepted;
 
   return (
     <View style={styles.container}>
@@ -116,8 +139,8 @@ export default function OnboardingFlow() {
         bounces={false}
       />
 
-      {/* Navigation footer - hidden on last screen (it has its own buttons) */}
-      {!isLastScreen && (
+      {/* Navigation footer */}
+      {showFooter && (
         <View style={styles.footer}>
           {/* Empty spacer for layout balance */}
           <View style={styles.spacer} />

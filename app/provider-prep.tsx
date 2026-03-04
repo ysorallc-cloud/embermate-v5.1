@@ -15,9 +15,8 @@ import {
   Alert,
   ActivityIndicator,
   Switch,
-  Modal,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { format, subDays } from 'date-fns';
@@ -33,6 +32,7 @@ import { getVitals, VitalReading } from '../utils/vitalsStorage';
 import { getSymptoms, SymptomLog } from '../utils/symptomStorage';
 import { generateProviderQuestions } from '../utils/insightEngine';
 import { generateAndSharePDF, generatePreviewHTML } from '../utils/pdfExport';
+import { ReportPreviewModal } from '../components/shared/ReportPreviewModal';
 import { safeGetItem } from '../utils/safeStorage';
 import { StorageKeys } from '../utils/storageKeys';
 import { logError } from '../utils/devLog';
@@ -501,62 +501,15 @@ export default function ProviderPrepScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
 
-        {/* Preview Modal */}
-        <Modal
+        <ReportPreviewModal
           visible={showPreview}
-          animationType="slide"
-          presentationStyle="pageSheet"
-          onRequestClose={() => setShowPreview(false)}
-        >
-          <SafeAreaView style={styles.previewContainer} edges={['top', 'bottom']}>
-            <View style={styles.previewHeader}>
-              <TouchableOpacity
-                onPress={() => setShowPreview(false)}
-                style={styles.previewCloseButton}
-                accessibilityLabel="Close preview"
-                accessibilityRole="button"
-              >
-                <Text style={styles.previewCloseText}>Cancel</Text>
-              </TouchableOpacity>
-              <Text style={styles.previewTitle}>Report Preview</Text>
-              <TouchableOpacity
-                onPress={handleExport}
-                style={[styles.previewExportButton, exporting && { opacity: 0.5 }]}
-                disabled={exporting}
-                accessibilityLabel="Export as PDF"
-                accessibilityRole="button"
-              >
-                <Text style={styles.previewExportText}>
-                  {exporting ? 'Exporting...' : 'Share PDF'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.previewScroll} contentContainerStyle={styles.previewScrollContent}>
-              <View style={styles.previewCard}>
-                <Text style={styles.previewHTMLNote}>
-                  This is a preview of your report. Tap "Share PDF" to export.
-                </Text>
-              </View>
-              {/* Render a simplified text preview of the report content */}
-              {previewHTML ? (
-                <View style={styles.previewContent}>
-                  {previewHTML.split('\n').filter(Boolean).map((line, i) => (
-                    <Text key={i} style={[
-                      styles.previewLine,
-                      line.startsWith('Provider:') || line.startsWith('Date:') || line.startsWith('Specialty:')
-                        ? styles.previewLineHeader
-                        : line.startsWith('Questions to Ask:') || line.startsWith('Vitals Trend') || line.startsWith('Medication Adherence') || line.startsWith('Recent Symptoms')
-                        ? styles.previewLineSectionTitle
-                        : line.match(/^\s*\d+\./)
-                        ? styles.previewLineQuestion
-                        : null,
-                    ]}>{line}</Text>
-                  ))}
-                </View>
-              ) : null}
-            </ScrollView>
-          </SafeAreaView>
-        </Modal>
+          title="Report Preview"
+          infoText="This is a preview of your report. Tap 'Share PDF' to export."
+          previewLines={previewHTML ? previewHTML.split('\n').filter(Boolean) : []}
+          onExport={handleExport}
+          onClose={() => setShowPreview(false)}
+          exporting={exporting}
+        />
       </View>
     </View>
   );
@@ -773,91 +726,4 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
 
-  // Preview modal
-  previewContainer: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  previewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.glassBorder,
-  },
-  previewCloseButton: {
-    padding: 4,
-  },
-  previewCloseText: {
-    fontSize: 15,
-    color: Colors.textMuted,
-  },
-  previewTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  previewExportButton: {
-    backgroundColor: Colors.accent,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  previewExportText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  previewScroll: {
-    flex: 1,
-  },
-  previewScrollContent: {
-    padding: 20,
-  },
-  previewCard: {
-    backgroundColor: Colors.glass,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-  },
-  previewHTMLNote: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    textAlign: 'center',
-  },
-  previewContent: {
-    backgroundColor: Colors.glass,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    borderRadius: 12,
-    padding: 20,
-  },
-  previewLine: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    lineHeight: 22,
-    marginBottom: 2,
-  },
-  previewLineHeader: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  previewLineSectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.accent,
-    marginTop: 12,
-    marginBottom: 6,
-  },
-  previewLineQuestion: {
-    fontSize: 14,
-    color: Colors.textBright,
-    paddingLeft: 8,
-    marginBottom: 4,
-  },
 });

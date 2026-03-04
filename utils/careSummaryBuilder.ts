@@ -546,7 +546,7 @@ export interface CareBrief {
   patient: {
     name: string;
     relationship?: string;
-    dateOfBirth?: string;
+    age?: string;
     gender?: string;
     bloodType?: string;
     conditions?: string[];
@@ -574,6 +574,7 @@ export interface CareBrief {
   attentionItems: AttentionItem[];
   nextAppointment: { provider: string; specialty: string; date: string } | null;
 
+  wellnessChecks: { done: number; total: number };
   sleep: { logged: boolean; hours?: number; quality?: number };
   hydration: { glasses?: number; logged: boolean };
   medicalInfo: MedicalInfo | null;
@@ -769,6 +770,13 @@ export async function buildCareBrief(): Promise<CareBrief> {
     ? { provider: nextAppt.provider, specialty: nextAppt.specialty, date: nextAppt.date }
     : null;
 
+  // --- Wellness checks (from instances, same source as Now page) ---
+  const wellnessInstances = instances.filter(i => i.itemType === 'wellness');
+  const wellnessChecks = {
+    done: wellnessInstances.filter(i => i.status === 'completed' || i.status === 'skipped').length,
+    total: wellnessInstances.length,
+  };
+
   // --- Sleep & Hydration ---
   const sleep = {
     logged: sleepLog != null,
@@ -824,7 +832,7 @@ export async function buildCareBrief(): Promise<CareBrief> {
   const patient = {
     name: patientName,
     relationship,
-    dateOfBirth: medInfo?.dateOfBirth,
+    age: medInfo?.age,
     gender: medInfo?.gender,
     bloodType: medInfo?.bloodType,
     conditions: activeDiagnoses.length > 0 ? activeDiagnoses : undefined,
@@ -937,6 +945,7 @@ export async function buildCareBrief(): Promise<CareBrief> {
     meals,
     attentionItems,
     nextAppointment,
+    wellnessChecks,
     sleep,
     hydration,
     medicalInfo: medInfo,

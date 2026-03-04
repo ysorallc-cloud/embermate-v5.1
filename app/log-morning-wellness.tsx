@@ -110,6 +110,7 @@ export default function LogMorningWellnessScreen() {
               } catch (e) {
                 console.warn('Could not update care plan instance:', e);
               }
+              emitDataUpdate(EVENT.WELLNESS);
               await hapticSuccess();
               navigateBack();
             } catch (error) {
@@ -147,6 +148,7 @@ export default function LogMorningWellnessScreen() {
       } catch (e) {
         console.warn('Could not update care plan instance:', e);
       }
+      emitDataUpdate(EVENT.WELLNESS);
       await hapticSuccess();
       navigateBack();
     } catch (error) {

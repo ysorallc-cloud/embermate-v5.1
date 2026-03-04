@@ -248,6 +248,8 @@ export default function SettingsScreen() {
           onPress: async () => {
             try {
               await AsyncStorage.removeItem(StorageKeys.ONBOARDING_COMPLETE);
+              // Also clear sample data flag so re-onboarding can seed fresh
+              await AsyncStorage.removeItem(StorageKeys.SAMPLE_DATA_INITIALIZED);
               Alert.alert(
                 'Onboarding Reset',
                 'The onboarding screens will appear when you reload the app.',
@@ -361,13 +363,15 @@ export default function SettingsScreen() {
       items: [
         {
           id: 'theme',
-          icon: themeMode === 'dark' ? '🌙' : themeMode === 'light' ? '☀️' : '🔄',
+          icon: '🌙',
           title: 'Theme',
-          subtitle: themeMode === 'dark' ? 'Dark' : themeMode === 'light' ? 'Light' : 'System',
+          subtitle: 'Dark',
           onPress: () => {
-            const modes: ThemeMode[] = ['dark', 'light', 'system'];
-            const currentIndex = modes.indexOf(themeMode);
-            setThemeMode(modes[(currentIndex + 1) % modes.length]);
+            // Light mode disabled — StyleSheet.create() at module scope captures
+            // dark theme Colors at import time. 70+ screens show white text on
+            // light background. Requires full migration to useTheme() hook.
+            // System mode also broken when phone is in light mode.
+            setThemeMode('dark');
           },
         },
         {
@@ -521,7 +525,7 @@ export default function SettingsScreen() {
           id: 'version',
           icon: 'ℹ️',
           title: 'Version',
-          subtitle: '5.8.0',
+          subtitle: '5.9.0',
           onPress: () => {},
         },
       ],

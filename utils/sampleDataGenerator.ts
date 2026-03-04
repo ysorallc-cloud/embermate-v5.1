@@ -11,7 +11,8 @@ import { devLog, logError } from './devLog';
 import { saveSymptom } from './symptomStorage';
 import { saveDailyTracking } from './dailyTrackingStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { safeGetItem, safeSetItem } from './safeStorage';
+import { safeGetItem, safeSetItem, encryptedSetRaw } from './safeStorage';
+import { scopedKey } from './storageKeys';
 import { Medication } from './medicationStorage';
 import { DataOrigin } from './sampleDataManager';
 import { StorageKeys } from './storageKeys';
@@ -192,20 +193,20 @@ export const getSampleVitals = () => {
     const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
     const dateStr = date.toISOString();
 
-    // Systolic BP (trending slightly down - good progress)
+    // Systolic BP (managed hypertension, consistent 130–140)
     vitals.push(withSampleOrigin({
       id: `vital-sys-${i}`,
       type: 'systolic',
-      value: 135 - Math.floor(i * 0.3) + Math.floor(Math.random() * 8 - 4),
+      value: 135 + Math.floor(Math.random() * 10 - 5),
       timestamp: dateStr,
       unit: 'mmHg',
     }));
 
-    // Diastolic BP
+    // Diastolic BP (78–88 range)
     vitals.push(withSampleOrigin({
       id: `vital-dia-${i}`,
       type: 'diastolic',
-      value: 85 - Math.floor(i * 0.15) + Math.floor(Math.random() * 5 - 2),
+      value: 83 + Math.floor(Math.random() * 10 - 5),
       timestamp: dateStr,
       unit: 'mmHg',
     }));
@@ -235,7 +236,7 @@ export const getSampleVitals = () => {
       vitals.push(withSampleOrigin({
         id: `vital-glu-${i}`,
         type: 'glucose',
-        value: 110 + Math.floor(Math.random() * 25 - 10),
+        value: 110 + Math.floor(Math.random() * 20 - 10),
         timestamp: dateStr,
         unit: 'mg/dL',
       }));
@@ -257,17 +258,17 @@ export const getSampleMoodLogs = () => {
     const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
     const dateStr = date.toISOString().split('T')[0];
 
-    // Mood trending slightly up
-    const baseMood = 3 + Math.floor(i / 7);
-    const mood = Math.min(5, Math.max(1, baseMood + Math.floor(Math.random() * 2 - 0.5)));
+    // Mood trending slightly up toward present (i=0 is today, i=13 is oldest)
+    const baseMood = 4 - Math.floor(i / 7);
+    const mood = Math.min(5, Math.max(2, baseMood + Math.floor(Math.random() * 2 - 0.5)));
 
     logs.push(withSampleOrigin({
       id: `mood-${i}`,
       date: dateStr,
       timestamp: date.toISOString(),
       mood: mood,
-      energy: Math.min(5, Math.max(1, mood + Math.floor(Math.random() * 2 - 1))),
-      pain: Math.max(0, 3 - Math.floor(Math.random() * 3)),
+      energy: Math.min(4, Math.max(3, mood + Math.floor(Math.random() * 2 - 2))),
+      pain: Math.max(1, 3 - Math.floor(Math.random() * 2)),
     }));
   }
 
@@ -459,6 +460,95 @@ export async function createSampleCarePlanItems(): Promise<void> {
 }
 
 // ============================================================================
+// SAMPLE MEDICATION LOGS (14 days of adherence history)
+// ============================================================================
+
+/**
+ * Seed 14 days of medication logs for sample meds (Lisinopril, Metformin, Atorvastatin).
+ * Writes to the same scopedKey(CENTRAL_MED_LOGS) that getMedicationLogs() reads from,
+ * so Visit Prep adherence calculations work correctly (~85-93%).
+ */
+async function seedSampleMedicationLogs(): Promise<void> {
+  const meds = [
+    { id: 'med-1', name: 'Lisinopril' },
+    { id: 'med-2', name: 'Metformin' },
+    { id: 'med-3', name: 'Atorvastatin' },
+  ];
+
+  const logs: Array<{
+    id: string;
+    timestamp: string;
+    medicationIds: string[];
+    origin: DataOrigin;
+  }> = [];
+
+  const now = new Date();
+
+  for (let day = 0; day < 14; day++) {
+    const date = new Date(now.getTime() - day * 24 * 60 * 60 * 1000);
+    const dateStr = date.toISOString().split('T')[0];
+
+    for (const med of meds) {
+      // ~90% adherence: skip roughly 1 in 10
+      const taken = Math.random() > 0.1;
+      if (!taken) continue;
+
+      const hour = med.id === 'med-3' ? 21 : 8; // Atorvastatin evening, others morning
+      const logTime = new Date(date);
+      logTime.setHours(hour, Math.floor(Math.random() * 30), 0, 0);
+
+      logs.push({
+        id: `sample-medlog-${med.id}-${dateStr}`,
+        timestamp: logTime.toISOString(),
+        medicationIds: [med.id],
+        origin: 'sample',
+      });
+    }
+  }
+
+  // Write to the correct centralized key that getMedicationLogs() reads from
+  const key = scopedKey(StorageKeys.CENTRAL_MED_LOGS, DEFAULT_PATIENT_ID);
+  await encryptedSetRaw(key, JSON.stringify(logs));
+
+  devLog(`[SampleDataGenerator] Seeded ${logs.length} medication log entries over 14 days`);
+}
+
+// ============================================================================
+// SAMPLE PATIENT PROFILE
+// ============================================================================
+
+async function seedSamplePatientProfile(): Promise<void> {
+  const { saveMedicalInfo } = await import('./medicalInfo');
+
+  // Basic patient info
+  await safeSetItem(StorageKeys.PATIENT_NAME, 'Mom');
+  await safeSetItem(StorageKeys.PATIENT_RELATIONSHIP, 'Mother');
+  await safeSetItem(StorageKeys.PATIENT_GENDER, 'Female');
+  await safeSetItem(StorageKeys.PATIENT_AGE, '73');
+
+  // Medical info with diagnoses, allergies, surgeries
+  await saveMedicalInfo({
+    bloodType: 'A+',
+    allergies: ['Penicillin'],
+    diagnoses: [
+      { condition: 'Hypertension', status: 'active' },
+      { condition: 'Type 2 Diabetes', status: 'active' },
+      { condition: 'High Cholesterol', status: 'active' },
+    ],
+    surgeries: [
+      { procedure: 'Hip Replacement', date: '2019', notes: 'Right hip, recovered well' },
+    ],
+    hospitalizations: [],
+    currentMedications: [
+      { name: 'Lisinopril', dosage: '10mg' },
+      { name: 'Metformin', dosage: '500mg' },
+      { name: 'Atorvastatin', dosage: '20mg' },
+    ],
+    emergencyNotes: 'Allergic to Penicillin. Primary caregiver: Sarah Chen (555) 123-4567',
+  });
+}
+
+// ============================================================================
 // INITIALIZE ALL SAMPLE DATA
 // ============================================================================
 
@@ -484,6 +574,12 @@ export const initializeSampleData = async (): Promise<boolean> => {
 
     // Save caregivers
     await safeSetItem(StorageKeys.CAREGIVERS, getSampleCaregivers());
+
+    // Populate patient profile (name, age, diagnoses, allergies, surgeries)
+    await seedSamplePatientProfile();
+
+    // Seed 14 days of medication logs for adherence history
+    await seedSampleMedicationLogs();
 
     // Create sample Care Plan items (wellness, meds, meals, vitals)
     await createSampleCarePlanItems();
@@ -525,9 +621,30 @@ export const initializeSampleData = async (): Promise<boolean> => {
   }
 };
 
-// Reset sample data (for testing)
+// Reset sample data (clear everything, then reseed fresh)
 export const resetSampleData = async (): Promise<void> => {
+  // Import clearSampleData to properly clean up all tagged sample records
+  const { clearSampleData } = await import('./sampleDataManager');
+
+  // Clear ALL existing sample data first
+  await clearSampleData();
+
+  // Remove the initialized flag (clearSampleData doesn't remove this)
   await AsyncStorage.removeItem(SAMPLE_DATA_INITIALIZED_KEY);
+
+  // Also clear the "sample data cleared" marker so the banner system resets
+  await AsyncStorage.removeItem('@embermate_sample_data_cleared');
+
+  // Clear any user-entered patient data that would conflict
+  await AsyncStorage.multiRemove([
+    StorageKeys.PATIENT_NAME,
+    StorageKeys.PATIENT_AGE,
+    StorageKeys.PATIENT_RELATIONSHIP,
+    StorageKeys.PATIENT_GENDER,
+    'medical_info',
+  ]);
+
+  // Re-initialize with the correct sample data
   await initializeSampleData();
 };
 

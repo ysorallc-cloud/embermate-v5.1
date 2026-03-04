@@ -1,6 +1,6 @@
 // ============================================================================
-// WELCOME SCREEN - What this app does
-// Screen 1 of 3: Value proposition with key features
+// WELCOME SCREEN - Empathy-first introduction
+// Screen 1 of 4: Lead with emotional connection, then value points
 // ============================================================================
 
 import React from 'react';
@@ -12,9 +12,9 @@ import { Colors, Spacing } from '../../../theme/theme-tokens';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const VALUE_POINTS = [
-  { icon: '\u{1F48A}', title: 'Medication tracking', desc: 'Smart reminders so nothing is missed' },
-  { icon: '\u{1F4CA}', title: 'Health insights', desc: 'Patterns that reveal what matters' },
-  { icon: '\u{1F512}', title: 'Private by design', desc: 'Your data stays on your device' },
+  { icon: '\u{1F48A}', text: 'Track medications, meals, and vitals in one place' },
+  { icon: '\u{1F4CA}', text: 'Spot patterns a doctor visit might miss' },
+  { icon: '\u{1F512}', text: 'Private — your data never leaves this device' },
 ];
 
 export const WelcomeScreen: React.FC = () => {
@@ -26,7 +26,10 @@ export const WelcomeScreen: React.FC = () => {
           {'\u{1F525}'}
         </Animated.Text>
         <Animated.Text entering={FadeInDown.delay(200).duration(300)} style={styles.title}>
-          Track care. Spot patterns.{'\n'}Stay organized.
+          Caring for someone{'\n'}is a lot to carry.
+        </Animated.Text>
+        <Animated.Text entering={FadeInDown.delay(250).duration(300)} style={styles.subtitle}>
+          EmberMate helps you stay organized so you can focus on what matters — being present.
         </Animated.Text>
         <View style={styles.pointsContainer}>
           {VALUE_POINTS.map((point, index) => (
@@ -36,10 +39,7 @@ export const WelcomeScreen: React.FC = () => {
               style={styles.pointRow}
             >
               <Text style={styles.pointIcon}>{point.icon}</Text>
-              <View style={styles.pointContent}>
-                <Text style={styles.pointTitle}>{point.title}</Text>
-                <Text style={styles.pointDesc}>{point.desc}</Text>
-              </View>
+              <Text style={styles.pointText}>{point.text}</Text>
             </Animated.View>
           ))}
         </View>
@@ -62,42 +62,43 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   emoji: {
-    fontSize: 72,
+    fontSize: 56,
     marginBottom: Spacing.xl,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '300',
     color: Colors.textPrimary,
     textAlign: 'center',
+    marginBottom: Spacing.lg,
+    lineHeight: 30,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
     marginBottom: Spacing.xxxl,
-    lineHeight: 34,
+    paddingHorizontal: Spacing.md,
   },
   pointsContainer: {
     width: '100%',
-    gap: 20,
+    gap: 16,
     marginTop: Spacing.md,
   },
   pointRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
   },
   pointIcon: {
-    fontSize: 32,
+    fontSize: 22,
   },
-  pointContent: {
-    flex: 1,
-  },
-  pointTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginBottom: 2,
-  },
-  pointDesc: {
-    fontSize: 13,
+  pointText: {
+    fontSize: 14,
     color: Colors.textSecondary,
+    flex: 1,
+    lineHeight: 20,
   },
 });
 

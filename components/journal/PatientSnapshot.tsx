@@ -10,7 +10,7 @@ import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 interface PatientSnapshotProps {
   name: string;
   relationship?: string;
-  dateOfBirth?: string;
+  age?: string;
   gender?: string;
   bloodType?: string;
   conditions?: string[];
@@ -19,26 +19,10 @@ interface PatientSnapshotProps {
   cognitiveBaseline?: string;
 }
 
-function computeAge(dob: string): string | null {
-  try {
-    const birth = new Date(dob);
-    if (isNaN(birth.getTime())) return null;
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return `${age}y`;
-  } catch {
-    return null;
-  }
-}
-
 export function PatientSnapshot({
   name,
   relationship,
-  dateOfBirth,
+  age,
   gender,
   bloodType,
   conditions,
@@ -46,9 +30,8 @@ export function PatientSnapshot({
   mobilityStatus,
   cognitiveBaseline,
 }: PatientSnapshotProps) {
-  const age = dateOfBirth ? computeAge(dateOfBirth) : null;
   const infoParts: string[] = [];
-  if (age) infoParts.push(age);
+  if (age) infoParts.push(`${age}y`);
   if (gender) infoParts.push(gender);
   if (bloodType) infoParts.push(bloodType);
 

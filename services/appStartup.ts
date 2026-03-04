@@ -122,8 +122,15 @@ export async function runStartupSequence(): Promise<StartupResult> {
   // Phase 5: Cache warming (safe to fail)
   await runPhase('loadThresholds', () => loadCustomThresholds(), phases);
 
-  // Phase 6: Sample data (safe to fail, dev-oriented)
-  await runPhase('sampleData', () => initializeSampleData(), phases);
+  // Phase 6: Sample data — only if user chose sample data during onboarding
+  // (initializeSampleData has its own flag check, but we skip entirely for
+  // users who chose "Start Fresh" to avoid writing data they didn't request)
+  await runPhase('sampleData', async () => {
+    const sampleSeeded = await safeGetItem<string | null>('sample_data_seeded', null);
+    if (sampleSeeded === 'true') {
+      await initializeSampleData();
+    }
+  }, phases);
 
   // Phase 7: Device integrity check (safe to fail, non-blocking)
   await runPhase('deviceIntegrity', () => shouldShowIntegrityWarning(), phases);

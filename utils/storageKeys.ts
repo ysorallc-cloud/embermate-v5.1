@@ -11,9 +11,11 @@
  */
 export const StorageKeys = {
   // ---- Patient ----
+  CARE_MODE: '@embermate_care_mode',
   PATIENT_NAME: '@embermate_patient_name',
   PATIENT_INFO: '@embermate_patient_info',
-  PATIENT_DOB: '@embermate_patient_dob',
+  PATIENT_DOB: '@embermate_patient_dob',    // DEPRECATED — migrate to PATIENT_AGE
+  PATIENT_AGE: '@embermate_patient_age',
   PATIENT_GENDER: '@embermate_patient_gender',
   PATIENT_LANGUAGE: '@embermate_patient_language',
   PATIENT_RELATIONSHIP: '@embermate_patient_relationship',
@@ -127,6 +129,7 @@ export const StorageKeys = {
   SAMPLE_DATA_INITIALIZED: '@embermate_sample_data_initialized',
   SAMPLE_DATA_CLEARED: '@embermate_sample_data_cleared',
   SAMPLE_BANNER_DISMISSED: '@embermate_sample_banner_dismissed',
+  SAMPLE_BANNER_MODE: '@embermate_sample_banner_mode',
   SAMPLE_CORRELATION_GENERATED: '@embermate_sample_correlation_generated',
   USER_DECLINED_SAMPLE_DATA: '@embermate_user_declined_sample_data',
 

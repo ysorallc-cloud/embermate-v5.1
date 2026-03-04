@@ -45,7 +45,7 @@ export default function PatientScreen() {
   // Basic info fields
   const [patientName, setPatientName] = useState('');
   const [relationship, setRelationship] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [age, setAge] = useState('');
   const [gender, setGender] = useState('');
   const [primaryLanguage, setPrimaryLanguage] = useState('');
 
@@ -69,16 +69,16 @@ export default function PatientScreen() {
 
   const loadBasicInfo = async () => {
     try {
-      const [name, rel, dob, gen, lang] = await Promise.all([
+      const [name, rel, ageVal, gen, lang] = await Promise.all([
         safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null),
         safeGetItem<string | null>(StorageKeys.PATIENT_RELATIONSHIP, null),
-        safeGetItem<string | null>(StorageKeys.PATIENT_DOB, null),
+        safeGetItem<string | null>(StorageKeys.PATIENT_AGE, null),
         safeGetItem<string | null>(StorageKeys.PATIENT_GENDER, null),
         safeGetItem<string | null>(StorageKeys.PATIENT_LANGUAGE, null),
       ]);
       if (name) setPatientName(name);
       if (rel) setRelationship(rel);
-      if (dob) setDateOfBirth(dob);
+      if (ageVal) setAge(ageVal);
       if (gen) setGender(gen);
       if (lang) setPrimaryLanguage(lang);
     } catch (error) {
@@ -257,19 +257,21 @@ export default function PatientScreen() {
                 )}
               </View>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Date of Birth</Text>
+                <Text style={styles.infoLabel}>Age</Text>
                 {editing ? (
                   <TextInput
                     style={styles.inlineInput}
-                    value={dateOfBirth}
-                    onChangeText={setDateOfBirth}
-                    onBlur={() => saveBasicField(StorageKeys.PATIENT_DOB, dateOfBirth)}
-                    placeholder="e.g. Mar 15, 1947"
+                    value={age}
+                    onChangeText={setAge}
+                    onBlur={() => saveBasicField(StorageKeys.PATIENT_AGE, age)}
+                    placeholder="e.g. 73"
                     placeholderTextColor={Colors.textMuted}
-                    accessibilityLabel="Date of birth"
+                    keyboardType="number-pad"
+                    maxLength={3}
+                    accessibilityLabel="Patient age"
                   />
                 ) : (
-                  <Text style={styles.infoValue}>{dateOfBirth || '\u2014'}</Text>
+                  <Text style={styles.infoValue}>{age || '\u2014'}</Text>
                 )}
               </View>
               <View style={styles.infoRow}>

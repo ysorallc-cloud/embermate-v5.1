@@ -19,5 +19,5 @@ export { InfoTooltip, InfoIcon, InfoButton } from './InfoTooltip';
 export type { InfoTooltipProps, InfoIconProps, InfoButtonProps } from './InfoTooltip';
 export { AIInsightCard, AIInsightCardLoading, AIInsightCardEmpty } from './AIInsightCard';
 export type { AIInsightCardProps } from './AIInsightCard';
-export { SampleDataBanner, resetSampleDataBanner } from './SampleDataBanner';
+export { SampleDataBanner } from './SampleDataBanner';
 export type { SampleDataBannerProps } from './SampleDataBanner';

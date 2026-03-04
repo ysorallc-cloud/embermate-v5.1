@@ -283,10 +283,23 @@ export default function CareReportScreen() {
 
     if (sections.demographics) {
       details.push({ label: 'Patient', value: careBrief.patient.name || 'Not recorded' });
-      if (careBrief.patient.dateOfBirth) details.push({ label: 'Date of Birth', value: careBrief.patient.dateOfBirth });
+      if (careBrief.patient.age) details.push({ label: 'Age', value: careBrief.patient.age });
       if (careBrief.patient.gender) details.push({ label: 'Gender', value: careBrief.patient.gender });
       details.push({ label: 'Conditions', value: careBrief.patient.conditions?.length ? careBrief.patient.conditions.join(', ') : 'None recorded' });
       details.push({ label: 'Allergies', value: careBrief.patient.allergies?.length ? careBrief.patient.allergies.join(', ') : 'None recorded' });
+
+      // Surgeries
+      if (careBrief.medicalInfo?.surgeries?.length) {
+        const surgeryList = careBrief.medicalInfo.surgeries
+          .map(s => `${s.procedure}${s.date ? ` (${s.date})` : ''}`)
+          .join(', ');
+        details.push({ label: 'Surgeries', value: surgeryList });
+      }
+
+      // Emergency contact
+      if (careBrief.medicalInfo?.emergencyNotes) {
+        details.push({ label: 'Emergency Info', value: careBrief.medicalInfo.emergencyNotes });
+      }
     }
     if (sections.medications) {
       careBrief.medications.forEach(med => {
@@ -316,7 +329,7 @@ export default function CareReportScreen() {
         : undefined,
       generatedAt: new Date(),
     };
-    await generateAndSharePDF(reportData, { name: careBrief.patient.name || undefined, dob: careBrief.patient.dateOfBirth || undefined });
+    await generateAndSharePDF(reportData, { name: careBrief.patient.name || undefined, age: careBrief.patient.age || undefined });
   };
 
   // ========================================================================

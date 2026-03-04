@@ -119,6 +119,8 @@ import { useDataListener, emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
 import { GettingStartedChecklist } from '../../components/guidance';
 import { buildCareBrief, CareBrief } from '../../utils/careSummaryBuilder';
+import { hasSampleData } from '../../utils/sampleDataManager';
+import { SampleDataBanner } from '../../components/common/SampleDataBanner';
 
 // ============================================================================
 // INLINE COMPONENT — Section header row (flat, no emoji icons)
@@ -286,6 +288,9 @@ export default function NowScreen() {
 
   // Handoff / Patterns / Before Bed (mirrored from Journal)
   const [brief, setBrief] = useState<CareBrief | null>(null);
+
+  // Sample data mode
+  const [isSampleMode, setIsSampleMode] = useState(false);
 
   // Appointment prep state (Task 4.5)
   const [upcomingPrepAppointment, setUpcomingPrepAppointment] = useState<any>(null);
@@ -540,6 +545,7 @@ export default function NowScreen() {
       loadData();
       checkNotifPrompt();
       recordVisit();
+      hasSampleData().then(setIsSampleMode);
     }, [today, refreshCareTasks, refreshCarePlan])
   );
 
@@ -552,6 +558,9 @@ export default function NowScreen() {
       loadData();
       // Also refresh care tasks so timeline + stats update immediately
       refreshCareTasks();
+      if (category === EVENT.SAMPLE_DATA_CLEARED) {
+        setIsSampleMode(false);
+      }
     }
   }, [refreshCareTasks]));
 
@@ -761,38 +770,38 @@ export default function NowScreen() {
           subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
           purpose="What's happening today."
           rightAction={
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <TouchableOpacity
-                onPress={() => navigate('/quick-log-more')}
-                style={styles.headerAddBtn}
-                accessibilityLabel="Quick log"
-                accessibilityRole="button"
-              >
-                <Text style={styles.headerAddBtnText}>+</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShowPatientSwitcher(true)}
-                style={styles.patientChip}
-                accessibilityLabel={`Patient: ${patientName}. Tap to switch.`}
-                accessibilityRole="button"
-              >
+            <TouchableOpacity
+              onPress={() => setShowPatientSwitcher(true)}
+              style={[styles.patientChip, isSampleMode && styles.patientChipDemo]}
+              accessibilityLabel={`Patient: ${patientName}${isSampleMode ? ' (demo)' : ''}. Tap to switch.`}
+              accessibilityRole="button"
+            >
                 <View style={styles.patientAvatar}>
                   <Text style={styles.patientAvatarText}>
                     {patientName.charAt(0).toUpperCase()}
                   </Text>
                 </View>
                 <Text style={styles.patientChipName}>{patientName}</Text>
+                {isSampleMode && (
+                  <Text style={styles.demoBadge}>DEMO</Text>
+                )}
                 {patients.length > 1 && (
                   <Text style={{ fontSize: 10, color: colors.textMuted }}>{'\u25BC'}</Text>
                 )}
-              </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           }
         />
         <PatientSwitcherModal
           visible={showPatientSwitcher}
           onClose={() => setShowPatientSwitcher(false)}
         />
+
+        {/* Sample Data Banner */}
+        {isSampleMode && (
+          <View style={styles.sampleBannerWrap}>
+            <SampleDataBanner onCleared={() => { setIsSampleMode(false); loadData(); refreshCareTasks(); }} />
+          </View>
+        )}
 
         {/* Hidden Items Banner */}
         {suppressedItems.length > 0 && (
@@ -908,6 +917,8 @@ export default function NowScreen() {
           {/* ═══ ZONE 2: TODAY'S SCHEDULE ═══ */}
           <SectionHeaderRow
             title="Today's Schedule"
+            iconAction="+"
+            onIconAction={() => navigate('/quick-log-more')}
             collapsed={timelineCollapsed}
             onToggleCollapse={() => setTimelineCollapsed(prev => !prev)}
             styles={styles}
@@ -1215,6 +1226,25 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 12,
     color: c.textSecondary,
     fontWeight: '500',
+  },
+  patientChipDemo: {
+    borderColor: c.purpleBright,
+    borderWidth: 1.5,
+  },
+  demoBadge: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: c.purpleBright,
+    backgroundColor: c.purpleFaint,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 3,
+    overflow: 'hidden',
+    letterSpacing: 0.5,
+  },
+  sampleBannerWrap: {
+    paddingHorizontal: 20,
+    marginTop: 4,
   },
   morningContextLine: {
     fontSize: 14,

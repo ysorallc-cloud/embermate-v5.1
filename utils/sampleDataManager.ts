@@ -264,6 +264,15 @@ export async function clearSampleData(): Promise<{
       clearedCount += removed;
     }
 
+    // Also clear the scoped medication logs written by seedSampleMedicationLogs
+    try {
+      const { scopedKey, StorageKeys: SK } = await import('./storageKeys');
+      const { DEFAULT_PATIENT_ID: pid } = await import('../storage/carePlanRepo');
+      const scopedMedLogKey = scopedKey(SK.CENTRAL_MED_LOGS, pid);
+      await AsyncStorage.removeItem(scopedMedLogKey);
+      clearedCount++;
+    } catch {}
+
     // 9. Clear sample CarePlan items (IDs starting with 'sample-')
     const carePlanItemKeys = allKeys.filter(k => k.startsWith(StorageKeyPrefixes.REGIMEN_ITEMS_V2));
     for (const key of carePlanItemKeys) {
@@ -282,7 +291,18 @@ export async function clearSampleData(): Promise<{
     await AsyncStorage.removeItem(SAMPLE_DATA_KEYS.carePlanConfig);
     clearedCount++;
 
-    // 12. Clear correlation cache (will be regenerated)
+    // 12. Clear sample patient profile
+    await AsyncStorage.multiRemove([
+      StorageKeys.PATIENT_NAME,
+      StorageKeys.PATIENT_AGE,
+      StorageKeys.PATIENT_DOB,
+      StorageKeys.PATIENT_RELATIONSHIP,
+      StorageKeys.PATIENT_GENDER,
+      'medical_info',
+    ]);
+    clearedCount += 6;
+
+    // 13. Clear correlation cache (will be regenerated)
     await AsyncStorage.removeItem('@correlation_cache');
 
     // 13. Mark sample data as cleared

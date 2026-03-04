@@ -1,6 +1,6 @@
 // ============================================================================
 // PRIVACY + DISCLAIMER SCREEN - Combined privacy & medical disclaimer
-// Screen 2 of 3: Checkbox must be checked before parent enables Next
+// Screen 3 of 4: Checkbox must be checked before parent enables Next
 // ============================================================================
 
 import React, { useState } from 'react';
@@ -16,10 +16,10 @@ interface Props {
 }
 
 const PRIVACY_POINTS = [
-  { icon: '\u{1F4F1}', text: 'Stays on your device \u2014 no cloud required' },
-  { icon: '\u{1F510}', text: 'AES-256 encrypted storage' },
-  { icon: '\u{1F464}', text: 'You control what\'s shared' },
-  { icon: '\u{1F6AB}', text: 'We never sell your data' },
+  { icon: '\u{1F4F1}', label: 'Stays on your phone', desc: 'Nothing is uploaded \u2014 no accounts, no cloud' },
+  { icon: '\u{1F510}', label: 'Encrypted storage', desc: 'Protected like your online banking' },
+  { icon: '\u270B', label: 'You choose what to share', desc: 'Journal and reports only go where you send them' },
+  { icon: '\u{1F6AB}', label: 'No ads, no data selling', desc: 'Ever' },
 ];
 
 export const PrivacyDisclaimerScreen: React.FC<Props> = ({ onDisclaimerAccepted }) => {
@@ -39,7 +39,10 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({ onDisclaimerAccepted 
           {'\u{1F512}'}
         </Animated.Text>
         <Animated.Text entering={FadeInDown.delay(200).duration(300)} style={styles.title}>
-          Before we start
+          Your family's health{'\n'}data is safe here.
+        </Animated.Text>
+        <Animated.Text entering={FadeInDown.delay(250).duration(300)} style={styles.subtitle}>
+          Here's how we protect it.
         </Animated.Text>
 
         {/* Privacy points */}
@@ -51,17 +54,18 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({ onDisclaimerAccepted 
               style={styles.privacyRow}
             >
               <Text style={styles.privacyIcon}>{point.icon}</Text>
-              <Text style={styles.privacyText}>{point.text}</Text>
+              <View style={styles.privacyTextContainer}>
+                <Text style={styles.privacyLabel}>{point.label}</Text>
+                <Text style={styles.privacyDesc}>{point.desc}</Text>
+              </View>
             </Animated.View>
           ))}
         </View>
 
         {/* Medical disclaimer */}
         <Animated.View entering={FadeInDown.delay(650).duration(300)} style={styles.disclaimerCard}>
-          <Text style={styles.disclaimerTitle}>Medical Disclaimer</Text>
           <Text style={styles.disclaimerText}>
-            EmberMate is a personal tracking tool, not a medical device. It is not a substitute for
-            professional medical advice. You are responsible for your data and backups.
+            <Text style={styles.disclaimerBold}>Not a medical device.</Text> EmberMate is a personal tracking tool {'\u2014'} not a substitute for professional medical advice.
           </Text>
         </Animated.View>
 
@@ -73,13 +77,13 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({ onDisclaimerAccepted 
             activeOpacity={0.7}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: accepted }}
-            accessibilityLabel="I understand this is not a medical device and accept the terms of use"
+            accessibilityLabel="I understand and accept the terms of use"
           >
             <View style={[styles.checkbox, accepted && styles.checkboxChecked]}>
               {accepted && <Text style={styles.checkmark}>{'\u2713'}</Text>}
             </View>
             <Text style={styles.checkboxLabel}>
-              I understand this is not a medical device and accept the{' '}
+              I understand and accept the{' '}
               <Text
                 style={styles.link}
                 onPress={() => Linking.openURL('https://ysorallc.org/terms')}
@@ -109,13 +113,19 @@ const styles = StyleSheet.create({
     paddingTop: 80,
   },
   emoji: {
-    fontSize: 72,
+    fontSize: 56,
     marginBottom: Spacing.xl,
   },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '300',
     color: Colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: Colors.textSecondary,
     textAlign: 'center',
     marginBottom: Spacing.xxl,
   },
@@ -126,16 +136,26 @@ const styles = StyleSheet.create({
   },
   privacyRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 14,
   },
   privacyIcon: {
     fontSize: 24,
+    marginTop: 2,
   },
-  privacyText: {
-    fontSize: 15,
-    color: Colors.textSecondary,
+  privacyTextContainer: {
     flex: 1,
+  },
+  privacyLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  privacyDesc: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
   },
   disclaimerCard: {
     width: '100%',
@@ -146,16 +166,14 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     marginBottom: Spacing.xxl,
   },
-  disclaimerTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.amber,
-    marginBottom: Spacing.sm,
-  },
   disclaimerText: {
     fontSize: 13,
     color: Colors.textSecondary,
     lineHeight: 20,
+  },
+  disclaimerBold: {
+    fontWeight: '700',
+    color: Colors.amber,
   },
   checkboxContainer: {
     width: '100%',

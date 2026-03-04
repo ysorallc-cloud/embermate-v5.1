@@ -8,6 +8,12 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { logError } from './devLog';
 
+export interface ReportSection {
+  heading: string;
+  rows?: Array<{ label: string; value: string; trend?: 'up' | 'down' | 'stable' }>;
+  text?: string;
+}
+
 export interface ReportData {
   title: string;
   period: string;
@@ -18,13 +24,15 @@ export interface ReportData {
     value: string;
     trend?: 'up' | 'down' | 'stable';
   }>;
+  sections?: ReportSection[];
   notes?: string;
   generatedAt?: Date;
 }
 
 export interface PatientInfo {
   name?: string;
-  dob?: string;
+  dob?: string; // DEPRECATED
+  age?: string;
   id?: string;
 }
 
@@ -145,6 +153,24 @@ function generateHTML(data: ReportData, patient?: PatientInfo): string {
           text-transform: uppercase;
           color: #6B7280;
         }
+        .section-heading {
+          font-size: 20px;
+          font-weight: 700;
+          color: #2D3B2D;
+          margin-top: 30px;
+          margin-bottom: 12px;
+          padding-bottom: 8px;
+          border-bottom: 1px solid #E5E7EB;
+        }
+        .narrative {
+          background: #F9FAFB;
+          border-radius: 8px;
+          padding: 16px;
+          margin-bottom: 20px;
+          line-height: 1.6;
+          color: #374151;
+          font-size: 14px;
+        }
         .notes-section {
           background: #FFFBEB;
           border-left: 4px solid #D4A574;
@@ -190,7 +216,7 @@ function generateHTML(data: ReportData, patient?: PatientInfo): string {
         <div class="patient-info">
           <h3>Patient Information</h3>
           ${patient.name ? `<p><strong>Name:</strong> ${patient.name}</p>` : ''}
-          ${patient.dob ? `<p><strong>DOB:</strong> ${patient.dob}</p>` : ''}
+          ${patient.age ? `<p><strong>Age:</strong> ${patient.age}</p>` : ''}
           ${patient.id ? `<p><strong>ID:</strong> ${patient.id}</p>` : ''}
         </div>
       `
@@ -216,6 +242,33 @@ function generateHTML(data: ReportData, patient?: PatientInfo): string {
           ${detailsHTML}
         </tbody>
       </table>
+
+      ${
+        data.sections
+          ? data.sections.map(section => `
+        <h2 class="section-heading">${section.heading}</h2>
+        ${section.rows && section.rows.length > 0 ? `
+        <table class="details-table">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th style="text-align: right;">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${section.rows.map(row => `
+            <tr>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #E5E7EB;">${row.label}</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #E5E7EB; text-align: right; font-weight: 600;">
+                ${row.value}${row.trend === 'up' ? ' ↑' : row.trend === 'down' ? ' ↓' : ''}
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>` : ''}
+        ${section.text ? `<div class="narrative">${section.text}</div>` : ''}
+      `).join('')
+          : ''
+      }
 
       ${
         data.notes
@@ -333,7 +386,7 @@ export async function shareAsText(
   
   if (patient?.name) {
     text += `👤 Patient: ${patient.name}\n`;
-    if (patient.dob) text += `🎂 DOB: ${patient.dob}\n`;
+    if (patient.age) text += `Age: ${patient.age}\n`;
     text += '\n';
   }
   

@@ -22,7 +22,9 @@ import {
   clearSampleData,
   SampleDataStatus,
 } from '../utils/sampleDataManager';
-import { resetSampleDataBanner } from '../components/common/SampleDataBanner';
+import { resetSampleData } from '../utils/sampleDataGenerator';
+import { safeSetItem } from '../utils/safeStorage';
+import { StorageKeys } from '../utils/storageKeys';
 import {
   getRetentionPolicy,
   setRetentionPolicy,
@@ -94,6 +96,35 @@ export default function DataPrivacySettingsScreen() {
             if (removed > 0) {
               emitDataUpdate(EVENT.LOGS);
               Alert.alert('Data Purged', `${removed} old event${removed === 1 ? '' : 's'} removed.`);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleReloadSampleData = () => {
+    Alert.alert(
+      'Reload Sample Data?',
+      'This will clear existing sample data and reload the full Mom profile with medications, vitals, appointments, and more.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reload',
+          onPress: async () => {
+            setClearing(true);
+            try {
+              await resetSampleData();
+              Alert.alert(
+                'Sample Data Reloaded',
+                'The full Mom profile has been loaded with medications, vitals, appointments, caregivers, and 14 days of tracking data.',
+                [{ text: 'OK', onPress: loadStatus }]
+              );
+            } catch (error) {
+              logError('DataPrivacySettingsScreen.handleReloadSampleData', error);
+              Alert.alert('Error', 'Failed to reload sample data. Please try again.');
+            } finally {
+              setClearing(false);
             }
           },
         },
@@ -278,18 +309,50 @@ export default function DataPrivacySettingsScreen() {
                   <Text style={styles.clearNote}>
                     Removes demo content only. Your personal data will be preserved.
                   </Text>
+
+                  <View style={styles.settingDivider} />
+
+                  {/* Reload Button */}
+                  <TouchableOpacity
+                    style={styles.reloadButton}
+                    onPress={handleReloadSampleData}
+                    disabled={clearing}
+                    activeOpacity={0.7}
+                    accessibilityLabel="Reload sample data"
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.reloadButtonIcon}>🔄</Text>
+                    <Text style={styles.reloadButtonText}>Reload sample data</Text>
+                  </TouchableOpacity>
                 </>
               ) : (
                 /* No Sample Data */
-                <View style={styles.noSampleData}>
-                  <Text style={styles.noSampleDataIcon}>✓</Text>
-                  <View style={styles.noSampleDataContent}>
-                    <Text style={styles.noSampleDataTitle}>No sample data</Text>
-                    <Text style={styles.noSampleDataText}>
-                      All data in the app was created by you.
-                    </Text>
+                <>
+                  <View style={styles.noSampleData}>
+                    <Text style={styles.noSampleDataIcon}>✓</Text>
+                    <View style={styles.noSampleDataContent}>
+                      <Text style={styles.noSampleDataTitle}>No sample data</Text>
+                      <Text style={styles.noSampleDataText}>
+                        All data in the app was created by you.
+                      </Text>
+                    </View>
                   </View>
-                </View>
+
+                  <View style={styles.settingDivider} />
+
+                  {/* Load Sample Data Button */}
+                  <TouchableOpacity
+                    style={styles.reloadButton}
+                    onPress={handleReloadSampleData}
+                    disabled={clearing}
+                    activeOpacity={0.7}
+                    accessibilityLabel="Load sample data"
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.reloadButtonIcon}>📊</Text>
+                    <Text style={styles.reloadButtonText}>Load sample data</Text>
+                  </TouchableOpacity>
+                </>
               )}
             </View>
           </View>
@@ -327,8 +390,8 @@ export default function DataPrivacySettingsScreen() {
                   <TouchableOpacity
                     style={styles.settingRow}
                     onPress={async () => {
-                      await resetSampleDataBanner();
-                      Alert.alert('Banner Reset', 'The sample data banner will appear on the Now page again.');
+                      await safeSetItem(StorageKeys.SAMPLE_BANNER_MODE, 'full');
+                      Alert.alert('Banner Reset', 'The sample data banner will show in full mode again.');
                     }}
                     activeOpacity={0.7}
                     accessibilityLabel="Show sample data banner, re-enable the Now page banner if dismissed"
@@ -602,6 +665,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingBottom: 12,
     paddingTop: 8,
+  },
+
+  // Reload Button
+  reloadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(45, 212, 191, 0.08)',
+    padding: 14,
+  },
+  reloadButtonIcon: {
+    fontSize: 16,
+  },
+  reloadButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.accent,
   },
 
   // No Sample Data

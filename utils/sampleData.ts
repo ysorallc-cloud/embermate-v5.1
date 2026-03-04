@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { safeGetItem, safeSetItem } from './safeStorage';
 import { devLog, logError } from './devLog';
+import { StorageKeys } from './storageKeys';
 
 export interface SampleDataOptions {
   includeMeals?: boolean;
@@ -223,7 +224,7 @@ export const hasSampleData = async (): Promise<boolean> => {
 
 export const isOnboardingComplete = async (): Promise<boolean> => {
   try {
-    const completed = await safeGetItem<string | null>('onboarding_completed', null);
+    const completed = await safeGetItem<string | null>(StorageKeys.ONBOARDING_COMPLETE, null);
     return completed === 'true';
   } catch (error) {
     logError('sampleData.isOnboardingComplete', error);

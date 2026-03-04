@@ -1,10 +1,10 @@
 // ============================================================================
 // GET STARTED SCREEN - Patient name, bucket selection, start options
-// Screen 3 of 3: Collects context then starts fresh or with sample data
+// Screen 4 of 4: Collects context then starts fresh or with sample data
 // ============================================================================
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { Colors, Spacing, BorderRadius } from '../../../theme/theme-tokens';
@@ -21,13 +21,18 @@ const DEFAULT_SELECTED: BucketType[] = ['meds', 'vitals', 'meals'];
 
 interface Props {
   onComplete: (seedData: boolean) => void;
+  careMode?: 'caregiver' | 'self';
 }
 
-export const GetStartedScreen: React.FC<Props> = ({ onComplete }) => {
+export const GetStartedScreen: React.FC<Props> = ({ onComplete, careMode = 'caregiver' }) => {
   const [patientName, setPatientName] = useState('');
   const [selectedBuckets, setSelectedBuckets] = useState<Set<BucketType>>(
     () => new Set(DEFAULT_SELECTED)
   );
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
+
+  const isSelf = careMode === 'self';
 
   const toggleBucket = (bucket: BucketType) => {
     setSelectedBuckets(prev => {
@@ -42,39 +47,58 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete }) => {
   };
 
   const handleComplete = async (seedData: boolean) => {
-    try {
-      // Save patient name
-      const name = patientName.trim() || 'Patient';
-      await AsyncStorage.setItem(StorageKeys.PATIENT_NAME, name);
-      await updatePatient('default', { name });
+    setLoadingMessage(seedData ? 'Creating sample data...' : 'Setting things up...');
+    setIsLoading(true);
 
-      // Create care plan config with selected buckets
-      const config = await getOrCreateCarePlanConfig('default');
-      const updatedConfig = { ...config };
-      for (const bucket of SELECTABLE_BUCKETS) {
-        if (updatedConfig.buckets?.[bucket]) {
-          updatedConfig.buckets[bucket].enabled = selectedBuckets.has(bucket);
+    if (!seedData) {
+      // Only save user-entered name and bucket config for "Start Fresh"
+      // When seeding sample data, initializeSampleData() handles all of this
+      try {
+        const name = patientName.trim() || 'Patient';
+        await AsyncStorage.setItem(StorageKeys.PATIENT_NAME, name);
+        await updatePatient('default', { name });
+
+        const config = await getOrCreateCarePlanConfig('default');
+        const updatedConfig = { ...config };
+        for (const bucket of SELECTABLE_BUCKETS) {
+          if ((updatedConfig as any)[bucket]) {
+            (updatedConfig as any)[bucket].enabled = selectedBuckets.has(bucket);
+          }
         }
-      }
-      await saveCarePlanConfig(updatedConfig);
-    } catch {}
+        await saveCarePlanConfig(updatedConfig);
+      } catch {}
+    }
 
     onComplete(seedData);
   };
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <AuroraBackground variant="welcome" />
+        <View style={styles.loadingOverlay}>
+          <Text style={styles.loadingEmoji}>{'\u{1F525}'}</Text>
+          <ActivityIndicator size="large" color={Colors.accent} style={styles.loadingSpinner} />
+          <Text style={styles.loadingText}>{loadingMessage}</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <AuroraBackground variant="welcome" />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Animated.Text entering={FadeInDown.delay(100).duration(300)} style={styles.title}>
-          Who are you caring for?
+          Almost there.
         </Animated.Text>
 
         {/* Patient Name Input */}
         <Animated.View entering={FadeInDown.delay(150).duration(300)} style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>{isSelf ? 'Your name' : 'Their name'}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Their name (e.g. Mom, Dad)"
+            placeholder={isSelf ? 'Your name' : 'e.g. Mom, Dad'}
             placeholderTextColor={Colors.textSecondary}
             value={patientName}
             onChangeText={setPatientName}
@@ -86,7 +110,7 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete }) => {
         {/* Bucket Selection */}
         <Animated.View entering={FadeInDown.delay(200).duration(300)}>
           <Text style={styles.sectionTitle}>What would you like to track?</Text>
-          <Text style={styles.sectionHint}>Pick 2-3 to start. You can change anytime.</Text>
+          <Text style={styles.sectionHint}>Start small — you can add more anytime.</Text>
           <View style={styles.bucketGrid}>
             {SELECTABLE_BUCKETS.map(bucket => {
               const meta = BUCKET_META[bucket];
@@ -98,11 +122,11 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete }) => {
                   onPress={() => toggleBucket(bucket)}
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked: selected }}
-                  accessibilityLabel={`${meta.label} tracking`}
+                  accessibilityLabel={`${meta.name} tracking`}
                 >
                   <Text style={styles.bucketEmoji}>{meta.emoji}</Text>
                   <Text style={[styles.bucketLabel, selected && styles.bucketLabelSelected]}>
-                    {meta.label}
+                    {meta.name}
                   </Text>
                 </TouchableOpacity>
               );
@@ -120,7 +144,7 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete }) => {
             accessibilityLabel="Start fresh with your selections"
           >
             <Text style={styles.optionTitle}>Start Fresh</Text>
-            <Text style={styles.optionSubtitle}>Set up with your selections above</Text>
+            <Text style={styles.optionSubtitle}>Begin tracking right away</Text>
           </TouchableOpacity>
         </Animated.View>
 
@@ -131,10 +155,10 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete }) => {
             onPress={() => handleComplete(true)}
             activeOpacity={0.8}
             accessibilityRole="button"
-            accessibilityLabel="Try with sample data to explore the app"
+            accessibilityLabel="Explore with sample data to see the app in action"
           >
-            <Text style={styles.optionTitle}>Try with Sample Data</Text>
-            <Text style={styles.optionSubtitle}>Explore with 7 days of example data</Text>
+            <Text style={styles.optionTitle}>Explore with Sample Data</Text>
+            <Text style={styles.optionSubtitle}>See 14 days of realistic data {'\u2014'} medications, vitals, appointments, and insights</Text>
           </TouchableOpacity>
         </Animated.View>
 
@@ -159,13 +183,20 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 26,
-    fontWeight: '600',
+    fontWeight: '300',
     color: Colors.textPrimary,
     textAlign: 'center',
     marginBottom: Spacing.xl,
   },
   inputContainer: {
     marginBottom: Spacing.xl,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: 6,
+    textAlign: 'center',
   },
   input: {
     backgroundColor: Colors.glass,
@@ -245,6 +276,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  // Loading overlay
+  loadingOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 60,
+  },
+  loadingEmoji: {
+    fontSize: 56,
+    marginBottom: Spacing.xl,
+  },
+  loadingSpinner: {
+    marginBottom: Spacing.lg,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    fontWeight: '500',
   },
 });
 

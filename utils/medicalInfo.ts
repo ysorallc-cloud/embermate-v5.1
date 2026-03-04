@@ -38,7 +38,8 @@ export interface MedicalInfo {
     name: string;
     dosage: string;
   }>;
-  dateOfBirth?: string;
+  dateOfBirth?: string; // DEPRECATED — use age
+  age?: string;
   gender?: string;
   emergencyNotes?: string;
   lastUpdated: Date;
@@ -63,6 +64,20 @@ function migrateLegacyInfo(raw: any): MedicalInfo {
     }));
   }
 
+  // Migrate DOB → age if needed
+  if (!raw.age && raw.dateOfBirth) {
+    try {
+      const birth = new Date(raw.dateOfBirth);
+      const today = new Date();
+      let computedAge = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        computedAge--;
+      }
+      raw.age = String(computedAge);
+    } catch {}
+  }
+
   return {
     bloodType: raw.bloodType,
     allergies: Array.isArray(raw.allergies) ? raw.allergies : [],
@@ -70,6 +85,7 @@ function migrateLegacyInfo(raw: any): MedicalInfo {
     surgeries: Array.isArray(raw.surgeries) ? raw.surgeries : [],
     hospitalizations: Array.isArray(raw.hospitalizations) ? raw.hospitalizations : [],
     currentMedications: Array.isArray(raw.currentMedications) ? raw.currentMedications : [],
+    age: raw.age,
     emergencyNotes: raw.emergencyNotes,
     lastUpdated: raw.lastUpdated ? new Date(raw.lastUpdated) : new Date(),
   };

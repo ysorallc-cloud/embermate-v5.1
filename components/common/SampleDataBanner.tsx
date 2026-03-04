@@ -1,7 +1,7 @@
 // ============================================================================
 // SAMPLE DATA BANNER
-// Displays when sample/demo data is detected in the app
-// Dismissible, with link to Data & Privacy settings
+// Non-dismissible banner when sample/demo data is active.
+// Full mode (default) → compact mode (after "Keep exploring").
 // ============================================================================
 
 import React, { useState, useCallback } from 'react';
@@ -13,33 +13,25 @@ import {
   Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { navigate } from '../../lib/navigate';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
-import { hasSampleData, detectSampleData } from '../../utils/sampleDataManager';
+import { hasSampleData } from '../../utils/sampleDataManager';
 import { useDataListener } from '../../lib/events';
 import { logError } from '../../utils/devLog';
 import { StorageKeys } from '../../utils/storageKeys';
 
-// Storage key for banner dismissal
-const BANNER_DISMISSED_KEY = StorageKeys.SAMPLE_BANNER_DISMISSED;
-
 export interface SampleDataBannerProps {
   /** Callback when sample data is cleared */
   onCleared?: () => void;
-  /** Show compact version */
-  compact?: boolean;
 }
 
 export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
   onCleared,
-  compact = false,
 }) => {
   const router = useRouter();
   const [visible, setVisible] = useState(false);
-  const [sampleCount, setSampleCount] = useState(0);
-  const [dismissed, setDismissed] = useState(false);
+  const [mode, setMode] = useState<'full' | 'compact'>('full');
   const fadeAnim = useState(new Animated.Value(0))[0];
 
   // Check for sample data on focus
@@ -59,19 +51,13 @@ export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
 
   const checkSampleData = async () => {
     try {
-      // Check if banner was dismissed
-      const wasDismissed = await safeGetItem<string | null>(BANNER_DISMISSED_KEY, null);
-      if (wasDismissed === 'true') {
-        setDismissed(true);
-        setVisible(false);
-        return;
-      }
-
-      // Check for sample data
       const hasData = await hasSampleData();
       if (hasData) {
-        const status = await detectSampleData();
-        setSampleCount(status.totalSampleRecords);
+        // Check persisted mode
+        const savedMode = await safeGetItem<string | null>(StorageKeys.SAMPLE_BANNER_MODE, null);
+        if (savedMode === 'compact') {
+          setMode('compact');
+        }
         setVisible(true);
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -86,57 +72,34 @@ export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
     }
   };
 
-  const handleDismiss = async () => {
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      setVisible(false);
-      setDismissed(true);
-    });
-
-    await safeSetItem(BANNER_DISMISSED_KEY, 'true');
+  const handleKeepExploring = async () => {
+    setMode('compact');
+    await safeSetItem(StorageKeys.SAMPLE_BANNER_MODE, 'compact');
   };
 
-  const handleSetup = () => {
-    navigate('/care-plan');
+  const handleReady = () => {
+    router.push('/sample-data-transition');
   };
 
-  const handleClearData = () => {
-    navigate('/data-privacy-settings');
-  };
-
-  if (!visible || dismissed) {
+  if (!visible) {
     return null;
   }
 
-  if (compact) {
+  if (mode === 'compact') {
     return (
       <Animated.View style={[styles.compactContainer, { opacity: fadeAnim }]}>
         <View style={styles.compactContent}>
-          <Text style={styles.compactIcon}>📊</Text>
-          <Text style={styles.compactText}>
-            Demo data — Set up your care plan
-          </Text>
+          <Text style={styles.compactIcon}>{'\u{1F4CA}'}</Text>
+          <Text style={styles.compactText}>Viewing sample data</Text>
         </View>
         <TouchableOpacity
           style={styles.compactAction}
-          onPress={handleSetup}
+          onPress={handleReady}
           activeOpacity={0.7}
-          accessibilityLabel="Start care plan setup"
+          accessibilityLabel="Ready to set up your own data"
           accessibilityRole="button"
         >
-          <Text style={styles.compactActionText}>Start</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.compactDismiss}
-          onPress={handleDismiss}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityLabel="Dismiss demo data banner"
-          accessibilityRole="button"
-        >
-          <Text style={styles.compactDismissText}>×</Text>
+          <Text style={styles.compactActionText}>Ready {'\u2192'}</Text>
         </TouchableOpacity>
       </Animated.View>
     );
@@ -146,12 +109,12 @@ export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <View style={styles.content}>
         <View style={styles.iconContainer}>
-          <Text style={styles.icon}>📊</Text>
+          <Text style={styles.icon}>{'\u{1F4CA}'}</Text>
         </View>
         <View style={styles.textContent}>
-          <Text style={styles.title}>Demo data loaded</Text>
+          <Text style={styles.title}>You're exploring with sample data</Text>
           <Text style={styles.subtitle}>
-            Set up your own care plan to replace demo data.
+            This is demo content for a fictional patient. When you're ready, we'll help you set up your own.
           </Text>
         </View>
       </View>
@@ -159,40 +122,26 @@ export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={handleSetup}
+          onPress={handleReady}
           activeOpacity={0.7}
-          accessibilityLabel="Set up your care plan"
+          accessibilityLabel="I'm ready — set up my data"
           accessibilityRole="button"
         >
-          <Text style={styles.primaryButtonText}>Set up your care plan</Text>
+          <Text style={styles.primaryButtonText}>I'm ready {'\u2014'} set up my data {'\u2192'}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.secondaryButton}
-          onPress={handleClearData}
+          onPress={handleKeepExploring}
           activeOpacity={0.7}
-          accessibilityLabel="Clear demo data"
+          accessibilityLabel="Keep exploring"
           accessibilityRole="button"
         >
-          <Text style={styles.secondaryButtonText}>Clear demo data</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.dismissButton}
-          onPress={handleDismiss}
-          activeOpacity={0.7}
-          accessibilityLabel="Dismiss demo data banner"
-          accessibilityRole="button"
-        >
-          <Text style={styles.dismissButtonText}>Dismiss</Text>
+          <Text style={styles.secondaryButtonText}>Keep exploring</Text>
         </TouchableOpacity>
       </View>
     </Animated.View>
   );
 };
-
-// Reset banner dismissal (for testing)
-export async function resetSampleDataBanner(): Promise<void> {
-  await AsyncStorage.removeItem(BANNER_DISMISSED_KEY);
-}
 
 const styles = StyleSheet.create({
   container: {
@@ -235,17 +184,16 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
+    gap: 8,
   },
   primaryButton: {
     backgroundColor: Colors.purpleBorder,
     borderWidth: 1,
     borderColor: Colors.purpleGlow,
     borderRadius: 8,
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 14,
+    alignItems: 'center',
   },
   primaryButtonText: {
     fontSize: 13,
@@ -255,18 +203,11 @@ const styles = StyleSheet.create({
   secondaryButton: {
     paddingVertical: 8,
     paddingHorizontal: 14,
+    alignItems: 'center',
   },
   secondaryButtonText: {
     fontSize: 13,
     color: Colors.textTertiary,
-  },
-  dismissButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-  },
-  dismissButtonText: {
-    fontSize: 13,
-    color: Colors.textHalf,
   },
 
   // Compact variant
@@ -300,14 +241,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: Colors.purpleBright,
-  },
-  compactDismiss: {
-    paddingLeft: 8,
-  },
-  compactDismissText: {
-    fontSize: 18,
-    color: Colors.textMuted,
-    fontWeight: '300',
   },
 });
 

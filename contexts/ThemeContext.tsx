@@ -15,6 +15,9 @@ import { StorageKeys } from '../utils/storageKeys';
 // TYPES
 // ============================================================================
 
+// 'light' is defined but disabled in the UI — StyleSheet.create() at module scope
+// captures dark-theme Colors values, making light mode show white-on-white text.
+// To re-enable: migrate all 70 screens from static StyleSheet to useTheme() hook.
 export type ThemeMode = 'dark' | 'light' | 'system';
 
 interface ThemeContextValue {
@@ -64,8 +67,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       safeGetItem<string | null>(STORAGE_KEY, null),
       safeGetItem<string | null>(HC_STORAGE_KEY, null),
     ]).then(([themeValue, hcValue]) => {
-      if (themeValue === 'dark' || themeValue === 'light' || themeValue === 'system') {
-        setThemeModeState(themeValue);
+      if (themeValue === 'dark') {
+        setThemeModeState('dark');
+      } else if (themeValue === 'system') {
+        // System theme can resolve to 'light' which is broken,
+        // so force dark until light mode StyleSheet migration is done
+        setThemeModeState('dark');
+        safeSetItem(STORAGE_KEY, 'dark');
+      } else {
+        // 'light' or any other value — force back to dark
+        setThemeModeState('dark');
+        safeSetItem(STORAGE_KEY, 'dark');
       }
       if (hcValue === 'true') {
         setHighContrastState(true);
@@ -90,17 +102,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       ? (systemScheme === 'light' ? 'light' : 'dark')
       : themeMode;
 
-  // Build final colors: base theme + optional high-contrast overrides
+  // Build final colors
+  // NOTE: Light theme disabled — StyleSheet.create() at module scope captures
+  // dark-theme color values at import time, so switching to light colors
+  // only changes backgrounds (read at render) while text stays white (frozen).
+  // Always use dark base until all 70 screens migrate to useTheme() hook.
   const colors = useMemo(() => {
-    const base = resolvedTheme === 'light' ? (LightColors as typeof Colors) : Colors;
+    const base = Colors; // Always dark — light mode disabled
     if (!highContrast) return base;
-
-    const overrides = resolvedTheme === 'light'
-      ? HighContrastLightOverrides
-      : HighContrastDarkOverrides;
-
-    return { ...base, ...overrides } as typeof Colors;
-  }, [resolvedTheme, highContrast]);
+    return { ...base, ...HighContrastDarkOverrides } as typeof Colors;
+  }, [highContrast]);
 
   // Prong 1: keep global Colors object in sync so non-migrated files
   // that read Colors.X at render time get the correct values.

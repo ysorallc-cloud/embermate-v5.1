@@ -15,7 +15,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Animated,
-  Share,
+  Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
@@ -43,6 +43,10 @@ import { getMedicalInfo, MedicalInfo } from '../../utils/medicalInfo';
 import { safeGetItem } from '../../utils/safeStorage';
 import { StorageKeys } from '../../utils/storageKeys';
 import { getMedications } from '../../utils/medicationStorage';
+import { hasSampleData } from '../../utils/sampleDataManager';
+import { ReportPreviewModal } from '../../components/shared/ReportPreviewModal';
+import { buildDailySummaryReport, buildClinicalReportData } from '../../utils/reportBuilders';
+import { generateAndSharePDF, ReportData } from '../../utils/pdfExport';
 
 // ============================================================================
 // HELPERS
@@ -92,8 +96,14 @@ export default function JournalTab() {
   const { enabledBuckets } = useEnabledBuckets();
   const [medicalInfo, setMedicalInfo] = useState<MedicalInfo | null>(null);
   const [patientName, setPatientName] = useState('');
-  const [patientDob, setPatientDob] = useState<string | null>(null);
+  const [patientAge, setPatientAge] = useState<string | null>(null);
   const [activeMedCount, setActiveMedCount] = useState(0);
+  const [isSampleMode, setIsSampleMode] = useState(false);
+  const [showDailyPreview, setShowDailyPreview] = useState(false);
+  const [showClinicalPreview, setShowClinicalPreview] = useState(false);
+  const [dailyReport, setDailyReport] = useState<{ reportData: ReportData; previewLines: string[] } | null>(null);
+  const [clinicalReport, setClinicalReport] = useState<{ reportData: ReportData; previewLines: string[] } | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const loadReport = useCallback(async () => {
     try {
@@ -122,15 +132,15 @@ export default function JournalTab() {
 
       // Load patient context for patient card + share
       try {
-        const [mi, name, dob, meds] = await Promise.all([
+        const [mi, name, ageVal, meds] = await Promise.all([
           getMedicalInfo(),
           safeGetItem<string>(StorageKeys.PATIENT_NAME, ''),
-          safeGetItem<string | null>(StorageKeys.PATIENT_DOB, null),
+          safeGetItem<string | null>(StorageKeys.PATIENT_AGE ?? '@embermate_patient_age', null),
           getMedications(),
         ]);
         setMedicalInfo(mi);
         setPatientName(name || '');
-        setPatientDob(dob);
+        setPatientAge(ageVal);
         setActiveMedCount(meds?.length ?? 0);
       } catch {
         // Non-critical — patient card just won't show
@@ -155,9 +165,13 @@ export default function JournalTab() {
       EVENT.DAILY_INSTANCES, EVENT.CARE_PLAN_ITEMS, EVENT.LOGS, EVENT.VITALS,
       EVENT.WATER, EVENT.SYMPTOMS, EVENT.MOOD, EVENT.WELLNESS, EVENT.MEDICATION,
       EVENT.NOTES, EVENT.CARE_PLAN, EVENT.CARE_PLAN_CONFIG, EVENT.SAMPLE_DATA_CLEARED,
+      EVENT.APPOINTMENTS,
     ].includes(category as any)) return;
     if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
     reloadTimerRef.current = setTimeout(() => { loadReport(); }, 500);
+    if (category === EVENT.SAMPLE_DATA_CLEARED) {
+      setIsSampleMode(false);
+    }
   }, [loadReport]));
 
   const onRefresh = useCallback(async () => {
@@ -185,6 +199,7 @@ export default function JournalTab() {
         }
       };
       checkAuth();
+      hasSampleData().then(setIsSampleMode);
     }, [])
   );
 
@@ -274,6 +289,8 @@ export default function JournalTab() {
   const mealsMissed = brief?.meals.meals.filter(m => m.status === 'missed').length ?? 0;
 
   const hasVitals = brief?.vitals.recorded ?? false;
+  const wellnessDone = brief?.wellnessChecks.done ?? 0;
+  const wellnessTotal = brief?.wellnessChecks.total ?? 0;
   const hasMorning = brief?.mood.morningWellness != null;
   const hasEvening = brief?.mood.eveningWellness != null;
 
@@ -329,13 +346,14 @@ export default function JournalTab() {
   }
 
   function getWellnessDotColor(): DotColor {
-    if (hasMorning && hasEvening) return 'green';
-    return 'amber';
+    if (wellnessTotal === 0) return 'muted';
+    if (wellnessDone >= wellnessTotal) return 'green';
+    if (wellnessDone > 0) return 'amber';
+    return 'muted';
   }
 
   function getWellnessValue(): string {
-    const done = (hasMorning ? 1 : 0) + (hasEvening ? 1 : 0);
-    return `${done}/2`;
+    return `${wellnessDone}/${wellnessTotal}`;
   }
 
   function getSleepDotColor(): DotColor {
@@ -455,61 +473,77 @@ export default function JournalTab() {
   }
 
   // ============================================================================
-  // SHARE
+  // SHARE / REPORT HANDLERS
   // ============================================================================
-  async function handleShareJournal() {
+  function handleShareDaily() {
     if (!brief) return;
-    const lines: string[] = [];
-    lines.push(`\uD83D\uDCD6 Daily Journal \u2014 ${dayName}, ${dateStr}`);
-    lines.push('');
+    const result = buildDailySummaryReport(
+      brief,
+      dateStr,
+      dayName,
+      glanceStats,
+      buildHandoffNotes(),
+    );
+    setDailyReport(result);
+    setShowDailyPreview(true);
+  }
 
-    // Patient context block
-    if (patientName) {
-      const ageSuffix = patientAge != null ? ` (${patientAge} y/o)` : '';
-      lines.push(`\uD83D\uDC64 ${patientName}${ageSuffix}`);
-      if (activeDiagnoses.length > 0) {
-        lines.push(`   ${activeDiagnoses.map(d => d.condition).join(' \u00B7 ')}`);
-      }
-      if (allergies.length > 0) {
-        lines.push(`   \u26A0\uFE0F ALLERGY: ${allergies.join(', ')}`);
-      }
-      if (activeMedCount > 0) {
-        lines.push(`   Meds: ${activeMedCount} active`);
-      }
-      if (showAppointment && brief.nextAppointment) {
-        lines.push(`   Next: ${brief.nextAppointment.provider} in ${daysUntilAppt}d`);
-      }
-      lines.push('');
-    }
+  function handleShareClinical() {
+    if (!brief) return;
+    const result = buildClinicalReportData(brief);
+    setClinicalReport(result);
+    setShowClinicalPreview(true);
+  }
 
-    lines.push(getBriefingText());
-    lines.push('');
+  function handleDailyExport() {
+    if (!dailyReport) return;
+    Alert.alert(
+      'Share Daily Summary',
+      'This PDF contains health information. Only share with trusted caregivers or healthcare providers.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Share PDF',
+          onPress: async () => {
+            setExporting(true);
+            try {
+              await generateAndSharePDF(dailyReport.reportData, {
+                name: patientName || undefined,
+                age: patientAge || undefined,
+              });
+              setShowDailyPreview(false);
+            } catch { /* user cancelled or error handled in util */ }
+            setExporting(false);
+          },
+        },
+      ],
+    );
+  }
 
-    // Handoff
-    const handoff = buildHandoffNotes();
-    if (handoff.length > 0) {
-      lines.push('HANDOFF NOTES');
-      for (const h of handoff) {
-        lines.push(`${h.icon} ${h.text}`);
-      }
-      lines.push('');
-    }
-
-    // Quick stats
-    lines.push('DAY AT A GLANCE');
-    lines.push(glanceStats.map(s => `${s.label}: ${s.value}`).join(' | '));
-
-    if (showAppointment && brief.nextAppointment) {
-      lines.push('');
-      lines.push(`Next: ${brief.nextAppointment.provider} in ${daysUntilAppt} days`);
-    }
-
-    lines.push('');
-    lines.push('\u2014 Shared from EmberMate');
-
-    try {
-      await Share.share({ message: lines.join('\n'), title: `Journal \u2014 ${dateStr}` });
-    } catch { /* user cancelled */ }
+  function handleClinicalExport() {
+    if (!clinicalReport) return;
+    Alert.alert(
+      'Share Clinical Report',
+      'This PDF contains full medical history, medications, and vitals. Only share with healthcare providers.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Share PDF',
+          style: 'destructive',
+          onPress: async () => {
+            setExporting(true);
+            try {
+              await generateAndSharePDF(clinicalReport.reportData, {
+                name: patientName || undefined,
+                age: patientAge || undefined,
+              });
+              setShowClinicalPreview(false);
+            } catch { /* user cancelled or error handled in util */ }
+            setExporting(false);
+          },
+        },
+      ],
+    );
   }
 
   // ============================================================================
@@ -590,7 +624,6 @@ export default function JournalTab() {
   // ============================================================================
   const activeDiagnoses = (medicalInfo?.diagnoses ?? []).filter(d => d.status === 'active');
   const allergies = medicalInfo?.allergies ?? [];
-  const patientAge = patientDob ? Math.floor((Date.now() - new Date(patientDob).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null;
   const showPatientCard = patientName.length > 0;
 
   // ============================================================================
@@ -616,17 +649,35 @@ export default function JournalTab() {
             purpose="Record thoughts and observations."
             style={s.journalHeader}
             rightAction={
-              <TouchableOpacity
-                style={s.headerShareBtn}
-                onPress={handleShareJournal}
-                activeOpacity={0.7}
-                accessibilityLabel="Share journal"
-                accessibilityRole="button"
-              >
-                <Text style={s.headerShareBtnText}>{'\uD83D\uDCCB'} Share</Text>
-              </TouchableOpacity>
+              <View style={s.headerButtons}>
+                <TouchableOpacity
+                  style={s.headerShareBtn}
+                  onPress={handleShareDaily}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Share daily summary"
+                  accessibilityRole="button"
+                >
+                  <Text style={s.headerShareBtnText}>{'\uD83D\uDCCB'} Share</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={s.headerReportBtn}
+                  onPress={handleShareClinical}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Clinical report"
+                  accessibilityRole="button"
+                >
+                  <Text style={s.headerReportBtnText}>{'\uD83E\uDE7A'} Report</Text>
+                </TouchableOpacity>
+              </View>
             }
           />
+
+          {/* ─── SAMPLE DATA INDICATOR ─── */}
+          {isSampleMode && (
+            <View style={s.sampleIndicator}>
+              <Text style={s.sampleIndicatorText}>{'\u{1F4CA}'} Sample data — not real patient information</Text>
+            </View>
+          )}
 
           {/* ─── PATIENT CONTEXT CARD ─── */}
           {showPatientCard && (
@@ -815,6 +866,25 @@ export default function JournalTab() {
 
         </ScrollView>
       </SafeAreaView>
+
+      <ReportPreviewModal
+        visible={showDailyPreview}
+        title="Daily Summary"
+        infoText="Preview of your daily journal. Tap 'Share PDF' to export."
+        previewLines={dailyReport?.previewLines ?? []}
+        onExport={handleDailyExport}
+        onClose={() => setShowDailyPreview(false)}
+        exporting={exporting}
+      />
+      <ReportPreviewModal
+        visible={showClinicalPreview}
+        title="Clinical Report"
+        infoText="30-day clinical summary for healthcare providers."
+        previewLines={clinicalReport?.previewLines ?? []}
+        onExport={handleClinicalExport}
+        onClose={() => setShowClinicalPreview(false)}
+        exporting={exporting}
+      />
     </View>
   );
 }
@@ -845,10 +915,11 @@ function buildHandoffSummary(
   if (!hasVitals && brief.vitals.scheduled) {
     parts.push('Vitals not yet recorded.');
   }
-  if (!brief.mood.morningWellness && !brief.mood.eveningWellness) {
+  if (brief.wellnessChecks.total > 0 && brief.wellnessChecks.done === 0) {
     parts.push('Wellness check pending.');
-  } else if (!brief.mood.eveningWellness) {
-    parts.push('Evening wellness check pending.');
+  } else if (brief.wellnessChecks.total > 0 && brief.wellnessChecks.done < brief.wellnessChecks.total) {
+    const remaining = brief.wellnessChecks.total - brief.wellnessChecks.done;
+    parts.push(`${remaining} wellness check${remaining > 1 ? 's' : ''} still pending.`);
   }
   if (brief.nextAppointment) {
     const dateStr = new Date(brief.nextAppointment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -912,11 +983,30 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   authGateButton: { backgroundColor: c.accent, paddingHorizontal: 32, paddingVertical: 14, borderRadius: BorderRadius.lg },
   authGateButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
 
+  // ─── SAMPLE DATA INDICATOR ───
+  sampleIndicator: {
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    alignSelf: 'flex-start',
+  },
+  sampleIndicatorText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: c.purpleBright,
+  },
+
   // ─── HEADER ───
   journalHeader: {
     borderBottomWidth: 1,
     borderBottomColor: c.glassBorder,
     marginBottom: 8,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 6,
   },
   headerShareBtn: {
     backgroundColor: c.accentDim,
@@ -930,6 +1020,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: c.accent,
+  },
+  headerReportBtn: {
+    backgroundColor: c.purpleFaint,
+    borderWidth: 1,
+    borderColor: c.purpleBorder,
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 9,
+  },
+  headerReportBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: c.purpleBright,
   },
 
   // ─── PATIENT CONTEXT CARD ───
