@@ -16,6 +16,7 @@ import {
 import { Colors } from '../../theme/theme-tokens';
 import { usePatient } from '../../contexts/PatientContext';
 import { checkFeatureAccess } from '../../utils/featureGate';
+import { navigate } from '../../lib/navigate';
 
 interface PatientSwitcherModalProps {
   visible: boolean;
@@ -153,6 +154,19 @@ export function PatientSwitcherModal({ visible, onClose }: PatientSwitcherModalP
               <Text style={styles.addLabel}>Add Patient</Text>
             </TouchableOpacity>
           )}
+
+          {/* View Profile link */}
+          <View style={styles.profileDivider} />
+          <TouchableOpacity
+            style={styles.profileRow}
+            onPress={() => { onClose(); navigate('/patient'); }}
+            accessibilityLabel="View patient profile"
+            accessibilityRole="button"
+          >
+            <Text style={styles.profileIcon}>{'\uD83D\uDC64'}</Text>
+            <Text style={styles.profileLabel}>View Profile</Text>
+            <Text style={styles.profileArrow}>{'\u2192'}</Text>
+          </TouchableOpacity>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
@@ -293,5 +307,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: Colors.textPrimary,
+  },
+  profileDivider: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    marginTop: 8,
+  },
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    gap: 6,
+  },
+  profileIcon: {
+    fontSize: 13,
+  },
+  profileLabel: {
+    fontSize: 14,
+    color: Colors.accent,
+    fontWeight: '500',
+  },
+  profileArrow: {
+    fontSize: 13,
+    color: Colors.accent,
   },
 });

@@ -23,6 +23,7 @@ import { saveMorningWellness, skipMorningWellness } from '../utils/wellnessCheck
 import { listDailyInstances, logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { emitDataUpdate } from '../lib/events';
+import { hapticSuccess } from '../utils/hapticFeedback';
 import { EVENT } from '../lib/eventNames';
 
 const SLEEP_OPTIONS = [
@@ -109,6 +110,7 @@ export default function LogMorningWellnessScreen() {
               } catch (e) {
                 console.warn('Could not update care plan instance:', e);
               }
+              await hapticSuccess();
               navigateBack();
             } catch (error) {
               Alert.alert('Error', 'Failed to skip wellness check');
@@ -145,6 +147,7 @@ export default function LogMorningWellnessScreen() {
       } catch (e) {
         console.warn('Could not update care plan instance:', e);
       }
+      await hapticSuccess();
       navigateBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to save wellness check');

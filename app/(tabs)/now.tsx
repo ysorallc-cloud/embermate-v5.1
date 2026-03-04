@@ -11,6 +11,7 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { navigate } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
@@ -83,6 +84,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { MorningMedsBanner } from '../../components/now/MorningMedsBanner';
 import { TimelineSection } from '../../components/now/TimelineSection';
 import { RoutineSheet } from '../../components/now/RoutineSheet';
+import { HandoffPromptCard } from '../../components/now/HandoffPromptCard';
 
 
 function getGreeting(): string {
@@ -117,7 +119,6 @@ import { useDataListener, emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
 import { GettingStartedChecklist } from '../../components/guidance';
 import { buildCareBrief, CareBrief } from '../../utils/careSummaryBuilder';
-import { getAllInsights, InsightData } from '../../utils/insightEngine';
 
 // ============================================================================
 // INLINE COMPONENT — Section header row (flat, no emoji icons)
@@ -129,6 +130,8 @@ function SectionHeaderRow({
   onAction,
   collapsed,
   onToggleCollapse,
+  iconAction,
+  onIconAction,
   styles: s,
 }: {
   title: string;
@@ -136,6 +139,8 @@ function SectionHeaderRow({
   onAction?: () => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  iconAction?: string;
+  onIconAction?: () => void;
   styles: ReturnType<typeof createStyles>;
 }) {
   return (
@@ -154,11 +159,24 @@ function SectionHeaderRow({
       ) : (
         <Text style={s.sectionHeaderTitle}>{title}</Text>
       )}
-      {action && onAction && (
-        <TouchableOpacity onPress={onAction} accessibilityRole="button" accessibilityLabel={action}>
-          <Text style={s.sectionHeaderAction}>{action} →</Text>
-        </TouchableOpacity>
-      )}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        {iconAction && onIconAction && (
+          <TouchableOpacity
+            onPress={onIconAction}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Quick log"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={s.sectionHeaderIcon}>{iconAction}</Text>
+          </TouchableOpacity>
+        )}
+        {action && onAction && (
+          <TouchableOpacity onPress={onAction} accessibilityRole="button" accessibilityLabel={action}>
+            <Text style={s.sectionHeaderAction}>{action} →</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }
@@ -221,7 +239,7 @@ export default function NowScreen() {
   const { hasCarePlan: hasBucketCarePlan, loading: carePlanConfigLoading, enabledBuckets } = useCarePlanConfig();
 
   // Today Scope - track hidden items count
-  const { suppressedItems } = useTodayScope(today);
+  const { suppressedItems, resetToDefaults: restoreAllSuppressed } = useTodayScope(today);
 
   // Determine which system to use
   const hasRegimenInstances = instancesState && instancesState.instances.length > 0;
@@ -268,7 +286,6 @@ export default function NowScreen() {
 
   // Handoff / Patterns / Before Bed (mirrored from Journal)
   const [brief, setBrief] = useState<CareBrief | null>(null);
-  const [patterns, setPatterns] = useState<InsightData[]>([]);
 
   // Appointment prep state (Task 4.5)
   const [upcomingPrepAppointment, setUpcomingPrepAppointment] = useState<any>(null);
@@ -624,7 +641,6 @@ export default function NowScreen() {
 
       // Load care brief for handoff/patterns/before-bed
       buildCareBrief().then(data => setBrief(data)).catch(() => {});
-      getAllInsights().then(data => setPatterns(data)).catch(() => setPatterns([]));
 
       // Legacy stats fallback — only used when no regimen instances exist
       const legacyStatsUpdate: TodayStats = {
@@ -745,22 +761,32 @@ export default function NowScreen() {
           subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
           purpose="What's happening today."
           rightAction={
-            <TouchableOpacity
-              onPress={() => setShowPatientSwitcher(true)}
-              style={styles.patientChip}
-              accessibilityLabel={`Patient: ${patientName}. Tap to switch.`}
-              accessibilityRole="button"
-            >
-              <View style={styles.patientAvatar}>
-                <Text style={styles.patientAvatarText}>
-                  {patientName.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-              <Text style={styles.patientChipName}>{patientName}</Text>
-              {patients.length > 1 && (
-                <Text style={{ fontSize: 10, color: colors.textMuted }}>{'\u25BC'}</Text>
-              )}
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => navigate('/quick-log-more')}
+                style={styles.headerAddBtn}
+                accessibilityLabel="Quick log"
+                accessibilityRole="button"
+              >
+                <Text style={styles.headerAddBtnText}>+</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowPatientSwitcher(true)}
+                style={styles.patientChip}
+                accessibilityLabel={`Patient: ${patientName}. Tap to switch.`}
+                accessibilityRole="button"
+              >
+                <View style={styles.patientAvatar}>
+                  <Text style={styles.patientAvatarText}>
+                    {patientName.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={styles.patientChipName}>{patientName}</Text>
+                {patients.length > 1 && (
+                  <Text style={{ fontSize: 10, color: colors.textMuted }}>{'\u25BC'}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           }
         />
         <PatientSwitcherModal
@@ -770,18 +796,37 @@ export default function NowScreen() {
 
         {/* Hidden Items Banner */}
         {suppressedItems.length > 0 && (
-          <TouchableOpacity
+          <View
             style={styles.hiddenBanner}
-            onPress={() => navigate('/today-scope')}
-            activeOpacity={0.7}
-            accessibilityLabel={`${suppressedItems.length} item${suppressedItems.length === 1 ? '' : 's'} hidden via Adjust Today. Tap to manage.`}
-            accessibilityRole="button"
+            accessibilityLabel={`${suppressedItems.length} item${suppressedItems.length === 1 ? '' : 's'} hidden for today`}
+            accessibilityRole="text"
           >
             <Text style={styles.hiddenBannerText}>
-              {suppressedItems.length} item{suppressedItems.length === 1 ? '' : 's'} hidden via Adjust Today
+              {suppressedItems.length} item{suppressedItems.length === 1 ? '' : 's'} hidden for today
             </Text>
-            <Text style={styles.hiddenBannerAction}>Manage →</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                Alert.alert(
+                  'Restore Hidden Items',
+                  'Show all Care Plan items for today?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Restore All',
+                      onPress: async () => {
+                        await restoreAllSuppressed();
+                      },
+                    },
+                  ],
+                );
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Restore all hidden items"
+            >
+              <Text style={styles.hiddenBannerAction}>Restore All</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {/* Coffee Moment Modal (banner removed — footer pause link is the entry point) */}
@@ -812,6 +857,34 @@ export default function NowScreen() {
             />
           )}
 
+          {/* ═══ MORNING CONTEXT LINE ═══ */}
+          {allPending.length > 0 && (() => {
+            const hour = new Date().getHours();
+            const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+            const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+            const windowPending = allPending.filter((i: any) => {
+              if (timeOfDay === 'morning') return i.windowLabel === 'morning';
+              if (timeOfDay === 'afternoon') return i.windowLabel === 'afternoon';
+              return i.windowLabel === 'evening' || i.windowLabel === 'night';
+            });
+
+            const count = windowPending.length;
+            const suffix = count > 0
+              ? `${count} item${count === 1 ? '' : 's'} for this ${timeOfDay}.`
+              : `You're caught up for the ${timeOfDay}.`;
+
+            return (
+              <Text
+                style={styles.morningContextLine}
+                accessibilityRole="text"
+                accessibilityLabel={`${greeting}. ${suffix}`}
+              >
+                {greeting}. {suffix}
+              </Text>
+            );
+          })()}
+
           {/* ═══ ZONE 1: TODAY'S PROGRESS ═══ */}
           <SectionHeaderRow
             title="Today's Progress"
@@ -835,8 +908,6 @@ export default function NowScreen() {
           {/* ═══ ZONE 2: TODAY'S SCHEDULE ═══ */}
           <SectionHeaderRow
             title="Today's Schedule"
-            action="Adjust Today"
-            onAction={() => navigate('/today-scope')}
             collapsed={timelineCollapsed}
             onToggleCollapse={() => setTimelineCollapsed(prev => !prev)}
             styles={styles}
@@ -978,21 +1049,7 @@ export default function NowScreen() {
             );
           })()}
 
-          {/* ═══ ZONE 5: PATTERNS TO WATCH ═══ */}
-          {patterns.length > 0 && (
-            <>
-              <SectionHeaderRow title="Patterns to Watch" styles={styles} />
-              <View style={styles.sectionCard}>
-                {patterns.slice(0, 3).map((p) => (
-                  <View key={p.id} style={styles.patternRow}>
-                    <Text style={styles.patternTitle}>{p.title}</Text>
-                  </View>
-                ))}
-              </View>
-            </>
-          )}
-
-          {/* ═══ ZONE 6: BEFORE BED ═══ */}
+          {/* ═══ ZONE 5: BEFORE BED ═══ */}
           {brief && new Date().getHours() >= 17 && (() => {
             const bedItems = buildBeforeBedItems();
             if (bedItems.length === 0) return null;
@@ -1016,6 +1073,9 @@ export default function NowScreen() {
               </>
             );
           })()}
+
+          {/* ═══ HANDOFF PROMPT ═══ */}
+          <HandoffPromptCard completedCount={todayTimeline.completed.length} />
 
           {/* ═══ FOOTER ═══ */}
           {/* All-done / encouragement */}
@@ -1110,6 +1170,22 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingTop: 0,
   },
 
+  // Header + button (opens unified log)
+  headerAddBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: c.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerAddBtnText: {
+    fontSize: 20,
+    fontWeight: '300',
+    color: '#fff',
+    lineHeight: 22,
+  },
+
   // Patient chip (header uses ScreenHeader)
   patientChip: {
     flexDirection: 'row',
@@ -1139,6 +1215,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 12,
     color: c.textSecondary,
     fontWeight: '500',
+  },
+  morningContextLine: {
+    fontSize: 14,
+    color: c.textSecondary,
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+    lineHeight: 20,
   },
   hiddenBanner: {
     flexDirection: 'row',
@@ -1181,6 +1264,18 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 11,
     color: c.accent,
     fontWeight: '500',
+  },
+  sectionHeaderIcon: {
+    fontSize: 18,
+    fontWeight: '400' as const,
+    color: c.accent,
+    width: 26,
+    height: 26,
+    lineHeight: 26,
+    textAlign: 'center' as const,
+    borderRadius: 13,
+    backgroundColor: c.accentLight,
+    overflow: 'hidden' as const,
   },
 
   // ── Section Card wrapper ──

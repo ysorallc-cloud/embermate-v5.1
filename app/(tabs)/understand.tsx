@@ -579,9 +579,22 @@ export default function UnderstandScreen() {
             subtitle={periodLabel}
             purpose="Patterns and trends over time."
             rightAction={
-              pageData && !pageData.isSampleData && pageData.daysOfData >= 7
-                ? <TimeRangeToggle value={timeRange} onChange={setTimeRange} />
-                : undefined
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                {pageData && !pageData.isSampleData && pageData.daysOfData >= 7 && (
+                  <TimeRangeToggle value={timeRange} onChange={setTimeRange} />
+                )}
+                <TouchableOpacity
+                  onPress={() => navigate('/settings')}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Settings"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <View style={styles.settingsGear}>
+                    <Text style={styles.settingsGearText}>{'\u2699\uFE0F'}</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
             }
           />
 
@@ -1243,6 +1256,21 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textTertiary,
     fontStyle: 'italic',
     textAlign: 'center',
+  },
+
+  // Settings gear
+  settingsGear: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: c.glass,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  settingsGearText: {
+    fontSize: 16,
   },
 
   // Footer

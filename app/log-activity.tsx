@@ -19,6 +19,7 @@ import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { Colors } from '../theme/theme-tokens';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { emitDataUpdate } from '../lib/events';
+import { hapticSuccess } from '../utils/hapticFeedback';
 import { EVENT } from '../lib/eventNames';
 import { getTodayDateString } from '../services/carePlanGenerator';
 
@@ -75,6 +76,7 @@ export default function LogActivityScreen() {
         }
       }
 
+      await hapticSuccess();
       navigateBack();
     } catch (error) {
       logError('LogActivityScreen.handleSave', error);

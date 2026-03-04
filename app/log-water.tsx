@@ -18,6 +18,7 @@ import { Colors, Spacing } from '../theme/theme-tokens';
 import { getTodayWaterLog, updateTodayWaterLog } from '../utils/centralStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { hapticSuccess } from '../utils/hapticFeedback';
 import { EVENT } from '../lib/eventNames';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { getTodayDateString } from '../services/carePlanGenerator';
@@ -76,6 +77,7 @@ export default function LogWaterScreen() {
       }
 
       emitDataUpdate(EVENT.WATER);
+      await hapticSuccess();
       navigateBack();
     } catch (error) {
       logError('LogWaterScreen.handleSave', error);

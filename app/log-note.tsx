@@ -9,6 +9,7 @@ import { Colors } from '../theme/theme-tokens';
 import { saveNote } from '../utils/noteStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { hapticSuccess } from '../utils/hapticFeedback';
 import { EVENT } from '../lib/eventNames';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
@@ -48,6 +49,7 @@ export default function LogNoteScreen() {
         }
       }
 
+      await hapticSuccess();
       navigateBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to save note');

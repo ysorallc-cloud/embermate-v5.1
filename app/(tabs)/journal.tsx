@@ -29,6 +29,7 @@ import {
 import { getAllInsights, InsightData } from '../../utils/insightEngine';
 import { logError } from '../../utils/devLog';
 import { useCareTasks } from '../../hooks/useCareTasks';
+import { useEnabledBuckets } from '../../hooks/useCarePlanConfig';
 import { getTodayDateString } from '../../services/carePlanGenerator';
 import { logAuditEvent, AuditEventType, AuditSeverity } from '../../utils/auditLog';
 import { useDataListener } from '../../lib/events';
@@ -38,6 +39,10 @@ import { getNotesLogs, NotesLog } from '../../utils/centralStorage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { CarePlanTask } from '../../types/carePlanTask';
+import { getMedicalInfo, MedicalInfo } from '../../utils/medicalInfo';
+import { safeGetItem } from '../../utils/safeStorage';
+import { StorageKeys } from '../../utils/storageKeys';
+import { getMedications } from '../../utils/medicationStorage';
 
 // ============================================================================
 // HELPERS
@@ -84,6 +89,11 @@ export default function JournalTab() {
   const [expandedPattern, setExpandedPattern] = useState<number | null>(null);
   const chevronAnims = useRef<Animated.Value[]>([]).current;
   const { state: careTasksState } = useCareTasks(getTodayDateString());
+  const { enabledBuckets } = useEnabledBuckets();
+  const [medicalInfo, setMedicalInfo] = useState<MedicalInfo | null>(null);
+  const [patientName, setPatientName] = useState('');
+  const [patientDob, setPatientDob] = useState<string | null>(null);
+  const [activeMedCount, setActiveMedCount] = useState(0);
 
   const loadReport = useCallback(async () => {
     try {
@@ -108,6 +118,22 @@ export default function JournalTab() {
         setInsights(allInsights);
       } catch {
         setInsights([]);
+      }
+
+      // Load patient context for patient card + share
+      try {
+        const [mi, name, dob, meds] = await Promise.all([
+          getMedicalInfo(),
+          safeGetItem<string>(StorageKeys.PATIENT_NAME, ''),
+          safeGetItem<string | null>(StorageKeys.PATIENT_DOB, null),
+          getMedications(),
+        ]);
+        setMedicalInfo(mi);
+        setPatientName(name || '');
+        setPatientDob(dob);
+        setActiveMedCount(meds?.length ?? 0);
+      } catch {
+        // Non-critical — patient card just won't show
       }
 
     } catch (err) {
@@ -436,6 +462,26 @@ export default function JournalTab() {
     const lines: string[] = [];
     lines.push(`\uD83D\uDCD6 Daily Journal \u2014 ${dayName}, ${dateStr}`);
     lines.push('');
+
+    // Patient context block
+    if (patientName) {
+      const ageSuffix = patientAge != null ? ` (${patientAge} y/o)` : '';
+      lines.push(`\uD83D\uDC64 ${patientName}${ageSuffix}`);
+      if (activeDiagnoses.length > 0) {
+        lines.push(`   ${activeDiagnoses.map(d => d.condition).join(' \u00B7 ')}`);
+      }
+      if (allergies.length > 0) {
+        lines.push(`   \u26A0\uFE0F ALLERGY: ${allergies.join(', ')}`);
+      }
+      if (activeMedCount > 0) {
+        lines.push(`   Meds: ${activeMedCount} active`);
+      }
+      if (showAppointment && brief.nextAppointment) {
+        lines.push(`   Next: ${brief.nextAppointment.provider} in ${daysUntilAppt}d`);
+      }
+      lines.push('');
+    }
+
     lines.push(getBriefingText());
     lines.push('');
 
@@ -451,8 +497,7 @@ export default function JournalTab() {
 
     // Quick stats
     lines.push('DAY AT A GLANCE');
-    lines.push(`Meds: ${getMedsValue()} | Meals: ${mealsDone}/${mealsTotal} | Water: ${waterGlasses}/8`);
-    lines.push(`Wellness: ${getWellnessValue()} | Sleep: ${getSleepValue()}`);
+    lines.push(glanceStats.map(s => `${s.label}: ${s.value}`).join(' | '));
 
     if (showAppointment && brief.nextAppointment) {
       lines.push('');
@@ -524,14 +569,29 @@ export default function JournalTab() {
   const handoffNotes = buildHandoffNotes();
   const beforeBedItems = buildBeforeBedItems();
 
-  const glanceStats = [
-    { label: 'Meds', value: getMedsValue(), color: dotColorToStyle(getMedsDotColor()) },
-    { label: 'Meals', value: `${mealsDone}/${mealsTotal}`, color: dotColorToStyle(getMealsDotColor()) },
-    { label: 'Water', value: `${waterGlasses}/8`, color: dotColorToStyle(getHydrationDotColor()) },
-    { label: 'Wellness', value: getWellnessValue(), color: dotColorToStyle(getWellnessDotColor()) },
-    { label: 'Sleep', value: getSleepValue(), color: dotColorToStyle(getSleepDotColor()) },
-    ...(hasVitals ? [{ label: 'BP', value: getVitalsValue(), color: dotColorToStyle(getVitalsDotColor()) }] : []),
+  // All possible glance tiles, keyed by their Care Plan bucket type
+  const allGlanceTiles: { bucket: string; label: string; value: string; color: string }[] = [
+    { bucket: 'meds',     label: 'Meds',     value: getMedsValue(),                color: dotColorToStyle(getMedsDotColor()) },
+    { bucket: 'meals',    label: 'Meals',     value: `${mealsDone}/${mealsTotal}`,  color: dotColorToStyle(getMealsDotColor()) },
+    { bucket: 'water',    label: 'Water',     value: `${waterGlasses}/8`,           color: dotColorToStyle(getHydrationDotColor()) },
+    { bucket: 'wellness', label: 'Wellness',  value: getWellnessValue(),            color: dotColorToStyle(getWellnessDotColor()) },
+    { bucket: 'sleep',    label: 'Sleep',     value: getSleepValue(),               color: dotColorToStyle(getSleepDotColor()) },
+    { bucket: 'vitals',   label: 'BP',        value: getVitalsValue(),              color: dotColorToStyle(getVitalsDotColor()) },
   ];
+
+  // Filter to only buckets the user has enabled in Care Plan
+  // If no buckets configured yet, fall back to showing all (first-run experience)
+  const glanceStats = enabledBuckets.length > 0
+    ? allGlanceTiles.filter(t => enabledBuckets.includes(t.bucket as any))
+    : allGlanceTiles;
+
+  // ============================================================================
+  // PATIENT CONTEXT
+  // ============================================================================
+  const activeDiagnoses = (medicalInfo?.diagnoses ?? []).filter(d => d.status === 'active');
+  const allergies = medicalInfo?.allergies ?? [];
+  const patientAge = patientDob ? Math.floor((Date.now() - new Date(patientDob).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null;
+  const showPatientCard = patientName.length > 0;
 
   // ============================================================================
   // RENDER — MAIN
@@ -567,6 +627,40 @@ export default function JournalTab() {
               </TouchableOpacity>
             }
           />
+
+          {/* ─── PATIENT CONTEXT CARD ─── */}
+          {showPatientCard && (
+            <TouchableOpacity
+              style={s.patientCard}
+              onPress={() => navigate('/patient')}
+              activeOpacity={0.7}
+              accessibilityLabel={`Patient: ${patientName}. Tap to view profile.`}
+              accessibilityRole="button"
+            >
+              <View style={s.patientCardAvatar}>
+                <Text style={s.patientCardAvatarText}>{patientName.charAt(0).toUpperCase()}</Text>
+              </View>
+              <View style={s.patientCardInfo}>
+                <View style={s.patientCardNameRow}>
+                  <Text style={s.patientCardName}>{patientName}</Text>
+                  {patientAge != null && (
+                    <Text style={s.patientCardAge}>{patientAge} y/o</Text>
+                  )}
+                  {allergies.length > 0 && (
+                    <View style={s.allergyBadge}>
+                      <Text style={s.allergyBadgeText}>{'\u26A0'} {allergies[0]}</Text>
+                    </View>
+                  )}
+                </View>
+                {activeDiagnoses.length > 0 && (
+                  <Text style={s.patientCardConditions} numberOfLines={1}>
+                    {activeDiagnoses.map(d => d.condition).join(' \u00B7 ')}
+                  </Text>
+                )}
+              </View>
+              <Text style={s.patientCardChevron}>{'\u203A'}</Text>
+            </TouchableOpacity>
+          )}
 
           {/* ═══════════════════════════════════════════════════════
               SECTION 1: THE NARRATIVE
@@ -836,6 +930,74 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: c.accent,
+  },
+
+  // ─── PATIENT CONTEXT CARD ───
+  patientCard: {
+    backgroundColor: c.glass,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    borderRadius: 10,
+    padding: 10,
+    paddingHorizontal: 12,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  patientCardAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: c.accentDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  patientCardAvatarText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.accent,
+  },
+  patientCardInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  patientCardNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  patientCardName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: c.textPrimary,
+  },
+  patientCardAge: {
+    fontSize: 10,
+    color: c.textSecondary,
+  },
+  allergyBadge: {
+    backgroundColor: 'rgba(239,68,68,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.25)',
+    borderRadius: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  allergyBadgeText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#EF4444',
+  },
+  patientCardConditions: {
+    fontSize: 11,
+    color: c.textSecondary,
+  },
+  patientCardChevron: {
+    fontSize: 14,
+    color: c.textSecondary,
   },
 
   // ─── SECTION HEADER ───

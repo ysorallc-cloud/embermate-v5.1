@@ -19,6 +19,29 @@ import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRe
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 
+// Vital sign validation ranges
+const VITAL_RANGES: Record<string, { min: number; max: number; warnLow?: number; warnHigh?: number; label: string; unit: string }> = {
+  systolic:    { min: 60,  max: 250, warnLow: 90,  warnHigh: 180, label: 'Systolic',    unit: 'mmHg' },
+  diastolic:   { min: 40,  max: 150, warnLow: 60,  warnHigh: 120, label: 'Diastolic',   unit: 'mmHg' },
+  heartRate:   { min: 30,  max: 220, warnLow: 50,  warnHigh: 100, label: 'Heart rate',   unit: 'bpm' },
+  oxygen:      { min: 70,  max: 100, warnLow: 92,                 label: 'SpO2',         unit: '%' },
+  temperature: { min: 95,  max: 105, warnLow: 96,  warnHigh: 100.4, label: 'Temperature', unit: '°F' },
+  glucose:     { min: 20,  max: 600, warnLow: 54,  warnHigh: 250, label: 'Glucose',      unit: 'mg/dL' },
+  weight:      { min: 50,  max: 700,                               label: 'Weight',       unit: 'lbs' },
+};
+
+function validateVital(key: string, value: string): { error?: string; warning?: string } {
+  if (!value) return {};
+  const num = parseFloat(value);
+  if (isNaN(num)) return { error: 'Enter a valid number' };
+  const range = VITAL_RANGES[key];
+  if (!range) return {};
+  if (num < range.min || num > range.max) return { error: `${range.label} must be ${range.min}–${range.max} ${range.unit}` };
+  if (range.warnHigh && num > range.warnHigh) return { warning: `${range.label} is above typical range. Double-check reading.` };
+  if (range.warnLow && num < range.warnLow) return { warning: `${range.label} is below typical range. Double-check reading.` };
+  return {};
+}
+
 export default function LogVitalsScreen() {
   const params = useLocalSearchParams();
 
@@ -37,6 +60,18 @@ export default function LogVitalsScreen() {
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState<TodayProgress | null>(null);
 
+  // Validation
+  const validations = {
+    systolic: validateVital('systolic', systolic),
+    diastolic: validateVital('diastolic', diastolic),
+    heartRate: validateVital('heartRate', heartRate),
+    oxygen: validateVital('oxygen', oxygen),
+    temperature: validateVital('temperature', temperature),
+    glucose: validateVital('glucose', glucose),
+    weight: validateVital('weight', weight),
+  };
+  const hasErrors = Object.values(validations).some(v => v.error);
+
   // Load rhythm progress on mount
   React.useEffect(() => {
     const loadProgress = async () => {
@@ -47,7 +82,7 @@ export default function LogVitalsScreen() {
   }, []);
 
   const handleSave = async () => {
-    // Allow saving with any values (prepopulated or entered)
+    if (hasErrors) return;
     setSaving(true);
     try {
       const now = new Date();
@@ -148,56 +183,73 @@ export default function LogVitalsScreen() {
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Blood Pressure</Text>
                 <View style={styles.bpRow}>
-                  <TextInput style={[styles.input, styles.bpInput]} value={systolic} onChangeText={setSystolic} placeholder="120" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Systolic blood pressure" />
+                  <TextInput style={[styles.input, styles.bpInput, validations.systolic.error && styles.inputError]} value={systolic} onChangeText={setSystolic} placeholder="120" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Systolic blood pressure" />
                   <Text style={styles.bpSlash}>/</Text>
-                  <TextInput style={[styles.input, styles.bpInput]} value={diastolic} onChangeText={setDiastolic} placeholder="80" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Diastolic blood pressure" />
+                  <TextInput style={[styles.input, styles.bpInput, validations.diastolic.error && styles.inputError]} value={diastolic} onChangeText={setDiastolic} placeholder="80" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Diastolic blood pressure" />
                   <Text style={styles.unit}>mmHg</Text>
                 </View>
+                {(validations.systolic.error || validations.diastolic.error) && (
+                  <Text style={styles.validationError}>{validations.systolic.error || validations.diastolic.error}</Text>
+                )}
+                {!validations.systolic.error && !validations.diastolic.error && (validations.systolic.warning || validations.diastolic.warning) && (
+                  <Text style={styles.validationWarning}>{validations.systolic.warning || validations.diastolic.warning}</Text>
+                )}
               </View>
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Heart Rate</Text>
                 <View style={styles.inputRow}>
-                  <TextInput style={[styles.input, styles.flex1]} value={heartRate} onChangeText={setHeartRate} placeholder="72" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Heart rate in beats per minute" />
+                  <TextInput style={[styles.input, styles.flex1, validations.heartRate.error && styles.inputError]} value={heartRate} onChangeText={setHeartRate} placeholder="72" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Heart rate in beats per minute" />
                   <Text style={styles.unit}>bpm</Text>
                 </View>
+                {validations.heartRate.error && <Text style={styles.validationError}>{validations.heartRate.error}</Text>}
+                {!validations.heartRate.error && validations.heartRate.warning && <Text style={styles.validationWarning}>{validations.heartRate.warning}</Text>}
               </View>
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>SpO2</Text>
                 <View style={styles.inputRow}>
-                  <TextInput style={[styles.input, styles.flex1]} value={oxygen} onChangeText={setOxygen} placeholder="98" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Oxygen saturation percentage" />
+                  <TextInput style={[styles.input, styles.flex1, validations.oxygen.error && styles.inputError]} value={oxygen} onChangeText={setOxygen} placeholder="98" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Oxygen saturation percentage" />
                   <Text style={styles.unit}>%</Text>
                 </View>
+                {validations.oxygen.error && <Text style={styles.validationError}>{validations.oxygen.error}</Text>}
+                {!validations.oxygen.error && validations.oxygen.warning && <Text style={styles.validationWarning}>{validations.oxygen.warning}</Text>}
               </View>
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Temperature</Text>
                 <View style={styles.inputRow}>
-                  <TextInput style={[styles.input, styles.flex1]} value={temperature} onChangeText={setTemperature} placeholder="98.6" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Temperature in degrees Fahrenheit" />
+                  <TextInput style={[styles.input, styles.flex1, validations.temperature.error && styles.inputError]} value={temperature} onChangeText={setTemperature} placeholder="98.6" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Temperature in degrees Fahrenheit" />
                   <Text style={styles.unit}>{'\u00B0'}F</Text>
                 </View>
+                {validations.temperature.error && <Text style={styles.validationError}>{validations.temperature.error}</Text>}
+                {!validations.temperature.error && validations.temperature.warning && <Text style={styles.validationWarning}>{validations.temperature.warning}</Text>}
               </View>
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Blood Glucose</Text>
                 <View style={styles.inputRow}>
-                  <TextInput style={[styles.input, styles.flex1]} value={glucose} onChangeText={setGlucose} placeholder="100" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Blood glucose in milligrams per deciliter" />
+                  <TextInput style={[styles.input, styles.flex1, validations.glucose.error && styles.inputError]} value={glucose} onChangeText={setGlucose} placeholder="100" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Blood glucose in milligrams per deciliter" />
                   <Text style={styles.unit}>mg/dL</Text>
                 </View>
+                {validations.glucose.error && <Text style={styles.validationError}>{validations.glucose.error}</Text>}
+                {!validations.glucose.error && validations.glucose.warning && <Text style={styles.validationWarning}>{validations.glucose.warning}</Text>}
               </View>
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Weight</Text>
                 <View style={styles.inputRow}>
-                  <TextInput style={[styles.input, styles.flex1]} value={weight} onChangeText={setWeight} placeholder="150" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Weight in pounds" />
+                  <TextInput style={[styles.input, styles.flex1, validations.weight.error && styles.inputError]} value={weight} onChangeText={setWeight} placeholder="150" keyboardType="numeric" placeholderTextColor={Colors.textMuted} accessibilityLabel="Weight in pounds" />
                   <Text style={styles.unit}>lbs</Text>
                 </View>
+                {validations.weight.error && <Text style={styles.validationError}>{validations.weight.error}</Text>}
+                {!validations.weight.error && validations.weight.warning && <Text style={styles.validationWarning}>{validations.weight.warning}</Text>}
               </View>
 
-              <TouchableOpacity style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSave} disabled={saving} accessibilityLabel={saving ? 'Saving vitals' : 'Log vitals'} accessibilityHint="Saves blood pressure, glucose, and weight readings" accessibilityRole="button" accessibilityState={{ disabled: saving }}>
+              <TouchableOpacity style={[styles.saveButton, (saving || hasErrors) && styles.saveButtonDisabled]} onPress={handleSave} disabled={saving || hasErrors} accessibilityLabel={saving ? 'Saving vitals' : hasErrors ? 'Fix invalid values to save' : 'Log vitals'} accessibilityHint="Saves blood pressure, glucose, and weight readings" accessibilityRole="button" accessibilityState={{ disabled: saving || hasErrors }}>
                 <Text style={styles.saveButtonText}>{saving ? 'Saving...' : 'Log Vitals'}</Text>
               </TouchableOpacity>
+              {hasErrors && <Text style={styles.validationError}>Fix invalid values above to save</Text>}
             </View>
           </View>
         </ScrollView>
@@ -253,6 +305,9 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   flex1: { flex: 1 },
   unit: { fontSize: 13, color: Colors.textMuted, minWidth: 50 },
+  inputError: { borderColor: 'rgba(239, 68, 68, 0.5)' },
+  validationError: { fontSize: 11, color: '#EF4444', marginTop: 4 },
+  validationWarning: { fontSize: 11, color: '#F59E0B', marginTop: 4 },
   saveButton: { backgroundColor: Colors.accent, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 12 },
   saveButtonDisabled: { opacity: 0.5 },
   saveButtonText: { color: Colors.textPrimary, fontSize: 15, fontWeight: '600' },

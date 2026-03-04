@@ -20,6 +20,7 @@ import { saveNotesLog } from '../utils/centralStorage';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
 import { logError } from '../utils/devLog';
+import { hapticSuccess } from '../utils/hapticFeedback';
 
 const BOWEL_OPTIONS = [
   { id: 'normal', label: 'Normal', icon: '✅' },
@@ -49,7 +50,8 @@ export default function LogBathroomScreen() {
         duration: 300,
         useNativeDriver: true,
       }).start();
-      const timer = setTimeout(() => {
+      const timer = setTimeout(async () => {
+        await hapticSuccess();
         canNavigateBack() ? navigateBack() : navigateReplace('/(tabs)/now');
       }, 1200);
       return () => clearTimeout(timer);

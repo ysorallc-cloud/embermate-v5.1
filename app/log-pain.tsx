@@ -22,6 +22,7 @@ import { Colors } from '../theme/theme-tokens';
 import { saveSymptom } from '../utils/symptomStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
+import { hapticSuccess } from '../utils/hapticFeedback';
 import { EVENT } from '../lib/eventNames';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
@@ -94,6 +95,7 @@ export default function LogPainScreen() {
         }
       }
 
+      await hapticSuccess();
       navigateBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to log pain. Please try again.');
