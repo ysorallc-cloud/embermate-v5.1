@@ -358,6 +358,13 @@ export default function VitalThresholdSettings() {
             </TouchableOpacity>
           </View>
 
+          {/* Medical Disclaimer */}
+          <Text style={styles.disclaimerText}>
+            EmberMate is not a medical device. Custom thresholds are for personal
+            reference only. Always follow your healthcare provider's guidance for
+            vital sign monitoring and treatment decisions.
+          </Text>
+
           <View style={{ height: 40 }} />
         </ScrollView>
       </LinearGradient>
@@ -547,5 +554,14 @@ const styles = StyleSheet.create({
   resetAllButtonText: {
     fontSize: 14,
     color: Colors.textSecondary,
+  },
+  disclaimerText: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    lineHeight: 16,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.md,
   },
 });

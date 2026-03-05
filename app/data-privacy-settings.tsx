@@ -40,12 +40,14 @@ import { SubScreenHeader } from '../components/SubScreenHeader';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
+import { deleteAllUserData } from '../utils/privacyUtils';
 
 export default function DataPrivacySettingsScreen() {
   const router = useRouter();
   const [sampleDataStatus, setSampleDataStatus] = useState<SampleDataStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [retentionPolicy, setRetentionPolicyState] = useState<RetentionPolicy>('forever');
 
   useFocusEffect(
@@ -172,6 +174,49 @@ export default function DataPrivacySettingsScreen() {
     } finally {
       setClearing(false);
     }
+  };
+
+  const handleDeleteAllData = () => {
+    Alert.alert(
+      'Delete All My Data',
+      'This will permanently delete ALL your health data from this device. This includes medications, appointments, vitals, notes, and all other records.\n\nThis action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Everything',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Final Confirmation',
+              'Are you absolutely sure? All data will be permanently removed.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Yes, Delete All My Data',
+                  style: 'destructive',
+                  onPress: async () => {
+                    setDeleting(true);
+                    try {
+                      await deleteAllUserData();
+                      Alert.alert(
+                        'Data Deleted',
+                        'All your health data has been permanently removed from this device.',
+                        [{ text: 'OK', onPress: () => router.replace('/(onboarding)') }]
+                      );
+                    } catch (error) {
+                      logError('DataPrivacySettingsScreen.handleDeleteAllData', error);
+                      Alert.alert('Error', 'Failed to delete data. Please try again.');
+                    } finally {
+                      setDeleting(false);
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
   };
 
   // Format count for display
@@ -459,6 +504,47 @@ export default function DataPrivacySettingsScreen() {
             )}
           </View>
 
+          {/* Delete My Data Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionHeader}>DELETE MY DATA</Text>
+            <Text style={styles.sectionDescription}>
+              Permanently remove all health data from this device
+            </Text>
+
+            <View style={styles.settingCard}>
+              <View style={styles.deleteInfoRow}>
+                <Text style={styles.deleteInfoText}>
+                  This permanently deletes all your health data including medications, appointments, vitals, care plans, notes, and preferences. Since EmberMate stores data only on your device, no server-side data exists to delete.
+                </Text>
+              </View>
+
+              <View style={styles.settingDivider} />
+
+              <TouchableOpacity
+                style={styles.deleteAllButton}
+                onPress={handleDeleteAllData}
+                disabled={deleting}
+                activeOpacity={0.7}
+                accessibilityLabel="Delete all my data permanently"
+                accessibilityRole="button"
+                accessibilityHint="Permanently removes all health data from this device. This cannot be undone."
+              >
+                {deleting ? (
+                  <ActivityIndicator size="small" color={Colors.red} />
+                ) : (
+                  <>
+                    <Text style={styles.deleteAllIcon}>⚠️</Text>
+                    <Text style={styles.deleteAllText}>Delete All My Data</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <Text style={styles.deleteNote}>
+                This action requires two confirmations and cannot be undone. We recommend exporting your data first.
+              </Text>
+            </View>
+          </View>
+
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
@@ -735,5 +821,41 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 12,
     color: Colors.textMuted,
+  },
+
+  // Delete All Data
+  deleteInfoRow: {
+    padding: 14,
+  },
+  deleteInfoText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 19,
+  },
+  deleteAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderTopWidth: 1,
+    borderTopColor: Colors.redHint,
+    padding: 14,
+  },
+  deleteAllIcon: {
+    fontSize: 16,
+  },
+  deleteAllText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.red,
+  },
+  deleteNote: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    paddingTop: 8,
   },
 });

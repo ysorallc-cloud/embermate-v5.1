@@ -230,8 +230,17 @@ async function syncOtherBucketsWithConfig(
     // ===== VITALS SYNC =====
     const vitalsConfig = config.vitals as VitalsBucketConfig;
     const vitalsEnabled = vitalsConfig?.enabled && vitalsConfig.vitalTypes?.length > 0;
-    // Check for ANY vitals items (by type only, not name)
-    const existingVitalsItems = allItems.filter(i => i.type === 'vitals');
+    // Deactivate stale sample-vitals items so sync items take over
+    const sampleVitalsItems = allItems.filter(i => i.type === 'vitals' && i.id.startsWith('sample-'));
+    for (const item of sampleVitalsItems) {
+      if (item.active) {
+        devLog('[syncOtherBucketsWithConfig] Deactivating stale sample vitals item:', item.id);
+        await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
+        changed = true;
+      }
+    }
+    // Check for non-sample vitals items
+    const existingVitalsItems = allItems.filter(i => i.type === 'vitals' && !i.id.startsWith('sample-'));
     const hasActiveVitalsItem = existingVitalsItems.some(i => i.active);
 
     if (vitalsEnabled && existingVitalsItems.length === 0) {
@@ -409,7 +418,16 @@ async function syncOtherBucketsWithConfig(
 
     // ===== WELLNESS SYNC =====
     // Wellness is always-on — not gated by bucket enabled flag
-    const existingWellnessItems = allItems.filter(i => i.type === 'wellness');
+    // First, deactivate stale sample-wellness items so sync items take over
+    const sampleWellnessItems = allItems.filter(i => i.type === 'wellness' && i.id.startsWith('sample-'));
+    for (const item of sampleWellnessItems) {
+      if (item.active) {
+        devLog('[syncOtherBucketsWithConfig] Deactivating stale sample wellness item:', item.id);
+        await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
+        changed = true;
+      }
+    }
+    const existingWellnessItems = allItems.filter(i => i.type === 'wellness' && !i.id.startsWith('sample-'));
     if (existingWellnessItems.length === 0) {
       // Create "Morning wellness check" item
       const morningItem: CarePlanItem = {
@@ -574,7 +592,7 @@ export async function ensureDailyInstances(
   const bucketsChanged = await syncOtherBucketsWithConfig(carePlan.id, patientId);
 
   // 1.6 If sync changed items, re-run dedup to catch any newly created duplicates
-  if (medsChanged) {
+  if (medsChanged || bucketsChanged) {
     const postSyncCleanup = await cleanupDuplicateCarePlanItems(patientId);
     if (postSyncCleanup.removedCount > 0) {
       devLog(`[ensureDailyInstances] Post-sync cleanup removed ${postSyncCleanup.removedCount} duplicates`);
@@ -805,10 +823,17 @@ function createInstance(
  * Get today's date string in YYYY-MM-DD format
  */
 export function getTodayDateString(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
+  return toLocalDateString(new Date());
+}
+
+/**
+ * Format any Date as local-timezone YYYY-MM-DD
+ * Use this instead of date.toISOString().split('T')[0] which returns UTC
+ */
+export function toLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 

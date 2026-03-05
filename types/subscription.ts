@@ -26,8 +26,9 @@ export interface TierLimits {
   correlationReports: boolean;
 }
 
+// Free-only launch: all features unlocked for all users
 export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
-  free: { maxPatients: 1, pdfExport: true, advancedInsights: false, careTeam: false, activityFeed: false, correlationReports: false },
+  free: { maxPatients: 10, pdfExport: true, advancedInsights: true, careTeam: true, activityFeed: true, correlationReports: true },
   premium: { maxPatients: 10, pdfExport: true, advancedInsights: true, careTeam: true, activityFeed: true, correlationReports: true },
 };
 

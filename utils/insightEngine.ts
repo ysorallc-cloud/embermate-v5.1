@@ -11,7 +11,7 @@ import { getVitalsInRange, VitalReading } from './vitalsStorage';
 import { getDailyTrackingLogs, DailyTrackingLog } from './dailyTrackingStorage';
 import { getDailyChecks, type CaregiverDailyCheck } from './caregiverWellnessStorage';
 import { logError } from './devLog';
-import { getTodayDateString } from '../services/carePlanGenerator';
+import { getTodayDateString, toLocalDateString } from '../services/carePlanGenerator';
 import { StorageKeys } from './storageKeys';
 import { listDailyInstancesRange, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 
@@ -62,7 +62,7 @@ export async function analyzeMedicationAdherence(lookbackDays: number = 7): Prom
     const endDate = getTodayDateString();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - lookbackDays);
-    const startDateStr = startDate.toISOString().slice(0, 10);
+    const startDateStr = toLocalDateString(startDate);
 
     try {
       const instances = await listDailyInstancesRange(DEFAULT_PATIENT_ID, startDateStr, endDate);
@@ -318,7 +318,7 @@ export async function analyzeMoodPatterns(): Promise<InsightData | null> {
     const endDate = getTodayDateString();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 14);
-    const startDateStr = startDate.toISOString().split('T')[0];
+    const startDateStr = toLocalDateString(startDate);
 
     const tracking = await getDailyTrackingLogs(startDateStr, endDate);
     const moodLogs = tracking.filter(t => t.mood !== null && t.mood !== undefined);
@@ -397,7 +397,7 @@ export async function analyzeSleepMoodCorrelation(): Promise<InsightData | null>
     const endDate = getTodayDateString();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 14);
-    const startDateStr = startDate.toISOString().split('T')[0];
+    const startDateStr = toLocalDateString(startDate);
 
     const tracking = await getDailyTrackingLogs(startDateStr, endDate);
 
@@ -473,7 +473,7 @@ export async function analyzeHydration(): Promise<InsightData | null> {
     const endDate = getTodayDateString();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 7);
-    const startDateStr = startDate.toISOString().split('T')[0];
+    const startDateStr = toLocalDateString(startDate);
 
     const tracking = await getDailyTrackingLogs(startDateStr, endDate);
     const waterLogs = tracking.filter(t => t.hydration !== null && t.hydration !== undefined);
@@ -719,7 +719,7 @@ export async function analyzeCaregiverCorrelations(): Promise<InsightData | null
     for (const check of checks) {
       // Find medication logs for this date
       const dayLogs = medLogs.filter(log => {
-        const logDate = new Date(log.timestamp).toISOString().split('T')[0];
+        const logDate = toLocalDateString(new Date(log.timestamp));
         return logDate === check.date && log.taken;
       });
 

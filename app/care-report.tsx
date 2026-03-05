@@ -187,7 +187,7 @@ export default function CareReportScreen() {
     try {
       const gate = await checkFeatureAccess('pdf_export');
       if (!gate.allowed) {
-        Alert.alert('Premium Feature', gate.reason || 'Upgrade to Premium to export PDF reports.');
+        router.push('/upgrade');
         return;
       }
 

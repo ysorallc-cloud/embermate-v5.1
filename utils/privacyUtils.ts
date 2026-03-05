@@ -111,25 +111,31 @@ export async function confirmDeleteAllData(): Promise<boolean> {
 }
 
 /**
- * Delete all user data (excludes system settings)
+ * Delete all user data (AsyncStorage + keychain)
+ * Clears everything so the user can start fresh from onboarding.
  */
 export async function deleteAllUserData(): Promise<void> {
   try {
-    // Get all keys
-    const keys = await AsyncStorage.getAllKeys();
+    // 1. Clear all AsyncStorage data
+    await AsyncStorage.clear();
 
-    // Filter to only user data keys (exclude system settings)
-    const userDataKeys = keys.filter(
-      (key) =>
-        !key.startsWith('system_') &&
-        !key.startsWith('app_') &&
-        !key.startsWith(StorageKeys.USE_24_HOUR_TIME)
-    );
+    // 2. Clear keychain items (biometric, PIN, encryption)
+    const keychainKeys = [
+      'embermate_pin_hash',
+      'embermate_pin_salt',
+      'embermate_session_token',
+      'embermate_master_key',
+    ];
+    for (const key of keychainKeys) {
+      try {
+        const SecureStore = require('expo-secure-store');
+        await SecureStore.deleteItemAsync(key);
+      } catch {
+        // Key may not exist — safe to ignore
+      }
+    }
 
-    // Delete all user data
-    await AsyncStorage.multiRemove(userDataKeys);
-
-    devLog(`Deleted ${userDataKeys.length} data items`);
+    devLog('Deleted all user data including keychain items');
   } catch (error) {
     logError('privacyUtils.deleteAllUserData', error);
     throw error;

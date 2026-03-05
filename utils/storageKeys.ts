@@ -14,8 +14,8 @@ export const StorageKeys = {
   CARE_MODE: '@embermate_care_mode',
   PATIENT_NAME: '@embermate_patient_name',
   PATIENT_INFO: '@embermate_patient_info',
-  PATIENT_DOB: '@embermate_patient_dob',    // DEPRECATED — migrate to PATIENT_AGE
-  PATIENT_AGE: '@embermate_patient_age',
+  PATIENT_DOB: '@embermate_patient_dob',    // DEPRECATED — not stored for HIPAA compliance
+  PATIENT_AGE: '@embermate_patient_age',   // Deprecated — not stored in sample data for HIPAA compliance
   PATIENT_GENDER: '@embermate_patient_gender',
   PATIENT_LANGUAGE: '@embermate_patient_language',
   PATIENT_RELATIONSHIP: '@embermate_patient_relationship',

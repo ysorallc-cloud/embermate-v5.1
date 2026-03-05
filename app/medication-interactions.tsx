@@ -145,6 +145,15 @@ export default function InteractionsScreen() {
             <InteractionWarnings interactions={interactions} />
           )}
 
+          {/* Medical Disclaimer */}
+          <View style={styles.disclaimerBanner}>
+            <Text style={styles.disclaimerText}>
+              ⚕️ <Text style={styles.disclaimerBold}>Not a medical device.</Text>{' '}
+              This interaction checker uses a limited database and is not a substitute for professional pharmacist or physician review.
+              Always consult your healthcare provider before making medication changes.
+            </Text>
+          </View>
+
           {/* Database Info */}
           <View style={styles.databaseInfo}>
             <Text style={styles.databaseTitle}>About This Database</Text>
@@ -288,6 +297,23 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceAlt,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
+  },
+  disclaimerBanner: {
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.amber,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  disclaimerText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 19,
+  },
+  disclaimerBold: {
+    fontWeight: '700',
+    color: Colors.textPrimary,
   },
   databaseTitle: {
     fontSize: 15,

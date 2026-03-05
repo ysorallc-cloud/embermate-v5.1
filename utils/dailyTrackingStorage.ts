@@ -7,6 +7,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
+import { toLocalDateString } from '../services/carePlanGenerator';
 
 export interface DailyTrackingLog {
   date: string; // ISO format YYYY-MM-DD
@@ -90,7 +91,7 @@ export async function getDailyTrackingLogs(
     const end = new Date(endDate);
     
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(d);
       const log = await getDailyTracking(dateStr);
       if (log) {
         logs.push(log);

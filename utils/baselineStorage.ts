@@ -7,7 +7,7 @@ import { safeGetItem, safeSetItem } from './safeStorage';
 import { getMealsLogs, MealsLog, getVitalsLogs, VitalsLog } from './centralStorage';
 import { getMedications, Medication } from './medicationStorage';
 import { logError } from './devLog';
-import { getTodayDateString } from '../services/carePlanGenerator';
+import { getTodayDateString, toLocalDateString } from '../services/carePlanGenerator';
 import { StorageKeys } from './storageKeys';
 
 // ============================================================================
@@ -95,7 +95,7 @@ function getLastNDays(n: number): string[] {
   for (let i = 0; i < n; i++) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-    days.push(date.toISOString().split('T')[0]);
+    days.push(toLocalDateString(date));
   }
 
   return days;
@@ -188,7 +188,7 @@ export async function calculateMealsBaseline(): Promise<CategoryBaseline | null>
     const mealsPerDay: number[] = [];
     for (const date of dates) {
       const dayLogs = logs.filter(log =>
-        new Date(log.timestamp).toISOString().split('T')[0] === date
+        toLocalDateString(new Date(log.timestamp)) === date
       );
       // Each log can have multiple meals (breakfast, lunch, dinner, snack)
       let totalMeals = 0;
@@ -237,7 +237,7 @@ export async function calculateVitalsBaseline(): Promise<CategoryBaseline | null
     const vitalsPerDay: number[] = [];
     for (const date of dates) {
       const dayLogs = logs.filter(log =>
-        new Date(log.timestamp).toISOString().split('T')[0] === date
+        toLocalDateString(new Date(log.timestamp)) === date
       );
       // Count how many vitals were logged (systolic, diastolic, heartRate, etc.)
       let vitalsCount = 0;
@@ -341,7 +341,7 @@ export async function getTodayCount(category: BaselineCategory): Promise<number>
     case 'meals': {
       const logs = await getMealsLogs();
       const todayLogs = logs.filter(log =>
-        new Date(log.timestamp).toISOString().split('T')[0] === today
+        toLocalDateString(new Date(log.timestamp)) === today
       );
       let totalMeals = 0;
       for (const log of todayLogs) {
@@ -352,7 +352,7 @@ export async function getTodayCount(category: BaselineCategory): Promise<number>
     case 'vitals': {
       const logs = await getVitalsLogs();
       const todayLogs = logs.filter(log =>
-        new Date(log.timestamp).toISOString().split('T')[0] === today
+        toLocalDateString(new Date(log.timestamp)) === today
       );
       let vitalsCount = 0;
       for (const log of todayLogs) {

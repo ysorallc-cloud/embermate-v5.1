@@ -9,7 +9,7 @@ import { safeGetItem, safeSetItem } from './safeStorage';
 import { detectCorrelations, DetectedPattern, hasSufficientData } from './correlationDetector';
 import { getAllInsights, InsightData } from './insightEngine';
 import { logError } from './devLog';
-import { getTodayDateString } from '../services/carePlanGenerator';
+import { getTodayDateString, toLocalDateString } from '../services/carePlanGenerator';
 
 import { getDailyTrackingLogs } from './dailyTrackingStorage';
 import { getAllBaselines } from './baselineStorage';
@@ -357,7 +357,7 @@ async function generatePositiveObservations(
     const endDate = getTodayDateString();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - timeRange);
-    const startDateStr = startDate.toISOString().split('T')[0];
+    const startDateStr = toLocalDateString(startDate);
 
     const tracking = await getDailyTrackingLogs(startDateStr, endDate);
     const waterLogs = tracking.filter(t => t.hydration !== null && t.hydration !== undefined);
@@ -553,7 +553,7 @@ async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanS
   const endDate = getTodayDateString();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - timeRange);
-  const startDateStr = startDate.toISOString().split('T')[0];
+  const startDateStr = toLocalDateString(startDate);
 
   try {
     // Get Care Plan logs
@@ -631,8 +631,9 @@ async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanS
       }
     }
 
-    const total = completedCount + skippedCount;
-    const adherenceRate = total > 0 ? (completedCount / total) * 100 : 0;
+    // Adherence = handled (completed + skipped) / total logs — matches Now/Journal
+    const handled = completedCount + skippedCount;
+    const adherenceRate = logs.length > 0 ? (handled / logs.length) * 100 : 0;
 
     const mealDays = Object.values(mealsPerDay);
     const hydrationDays = Object.values(hydrationPerDay);

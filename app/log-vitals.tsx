@@ -246,6 +246,14 @@ export default function LogVitalsScreen() {
                 {!validations.weight.error && validations.weight.warning && <Text style={styles.validationWarning}>{validations.weight.warning}</Text>}
               </View>
 
+              {/* Medical Disclaimer */}
+              <View style={styles.disclaimerBanner}>
+                <Text style={styles.disclaimerText}>
+                  <Text style={styles.disclaimerBold}>Not a medical device.</Text>{' '}
+                  Readings are for personal tracking only. Consult your healthcare provider for clinical decisions.
+                </Text>
+              </View>
+
               <TouchableOpacity style={[styles.saveButton, (saving || hasErrors) && styles.saveButtonDisabled]} onPress={handleSave} disabled={saving || hasErrors} accessibilityLabel={saving ? 'Saving vitals' : hasErrors ? 'Fix invalid values to save' : 'Log vitals'} accessibilityHint="Saves blood pressure, glucose, and weight readings" accessibilityRole="button" accessibilityState={{ disabled: saving || hasErrors }}>
                 <Text style={styles.saveButtonText}>{saving ? 'Saving...' : 'Log Vitals'}</Text>
               </TouchableOpacity>
@@ -311,4 +319,7 @@ const styles = StyleSheet.create({
   saveButton: { backgroundColor: Colors.accent, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 12 },
   saveButtonDisabled: { opacity: 0.5 },
   saveButtonText: { color: Colors.textPrimary, fontSize: 15, fontWeight: '600' },
+  disclaimerBanner: { backgroundColor: 'rgba(251, 191, 36, 0.1)', borderLeftWidth: 3, borderLeftColor: '#F59E0B', borderRadius: 8, padding: 12, marginTop: 8 },
+  disclaimerText: { fontSize: 12, color: Colors.textSecondary, lineHeight: 17 },
+  disclaimerBold: { fontWeight: '700', color: Colors.textPrimary },
 });

@@ -7,6 +7,7 @@ import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
 import { generateUniqueId } from './idGenerator';
 import { scopedKey } from './storageKeys';
+import { toLocalDateString } from '../services/carePlanGenerator';
 
 const DEFAULT_PATIENT_ID = 'default';
 
@@ -110,7 +111,7 @@ export async function getVitalsCompletionForDate(date: string, patientId: string
 
     // Filter vitals for the specific date
     const dateVitals = vitals.filter((v) => {
-      const vitalDate = new Date(v.timestamp).toISOString().split('T')[0];
+      const vitalDate = toLocalDateString(new Date(v.timestamp));
       return vitalDate === date;
     });
 
@@ -161,7 +162,7 @@ export async function getVitalsForDate(date: string, patientId: string = DEFAULT
   try {
     const vitals = await getVitals(patientId);
     return vitals.filter((v: VitalReading) => {
-      const vitalDate = new Date(v.timestamp).toISOString().split('T')[0];
+      const vitalDate = toLocalDateString(new Date(v.timestamp));
       return vitalDate === date;
     });
   } catch (error) {

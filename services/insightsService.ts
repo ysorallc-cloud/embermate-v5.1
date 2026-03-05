@@ -12,7 +12,7 @@ import {
   AdherenceStats,
   CarePlanItemType,
 } from '../types/carePlan';
-import { getTodayDateString } from './carePlanGenerator';
+import { getTodayDateString, toLocalDateString } from './carePlanGenerator';
 import {
   listDailyInstancesRange,
   listLogsInRange,
@@ -126,11 +126,11 @@ export async function generateInsights(
   const streaks = computeStreaks(instances, itemMap, dateRange);
   const patterns = detectPatterns(adherenceByItem, adherenceByWindow, dailyBurden, streaks);
 
-  // Overall adherence
-  const totalCompleted = instances.filter(i => i.status === 'completed').length;
+  // Overall adherence: completed + skipped = "handled" (matches Now/Journal)
+  const totalHandled = instances.filter(i => i.status === 'completed' || i.status === 'skipped').length;
   const totalInstances = instances.length;
   const overallAdherence = totalInstances > 0
-    ? Math.round((totalCompleted / totalInstances) * 100)
+    ? Math.round((totalHandled / totalInstances) * 100)
     : 0;
 
   // Average daily burden
@@ -225,6 +225,7 @@ function computeAdherenceByWindow(instances: DailyCareInstance[]): AdherenceByWi
     const windowInstances = instances.filter(i => i.windowLabel === label);
     const total = windowInstances.length;
     const completed = windowInstances.filter(i => i.status === 'completed').length;
+    const skipped = windowInstances.filter(i => i.status === 'skipped').length;
     const missed = windowInstances.filter(i => i.status === 'missed').length;
 
     results.push({
@@ -233,7 +234,8 @@ function computeAdherenceByWindow(instances: DailyCareInstance[]): AdherenceByWi
       totalInstances: total,
       completedCount: completed,
       missedCount: missed,
-      adherenceRate: total > 0 ? Math.round((completed / total) * 100) : 0,
+      // Adherence = handled (completed + skipped) / total — matches Now/Journal
+      adherenceRate: total > 0 ? Math.round(((completed + skipped) / total) * 100) : 0,
     });
   }
 
@@ -268,7 +270,7 @@ function computeDailyBurden(
   const end = new Date(dateRange.end);
 
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = toLocalDateString(d);
     const dayInstances = byDate.get(dateStr) || [];
 
     let required = 0;
@@ -293,7 +295,7 @@ function computeDailyBurden(
     }
 
     const total = dayInstances.length;
-    const completed = dayInstances.filter(i => i.status === 'completed').length;
+    const completed = dayInstances.filter(i => i.status === 'completed' || i.status === 'skipped').length;
 
     // Burden score: weighted by priority (required=3, recommended=2, optional=1)
     // Normalized to 0-100 scale (assuming max 20 tasks/day as high burden)
@@ -409,7 +411,7 @@ function isYesterday(date1: string, date2: string): boolean {
   const d1 = new Date(date1);
   const d2 = new Date(date2);
   d2.setDate(d2.getDate() - 1);
-  return d1.toISOString().split('T')[0] === d2.toISOString().split('T')[0];
+  return toLocalDateString(d1) === toLocalDateString(d2);
 }
 
 // ============================================================================
@@ -512,8 +514,8 @@ export async function getWeeklyInsights(
   start.setDate(start.getDate() - 6); // Last 7 days including today
 
   return generateInsights({
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
+    start: toLocalDateString(start),
+    end: toLocalDateString(end),
   }, patientId);
 }
 
@@ -528,8 +530,8 @@ export async function getMonthlyInsights(
   start.setDate(start.getDate() - 29); // Last 30 days including today
 
   return generateInsights({
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
+    start: toLocalDateString(start),
+    end: toLocalDateString(end),
   }, patientId);
 }
 
@@ -569,7 +571,7 @@ export async function getTodayCompletionRate(
   const today = getTodayDateString();
   const insights = await generateInsights({ start: today, end: today }, patientId);
 
-  const completed = insights.adherenceByItem.reduce((sum, a) => sum + a.completedCount, 0);
+  const completed = insights.adherenceByItem.reduce((sum, a) => sum + a.completedCount + a.skippedCount, 0);
   const total = insights.totalInstances;
   const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
 

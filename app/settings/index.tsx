@@ -4,6 +4,7 @@
 // ============================================================================
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Constants from 'expo-constants';
 import {
   View,
   Text,
@@ -31,6 +32,7 @@ import { getMedications } from '../../utils/medicationStorage';
 import { getAppointments, getUpcomingAppointments } from '../../utils/appointmentStorage';
 import { getCaregivers } from '../../utils/collaborativeCare';
 import { exportBackup, clearAllData } from '../../utils/cloudBackup';
+import { deleteAllUserData } from '../../utils/privacyUtils';
 import { AppStrings } from '../../constants/strings';
 import { logError } from '../../utils/devLog';
 import { checkFeatureAccess } from '../../utils/featureGate';
@@ -188,30 +190,42 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleClearAllData = async () => {
+  const handleDeleteMyData = async () => {
     Alert.alert(
-      'Clear All Data',
-      'This will permanently delete ALL your data including medications, appointments, and patient information. This cannot be undone.\n\nAre you sure?',
+      'Delete My Data',
+      'This permanently removes all your health data from this device, including medications, appointments, vitals, and patient information.\n\nThis cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Clear Everything',
+          text: 'Delete All My Data',
           style: 'destructive',
-          onPress: async () => {
-            const success = await clearAllData();
-            if (success) {
-              Alert.alert('Data Cleared', 'All data has been removed.', [
+          onPress: () => {
+            Alert.alert(
+              'Final Confirmation',
+              'Are you absolutely sure? All data will be permanently removed.',
+              [
+                { text: 'Cancel', style: 'cancel' },
                 {
-                  text: 'OK',
-                  onPress: () => {
-                    // Reload the app or navigate to onboarding
-                    navigateReplace('/(onboarding)');
+                  text: 'Yes, Delete All My Data',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await deleteAllUserData();
+                      Alert.alert('Data Deleted', 'All your data has been permanently removed from this device.', [
+                        {
+                          text: 'OK',
+                          onPress: () => {
+                            navigateReplace('/(onboarding)');
+                          },
+                        },
+                      ]);
+                    } catch {
+                      Alert.alert('Error', 'Could not delete data. Please try again.');
+                    }
                   },
                 },
-              ]);
-            } else {
-              Alert.alert('Error', 'Could not clear data. Please try again.');
-            }
+              ]
+            );
           },
         },
       ]
@@ -419,7 +433,7 @@ export default function SettingsScreen() {
             if (result.allowed) {
               router.push('/caregiver-management');
             } else {
-              Alert.alert('Premium Feature', result.reason || 'Upgrade to access Care Team features.');
+              router.push('/upgrade');
             }
           },
         },
@@ -433,7 +447,7 @@ export default function SettingsScreen() {
             if (result.allowed) {
               router.push('/family-sharing');
             } else {
-              Alert.alert('Premium Feature', result.reason || 'Upgrade to access Care Team features.');
+              router.push('/upgrade');
             }
           },
         },
@@ -447,7 +461,7 @@ export default function SettingsScreen() {
             if (result.allowed) {
               router.push('/family-activity');
             } else {
-              Alert.alert('Premium Feature', result.reason || 'Upgrade to access Activity Feed.');
+              router.push('/upgrade');
             }
           },
         },
@@ -476,7 +490,7 @@ export default function SettingsScreen() {
           id: 'backup',
           icon: '💾',
           title: 'Backup & Restore',
-          subtitle: 'Export, import, cloud sync',
+          subtitle: 'Back up before switching devices — data is local only',
           onPress: () => router.push('/settings/backup'),
         },
         {
@@ -485,6 +499,14 @@ export default function SettingsScreen() {
           title: 'Export Summary',
           subtitle: 'Create care summary PDF',
           onPress: () => router.push('/care-report?scope=full'),
+        },
+        {
+          id: 'delete-my-data',
+          icon: '🗑️',
+          title: 'Delete My Data',
+          subtitle: 'Permanently remove all health data from this device',
+          onPress: handleDeleteMyData,
+          danger: true,
         },
       ],
     },
@@ -525,7 +547,7 @@ export default function SettingsScreen() {
           id: 'version',
           icon: 'ℹ️',
           title: 'Version',
-          subtitle: '5.9.0',
+          subtitle: Constants.expoConfig?.version ?? '5.8.0',
           onPress: () => {},
         },
       ],
@@ -534,16 +556,7 @@ export default function SettingsScreen() {
       id: 'advanced',
       icon: '⚙️',
       title: 'Advanced',
-      items: [
-        {
-          id: 'clear-data',
-          icon: '⚠️',
-          title: 'Clear All Data',
-          subtitle: 'Permanent deletion',
-          onPress: handleClearAllData,
-          danger: true,
-        },
-      ],
+      items: [],
     },
   ], [patientName, medicationCount, appointmentCount, caregiverCount, use24HourTime, hasSample]);
 

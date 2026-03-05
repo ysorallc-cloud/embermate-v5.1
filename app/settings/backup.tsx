@@ -297,6 +297,17 @@ export default function BackupSettingsScreen() {
         />
 
         <ScrollView style={styles.content}>
+          {/* Device Migration Warning */}
+          <View style={styles.migrationWarning}>
+            <Text style={styles.migrationIcon}>📱</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.migrationTitle}>Switching devices?</Text>
+              <Text style={styles.migrationText}>
+                Your health data lives only on this device. Before upgrading or switching phones, create an encrypted backup below. Without a backup, your data cannot be recovered on a new device.
+              </Text>
+            </View>
+          </View>
+
           {/* Info Banner */}
           <View style={styles.infoBanner}>
             <Text style={styles.infoIcon}>🔐</Text>
@@ -548,6 +559,34 @@ const styles = StyleSheet.create({
     marginTop: 12,
     color: Colors.textSecondary,
     fontSize: 14,
+  },
+
+  // Device Migration Warning
+  migrationWarning: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.25)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 14,
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  migrationIcon: {
+    fontSize: 20,
+    marginTop: 2,
+  },
+  migrationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.amber,
+    marginBottom: 4,
+  },
+  migrationText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
   },
 
   // Info Banner

@@ -182,6 +182,10 @@ export function useDailyCareInstances(
 
   // Re-entry guard: prevent concurrent loadInstances calls from causing cascading updates
   const loadingRef = useRef(false);
+  // Cooldown: ignore carePlanItems events shortly after loadInstances finishes,
+  // because ensureDailyInstances' internal sync emits those events itself.
+  const lastLoadDoneRef = useRef(0);
+  const LOAD_COOLDOWN_MS = 2000;
 
   /**
    * Load instances for the target date
@@ -212,6 +216,7 @@ export function useDailyCareInstances(
     } finally {
       setLoading(false);
       loadingRef.current = false;
+      lastLoadDoneRef.current = Date.now();
     }
   }, [patientId, targetDate]);
 
@@ -240,6 +245,12 @@ export function useDailyCareInstances(
   useDataListener((category) => {
     // Tier 1: Config/item structure changes → full regeneration (ensureDailyInstances)
     if (['carePlanConfig', 'carePlanItems'].includes(category)) {
+      // Suppress if loadInstances just finished — ensureDailyInstances' internal sync
+      // emits carePlanItems events, and re-running would cause an infinite loop.
+      if (Date.now() - lastLoadDoneRef.current < LOAD_COOLDOWN_MS) {
+        devLog('[useDailyCareInstances] config change suppressed (within cooldown):', category);
+        return;
+      }
       devLog('[useDailyCareInstances] config change detected, full reload:', category);
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = setTimeout(() => { loadInstances(); }, 300);

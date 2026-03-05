@@ -11,7 +11,7 @@ import { getDailyTrackingLogs, DailyTrackingLog } from './dailyTrackingStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
-import { getTodayDateString } from '../services/carePlanGenerator';
+import { getTodayDateString, toLocalDateString } from '../services/carePlanGenerator';
 
 export interface CorrelationDataPoint {
   date: string;
@@ -53,7 +53,7 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 export async function hasSufficientData(): Promise<boolean> {
   try {
     const endDate = getTodayDateString();
-    const startDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const startDate = toLocalDateString(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000));
 
     const data = await loadCorrelationData(startDate, endDate);
     
@@ -96,7 +96,7 @@ async function loadCorrelationData(
     const start = new Date(startDate);
     const end = new Date(endDate);
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(d);
       dataMap.set(dateStr, {
         date: dateStr,
         pain: null,
@@ -267,7 +267,7 @@ export async function detectCorrelations(): Promise<DetectedPattern[]> {
     
     // Load last 30 days of data from AsyncStorage
     const endDate = getTodayDateString();
-    const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const startDate = toLocalDateString(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
     const data = await loadCorrelationData(startDate, endDate);
     
     if (data.length < 14) {

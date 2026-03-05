@@ -141,13 +141,11 @@ export async function canUseFeature(feature: GatedFeature): Promise<boolean> {
 /**
  * Check feature access and navigate to upgrade screen if not allowed.
  * Returns true if the feature is available, false if the user was redirected.
+ *
+ * NOTE: Free-only launch — all features are unlocked for all tiers.
+ * This function currently always returns true.
  */
 export async function requireFeatureOrUpgrade(feature: GatedFeature): Promise<boolean> {
   const result = await checkFeatureAccess(feature);
-  if (!result.allowed) {
-    const { navigate } = require('../lib/navigate');
-    navigate('/upgrade');
-    return false;
-  }
-  return true;
+  return result.allowed;
 }

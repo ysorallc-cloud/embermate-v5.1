@@ -162,6 +162,13 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete, careMode = 'care
           </TouchableOpacity>
         </Animated.View>
 
+        {/* Backup Tip */}
+        <Animated.View entering={FadeInDown.delay(400).duration(300)}>
+          <Text style={styles.backupTip}>
+            Your data stays on this device. Use Settings {'\u203A'} Backup & Restore to create encrypted backups before switching phones.
+          </Text>
+        </Animated.View>
+
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>
@@ -295,6 +302,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textSecondary,
     fontWeight: '500',
+  },
+  backupTip: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 17,
+    marginTop: Spacing.md,
+    fontStyle: 'italic',
   },
 });
 
