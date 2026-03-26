@@ -2,7 +2,7 @@
 // LOG MOOD SCREEN - Simple mood logging
 // ============================================================================
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import { saveMoodLog } from '../utils/centralStorage';
 import { logMood } from '../utils/logEvents';
@@ -35,6 +36,8 @@ const MOODS = [
 
 export default function LogMoodScreen() {
   const params = useLocalSearchParams();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Parse CarePlan context from navigation params
   const carePlanContext = parseCarePlanContext(params as Record<string, string>);
@@ -113,7 +116,7 @@ export default function LogMoodScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <SubScreenHeader title="Log Mood" emoji="😊" />
@@ -129,28 +132,33 @@ export default function LogMoodScreen() {
             </View>
           )}
 
-          <Text style={styles.question}>How are they feeling?</Text>
-
-          <View style={styles.moodsContainer}>
-            {MOODS.map((mood) => (
-              <TouchableOpacity
-                key={mood.id}
-                style={[
-                  styles.moodButton,
-                  selectedMood === mood.id && styles.moodButtonSelected,
-                ]}
-                onPress={() => handleMoodSelect(mood.id)}
-                activeOpacity={0.7}
-                disabled={showConfirmation}
-                accessibilityLabel={`${mood.label} mood`}
-                accessibilityHint="Logs this mood for the current check-in"
-                accessibilityRole="radio"
-                accessibilityState={{ selected: selectedMood === mood.id, disabled: showConfirmation }}
-              >
-                <Text style={styles.moodEmoji}>{mood.emoji}</Text>
-                <Text style={styles.moodLabel}>{mood.label}</Text>
-              </TouchableOpacity>
-            ))}
+          <View style={styles.moodCard}>
+            <Text style={styles.moodSectionLabel}>SELECT MOOD</Text>
+            <View style={styles.moodsContainer}>
+              {MOODS.map((mood) => (
+                <TouchableOpacity
+                  key={mood.id}
+                  style={[
+                    styles.moodButton,
+                    selectedMood === mood.id && styles.moodButtonSelected,
+                  ]}
+                  onPress={() => handleMoodSelect(mood.id)}
+                  activeOpacity={0.7}
+                  disabled={showConfirmation}
+                  accessibilityLabel={`${mood.label} mood`}
+                  accessibilityHint="Logs this mood for the current check-in"
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: selectedMood === mood.id, disabled: showConfirmation }}
+                >
+                  <Text style={[styles.moodEmoji, selectedMood === mood.id && styles.moodEmojiSelected]}>
+                    {mood.emoji}
+                  </Text>
+                  <Text style={[styles.moodLabel, selectedMood === mood.id && styles.moodLabelSelected]}>
+                    {mood.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
           {/* Confirmation message */}
@@ -170,10 +178,10 @@ export default function LogMoodScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -183,9 +191,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   carePlanBanner: {
-    backgroundColor: Colors.purpleFaint,
+    backgroundColor: c.purpleFaint,
     borderWidth: 1,
-    borderColor: Colors.purpleWash,
+    borderColor: c.purpleWash,
     borderRadius: 10,
     padding: 10,
     marginTop: 16,
@@ -193,49 +201,77 @@ const styles = StyleSheet.create({
   carePlanBannerLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.violetBright,
+    color: c.violetBright,
     letterSpacing: 1,
     textAlign: 'center',
     marginBottom: 4,
   },
   carePlanBannerText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
   },
-  question: {
-    fontSize: 20,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-    marginTop: 32,
-    marginBottom: 24,
-    textAlign: 'center',
+  moodCard: {
+    backgroundColor: c.cardBackground,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.07)',
+    borderRadius: 18,
+    padding: 16,
+    marginTop: 20,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  moodSectionLabel: {
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: c.textTertiary,
+    marginBottom: 14,
   },
   moodsContainer: {
-    gap: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   moodButton: {
-    flexDirection: 'row',
+    flex: 1,
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 14,
-    padding: 20,
-    gap: 16,
+    gap: 6,
   },
-  moodButtonSelected: {
-    borderColor: Colors.accent,
-    borderWidth: 2,
-    backgroundColor: Colors.accentLight,
-  },
+  moodButtonSelected: {},
   moodEmoji: {
-    fontSize: 32,
+    fontSize: 26,
+    width: 50,
+    height: 50,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    lineHeight: 50,
+    overflow: 'hidden',
+  },
+  moodEmojiSelected: {
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    borderColor: 'rgba(52, 211, 153, 0.35)',
+    shadowColor: '#34D399',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
   },
   moodLabel: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: Colors.textPrimary,
+    fontSize: 9,
+    color: c.textTertiary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  moodLabelSelected: {
+    color: c.accent,
   },
   confirmationContainer: {
     alignItems: 'center',
@@ -253,6 +289,6 @@ const styles = StyleSheet.create({
   confirmationText: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.greenBright,
+    color: c.greenBright,
   },
 });

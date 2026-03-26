@@ -3,7 +3,7 @@
 // Shows explanatory text when users tap info icons or long-press elements
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // ============================================================================
 // TYPES
@@ -59,6 +60,9 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({
   style,
   accessibilityLabel,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [visible, setVisible] = useState(false);
 
   const handleOpen = useCallback(() => {
@@ -144,10 +148,14 @@ export const InfoIcon: React.FC<InfoIconProps> = ({
   size = 16,
   color = Colors.textMuted,
   style,
-}) => (
+}) => {
+  const { colors } = useTheme();
+  const themedStyles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
   <View
     style={[
-      styles.infoIcon,
+      themedStyles.infoIcon,
       {
         width: size,
         height: size,
@@ -157,11 +165,12 @@ export const InfoIcon: React.FC<InfoIconProps> = ({
       style,
     ]}
   >
-    <Text style={[styles.infoIconText, { fontSize: size * 0.65, color }]}>
+    <Text style={[themedStyles.infoIconText, { fontSize: size * 0.65, color }]}>
       ?
     </Text>
   </View>
-);
+  );
+};
 
 // ============================================================================
 // COMBINED INFO BUTTON
@@ -187,7 +196,7 @@ export const InfoButton: React.FC<InfoButtonProps> = ({
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
@@ -200,35 +209,35 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   tooltip: {
-    backgroundColor: Colors.menuSurface,
+    backgroundColor: c.menuSurface,
     borderRadius: BorderRadius.lg,
     padding: Spacing.xl,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   content: {
     fontSize: 14,
     lineHeight: 20,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   dismissButton: {
     marginTop: Spacing.lg,
     alignSelf: 'flex-end',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     borderRadius: BorderRadius.sm,
   },
   dismissText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.accent,
+    color: c.accent,
   },
   infoIcon: {
     borderWidth: 1.5,

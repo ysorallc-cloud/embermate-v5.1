@@ -15,6 +15,9 @@ export type CarePlanItemType =
   | 'hydration'
   | 'appointment'
   | 'wellness'
+  | 'errand'
+  | 'shift'
+  | 'self_care'
   | 'custom';
 
 // How completion is determined

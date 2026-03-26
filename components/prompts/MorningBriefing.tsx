@@ -4,9 +4,10 @@
 //   BaselineConfirmPrompt, WelcomeBackBanner, NotificationPrompt
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 import { Colors, BorderRadius, Spacing } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import type { BaselineCategory, CategoryBaseline, TodayVsBaseline } from '../../utils/baselineStorage';
 import { getBaselineLanguage } from '../../utils/baselineStorage';
 import { saveDailyCheck, getTodayCheck } from '../../utils/caregiverWellnessStorage';
@@ -79,6 +80,9 @@ export const MorningBriefing: React.FC<MorningBriefingProps> = ({
   onBaselineConfirm,
   onBaselineDismiss,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [expanded, setExpanded] = useState(false);
 
   // Caregiver self-check state (Task 4.3)
@@ -321,11 +325,11 @@ export const MorningBriefing: React.FC<MorningBriefingProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.accentFaint,
+    backgroundColor: c.accentFaint,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
+    borderColor: c.accentBorder,
     borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
     marginBottom: 12,
@@ -343,29 +347,29 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   patientName: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   dismissButton: {
     padding: 4,
   },
   dismissIcon: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   summary: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 6,
     lineHeight: 18,
   },
   closureText: {
     fontSize: 14,
-    color: Colors.green,
+    color: c.green,
     marginTop: 8,
     lineHeight: 20,
   },
@@ -375,7 +379,7 @@ const styles = StyleSheet.create({
   },
   detailsToggleText: {
     fontSize: 13,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   detailsSection: {
@@ -384,18 +388,18 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
   baselineConfirm: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderRadius: 8,
     padding: 10,
     marginTop: 4,
   },
   baselineText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
     marginBottom: 8,
   },
@@ -404,7 +408,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   baselineYes: {
-    backgroundColor: Colors.sageBorder,
+    backgroundColor: c.sageBorder,
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 14,
@@ -412,17 +416,17 @@ const styles = StyleSheet.create({
   baselineYesText: {
     fontSize: 13,
     fontWeight: '500',
-    color: Colors.accent,
+    color: c.accent,
   },
   baselineNo: {
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 14,
   },
   baselineNoText: {
     fontSize: 13,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   baselineDismissBtn: {
     paddingVertical: 6,
@@ -430,13 +434,13 @@ const styles = StyleSheet.create({
   },
   baselineDismissText: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   // Self-check styles (Task 4.3)
   selfCheckContainer: {
     marginTop: 10,
     borderTopWidth: 1,
-    borderTopColor: Colors.glassBorder,
+    borderTopColor: c.glassBorder,
     paddingTop: 10,
   },
   selfCheckRow: {
@@ -447,7 +451,7 @@ const styles = StyleSheet.create({
   },
   selfCheckLabel: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     flex: 1,
   },
   selfCheckBoxes: {
@@ -458,23 +462,23 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 6,
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   selfCheckBoxActive: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: c.accent,
+    borderColor: c.accent,
   },
   selfCheckBoxText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   selfCheckBoxTextActive: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   selfCheckActions: {
     flexDirection: 'row',
@@ -483,7 +487,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   selfCheckSaveButton: {
-    backgroundColor: Colors.sageBorder,
+    backgroundColor: c.sageBorder,
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 14,
@@ -491,15 +495,15 @@ const styles = StyleSheet.create({
   selfCheckSaveText: {
     fontSize: 13,
     fontWeight: '500',
-    color: Colors.accent,
+    color: c.accent,
   },
   selfCheckSkipText: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   selfCheckAck: {
     fontSize: 13,
-    color: Colors.green,
+    color: c.green,
     marginTop: 6,
     fontWeight: '500',
   },

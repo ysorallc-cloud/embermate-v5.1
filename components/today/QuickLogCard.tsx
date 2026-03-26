@@ -3,15 +3,18 @@
 // Links to QuickLogMore screen for all options
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { getFilteredOptions } from '../../constants/quickLogOptions';
 import { useEnabledBuckets } from '../../hooks/useCarePlanConfig';
 
 export const QuickLogCard: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const { enabledBuckets } = useEnabledBuckets();
 
@@ -62,7 +65,7 @@ export const QuickLogCard: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     marginBottom: 20,
   },
@@ -76,11 +79,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.5,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   moreLink: {
     fontSize: 12,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   optionsRow: {
@@ -91,9 +94,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     paddingVertical: 14,
     gap: 6,
@@ -103,6 +106,6 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 });

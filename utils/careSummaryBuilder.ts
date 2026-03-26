@@ -1079,3 +1079,42 @@ export function getDefaultOpenSections(brief: CareBrief): DefaultOpenSections {
     attention: true,
   };
 }
+
+// ============================================================================
+// JOURNAL PREVIEW BUILDER
+// ============================================================================
+
+export function buildJournalPreview(brief: CareBrief): string {
+  const parts: string[] = [];
+
+  // Medication count
+  const medsTaken = brief.medications.filter(m => m.status === 'completed').length;
+  const medsTotal = brief.medications.length;
+  if (medsTotal > 0) {
+    parts.push(`${medsTaken} of ${medsTotal} meds logged`);
+  }
+
+  // Meals count
+  if (brief.meals && brief.meals.meals) {
+    const mealsLogged = brief.meals.meals.filter(m => m.status === 'completed').length;
+    if (mealsLogged > 0) {
+      parts.push(`${mealsLogged} meal${mealsLogged !== 1 ? 's' : ''} logged`);
+    }
+  }
+
+  // Wellness checks
+  if (brief.wellnessChecks && brief.wellnessChecks.done > 0) {
+    parts.push(`${brief.wellnessChecks.done} check-in${brief.wellnessChecks.done !== 1 ? 's' : ''} done`);
+  }
+
+  // Attention items as "patterns"
+  if (brief.attentionItems && brief.attentionItems.length > 0) {
+    parts.push(`${brief.attentionItems.length} pattern${brief.attentionItems.length !== 1 ? 's' : ''} detected`);
+  }
+
+  if (parts.length === 0) {
+    return 'No activity recorded yet';
+  }
+
+  return parts.join(' · ');
+}

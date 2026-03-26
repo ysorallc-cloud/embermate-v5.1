@@ -444,6 +444,31 @@ By using EmberMate, you acknowledge that:
 
 ---
 
+## Apple HealthKit Data (iOS Only)
+
+EmberMate can optionally read health data from Apple Health on iOS devices. This feature is off by default and must be explicitly enabled per data type in Care Plan settings.
+
+**What data types may be read:**
+- Blood pressure (systolic/diastolic)
+- Heart rate and resting heart rate
+- Blood glucose
+- Blood oxygen saturation
+- Weight
+- Step count
+- Sleep analysis
+
+**How this data is handled:**
+- All HealthKit data stays on your device. It is never transmitted to any server, cloud service, or third party.
+- HealthKit data is never sold, shared with advertisers, or used for purposes you did not agree to.
+- Data is used solely for the app's stated caregiving and wellness purposes: populating vitals, tracking trends, and generating insights.
+- Patient HealthKit data and caregiver wellness data are stored separately and never mixed.
+
+**How to revoke access:**
+- Disable auto-import per vital type in Care Plan > Vitals settings
+- Or revoke EmberMate's HealthKit access in iOS Settings > Privacy & Security > Health > EmberMate
+
+---
+
 **Thank you for trusting EmberMate with your health information. We take your privacy seriously and are committed to protecting your data.**
 
 For questions or concerns: privacy@embermate.com

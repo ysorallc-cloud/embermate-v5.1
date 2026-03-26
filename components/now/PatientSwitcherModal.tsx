@@ -3,7 +3,7 @@
 // Bottom sheet for quick patient switching from Now tab
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   Alert,
 } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { usePatient } from '../../contexts/PatientContext';
 import { checkFeatureAccess } from '../../utils/featureGate';
 import { navigate } from '../../lib/navigate';
@@ -24,6 +25,9 @@ interface PatientSwitcherModalProps {
 }
 
 export function PatientSwitcherModal({ visible, onClose }: PatientSwitcherModalProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { activePatientId, patients, switchPatient, addPatient, loading } = usePatient();
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
@@ -114,7 +118,7 @@ export function PatientSwitcherModal({ visible, onClose }: PatientSwitcherModalP
                 value={newName}
                 onChangeText={setNewName}
                 placeholder="Patient name"
-                placeholderTextColor={Colors.textPlaceholder}
+                placeholderTextColor={colors.textPlaceholder}
                 autoFocus
                 accessibilityLabel="New patient name"
               />
@@ -173,14 +177,14 @@ export function PatientSwitcherModal({ visible, onClose }: PatientSwitcherModalP
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: Colors.overlay,
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: Colors.menuSurface,
+    backgroundColor: c.menuSurface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -190,14 +194,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.glassBorder,
+    backgroundColor: c.glassBorder,
     alignSelf: 'center',
     marginBottom: 16,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 16,
   },
   patientRow: {
@@ -206,30 +210,30 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     gap: 12,
   },
   patientRowActive: {
-    backgroundColor: Colors.accentHint,
-    borderColor: Colors.accent,
+    backgroundColor: c.accentHint,
+    borderColor: c.accent,
   },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.glassSubtle,
+    backgroundColor: c.glassSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarActive: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
   },
   avatarText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   patientInfo: {
     flex: 1,
@@ -237,19 +241,19 @@ const styles = StyleSheet.create({
   patientName: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   patientNameActive: {
-    color: Colors.accent,
+    color: c.accent,
   },
   patientRelation: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   activeCheck: {
     fontSize: 16,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: 'bold',
   },
   addPatientRow: {
@@ -261,12 +265,12 @@ const styles = StyleSheet.create({
   },
   addIcon: {
     fontSize: 20,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
   addLabel: {
     fontSize: 15,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   addForm: {
@@ -274,13 +278,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   addInput: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   addActions: {
     flexDirection: 'row',
@@ -292,12 +296,12 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   addButton: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 8,
   },
   addButtonDisabled: {
@@ -306,11 +310,11 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   profileDivider: {
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
     marginTop: 8,
   },
   profileRow: {
@@ -325,11 +329,11 @@ const styles = StyleSheet.create({
   },
   profileLabel: {
     fontSize: 14,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   profileArrow: {
     fontSize: 13,
-    color: Colors.accent,
+    color: c.accent,
   },
 });

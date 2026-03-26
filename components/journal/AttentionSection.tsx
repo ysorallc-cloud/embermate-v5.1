@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import type { AttentionItem } from '../../utils/careSummaryBuilder';
 
 interface Props {
@@ -8,6 +9,9 @@ interface Props {
 }
 
 export function AttentionSection({ items }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (items.length === 0) {
     return (
       <View style={styles.cardGreen}>
@@ -30,11 +34,11 @@ export function AttentionSection({ items }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   cardGreen: {
     backgroundColor: 'rgba(16, 185, 129, 0.08)',
     borderWidth: 1,
-    borderColor: Colors.greenHint,
+    borderColor: c.greenHint,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -42,14 +46,14 @@ const styles = StyleSheet.create({
   allClearText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.accent,
+    color: c.accent,
   },
   cardAmber: {
-    backgroundColor: Colors.amberFaint,
+    backgroundColor: c.amberFaint,
     borderWidth: 1,
-    borderColor: Colors.amberHint,
+    borderColor: c.amberHint,
     borderLeftWidth: 3,
-    borderLeftColor: Colors.amber,
+    borderLeftColor: c.amber,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -61,11 +65,11 @@ const styles = StyleSheet.create({
   itemText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.amber,
+    color: c.amber,
   },
   itemDetail: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
 });

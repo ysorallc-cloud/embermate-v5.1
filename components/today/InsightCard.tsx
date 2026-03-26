@@ -3,9 +3,10 @@
 // Shows medication adherence, patterns, and refill risks
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { getAllInsights, Insight } from '../../utils/insights';
 import { Medication } from '../../utils/medicationStorage';
 import { logError } from '../../utils/devLog';
@@ -15,6 +16,8 @@ interface InsightCardProps {
 }
 
 export const InsightCard: React.FC<InsightCardProps> = ({ medications }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,33 +68,33 @@ export const InsightCard: React.FC<InsightCardProps> = ({ medications }) => {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
-        return Colors.red;
+        return colors.red;
       case 'medium':
-        return Colors.gold;
+        return colors.gold;
       default:
-        return Colors.accent;
+        return colors.accent;
     }
   };
 
   const getBorderColor = (priority: string) => {
     switch (priority) {
       case 'high':
-        return Colors.redBorder;
+        return colors.redBorder;
       case 'medium':
-        return Colors.goldBorder;
+        return colors.goldBorder;
       default:
-        return Colors.border;
+        return colors.border;
     }
   };
 
   const getBackgroundColor = (priority: string) => {
     switch (priority) {
       case 'high':
-        return Colors.redFaint;
+        return colors.redFaint;
       case 'medium':
-        return Colors.goldLight;
+        return colors.goldLight;
       default:
-        return Colors.sageDim;
+        return colors.sageDim;
     }
   };
 
@@ -134,7 +137,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ medications }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     borderRadius: 14,
     padding: 14,
@@ -146,7 +149,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: Colors.glassActive,
+    backgroundColor: c.glassActive,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -162,33 +165,33 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
     marginBottom: 4,
-    color: Colors.accent, // Default color for visibility
+    color: c.accent, // Default color for visibility
   },
   title: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   description: {
     fontSize: 13,
     lineHeight: 18,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 2,
   },
   action: {
     fontSize: 12,
-    color: Colors.accent,
+    color: c.accent,
     marginTop: 4,
     fontWeight: '500',
   },
   placeholder: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontStyle: 'italic',
   },
   badge: {
-    backgroundColor: Colors.glassStrong,
+    backgroundColor: c.glassStrong,
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -197,6 +200,6 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });

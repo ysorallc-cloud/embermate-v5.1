@@ -36,6 +36,7 @@ import {
   VITAL_TYPE_OPTIONS,
 } from '../types/carePlanConfig';
 import { generateUniqueId } from '../utils/idGenerator';
+import { safeGetItem } from '../utils/safeStorage';
 
 // ============================================================================
 // CONFIGURATION
@@ -161,6 +162,15 @@ async function syncMedicationItemsWithConfig(
       existingByName.set(item.name.toLowerCase().trim(), item);
     }
 
+    // Also check by base medication name (without dosage) to catch mismatches
+    const existingByBaseName = new Map<string, CarePlanItem>();
+    for (const item of medicationItems) {
+      const baseName = item.name.split(/\s+\d/)[0].toLowerCase().trim();
+      if (!existingByBaseName.has(baseName)) {
+        existingByBaseName.set(baseName, item);
+      }
+    }
+
     // 1. CREATE: Add CarePlanItems for config medications that don't have items
     for (const configMed of activeConfigMeds) {
       // Match by medicationId (most reliable)
@@ -170,6 +180,13 @@ async function syncMedicationItemsWithConfig(
       const matchByName = existingByName.get(composedName);
 
       if (!matchById && !matchByName) {
+        // Extra safety: check by base medication name
+        const configBaseName = configMed.name.toLowerCase().trim();
+        const matchByBaseName = existingByBaseName.get(configBaseName);
+        if (matchByBaseName) {
+          continue; // Already have an item for this medication
+        }
+
         const newItem = createCarePlanItemFromConfigMed(configMed, carePlanId);
         devLog('[syncMedicationItemsWithConfig] Creating CarePlanItem for config med:', configMed.name);
         await upsertCarePlanItem(newItem);
@@ -542,6 +559,139 @@ async function syncOtherBucketsWithConfig(
       }
     }
 
+    // ===== ERRANDS SYNC =====
+    const errandsEnabled = (config as any).errands?.enabled;
+    const existingErrandItems = allItems.filter(i => i.type === 'errand');
+
+    if (errandsEnabled) {
+      // Load errand config items from storage
+      const errandConfigs = await safeGetItem<any[]>('@embermate_errands_config', []);
+      for (const ec of errandConfigs) {
+        const syncId = `sync-errand-${ec.id}`;
+        if (!existingErrandItems.some(i => i.id === syncId)) {
+          const todLabel = ec.timeOfDay || 'morning';
+          const errandItem: CarePlanItem = {
+            id: syncId,
+            carePlanId,
+            type: 'errand' as any,
+            name: ec.name,
+            priority: 'optional',
+            active: true,
+            schedule: {
+              frequency: ec.frequency === 'daily' ? 'daily' : 'daily',
+              times: [{
+                id: `${syncId}-time`,
+                kind: 'exact' as const,
+                label: TIME_OF_DAY_TO_WINDOW[todLabel as TimeOfDay] || 'morning',
+                at: TIME_OF_DAY_DEFAULTS[todLabel as TimeOfDay] || '09:00',
+              }],
+            },
+            emoji: '📋',
+            createdAt: now,
+            updatedAt: now,
+          };
+          devLog('[syncOtherBucketsWithConfig] Creating errand CarePlanItem:', errandItem.name);
+          await upsertCarePlanItem(errandItem);
+          changed = true;
+        }
+      }
+    } else {
+      for (const item of existingErrandItems) {
+        if (item.active) {
+          await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
+          changed = true;
+        }
+      }
+    }
+
+    // ===== SHIFTS SYNC =====
+    const shiftsEnabled = (config as any).shifts?.enabled;
+    const existingShiftItems = allItems.filter(i => i.type === 'shift');
+
+    if (shiftsEnabled) {
+      const shiftConfigs = await safeGetItem<any[]>('@embermate_shifts_config', []);
+      for (const sc of shiftConfigs) {
+        const syncId = `sync-shift-${sc.id}`;
+        if (!existingShiftItems.some(i => i.id === syncId)) {
+          const shiftItem: CarePlanItem = {
+            id: syncId,
+            carePlanId,
+            type: 'shift' as any,
+            name: `${sc.caregiverName}'s shift`,
+            instructions: `${sc.startTime} – ${sc.endTime}`,
+            priority: 'recommended',
+            active: true,
+            schedule: {
+              frequency: 'daily',
+              times: [{
+                id: `${syncId}-time`,
+                kind: 'exact' as const,
+                label: 'morning',
+                at: sc.startTime || '08:00',
+              }],
+            },
+            emoji: '🔄',
+            createdAt: now,
+            updatedAt: now,
+          };
+          devLog('[syncOtherBucketsWithConfig] Creating shift CarePlanItem:', shiftItem.name);
+          await upsertCarePlanItem(shiftItem);
+          changed = true;
+        }
+      }
+    } else {
+      for (const item of existingShiftItems) {
+        if (item.active) {
+          await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
+          changed = true;
+        }
+      }
+    }
+
+    // ===== SELF-CARE SYNC =====
+    const selfCareEnabled = (config as any).self_care?.enabled;
+    const existingSelfCareItems = allItems.filter(i => i.type === 'self_care');
+
+    if (selfCareEnabled) {
+      const selfCareConfigs = await safeGetItem<any[]>('@embermate_self_care_config', []);
+      for (const sc of selfCareConfigs) {
+        const syncId = `sync-selfcare-${sc.id}`;
+        if (!existingSelfCareItems.some(i => i.id === syncId)) {
+          const todLabel = sc.timeOfDay || 'afternoon';
+          const scItem: CarePlanItem = {
+            id: syncId,
+            carePlanId,
+            type: 'self_care' as any,
+            name: sc.name,
+            priority: 'optional',
+            active: true,
+            schedule: {
+              frequency: 'daily',
+              times: [{
+                id: `${syncId}-time`,
+                kind: 'exact' as const,
+                label: TIME_OF_DAY_TO_WINDOW[todLabel as TimeOfDay] || 'afternoon',
+                at: TIME_OF_DAY_DEFAULTS[todLabel as TimeOfDay] || '14:00',
+              }],
+            },
+            emoji: '💛',
+            createdAt: now,
+            updatedAt: now,
+          };
+          devLog('[syncOtherBucketsWithConfig] Creating self-care CarePlanItem:', scItem.name);
+          await upsertCarePlanItem(scItem);
+          changed = true;
+        }
+      }
+    } else {
+      for (const item of existingSelfCareItems) {
+        if (item.active) {
+          await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
+          changed = true;
+        }
+      }
+    }
+
   } catch (error) {
     logError('carePlanGenerator.syncOtherBucketsWithConfig', error);
   }
@@ -564,11 +714,33 @@ async function syncOtherBucketsWithConfig(
  * 5. Mark missed instances (past window + grace period)
  * 6. Return all instances sorted by time
  */
-// Flag to ensure duplicate cleanup only runs once per app session
-let duplicateCleanupCompleted = false;
+// Concurrency guard — prevents two simultaneous calls from creating duplicate items.
+// This is the root cause of the duplicate medication/meal/wellness issue: during
+// onboarding, initializeSampleData calls ensureDailyInstances while the Now screen
+// mounts and also calls it, creating a race where both see "no items" and both create.
+let _ensureLock: Promise<DailyCareInstance[]> | null = null;
 
 export async function ensureDailyInstances(
   patientId: string = DEFAULT_PATIENT_ID,
+  date: string
+): Promise<DailyCareInstance[]> {
+  // Serialize calls — if one is in progress, wait for it then run ours.
+  // This prevents the race condition where onboarding + Now screen both
+  // call sync simultaneously, each seeing "no items" and creating duplicates.
+  if (_ensureLock) {
+    await _ensureLock;
+  }
+  const work = _ensureDailyInstancesCore(patientId, date);
+  _ensureLock = work;
+  try {
+    return await work;
+  } finally {
+    _ensureLock = null;
+  }
+}
+
+async function _ensureDailyInstancesCore(
+  patientId: string,
   date: string
 ): Promise<DailyCareInstance[]> {
   // 1. Get active care plan
@@ -577,13 +749,10 @@ export async function ensureDailyInstances(
     return [];
   }
 
-  // 1.4 One-time cleanup of duplicate items (runs once per app session)
-  if (!duplicateCleanupCompleted) {
-    duplicateCleanupCompleted = true;
-    const cleanup = await cleanupDuplicateCarePlanItems(patientId);
-    if (cleanup.removedCount > 0) {
-      devLog(`[ensureDailyInstances] Cleaned up ${cleanup.removedCount} duplicate items`);
-    }
+  // 1.4 Pre-sync cleanup of duplicate items
+  const preSyncCleanup = await cleanupDuplicateCarePlanItems(patientId);
+  if (preSyncCleanup.removedCount > 0) {
+    devLog(`[ensureDailyInstances] Pre-sync cleanup removed ${preSyncCleanup.removedCount} duplicate items`);
   }
 
   // 1.5 Sync medication items with CarePlanConfig
@@ -591,12 +760,12 @@ export async function ensureDailyInstances(
   const medsChanged = await syncMedicationItemsWithConfig(carePlan.id, patientId);
   const bucketsChanged = await syncOtherBucketsWithConfig(carePlan.id, patientId);
 
-  // 1.6 If sync changed items, re-run dedup to catch any newly created duplicates
-  if (medsChanged || bucketsChanged) {
-    const postSyncCleanup = await cleanupDuplicateCarePlanItems(patientId);
-    if (postSyncCleanup.removedCount > 0) {
-      devLog(`[ensureDailyInstances] Post-sync cleanup removed ${postSyncCleanup.removedCount} duplicates`);
-    }
+  // 1.6 ALWAYS run post-sync dedup — sync can create duplicates even when
+  // it doesn't report changes (e.g. matching logic passes but a different
+  // code path created items). This is the primary defense against duplicates.
+  const postSyncCleanup = await cleanupDuplicateCarePlanItems(patientId);
+  if (postSyncCleanup.removedCount > 0) {
+    devLog(`[ensureDailyInstances] Post-sync cleanup removed ${postSyncCleanup.removedCount} duplicates`);
   }
 
   // 2. Get active items (after sync to reflect current config)
@@ -669,9 +838,23 @@ export async function ensureDailyInstances(
     }
   }
 
-  // 7. Return all valid instances sorted by time
+  // 7. Return all valid instances sorted by time, with final dedup safety net
   const allInstances = await listDailyInstances(patientId, date);
-  return allInstances.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
+  
+  // Instance-level dedup: if two instances share the same carePlanItemId + windowId,
+  // keep only the first. This catches any duplication the item-level cleanup missed.
+  const seenInstanceKeys = new Set<string>();
+  const dedupedInstances = allInstances.filter(inst => {
+    const key = `${inst.carePlanItemId}:${inst.windowId}`;
+    if (seenInstanceKeys.has(key)) {
+      devLog(`[ensureDailyInstances] Removing duplicate instance: ${inst.itemName} (${key})`);
+      return false;
+    }
+    seenInstanceKeys.add(key);
+    return true;
+  });
+
+  return dedupedInstances.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
 }
 
 // ============================================================================

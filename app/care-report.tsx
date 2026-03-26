@@ -24,6 +24,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { format } from 'date-fns';
 
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { GlassCard } from '../components/aurora/GlassCard';
 import { SubScreenHeader } from '../components/SubScreenHeader';
@@ -115,6 +116,9 @@ export default function CareReportScreen() {
 
   // Visit prep state
   const [checkedQuestions, setCheckedQuestions] = useState<Set<string>>(new Set());
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const loadData = useCallback(async () => {
     try {
@@ -359,7 +363,7 @@ export default function CareReportScreen() {
         <SafeAreaView style={styles.safeArea} edges={['top']}>
           <SubScreenHeader title="Care Report" emoji={'\uD83D\uDCCB'} />
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.accent} />
+            <ActivityIndicator size="large" color={colors.accent} />
             <Text style={styles.loadingText}>Loading report...</Text>
           </View>
         </SafeAreaView>
@@ -414,7 +418,7 @@ export default function CareReportScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
           }
         >
           {scope === 'handoff' && <HandoffView
@@ -488,6 +492,8 @@ function HandoffView({
   careBrief: CareBrief | null;
   watchForItems: InsightData[];
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const totalMeds = medications.length;
   const statusLevel = missedMeds.length === 0 ? 'stable'
     : missedMeds.length >= totalMeds * 0.5 ? 'concerning'
@@ -519,9 +525,9 @@ function HandoffView({
         <View style={styles.statusRow}>
           <View style={[
             styles.statusDot,
-            statusLevel === 'stable' && { backgroundColor: Colors.green },
-            statusLevel === 'attention' && { backgroundColor: Colors.amber },
-            statusLevel === 'concerning' && { backgroundColor: Colors.red },
+            statusLevel === 'stable' && { backgroundColor: colors.green },
+            statusLevel === 'attention' && { backgroundColor: colors.amber },
+            statusLevel === 'concerning' && { backgroundColor: colors.red },
           ]} />
           <View style={{ flex: 1 }}>
             <Text style={styles.statusLabel}>CURRENT STATUS</Text>
@@ -640,6 +646,8 @@ function TodayView({
   appointments: Appointment[];
   careActivities: CareActivity[];
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const takenCount = medications.filter(m => m.taken).length;
   const mealsLogged = mealsLog?.meals?.length || 0;
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -794,6 +802,8 @@ function VisitPrepView({
   checkedQuestions: Set<string>;
   onToggleQuestion: (id: string) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   if (!providerPrep) {
     return (
       <GlassCard style={styles.sectionCard}>
@@ -892,6 +902,8 @@ function FullReportView({
   sections: Record<string, boolean>;
   onToggleSection: (key: string) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const sectionItems = [
     { key: 'demographics', label: 'Patient information & demographics' },
     { key: 'medications', label: 'Complete medication list with dosages' },
@@ -915,8 +927,8 @@ function FullReportView({
             <Switch
               value={sections[item.key]}
               onValueChange={() => onToggleSection(item.key)}
-              trackColor={{ false: Colors.borderMedium, true: Colors.accentBorder }}
-              thumbColor={sections[item.key] ? Colors.accent : Colors.textMuted}
+              trackColor={{ false: colors.borderMedium, true: colors.accentBorder }}
+              thumbColor={sections[item.key] ? colors.accent : colors.textMuted}
               accessibilityLabel={`Include ${item.label}`}
             />
           </View>
@@ -944,10 +956,10 @@ function FullReportView({
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   safeArea: {
     flex: 1,
@@ -960,7 +972,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   scrollView: {
     flex: 1,
@@ -972,17 +984,17 @@ const styles = StyleSheet.create({
 
   // Export button
   exportButton: {
-    backgroundColor: `${Colors.accent}20`,
+    backgroundColor: `${c.accent}20`,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: `${Colors.accent}40`,
+    borderColor: `${c.accent}40`,
   },
   exportButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
 
   // Scope Selector
@@ -997,14 +1009,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     gap: 4,
   },
   scopeButtonActive: {
-    backgroundColor: `${Colors.accent}20`,
-    borderColor: Colors.accent,
+    backgroundColor: `${c.accent}20`,
+    borderColor: c.accent,
   },
   scopeIcon: {
     fontSize: 18,
@@ -1012,10 +1024,10 @@ const styles = StyleSheet.create({
   scopeLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   scopeLabelActive: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
 
@@ -1026,18 +1038,18 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.textHalf,
+    color: c.textHalf,
     letterSpacing: 1.2,
     marginBottom: 10,
   },
   sectionBody: {
     fontSize: 15,
     lineHeight: 22,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   sectionSubtext: {
     fontSize: 13,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginBottom: 14,
   },
 
@@ -1059,30 +1071,30 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 2,
   },
   statusText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // Attention Items
   attentionItem: {
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   attentionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   attentionDetail: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
 
@@ -1090,43 +1102,43 @@ const styles = StyleSheet.create({
   upcomingItem: {
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   upcomingDate: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.blue,
+    color: c.blue,
     letterSpacing: 0.5,
     marginBottom: 2,
   },
   upcomingTitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // Context
   contextRow: {
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   contextLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 0.5,
     marginBottom: 2,
   },
   contextValue: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Today view
   patientMeta: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 12,
   },
   summaryGrid: {
@@ -1139,11 +1151,11 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   summaryItemLabel: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
 
@@ -1151,7 +1163,7 @@ const styles = StyleSheet.create({
   listItem: {
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   listItemRow: {
     flexDirection: 'row',
@@ -1161,11 +1173,11 @@ const styles = StyleSheet.create({
   listItemName: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   listItemDetail: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   listItemStatus: {
@@ -1173,10 +1185,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   statusTaken: {
-    color: Colors.green,
+    color: c.green,
   },
   statusPending: {
-    color: Colors.amber,
+    color: c.amber,
   },
 
   // Range notes
@@ -1185,27 +1197,27 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   rangeNormal: {
-    color: Colors.green,
+    color: c.green,
   },
   rangeAbnormal: {
-    color: Colors.red,
+    color: c.red,
   },
 
   // Notes
   noteTime: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   noteText: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginTop: 2,
   },
 
   // Disclaimer
   disclaimer: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     marginTop: 16,
     fontStyle: 'italic',
@@ -1215,12 +1227,12 @@ const styles = StyleSheet.create({
   visitProvider: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   visitDetail: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   questionItem: {
     flexDirection: 'row',
@@ -1228,21 +1240,21 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   checkbox: {
     width: 22,
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 1,
   },
   checkboxChecked: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: c.accent,
+    borderColor: c.accent,
   },
   checkmark: {
     fontSize: 13,
@@ -1252,11 +1264,11 @@ const styles = StyleSheet.create({
   questionText: {
     flex: 1,
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     lineHeight: 20,
   },
   questionTextChecked: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     textDecorationLine: 'line-through',
   },
 
@@ -1269,13 +1281,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
     marginBottom: 6,
   },
   emptyText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -1289,12 +1301,12 @@ const styles = StyleSheet.create({
   },
   toggleLabel: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     flex: 1,
     marginRight: 12,
   },
   toggleLabelDisabled: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     textDecorationLine: 'line-through',
   },
   privacyRow: {
@@ -1308,18 +1320,18 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 19,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   fullReportHint: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     marginTop: 8,
   },
   fullPrepButton: {
-    backgroundColor: Colors.accentFaint,
+    backgroundColor: c.accentFaint,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
+    borderColor: c.accentBorder,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     alignItems: 'center',
@@ -1328,11 +1340,11 @@ const styles = StyleSheet.create({
   fullPrepText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   fullPrepSubtext: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
 });

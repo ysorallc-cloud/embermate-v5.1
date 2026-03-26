@@ -3,7 +3,7 @@
 // Consolidated: Medication dropdown, Dosage, Side Effects, Search
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { createMedication, markMedicationTaken } from '../utils/medicationStorage';
 import { saveMedicationLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
@@ -78,6 +79,8 @@ const SIDE_EFFECTS = [
 export default function MedicationLogScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Parse CarePlan context from navigation params
   const carePlanContext = parseCarePlanContext(params as Record<string, string>);
@@ -195,7 +198,7 @@ export default function MedicationLogScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -264,7 +267,7 @@ export default function MedicationLogScreen() {
                 <TextInput
                   style={styles.searchInput}
                   placeholder="Search or type medication name..."
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   value={searchQuery}
                   onChangeText={(text) => {
                     setSearchQuery(text);
@@ -316,7 +319,7 @@ export default function MedicationLogScreen() {
             <TextInput
               style={styles.dosageInput}
               placeholder="Enter or select dosage (e.g., 50mg)"
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               value={dosage}
               onChangeText={(text) => {
                 setDosage(text);
@@ -423,10 +426,10 @@ export default function MedicationLogScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -440,26 +443,26 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.accentHint,
+    borderBottomColor: c.accentHint,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: Colors.surfaceHighlight,
+    backgroundColor: c.surfaceHighlight,
     borderWidth: 1,
-    borderColor: Colors.accentLight,
+    borderColor: c.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backIcon: {
     fontSize: 20,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // Content
@@ -478,25 +481,25 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   carePlanBanner: {
-    backgroundColor: Colors.purpleFaint,
-    borderColor: Colors.purpleWash,
+    backgroundColor: c.purpleFaint,
+    borderColor: c.purpleWash,
   },
   carePlanBannerLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.violetBright,
+    color: c.violetBright,
     letterSpacing: 1,
     textAlign: 'center',
     marginBottom: 4,
   },
   contextText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
   },
   progressText: {
     fontSize: 12,
-    color: Colors.textHalf,
+    color: c.textHalf,
     textAlign: 'center',
     marginTop: 4,
   },
@@ -509,25 +512,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 1.5,
-    color: Colors.textHalf,
+    color: c.textHalf,
     marginBottom: 10,
   },
 
   // Search/Selected Field
   searchInput: {
-    backgroundColor: Colors.surfaceHighlight,
+    backgroundColor: c.surfaceHighlight,
     borderWidth: 1,
-    borderColor: Colors.borderMedium,
+    borderColor: c.borderMedium,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   selectedField: {
-    backgroundColor: Colors.greenLight,
+    backgroundColor: c.greenLight,
     borderWidth: 1,
-    borderColor: Colors.green,
+    borderColor: c.green,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -538,18 +541,18 @@ const styles = StyleSheet.create({
   selectedFieldText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.green,
+    color: c.green,
   },
   changeText: {
     fontSize: 13,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
 
   // Dropdown
   dropdown: {
-    backgroundColor: Colors.accentSubtle,
+    backgroundColor: c.accentSubtle,
     borderWidth: 1,
-    borderColor: Colors.borderMedium,
+    borderColor: c.borderMedium,
     borderRadius: 12,
     marginTop: 8,
     overflow: 'hidden',
@@ -558,35 +561,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.surfaceElevated,
+    borderBottomColor: c.surfaceElevated,
   },
   dropdownItemText: {
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   customOption: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: Colors.sageLight,
+    backgroundColor: c.sageLight,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.glassActive,
+    borderBottomColor: c.glassActive,
   },
   customOptionText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
 
   // Dosage
   dosageInput: {
-    backgroundColor: Colors.surfaceHighlight,
+    backgroundColor: c.surfaceHighlight,
     borderWidth: 1,
-    borderColor: Colors.borderMedium,
+    borderColor: c.borderMedium,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 12,
   },
   dosageChips: {
@@ -597,21 +600,21 @@ const styles = StyleSheet.create({
   dosageChip: {
     paddingVertical: 8,
     paddingHorizontal: 14,
-    backgroundColor: Colors.surfaceHighlight,
+    backgroundColor: c.surfaceHighlight,
     borderWidth: 1,
-    borderColor: Colors.accentHint,
+    borderColor: c.accentHint,
     borderRadius: 16,
   },
   dosageChipSelected: {
-    backgroundColor: Colors.greenHint,
-    borderColor: Colors.green,
+    backgroundColor: c.greenHint,
+    borderColor: c.green,
   },
   dosageChipText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   dosageChipTextSelected: {
-    color: Colors.green,
+    color: c.green,
     fontWeight: '600',
   },
 
@@ -624,21 +627,21 @@ const styles = StyleSheet.create({
   sideEffectChip: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    backgroundColor: Colors.surfaceHighlight,
+    backgroundColor: c.surfaceHighlight,
     borderWidth: 1,
-    borderColor: Colors.accentHint,
+    borderColor: c.accentHint,
     borderRadius: 20,
   },
   sideEffectChipSelected: {
-    backgroundColor: Colors.accentHint,
-    borderColor: Colors.accent,
+    backgroundColor: c.accentHint,
+    borderColor: c.accent,
   },
   sideEffectText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   sideEffectTextSelected: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
 
@@ -650,30 +653,30 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 1.5,
-    color: Colors.textHalf,
+    color: c.textHalf,
     marginBottom: 10,
   },
   summaryCard: {
     backgroundColor: 'rgba(16, 185, 129, 0.08)',
     borderWidth: 1,
-    borderColor: Colors.greenMuted,
+    borderColor: c.greenMuted,
     borderRadius: 12,
     padding: 16,
   },
   summaryMed: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   summaryDosage: {
     fontSize: 15,
-    color: Colors.green,
+    color: c.green,
     fontWeight: '500',
   },
   summarySideEffect: {
     fontSize: 13,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 8,
     fontStyle: 'italic',
   },
@@ -683,11 +686,11 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 24,
     borderTopWidth: 1,
-    borderTopColor: Colors.accentHint,
-    backgroundColor: Colors.background,
+    borderTopColor: c.accentHint,
+    backgroundColor: c.background,
   },
   saveButton: {
-    backgroundColor: Colors.green,
+    backgroundColor: c.green,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -698,6 +701,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });

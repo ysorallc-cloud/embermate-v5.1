@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import type { MoodDetail } from '../../utils/careSummaryBuilder';
 
 interface Props {
@@ -8,6 +9,9 @@ interface Props {
 }
 
 export function MoodWellnessNarrative({ mood }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const hasContent = mood.entries.length > 0 || mood.morningWellness || mood.eveningWellness;
   if (!hasContent) return null;
 
@@ -64,27 +68,27 @@ export function MoodWellnessNarrative({ mood }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   card: {
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
   },
   narrative: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 20,
     marginBottom: 2,
   },
   bold: {
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   muted: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontStyle: 'italic',
   },
 });

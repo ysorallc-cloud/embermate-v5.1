@@ -4,7 +4,7 @@
 // Replaces the old static routine-based CarePlanPanel
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   DailyCareInstance,
   TimeWindowLabel,
@@ -62,6 +63,8 @@ export function DailyInstancesPanel({
   onSkipInstance,
   onSetupPress,
 }: DailyInstancesPanelProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const [expandedGroups, setExpandedGroups] = useState<Set<TimeWindowLabel>>(() => {
     // Auto-expand groups that are 'available'
@@ -211,7 +214,7 @@ export function DailyInstancesPanel({
             accessibilityLabel="Care plan settings"
             accessibilityRole="button"
           >
-            <Text style={styles.settingsIcon}>⚙️</Text>
+            <Text style={styles.settingsIcon}>{'\u2699\uFE0F'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -227,9 +230,9 @@ export function DailyInstancesPanel({
         >
           <Text style={styles.nextUpLabel}>Next:</Text>
           <Text style={styles.nextUpText}>
-            {nextPending.itemEmoji || '•'} {nextPending.itemName}
+            {nextPending.itemEmoji || '\u2022'} {nextPending.itemName}
           </Text>
-          <Text style={styles.nextUpChevron}>›</Text>
+          <Text style={styles.nextUpChevron}>{'\u203A'}</Text>
         </TouchableOpacity>
       )}
 
@@ -242,13 +245,14 @@ export function DailyInstancesPanel({
           onToggle={() => toggleGroup(group.windowLabel)}
           onInstancePress={handleInstancePress}
           onInstanceLongPress={handleInstanceLongPress}
+          colors={colors}
         />
       ))}
 
       {/* All Complete Message */}
       {allComplete && (
         <View style={styles.completeMessage}>
-          <Text style={styles.completeEmoji}>🎉</Text>
+          <Text style={styles.completeEmoji}>{'\uD83C\uDF89'}</Text>
           <Text style={styles.completeText}>All done for today!</Text>
         </View>
       )}
@@ -266,6 +270,7 @@ interface WindowGroupSectionProps {
   onToggle: () => void;
   onInstancePress: (instance: DailyCareInstance) => void;
   onInstanceLongPress: (instance: DailyCareInstance) => void;
+  colors: typeof Colors;
 }
 
 function WindowGroupSection({
@@ -274,8 +279,10 @@ function WindowGroupSection({
   onToggle,
   onInstancePress,
   onInstanceLongPress,
+  colors,
 }: WindowGroupSectionProps) {
-  const statusColor = getStatusColor(group.status);
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const statusColor = getStatusColor(group.status, colors);
 
   // Get pending items for preview when collapsed
   const pendingInstances = group.instances.filter(i => i.status === 'pending');
@@ -305,11 +312,11 @@ function WindowGroupSection({
         <View style={styles.groupHeaderRight}>
           <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
             <Text style={[styles.statusBadgeText, { color: statusColor }]}>
-              {group.status === 'completed' ? '✓ Done' :
+              {group.status === 'completed' ? '\u2713 Done' :
                group.status === 'available' ? 'Now' : 'Later'}
             </Text>
           </View>
-          <Text style={styles.expandIcon}>{expanded ? '▼' : '▶'}</Text>
+          <Text style={styles.expandIcon}>{expanded ? '\u25BC' : '\u25B6'}</Text>
         </View>
       </TouchableOpacity>
 
@@ -325,7 +332,7 @@ function WindowGroupSection({
               accessibilityLabel={`${instance.itemName}, ${getStatusText(instance)}`}
               accessibilityRole="button"
             >
-              <Text style={styles.previewEmoji}>{instance.itemEmoji || '•'}</Text>
+              <Text style={styles.previewEmoji}>{instance.itemEmoji || '\u2022'}</Text>
               <Text style={styles.previewLabel} numberOfLines={1}>
                 {instance.itemName}
               </Text>
@@ -358,6 +365,7 @@ function WindowGroupSection({
               instance={instance}
               onPress={() => onInstancePress(instance)}
               onLongPress={() => onInstanceLongPress(instance)}
+              colors={colors}
             />
           ))}
         </View>
@@ -374,9 +382,11 @@ interface InstanceRowProps {
   instance: DailyCareInstance;
   onPress: () => void;
   onLongPress: () => void;
+  colors: typeof Colors;
 }
 
-function InstanceRow({ instance, onPress, onLongPress }: InstanceRowProps) {
+function InstanceRow({ instance, onPress, onLongPress, colors }: InstanceRowProps) {
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isDone = instance.status === 'completed' || instance.status === 'skipped';
   const isMissed = instance.status === 'missed';
 
@@ -396,7 +406,7 @@ function InstanceRow({ instance, onPress, onLongPress }: InstanceRowProps) {
       accessibilityState={{ checked: instance.status === 'completed' }}
     >
       <View style={styles.instanceRowLeft}>
-        <Text style={styles.instanceEmoji}>{instance.itemEmoji || '•'}</Text>
+        <Text style={styles.instanceEmoji}>{instance.itemEmoji || '\u2022'}</Text>
         <View style={styles.instanceContent}>
           <Text style={[
             styles.instanceName,
@@ -420,7 +430,7 @@ function InstanceRow({ instance, onPress, onLongPress }: InstanceRowProps) {
         ]}>
           {getStatusText(instance)}
         </Text>
-        <Text style={styles.instanceChevron}>›</Text>
+        <Text style={styles.instanceChevron}>{'\u203A'}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -430,18 +440,18 @@ function InstanceRow({ instance, onPress, onLongPress }: InstanceRowProps) {
 // HELPERS
 // ============================================================================
 
-function getStatusColor(status: InstanceGroup['status']): string {
+function getStatusColor(status: InstanceGroup['status'], colors: typeof Colors): string {
   switch (status) {
-    case 'completed': return Colors.green; // Green
-    case 'available': return Colors.amber; // Amber
-    case 'upcoming': return Colors.textHalf; // Gray
-    default: return Colors.textHalf;
+    case 'completed': return colors.green;
+    case 'available': return colors.amber;
+    case 'upcoming': return colors.textHalf;
+    default: return colors.textHalf;
   }
 }
 
 function getStatusText(instance: DailyCareInstance): string {
   switch (instance.status) {
-    case 'completed': return '✓ Done';
+    case 'completed': return '\u2713 Done';
     case 'skipped': return 'Skipped';
     case 'missed': return 'Missed';
     case 'partial': return 'Partial';
@@ -475,11 +485,11 @@ function getRouteForItemType(itemType: DailyCareInstance['itemType']): string {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   panel: {
-    backgroundColor: Colors.sageTint,
+    backgroundColor: c.sageTint,
     borderWidth: 1,
-    borderColor: Colors.sageBorder,
+    borderColor: c.sageBorder,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -487,9 +497,9 @@ const styles = StyleSheet.create({
 
   // Empty State
   emptyPanel: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
@@ -498,23 +508,23 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: Colors.textHalf,
+    color: c.textHalf,
     textAlign: 'center',
     marginBottom: 16,
   },
   setupButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 10,
   },
   setupButtonText: {
-    color: Colors.background,
+    color: c.background,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -529,12 +539,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 11,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
   headerActions: {
     flexDirection: 'row',
@@ -547,7 +557,7 @@ const styles = StyleSheet.create({
   },
   adjustTodayText: {
     fontSize: 12,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   settingsButton: {
@@ -570,17 +580,17 @@ const styles = StyleSheet.create({
   nextUpLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.amber,
+    color: c.amber,
     marginRight: 8,
   },
   nextUpText: {
     flex: 1,
     fontSize: 13,
-    color: Colors.textBright,
+    color: c.textBright,
   },
   nextUpChevron: {
     fontSize: 14,
-    color: Colors.amber,
+    color: c.amber,
   },
 
   // Group Section
@@ -604,7 +614,7 @@ const styles = StyleSheet.create({
   groupName: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   groupProgress: {
     fontSize: 11,
@@ -626,7 +636,7 @@ const styles = StyleSheet.create({
   },
   expandIcon: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Preview Section (collapsed state)
@@ -634,7 +644,7 @@ const styles = StyleSheet.create({
     marginLeft: 30,
     paddingLeft: 12,
     borderLeftWidth: 1,
-    borderLeftColor: Colors.border,
+    borderLeftColor: c.border,
     paddingBottom: 4,
   },
   previewItem: {
@@ -652,7 +662,7 @@ const styles = StyleSheet.create({
   previewLabel: {
     flex: 1,
     fontSize: 12,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   previewStatus: {
     fontSize: 10,
@@ -664,14 +674,14 @@ const styles = StyleSheet.create({
   },
   previewMoreText: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Instances List (expanded)
   instancesList: {
     marginLeft: 30,
     borderLeftWidth: 1,
-    borderLeftColor: Colors.glassActive,
+    borderLeftColor: c.glassActive,
     paddingLeft: 12,
   },
   instanceRow: {
@@ -680,7 +690,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.surfaceElevated,
+    borderBottomColor: c.surfaceElevated,
   },
   instanceRowDone: {
     opacity: 0.6,
@@ -704,10 +714,10 @@ const styles = StyleSheet.create({
   },
   instanceName: {
     fontSize: 13,
-    color: Colors.textAlmostFull,
+    color: c.textAlmostFull,
   },
   instanceNameDone: {
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     textDecorationLine: 'line-through',
   },
   instanceNameMissed: {
@@ -716,7 +726,7 @@ const styles = StyleSheet.create({
   },
   instanceInstructions: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   instanceRowRight: {
@@ -726,17 +736,17 @@ const styles = StyleSheet.create({
   },
   instanceStatus: {
     fontSize: 11,
-    color: Colors.sageStrong,
+    color: c.sageStrong,
   },
   instanceStatusDone: {
-    color: Colors.green,
+    color: c.green,
   },
   instanceStatusMissed: {
-    color: Colors.red,
+    color: c.red,
   },
   instanceChevron: {
     fontSize: 12,
-    color: Colors.textPlaceholder,
+    color: c.textPlaceholder,
   },
 
   // Complete Message
@@ -754,7 +764,7 @@ const styles = StyleSheet.create({
   completeText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.green,
+    color: c.green,
   },
 });
 

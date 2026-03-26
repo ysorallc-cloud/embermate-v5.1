@@ -8,6 +8,7 @@ import { MorningWellnessData, EveningWellnessData } from '../types/timeline';
 import { updateStreak } from './streakStorage';
 import { logError } from './devLog';
 import { StorageKeys } from './storageKeys';
+import { emitWellnessEvent } from './eventEmitter';
 
 const MORNING_WELLNESS_KEY = StorageKeys.MORNING_WELLNESS;
 const EVENING_WELLNESS_KEY = StorageKeys.EVENING_WELLNESS;
@@ -44,6 +45,9 @@ export const saveMorningWellness = async (
 
     // Update wellness check streak
     await updateStreak('wellnessCheck');
+
+    // Dual-write: emit to unified event store (fire-and-forget)
+    try { await emitWellnessEvent('morning', data as any, { source: 'dedicated_screen' }); } catch (_) { /* non-blocking */ }
   } catch (error) {
     logError('wellnessCheckStorage.saveMorningWellness', error);
     throw error;
@@ -141,6 +145,9 @@ export const saveEveningWellness = async (
     const updated = [...filtered, record];
 
     await safeSetItem(EVENING_WELLNESS_KEY, updated);
+
+    // Dual-write: emit to unified event store (fire-and-forget)
+    try { await emitWellnessEvent('evening', data as any, { source: 'dedicated_screen' }); } catch (_) { /* non-blocking */ }
 
     // Update wellness check streak
     await updateStreak('wellnessCheck');

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { Colors, Spacing } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { Photo } from '../utils/photoStorage';
 
 interface PhotoGalleryProps {
@@ -15,10 +16,13 @@ const { width } = Dimensions.get('window');
 const PHOTO_SIZE = (width - (Spacing.lg * 2) - (Spacing.md * 2)) / 3;
 
 export default function PhotoGallery({ photos, onPhotoPress, emptyMessage }: PhotoGalleryProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (!photos || photos.length === 0) {
     return (
       <View style={styles.emptyState}>
-        <Text style={styles.emptyIcon}>📷</Text>
+        <Text style={styles.emptyIcon}>{'\uD83D\uDCF7'}</Text>
         <Text style={styles.emptyText}>{emptyMessage || 'No photos yet'}</Text>
       </View>
     );
@@ -35,7 +39,7 @@ export default function PhotoGallery({ photos, onPhotoPress, emptyMessage }: Pho
       <Image source={{ uri: item.uri }} style={styles.photo} />
       {item.caption && (
         <View style={styles.noteBadge}>
-          <Text style={styles.noteIcon}>📝</Text>
+          <Text style={styles.noteIcon}>{'\uD83D\uDCDD'}</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -54,7 +58,7 @@ export default function PhotoGallery({ photos, onPhotoPress, emptyMessage }: Pho
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     paddingVertical: Spacing.sm,
   },
@@ -69,7 +73,7 @@ const styles = StyleSheet.create({
     width: PHOTO_SIZE,
     height: PHOTO_SIZE,
     borderRadius: 8,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   noteBadge: {
     position: 'absolute',
@@ -96,6 +100,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 });

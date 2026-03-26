@@ -3,7 +3,7 @@
 // Configure activity tracking in the Care Plan
 // ============================================================================
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import {
   BucketConfig,
@@ -29,6 +30,8 @@ import {
 
 export default function ActivityBucketScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     config,
     loading,
@@ -51,7 +54,7 @@ export default function ActivityBucketScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -92,9 +95,9 @@ export default function ActivityBucketScreen() {
             <Switch
               value={enabled}
               onValueChange={handleToggleEnabled}
-              trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
-              thumbColor={enabled ? Colors.textPrimary : Colors.switchThumbOff}
-              ios_backgroundColor={Colors.glassStrong}
+              trackColor={{ false: colors.glassStrong, true: colors.accent }}
+              thumbColor={enabled ? colors.textPrimary : colors.switchThumbOff}
+              ios_backgroundColor={colors.glassStrong}
               accessibilityLabel="Track Activity"
               accessibilityRole="switch"
               accessibilityState={{ checked: enabled }}
@@ -176,9 +179,9 @@ export default function ActivityBucketScreen() {
                 <Switch
                   value={activityConfig?.notificationsEnabled ?? false}
                   onValueChange={(value) => updateBucket('activity', { notificationsEnabled: value })}
-                  trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
-                  thumbColor={(activityConfig?.notificationsEnabled ?? false) ? Colors.textPrimary : Colors.switchThumbOff}
-                  ios_backgroundColor={Colors.glassStrong}
+                  trackColor={{ false: colors.glassStrong, true: colors.accent }}
+                  thumbColor={(activityConfig?.notificationsEnabled ?? false) ? colors.textPrimary : colors.switchThumbOff}
+                  ios_backgroundColor={colors.glassStrong}
                   accessibilityLabel="Activity Reminders"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: activityConfig?.notificationsEnabled ?? false }}
@@ -199,10 +202,10 @@ export default function ActivityBucketScreen() {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -220,20 +223,20 @@ const styles = StyleSheet.create({
   backButton: {
     width: 44,
     height: 44,
-    backgroundColor: Colors.backgroundElevated,
+    backgroundColor: c.backgroundElevated,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backIcon: {
     fontSize: 24,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   headerLabel: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 1,
     fontWeight: '600',
   },
@@ -254,12 +257,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '300',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   subtitle: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 22,
   },
 
@@ -267,7 +270,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textHalf,
+    color: c.textHalf,
     letterSpacing: 1,
     marginBottom: Spacing.md,
     marginTop: Spacing.xl,
@@ -278,9 +281,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -292,12 +295,12 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   settingDescription: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Priority
@@ -305,28 +308,28 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   priorityOption: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
   },
   priorityOptionSelected: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.sageFaint,
+    borderColor: c.accent,
+    backgroundColor: c.sageFaint,
   },
   priorityLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   priorityLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
   },
   priorityDescription: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Activities Grid
@@ -336,9 +339,9 @@ const styles = StyleSheet.create({
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     gap: Spacing.md,
@@ -351,20 +354,20 @@ const styles = StyleSheet.create({
   },
   activityLabel: {
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   activityDescription: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Info Card
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.purpleMuted,
+    backgroundColor: c.purpleMuted,
     borderWidth: 1,
-    borderColor: Colors.purpleStrong,
+    borderColor: c.purpleStrong,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginTop: Spacing.xl,
@@ -379,12 +382,12 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.purpleBright,
+    color: c.purpleBright,
     marginBottom: 4,
   },
   infoText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
 });

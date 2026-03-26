@@ -4,7 +4,7 @@
 // Accessed from medication-schedule screen
 // ============================================================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import {
   createMedication,
@@ -226,6 +227,8 @@ async function syncMedicationToCarePlan(
 }
 
 export default function MedicationFormScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const params = useLocalSearchParams();
   const medId = params.id as string | undefined;
@@ -572,7 +575,7 @@ export default function MedicationFormScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <SubScreenHeader title={isEditing ? 'Edit Medication' : 'Add Medication'} emoji="💊" />
@@ -634,7 +637,7 @@ export default function MedicationFormScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.dropdownItemText, { color: Colors.accent }]}>+ Custom medication...</Text>
+                  <Text style={[styles.dropdownItemText, { color: colors.accent }]}>+ Custom medication...</Text>
                 </TouchableOpacity>
               </ScrollView>
             )}
@@ -684,7 +687,7 @@ export default function MedicationFormScreen() {
                 value={dosage}
                 onChangeText={setDosage}
                 placeholder={name ? 'Enter dosage (e.g., 10mg)' : 'Select medication first'}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 autoCorrect={false}
                 editable={!!name}
                 accessibilityLabel="Dosage, required"
@@ -736,7 +739,7 @@ export default function MedicationFormScreen() {
               value={customTimeDisplay}
               onChangeText={handleCustomTimeChange}
               placeholder="e.g., 8:00 AM"
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               accessibilityLabel="Custom time"
               accessibilityHint="Enter time in 12-hour format"
             />
@@ -751,7 +754,7 @@ export default function MedicationFormScreen() {
               value={daysSupply}
               onChangeText={setDaysSupply}
               placeholder="30"
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
               accessibilityLabel="Days supply"
               accessibilityHint="Number of days this supply will last"
@@ -832,9 +835,9 @@ export default function MedicationFormScreen() {
               <Switch
                 value={reminderEnabled}
                 onValueChange={setReminderEnabled}
-                trackColor={{ false: Colors.textMuted, true: Colors.amber }}
-                thumbColor={Colors.surface}
-                ios_backgroundColor={Colors.textMuted}
+                trackColor={{ false: colors.textMuted, true: colors.amber }}
+                thumbColor={colors.surface}
+                ios_backgroundColor={colors.textMuted}
               />
             </TouchableOpacity>
 
@@ -876,7 +879,7 @@ export default function MedicationFormScreen() {
                       onChangeText={setReminderCustomMinutes}
                       keyboardType="numeric"
                       placeholder="15"
-                      placeholderTextColor={Colors.textMuted}
+                      placeholderTextColor={colors.textMuted}
                       accessibilityLabel="Custom reminder minutes"
                       accessibilityHint="Minutes before dose to send reminder"
                     />
@@ -901,9 +904,9 @@ export default function MedicationFormScreen() {
                     <Switch
                       value={followUpEnabled}
                       onValueChange={setFollowUpEnabled}
-                      trackColor={{ false: Colors.textMuted, true: Colors.amber }}
-                      thumbColor={Colors.surface}
-                      ios_backgroundColor={Colors.textMuted}
+                      trackColor={{ false: colors.textMuted, true: colors.amber }}
+                      thumbColor={colors.surface}
+                      ios_backgroundColor={colors.textMuted}
                     />
                   </TouchableOpacity>
 
@@ -1069,7 +1072,7 @@ export default function MedicationFormScreen() {
               value={notes}
               onChangeText={setNotes}
               placeholder="e.g., Take with food, avoid grapefruit"
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               multiline
               numberOfLines={3}
               accessibilityLabel="Medication notes"
@@ -1123,10 +1126,10 @@ export default function MedicationFormScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -1136,7 +1139,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   bottomSaveButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 14,
     padding: 16,
     alignItems: 'center',
@@ -1145,7 +1148,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   bottomSaveButtonText: {
-    color: Colors.background,
+    color: c.background,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -1159,19 +1162,19 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.sm,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   input: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   textArea: {
     minHeight: 80,
@@ -1179,7 +1182,7 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: Spacing.sm,
   },
 
@@ -1188,11 +1191,11 @@ const styles = StyleSheet.create({
   timeSlotRow: {
     flexDirection: 'row',
     gap: 8,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: 6,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   timeSlotButton: {
     flex: 1,
@@ -1204,8 +1207,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   timeSlotButtonActive: {
-    backgroundColor: Colors.accentLight,
-    borderColor: Colors.accent,
+    backgroundColor: c.accentLight,
+    borderColor: c.accent,
   },
   timeSlotIcon: {
     fontSize: 20,
@@ -1214,25 +1217,25 @@ const styles = StyleSheet.create({
   timeSlotTimeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   timeSlotTimeTextActive: {
-    color: Colors.accent,
+    color: c.accent,
   },
   timeSlotLabelText: {
     fontSize: 9,
-    color: Colors.textMuted,
+    color: c.textMuted,
     opacity: 0.7,
   },
   timeSlotLabelTextActive: {
-    color: Colors.accent,
+    color: c.accent,
   },
   
   // DROPDOWN SELECTORS
   dropdownTrigger: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     flexDirection: 'row',
@@ -1240,21 +1243,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dropdownTriggerOpen: {
-    borderColor: Colors.accent,
+    borderColor: c.accent,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
   },
   dropdownTriggerText: {
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
   },
   dropdownPlaceholder: {
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   dropdownArrow: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginLeft: 8,
   },
   dropdownArrowOpen: {
@@ -1265,9 +1268,9 @@ const styles = StyleSheet.create({
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: Colors.backgroundElevated,
+    backgroundColor: c.backgroundElevated,
     borderWidth: 1,
-    borderColor: Colors.accent,
+    borderColor: c.accent,
     borderTopWidth: 0,
     borderBottomLeftRadius: BorderRadius.md,
     borderBottomRightRadius: BorderRadius.md,
@@ -1287,16 +1290,16 @@ const styles = StyleSheet.create({
   },
   dropdownItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   dropdownItemText: {
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '500',
   },
   dropdownItemSubtext: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // TOAST
@@ -1337,16 +1340,16 @@ const styles = StyleSheet.create({
   // REMINDERS SECTION STYLES
   // ============================================
   reminderContainer: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.lg,
     overflow: 'hidden',
   },
   reminderContainerActive: {
-    backgroundColor: Colors.amberFaint,
-    borderColor: Colors.warningBorder,
+    backgroundColor: c.amberFaint,
+    borderColor: c.warningBorder,
   },
   reminderToggleRow: {
     flexDirection: 'row',
@@ -1369,23 +1372,23 @@ const styles = StyleSheet.create({
   reminderToggleLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   reminderToggleDesc: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   reminderOptionsContainer: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: Colors.amberMuted,
+    borderTopColor: c.amberMuted,
   },
   reminderSectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.amberBright,
+    color: c.amberBright,
     marginTop: Spacing.md,
     marginBottom: Spacing.sm,
     letterSpacing: 0.5,
@@ -1401,19 +1404,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Colors.warningBorder,
+    borderColor: c.warningBorder,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
   timingOptionActive: {
-    backgroundColor: Colors.amberMuted,
-    borderColor: Colors.amberBright,
+    backgroundColor: c.amberMuted,
+    borderColor: c.amberBright,
   },
   timingOptionText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   timingOptionTextActive: {
-    color: Colors.amberBright,
+    color: c.amberBright,
     fontWeight: '600',
   },
   customInputRow: {
@@ -1426,23 +1429,23 @@ const styles = StyleSheet.create({
     width: 60,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
     borderWidth: 1,
-    borderColor: Colors.warningBorder,
+    borderColor: c.warningBorder,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
   },
   customMinutesLabel: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   followUpContainer: {
     marginTop: Spacing.lg,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.amberHint,
+    borderTopColor: c.amberHint,
   },
   followUpToggleRow: {
     flexDirection: 'row',
@@ -1454,19 +1457,19 @@ const styles = StyleSheet.create({
   },
   followUpLabel: {
     fontSize: 13,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   followUpDesc: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   followUpIntervalRow: {
     marginTop: Spacing.md,
   },
   followUpIntervalLabel: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: Spacing.sm,
   },
   followUpIntervalOptions: {
@@ -1478,19 +1481,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: Colors.warningBorder,
+    borderColor: c.warningBorder,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
   followUpIntervalOptionActive: {
-    backgroundColor: Colors.amberMuted,
-    borderColor: Colors.amberBright,
+    backgroundColor: c.amberMuted,
+    borderColor: c.amberBright,
   },
   followUpIntervalText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   followUpIntervalTextActive: {
-    color: Colors.amberBright,
+    color: c.amberBright,
     fontWeight: '600',
   },
 
@@ -1498,9 +1501,9 @@ const styles = StyleSheet.create({
   // SCHEDULE SECTION STYLES
   // ============================================
   scheduleContainer: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.xl,
     padding: Spacing.lg,
@@ -1520,12 +1523,12 @@ const styles = StyleSheet.create({
   scheduleHeaderLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   scheduleHeaderDesc: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   frequencyOptionsGrid: {
     flexDirection: 'row',
@@ -1538,31 +1541,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
   frequencyOptionActive: {
-    backgroundColor: Colors.accentLight,
-    borderColor: Colors.accent,
+    backgroundColor: c.accentLight,
+    borderColor: c.accent,
   },
   frequencyOptionText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   frequencyOptionTextActive: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
   dayPickerContainer: {
     marginBottom: Spacing.lg,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
   dayPickerLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: Spacing.sm,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -1580,30 +1583,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
   dayButtonActive: {
-    backgroundColor: Colors.accentLight,
-    borderColor: Colors.accent,
+    backgroundColor: c.accentLight,
+    borderColor: c.accent,
   },
   dayButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   dayButtonTextActive: {
-    color: Colors.accent,
+    color: c.accent,
   },
   endConditionContainer: {
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
   endConditionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: Spacing.sm,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -1618,19 +1621,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
   endConditionOptionActive: {
-    backgroundColor: Colors.accentLight,
-    borderColor: Colors.accent,
+    backgroundColor: c.accentLight,
+    borderColor: c.accent,
   },
   endConditionText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   endConditionTextActive: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
 
@@ -1645,12 +1648,12 @@ const styles = StyleSheet.create({
   },
   advancedLinkText: {
     fontSize: 14,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   advancedLinkArrow: {
     fontSize: 10,
-    color: Colors.accent,
+    color: c.accent,
   },
   backToBasicsLink: {
     paddingVertical: 8,
@@ -1658,11 +1661,11 @@ const styles = StyleSheet.create({
   },
   backToBasicsText: {
     fontSize: 14,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   primarySaveButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: BorderRadius.md,
     paddingVertical: 16,
     alignItems: 'center',
@@ -1671,6 +1674,6 @@ const styles = StyleSheet.create({
   primarySaveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });

@@ -1,36 +1,40 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { DrugInteraction } from '../utils/drugInteractions';
 import { Colors, Spacing } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface InteractionWarningsProps {
   interactions: DrugInteraction[];
 }
 
 export default function InteractionWarnings({ interactions }: InteractionWarningsProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'high':
-        return Colors.red;
+        return colors.red;
       case 'moderate':
-        return Colors.amber;
+        return colors.amber;
       case 'low':
-        return Colors.gold;
+        return colors.gold;
       default:
-        return Colors.textSecondary;
+        return colors.textSecondary;
     }
   };
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'high':
-        return '⚠️';
+        return '\u26A0\uFE0F';
       case 'moderate':
-        return '⚡';
+        return '\u26A1';
       case 'low':
-        return 'ℹ️';
+        return '\u2139\uFE0F';
       default:
-        return '•';
+        return '\u2022';
     }
   };
 
@@ -65,11 +69,11 @@ export default function InteractionWarnings({ interactions }: InteractionWarning
                 {interaction.drug1} + {interaction.drug2}
               </Text>
             </View>
-            
+
             <Text style={styles.description}>
               {interaction.description}
             </Text>
-            
+
             <View style={styles.recommendationBox}>
               <Text style={styles.recommendationLabel}>Recommendation:</Text>
               <Text style={styles.recommendation}>
@@ -91,7 +95,7 @@ export default function InteractionWarnings({ interactions }: InteractionWarning
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     gap: Spacing.lg,
   },
@@ -101,13 +105,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: Spacing.xs,
   },
   interactionCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     borderLeftWidth: 4,
     padding: Spacing.md,
@@ -124,16 +128,16 @@ const styles = StyleSheet.create({
   drugNames: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
   },
   description: {
     fontSize: 14,
     lineHeight: 20,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   recommendationBox: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderRadius: 8,
     padding: Spacing.sm,
     marginTop: Spacing.xs,
@@ -141,12 +145,12 @@ const styles = StyleSheet.create({
   recommendationLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   recommendation: {
     fontSize: 13,
     lineHeight: 18,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 });

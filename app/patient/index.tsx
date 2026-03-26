@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
 import { StorageKeys } from '../../utils/storageKeys';
 import { logError } from '../../utils/devLog';
@@ -41,6 +42,8 @@ export default function PatientScreen() {
   const router = useRouter();
   const [info, setInfo] = useState<MedicalInfo>(DEFAULT_INFO);
   const [editing, setEditing] = useState(false);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Basic info fields
   const [patientName, setPatientName] = useState('');
@@ -210,7 +213,7 @@ export default function PatientScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <SubScreenHeader
@@ -233,7 +236,7 @@ export default function PatientScreen() {
                     onChangeText={setPatientName}
                     onBlur={() => saveBasicField(StorageKeys.PATIENT_NAME, patientName)}
                     placeholder="Patient name"
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     accessibilityLabel="Patient name"
                   />
                 ) : (
@@ -249,7 +252,7 @@ export default function PatientScreen() {
                     onChangeText={setRelationship}
                     onBlur={() => saveBasicField(StorageKeys.PATIENT_RELATIONSHIP, relationship)}
                     placeholder="e.g. Mom, Dad, Spouse"
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     accessibilityLabel="Relationship to patient"
                   />
                 ) : (
@@ -265,7 +268,7 @@ export default function PatientScreen() {
                     onChangeText={setAge}
                     onBlur={() => saveBasicField(StorageKeys.PATIENT_AGE, age)}
                     placeholder="e.g. 73"
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="number-pad"
                     maxLength={3}
                     accessibilityLabel="Patient age"
@@ -283,7 +286,7 @@ export default function PatientScreen() {
                     onChangeText={setGender}
                     onBlur={() => saveBasicField(StorageKeys.PATIENT_GENDER, gender)}
                     placeholder="e.g. Female"
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     accessibilityLabel="Gender"
                   />
                 ) : (
@@ -303,7 +306,7 @@ export default function PatientScreen() {
                     onChangeText={setPrimaryLanguage}
                     onBlur={() => saveBasicField(StorageKeys.PATIENT_LANGUAGE, primaryLanguage)}
                     placeholder="e.g. English"
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     accessibilityLabel="Primary language"
                   />
                 ) : (
@@ -352,7 +355,7 @@ export default function PatientScreen() {
                   <TextInput
                     style={styles.addInput}
                     placeholder="Add diagnosis..."
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     value={newDiagnosis}
                     onChangeText={setNewDiagnosis}
                     onSubmitEditing={addDiagnosis}
@@ -435,7 +438,7 @@ export default function PatientScreen() {
                   <TextInput
                     style={styles.addInput}
                     placeholder="Add allergy..."
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     value={newAllergy}
                     onChangeText={setNewAllergy}
                     onSubmitEditing={addAllergy}
@@ -484,7 +487,7 @@ export default function PatientScreen() {
                   <TextInput
                     style={styles.addInput}
                     placeholder="Add surgery..."
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     value={newSurgery}
                     onChangeText={setNewSurgery}
                     onSubmitEditing={addSurgery}
@@ -533,7 +536,7 @@ export default function PatientScreen() {
                   <TextInput
                     style={styles.addInput}
                     placeholder="Add hospitalization..."
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     value={newHospitalization}
                     onChangeText={setNewHospitalization}
                     onSubmitEditing={addHospitalization}
@@ -594,10 +597,10 @@ export default function PatientScreen() {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -615,16 +618,16 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     letterSpacing: 1.2,
     marginBottom: Spacing.md,
   },
 
   // INFO CARDS
   infoCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     padding: Spacing.md,
   },
@@ -634,28 +637,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   infoLabel: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   inlineInput: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textAlign: 'right',
     minWidth: 140,
     paddingVertical: 4,
     paddingHorizontal: 8,
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 6,
   },
 
@@ -666,34 +669,34 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   bulletIcon: {
     fontSize: 14,
-    color: Colors.accent,
+    color: c.accent,
     width: 16,
   },
   listText: {
     flex: 1,
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   emptyText: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     paddingVertical: Spacing.sm,
   },
 
   // Resolved
   resolvedBullet: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     width: 16,
   },
   resolvedText: {
     flex: 1,
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textDecorationLine: 'line-through',
   },
 
@@ -706,16 +709,16 @@ const styles = StyleSheet.create({
   resolveButton: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   reactivateButton: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.amber,
+    color: c.amber,
   },
   removeButton: {
     fontSize: 16,
-    color: Colors.red,
+    color: c.red,
     paddingHorizontal: 4,
   },
 
@@ -730,10 +733,10 @@ const styles = StyleSheet.create({
   addInput: {
     flex: 1,
     fontSize: 14,
-    color: Colors.textPrimary,
-    backgroundColor: Colors.glassFaint,
+    color: c.textPrimary,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -741,7 +744,7 @@ const styles = StyleSheet.create({
   addButton: {
     width: 36,
     height: 36,
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -749,7 +752,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
 
   // ALLERGY CARD
@@ -765,12 +768,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.redBright,
+    color: c.redBright,
   },
 
   // EDIT BUTTON
   editButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 12,
     padding: Spacing.md,
     alignItems: 'center',
@@ -778,19 +781,19 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xxl,
   },
   editButtonDone: {
-    backgroundColor: Colors.green,
+    backgroundColor: c.green,
   },
   editButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.background,
+    color: c.background,
   },
 
   // Clinical Care Link
   clinicalCareLink: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     padding: Spacing.md,
     marginTop: Spacing.xl,
@@ -807,16 +810,16 @@ const styles = StyleSheet.create({
   clinicalCareLinkTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   clinicalCareLinkHint: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     lineHeight: 18,
   },
   clinicalCareLinkArrow: {
     fontSize: 22,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 });

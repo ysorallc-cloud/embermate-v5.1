@@ -4,9 +4,10 @@
 // Renders below UpNextCard on the Now tab, NOT a separate screen
 // ============================================================================
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { Colors, BorderRadius, Spacing } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
 import type { VitalExceedance } from '../../utils/vitalsGuidance';
 import { generateNurseScript, type NurseScriptInput } from '../../utils/vitalsGuidance';
@@ -26,6 +27,9 @@ export const VitalsGuidance: React.FC<VitalsGuidanceProps> = ({
   recentReadings,
   onDismiss,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [currentStep, setCurrentStep] = useState(0); // 0, 1, 2
   const [timerActive, setTimerActive] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(15 * 60); // 15 minutes
@@ -79,9 +83,9 @@ export const VitalsGuidance: React.FC<VitalsGuidanceProps> = ({
     medications,
   });
 
-  const statusColor = isCritical ? Colors.red : Colors.amber;
-  const statusBg = isCritical ? Colors.redFaint : Colors.amberFaint;
-  const statusBorder = isCritical ? Colors.redBorder : Colors.amberBorder;
+  const statusColor = isCritical ? colors.red : colors.amber;
+  const statusBg = isCritical ? colors.redFaint : colors.amberFaint;
+  const statusBorder = isCritical ? colors.redBorder : colors.amberBorder;
 
   return (
     <View style={[styles.container, { borderColor: statusBorder, backgroundColor: statusBg }]} testID="vitals-guidance">
@@ -207,12 +211,12 @@ export const VitalsGuidance: React.FC<VitalsGuidanceProps> = ({
                   <Text style={styles.scriptText}>{nurseScript}</Text>
                 </View>
                 <TouchableOpacity
-                  style={[styles.stepButton, { backgroundColor: Colors.accent }]}
+                  style={[styles.stepButton, { backgroundColor: colors.accent }]}
                   onPress={() => Linking.openURL('tel:')}
                   accessibilityLabel="Open phone to call nurse line"
                   accessibilityRole="button"
                 >
-                  <Text style={[styles.stepButtonText, { color: Colors.textPrimary }]}>Call Now</Text>
+                  <Text style={[styles.stepButtonText, { color: colors.textPrimary }]}>Call Now</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -228,7 +232,7 @@ export const VitalsGuidance: React.FC<VitalsGuidanceProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     borderWidth: 1,
     borderRadius: BorderRadius.lg,
@@ -257,12 +261,12 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   dismissIcon: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     padding: 4,
   },
   steps: {
@@ -283,24 +287,24 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 1,
   },
   stepDotComplete: {
-    backgroundColor: Colors.green,
+    backgroundColor: c.green,
   },
   stepDotLocked: {
-    backgroundColor: Colors.glassDim,
+    backgroundColor: c.glassDim,
   },
   stepDotText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   stepDotTextLocked: {
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   stepContent: {
     flex: 1,
@@ -308,18 +312,18 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textBright,
+    color: c.textBright,
   },
   stepTitleDone: {
-    color: Colors.green,
+    color: c.green,
     textDecorationLine: 'line-through',
   },
   stepTitleLocked: {
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   stepDesc: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 4,
     lineHeight: 18,
   },
@@ -332,41 +336,41 @@ const styles = StyleSheet.create({
   timerText: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.accent,
+    color: c.accent,
     fontVariant: ['tabular-nums'],
   },
   stepButton: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 14,
     alignSelf: 'flex-start',
     marginTop: 8,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
   },
   stepButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   scriptBox: {
-    backgroundColor: Colors.amberFaint,
+    backgroundColor: c.amberFaint,
     borderWidth: 1,
-    borderColor: Colors.amberBorder,
+    borderColor: c.amberBorder,
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
   },
   scriptText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
     fontFamily: 'System',
   },
   disclaimer: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontStyle: 'italic',
     marginTop: 12,
     textAlign: 'center',

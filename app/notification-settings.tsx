@@ -4,7 +4,7 @@
 // Care Plan is the single source of truth for reminder configuration.
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { useRouter } from 'expo-router';
 import { navigate } from '../lib/navigate';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   getNotificationSettings,
   saveNotificationSettings,
@@ -38,6 +39,8 @@ import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 
 export default function NotificationSettingsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const [settings, setSettings] = useState<NotificationSettings>({
     enabled: true,
@@ -202,7 +205,7 @@ export default function NotificationSettingsScreen() {
           {/* Permission Required Warning */}
           {!hasPermission && (
             <View style={styles.warningCard}>
-              <Ionicons name="alert-circle" size={24} color={Colors.warning} />
+              <Ionicons name="alert-circle" size={24} color={colors.warning} />
               <View style={styles.warningContent}>
                 <Text style={styles.warningTitle}>Permissions Required</Text>
                 <Text style={styles.warningText}>
@@ -223,7 +226,7 @@ export default function NotificationSettingsScreen() {
           {/* Permission Granted Indicator */}
           {hasPermission && (
             <View style={styles.permissionGranted}>
-              <Ionicons name="checkmark-circle" size={18} color={Colors.accent} />
+              <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
               <Text style={styles.permissionGrantedText}>
                 System notifications enabled
               </Text>
@@ -247,8 +250,8 @@ export default function NotificationSettingsScreen() {
                 <Switch
                   value={settings.soundEnabled}
                   onValueChange={handleToggleSound}
-                  trackColor={{ false: Colors.glassStrong, true: Colors.sageGlow }}
-                  thumbColor={settings.soundEnabled ? Colors.sage : Colors.textHalf}
+                  trackColor={{ false: colors.glassStrong, true: colors.sageGlow }}
+                  thumbColor={settings.soundEnabled ? colors.sage : colors.textHalf}
                   accessibilityLabel="Sound"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: settings.soundEnabled }}
@@ -266,8 +269,8 @@ export default function NotificationSettingsScreen() {
                 <Switch
                   value={settings.vibrationEnabled}
                   onValueChange={handleToggleVibration}
-                  trackColor={{ false: Colors.glassStrong, true: Colors.sageGlow }}
-                  thumbColor={settings.vibrationEnabled ? Colors.sage : Colors.textHalf}
+                  trackColor={{ false: colors.glassStrong, true: colors.sageGlow }}
+                  thumbColor={settings.vibrationEnabled ? colors.sage : colors.textHalf}
                   accessibilityLabel="Vibration"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: settings.vibrationEnabled }}
@@ -293,8 +296,8 @@ export default function NotificationSettingsScreen() {
                 <Switch
                   value={settings.quietHoursEnabled}
                   onValueChange={handleToggleQuietHours}
-                  trackColor={{ false: Colors.glassStrong, true: Colors.purpleStrong }}
-                  thumbColor={settings.quietHoursEnabled ? Colors.purpleBright : Colors.textHalf}
+                  trackColor={{ false: colors.glassStrong, true: colors.purpleStrong }}
+                  thumbColor={settings.quietHoursEnabled ? colors.purpleBright : colors.textHalf}
                   accessibilityLabel="Enable quiet hours"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: settings.quietHoursEnabled }}
@@ -357,8 +360,8 @@ export default function NotificationSettingsScreen() {
                 <Switch
                   value={settings.overdueAlertsEnabled}
                   onValueChange={handleToggleOverdueAlerts}
-                  trackColor={{ false: Colors.glassStrong, true: Colors.sageGlow }}
-                  thumbColor={settings.overdueAlertsEnabled ? Colors.sage : Colors.textHalf}
+                  trackColor={{ false: colors.glassStrong, true: colors.sageGlow }}
+                  thumbColor={settings.overdueAlertsEnabled ? colors.sage : colors.textHalf}
                   accessibilityLabel="Allow follow-up alerts"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: settings.overdueAlertsEnabled }}
@@ -415,10 +418,10 @@ export default function NotificationSettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   scrollView: {
     flex: 1,
@@ -434,7 +437,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
 
@@ -443,9 +446,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
-    backgroundColor: Colors.blueFaint,
+    backgroundColor: c.blueFaint,
     borderWidth: 1,
-    borderColor: Colors.blueWash,
+    borderColor: c.blueWash,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.lg,
@@ -456,7 +459,7 @@ const styles = StyleSheet.create({
   explanationText: {
     flex: 1,
     fontSize: 13,
-    color: Colors.textBright,
+    color: c.textBright,
     lineHeight: 19,
   },
 
@@ -465,7 +468,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: Colors.amberBrightTint,
+    backgroundColor: c.amberBrightTint,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     marginBottom: Spacing.lg,
@@ -478,16 +481,16 @@ const styles = StyleSheet.create({
   warningTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   warningText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
   permissionButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.sm,
@@ -495,7 +498,7 @@ const styles = StyleSheet.create({
   permissionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.background,
+    color: c.background,
   },
 
   // Permission Granted
@@ -507,7 +510,7 @@ const styles = StyleSheet.create({
   },
   permissionGrantedText: {
     fontSize: 13,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
 
@@ -518,22 +521,22 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textHalf,
+    color: c.textHalf,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 4,
   },
   sectionDescription: {
     fontSize: 13,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginBottom: 12,
   },
 
   // Setting Card
   settingCard: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -550,16 +553,16 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   settingHint: {
     fontSize: 12,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
   settingDivider: {
     height: 1,
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     marginHorizontal: 14,
   },
 
@@ -573,9 +576,9 @@ const styles = StyleSheet.create({
   },
   timeButton: {
     alignItems: 'center',
-    backgroundColor: Colors.purpleMuted,
+    backgroundColor: c.purpleMuted,
     borderWidth: 1,
-    borderColor: Colors.purpleWash,
+    borderColor: c.purpleWash,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -583,21 +586,21 @@ const styles = StyleSheet.create({
   },
   timeLabel: {
     fontSize: 11,
-    color: Colors.textHalf,
+    color: c.textHalf,
     marginBottom: 2,
   },
   timeValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.purpleBright,
+    color: c.purpleBright,
   },
   timeArrow: {
     fontSize: 16,
-    color: Colors.textPlaceholder,
+    color: c.textPlaceholder,
   },
   quietHoursNote: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     paddingHorizontal: 14,
     paddingBottom: 12,
@@ -618,7 +621,7 @@ const styles = StyleSheet.create({
   perItemNoteText: {
     flex: 1,
     fontSize: 12,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     lineHeight: 17,
   },
 
@@ -628,7 +631,7 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 10,
   },
   optionButtons: {
@@ -637,23 +640,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   optionButton: {
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
   },
   optionButtonSelected: {
-    backgroundColor: Colors.sageBorder,
-    borderColor: Colors.sageMuted,
+    backgroundColor: c.sageBorder,
+    borderColor: c.sageMuted,
   },
   optionButtonText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   optionButtonTextSelected: {
-    color: Colors.sage,
+    color: c.sage,
     fontWeight: '600',
   },
 
@@ -662,9 +665,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.sageTint,
+    backgroundColor: c.sageTint,
     borderWidth: 1,
-    borderColor: Colors.sageBorder,
+    borderColor: c.sageBorder,
     borderRadius: 12,
     padding: 14,
     marginBottom: 20,
@@ -683,16 +686,16 @@ const styles = StyleSheet.create({
   carePlanLinkTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
     marginBottom: 2,
   },
   carePlanLinkSubtitle: {
     fontSize: 12,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
   carePlanLinkChevron: {
     fontSize: 20,
-    color: Colors.accentMuted,
+    color: c.accentMuted,
     fontWeight: '600',
   },
 
@@ -703,6 +706,6 @@ const styles = StyleSheet.create({
   },
   footerStatusText: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 });

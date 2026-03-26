@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { navigate } from '../../lib/navigate';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import type { ProviderPrepData } from '../../utils/providerPrepBuilder';
 
 interface Props {
@@ -9,6 +10,8 @@ interface Props {
 }
 
 export function ProviderPrepCard({ data }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { appointment, questions } = data;
   const dateStr = new Date(appointment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const daysLabel = appointment.daysUntil === 0 ? 'today' : appointment.daysUntil === 1 ? 'tomorrow' : `in ${appointment.daysUntil} days`;
@@ -46,11 +49,11 @@ export function ProviderPrepCard({ data }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   card: {
-    backgroundColor: Colors.sageTint,
+    backgroundColor: c.sageTint,
     borderWidth: 1,
-    borderColor: Colors.sageBorder,
+    borderColor: c.sageBorder,
     borderRadius: 16,
     padding: 16,
   },
@@ -69,16 +72,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   subtitle: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   prompt: {
     fontSize: 13,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginBottom: 10,
     fontStyle: 'italic',
   },
@@ -90,25 +93,25 @@ const styles = StyleSheet.create({
   questionNumber: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
     width: 20,
   },
   questionText: {
     flex: 1,
     fontSize: 14,
-    color: Colors.textBright,
+    color: c.textBright,
     lineHeight: 20,
   },
   careBriefLink: {
     marginTop: 14,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.sageBorder,
+    borderTopColor: c.sageBorder,
     alignItems: 'center',
   },
   careBriefText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.accent,
+    color: c.accent,
   },
 });

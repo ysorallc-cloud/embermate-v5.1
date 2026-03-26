@@ -3,11 +3,12 @@
 // Screen 3 of 4: Checkbox must be checked before parent enables Next
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Linking, ScrollView } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { Colors, Spacing, BorderRadius } from '../../../theme/theme-tokens';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -23,6 +24,8 @@ const PRIVACY_POINTS = [
 ];
 
 export const PrivacyDisclaimerScreen: React.FC<Props> = ({ onDisclaimerAccepted }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [accepted, setAccepted] = useState(false);
 
   const toggleAccepted = () => {
@@ -98,11 +101,11 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({ onDisclaimerAccepted 
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
     width: SCREEN_WIDTH,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   content: {
     flexGrow: 1,
@@ -119,13 +122,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '300',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
     marginBottom: Spacing.md,
   },
   subtitle: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     marginBottom: Spacing.xxl,
   },
@@ -149,12 +152,12 @@ const styles = StyleSheet.create({
   privacyLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   privacyDesc: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
   disclaimerCard: {
@@ -168,12 +171,12 @@ const styles = StyleSheet.create({
   },
   disclaimerText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 20,
   },
   disclaimerBold: {
     fontWeight: '700',
-    color: Colors.amber,
+    color: c.amber,
   },
   checkboxContainer: {
     width: '100%',
@@ -187,29 +190,29 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: Colors.textPlaceholder,
+    borderColor: c.textPlaceholder,
     borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 1,
   },
   checkboxChecked: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: c.accent,
+    borderColor: c.accent,
   },
   checkmark: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   checkboxLabel: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     flex: 1,
     lineHeight: 20,
   },
   link: {
-    color: Colors.accent,
+    color: c.accent,
     textDecorationLine: 'underline',
   },
 });

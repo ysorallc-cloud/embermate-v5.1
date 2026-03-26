@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface WellnessSnapItem {
   emoji: string;
@@ -14,6 +15,9 @@ interface WellnessSnapStripProps {
 }
 
 export function WellnessSnapStrip({ items }: WellnessSnapStripProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (items.length === 0) return null;
 
   return (
@@ -31,14 +35,14 @@ export function WellnessSnapStrip({ items }: WellnessSnapStripProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 10,
@@ -53,13 +57,13 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: '500',
     letterSpacing: 0.3,
   },
   value: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });

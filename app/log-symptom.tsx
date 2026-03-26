@@ -2,7 +2,7 @@
 // LOG SYMPTOM - Functional symptom logging
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { navigate, navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { saveSymptom } from '../utils/symptomStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
@@ -40,6 +41,8 @@ export default function LogSymptomScreen() {
   const [severity, setSeverity] = useState(5);
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const handleSymptomSelect = (symptom: string) => {
     if (symptom === 'Pain') {
@@ -96,7 +99,7 @@ export default function LogSymptomScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={100}>
@@ -144,7 +147,7 @@ export default function LogSymptomScreen() {
                     value={customSymptom}
                     onChangeText={setCustomSymptom}
                     placeholder="Enter symptom name"
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     accessibilityLabel="Custom symptom name"
                   />
                 </View>
@@ -190,7 +193,7 @@ export default function LogSymptomScreen() {
                   value={description}
                   onChangeText={setDescription}
                   placeholder="When did it start? What makes it better/worse?"
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
@@ -221,23 +224,23 @@ export default function LogSymptomScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (c: typeof Colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   gradient: { flex: 1 },
   scrollView: { flex: 1 },
   content: { padding: 20, paddingBottom: 40 },
   form: { gap: 24 },
   formGroup: { gap: 8 },
-  label: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },
+  label: { fontSize: 13, fontWeight: '500', color: c.textSecondary },
   input: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   textArea: { minHeight: 100, paddingTop: 14 },
   symptomGrid: {
@@ -246,23 +249,23 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   symptomChip: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   symptomChipSelected: {
-    backgroundColor: Colors.accentLight,
-    borderColor: Colors.accent,
+    backgroundColor: c.accentLight,
+    borderColor: c.accent,
   },
   symptomChipText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   symptomChipTextSelected: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   severityHeader: {
@@ -273,7 +276,7 @@ const styles = StyleSheet.create({
   severityValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   severityScale: {
     flexDirection: 'row',
@@ -283,32 +286,32 @@ const styles = StyleSheet.create({
   severityButton: {
     flex: 1,
     aspectRatio: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   severityButtonSelected: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: c.accent,
+    borderColor: c.accent,
   },
   severityButtonText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   severityButtonTextSelected: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 12,
   },
   saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: { color: Colors.textPrimary, fontSize: 15, fontWeight: '600' },
+  saveButtonText: { color: c.textPrimary, fontSize: 15, fontWeight: '600' },
 });

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { logAuditEvent, AuditEventType, AuditSeverity } from '../../utils/auditLog';
 import { logError } from '../../utils/devLog';
 
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export function ShareActions({ onShare, onExport }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [sharing, setSharing] = useState(false);
 
   const confirmShare = () => {
@@ -66,7 +69,7 @@ export function ShareActions({ onShare, onExport }: Props) {
         accessibilityState={{ disabled: sharing }}
       >
         {sharing ? (
-          <ActivityIndicator size="small" color={Colors.accent} />
+          <ActivityIndicator size="small" color={colors.accent} />
         ) : (
           <Text style={styles.primaryButtonText}>{'\uD83D\uDCE4'} Share Summary</Text>
         )}
@@ -87,15 +90,15 @@ export function ShareActions({ onShare, onExport }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     marginTop: Spacing.lg,
     gap: Spacing.sm,
   },
   primaryButton: {
-    backgroundColor: Colors.sageBorder,
+    backgroundColor: c.sageBorder,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
+    borderColor: c.accentBorder,
     borderRadius: BorderRadius.lg,
     paddingVertical: 14,
     alignItems: 'center',
@@ -103,12 +106,12 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   secondaryButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
     paddingVertical: 14,
     alignItems: 'center',
@@ -116,6 +119,6 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 });

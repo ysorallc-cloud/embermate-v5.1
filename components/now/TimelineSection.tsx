@@ -37,6 +37,10 @@ const BUCKET_TO_ITEM_TYPE: Record<string, string> = {
   sleep: 'sleep',
   activity: 'activity',
   wellness: 'wellness',
+  errands: 'errand',
+  shifts: 'shift',
+  self_care: 'self_care',
+  appointments: 'appointment',
   custom: 'custom',
 };
 
@@ -67,10 +71,139 @@ const ITEM_TYPE_TO_DOT_COLOR: Record<string, string> = {
   vitals: '#3B82F6',
   nutrition: '#10B981',
   hydration: '#38BDF8',
-  sleep: '#8B5CF6',
+  sleep: Colors.accent,
   activity: '#F97316',
   wellness: '#EC4899',
   custom: '#A78BFA',
+  errand: '#FBBF24',
+  self_care: '#F472B6',
+  shift: '#7DD3FC',
+  appointment: Colors.accent,
+};
+
+// ============================================================================
+// TYPE LEGEND — Dynamic: scans today's timeline items, shows dots only for
+// types present in today's schedule. Canonical order for consistency.
+// ============================================================================
+
+// Display order for legend — controls which types render and in what order
+export const LEGEND_TYPES: { itemType: string; label: string; color: string }[] = [
+  { itemType: 'medication', label: 'CARE',     color: '#34D399' },  // green
+  { itemType: 'vitals',     label: 'VITALS',   color: '#A78BFA' },  // purple
+  { itemType: 'wellness',   label: 'WELLNESS', color: '#34D399' },  // green
+  { itemType: 'nutrition',  label: 'MEAL',     color: '#FBBF24' },  // amber
+  { itemType: 'errand',     label: 'ERRAND',   color: '#FBBF24' },  // amber
+  { itemType: 'appointment',label: 'APPT',     color: '#EF4444' },  // red
+  { itemType: 'self_care',  label: 'YOU',       color: '#F472B6' },  // rose
+  { itemType: 'shift',      label: 'HANDOFF',  color: '#7DD3FC' },  // sky
+];
+
+interface TypeLegendProps {
+  instances: any[];
+}
+
+export function TypeLegend({ instances }: TypeLegendProps) {
+  const { colors } = useTheme();
+
+  // Build set of item types present in today's schedule
+  const activeLegend = useMemo(() => {
+    const presentTypes = new Set<string>();
+    for (const inst of instances) {
+      if (inst.itemType) presentTypes.add(inst.itemType);
+    }
+    // Filter canonical list to only types present in today's items
+    return LEGEND_TYPES.filter(lt => presentTypes.has(lt.itemType));
+  }, [instances]);
+
+  if (activeLegend.length === 0) return null;
+
+  return (
+    <View style={legendStyles.row}>
+      {activeLegend.map(t => (
+        <View key={t.itemType} style={legendStyles.item}>
+          <View style={[legendStyles.dot, { backgroundColor: t.color }]} />
+          <Text style={[legendStyles.label, { color: colors.textMuted }]}>{t.label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const legendStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+    marginBottom: 4,
+  },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  label: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+});
+
+// ============================================================================
+// SUB-ITEM PROGRESS — Shows "1/3" with thin bar for grouped items (e.g. 3 med doses)
+// ============================================================================
+
+function getSubItemProgress(instance: any, allItems: any[]): { done: number; total: number } | null {
+  // Group by itemName + itemType — multiple instances with the same name = sub-items
+  if (!instance.itemName) return null;
+  const siblings = allItems.filter(
+    i => i.itemName === instance.itemName && i.itemType === instance.itemType
+  );
+  if (siblings.length <= 1) return null;
+  const done = siblings.filter(
+    i => i.status === 'completed' || i.status === 'skipped'
+  ).length;
+  return { done, total: siblings.length };
+}
+
+// ============================================================================
+// TYPE BADGE MAPPINGS
+// ============================================================================
+
+export const ITEM_TYPE_TO_BADGE_TEXT: Record<string, string> = {
+  medication: 'CARE',
+  vitals: 'VITALS',
+  wellness: 'WELLNESS',
+  nutrition: 'MEAL',
+  hydration: 'WATER',
+  sleep: 'SLEEP',
+  activity: 'ACTIVITY',
+  errand: 'ERRAND',
+  self_care: 'YOU',
+  shift: 'HANDOFF',
+  appointment: 'APPT',
+  custom: 'TASK',
+};
+
+export const ITEM_TYPE_TO_BADGE_COLOR: Record<string, string> = {
+  medication: '#34D399',    // green  — CARE
+  vitals: '#A78BFA',        // purple — VITALS
+  wellness: '#34D399',      // green  — WELLNESS
+  nutrition: '#FBBF24',     // amber  — MEAL
+  hydration: '#38BDF8',     // blue   — WATER
+  sleep: Colors.accent,     // accent — SLEEP
+  activity: '#F97316',      // orange — ACTIVITY
+  errand: '#FBBF24',        // amber  — ERRAND
+  self_care: '#F472B6',     // rose   — YOU
+  shift: '#7DD3FC',         // sky    — HANDOFF
+  appointment: '#EF4444',   // red    — APPT
+  custom: '#A78BFA',        // purple — TASK
 };
 
 const TIME_WINDOW_LABELS: Record<TimeWindow, string> = {
@@ -274,6 +407,13 @@ export function TimelineSection({
     const categoryPending = allPending.filter(i => i.itemType === itemType);
     const categoryCompleted = completed.filter(i => i.itemType === itemType);
 
+    // Merge and sort chronologically for display
+    const categoryAll = [...categoryPending, ...categoryCompleted].sort((a, b) => {
+      const timeA = a.scheduledTime || '';
+      const timeB = b.scheduledTime || '';
+      return timeA.localeCompare(timeB);
+    });
+
     // Meds batch panel
     if (selectedCategory === 'meds' && onBatchMedConfirm) {
       return (
@@ -313,79 +453,15 @@ export function TimelineSection({
           <Text style={styles.categoryEmptyText}>No items for {label} today</Text>
         )}
 
-        {categoryPending.map((instance) => {
+        {categoryAll.map((instance) => {
           const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
-          const itemIsOverdue = isOverdue(instance.scheduledTime);
-
-          // Overdue pending items render as "Missed" for consistency
-          if (itemIsOverdue) {
-            return (
-              <TouchableOpacity
-                key={instance.id}
-                style={styles.categoryItemRow}
-                onPress={() => onItemPress(instance)}
-                activeOpacity={0.7}
-                accessibilityLabel={`${instance.itemName}, Missed. Tap to log late.`}
-                accessibilityRole="button"
-              >
-                <View style={[styles.statusCircle, styles.statusCircleMissed]}>
-                  <Text style={styles.statusCircleMissedText}>{'\u2014'}</Text>
-                </View>
-                <View style={styles.categoryItemDetails}>
-                  <Text style={styles.categoryItemNameMissed}>{instance.itemName}</Text>
-                  <Text style={styles.categoryItemTimeDone}>
-                    {timeDisplay ? `${timeDisplay} \u00B7 Missed` : 'Missed'}
-                  </Text>
-                </View>
-                <Text style={styles.logLateText}>Log Late</Text>
-              </TouchableOpacity>
-            );
-          }
-
-          const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
-          const statusLabel = urgencyInfo.itemUrgency
-            ? getDetailedUrgencyLabel(urgencyInfo.itemUrgency)
-            : urgencyInfo.label;
-          const timeDelta = urgencyInfo.itemUrgency
-            ? getTimeDeltaString(urgencyInfo.itemUrgency)
-            : null;
-
-          return (
-            <View key={instance.id} style={styles.categoryItemRow}>
-              <View style={[
-                styles.statusCircle,
-                styles.statusCirclePending,
-              ]}>
-                <Text style={styles.statusCircleText}>
-                  {'\u25CB'}
-                </Text>
-              </View>
-              <View style={styles.categoryItemDetails}>
-                <Text style={styles.categoryItemName}>{instance.itemName}</Text>
-                <Text style={styles.categoryItemTime}>
-                  {timeDisplay ? `${timeDisplay} \u00B7 ${statusLabel}` : statusLabel}
-                  {timeDelta ? ` \u00B7 ${timeDelta}` : ''}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.logButton}
-                onPress={() => onItemPress(instance)}
-                activeOpacity={0.7}
-                accessibilityLabel={`Log ${instance.itemName}`}
-                accessibilityRole="button"
-              >
-                <Text style={styles.logButtonText}>Log</Text>
-              </TouchableOpacity>
-            </View>
-          );
-        })}
-
-        {categoryCompleted.map((instance) => {
-          const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
+          const isPending = instance.status === 'pending' || !instance.status;
           const isMissed = instance.status === 'missed';
-          const statusText = isMissed ? 'Missed' : instance.status === 'skipped' ? 'Skipped' : 'Done';
+          const isDone = instance.status === 'completed' || instance.status === 'skipped';
+          const itemIsOverdue = isPending && isOverdue(instance.scheduledTime);
 
-          if (isMissed) {
+          // Overdue pending → render as missed
+          if (itemIsOverdue || isMissed) {
             return (
               <TouchableOpacity
                 key={instance.id}
@@ -409,6 +485,43 @@ export function TimelineSection({
             );
           }
 
+          // Pending (not overdue) → show Log button
+          if (isPending) {
+            const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
+            const statusLabel = urgencyInfo.itemUrgency
+              ? getDetailedUrgencyLabel(urgencyInfo.itemUrgency)
+              : urgencyInfo.label;
+            const timeDelta = urgencyInfo.itemUrgency
+              ? getTimeDeltaString(urgencyInfo.itemUrgency)
+              : null;
+
+            return (
+              <View key={instance.id} style={styles.categoryItemRow}>
+                <View style={[styles.statusCircle, styles.statusCirclePending]}>
+                  <Text style={styles.statusCircleText}>{'\u25CB'}</Text>
+                </View>
+                <View style={styles.categoryItemDetails}>
+                  <Text style={styles.categoryItemName}>{instance.itemName}</Text>
+                  <Text style={styles.categoryItemTime}>
+                    {timeDisplay ? `${timeDisplay} \u00B7 ${statusLabel}` : statusLabel}
+                    {timeDelta ? ` \u00B7 ${timeDelta}` : ''}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.logButton}
+                  onPress={() => onItemPress(instance)}
+                  activeOpacity={0.7}
+                  accessibilityLabel={`Log ${instance.itemName}`}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.logButtonText}>Log</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          }
+
+          // Done/skipped
+          const statusText = instance.status === 'skipped' ? 'Skipped' : 'Done';
           return (
             <View key={instance.id} style={styles.categoryItemRow}>
               <View style={[styles.statusCircle, styles.statusCircleDone]}>
@@ -590,10 +703,31 @@ function TimelineModeBContent({
                           </View>
                         </View>
                         <View style={styles.timelineItemBody}>
+                          {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
+                            <Text style={[
+                              styles.typeBadge,
+                              { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted, opacity: isDone ? 0.5 : 1 },
+                            ]}>
+                              {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
+                            </Text>
+                          )}
                           <Text style={isMissed ? styles.timelineNameMissed : styles.timelineNameDone} numberOfLines={1}>{instance.itemName}</Text>
                           <Text style={styles.timelineSubDone}>
                             {parseTimeForDisplay(instance.scheduledTime) || statusText}
                           </Text>
+                          {(() => {
+                            const progress = getSubItemProgress(instance, allItems);
+                            if (!progress) return null;
+                            const pct = Math.round((progress.done / progress.total) * 100);
+                            return (
+                              <View style={styles.subProgress}>
+                                <Text style={[styles.subProgressText, { opacity: 0.5 }]}>{progress.done}/{progress.total}</Text>
+                                <View style={styles.subProgressBar}>
+                                  <View style={[styles.subProgressFill, { width: `${pct}%`, backgroundColor: colors.green }]} />
+                                </View>
+                              </View>
+                            );
+                          })()}
                         </View>
                         {isMissed ? (
                           <Text style={styles.logLateText}>Log Late</Text>
@@ -627,10 +761,31 @@ function TimelineModeBContent({
                         <View style={[styles.timelineDot, { backgroundColor: dotColor }]} />
                       </View>
                       <View style={styles.timelineItemBody}>
+                        {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
+                          <Text style={[
+                            styles.typeBadge,
+                            { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted },
+                          ]}>
+                            {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
+                          </Text>
+                        )}
                         <Text style={styles.timelineName} numberOfLines={1}>{instance.itemName}</Text>
                         {subtitle ? (
                           <Text style={styles.timelineSub} numberOfLines={1}>{subtitle}</Text>
                         ) : null}
+                        {(() => {
+                          const progress = getSubItemProgress(instance, allItems);
+                          if (!progress) return null;
+                          const pct = Math.round((progress.done / progress.total) * 100);
+                          return (
+                            <View style={styles.subProgress}>
+                              <Text style={styles.subProgressText}>{progress.done}/{progress.total}</Text>
+                              <View style={styles.subProgressBar}>
+                                <View style={[styles.subProgressFill, { width: `${pct}%`, backgroundColor: colors.accent }]} />
+                              </View>
+                            </View>
+                          );
+                        })()}
                       </View>
                       <View style={styles.timelineLogButton}>
                         <Text style={styles.timelineLogButtonText}>Log</Text>
@@ -917,6 +1072,36 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   timelineItemBody: {
     flex: 1,
+  },
+  typeBadge: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  // Sub-item progress (e.g., "1/3" with thin bar for meds with multiple doses)
+  subProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  subProgressText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: c.textMuted,
+  },
+  subProgressBar: {
+    flex: 1,
+    height: 3,
+    backgroundColor: c.glassHover,
+    borderRadius: 2,
+    overflow: 'hidden',
+    maxWidth: 60,
+  },
+  subProgressFill: {
+    height: '100%',
+    borderRadius: 2,
   },
   timelineName: {
     fontSize: 13,

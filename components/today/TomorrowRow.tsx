@@ -2,10 +2,11 @@
 // TOMORROW ROW - Links to calendar view from timeline
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { addDays } from 'date-fns';
 
 interface TomorrowRowProps {
@@ -13,6 +14,8 @@ interface TomorrowRowProps {
 }
 
 export const TomorrowRow: React.FC<TomorrowRowProps> = ({ itemCount }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
 
   const handlePress = () => {
@@ -49,7 +52,7 @@ export const TomorrowRow: React.FC<TomorrowRowProps> = ({ itemCount }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -65,7 +68,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   content: {
     flex: 1,
@@ -73,15 +76,15 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   subtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 1,
   },
   arrow: {
     fontSize: 18,
-    color: Colors.accent,
+    color: c.accent,
   },
 });

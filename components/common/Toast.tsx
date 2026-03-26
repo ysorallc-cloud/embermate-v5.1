@@ -3,7 +3,7 @@
 // Shows success, error, info, and warning messages
 // ============================================================================
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   AccessibilityInfo,
 } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -28,32 +29,32 @@ interface ToastProps {
   };
 }
 
-const TOAST_CONFIG: Record<ToastType, { icon: string; color: string; bgColor: string; borderColor: string }> = {
+const getToastConfig = (c: typeof Colors): Record<ToastType, { icon: string; color: string; bgColor: string; borderColor: string }> => ({
   success: {
     icon: '✓',
-    color: Colors.green,
-    bgColor: Colors.greenLight,
-    borderColor: Colors.greenBorder,
+    color: c.green,
+    bgColor: c.greenLight,
+    borderColor: c.greenBorder,
   },
   error: {
     icon: '!',
-    color: Colors.red,
-    bgColor: Colors.redLight,
-    borderColor: Colors.redBorder,
+    color: c.red,
+    bgColor: c.redLight,
+    borderColor: c.redBorder,
   },
   warning: {
     icon: '⚠',
-    color: Colors.amber,
-    bgColor: Colors.amberLight,
-    borderColor: Colors.amberBorder,
+    color: c.amber,
+    bgColor: c.amberLight,
+    borderColor: c.amberBorder,
   },
   info: {
     icon: 'ℹ',
-    color: Colors.accent,
-    bgColor: Colors.accentLight,
-    borderColor: Colors.accentBorder,
+    color: c.accent,
+    bgColor: c.accentLight,
+    borderColor: c.accentBorder,
   },
-};
+});
 
 export const Toast: React.FC<ToastProps> = ({
   visible,
@@ -63,11 +64,15 @@ export const Toast: React.FC<ToastProps> = ({
   onDismiss,
   action,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const toastConfig = useMemo(() => getToastConfig(colors), [colors]);
+
   const translateY = useRef(new Animated.Value(-100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const config = TOAST_CONFIG[type];
+  const config = toastConfig[type];
 
   useEffect(() => {
     if (visible) {
@@ -183,7 +188,7 @@ export const Toast: React.FC<ToastProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     position: 'absolute',
     top: 60,
@@ -213,12 +218,12 @@ const styles = StyleSheet.create({
   icon: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   message: {
     flex: 1,
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     lineHeight: 20,
   },
   actions: {
@@ -240,7 +245,7 @@ const styles = StyleSheet.create({
   },
   dismissIcon: {
     fontSize: 20,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: '300',
   },
 });

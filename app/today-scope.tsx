@@ -19,6 +19,7 @@ import { navigate } from '../lib/navigate';
 import { LinearGradient } from 'expo-linear-gradient';
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { useTodayScope } from '../hooks/useTodayScope';
 import { useCarePlan } from '../hooks/useCarePlan';
 import { useDailyCareInstances } from '../hooks/useDailyCareInstances';
@@ -52,6 +53,9 @@ function ScopeItemRow({
   isSuppressed,
   onToggle,
 }: ScopeItemRowProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <TouchableOpacity
       style={[styles.itemRow, isSuppressed && styles.itemRowSuppressed]}
@@ -82,6 +86,8 @@ function ScopeItemRow({
 // ============================================================================
 
 export default function TodayScopeScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const today = getTodayDateString();
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -220,11 +226,11 @@ export default function TodayScopeScreen() {
     return (
       <View style={styles.container}>
         <LinearGradient
-          colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+          colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
           style={styles.gradient}
         >
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.accent} />
+            <ActivityIndicator size="large" color={colors.accent} />
           </View>
         </LinearGradient>
       </View>
@@ -234,7 +240,7 @@ export default function TodayScopeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -371,10 +377,10 @@ export default function TodayScopeScreen() {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -405,9 +411,9 @@ const styles = StyleSheet.create({
   firstTimeBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: Colors.purpleMuted,
+    backgroundColor: c.purpleMuted,
     borderWidth: 1,
-    borderColor: Colors.purpleStrong,
+    borderColor: c.purpleStrong,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.md,
@@ -424,7 +430,7 @@ const styles = StyleSheet.create({
   firstTimeBannerText: {
     flex: 1,
     fontSize: 13,
-    color: Colors.purpleBright,
+    color: c.purpleBright,
     lineHeight: 18,
   },
   firstTimeBannerDismiss: {
@@ -433,12 +439,12 @@ const styles = StyleSheet.create({
   },
   firstTimeBannerDismissText: {
     fontSize: 18,
-    color: Colors.textHalf,
+    color: c.textHalf,
     lineHeight: 18,
   },
   subtitle: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 22,
   },
 
@@ -447,9 +453,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
-    backgroundColor: Colors.blueFaint,
+    backgroundColor: c.blueFaint,
     borderWidth: 1,
-    borderColor: Colors.blueWash,
+    borderColor: c.blueWash,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.xl,
@@ -460,7 +466,7 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
 
@@ -471,7 +477,7 @@ const styles = StyleSheet.create({
   quickAddLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textHalf,
+    color: c.textHalf,
     letterSpacing: 1,
     marginBottom: Spacing.sm,
   },
@@ -484,9 +490,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    backgroundColor: Colors.sageFaint,
+    backgroundColor: c.sageFaint,
     borderWidth: 1,
-    borderColor: Colors.sageWash,
+    borderColor: c.sageWash,
     borderRadius: BorderRadius.md,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
@@ -496,7 +502,7 @@ const styles = StyleSheet.create({
   },
   quickAddText: {
     fontSize: 12,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
 
@@ -507,14 +513,14 @@ const styles = StyleSheet.create({
   routineLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textHalf,
+    color: c.textHalf,
     letterSpacing: 1,
     marginBottom: Spacing.sm,
   },
   routineCard: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
   },
@@ -545,20 +551,20 @@ const styles = StyleSheet.create({
   },
   itemLabel: {
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   itemLabelSuppressed: {
     textDecorationLine: 'line-through',
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   itemRoutine: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   itemDivider: {
     height: 1,
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     marginLeft: 56,
   },
 
@@ -572,16 +578,16 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   checkboxOn: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: c.accent,
+    borderColor: c.accent,
   },
   checkboxOff: {
     backgroundColor: 'transparent',
-    borderColor: Colors.textPlaceholder,
+    borderColor: c.textPlaceholder,
   },
   checkboxIcon: {
     fontSize: 16,
-    color: Colors.background,
+    color: c.background,
     fontWeight: '700',
   },
 
@@ -597,12 +603,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
   },
 
@@ -619,6 +625,6 @@ const styles = StyleSheet.create({
   resetButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.amberBright,
+    color: c.amberBright,
   },
 });

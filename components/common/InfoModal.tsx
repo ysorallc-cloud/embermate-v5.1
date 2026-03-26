@@ -4,7 +4,7 @@
 // Used to explain scope differences (e.g., Care Plan vs Adjust Today)
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   Pressable,
 } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface InfoModalProps {
   visible: boolean;
@@ -25,6 +26,9 @@ interface InfoModalProps {
 }
 
 export function InfoModal({ visible, onClose, title, content, hint }: InfoModalProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <Modal
       visible={visible}
@@ -78,6 +82,8 @@ interface InfoIconButtonProps {
 }
 
 export function InfoIconButton({ onPress, size = 'medium' }: InfoIconButtonProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const iconSize = size === 'small' ? 14 : 18;
   const containerSize = size === 'small' ? 20 : 26;
 
@@ -94,7 +100,7 @@ export function InfoIconButton({ onPress, size = 'medium' }: InfoIconButtonProps
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
@@ -109,7 +115,7 @@ const styles = StyleSheet.create({
     maxWidth: 340,
     width: '100%',
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
   },
   header: {
     flexDirection: 'row',
@@ -120,35 +126,35 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   closeButton: {
     padding: 4,
   },
   closeIcon: {
     fontSize: 24,
-    color: Colors.textHalf,
+    color: c.textHalf,
     lineHeight: 24,
   },
   content: {
     fontSize: 14,
-    color: Colors.textBright,
+    color: c.textBright,
     lineHeight: 21,
     marginBottom: 12,
   },
   hintContainer: {
-    backgroundColor: Colors.sageLight,
+    backgroundColor: c.sageLight,
     borderRadius: 8,
     padding: 10,
     marginBottom: 16,
   },
   hint: {
     fontSize: 13,
-    color: Colors.accent,
+    color: c.accent,
     lineHeight: 19,
   },
   gotItButton: {
-    backgroundColor: Colors.glassActive,
+    backgroundColor: c.glassActive,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
@@ -156,7 +162,7 @@ const styles = StyleSheet.create({
   gotItText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // Info Icon Button
@@ -166,7 +172,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
   },
   infoIcon: {
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 });
 

@@ -22,6 +22,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { format, subDays } from 'date-fns';
 
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { GlassCard } from '../components/aurora/GlassCard';
 import { SubScreenHeader } from '../components/SubScreenHeader';
@@ -46,6 +47,8 @@ import {
 import { AppointmentPrepChecklist, PrepChecklistItem } from '../types/schedule';
 
 export default function ProviderPrepScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { appointmentId } = useLocalSearchParams<{ appointmentId?: string }>();
   const insets = useSafeAreaInsets();
 
@@ -313,7 +316,7 @@ export default function ProviderPrepScreen() {
         <View style={{ flex: 1, paddingTop: insets.top }}>
           <SubScreenHeader title="Visit Prep" />
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.accent} />
+            <ActivityIndicator size="large" color={colors.accent} />
           </View>
         </View>
       </View>
@@ -416,7 +419,7 @@ export default function ProviderPrepScreen() {
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   accessibilityLabel={`Remove question: ${item.label}`}
                 >
-                  <Text style={{ fontSize: 16, color: Colors.textMuted }}>{'\u2715'}</Text>
+                  <Text style={{ fontSize: 16, color: colors.textMuted }}>{'\u2715'}</Text>
                 </TouchableOpacity>
               )}
             </TouchableOpacity>
@@ -429,7 +432,7 @@ export default function ProviderPrepScreen() {
               value={customInput}
               onChangeText={setCustomInput}
               placeholder="Add your own question..."
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               onSubmitEditing={addCustomItem}
               returnKeyType="done"
             />
@@ -454,8 +457,8 @@ export default function ProviderPrepScreen() {
               <Switch
                 value={showVitals}
                 onValueChange={setShowVitals}
-                trackColor={{ false: Colors.glassDim, true: Colors.accentLight }}
-                thumbColor={showVitals ? Colors.accent : Colors.textMuted}
+                trackColor={{ false: colors.glassDim, true: colors.accentLight }}
+                thumbColor={showVitals ? colors.accent : colors.textMuted}
               />
             </View>
             <View style={styles.toggleRow}>
@@ -463,8 +466,8 @@ export default function ProviderPrepScreen() {
               <Switch
                 value={showMedAdherence}
                 onValueChange={setShowMedAdherence}
-                trackColor={{ false: Colors.glassDim, true: Colors.accentLight }}
-                thumbColor={showMedAdherence ? Colors.accent : Colors.textMuted}
+                trackColor={{ false: colors.glassDim, true: colors.accentLight }}
+                thumbColor={showMedAdherence ? colors.accent : colors.textMuted}
               />
             </View>
             <View style={styles.toggleRow}>
@@ -472,8 +475,8 @@ export default function ProviderPrepScreen() {
               <Switch
                 value={showSymptoms}
                 onValueChange={setShowSymptoms}
-                trackColor={{ false: Colors.glassDim, true: Colors.accentLight }}
-                thumbColor={showSymptoms ? Colors.accent : Colors.textMuted}
+                trackColor={{ false: colors.glassDim, true: colors.accentLight }}
+                thumbColor={showSymptoms ? colors.accent : colors.textMuted}
               />
             </View>
             <View style={styles.toggleRow}>
@@ -481,8 +484,8 @@ export default function ProviderPrepScreen() {
               <Switch
                 value={showQuestions}
                 onValueChange={setShowQuestions}
-                trackColor={{ false: Colors.glassDim, true: Colors.accentLight }}
-                thumbColor={showQuestions ? Colors.accent : Colors.textMuted}
+                trackColor={{ false: colors.glassDim, true: colors.accentLight }}
+                thumbColor={showQuestions ? colors.accent : colors.textMuted}
               />
             </View>
           </View>
@@ -515,10 +518,10 @@ export default function ProviderPrepScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   scrollView: {
     flex: 1,
@@ -540,17 +543,17 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     marginTop: 8,
   },
   exportButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -558,7 +561,7 @@ const styles = StyleSheet.create({
   exportButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // Appointment header
@@ -568,12 +571,12 @@ const styles = StyleSheet.create({
   providerName: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   appointmentMeta: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 10,
   },
   daysRow: {
@@ -582,7 +585,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   daysPill: {
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 3,
@@ -590,44 +593,44 @@ const styles = StyleSheet.create({
   daysPillText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   dataSince: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Questions
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textBright,
+    color: c.textBright,
     marginBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 12,
   },
   noQuestionsText: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontStyle: 'italic',
     marginBottom: 12,
   },
   questionCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: 8,
     gap: 10,
   },
   questionCardChecked: {
-    backgroundColor: Colors.accentFaint,
-    borderColor: Colors.accentBorder,
+    backgroundColor: c.accentFaint,
+    borderColor: c.accentBorder,
   },
   questionLeft: {
     marginTop: 2,
@@ -637,13 +640,13 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: c.accent,
+    borderColor: c.accent,
   },
   checkmark: {
     fontSize: 12,
@@ -655,7 +658,7 @@ const styles = StyleSheet.create({
   },
   questionText: {
     fontSize: 14,
-    color: Colors.textBright,
+    color: c.textBright,
     lineHeight: 20,
   },
   // Add question
@@ -666,17 +669,17 @@ const styles = StyleSheet.create({
   },
   addQuestionInput: {
     flex: 1,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: Colors.textBright,
+    color: c.textBright,
   },
   addButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 8,
     paddingHorizontal: 16,
     justifyContent: 'center',
@@ -687,14 +690,14 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // Visit summary toggles
   toggleSection: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
   },
@@ -705,16 +708,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.glassBorder,
+    borderBottomColor: c.glassBorder,
   },
   toggleLabel: {
     fontSize: 14,
-    color: Colors.textBright,
+    color: c.textBright,
   },
 
   // Export footer
   exportFooterButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: BorderRadius.lg,
     paddingVertical: 14,
     alignItems: 'center',
@@ -723,7 +726,7 @@ const styles = StyleSheet.create({
   exportFooterText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
 });

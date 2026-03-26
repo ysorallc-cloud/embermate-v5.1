@@ -3,7 +3,7 @@
 // Consolidated compact layout: horizontal emoji rows + 2-column grids
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { saveMorningWellness, skipMorningWellness } from '../utils/wellnessCheckStorage';
 import { listDailyInstances, logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { getTodayDateString } from '../services/carePlanGenerator';
@@ -67,6 +68,8 @@ const DECISION_MAKING_OPTIONS = [
 const TOTAL_SECTIONS = 5;
 
 export default function LogMorningWellnessScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { instanceId: routeInstanceId } = useLocalSearchParams<{ instanceId?: string }>();
   const [sleepQuality, setSleepQuality] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
   const [mood, setMood] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
@@ -160,7 +163,7 @@ export default function LogMorningWellnessScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -395,10 +398,10 @@ export default function LogMorningWellnessScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -409,30 +412,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backIcon: {
     fontSize: 18,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   skipText: {
     fontSize: 16,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   content: {
     flex: 1,
@@ -457,14 +460,14 @@ const styles = StyleSheet.create({
   progressDotActive: {
     width: 20,
     borderRadius: 3,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
   },
 
   // Compact card sections
   compactCard: {
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -478,7 +481,7 @@ const styles = StyleSheet.create({
   compactTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   requiredBadge: {
     backgroundColor: 'rgba(251,191,36,0.2)',
@@ -521,7 +524,7 @@ const styles = StyleSheet.create({
   },
   emojiOptionSelected: {
     backgroundColor: 'rgba(20,184,166,0.2)',
-    borderColor: Colors.accent,
+    borderColor: c.accent,
   },
   emojiIcon: {
     fontSize: 28,
@@ -532,7 +535,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
   },
   emojiLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
 
@@ -554,7 +557,7 @@ const styles = StyleSheet.create({
   },
   radioOptionSelected: {
     backgroundColor: 'rgba(20,184,166,0.2)',
-    borderColor: Colors.accent,
+    borderColor: c.accent,
   },
   radioOptionSpan: {
     width: '100%',
@@ -564,7 +567,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.85)',
   },
   radioTextSelected: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
 
@@ -573,20 +576,20 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 24,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
   submitButton: {
     paddingVertical: 16,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 14,
     alignItems: 'center',
   },
   submitButtonDisabled: {
-    backgroundColor: Colors.borderStrong,
+    backgroundColor: c.borderStrong,
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });

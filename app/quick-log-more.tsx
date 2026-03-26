@@ -9,7 +9,7 @@
 // Others: navigate to dedicated screens
 // ============================================================================
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { navigate } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { getFilteredOptions, QuickLogOption } from '../constants/quickLogOptions';
 import { useEnabledBuckets } from '../hooks/useCarePlanConfig';
 import {
@@ -80,6 +81,8 @@ const INLINE_CATEGORIES = new Set(['hydration', 'vitals', 'meds', 'note', 'welln
 
 export default function QuickLogMoreScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { enabledBuckets } = useEnabledBuckets();
   const { core, more, disabled } = getFilteredOptions(enabledBuckets);
   const allEnabled = [...core, ...more];
@@ -380,7 +383,7 @@ export default function QuickLogMoreScreen() {
                   value={vSystolic}
                   onChangeText={setVSystolic}
                   placeholder="—"
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="number-pad"
                   accessibilityLabel="Systolic"
                 />
@@ -393,7 +396,7 @@ export default function QuickLogMoreScreen() {
                   value={vDiastolic}
                   onChangeText={setVDiastolic}
                   placeholder="—"
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="number-pad"
                   accessibilityLabel="Diastolic"
                 />
@@ -409,7 +412,7 @@ export default function QuickLogMoreScreen() {
                     value={vHeartRate}
                     onChangeText={setVHeartRate}
                     placeholder="—"
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="number-pad"
                     accessibilityLabel="Heart rate"
                   />
@@ -424,7 +427,7 @@ export default function QuickLogMoreScreen() {
                     value={vOxygen}
                     onChangeText={setVOxygen}
                     placeholder="—"
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="number-pad"
                     accessibilityLabel="Oxygen saturation"
                   />
@@ -441,7 +444,7 @@ export default function QuickLogMoreScreen() {
                     value={vGlucose}
                     onChangeText={setVGlucose}
                     placeholder="—"
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="number-pad"
                     accessibilityLabel="Glucose"
                   />
@@ -456,7 +459,7 @@ export default function QuickLogMoreScreen() {
                     value={vWeight}
                     onChangeText={setVWeight}
                     placeholder="—"
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="decimal-pad"
                     accessibilityLabel="Weight"
                   />
@@ -530,7 +533,7 @@ export default function QuickLogMoreScreen() {
             {medItems.length > 0 && (
               <TouchableOpacity
                 style={styles.detailsLink}
-                onPress={() => navigate('/log-medication-confirm')}
+                onPress={() => navigate('/medication-confirm')}
               >
                 <Text style={styles.detailsLinkText}>Details → for side effects or notes</Text>
               </TouchableOpacity>
@@ -546,7 +549,7 @@ export default function QuickLogMoreScreen() {
               value={noteText}
               onChangeText={setNoteText}
               placeholder="Quick observation..."
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               multiline
               textAlignVertical="top"
               accessibilityLabel="Note text"
@@ -607,7 +610,7 @@ export default function QuickLogMoreScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -734,22 +737,22 @@ export default function QuickLogMoreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (c: typeof Colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   gradient: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
+    borderBottomWidth: 1, borderBottomColor: c.border,
   },
   backButton: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.surface,
-    borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center',
+    width: 40, height: 40, borderRadius: 20, backgroundColor: c.surface,
+    borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center',
   },
-  backButtonText: { color: Colors.textPrimary, fontSize: 18 },
+  backButtonText: { color: c.textPrimary, fontSize: 18 },
   headerCenter: { alignItems: 'center' },
-  title: { color: Colors.textPrimary, fontSize: 18, fontWeight: '600' },
-  headerDate: { color: Colors.textMuted, fontSize: 11, marginTop: 2 },
+  title: { color: c.textPrimary, fontSize: 18, fontWeight: '600' },
+  headerDate: { color: c.textMuted, fontSize: 11, marginTop: 2 },
   content: { flex: 1 },
   contentContainer: { paddingHorizontal: 20, paddingTop: 16 },
 
@@ -766,59 +769,59 @@ const styles = StyleSheet.create({
 
   // Completed divider
   completedDivider: {
-    fontSize: 9, fontWeight: '700', color: Colors.textMuted,
+    fontSize: 9, fontWeight: '700', color: c.textMuted,
     letterSpacing: 1, marginTop: 8, marginBottom: 6,
   },
 
   // Accordion card
   accordionCard: {
-    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: c.surface, borderWidth: 1, borderColor: c.border,
     borderRadius: 12, marginBottom: 8, overflow: 'hidden',
   },
-  accordionCardExpanded: { borderColor: Colors.accentBorder },
+  accordionCardExpanded: { borderColor: c.accentBorder },
   accordionHeader: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 },
   accordionIcon: {
-    width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.accentLight,
+    width: 36, height: 36, borderRadius: 10, backgroundColor: c.accentLight,
     alignItems: 'center', justifyContent: 'center',
   },
   accordionIconDone: { backgroundColor: 'rgba(16,185,129,0.12)' },
-  accordionIconDisabled: { backgroundColor: Colors.glassDim },
+  accordionIconDisabled: { backgroundColor: c.glassDim },
   accordionIconText: { fontSize: 16 },
   accordionContent: { flex: 1 },
-  accordionLabel: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+  accordionLabel: { fontSize: 14, fontWeight: '600', color: c.textPrimary },
   accordionLabelDone: { color: '#10B981' },
-  accordionDesc: { fontSize: 11, color: Colors.textMuted, marginTop: 1 },
-  chevron: { fontSize: 10, color: Colors.textMuted },
+  accordionDesc: { fontSize: 11, color: c.textMuted, marginTop: 1 },
+  chevron: { fontSize: 10, color: c.textMuted },
   chevronOpen: { transform: [{ rotate: '180deg' }] },
-  accordionBody: { borderTopWidth: 1, borderTopColor: Colors.border, padding: 14 },
+  accordionBody: { borderTopWidth: 1, borderTopColor: c.border, padding: 14 },
 
   // Go button (navigate to screen)
   goButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: Colors.accentLight, borderWidth: 1, borderColor: Colors.accentBorder,
+    backgroundColor: c.accentLight, borderWidth: 1, borderColor: c.accentBorder,
     borderRadius: 10, paddingVertical: 12, paddingHorizontal: 16, gap: 8,
   },
-  goButtonText: { fontSize: 14, fontWeight: '600', color: Colors.accent },
-  goButtonArrow: { fontSize: 14, color: Colors.accent },
+  goButtonText: { fontSize: 14, fontWeight: '600', color: c.accent },
+  goButtonArrow: { fontSize: 14, color: c.accent },
 
   // ── Water ──
   waterSection: { alignItems: 'center' },
   waterCounter: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   waterBtn: {
-    width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.surface,
-    borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center',
+    width: 38, height: 38, borderRadius: 19, backgroundColor: c.surface,
+    borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center',
   },
-  waterBtnText: { fontSize: 20, color: Colors.textMuted, fontWeight: '300', lineHeight: 22 },
+  waterBtnText: { fontSize: 20, color: c.textMuted, fontWeight: '300', lineHeight: 22 },
   waterBtnDisabled: { opacity: 0.3 },
   waterBtnAdd: { backgroundColor: 'rgba(59,130,246,0.15)', borderColor: 'rgba(59,130,246,0.3)' },
   waterBtnAddText: { fontSize: 20, color: '#3B82F6', fontWeight: '300', lineHeight: 22 },
   waterDisplay: { alignItems: 'center' },
   waterCount: { fontSize: 36, fontWeight: '700', color: '#3B82F6' },
-  waterGoal: { fontSize: 10, color: Colors.textMuted },
+  waterGoal: { fontSize: 10, color: c.textMuted },
   glassRow: { flexDirection: 'row', justifyContent: 'center', gap: 4, marginTop: 10 },
   glass: {
     width: 22, height: 26, borderRadius: 4, borderWidth: 1,
-    borderColor: Colors.border, overflow: 'hidden', justifyContent: 'flex-end',
+    borderColor: c.border, overflow: 'hidden', justifyContent: 'flex-end',
   },
   glassFilled: { borderColor: 'rgba(59,130,246,0.4)' },
   glassFill: {
@@ -827,34 +830,34 @@ const styles = StyleSheet.create({
   },
   quickAddRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 10 },
   quickAddBtn: {
-    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: c.surface, borderWidth: 1, borderColor: c.border,
     borderRadius: 6, paddingVertical: 4, paddingHorizontal: 12,
   },
-  quickAddText: { fontSize: 11, color: Colors.textSecondary, fontWeight: '500' },
+  quickAddText: { fontSize: 11, color: c.textSecondary, fontWeight: '500' },
 
   // ── Vitals ──
   vitalsSection: {},
   fieldSectionLabel: {
-    fontSize: 9, fontWeight: '700', color: Colors.textMuted,
+    fontSize: 9, fontWeight: '700', color: c.textMuted,
     letterSpacing: 0.5, marginBottom: 4,
   },
   fieldRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end', marginTop: 10 },
   fieldWrapper: { flex: 1 },
   fieldLabel: {
-    fontSize: 9, fontWeight: '700', color: Colors.textMuted,
+    fontSize: 9, fontWeight: '700', color: c.textMuted,
     letterSpacing: 0.3, marginBottom: 3,
   },
   fieldInputRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   fieldInput: {
     flex: 1, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1,
-    borderColor: Colors.border, borderRadius: 7, paddingVertical: 7,
-    paddingHorizontal: 9, fontSize: 15, fontWeight: '600', color: Colors.textPrimary,
+    borderColor: c.border, borderRadius: 7, paddingVertical: 7,
+    paddingHorizontal: 9, fontSize: 15, fontWeight: '600', color: c.textPrimary,
   },
-  fieldUnit: { fontSize: 9, color: Colors.textMuted },
-  fieldDivider: { color: Colors.textMuted, fontSize: 14, marginBottom: 8 },
+  fieldUnit: { fontSize: 9, color: c.textMuted },
+  fieldDivider: { color: c.textMuted, fontSize: 14, marginBottom: 8 },
   saveRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 },
   saveBtn: {
-    backgroundColor: Colors.accent, borderRadius: 7,
+    backgroundColor: c.accent, borderRadius: 7,
     paddingVertical: 6, paddingHorizontal: 14,
   },
   saveBtnDisabled: { opacity: 0.4 },
@@ -862,25 +865,25 @@ const styles = StyleSheet.create({
 
   // ── Meds ──
   medsSection: {},
-  medsEmpty: { fontSize: 12, color: Colors.textMuted, textAlign: 'center', paddingVertical: 8 },
+  medsEmpty: { fontSize: 12, color: c.textMuted, textAlign: 'center', paddingVertical: 8 },
   medRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
   medRowBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
   medInfo: { flex: 1 },
-  medName: { fontSize: 12, fontWeight: '500', color: Colors.textPrimary },
+  medName: { fontSize: 12, fontWeight: '500', color: c.textPrimary },
   medNameDone: { color: '#10B981' },
-  medTime: { fontSize: 10, color: Colors.textMuted, marginTop: 1 },
+  medTime: { fontSize: 10, color: c.textMuted, marginTop: 1 },
   medActions: { flexDirection: 'row', gap: 5 },
   medTakeBtn: {
     backgroundColor: 'rgba(20,184,166,0.12)', borderWidth: 1,
     borderColor: 'rgba(20,184,166,0.25)', borderRadius: 6,
     paddingVertical: 4, paddingHorizontal: 10,
   },
-  medTakeBtnText: { fontSize: 11, color: Colors.accent, fontWeight: '600' },
+  medTakeBtnText: { fontSize: 11, color: c.accent, fontWeight: '600' },
   medSkipBtn: {
-    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: c.surface, borderWidth: 1, borderColor: c.border,
     borderRadius: 6, paddingVertical: 4, paddingHorizontal: 8,
   },
-  medSkipBtnText: { fontSize: 11, color: Colors.textMuted },
+  medSkipBtnText: { fontSize: 11, color: c.textMuted },
   medTakenBadge: {
     backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1,
     borderColor: 'rgba(16,185,129,0.25)', borderRadius: 6,
@@ -894,14 +897,14 @@ const styles = StyleSheet.create({
   },
   medSkippedText: { fontSize: 11, color: '#F59E0B', fontWeight: '600' },
   detailsLink: { marginTop: 6, alignItems: 'flex-end' },
-  detailsLinkText: { fontSize: 10, color: Colors.accent },
+  detailsLinkText: { fontSize: 10, color: c.accent },
 
   // ── Note ──
   noteSection: {},
   noteInput: {
     backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1,
-    borderColor: Colors.border, borderRadius: 8, padding: 10,
-    minHeight: 70, fontSize: 12, color: Colors.textPrimary,
+    borderColor: c.border, borderRadius: 8, padding: 10,
+    minHeight: 70, fontSize: 12, color: c.textPrimary,
   },
 
   // ── Wellness ──
@@ -914,19 +917,19 @@ const styles = StyleSheet.create({
   wellnessBadgePendingText: { fontSize: 10, color: '#F59E0B', fontWeight: '500' },
   startCheckinBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: Colors.accentLight, borderWidth: 1, borderColor: Colors.accentBorder,
+    backgroundColor: c.accentLight, borderWidth: 1, borderColor: c.accentBorder,
     borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14, gap: 6,
   },
   startCheckinEmoji: { fontSize: 12 },
-  startCheckinText: { fontSize: 13, fontWeight: '600', color: Colors.accent },
-  startCheckinArrow: { fontSize: 12, color: Colors.accent },
+  startCheckinText: { fontSize: 13, fontWeight: '600', color: c.accent },
+  startCheckinArrow: { fontSize: 12, color: c.accent },
 
   // Disabled section
   sectionLabel: {
     fontSize: 11, fontWeight: '600', letterSpacing: 0.5,
-    color: Colors.textMuted, marginBottom: 12, marginTop: 24,
+    color: c.textMuted, marginBottom: 12, marginTop: 24,
   },
   disabledCard: { opacity: 0.6 },
-  disabledLabel: { fontSize: 14, fontWeight: '500', color: Colors.textMuted },
-  enableLink: { fontSize: 13, color: Colors.accent, fontWeight: '500' },
+  disabledLabel: { fontSize: 14, fontWeight: '500', color: c.textMuted },
+  enableLink: { fontSize: 13, color: c.accent, fontWeight: '500' },
 });

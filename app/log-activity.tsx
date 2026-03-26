@@ -2,7 +2,7 @@
 // ACTIVITY LOGGING SCREEN - Simple Activity Tracker
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { devLog, logError } from '../utils/devLog';
 import {
   View,
@@ -17,6 +17,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { navigateBack } from '../lib/navigate';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { emitDataUpdate } from '../lib/events';
 import { hapticSuccess } from '../utils/hapticFeedback';
@@ -33,6 +34,8 @@ const ACTIVITY_TYPES = [
 ];
 
 export default function LogActivityScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams();
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [duration, setDuration] = useState('');
@@ -138,7 +141,7 @@ export default function LogActivityScreen() {
             <TextInput
               style={styles.textInput}
               placeholder="e.g., 30 minutes"
-              placeholderTextColor={Colors.textPlaceholder}
+              placeholderTextColor={colors.textPlaceholder}
               value={duration}
               onChangeText={setDuration}
               accessibilityLabel="Activity duration"
@@ -151,7 +154,7 @@ export default function LogActivityScreen() {
             <TextInput
               style={[styles.textInput, styles.textArea]}
               placeholder="Any observations..."
-              placeholderTextColor={Colors.textPlaceholder}
+              placeholderTextColor={colors.textPlaceholder}
               multiline
               numberOfLines={3}
               value={notes}
@@ -182,10 +185,10 @@ export default function LogActivityScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   safeArea: {
     flex: 1,
@@ -206,12 +209,12 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 28,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   placeholder: {
     width: 44,
@@ -222,7 +225,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 20,
   },
 
@@ -236,27 +239,27 @@ const styles = StyleSheet.create({
   activityCard: {
     width: '30%',
     aspectRatio: 1,
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   activityCardSelected: {
-    backgroundColor: Colors.sageBorder,
-    borderColor: Colors.accent,
+    backgroundColor: c.sageBorder,
+    borderColor: c.accent,
   },
   activityEmoji: {
     fontSize: 28,
   },
   activityLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   activityLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
   },
 
   // Inputs
@@ -265,18 +268,18 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
   },
   textInput: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 10,
     padding: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 15,
   },
   textArea: {
@@ -288,10 +291,10 @@ const styles = StyleSheet.create({
   bottomActions: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: Colors.glassHover,
+    borderTopColor: c.glassHover,
   },
   saveButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -302,6 +305,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.background,
+    color: c.background,
   },
 });

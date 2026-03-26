@@ -3,12 +3,13 @@
 // Guided transition from sample data to real data
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { clearSampleData } from '../utils/sampleDataManager';
 import { logError } from '../utils/devLog';
 
@@ -22,6 +23,8 @@ const TRANSITION_POINTS = [
 export default function SampleDataTransition() {
   const router = useRouter();
   const [isClearing, setIsClearing] = useState(false);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const handleClear = async () => {
     setIsClearing(true);
@@ -42,7 +45,7 @@ export default function SampleDataTransition() {
         <AuroraBackground variant="settings" />
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingEmoji}>{'\u{1F525}'}</Text>
-          <ActivityIndicator size="large" color={Colors.accent} style={styles.loadingSpinner} />
+          <ActivityIndicator size="large" color={colors.accent} style={styles.loadingSpinner} />
           <Text style={styles.loadingText}>Clearing sample data...</Text>
         </View>
       </View>
@@ -96,10 +99,10 @@ export default function SampleDataTransition() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   safeArea: {
     flex: 1,
@@ -117,13 +120,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '300',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
     marginBottom: Spacing.md,
   },
   subtitle: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: Spacing.xxxl,
@@ -135,7 +138,7 @@ const styles = StyleSheet.create({
   pointsSectionTitle: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     letterSpacing: 1.5,
     marginBottom: Spacing.lg,
   },
@@ -151,7 +154,7 @@ const styles = StyleSheet.create({
   },
   pointText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     flex: 1,
     lineHeight: 20,
   },
@@ -161,7 +164,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   primaryButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: BorderRadius.lg,
     paddingVertical: 16,
     alignItems: 'center',
@@ -169,7 +172,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   secondaryButton: {
     paddingVertical: 12,
@@ -177,7 +180,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 14,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   // Loading state
   loadingContainer: {
@@ -195,7 +198,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '500',
   },
 });

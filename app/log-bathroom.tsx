@@ -2,7 +2,7 @@
 // LOG BATHROOM - Bowel movement and urination tracking
 // ============================================================================
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { navigateBack, canNavigateBack, navigateReplace } from '../lib/navigate'
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { saveNotesLog } from '../utils/centralStorage';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
@@ -37,6 +38,8 @@ const URINATION_OPTIONS = [
 ];
 
 export default function LogBathroomScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [bowel, setBowel] = useState<string | null>(null);
   const [urination, setUrination] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
@@ -145,7 +148,7 @@ export default function LogBathroomScreen() {
         <TextInput
           style={styles.notesInput}
           placeholder="Any additional details..."
-          placeholderTextColor={Colors.textPlaceholder}
+          placeholderTextColor={colors.textPlaceholder}
           value={notes}
           onChangeText={setNotes}
           multiline
@@ -165,13 +168,13 @@ export default function LogBathroomScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   content: { flex: 1 },
   contentInner: { padding: Spacing.md, paddingBottom: 40 },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 10,
     marginTop: 20,
     textTransform: 'uppercase',
@@ -189,36 +192,36 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: BorderRadius.md,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
   },
   optionChipSelected: {
-    backgroundColor: Colors.accentDim,
-    borderColor: Colors.accentBorder,
+    backgroundColor: c.accentDim,
+    borderColor: c.accentBorder,
   },
   optionIcon: { fontSize: 16 },
   optionLabel: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   optionLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
   notesInput: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     borderRadius: BorderRadius.md,
     padding: 12,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 14,
     minHeight: 80,
     textAlignVertical: 'top',
   },
   saveButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: BorderRadius.lg,
     paddingVertical: 16,
     alignItems: 'center',
@@ -247,11 +250,11 @@ const styles = StyleSheet.create({
   confirmTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.textBright,
+    color: c.textBright,
     marginBottom: 4,
   },
   confirmSubtitle: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 });

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface RegulationPromptProps {
   message: string;
@@ -11,6 +12,9 @@ export const RegulationPrompt: React.FC<RegulationPromptProps> = ({
   message,
   onDismiss,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.message}>{message}</Text>
@@ -26,16 +30,16 @@ export const RegulationPrompt: React.FC<RegulationPromptProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.purpleMuted,
+    backgroundColor: c.purpleMuted,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
   message: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     lineHeight: 20,
     marginBottom: 12,
   },
@@ -44,6 +48,6 @@ const styles = StyleSheet.create({
   },
   dismissText: {
     fontSize: 13,
-    color: Colors.accent,
+    color: c.accent,
   },
 });

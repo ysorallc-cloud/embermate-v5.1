@@ -2,10 +2,11 @@
 // CAUGHT UP + TOMORROW CARD - All done + tomorrow preview (Green)
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { TomorrowPreviewItem } from '../../types/contextCard';
 
 interface CaughtUpTomorrowCardProps {
@@ -17,6 +18,8 @@ export const CaughtUpTomorrowCard: React.FC<CaughtUpTomorrowCardProps> = ({
   tomorrowItems,
   tomorrowCount,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
 
   // Show max 2 items
@@ -76,11 +79,11 @@ export const CaughtUpTomorrowCard: React.FC<CaughtUpTomorrowCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.greenLight,
+    backgroundColor: c.greenLight,
     borderWidth: 1,
-    borderColor: Colors.greenBorder,
+    borderColor: c.greenBorder,
     borderRadius: 14,
     overflow: 'hidden',
   },
@@ -93,14 +96,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: Colors.glassActive,
+    backgroundColor: c.glassActive,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   checkIcon: {
     fontSize: 18,
-    color: Colors.green,
+    color: c.green,
   },
   topContent: {
     flex: 1,
@@ -109,19 +112,19 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.5,
-    color: Colors.green,
+    color: c.green,
     marginBottom: 2,
   },
   topTitle: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   bottomSection: {
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
     padding: 12,
     paddingHorizontal: 14,
     borderTopWidth: 1,
-    borderTopColor: Colors.greenBorder,
+    borderTopColor: c.greenBorder,
   },
   tomorrowHeader: {
     flexDirection: 'row',
@@ -141,11 +144,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.5,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   viewDayLink: {
     fontSize: 11,
-    color: Colors.accent,
+    color: c.accent,
   },
   tomorrowItems: {
     gap: 8,
@@ -161,15 +164,15 @@ const styles = StyleSheet.create({
   itemTitle: {
     flex: 1,
     fontSize: 13,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   itemTime: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   moreText: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 8,
   },
 });

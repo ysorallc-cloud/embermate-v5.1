@@ -3,7 +3,7 @@
 // Mood, meals logged, day rating, highlights/concerns
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { useWellnessSettings } from '../hooks/useWellnessSettings';
 import { saveEveningWellness, skipEveningWellness } from '../utils/wellnessCheckStorage';
 import { listDailyInstances, logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
@@ -98,6 +99,8 @@ const MOBILITY_OPTIONS = [
 ] as const;
 
 export default function LogEveningWellnessScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { instanceId: routeInstanceId } = useLocalSearchParams<{ instanceId?: string }>();
   const { settings } = useWellnessSettings();
   const eveningOptional = settings.evening.optionalChecks ?? {};
@@ -216,7 +219,7 @@ export default function LogEveningWellnessScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -399,7 +402,7 @@ export default function LogEveningWellnessScreen() {
               value={highlights}
               onChangeText={setHighlights}
               placeholder="Good moments, wins, positives..."
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               multiline
               numberOfLines={3}
               accessibilityLabel="Today's highlights"
@@ -415,7 +418,7 @@ export default function LogEveningWellnessScreen() {
               value={concerns}
               onChangeText={setConcerns}
               placeholder="Things to watch, issues to discuss..."
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               multiline
               numberOfLines={3}
               accessibilityLabel="Today's concerns"
@@ -623,10 +626,10 @@ export default function LogEveningWellnessScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -637,30 +640,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backIcon: {
     fontSize: 18,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   skipText: {
     fontSize: 16,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   content: {
     flex: 1,
@@ -674,12 +677,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 12,
   },
   optionGrid: {
@@ -691,35 +694,35 @@ const styles = StyleSheet.create({
   optionButton: {
     width: '30%',
     aspectRatio: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
   optionButtonSelected: {
-    backgroundColor: Colors.accentHint,
-    borderColor: Colors.accent,
+    backgroundColor: c.accentHint,
+    borderColor: c.accent,
   },
   optionEmoji: {
     fontSize: 32,
   },
   optionLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   optionLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     padding: 16,
     gap: 12,
@@ -730,24 +733,24 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: c.border,
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: c.accent,
+    borderColor: c.accent,
   },
   checkmark: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: 'bold',
   },
   toggleLabel: {
     flex: 1,
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   ratingList: {
     gap: 12,
@@ -756,16 +759,16 @@ const styles = StyleSheet.create({
   ratingOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     padding: 16,
     gap: 12,
   },
   ratingOptionSelected: {
-    backgroundColor: Colors.accentHint,
-    borderColor: Colors.accent,
+    backgroundColor: c.accentHint,
+    borderColor: c.accent,
   },
   ratingEmoji: {
     fontSize: 20,
@@ -773,10 +776,10 @@ const styles = StyleSheet.create({
   ratingLabel: {
     flex: 1,
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   ratingLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
   radio: {
@@ -784,27 +787,27 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: c.border,
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
   radioSelected: {
-    borderColor: Colors.accent,
+    borderColor: c.accent,
   },
   radioDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
   },
   textInput: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     padding: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 15,
     minHeight: 80,
     textAlignVertical: 'top',
@@ -817,18 +820,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
   },
   careDetailsToggleText: {
     fontSize: 15,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   careDetailsToggleArrow: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   careDetailsContent: {
     marginTop: 16,
@@ -840,7 +843,7 @@ const styles = StyleSheet.create({
   careDetailLabel: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   chipRow: {
     flexDirection: 'row',
@@ -850,41 +853,41 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 20,
   },
   chipSelected: {
-    backgroundColor: Colors.accentHint,
-    borderColor: Colors.accent,
+    backgroundColor: c.accentHint,
+    borderColor: c.accent,
   },
   chipText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   chipTextSelected: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
   footer: {
     padding: 20,
     paddingBottom: 24,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
   submitButton: {
     paddingVertical: 16,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 12,
     alignItems: 'center',
   },
   submitButtonDisabled: {
-    backgroundColor: Colors.borderStrong,
+    backgroundColor: c.borderStrong,
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });

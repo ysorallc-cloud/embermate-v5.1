@@ -20,9 +20,11 @@ import {
   RefreshControl,
   ActivityIndicator,
   Animated,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { navigate } from '../../lib/navigate';
+import { useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Polyline, Circle as SvgCircle } from 'react-native-svg';
 import { Colors, Spacing } from '../../theme/theme-tokens';
@@ -31,6 +33,7 @@ import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import {
   loadUnderstandPageData,
+  generatePlainLanguageSummary,
   TimeRange,
   UnderstandPageData,
   CorrelationCard,
@@ -39,6 +42,7 @@ import { logError } from '../../utils/devLog';
 import { useDataListener } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
 import { buildProviderPrep, ProviderPrepData } from '../../utils/providerPrepBuilder';
+import { ShareToast } from '../../components/shared/ShareToast';
 import { getVitalsInRange, VitalReading } from '../../utils/vitalsStorage';
 import { listDailyInstancesRange, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 import { getTodayDateString, toLocalDateString } from '../../services/carePlanGenerator';
@@ -437,6 +441,7 @@ function correlationSeverity(card: CorrelationCard): 'high' | 'medium' | 'low' {
 
 export default function UnderstandScreen() {
   const { colors } = useTheme();
+  const { focusTrend } = useLocalSearchParams<{ focusTrend?: string }>();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -444,6 +449,7 @@ export default function UnderstandScreen() {
   const [pageData, setPageData] = useState<UnderstandPageData | null>(null);
   const [providerPrep, setProviderPrep] = useState<ProviderPrepData | null>(null);
   const [vitalTiles, setVitalTiles] = useState<VitalTile[]>([]);
+  const [shareToastVisible, setShareToastVisible] = useState(false);
   const [adherence, setAdherence] = useState<AdherenceData | null>(null);
   const [expandedCorrelation, setExpandedCorrelation] = useState<number | null>(0);
 
@@ -570,6 +576,7 @@ export default function UnderstandScreen() {
   return (
     <View style={styles.container}>
       <AuroraBackground variant="hub" />
+      <ShareToast visible={shareToastVisible} onDismiss={() => setShareToastVisible(false)} />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView
@@ -629,37 +636,18 @@ export default function UnderstandScreen() {
             </View>
           )}
 
-          {/* ═══ SECTION 1: CARE SCORE ═══ */}
-          <View style={styles.careScoreSection}>
-            <CareScoreRing score={healthScore.score} />
-            <View style={styles.careScoreRight}>
-              {healthScore.score !== healthScore.previous && (
-                <View style={styles.careScoreTrendRow}>
-                  <Text style={[
-                    styles.careScoreTrendText,
-                    { color: healthScore.score >= healthScore.previous ? colors.green : colors.amberBright },
-                  ]}>
-                    {healthScore.score >= healthScore.previous ? '\u2191' : '\u2193'} {Math.abs(healthScore.previous - healthScore.score)} pts
-                  </Text>
-                  <Text style={styles.careScoreTrendSub}>from last period</Text>
-                </View>
-              )}
-              {healthScore.factors.slice(0, 3).map((f, i) => (
-                <View key={i} style={styles.factorRow}>
-                  <View style={styles.factorBar}>
-                    <View style={[
-                      styles.factorBarFill,
-                      {
-                        width: `${f.score}%` as any,
-                        backgroundColor: f.score >= 80 ? colors.green : f.score >= 50 ? colors.amberBright : colors.redBright,
-                      },
-                    ]} />
-                  </View>
-                  <Text style={styles.factorLabel} numberOfLines={1}>{f.label}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
+          {/* ═══ SECTION 1: AI SUMMARY ═══ */}
+          {pageData.daysOfData >= 7 && (() => {
+            const summaryText = generatePlainLanguageSummary(pageData, selectedRange);
+            if (!summaryText) return null;
+            return (
+              <View style={styles.aiSummarySection}>
+                <Text style={styles.aiSummaryLabel}>{'\u2728'} {selectedRange}-day summary</Text>
+                <Text style={styles.aiSummaryText}>{summaryText}</Text>
+                <Text style={styles.aiSummaryDisclaimer}>For informational purposes only · Not a diagnosis</Text>
+              </View>
+            );
+          })()}
 
           <View style={styles.divider} />
 
@@ -774,6 +762,37 @@ export default function UnderstandScreen() {
               <View style={styles.divider} />
             </View>
           )}
+
+          {/* ═══ REPORTS ═══ */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Reports</Text>
+            {[
+              { key: 'provider', title: 'Provider prep', subtitle: 'Auto-generated appointment summary', icon: '🩺' },
+              { key: 'care', title: 'Care report', subtitle: 'Full PDF with trends and patterns', icon: '📋' },
+              { key: 'medication', title: 'Medication report', subtitle: 'Adherence history and side effects', icon: '💊' },
+            ].map((report) => (
+              <View key={report.key} style={styles.reportCard}>
+                <Text style={styles.reportIcon}>{report.icon}</Text>
+                <View style={styles.reportInfo}>
+                  <Text style={styles.reportTitle}>{report.title}</Text>
+                  <Text style={styles.reportSubtitle}>{report.subtitle}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.reportShareBtn}
+                  onPress={async () => {
+                    try {
+                      setShareToastVisible(true);
+                      await Share.share({ message: `${report.title} — Generated by EmberMate` });
+                    } catch (_) { /* user cancelled */ }
+                  }}
+                  accessibilityLabel={`Share ${report.title}`}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.reportShareText}>Share</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
 
           {/* ═══ SECTION 4: VITALS DASHBOARD ═══ */}
           {vitalTiles.length > 0 && (
@@ -957,6 +976,31 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
 
   // ─── CARE SCORE ───
+  // ─── AI SUMMARY (replaces Care Score) ───
+  aiSummarySection: {
+    borderLeftWidth: 2,
+    borderLeftColor: c.purpleLight || '#A78BFA',
+    paddingLeft: 14,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  aiSummaryLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: c.purpleLight || '#A78BFA',
+    marginBottom: 6,
+  },
+  aiSummaryText: {
+    fontSize: 14,
+    color: c.textSecondary,
+    lineHeight: 21,
+    marginBottom: 8,
+  },
+  aiSummaryDisclaimer: {
+    fontSize: 11,
+    color: c.textMuted,
+    fontStyle: 'italic' as const,
+  },
   careScoreSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1005,7 +1049,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // ─── CORRELATIONS ───
   correlationCard: {
-    backgroundColor: 'rgba(20,50,40,0.4)',
+    backgroundColor: c.surface,
     borderWidth: 1,
     borderRadius: 12,
     overflow: 'hidden',
@@ -1105,9 +1149,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: 'rgba(45,200,170,0.06)',
+    backgroundColor: c.surfaceHighlight,
     borderWidth: 1,
-    borderColor: 'rgba(45,200,170,0.12)',
+    borderColor: c.accentBorder,
     borderRadius: 8,
     padding: 10,
   },
@@ -1163,6 +1207,46 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginTop: 3,
   },
 
+  // ─── REPORTS ───
+  reportCard: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: c.glass,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
+    gap: 12,
+  },
+  reportIcon: {
+    fontSize: 24,
+  },
+  reportInfo: {
+    flex: 1,
+  },
+  reportTitle: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: c.textPrimary,
+    marginBottom: 2,
+  },
+  reportSubtitle: {
+    fontSize: 12,
+    color: c.textMuted,
+  },
+  reportShareBtn: {
+    backgroundColor: c.accent,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  reportShareText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#fff',
+  },
+
   // ─── VITALS GRID ───
   vitalsGrid: {
     flexDirection: 'row',
@@ -1170,9 +1254,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     gap: 8,
   },
   vitalTile: {
-    backgroundColor: 'rgba(20,50,40,0.3)',
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: 'rgba(45,200,170,0.06)',
+    borderColor: c.glassBorder,
     borderRadius: 10,
     padding: 12,
     width: '48.5%' as any,
@@ -1209,9 +1293,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // ─── MEDICATION ADHERENCE ───
   adherenceCard: {
-    backgroundColor: 'rgba(20,50,40,0.3)',
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: 'rgba(45,200,170,0.06)',
+    borderColor: c.glassBorder,
     borderRadius: 10,
     padding: 16,
   },

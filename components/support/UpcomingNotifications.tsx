@@ -3,7 +3,7 @@
 // Shows scheduled notifications in the Support page
 // ============================================================================
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Colors, Spacing, Typography } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { SubCard, SubCardIcon, SubCardContent, SubCardArrow } from '../common/SubCard';
 import {
   getUpcomingNotifications,
@@ -38,16 +39,16 @@ interface UpcomingNotificationsProps {
 // ============================================================================
 
 const ITEM_EMOJIS: Record<CarePlanItemType, string> = {
-  medication: '💊',
-  vitals: '❤️',
-  mood: '😊',
-  nutrition: '🍽️',
-  hydration: '💧',
-  activity: '🚶',
-  sleep: '😴',
-  appointment: '📅',
-  wellness: '🌅',
-  custom: '📋',
+  medication: '\uD83D\uDC8A',
+  vitals: '\u2764\uFE0F',
+  mood: '\uD83D\uDE0A',
+  nutrition: '\uD83C\uDF7D\uFE0F',
+  hydration: '\uD83D\uDCA7',
+  activity: '\uD83D\uDEB6',
+  sleep: '\uD83D\uDE34',
+  appointment: '\uD83D\uDCC5',
+  wellness: '\uD83C\uDF05',
+  custom: '\uD83D\uDCCB',
 };
 
 function formatTimeUntil(scheduledFor: string): string {
@@ -102,9 +103,11 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   onSnooze,
   onDismiss,
 }) => {
-  const emoji = ITEM_EMOJIS[notification.itemType] || '📋';
+  const emoji = ITEM_EMOJIS[notification.itemType] || '\uD83D\uDCCB';
   const timeDisplay = formatScheduledTime(notification.scheduledFor);
   const timeUntil = formatTimeUntil(notification.scheduledFor);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <SubCard
@@ -114,7 +117,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
       content={
         <SubCardContent
           title={notification.itemName}
-          subtitle={`${timeDisplay} · ${timeUntil}`}
+          subtitle={`${timeDisplay} \u00B7 ${timeUntil}`}
         />
       }
       trailing={
@@ -125,7 +128,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
             accessibilityLabel={`Snooze ${notification.itemName} 15 minutes`}
             accessibilityRole="button"
           >
-            <Text style={styles.snoozeButton}>💤</Text>
+            <Text style={styles.snoozeButton}>{'\uD83D\uDCA4'}</Text>
           </TouchableOpacity>
         </View>
       }
@@ -143,6 +146,8 @@ export const UpcomingNotifications: React.FC<UpcomingNotificationsProps> = ({
   maxItems = 5,
   onRefresh,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [notifications, setNotifications] = useState<ScheduledNotificationV2[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -201,7 +206,7 @@ export const UpcomingNotifications: React.FC<UpcomingNotificationsProps> = ({
           <Text style={styles.headerTitle}>Notifications</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={Colors.accent} />
+          <ActivityIndicator size="small" color={colors.accent} />
         </View>
       </View>
     );
@@ -236,7 +241,7 @@ export const UpcomingNotifications: React.FC<UpcomingNotificationsProps> = ({
           <Text style={styles.headerTitle}>Notifications</Text>
         </View>
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyEmoji}>🔔</Text>
+          <Text style={styles.emptyEmoji}>{'\uD83D\uDD14'}</Text>
           <Text style={styles.emptyText}>No upcoming reminders</Text>
           <Text style={styles.emptySubtext}>
             Reminders are set per item in your Care Plan
@@ -289,12 +294,12 @@ export const UpcomingNotifications: React.FC<UpcomingNotificationsProps> = ({
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     overflow: 'hidden',
   },
   header: {
@@ -308,11 +313,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   list: {
     paddingHorizontal: 12,
@@ -328,12 +333,12 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: Colors.amber,
+    color: c.amber,
     marginBottom: 8,
   },
   retryText: {
     fontSize: 14,
-    color: Colors.accent,
+    color: c.accent,
   },
   emptyContainer: {
     paddingVertical: 24,
@@ -346,12 +351,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 4,
   },
   emptySubtext: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     paddingHorizontal: 24,
   },
@@ -359,12 +364,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: Colors.glassBorder,
+    borderTopColor: c.glassBorder,
     marginTop: 12,
   },
   manageButtonText: {
     fontSize: 14,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   itemActions: {

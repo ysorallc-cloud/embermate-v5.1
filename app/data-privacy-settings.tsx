@@ -3,7 +3,7 @@
 // Manage sample data, export data, and privacy controls
 // ============================================================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   detectSampleData,
   clearSampleData,
@@ -44,6 +45,8 @@ import { deleteAllUserData } from '../utils/privacyUtils';
 
 export default function DataPrivacySettingsScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [sampleDataStatus, setSampleDataStatus] = useState<SampleDataStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
@@ -230,7 +233,7 @@ export default function DataPrivacySettingsScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <AuroraBackground variant="settings" />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.accent} />
+          <ActivityIndicator size="large" color={colors.accent} />
           <Text style={styles.loadingText}>Analyzing data...</Text>
         </View>
       </SafeAreaView>
@@ -342,7 +345,7 @@ export default function DataPrivacySettingsScreen() {
                     accessibilityState={{ disabled: clearing }}
                   >
                     {clearing ? (
-                      <ActivityIndicator size="small" color={Colors.error} />
+                      <ActivityIndicator size="small" color={colors.error} />
                     ) : (
                       <>
                         <Text style={styles.clearButtonIcon}>🗑️</Text>
@@ -530,7 +533,7 @@ export default function DataPrivacySettingsScreen() {
                 accessibilityHint="Permanently removes all health data from this device. This cannot be undone."
               >
                 {deleting ? (
-                  <ActivityIndicator size="small" color={Colors.red} />
+                  <ActivityIndicator size="small" color={colors.red} />
                 ) : (
                   <>
                     <Text style={styles.deleteAllIcon}>⚠️</Text>
@@ -559,10 +562,10 @@ export default function DataPrivacySettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   scrollView: {
     flex: 1,
@@ -579,7 +582,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
 
@@ -587,9 +590,9 @@ const styles = StyleSheet.create({
   privacyCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: Colors.sageFaint,
+    backgroundColor: c.sageFaint,
     borderWidth: 1,
-    borderColor: Colors.sageWash,
+    borderColor: c.sageWash,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.xl,
@@ -604,12 +607,12 @@ const styles = StyleSheet.create({
   privacyTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.sage,
+    color: c.sage,
     marginBottom: 4,
   },
   privacyText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
 
@@ -620,22 +623,22 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textHalf,
+    color: c.textHalf,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 4,
   },
   sectionDescription: {
     fontSize: 13,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginBottom: 12,
   },
 
   // Setting Card
   settingCard: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -661,21 +664,21 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   settingHint: {
     fontSize: 12,
-    color: Colors.textHalf,
+    color: c.textHalf,
     marginLeft: 26,
   },
   settingChevron: {
     fontSize: 20,
-    color: Colors.textPlaceholder,
+    color: c.textPlaceholder,
     fontWeight: '600',
   },
   settingDivider: {
     height: 1,
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     marginHorizontal: 14,
   },
 
@@ -695,16 +698,16 @@ const styles = StyleSheet.create({
   sampleDataTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   sampleDataSubtitle: {
     fontSize: 13,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginBottom: 12,
     marginLeft: 26,
   },
   breakdown: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderRadius: 8,
     padding: 10,
     gap: 6,
@@ -721,7 +724,7 @@ const styles = StyleSheet.create({
   },
   breakdownText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Clear Button
@@ -732,7 +735,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderTopWidth: 1,
-    borderTopColor: Colors.redHint,
+    borderTopColor: c.redHint,
     padding: 14,
     marginTop: 0,
   },
@@ -742,11 +745,11 @@ const styles = StyleSheet.create({
   clearButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.red,
+    color: c.red,
   },
   clearNote: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     paddingHorizontal: 14,
     paddingBottom: 12,
@@ -768,7 +771,7 @@ const styles = StyleSheet.create({
   reloadButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
 
   // No Sample Data
@@ -780,7 +783,7 @@ const styles = StyleSheet.create({
   },
   noSampleDataIcon: {
     fontSize: 20,
-    color: Colors.green,
+    color: c.green,
   },
   noSampleDataContent: {
     flex: 1,
@@ -788,27 +791,27 @@ const styles = StyleSheet.create({
   noSampleDataTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   noSampleDataText: {
     fontSize: 12,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
 
   // Retention
   retentionRadio: {
     fontSize: 18,
-    color: Colors.accent,
+    color: c.accent,
     width: 20,
     textAlign: 'center',
   },
   retentionLabelActive: {
-    color: Colors.accent,
+    color: c.accent,
   },
   retentionWarning: {
     fontSize: 12,
-    color: Colors.amber,
+    color: c.amber,
     marginTop: Spacing.sm,
     lineHeight: 16,
   },
@@ -820,7 +823,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Delete All Data
@@ -829,7 +832,7 @@ const styles = StyleSheet.create({
   },
   deleteInfoText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 19,
   },
   deleteAllButton: {
@@ -839,7 +842,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderTopWidth: 1,
-    borderTopColor: Colors.redHint,
+    borderTopColor: c.redHint,
     padding: 14,
   },
   deleteAllIcon: {
@@ -848,11 +851,11 @@ const styles = StyleSheet.create({
   deleteAllText: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.red,
+    color: c.red,
   },
   deleteNote: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     paddingHorizontal: 14,
     paddingBottom: 12,

@@ -131,7 +131,7 @@ export function generateCarePulse(data: CarePulseData): CarePulseResult {
         message: `${missedMeds.length} medication${missedMeds.length !== 1 ? 's' : ''} may have been missed today. Check the schedule to log them.`,
         status: 'attention',
         ctaText: 'View Medications →',
-        ctaRoute: '/medication-schedule',
+        ctaRoute: '/medications',
       };
     }
     
@@ -143,7 +143,7 @@ export function generateCarePulse(data: CarePulseData): CarePulseResult {
         message: `${pendingMeds} medication${pendingMeds !== 1 ? 's' : ''} remaining today. Next: ${nextMed.name} at ${formattedTime}.`,
         status: 'active',
         ctaText: 'View Medications →',
-        ctaRoute: '/medication-schedule',
+        ctaRoute: '/medications',
       };
     }
   }

@@ -3,7 +3,7 @@
 // View and manage medication interaction warnings
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,12 +20,15 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { checkMedicationInteractions } from '../utils/medicationStorage';
 import { DrugInteraction } from '../utils/drugInteractions';
 import InteractionWarnings from '../components/InteractionWarnings';
 import { logError } from '../utils/devLog';
 
 export default function InteractionsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const [interactions, setInteractions] = useState<DrugInteraction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -61,14 +64,14 @@ export default function InteractionsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
           }
         >
           {/* Header */}
@@ -89,7 +92,7 @@ export default function InteractionsScreen() {
 
           {/* Info Banner */}
           <View style={styles.infoBanner}>
-            <Ionicons name="information-circle" size={20} color={Colors.accent} />
+            <Ionicons name="information-circle" size={20} color={colors.accent} />
             <Text style={styles.infoText}>
               This screens against 22 common drug interactions. Always consult your
               healthcare provider or pharmacist for complete interaction information.
@@ -98,7 +101,7 @@ export default function InteractionsScreen() {
 
           {/* Limitation Banner */}
           <View style={styles.limitationBanner}>
-            <Ionicons name="alert-circle" size={20} color={Colors.amber} style={styles.limitationIcon} />
+            <Ionicons name="alert-circle" size={20} color={colors.amber} style={styles.limitationIcon} />
             <View style={{ flex: 1 }}>
               <Text style={styles.limitationTitle}>Limited Database</Text>
               <Text style={styles.limitationText}>
@@ -110,17 +113,17 @@ export default function InteractionsScreen() {
 
           {/* Summary Cards */}
           <View style={styles.summaryCards}>
-            <View style={[styles.summaryCard, { borderLeftColor: Colors.red }]}>
+            <View style={[styles.summaryCard, { borderLeftColor: colors.red }]}>
               <Text style={styles.summaryValue}>{highRisk.length}</Text>
               <Text style={styles.summaryLabel}>High Risk</Text>
             </View>
 
-            <View style={[styles.summaryCard, { borderLeftColor: Colors.amber }]}>
+            <View style={[styles.summaryCard, { borderLeftColor: colors.amber }]}>
               <Text style={styles.summaryValue}>{moderateRisk.length}</Text>
               <Text style={styles.summaryLabel}>Moderate</Text>
             </View>
 
-            <View style={[styles.summaryCard, { borderLeftColor: Colors.gold }]}>
+            <View style={[styles.summaryCard, { borderLeftColor: colors.gold }]}>
               <Text style={styles.summaryValue}>{lowRisk.length}</Text>
               <Text style={styles.summaryLabel}>Low Risk</Text>
             </View>
@@ -129,7 +132,7 @@ export default function InteractionsScreen() {
           {/* Interactions Display */}
           {!loading && interactions.length === 0 && (
             <View style={styles.emptyState}>
-              <Ionicons name="checkmark-circle" size={64} color={Colors.accent} />
+              <Ionicons name="checkmark-circle" size={64} color={colors.accent} />
               <Text style={styles.emptyTitle}>No Interactions Detected</Text>
               <Text style={styles.emptyText}>
                 Your current medications don't have any known interactions in our database.
@@ -173,8 +176,8 @@ export default function InteractionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (c: typeof Colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   gradient: { flex: 1 },
   scrollView: { flex: 1, paddingHorizontal: Spacing.xl },
   header: {
@@ -187,20 +190,20 @@ const styles = StyleSheet.create({
     backButton: {
     width: 44,
     height: 44,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backIcon: {
     fontSize: 24,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
-  headerLabel: { fontSize: 11, color: Colors.textMuted, letterSpacing: 1, fontWeight: '600' },
+  headerLabel: { fontSize: 11, color: c.textMuted, letterSpacing: 1, fontWeight: '600' },
   placeholder: { width: 40 },
-  title: { fontSize: 28, fontWeight: '300', color: Colors.textPrimary, marginBottom: Spacing.lg },
+  title: { fontSize: 28, fontWeight: '300', color: c.textPrimary, marginBottom: Spacing.lg },
   infoBanner: {
     flexDirection: 'row',
     gap: 12,
@@ -212,7 +215,7 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
   limitationBanner: {
@@ -231,12 +234,12 @@ const styles = StyleSheet.create({
   limitationTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.amber,
+    color: c.amber,
     marginBottom: 2,
   },
   limitationText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 17,
   },
   summaryCards: {
@@ -246,7 +249,7 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     borderLeftWidth: 4,
@@ -255,31 +258,31 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 32,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   summaryLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: 48,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.xl,
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 16,
@@ -287,43 +290,43 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     lineHeight: 18,
     paddingHorizontal: Spacing.xl,
     fontStyle: 'italic',
   },
   databaseInfo: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
   },
   disclaimerBanner: {
     backgroundColor: 'rgba(251, 191, 36, 0.1)',
     borderLeftWidth: 3,
-    borderLeftColor: Colors.amber,
+    borderLeftColor: c.amber,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.lg,
   },
   disclaimerText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 19,
   },
   disclaimerBold: {
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   databaseTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 8,
   },
   databaseText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 20,
   },
 });

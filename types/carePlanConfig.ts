@@ -20,7 +20,10 @@ export type BucketType =
   | 'sleep'
   | 'activity'
   | 'wellness'
-  | 'appointments';
+  | 'appointments'
+  | 'errands'
+  | 'shifts'
+  | 'self_care';
 
 export const BUCKET_TYPES: BucketType[] = [
   'meds',
@@ -31,6 +34,9 @@ export const BUCKET_TYPES: BucketType[] = [
   'activity',
   'wellness',
   'appointments',
+  'errands',
+  'shifts',
+  'self_care',
 ];
 
 // Primary buckets shown by default
@@ -39,8 +45,8 @@ export const PRIMARY_BUCKETS: BucketType[] = ['meds', 'vitals', 'meals', 'water'
 // Secondary buckets hidden behind "More" initially
 export const SECONDARY_BUCKETS: BucketType[] = ['sleep', 'activity'];
 
-// Appointments is optional/separate
-export const OPTIONAL_BUCKETS: BucketType[] = ['appointments'];
+// Optional buckets — toggled on when ready
+export const OPTIONAL_BUCKETS: BucketType[] = ['appointments', 'errands', 'shifts', 'self_care'];
 
 // ============================================================================
 // BUCKET METADATA
@@ -110,6 +116,27 @@ export const BUCKET_META: Record<BucketType, BucketMeta> = {
     emoji: '\uD83D\uDCC5',
     aiInsight: 'Prepares visit summaries and keeps care team info organized.',
     route: '/appointments',
+  },
+  errands: {
+    type: 'errands',
+    name: 'Errands & Tasks',
+    emoji: '\uD83D\uDCCB',
+    aiInsight: 'Tracks recurring tasks like Rx pickups, groceries, and meal prep.',
+    route: '/care-plan/errands',
+  },
+  shifts: {
+    type: 'shifts',
+    name: 'Shift Schedule',
+    emoji: '\uD83D\uDD04',
+    aiInsight: 'Coordinates who covers care and when handoffs happen.',
+    route: '/care-plan/shifts',
+  },
+  self_care: {
+    type: 'self_care',
+    name: 'Self-Care',
+    emoji: '\uD83D\uDC9B',
+    aiInsight: 'Blocks time for your own rest, meals, and personal appointments.',
+    route: '/care-plan/self-care',
   },
 };
 
@@ -337,6 +364,9 @@ export interface CarePlanConfig {
   activity: BucketConfig;
   wellness: BucketConfig;
   appointments: BucketConfig;
+  errands: BucketConfig;
+  shifts: BucketConfig;
+  self_care: BucketConfig;
 }
 
 // ============================================================================
@@ -390,6 +420,9 @@ export function createDefaultCarePlanConfig(patientId: string): CarePlanConfig {
     activity: { ...DEFAULT_BUCKET_CONFIG },
     wellness: { ...DEFAULT_BUCKET_CONFIG, enabled: true, priority: 'recommended', timesOfDay: ['morning', 'midday', 'evening'] },
     appointments: { ...DEFAULT_BUCKET_CONFIG },
+    errands: { ...DEFAULT_BUCKET_CONFIG },
+    shifts: { ...DEFAULT_BUCKET_CONFIG },
+    self_care: { ...DEFAULT_BUCKET_CONFIG },
   };
 }
 

@@ -3,9 +3,10 @@
 // Medication name + dosage inputs with autocomplete suggestions
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { COMMON_MEDICATIONS, TIME_SLOTS, TimeSlot } from './medicationFormHelpers';
 import { MedicationFormState } from '../../hooks/useMedicationForm';
 
@@ -16,6 +17,8 @@ interface Props {
 }
 
 export function DosageSection({ state, dispatch, handleCustomTimeChange }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const handleMedicationNameChange = (text: string) => {
     dispatch({ type: 'SET_FIELD', field: 'name', value: text });
     if (text.length >= 1) {
@@ -60,7 +63,7 @@ export function DosageSection({ state, dispatch, handleCustomTimeChange }: Props
             }
           }}
           placeholder="e.g., Lisinopril"
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={colors.textMuted}
           autoCapitalize="words"
           autoCorrect={false}
           accessibilityLabel="Medication name, required"
@@ -99,7 +102,7 @@ export function DosageSection({ state, dispatch, handleCustomTimeChange }: Props
           value={state.dosage}
           onChangeText={handleDosageChange}
           placeholder="e.g., 10mg"
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={colors.textMuted}
           autoCorrect={false}
           accessibilityLabel="Dosage, required"
           accessibilityHint="Enter the medication dosage"
@@ -172,7 +175,7 @@ export function DosageSection({ state, dispatch, handleCustomTimeChange }: Props
           value={state.customTimeDisplay}
           onChangeText={handleCustomTimeChange}
           placeholder="e.g., 8:00 AM"
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={colors.textMuted}
           accessibilityLabel="Custom time"
           accessibilityHint="Enter time in 12-hour format"
         />
@@ -187,7 +190,7 @@ export function DosageSection({ state, dispatch, handleCustomTimeChange }: Props
           value={state.daysSupply}
           onChangeText={(text) => dispatch({ type: 'SET_FIELD', field: 'daysSupply', value: text })}
           placeholder="30"
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={colors.textMuted}
           keyboardType="numeric"
           accessibilityLabel="Days supply"
           accessibilityHint="Number of days this supply will last"
@@ -198,7 +201,7 @@ export function DosageSection({ state, dispatch, handleCustomTimeChange }: Props
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   formGroup: {
     marginBottom: Spacing.xl,
     position: 'relative',
@@ -207,33 +210,33 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.sm,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   input: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   helpText: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: Spacing.sm,
   },
   timeSlotRow: {
     flexDirection: 'row',
     gap: 8,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: 6,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   timeSlotButton: {
     flex: 1,
@@ -245,23 +248,23 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   timeSlotButtonActive: {
-    backgroundColor: Colors.accentLight,
-    borderColor: Colors.accent,
+    backgroundColor: c.accentLight,
+    borderColor: c.accent,
   },
   timeSlotIcon: { fontSize: 20, marginBottom: 2 },
-  timeSlotTimeText: { fontSize: 11, fontWeight: '600', color: Colors.textMuted },
-  timeSlotTimeTextActive: { color: Colors.accent },
-  timeSlotLabelText: { fontSize: 9, color: Colors.textMuted, opacity: 0.7 },
-  timeSlotLabelTextActive: { color: Colors.accent },
+  timeSlotTimeText: { fontSize: 11, fontWeight: '600', color: c.textMuted },
+  timeSlotTimeTextActive: { color: c.accent },
+  timeSlotLabelText: { fontSize: 9, color: c.textMuted, opacity: 0.7 },
+  timeSlotLabelTextActive: { color: c.accent },
   suggestionsContainer: {
     position: 'absolute',
     top: '100%',
     left: 0,
     right: 0,
     marginTop: 4,
-    backgroundColor: Colors.backgroundElevated,
+    backgroundColor: c.backgroundElevated,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.md,
     maxHeight: 200,
     zIndex: 1000,
@@ -274,8 +277,8 @@ const styles = StyleSheet.create({
   suggestionItem: {
     padding: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
-  suggestionText: { fontSize: 15, color: Colors.textPrimary, fontWeight: '500' },
-  suggestionSubtext: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
+  suggestionText: { fontSize: 15, color: c.textPrimary, fontWeight: '500' },
+  suggestionSubtext: { fontSize: 12, color: c.textMuted, marginTop: 2 },
 });

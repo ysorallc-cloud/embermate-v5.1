@@ -5,7 +5,7 @@
 // 100% local processing - no database, no cloud
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { detectCorrelations, hasSufficientData, DetectedPattern } from '../utils/correlationDetector';
 import { BackButton } from '../components/common/BackButton';
 import { logError } from '../utils/devLog';
@@ -47,6 +48,8 @@ export default function CorrelationReportScreen() {
   const [sufficient, setSufficient] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showingSample, setShowingSample] = useState(false);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useFocusEffect(useCallback(() => {
     loadCorrelations();
@@ -91,9 +94,9 @@ export default function CorrelationReportScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]} style={styles.gradient}>
+      <LinearGradient colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]} style={styles.gradient}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          
+
           {/* Header */}
           <View style={styles.header}>
             <BackButton />
@@ -108,7 +111,7 @@ export default function CorrelationReportScreen() {
 
             {/* Important Disclaimer (Always Visible) */}
             <View style={styles.disclaimer}>
-              <Ionicons name="information-circle" size={20} color={Colors.blue} style={{ marginRight: 8 }} />
+              <Ionicons name="information-circle" size={20} color={colors.blue} style={{ marginRight: 8 }} />
               <Text style={styles.disclaimerText}>
                 Correlations show observations, not causes. Always discuss patterns with your care team before making decisions.
               </Text>
@@ -117,7 +120,7 @@ export default function CorrelationReportScreen() {
             {/* Loading State */}
             {loading && (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={Colors.accent} />
+                <ActivityIndicator size="large" color={colors.accent} />
                 <Text style={styles.loadingText}>Analyzing patterns...</Text>
               </View>
             )}
@@ -164,7 +167,7 @@ export default function CorrelationReportScreen() {
 
                     {/* Action (Tracking-Focused) */}
                     <View style={styles.patternAction}>
-                      <Ionicons name="analytics-outline" size={16} color={Colors.textMuted} style={{ marginRight: 6 }} />
+                      <Ionicons name="analytics-outline" size={16} color={colors.textMuted} style={{ marginRight: 6 }} />
                       <Text style={styles.patternActionText}>{pattern.action}</Text>
                     </View>
 
@@ -172,14 +175,14 @@ export default function CorrelationReportScreen() {
                     <View style={styles.strengthIndicator}>
                       <Text style={styles.strengthLabel}>Correlation strength:</Text>
                       <View style={styles.strengthBar}>
-                        <View 
+                        <View
                           style={[
-                            styles.strengthFill, 
-                            { 
+                            styles.strengthFill,
+                            {
                               width: `${Math.abs(pattern.coefficient) * 100}%`,
                               backgroundColor: Math.abs(pattern.coefficient) > 0.6 ? Colors.greenBright : Colors.amber
                             }
-                          ]} 
+                          ]}
                         />
                       </View>
                       <Text style={styles.strengthValue}>
@@ -194,7 +197,7 @@ export default function CorrelationReportScreen() {
             {/* No Patterns Detected */}
             {!loading && !showingSample && patterns.length === 0 && (
               <View style={styles.noPatterns}>
-                <Ionicons name="checkmark-circle-outline" size={64} color={Colors.textMuted} style={{ opacity: 0.3, marginBottom: 16 }} />
+                <Ionicons name="checkmark-circle-outline" size={64} color={colors.textMuted} style={{ opacity: 0.3, marginBottom: 16 }} />
                 <Text style={styles.noPatternsTitle}>No Strong Patterns Detected</Text>
                 <Text style={styles.noPatternsText}>
                   Your tracked data shows no significant correlations at this time. Continue tracking to see if patterns emerge.
@@ -207,7 +210,7 @@ export default function CorrelationReportScreen() {
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>TREND VISUALIZATION</Text>
                 <View style={styles.chartPlaceholder}>
-                  <Ionicons name="bar-chart" size={48} color={Colors.textMuted} style={{ opacity: 0.3, marginBottom: 12 }} />
+                  <Ionicons name="bar-chart" size={48} color={colors.textMuted} style={{ opacity: 0.3, marginBottom: 12 }} />
                   <Text style={styles.chartPlaceholderText}>
                     Multi-line trend chart will display here
                   </Text>
@@ -226,8 +229,8 @@ export default function CorrelationReportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (c: typeof Colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   gradient: { flex: 1 },
   scrollView: { flex: 1, paddingHorizontal: Spacing.xl },
 
@@ -242,16 +245,16 @@ const styles = StyleSheet.create({
     backButton: {
     width: 44,
     height: 44,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backIcon: {
     fontSize: 24,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   headerContent: {
     flex: 1,
@@ -259,12 +262,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Content
@@ -274,9 +277,9 @@ const styles = StyleSheet.create({
 
   // Sample Banner
   sampleBanner: {
-    backgroundColor: Colors.purpleLight,
+    backgroundColor: c.purpleLight,
     borderWidth: 1,
-    borderColor: Colors.purpleStrong,
+    borderColor: c.purpleStrong,
     borderRadius: 14,
     padding: 14,
     marginBottom: Spacing.lg,
@@ -296,12 +299,12 @@ const styles = StyleSheet.create({
   sampleBannerTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.purpleBright,
+    color: c.purpleBright,
     marginBottom: 4,
   },
   sampleBannerSubtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
 
@@ -309,9 +312,9 @@ const styles = StyleSheet.create({
   disclaimer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: Colors.blueTint,
+    backgroundColor: c.blueTint,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.blue,
+    borderLeftColor: c.blue,
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.xl,
@@ -319,7 +322,7 @@ const styles = StyleSheet.create({
   disclaimerText: {
     flex: 1,
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 20,
   },
 
@@ -331,7 +334,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: Spacing.lg,
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Insufficient Data
@@ -343,19 +346,19 @@ const styles = StyleSheet.create({
   insufficientTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   insufficientText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: Spacing.lg,
   },
   insufficientEncouragement: {
     fontSize: 13,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
 
@@ -368,12 +371,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.xs,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: Spacing.lg,
   },
 
@@ -383,7 +386,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(212, 165, 116, 0.3)',
     borderLeftWidth: 4,
-    borderLeftColor: Colors.accent,
+    borderLeftColor: c.accent,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -397,7 +400,7 @@ const styles = StyleSheet.create({
   patternName: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
   },
   confidenceBadge: {
@@ -412,7 +415,7 @@ const styles = StyleSheet.create({
   },
   patternInsight: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 22,
     marginBottom: Spacing.md,
   },
@@ -427,7 +430,7 @@ const styles = StyleSheet.create({
   patternActionText: {
     flex: 1,
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     lineHeight: 18,
   },
   strengthIndicator: {
@@ -437,7 +440,7 @@ const styles = StyleSheet.create({
   },
   strengthLabel: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textTransform: 'uppercase',
   },
   strengthBar: {
@@ -454,7 +457,7 @@ const styles = StyleSheet.create({
   strengthValue: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // No Patterns
@@ -466,12 +469,12 @@ const styles = StyleSheet.create({
   noPatternsTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   noPatternsText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -489,12 +492,12 @@ const styles = StyleSheet.create({
   },
   chartPlaceholderText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 4,
   },
   chartPlaceholderNote: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontStyle: 'italic',
   },
 });

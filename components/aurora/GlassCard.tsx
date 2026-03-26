@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, StyleSheet, ViewStyle, StyleProp, Platform } from 'react-native';
-import { BlurView } from 'expo-blur';
+import React, { useMemo } from 'react';
+import { View, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { Colors, BorderRadius, Spacing } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Props {
   children: React.ReactNode;
@@ -9,7 +9,6 @@ interface Props {
   glow?: string;         // Color for glow effect
   padding?: number;      // Override default padding
   noPadding?: boolean;   // Remove padding entirely
-  intensity?: number;    // Blur intensity (default 25)
   // Accessibility props
   accessible?: boolean;
   accessibilityLabel?: string;
@@ -23,12 +22,13 @@ export const GlassCard: React.FC<Props> = ({
   glow,
   padding,
   noPadding = false,
-  intensity = 25,
   accessible,
   accessibilityLabel,
   accessibilityHint,
   accessibilityRole,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const cardPadding = noPadding ? 0 : (padding ?? Spacing.xl);
 
   return (
@@ -49,18 +49,6 @@ export const GlassCard: React.FC<Props> = ({
       accessibilityHint={accessibilityHint}
       accessibilityRole={accessibilityRole}
     >
-      {/* Blur layer - only on iOS/Android, not web */}
-      {Platform.OS !== 'web' && (
-        <BlurView
-          intensity={intensity}
-          tint="dark"
-          style={StyleSheet.absoluteFill}
-        />
-      )}
-
-      {/* Semi-transparent overlay for glass effect */}
-      <View style={[StyleSheet.absoluteFill, styles.glassOverlay]} />
-
       {/* Content */}
       <View style={[styles.content, { padding: cardPadding }]}>
         {children}
@@ -69,21 +57,18 @@ export const GlassCard: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     borderRadius: BorderRadius.xl,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    // Default shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    borderColor: c.glassBorder,
+    backgroundColor: c.glass,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.20,
     shadowRadius: 12,
     elevation: 4,
-  },
-  glassOverlay: {
-    backgroundColor: Colors.glass,
   },
   content: {
     // Padding applied dynamically

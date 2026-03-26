@@ -4,7 +4,7 @@
 // Role: logging - Interactive capture of task completion
 // ============================================================================
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { TimelineItem as TimelineItemType } from '../../types/timeline';
 import { format } from 'date-fns';
 import { ComponentRole } from '../../types/componentRoles';
@@ -44,6 +45,8 @@ export const SwipeableTimelineItem: React.FC<Props> = ({
   onUndo,
   __role = 'logging',
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   // __role is available for role-based styling/behavior if needed
   const translateX = useRef(new Animated.Value(0)).current;
   const [isRevealed, setIsRevealed] = useState(false);
@@ -144,8 +147,8 @@ export const SwipeableTimelineItem: React.FC<Props> = ({
   // Don't allow swipe on completed items
   const isSwipeable = item.status !== 'done' && !justCompleted;
 
-  const circleStyles = getCircleStyles(item.status);
-  const statusColors = getStatusColors(item.status);
+  const circleStyles = getCircleStyles(item.status, colors);
+  const statusColors = getStatusColors(item.status, colors);
 
   // Background revealed on swipe
   const backgroundOpacity = translateX.interpolate({
@@ -253,33 +256,33 @@ const formatTime = (date: Date | undefined | null): string => {
   }
 };
 
-const getCircleStyles = (status: string) => {
+const getCircleStyles = (status: string, c: typeof Colors) => {
   switch (status) {
     case 'done':
-      return { backgroundColor: Colors.green, borderColor: Colors.green };
+      return { backgroundColor: c.green, borderColor: c.green };
     case 'next':
-      return { backgroundColor: 'transparent', borderColor: Colors.gold };
+      return { backgroundColor: 'transparent', borderColor: c.gold };
     case 'available':
-      return { backgroundColor: Colors.amberBrightTint, borderColor: 'rgba(251, 191, 36, 0.4)' };
+      return { backgroundColor: c.amberBrightTint, borderColor: 'rgba(251, 191, 36, 0.4)' };
     default:
-      return { backgroundColor: 'transparent', borderColor: Colors.border };
+      return { backgroundColor: 'transparent', borderColor: c.border };
   }
 };
 
-const getStatusColors = (status: string) => {
+const getStatusColors = (status: string, c: typeof Colors) => {
   switch (status) {
     case 'done':
-      return { time: Colors.textMuted, subtitle: Colors.green, line: 'rgba(34, 197, 94, 0.3)' };
+      return { time: c.textMuted, subtitle: c.green, line: 'rgba(34, 197, 94, 0.3)' };
     case 'next':
-      return { time: Colors.textMuted, subtitle: Colors.gold, line: Colors.border };
+      return { time: c.textMuted, subtitle: c.gold, line: c.border };
     case 'available':
-      return { time: Colors.amberBrightStrong, subtitle: Colors.textMuted, line: Colors.border };
+      return { time: c.amberBrightStrong, subtitle: c.textMuted, line: c.border };
     default:
-      return { time: Colors.textMuted, subtitle: Colors.textMuted, line: Colors.border };
+      return { time: c.textMuted, subtitle: c.textMuted, line: c.border };
   }
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     position: 'relative',
   },
@@ -298,15 +301,15 @@ const styles = StyleSheet.create({
   },
   swipeBackgroundIcon: {
     fontSize: 20,
-    color: Colors.green,
+    color: c.green,
   },
   swipeBackgroundText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.green,
+    color: c.green,
   },
   itemContainer: {
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   item: {
     flexDirection: 'row',
@@ -326,12 +329,12 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     fontSize: 10,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '700',
   },
   availableIcon: {
     fontSize: 10,
-    color: Colors.amberBrightStrong,
+    color: c.amberBrightStrong,
     fontWeight: '700',
   },
   line: {
@@ -356,11 +359,11 @@ const styles = StyleSheet.create({
   availableLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: Colors.amberBrightStrong,
+    color: c.amberBrightStrong,
   },
   title: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginTop: 1,
   },
   subtitle: {

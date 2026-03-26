@@ -96,6 +96,7 @@ export default function JournalTab() {
   const { enabledBuckets } = useEnabledBuckets();
   const [medicalInfo, setMedicalInfo] = useState<MedicalInfo | null>(null);
   const [patientName, setPatientName] = useState('');
+  const [patientGender, setPatientGender] = useState<string | null>(null);
   const [patientAge, setPatientAge] = useState<string | null>(null);
   const [activeMedCount, setActiveMedCount] = useState(0);
   const [isSampleMode, setIsSampleMode] = useState(false);
@@ -132,15 +133,17 @@ export default function JournalTab() {
 
       // Load patient context for patient card + share
       try {
-        const [mi, name, ageVal, meds] = await Promise.all([
+        const [mi, name, ageVal, genderVal, meds] = await Promise.all([
           getMedicalInfo(),
           safeGetItem<string>(StorageKeys.PATIENT_NAME, ''),
           safeGetItem<string | null>(StorageKeys.PATIENT_AGE ?? '@embermate_patient_age', null),
+          safeGetItem<string | null>(StorageKeys.PATIENT_GENDER, null),
           getMedications(),
         ]);
         setMedicalInfo(mi);
         setPatientName(name || '');
         setPatientAge(ageVal);
+        setPatientGender(genderVal);
         setActiveMedCount(meds?.length ?? 0);
       } catch {
         // Non-critical — patient card just won't show
@@ -403,12 +406,18 @@ export default function JournalTab() {
     if (!brief) return [];
     const items: HandoffItem[] = [];
 
-    // Completed meds with times
+    // Completed meds with times (deduplicate by name + time)
+    const seenMeds = new Set<string>();
     for (const med of brief.medications) {
       if ((med.status === 'completed' || med.status === 'skipped') && med.takenAt) {
+        const timeStr = formatTime(med.takenAt);
+        const dedupKey = `${med.name}|${timeStr}`;
+        if (seenMeds.has(dedupKey)) continue;
+        seenMeds.add(dedupKey);
+
         items.push({
           icon: '\uD83D\uDC8A',
-          text: `${med.name} taken at ${formatTime(med.takenAt)}`,
+          text: `${med.name} taken at ${timeStr}`,
           type: 'done',
         });
       }
@@ -464,7 +473,8 @@ export default function JournalTab() {
 
     // Unlogged sleep
     if (brief && !brief.sleep.logged) {
-      items.push({ icon: '\uD83D\uDE34', text: 'Log sleep when she goes to bed', route: '/log-sleep' });
+      const pronoun = patientGender?.toLowerCase() === 'male' ? 'he' : patientGender?.toLowerCase() === 'female' ? 'she' : 'they';
+      items.push({ icon: '\uD83D\uDE34', text: `Log sleep when ${pronoun} go${pronoun === 'they' ? '' : 'es'} to bed`, route: '/log-sleep' });
     }
 
     // Unlogged evening wellness
@@ -806,6 +816,21 @@ export default function JournalTab() {
                             <Text style={s.patternActionText}>{insight.actions[0].label}</Text>
                           </View>
                         )}
+                        <TouchableOpacity
+                          onPress={() => {
+                            const trendKey = insight.type === 'medication' ? 'meds'
+                              : insight.type === 'vitals' ? 'bp'
+                              : insight.type === 'mood' ? 'mood'
+                              : insight.type;
+                            navigate(`/(tabs)/understand?focusTrend=${trendKey}`);
+                          }}
+                          style={s.patternTrendLink}
+                          activeOpacity={0.7}
+                          accessibilityLabel="View trend on Insights"
+                          accessibilityRole="link"
+                        >
+                          <Text style={s.patternTrendLinkText}>{'\uD83D\uDCCA'} View trend on Insights →</Text>
+                        </TouchableOpacity>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -988,7 +1013,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // ─── SAMPLE DATA INDICATOR ───
   sampleIndicator: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    backgroundColor: c.accentLight,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -1181,7 +1206,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // ─── SECTION 3: PATTERNS ───
   patternCard: {
-    backgroundColor: 'rgba(20,50,40,0.4)',
+    backgroundColor: c.surface,
     borderWidth: 1,
     borderRadius: 10,
     padding: 14,
@@ -1229,6 +1254,18 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '500',
     color: c.accent,
     flex: 1,
+  },
+
+  patternTrendLink: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: c.glassFaint,
+  },
+  patternTrendLinkText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: c.accent,
   },
 
   // ─── SECTION 4: BEFORE BED ───

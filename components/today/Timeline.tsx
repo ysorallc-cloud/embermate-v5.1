@@ -2,7 +2,7 @@
 // TIMELINE - Container for timeline items on TODAY screen
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
@@ -11,6 +11,7 @@ import { TomorrowRow } from './TomorrowRow';
 import { UndoToast } from '../common/UndoToast';
 import { TimelineItem } from '../../types/timeline';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { markMedicationTaken } from '../../utils/medicationStorage';
 import { saveMorningWellness, saveEveningWellness } from '../../utils/wellnessCheckStorage';
 import { getTodayDateString } from '../../services/carePlanGenerator';
@@ -23,6 +24,8 @@ interface TimelineProps {
 }
 
 export const Timeline: React.FC<TimelineProps> = ({ items, tomorrowCount = 0, onRefresh }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const [undoItem, setUndoItem] = useState<TimelineItem | null>(null);
   const [showUndo, setShowUndo] = useState(false);
@@ -182,7 +185,7 @@ export const Timeline: React.FC<TimelineProps> = ({ items, tomorrowCount = 0, on
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     marginBottom: 24,
   },
@@ -190,7 +193,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.5,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 12,
   },
   list: {},

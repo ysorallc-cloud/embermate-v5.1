@@ -2,7 +2,7 @@
 // CARE PLAN HOME — Single list with toggles
 // ============================================================================
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { navigate } from '../../lib/navigate';
 import {
   View,
@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import {
   BucketType,
@@ -33,6 +34,14 @@ import { CARE_PLAN_TEMPLATES, CarePlanTemplate, TemplateMedSuggestion } from '..
 import { TemplateMedSeedingModal } from '../../components/careplan/TemplateMedSeedingModal';
 import { AddItemSheet } from '../../components/careplan/AddItemSheet';
 
+// Core buckets — always on, shown as tappable cards (no toggle)
+const CORE_BUCKETS: BucketType[] = ['meds', 'vitals', 'wellness', 'meals'];
+
+// Optional buckets — all non-core, shown with toggle
+const OPTIONAL_TOGGLE_BUCKETS: BucketType[] = BUCKET_TYPES.filter(
+  b => !CORE_BUCKETS.includes(b)
+);
+
 // ============================================================================
 // SECTION HEADER ROW
 // ============================================================================
@@ -42,6 +51,8 @@ function SectionHeaderRow({ title, action, onAction }: {
   action?: string;
   onAction?: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.sectionHeaderRow}>
       <Text style={styles.sectionHeaderTitle}>{title}</Text>
@@ -69,6 +80,8 @@ interface CategoryRowProps {
 }
 
 function CategoryRow({ bucket, emoji, name, detail, enabled, onToggle, onPress }: CategoryRowProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <TouchableOpacity
       style={[styles.categoryRow, !enabled && styles.categoryRowDisabled]}
@@ -90,9 +103,9 @@ function CategoryRow({ bucket, emoji, name, detail, enabled, onToggle, onPress }
         <Switch
           value={enabled}
           onValueChange={onToggle}
-          trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
-          thumbColor={enabled ? Colors.textPrimary : Colors.switchThumbOff}
-          ios_backgroundColor={Colors.glassStrong}
+          trackColor={{ false: colors.glassStrong, true: colors.accent }}
+          thumbColor={enabled ? colors.textPrimary : colors.switchThumbOff}
+          ios_backgroundColor={colors.glassStrong}
         />
         {enabled ? (
           <Text style={styles.categoryChevron}>{'\u203A'}</Text>
@@ -116,6 +129,8 @@ interface AIInsightCardProps {
 }
 
 function AIInsightCard({ icon, title, message, onDismiss }: AIInsightCardProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.aiInsightCard}>
       <View style={styles.aiInsightHeader}>
@@ -142,6 +157,8 @@ interface TemplateCardProps {
 }
 
 function TemplateCard({ template, onApply }: TemplateCardProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const bucketNames = template.enabledBuckets
     .map(b => BUCKET_META[b].name)
     .join(', ');
@@ -170,6 +187,8 @@ function TemplateCard({ template, onApply }: TemplateCardProps) {
 
 export default function CarePlanHomeScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     config,
     loading,
@@ -210,7 +229,11 @@ export default function CarePlanHomeScreen() {
       case 'water': navigate('/care-plan/water'); break;
       case 'sleep': navigate('/care-plan/sleep'); break;
       case 'activity': navigate('/care-plan/activity'); break;
+      case 'wellness': navigate('/care-plan/wellness'); break;
       case 'appointments': navigate('/appointments'); break;
+      case 'errands': navigate('/care-plan/errands'); break;
+      case 'shifts': navigate('/care-plan/shifts'); break;
+      case 'self_care': navigate('/care-plan/self-care'); break;
       default: break;
     }
   }, []);
@@ -350,11 +373,11 @@ export default function CarePlanHomeScreen() {
     return (
       <View style={styles.container}>
         <LinearGradient
-          colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+          colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
           style={styles.gradient}
         >
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.accent} />
+            <ActivityIndicator size="large" color={colors.accent} />
           </View>
         </LinearGradient>
       </View>
@@ -364,7 +387,7 @@ export default function CarePlanHomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -420,10 +443,38 @@ export default function CarePlanHomeScreen() {
             />
           )}
 
-          {/* ═══ CATEGORIES — single flat list ═══ */}
-          <SectionHeaderRow title={"Categories"} />
+          {/* ═══ CORE — Always on ═══ */}
+          <View style={styles.coreSectionHeader}>
+            <Text style={styles.sectionHeaderTitle}>Core</Text>
+            <View style={styles.alwaysOnBadge}>
+              <Text style={styles.alwaysOnBadgeText}>ALWAYS ON</Text>
+            </View>
+          </View>
 
-          {allBuckets.map(bucket => {
+          {CORE_BUCKETS.map(bucket => (
+            <TouchableOpacity
+              key={bucket}
+              style={styles.coreCard}
+              onPress={() => handleConfigureBucket(bucket)}
+              activeOpacity={0.7}
+              accessibilityLabel={`${BUCKET_META[bucket].name}. Tap to configure.`}
+              accessibilityRole="button"
+            >
+              <Text style={styles.categoryEmoji}>{BUCKET_META[bucket].emoji}</Text>
+              <View style={styles.categoryInfo}>
+                <Text style={styles.categoryName}>{BUCKET_META[bucket].name}</Text>
+                {getBucketStatus(bucket) && (
+                  <Text style={styles.categoryDetail}>{getBucketStatus(bucket)}</Text>
+                )}
+              </View>
+              <Text style={styles.categoryChevron}>{'\u203A'}</Text>
+            </TouchableOpacity>
+          ))}
+
+          {/* ═══ ADD WHEN READY — Toggleable ═══ */}
+          <SectionHeaderRow title="Add When Ready" />
+
+          {OPTIONAL_TOGGLE_BUCKETS.map(bucket => {
             const isEnabled = enabledBucketSet.has(bucket);
             return (
               <CategoryRow
@@ -468,10 +519,10 @@ export default function CarePlanHomeScreen() {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -494,16 +545,16 @@ const styles = StyleSheet.create({
   backButton: {
     width: 44,
     height: 44,
-    backgroundColor: Colors.backgroundElevated,
+    backgroundColor: c.backgroundElevated,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backIcon: {
     fontSize: 24,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   headerCenter: {
     flex: 1,
@@ -511,7 +562,7 @@ const styles = StyleSheet.create({
   },
   headerLabel: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 1,
     fontWeight: '600',
   },
@@ -526,6 +577,41 @@ const styles = StyleSheet.create({
   },
 
   // Section Header Row
+  coreSectionHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    paddingTop: 20,
+    paddingBottom: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.04)',
+    marginTop: 8,
+  },
+  alwaysOnBadge: {
+    backgroundColor: 'rgba(52, 211, 153, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.25)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  alwaysOnBadgeText: {
+    fontSize: 9,
+    fontWeight: '700' as const,
+    color: c.accent,
+    letterSpacing: 0.8,
+  },
+  coreCard: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: c.glass,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 6,
+    gap: 12,
+  },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -539,14 +625,14 @@ const styles = StyleSheet.create({
   sectionHeaderTitle: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
   },
   sectionHeaderAction: {
     fontSize: 12,
     fontWeight: '500',
-    color: Colors.accent,
+    color: c.accent,
   },
 
   // Category Row
@@ -581,11 +667,11 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   categoryDetail: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   categoryRight: {
@@ -598,7 +684,7 @@ const styles = StyleSheet.create({
   },
   categoryChevron: {
     fontSize: 20,
-    color: Colors.textMuted,
+    color: c.textMuted,
     width: 16,
     textAlign: 'center',
   },
@@ -608,9 +694,9 @@ const styles = StyleSheet.create({
 
   // AI Insight Card
   aiInsightCard: {
-    backgroundColor: Colors.purpleMuted,
+    backgroundColor: c.purpleMuted,
     borderWidth: 1,
-    borderColor: Colors.purpleStrong,
+    borderColor: c.purpleStrong,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
@@ -628,7 +714,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.purpleBright,
+    color: c.purpleBright,
   },
   aiInsightDismiss: {
     width: 24,
@@ -638,11 +724,11 @@ const styles = StyleSheet.create({
   },
   aiInsightDismissText: {
     fontSize: 20,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
   aiInsightMessage: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 20,
   },
 
@@ -650,21 +736,21 @@ const styles = StyleSheet.create({
   templateIntroLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textHalf,
+    color: c.textHalf,
     letterSpacing: 1,
     marginBottom: Spacing.md,
     marginTop: Spacing.xl,
   },
   templateIntro: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 20,
     marginBottom: Spacing.lg,
   },
   templateCard: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -681,17 +767,17 @@ const styles = StyleSheet.create({
   templateName: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   templateDescription: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
     marginBottom: Spacing.sm,
   },
   templateBuckets: {
     fontSize: 12,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
 });

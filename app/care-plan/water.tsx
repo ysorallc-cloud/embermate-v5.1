@@ -3,7 +3,7 @@
 // Configure hydration tracking in the Care Plan
 // ============================================================================
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import {
   WaterBucketConfig,
@@ -48,6 +49,8 @@ const GOAL_OPTIONS: GoalOption[] = [
 
 export default function WaterBucketScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     config,
     loading,
@@ -85,7 +88,7 @@ export default function WaterBucketScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -121,9 +124,9 @@ export default function WaterBucketScreen() {
             <Switch
               value={enabled}
               onValueChange={handleToggleEnabled}
-              trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
-              thumbColor={enabled ? Colors.textPrimary : Colors.switchThumbOff}
-              ios_backgroundColor={Colors.glassStrong}
+              trackColor={{ false: colors.glassStrong, true: colors.accent }}
+              thumbColor={enabled ? colors.textPrimary : colors.switchThumbOff}
+              ios_backgroundColor={colors.glassStrong}
             />
           </View>
 
@@ -265,9 +268,9 @@ export default function WaterBucketScreen() {
                 <Switch
                   value={waterConfig?.notificationsEnabled ?? false}
                   onValueChange={(value) => updateBucket('water', { notificationsEnabled: value })}
-                  trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
-                  thumbColor={(waterConfig?.notificationsEnabled ?? false) ? Colors.textPrimary : Colors.switchThumbOff}
-                  ios_backgroundColor={Colors.glassStrong}
+                  trackColor={{ false: colors.glassStrong, true: colors.accent }}
+                  thumbColor={(waterConfig?.notificationsEnabled ?? false) ? colors.textPrimary : colors.switchThumbOff}
+                  ios_backgroundColor={colors.glassStrong}
                 />
               </View>
             </>
@@ -285,10 +288,10 @@ export default function WaterBucketScreen() {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -306,20 +309,20 @@ const styles = StyleSheet.create({
   backButton: {
     width: 44,
     height: 44,
-    backgroundColor: Colors.backgroundElevated,
+    backgroundColor: c.backgroundElevated,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backIcon: {
     fontSize: 24,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   headerLabel: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 1,
     fontWeight: '600',
   },
@@ -340,12 +343,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '300',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   subtitle: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 22,
   },
 
@@ -353,7 +356,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textHalf,
+    color: c.textHalf,
     letterSpacing: 1,
     marginBottom: Spacing.md,
     marginTop: Spacing.xl,
@@ -364,9 +367,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -378,12 +381,12 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   settingDescription: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Priority
@@ -391,35 +394,35 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   priorityOption: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
   },
   priorityOptionSelected: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.sageFaint,
+    borderColor: c.accent,
+    backgroundColor: c.sageFaint,
   },
   priorityLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   priorityLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
   },
   priorityDescription: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Goal
   goalContainer: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
   },
@@ -436,11 +439,11 @@ const styles = StyleSheet.create({
   goalValue: {
     fontSize: 48,
     fontWeight: '300',
-    color: Colors.accent,
+    color: c.accent,
   },
   goalUnits: {
     fontSize: 18,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 12,
   },
   goalOptions: {
@@ -453,27 +456,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.md,
     marginHorizontal: 4,
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.sm,
   },
   goalOptionSelected: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.sageBorder,
+    borderColor: c.accent,
+    backgroundColor: c.sageBorder,
   },
   goalOptionLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   goalOptionLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
   },
   goalHint: {
     textAlign: 'center',
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Units
@@ -483,35 +486,35 @@ const styles = StyleSheet.create({
   },
   unitOption: {
     flex: 1,
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     alignItems: 'center',
   },
   unitOptionSelected: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.sageFaint,
+    borderColor: c.accent,
+    backgroundColor: c.sageFaint,
   },
   unitLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   unitLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
   },
   unitSubtext: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Reminder Frequency
   sectionDescription: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.md,
     marginTop: -Spacing.sm,
   },
@@ -519,27 +522,27 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   reminderOption: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
   },
   reminderOptionSelected: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.sageFaint,
+    borderColor: c.accent,
+    backgroundColor: c.sageFaint,
   },
   reminderLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   reminderLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
   },
   reminderDescription: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 });

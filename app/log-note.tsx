@@ -1,11 +1,12 @@
 // Functional note logging
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { saveNote } from '../utils/noteStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
@@ -16,6 +17,8 @@ import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRe
 import { SubScreenHeader } from '../components/SubScreenHeader';
 
 export default function LogNoteScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams();
   const [content, setContent] = useState('');
   const [saving, setSaving] = useState(false);
@@ -61,7 +64,7 @@ export default function LogNoteScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]} style={styles.gradient}>
+      <LinearGradient colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]} style={styles.gradient}>
         <ScrollView style={styles.scrollView}>
           <View style={styles.content}>
             <SubScreenHeader title="Log Note" emoji="📝" />
@@ -74,7 +77,7 @@ export default function LogNoteScreen() {
                   value={content}
                   onChangeText={setContent}
                   placeholder="Seemed more energetic today. Appetite was good at lunch. Remember to ask doctor about new medication next visit..."
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   multiline
                   numberOfLines={10}
                   textAlignVertical="top"
@@ -94,17 +97,17 @@ export default function LogNoteScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (c: typeof Colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   gradient: { flex: 1 },
   scrollView: { flex: 1 },
   content: { padding: 20, paddingBottom: 40 },
   form: { gap: 24 },
   formGroup: { gap: 8 },
-  label: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },
-  input: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: Colors.textPrimary },
+  label: { fontSize: 13, fontWeight: '500', color: c.textSecondary },
+  input: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: c.textPrimary },
   textArea: { minHeight: 200, paddingTop: 14 },
-  saveButton: { backgroundColor: Colors.accent, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 12 },
+  saveButton: { backgroundColor: c.accent, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 12 },
   saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: { color: Colors.textPrimary, fontSize: 15, fontWeight: '600' },
+  saveButtonText: { color: c.textPrimary, fontSize: 15, fontWeight: '600' },
 });

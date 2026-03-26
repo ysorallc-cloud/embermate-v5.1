@@ -77,6 +77,9 @@ export const StorageKeys = {
   NOTES: '@embermate_notes',
   PHOTOS: '@embermate_photos',
 
+  // ---- Events (unified event store) ----
+  EVENTS: '@embermate_events',
+
   // ---- Log Events ----
   LOG_EVENTS: '@embermate_log_events',
 
@@ -178,6 +181,7 @@ export const StorageKeyPrefixes = {
   INSTANCES_V2: '@embermate_instances_v2:',
   LOGS_V2: '@embermate_logs_v2:',
   REGIMEN_ITEMS_V2: '@embermate_regimen_items_v2:',
+  EVENTS: 'events:',
   PROMPT_DISMISSED: '@embermate_prompt_dismissed_',
   EMBERMATE_NS: '@EmberMate:',
   EMBERMATE_PREFIX: '@embermate_',

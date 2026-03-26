@@ -2,10 +2,11 @@
 // CALENDAR HEADER - Month navigation
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { format } from 'date-fns';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface CalendarHeaderProps {
   currentMonth: Date;
@@ -14,6 +15,9 @@ interface CalendarHeaderProps {
 }
 
 export function CalendarHeader({ currentMonth, onPrevious, onNext }: CalendarHeaderProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -22,7 +26,7 @@ export function CalendarHeader({ currentMonth, onPrevious, onNext }: CalendarHea
         accessibilityLabel="Previous month"
         accessibilityRole="button"
       >
-        <Text style={styles.navButtonText}>‹</Text>
+        <Text style={styles.navButtonText}>{'\u2039'}</Text>
       </TouchableOpacity>
 
       <Text style={styles.monthYear}>{format(currentMonth, 'MMMM yyyy')}</Text>
@@ -33,13 +37,13 @@ export function CalendarHeader({ currentMonth, onPrevious, onNext }: CalendarHea
         accessibilityLabel="Next month"
         accessibilityRole="button"
       >
-        <Text style={styles.navButtonText}>›</Text>
+        <Text style={styles.navButtonText}>{'\u203A'}</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -54,12 +58,12 @@ const styles = StyleSheet.create({
   },
   navButtonText: {
     fontSize: 28,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '300',
   },
   monthYear: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });

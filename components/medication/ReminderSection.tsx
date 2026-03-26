@@ -3,9 +3,10 @@
 // Reminder toggle, timing options, and follow-up configuration
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Switch, StyleSheet } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   REMINDER_TIMING_OPTIONS,
   FOLLOW_UP_OPTIONS,
@@ -18,6 +19,9 @@ interface Props {
 }
 
 export function ReminderSection({ state, dispatch }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={[
       styles.reminderContainer,
@@ -44,9 +48,9 @@ export function ReminderSection({ state, dispatch }: Props) {
         <Switch
           value={state.reminderEnabled}
           onValueChange={(v) => dispatch({ type: 'SET_FIELD', field: 'reminderEnabled', value: v })}
-          trackColor={{ false: Colors.textMuted, true: Colors.amber }}
-          thumbColor={Colors.surface}
-          ios_backgroundColor={Colors.textMuted}
+          trackColor={{ false: colors.textMuted, true: colors.amber }}
+          thumbColor={colors.surface}
+          ios_backgroundColor={colors.textMuted}
         />
       </TouchableOpacity>
 
@@ -87,7 +91,7 @@ export function ReminderSection({ state, dispatch }: Props) {
                 onChangeText={(v) => dispatch({ type: 'SET_FIELD', field: 'reminderCustomMinutes', value: v })}
                 keyboardType="numeric"
                 placeholder="15"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 accessibilityLabel="Custom reminder minutes"
                 accessibilityHint="Minutes before dose to send reminder"
               />
@@ -112,9 +116,9 @@ export function ReminderSection({ state, dispatch }: Props) {
               <Switch
                 value={state.followUpEnabled}
                 onValueChange={(v) => dispatch({ type: 'SET_FIELD', field: 'followUpEnabled', value: v })}
-                trackColor={{ false: Colors.textMuted, true: Colors.amber }}
-                thumbColor={Colors.surface}
-                ios_backgroundColor={Colors.textMuted}
+                trackColor={{ false: colors.textMuted, true: colors.amber }}
+                thumbColor={colors.surface}
+                ios_backgroundColor={colors.textMuted}
               />
             </TouchableOpacity>
 
@@ -153,18 +157,18 @@ export function ReminderSection({ state, dispatch }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   reminderContainer: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.lg,
     overflow: 'hidden',
   },
   reminderContainerActive: {
-    backgroundColor: Colors.amberFaint,
-    borderColor: Colors.warningBorder,
+    backgroundColor: c.amberFaint,
+    borderColor: c.warningBorder,
   },
   reminderToggleRow: {
     flexDirection: 'row',
@@ -183,20 +187,20 @@ const styles = StyleSheet.create({
   reminderToggleLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
-  reminderToggleDesc: { fontSize: 11, color: Colors.textMuted },
+  reminderToggleDesc: { fontSize: 11, color: c.textMuted },
   reminderOptionsContainer: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: Colors.amberMuted,
+    borderTopColor: c.amberMuted,
   },
   reminderSectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.amberBright,
+    color: c.amberBright,
     marginTop: Spacing.md,
     marginBottom: Spacing.sm,
     letterSpacing: 0.5,
@@ -208,15 +212,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Colors.warningBorder,
+    borderColor: c.warningBorder,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
   timingOptionActive: {
-    backgroundColor: Colors.amberMuted,
-    borderColor: Colors.amberBright,
+    backgroundColor: c.amberMuted,
+    borderColor: c.amberBright,
   },
-  timingOptionText: { fontSize: 13, color: Colors.textSecondary },
-  timingOptionTextActive: { color: Colors.amberBright, fontWeight: '600' },
+  timingOptionText: { fontSize: 13, color: c.textSecondary },
+  timingOptionTextActive: { color: c.amberBright, fontWeight: '600' },
   customInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -227,20 +231,20 @@ const styles = StyleSheet.create({
     width: 60,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
     borderWidth: 1,
-    borderColor: Colors.warningBorder,
+    borderColor: c.warningBorder,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
   },
-  customMinutesLabel: { fontSize: 13, color: Colors.textSecondary },
+  customMinutesLabel: { fontSize: 13, color: c.textSecondary },
   followUpContainer: {
     marginTop: Spacing.lg,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.amberHint,
+    borderTopColor: c.amberHint,
   },
   followUpToggleRow: {
     flexDirection: 'row',
@@ -248,12 +252,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   followUpInfo: { flex: 1 },
-  followUpLabel: { fontSize: 13, color: Colors.textPrimary, marginBottom: 2 },
-  followUpDesc: { fontSize: 10, color: Colors.textMuted },
+  followUpLabel: { fontSize: 13, color: c.textPrimary, marginBottom: 2 },
+  followUpDesc: { fontSize: 10, color: c.textMuted },
   followUpIntervalRow: { marginTop: Spacing.md },
   followUpIntervalLabel: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: Spacing.sm,
   },
   followUpIntervalOptions: { flexDirection: 'row', gap: 8 },
@@ -262,13 +266,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: Colors.warningBorder,
+    borderColor: c.warningBorder,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
   followUpIntervalOptionActive: {
-    backgroundColor: Colors.amberMuted,
-    borderColor: Colors.amberBright,
+    backgroundColor: c.amberMuted,
+    borderColor: c.amberBright,
   },
-  followUpIntervalText: { fontSize: 12, color: Colors.textSecondary },
-  followUpIntervalTextActive: { color: Colors.amberBright, fontWeight: '600' },
+  followUpIntervalText: { fontSize: 12, color: c.textSecondary },
+  followUpIntervalTextActive: { color: c.amberBright, fontWeight: '600' },
 });

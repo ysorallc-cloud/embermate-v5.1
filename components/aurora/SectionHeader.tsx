@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors, Typography, Spacing } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Props {
   title: string;
@@ -11,7 +12,11 @@ interface Props {
   };
 }
 
-export const SectionHeader: React.FC<Props> = ({ title, showRule, action }) => (
+export const SectionHeader: React.FC<Props> = ({ title, showRule, action }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
   <View style={[styles.container, showRule && styles.containerWithRule]} accessibilityRole="header">
     <Text style={styles.title} accessibilityRole="header">
       {title.toUpperCase()}
@@ -31,9 +36,10 @@ export const SectionHeader: React.FC<Props> = ({ title, showRule, action }) => (
       </TouchableOpacity>
     )}
   </View>
-);
+  );
+};
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -45,17 +51,17 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.caption,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   rule: {
     flex: 1,
     height: 1,
-    backgroundColor: Colors.glassBorder,
+    backgroundColor: c.glassBorder,
     marginLeft: 12,
   },
   action: {
     ...Typography.labelSmall,
-    color: Colors.accent,
+    color: c.accent,
   },
 });
 

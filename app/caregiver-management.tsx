@@ -3,7 +3,7 @@
 // Edit individual caregiver permissions and details
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import {
   getCaregivers,
@@ -32,7 +33,9 @@ export default function CaregiverManagementScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const caregiverId = params.id as string;
-  
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [caregiver, setCaregiver] = useState<CaregiverProfile | null>(null);
   const [permissions, setPermissions] = useState({
     canView: true,
@@ -59,12 +62,12 @@ export default function CaregiverManagementScreen() {
   const handleTogglePermission = async (key: keyof typeof permissions) => {
     const newPermissions = { ...permissions, [key]: !permissions[key] };
     setPermissions(newPermissions);
-    
+
     // Save to storage
     if (caregiver) {
       const caregivers = await getCaregivers();
-      const updated = caregivers.map(c => 
-        c.id === caregiverId 
+      const updated = caregivers.map(c =>
+        c.id === caregiverId
           ? { ...c, permissions: newPermissions }
           : c
       );
@@ -75,7 +78,7 @@ export default function CaregiverManagementScreen() {
 
   const handleRemove = () => {
     if (!caregiver) return;
-    
+
     Alert.alert(
       'Remove Caregiver?',
       `${caregiver.name} will lose all access to care information. This cannot be undone.`,
@@ -104,7 +107,7 @@ export default function CaregiverManagementScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <SubScreenHeader
@@ -116,14 +119,14 @@ export default function CaregiverManagementScreen() {
           {/* Caregiver Info */}
           <View style={styles.section}>
             <View style={styles.profileCard}>
-              <View 
+              <View
                 style={[styles.avatar, { backgroundColor: caregiver.avatarColor }]}
               >
                 <Text style={styles.avatarText}>
                   {caregiver.name.charAt(0).toUpperCase()}
                 </Text>
               </View>
-              
+
               <View style={styles.profileInfo}>
                 <Text style={styles.profileName}>{caregiver.name}</Text>
                 <Text style={styles.profileRole}>
@@ -180,8 +183,8 @@ export default function CaregiverManagementScreen() {
                 <Switch
                   value={permissions.canMarkMedications}
                   onValueChange={() => handleTogglePermission('canMarkMedications')}
-                  trackColor={{ false: Colors.borderMedium, true: Colors.accent }}
-                  thumbColor={Colors.surface}
+                  trackColor={{ false: colors.borderMedium, true: colors.accent }}
+                  thumbColor={colors.surface}
                   accessibilityLabel="Mark Medications permission"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: permissions.canMarkMedications }}
@@ -202,8 +205,8 @@ export default function CaregiverManagementScreen() {
                 <Switch
                   value={permissions.canAddNotes}
                   onValueChange={() => handleTogglePermission('canAddNotes')}
-                  trackColor={{ false: Colors.borderMedium, true: Colors.accent }}
-                  thumbColor={Colors.surface}
+                  trackColor={{ false: colors.borderMedium, true: colors.accent }}
+                  thumbColor={colors.surface}
                   accessibilityLabel="Add Notes permission"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: permissions.canAddNotes }}
@@ -224,8 +227,8 @@ export default function CaregiverManagementScreen() {
                 <Switch
                   value={permissions.canScheduleAppointments}
                   onValueChange={() => handleTogglePermission('canScheduleAppointments')}
-                  trackColor={{ false: Colors.borderMedium, true: Colors.accent }}
-                  thumbColor={Colors.surface}
+                  trackColor={{ false: colors.borderMedium, true: colors.accent }}
+                  thumbColor={colors.surface}
                   accessibilityLabel="Schedule Appointments permission"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: permissions.canScheduleAppointments }}
@@ -246,8 +249,8 @@ export default function CaregiverManagementScreen() {
                 <Switch
                   value={permissions.canEdit}
                   onValueChange={() => handleTogglePermission('canEdit')}
-                  trackColor={{ false: Colors.borderMedium, true: Colors.accent }}
-                  thumbColor={Colors.surface}
+                  trackColor={{ false: colors.borderMedium, true: colors.accent }}
+                  thumbColor={colors.surface}
                   accessibilityLabel="Edit All Data permission"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: permissions.canEdit }}
@@ -268,8 +271,8 @@ export default function CaregiverManagementScreen() {
                 <Switch
                   value={permissions.canExport}
                   onValueChange={() => handleTogglePermission('canExport')}
-                  trackColor={{ false: Colors.borderMedium, true: Colors.accent }}
-                  thumbColor={Colors.surface}
+                  trackColor={{ false: colors.borderMedium, true: colors.accent }}
+                  thumbColor={colors.surface}
                   accessibilityLabel="Export Reports permission"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: permissions.canExport }}
@@ -281,18 +284,18 @@ export default function CaregiverManagementScreen() {
           {/* Activity */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>ACTIVITY</Text>
-            
+
             <View style={styles.activityCard}>
               <View style={styles.activityRow}>
                 <Text style={styles.activityLabel}>Last Active</Text>
                 <Text style={styles.activityValue}>
-                  {caregiver.lastActive 
+                  {caregiver.lastActive
                     ? new Date(caregiver.lastActive).toLocaleString()
                     : 'Never'
                   }
                 </Text>
               </View>
-              
+
               <TouchableOpacity
                 style={styles.viewActivityButton}
                 onPress={() => router.push('/family-activity')}
@@ -307,7 +310,7 @@ export default function CaregiverManagementScreen() {
           {/* Danger Zone */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>DANGER ZONE</Text>
-            
+
             <TouchableOpacity
               style={styles.removeButton}
               onPress={handleRemove}
@@ -316,9 +319,9 @@ export default function CaregiverManagementScreen() {
             >
               <Text style={styles.removeButtonText}>Remove Caregiver</Text>
             </TouchableOpacity>
-            
+
             <Text style={styles.warningText}>
-              {caregiver.name} will immediately lose all access to care information. 
+              {caregiver.name} will immediately lose all access to care information.
               They will need a new invite code to rejoin.
             </Text>
           </View>
@@ -328,10 +331,10 @@ export default function CaregiverManagementScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -342,7 +345,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
     marginTop: 100,
   },
@@ -353,19 +356,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.xs,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.md,
   },
   profileCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginTop: Spacing.md,
@@ -381,7 +384,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 28,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   profileInfo: {
     flex: 1,
@@ -390,28 +393,28 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   profileRole: {
     fontSize: 14,
-    color: Colors.accent,
+    color: c.accent,
     marginBottom: Spacing.xs,
   },
   profileDetail: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 2,
   },
   profileJoined: {
     fontSize: 12,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: Spacing.xs,
   },
   permissionsCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
   },
@@ -421,7 +424,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   permissionLeft: {
     flex: 1,
@@ -439,16 +442,16 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   permissionDescription: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 16,
   },
   permissionLocked: {
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 6,
     borderRadius: 6,
@@ -456,12 +459,12 @@ const styles = StyleSheet.create({
   permissionLockedText: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   activityCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
   },
@@ -472,12 +475,12 @@ const styles = StyleSheet.create({
   },
   activityLabel: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   activityValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   viewActivityButton: {
     paddingVertical: Spacing.sm,
@@ -485,7 +488,7 @@ const styles = StyleSheet.create({
   viewActivityText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.accent,
+    color: c.accent,
   },
   removeButton: {
     backgroundColor: 'rgba(200, 90, 84, 0.1)',
@@ -503,7 +506,7 @@ const styles = StyleSheet.create({
   },
   warningText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
     textAlign: 'center',
   },

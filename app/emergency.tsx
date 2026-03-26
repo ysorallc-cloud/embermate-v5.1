@@ -3,7 +3,7 @@
 // Quick access to care team contacts with Emergency Mode for 1-tap calling
 // ============================================================================
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Linking, Alert, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,11 +11,14 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { getCareTeam, CareTeamMember } from '../utils/careTeamStorage';
 import { getEmergencyNumber } from '../utils/emergencyContacts';
 import { logError } from '../utils/devLog';
 
 export default function EmergencyScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const [careTeam, setCareTeam] = useState<CareTeamMember[]>([]);
   const [emergencyMode, setEmergencyMode] = useState(false);
@@ -122,7 +125,7 @@ export default function EmergencyScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]} style={styles.gradient}>
+      <LinearGradient colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]} style={styles.gradient}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
           <View style={styles.header}>
@@ -176,7 +179,7 @@ export default function EmergencyScreen() {
             accessibilityLabel={`Call ${emergencyNumber} emergency services`}
             accessibilityRole="button"
           >
-            <Ionicons name="call" size={28} color={Colors.textPrimary} />
+            <Ionicons name="call" size={28} color={colors.textPrimary} />
             <View style={styles.emergencyButtonText}>
               <Text style={styles.emergencyButtonTitle}>Call {emergencyNumber}</Text>
               <Text style={styles.emergencyButtonSubtitle}>Emergency Services</Text>
@@ -241,7 +244,7 @@ export default function EmergencyScreen() {
                   <Ionicons
                     name="call"
                     size={22}
-                    color={emergencyMode ? Colors.error : Colors.accent}
+                    color={emergencyMode ? colors.error : colors.accent}
                   />
                   {emergencyMode && (
                     <View style={styles.noConfirmBadge}>
@@ -282,7 +285,7 @@ export default function EmergencyScreen() {
                   <Ionicons
                     name={emergencyMode ? "call" : "call-outline"}
                     size={22}
-                    color={emergencyMode ? Colors.error : Colors.textSecondary}
+                    color={emergencyMode ? colors.error : colors.textSecondary}
                   />
                 </TouchableOpacity>
               ))}
@@ -296,28 +299,28 @@ export default function EmergencyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (c: typeof Colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   gradient: { flex: 1 },
   scrollView: { flex: 1, paddingHorizontal: Spacing.xl },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: Platform.OS === 'android' ? 20 : 0, paddingBottom: Spacing.md },
   backButton: {
     width: 44,
     height: 44,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backIcon: {
     fontSize: 24,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
-  headerLabel: { fontSize: 11, color: Colors.textMuted, letterSpacing: 1, fontWeight: '600' },
+  headerLabel: { fontSize: 11, color: c.textMuted, letterSpacing: 1, fontWeight: '600' },
   placeholder: { width: 40 },
-  title: { fontSize: 28, fontWeight: '300', color: Colors.textPrimary, marginBottom: Spacing.lg },
+  title: { fontSize: 28, fontWeight: '300', color: c.textPrimary, marginBottom: Spacing.lg },
 
   // Emergency Mode Toggle
   emergencyModeButton: {
@@ -325,9 +328,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.redMuted,
+    backgroundColor: c.redMuted,
     borderWidth: 2,
-    borderColor: Colors.error,
+    borderColor: c.error,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.lg,
@@ -338,12 +341,12 @@ const styles = StyleSheet.create({
   emergencyModeText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.error,
+    color: c.error,
   },
   emergencyModeActive: {
-    backgroundColor: Colors.redStrong,
+    backgroundColor: c.redStrong,
     borderWidth: 2,
-    borderColor: Colors.error,
+    borderColor: c.error,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.lg,
@@ -356,7 +359,7 @@ const styles = StyleSheet.create({
   emergencyModeActiveTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.error,
+    color: c.error,
     marginBottom: 4,
   },
   emergencyModeActiveSubtitle: {
@@ -364,7 +367,7 @@ const styles = StyleSheet.create({
     color: '#fca5a5',
   },
   exitEmergencyButton: {
-    backgroundColor: Colors.error,
+    backgroundColor: c.error,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -372,7 +375,7 @@ const styles = StyleSheet.create({
   exitEmergencyText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // Emergency Call Button
@@ -380,23 +383,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.lg,
-    backgroundColor: Colors.error,
+    backgroundColor: c.error,
     borderRadius: BorderRadius.lg,
     padding: Spacing.xl,
     marginBottom: Spacing.lg,
   },
   emergencyButtonActive: {
-    shadowColor: Colors.error,
+    shadowColor: c.error,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 20,
     elevation: 10,
   },
   emergencyButtonText: { flex: 1 },
-  emergencyButtonTitle: { fontSize: 20, fontWeight: '600', color: Colors.textPrimary },
-  emergencyButtonSubtitle: { fontSize: 14, color: Colors.textBright },
+  emergencyButtonTitle: { fontSize: 20, fontWeight: '600', color: c.textPrimary },
+  emergencyButtonSubtitle: { fontSize: 14, color: c.textBright },
   oneTapBadge: {
-    backgroundColor: Colors.textPlaceholder,
+    backgroundColor: c.textPlaceholder,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
@@ -404,7 +407,7 @@ const styles = StyleSheet.create({
   oneTapBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // Quick Actions
@@ -415,9 +418,9 @@ const styles = StyleSheet.create({
   },
   quickActionButton: {
     flex: 1,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     alignItems: 'center',
@@ -428,28 +431,28 @@ const styles = StyleSheet.create({
   },
   quickActionLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Sections
   section: { marginBottom: Spacing.xl },
-  sectionLabel: { fontSize: 11, color: Colors.textMuted, letterSpacing: 0.8, fontWeight: '600', marginBottom: Spacing.md },
+  sectionLabel: { fontSize: 11, color: c.textMuted, letterSpacing: 0.8, fontWeight: '600', marginBottom: Spacing.md },
 
   // Contact Cards
   contactCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     marginBottom: Spacing.sm,
     position: 'relative',
   },
   contactCardEmergency: {
-    borderColor: Colors.error,
-    shadowColor: Colors.error,
+    borderColor: c.error,
+    shadowColor: c.error,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
@@ -459,22 +462,22 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.md,
   },
-  contactIconSecondary: { backgroundColor: Colors.surfaceAlt },
-  contactInitials: { fontSize: 16, fontWeight: '600', color: Colors.accent },
+  contactIconSecondary: { backgroundColor: c.surfaceAlt },
+  contactInitials: { fontSize: 16, fontWeight: '600', color: c.accent },
   contactInfo: { flex: 1 },
-  contactName: { fontSize: 16, color: Colors.textPrimary, fontWeight: '500', marginBottom: 2 },
-  contactRole: { fontSize: 13, color: Colors.textSecondary, marginBottom: 2 },
-  contactPhone: { fontSize: 13, color: Colors.accent },
+  contactName: { fontSize: 16, color: c.textPrimary, fontWeight: '500', marginBottom: 2 },
+  contactRole: { fontSize: 13, color: c.textSecondary, marginBottom: 2 },
+  contactPhone: { fontSize: 13, color: c.accent },
   noConfirmBadge: {
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: Colors.error,
+    backgroundColor: c.error,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -482,6 +485,6 @@ const styles = StyleSheet.create({
   noConfirmText: {
     fontSize: 10,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });

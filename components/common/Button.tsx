@@ -3,7 +3,7 @@
 // Consistent button styling with variants, sizes, and accessibility
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost' | 'success';
 type ButtonSize = 'small' | 'medium' | 'large';
@@ -58,9 +59,11 @@ export const Button: React.FC<ButtonProps> = ({
   accessibilityHint,
   testID,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isDisabled = disabled || loading;
 
-  const variantStyles = getVariantStyles(variant, isDisabled);
+  const variantStyles = getVariantStyles(variant, isDisabled, colors);
   const sizeStyles = getSizeStyles(size);
 
   return (
@@ -121,7 +124,7 @@ export const Button: React.FC<ButtonProps> = ({
 };
 
 // Variant-specific styles
-const getVariantStyles = (variant: ButtonVariant, disabled: boolean) => {
+const getVariantStyles = (variant: ButtonVariant, disabled: boolean, c: typeof Colors) => {
   const styles: {
     container: ViewStyle;
     text: TextStyle;
@@ -129,70 +132,75 @@ const getVariantStyles = (variant: ButtonVariant, disabled: boolean) => {
   } = {
     container: {},
     text: {},
-    loaderColor: Colors.textPrimary,
+    loaderColor: c.textPrimary,
   };
 
   switch (variant) {
     case 'primary':
       styles.container = {
-        backgroundColor: disabled ? `${Colors.accent}60` : Colors.accent,
+        backgroundColor: disabled ? `${c.accent}60` : c.accent,
         borderWidth: 0,
+        shadowColor: c.accent,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: disabled ? 0 : 0.30,
+        shadowRadius: 12,
+        elevation: disabled ? 0 : 5,
       };
       styles.text = {
-        color: Colors.textPrimary,
+        color: '#0c0e14',
         fontWeight: '600',
       };
-      styles.loaderColor = Colors.textPrimary;
+      styles.loaderColor = c.textPrimary;
       break;
 
     case 'secondary':
       styles.container = {
-        backgroundColor: Colors.glass,
+        backgroundColor: c.glass,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: c.glassBorder,
       };
       styles.text = {
-        color: Colors.textPrimary,
+        color: c.textPrimary,
         fontWeight: '500',
       };
-      styles.loaderColor = Colors.textPrimary;
+      styles.loaderColor = c.textPrimary;
       break;
 
     case 'outline':
       styles.container = {
         backgroundColor: 'transparent',
         borderWidth: 1,
-        borderColor: Colors.accent,
+        borderColor: c.accent,
       };
       styles.text = {
-        color: Colors.accent,
+        color: c.accent,
         fontWeight: '500',
       };
-      styles.loaderColor = Colors.accent;
+      styles.loaderColor = c.accent;
       break;
 
     case 'danger':
       styles.container = {
-        backgroundColor: disabled ? `${Colors.red}60` : Colors.red,
+        backgroundColor: disabled ? `${c.red}60` : c.red,
         borderWidth: 0,
       };
       styles.text = {
-        color: Colors.textPrimary,
+        color: c.textPrimary,
         fontWeight: '600',
       };
-      styles.loaderColor = Colors.textPrimary;
+      styles.loaderColor = c.textPrimary;
       break;
 
     case 'success':
       styles.container = {
-        backgroundColor: disabled ? `${Colors.green}60` : Colors.green,
+        backgroundColor: disabled ? `${c.green}60` : c.green,
         borderWidth: 0,
       };
       styles.text = {
-        color: Colors.textPrimary,
+        color: c.textPrimary,
         fontWeight: '600',
       };
-      styles.loaderColor = Colors.textPrimary;
+      styles.loaderColor = c.textPrimary;
       break;
 
     case 'ghost':
@@ -201,10 +209,10 @@ const getVariantStyles = (variant: ButtonVariant, disabled: boolean) => {
         borderWidth: 0,
       };
       styles.text = {
-        color: Colors.accent,
+        color: c.accent,
         fontWeight: '500',
       };
-      styles.loaderColor = Colors.accent;
+      styles.loaderColor = c.accent;
       break;
   }
 
@@ -256,7 +264,7 @@ const getSizeStyles = (size: ButtonSize) => {
       styles.container = {
         paddingVertical: Spacing.lg,
         paddingHorizontal: Spacing.xl,
-        borderRadius: BorderRadius.md,
+        borderRadius: 14,
       };
       styles.text = {
         fontSize: 17,
@@ -270,7 +278,7 @@ const getSizeStyles = (size: ButtonSize) => {
   return styles;
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   base: {
     flexDirection: 'row',
     alignItems: 'center',

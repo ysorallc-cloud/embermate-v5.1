@@ -182,15 +182,45 @@ export function MedsBatchPanel({
         const timeStr = parseTimeForDisplay(med.scheduledTime);
         const isMissed = med.status === 'missed';
         const statusText = isMissed ? 'Missed' : med.status === 'skipped' ? 'Skipped' : 'Done';
+
+        // Deduplicate dosage: skip if already in the item name
+        const showDosage = med.itemDosage && !med.itemName.includes(med.itemDosage);
+
+        if (isMissed) {
+          return (
+            <TouchableOpacity
+              key={med.id}
+              style={styles.medRow}
+              onPress={() => onItemPress(med)}
+              activeOpacity={0.7}
+              accessibilityLabel={`${med.itemName}, Missed. Tap to log late.`}
+              accessibilityRole="button"
+            >
+              <View style={styles.missedCircle}>
+                <Text style={styles.missedIcon}>{'\u2014'}</Text>
+              </View>
+              <View style={styles.medDetails}>
+                <Text style={styles.medNameMissed}>{med.itemName}</Text>
+                <Text style={styles.medMetaOverdue}>
+                  {showDosage ? `${med.itemDosage} \u00B7 ` : ''}
+                  {timeStr ? `${timeStr} \u00B7 ` : ''}
+                  Missed
+                </Text>
+              </View>
+              <Text style={styles.logLateText}>Log Late</Text>
+            </TouchableOpacity>
+          );
+        }
+
         return (
           <View key={med.id} style={styles.medRow}>
-            <View style={isMissed ? styles.missedCircle : styles.doneCircle}>
-              <Text style={isMissed ? styles.missedIcon : styles.doneCheck}>{isMissed ? '\u2014' : '\u2713'}</Text>
+            <View style={styles.doneCircle}>
+              <Text style={styles.doneCheck}>{'\u2713'}</Text>
             </View>
             <View style={styles.medDetails}>
-              <Text style={isMissed ? styles.medNameMissed : styles.medNameDone}>{med.itemName}</Text>
+              <Text style={styles.medNameDone}>{med.itemName}</Text>
               <Text style={styles.medMetaDone}>
-                {med.itemDosage ? `${med.itemDosage} \u00B7 ` : ''}
+                {showDosage ? `${med.itemDosage} \u00B7 ` : ''}
                 {timeStr ? `${timeStr} \u00B7 ` : ''}
                 {statusText}
               </Text>
@@ -377,5 +407,17 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 12,
     color: c.textDisabled,
     marginTop: 2,
+  },
+  logLateText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: c.amber,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: c.amberBorder,
+    backgroundColor: c.amberFaint,
+    overflow: 'hidden',
   },
 });

@@ -2,7 +2,7 @@
 // LOG PAIN - Dedicated NRS 0-10 pain tracking with body location & character
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { saveSymptom } from '../utils/symptomStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
@@ -62,6 +63,8 @@ export default function LogPainScreen() {
   const [character, setCharacter] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const canSave = severity !== null;
 
@@ -108,7 +111,7 @@ export default function LogPainScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={100}>
@@ -227,7 +230,7 @@ export default function LogPainScreen() {
                   value={notes}
                   onChangeText={setNotes}
                   placeholder="When did it start? What makes it better/worse?"
-                  placeholderTextColor={Colors.textPlaceholder}
+                  placeholderTextColor={colors.textPlaceholder}
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
@@ -257,14 +260,14 @@ export default function LogPainScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (c: typeof Colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   gradient: { flex: 1 },
   scrollView: { flex: 1 },
   content: { padding: 20, paddingBottom: 40 },
   form: { gap: 24 },
   formGroup: { gap: 8 },
-  label: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },
+  label: { fontSize: 13, fontWeight: '500', color: c.textSecondary },
   severityHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -282,19 +285,19 @@ const styles = StyleSheet.create({
   severityButton: {
     flex: 1,
     aspectRatio: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   severityButtonText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   severityButtonTextSelected: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '600',
   },
   scaleLabels: {
@@ -304,7 +307,7 @@ const styles = StyleSheet.create({
   },
   scaleLabel: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   chipGrid: {
     flexDirection: 'row',
@@ -314,41 +317,41 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 20,
   },
   chipSelected: {
-    backgroundColor: Colors.accentLight,
-    borderColor: Colors.accent,
+    backgroundColor: c.accentLight,
+    borderColor: c.accent,
   },
   chipText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   chipTextSelected: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   input: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   textArea: { minHeight: 80, paddingTop: 14 },
   saveButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 12,
   },
   saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: { color: Colors.textPrimary, fontSize: 15, fontWeight: '600' },
+  saveButtonText: { color: c.textPrimary, fontSize: 15, fontWeight: '600' },
 });

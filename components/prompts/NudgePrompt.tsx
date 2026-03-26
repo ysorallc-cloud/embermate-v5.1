@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface NudgePromptProps {
   message: string;
@@ -16,6 +17,8 @@ export const NudgePrompt: React.FC<NudgePromptProps> = ({
   category,
 }) => {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <TouchableOpacity
@@ -31,9 +34,9 @@ export const NudgePrompt: React.FC<NudgePromptProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.sageLight,
+    backgroundColor: c.sageLight,
     borderRadius: 10,
     padding: 14,
     marginBottom: 16,
@@ -43,12 +46,12 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
   },
   arrow: {
     fontSize: 16,
-    color: Colors.accent,
+    color: c.accent,
     marginLeft: 8,
   },
 });

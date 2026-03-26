@@ -21,17 +21,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
   titleBlock: {
     flex: 1,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '300',
     color: c.textPrimary,
+    letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 12,

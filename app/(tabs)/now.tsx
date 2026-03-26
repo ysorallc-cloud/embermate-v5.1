@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { navigate } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../theme/theme-tokens';
@@ -82,7 +83,7 @@ import { ProgressRings } from '../../components/now/ProgressRings';
 import { ScreenHeader } from '../../components/ScreenHeader';
 // SectionHeader replaced by inline SectionHeaderRow (flat, no icons)
 import { MorningMedsBanner } from '../../components/now/MorningMedsBanner';
-import { TimelineSection } from '../../components/now/TimelineSection';
+import { TimelineSection, TypeLegend } from '../../components/now/TimelineSection';
 import { RoutineSheet } from '../../components/now/RoutineSheet';
 import { HandoffPromptCard } from '../../components/now/HandoffPromptCard';
 
@@ -118,7 +119,7 @@ import { logError } from '../../utils/devLog';
 import { useDataListener, emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
 import { GettingStartedChecklist } from '../../components/guidance';
-import { buildCareBrief, CareBrief } from '../../utils/careSummaryBuilder';
+import { buildCareBrief, buildJournalPreview, CareBrief } from '../../utils/careSummaryBuilder';
 import { hasSampleData } from '../../utils/sampleDataManager';
 import { SampleDataBanner } from '../../components/common/SampleDataBanner';
 
@@ -277,6 +278,7 @@ export default function NowScreen() {
   // Water stats from direct storage (not care plan instances, since water is counted in glasses not task completions)
   const [waterGlasses, setWaterGlasses] = useState(0);
   const [patientName, setPatientName] = useState('Patient');
+  const [patientGender, setPatientGender] = useState<string | null>(null);
 
   // Vitals guidance state (Task 4.1)
   const [vitalsExceedances, setVitalsExceedances] = useState<any[]>([]);
@@ -588,6 +590,9 @@ export default function NowScreen() {
         }
       }
 
+      const gender = await safeGetItem<string | null>(StorageKeys.PATIENT_GENDER, null);
+      setPatientGender(gender);
+
       const meds = await getMedications();
       const activeMeds = meds.filter((m) => m.active);
       setMedications(activeMeds);
@@ -738,7 +743,8 @@ export default function NowScreen() {
     }
 
     if (brief && !brief.sleep.logged) {
-      items.push({ icon: '\uD83D\uDE34', text: 'Log sleep when she goes to bed', route: '/log-sleep' });
+      const pronoun = patientGender?.toLowerCase() === 'male' ? 'he' : patientGender?.toLowerCase() === 'female' ? 'she' : 'they';
+      items.push({ icon: '\uD83D\uDE34', text: `Log sleep when ${pronoun} go${pronoun === 'they' ? '' : 'es'} to bed`, route: '/log-sleep' });
     }
 
     const hasEvening = brief?.mood.eveningWellness != null;
@@ -844,13 +850,7 @@ export default function NowScreen() {
           </View>
         )}
 
-        {/* Coffee Moment Modal (banner removed — footer pause link is the entry point) */}
-        <CoffeeMomentMinimal
-          visible={coffeeMoment.showModal}
-          onClose={coffeeMoment.closeModal}
-          microcopy="Pause for a minute"
-          duration={60}
-        />
+        {/* Coffee moment removed — Support tab is the dedicated wellness surface */}
 
         {/* Onboarding Prompt */}
         {showOnboarding && (
@@ -907,7 +907,15 @@ export default function NowScreen() {
             onAction={() => navigate('/care-plan')}
             styles={styles}
           />
-          <View style={styles.sectionCard} accessibilityLiveRegion="polite" accessibilityRole="summary">
+          <LinearGradient
+            colors={['#061A12', '#0D2A1F', '#071E14']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroCard}
+            accessibilityLiveRegion="polite"
+            accessibilityRole="summary"
+          >
+            <View style={styles.heroOrb} pointerEvents="none" />
             <ProgressRings
               todayStats={todayStats}
               enabledBuckets={enabledBuckets}
@@ -918,7 +926,7 @@ export default function NowScreen() {
               onManagePress={() => navigate('/care-plan')}
               patientName={patientName}
             />
-          </View>
+          </LinearGradient>
 
           {/* ═══ ZONE 2: TODAY'S SCHEDULE ═══ */}
           <SectionHeaderRow
@@ -929,6 +937,11 @@ export default function NowScreen() {
             onToggleCollapse={() => setTimelineCollapsed(prev => !prev)}
             styles={styles}
           />
+
+          {/* Type legend — colored dots + type names for active types */}
+          {!timelineCollapsed && (
+            <TypeLegend instances={[...allPending, ...todayTimeline.completed]} />
+          )}
 
           {timelineCollapsed ? (
             /* Collapsed: window summary rows */
@@ -1047,70 +1060,39 @@ export default function NowScreen() {
             </>
           )}
 
-          {/* ═══ ZONE 4: WHAT'S HAPPENED ═══ */}
-          {brief && (() => {
-            const handoffNotes = buildHandoffNotes();
-            if (handoffNotes.length === 0) return null;
-            return (
-              <>
-                <SectionHeaderRow title="What's Happened" styles={styles} />
-                <View style={styles.sectionCard}>
-                  {handoffNotes.map((item, i) => (
-                    <View key={`handoff-${i}`} style={styles.handoffRow}>
-                      <Text style={styles.handoffIcon}>{item.icon}</Text>
-                      <Text style={styles.handoffText}>{item.text}</Text>
-                    </View>
-                  ))}
-                </View>
-              </>
-            );
-          })()}
-
-          {/* ═══ ZONE 5: BEFORE BED ═══ */}
-          {brief && new Date().getHours() >= 17 && (() => {
-            const bedItems = buildBeforeBedItems();
-            if (bedItems.length === 0) return null;
-            return (
-              <>
-                <SectionHeaderRow title="Before Bed" styles={styles} />
-                <View style={styles.sectionCard}>
-                  {bedItems.map((item, i) => (
-                    <TouchableOpacity
-                      key={`bed-${i}`}
-                      style={styles.beforeBedRow}
-                      onPress={() => item.route && navigate(item.route)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.beforeBedIcon}>{item.icon}</Text>
-                      <Text style={styles.beforeBedText}>{item.text}</Text>
-                      <Text style={styles.beforeBedArrow}>{'\u2192'}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            );
-          })()}
-
           {/* ═══ HANDOFF PROMPT ═══ */}
           <HandoffPromptCard completedCount={todayTimeline.completed.length} />
 
+          {/* ═══ JOURNAL PREVIEW ═══ */}
+          {todayTimeline.completed.length < 5 ? (
+            <View style={styles.journalPreviewDimmed}>
+              <Text style={styles.journalPreviewDimmedText}>
+                {'\uD83D\uDCD3'} Daily journal · Appears as the day wraps up
+              </Text>
+            </View>
+          ) : brief ? (
+            <TouchableOpacity
+              style={styles.journalPreviewCard}
+              onPress={() => navigate('/(tabs)/journal')}
+              activeOpacity={0.7}
+              accessibilityLabel="View journal"
+              accessibilityRole="button"
+            >
+              <Text style={styles.journalPreviewTitle}>{'\uD83D\uDCD3'} Today's Journal</Text>
+              <Text style={styles.journalPreviewText} numberOfLines={2}>
+                {buildJournalPreview(brief)}
+              </Text>
+              <Text style={styles.journalPreviewLink}>View journal →</Text>
+            </TouchableOpacity>
+          ) : null}
+
           {/* ═══ FOOTER ═══ */}
-          {/* All-done / encouragement */}
+          {/* All-done celebration */}
           {hasRegimenInstances &&
             allPending.length === 0 &&
             todayTimeline.completed.length > 0 && (() => {
               const hasMissed = todayTimeline.completed.some(i => i.status === 'missed');
-              if (hasMissed) {
-                return (
-                  <Text
-                    style={styles.encouragementText}
-                    accessible={true}
-                    accessibilityRole="text"
-                  >
-                    You're doing a great job. Every bit of care matters.
-                  </Text>
-                );
-              }
+              if (hasMissed) return null;
               return (
                 <View
                   style={styles.allDoneMessage}
@@ -1124,28 +1106,6 @@ export default function NowScreen() {
                 </View>
               );
             })()}
-
-          {/* Footer message + coffee link */}
-          <View style={styles.footerSection}>
-            <Text style={styles.footerMessage}>
-              {allPending.length === 0 && todayTimeline.completed.length > 0
-                ? 'You showed up today, and that matters.'
-                : allPending.length <= 2 && allPending.length > 0
-                ? 'Almost there. You\'re doing more than you think.'
-                : 'Caregiving is hard. You\'re not behind \u2014 you\'re showing up.'}
-            </Text>
-            <TouchableOpacity
-              onPress={coffeeMoment.startReset}
-              style={styles.footerCoffeeLink}
-              activeOpacity={0.7}
-              accessibilityLabel="Take a 1-minute breathing pause"
-              accessibilityRole="button"
-            >
-              <Text style={styles.footerCoffeeLinkText}>
-                {'\u2615'}  Take a 1-minute pause
-              </Text>
-            </TouchableOpacity>
-          </View>
 
         </View>
 
@@ -1286,14 +1246,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
+    paddingTop: 20,
     paddingBottom: 10,
   },
   sectionHeaderTitle: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '600',
-    letterSpacing: 1.2,
-    color: c.textSecondary,
+    letterSpacing: 2,
+    color: c.textTertiary,
     textTransform: 'uppercase',
   },
   sectionHeaderAction: {
@@ -1312,6 +1272,26 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: 13,
     backgroundColor: c.accentLight,
     overflow: 'hidden' as const,
+  },
+
+  // ── Hero Card (ProgressRings gradient) ──
+  heroCard: {
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.15)',
+  },
+  heroOrb: {
+    position: 'absolute',
+    right: -20,
+    top: -20,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#34D399',
+    opacity: 0.15,
   },
 
   // ── Section Card wrapper ──
@@ -1355,6 +1335,48 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: c.green,
+  },
+  // ── Journal preview ──
+  journalPreviewDimmed: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderStyle: 'dashed' as any,
+    borderColor: c.glassBorder,
+    opacity: 0.5,
+    alignItems: 'center' as const,
+  },
+  journalPreviewDimmedText: {
+    fontSize: 13,
+    color: c.textMuted,
+    textAlign: 'center' as const,
+  },
+  journalPreviewCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: c.glass,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+  },
+  journalPreviewTitle: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: c.textPrimary,
+    marginBottom: 4,
+  },
+  journalPreviewText: {
+    fontSize: 13,
+    color: c.textSecondary,
+    marginBottom: 8,
+  },
+  journalPreviewLink: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: c.accent,
   },
   encouragementText: {
     fontSize: 14,

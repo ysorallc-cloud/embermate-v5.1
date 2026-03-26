@@ -2,11 +2,15 @@
 // CAUGHT UP CARD - All done for today (Green)
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export const CaughtUpCard: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.container}>
       <View style={styles.checkContainer}>
@@ -21,11 +25,11 @@ export const CaughtUpCard: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.greenLight,
+    backgroundColor: c.greenLight,
     borderWidth: 1,
-    borderColor: Colors.greenBorder,
+    borderColor: c.greenBorder,
     borderRadius: 14,
     padding: 14,
     flexDirection: 'row',
@@ -35,14 +39,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: Colors.glassActive,
+    backgroundColor: c.glassActive,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   checkIcon: {
     fontSize: 18,
-    color: Colors.green,
+    color: c.green,
   },
   content: {
     flex: 1,
@@ -51,11 +55,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.5,
-    color: Colors.green,
+    color: c.green,
     marginBottom: 2,
   },
   title: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });

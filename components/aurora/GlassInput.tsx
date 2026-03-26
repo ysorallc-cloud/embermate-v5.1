@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TextInput, View, Text, StyleSheet, TextInputProps, KeyboardTypeOptions } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Props {
   label?: string;
@@ -25,50 +26,55 @@ export const GlassInput: React.FC<Props> = ({
   accessibilityLabel,
   accessibilityHint,
   testID,
-}) => (
-  <View style={styles.container}>
-    {label && (
-      <Text
-        style={styles.label}
-        accessibilityRole="text"
-        accessible={false}
-      >
-        {label}
-      </Text>
-    )}
-    <TextInput
-      style={[styles.input, multiline && styles.inputMultiline]}
-      value={value}
-      onChangeText={onChangeText}
-      placeholder={placeholder}
-      placeholderTextColor={Colors.textMuted}
-      multiline={multiline}
-      keyboardType={keyboardType}
-      accessibilityLabel={accessibilityLabel || label}
-      accessibilityHint={accessibilityHint || (placeholder ? `Enter ${placeholder.toLowerCase()}` : undefined)}
-      testID={testID}
-    />
-  </View>
-);
+}) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
-const styles = StyleSheet.create({
+  return (
+    <View style={styles.container}>
+      {label && (
+        <Text
+          style={styles.label}
+          accessibilityRole="text"
+          accessible={false}
+        >
+          {label}
+        </Text>
+      )}
+      <TextInput
+        style={[styles.input, multiline && styles.inputMultiline]}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textMuted}
+        multiline={multiline}
+        keyboardType={keyboardType}
+        accessibilityLabel={accessibilityLabel || label}
+        accessibilityHint={accessibilityHint || (placeholder ? `Enter ${placeholder.toLowerCase()}` : undefined)}
+        testID={testID}
+      />
+    </View>
+  );
+};
+
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     marginBottom: Spacing.lg,
   },
   label: {
     ...Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.sm,
   },
   input: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     borderRadius: BorderRadius.md,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     ...Typography.body,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   inputMultiline: {
     minHeight: 100,

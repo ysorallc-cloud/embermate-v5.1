@@ -3,7 +3,7 @@
 // Main panel component for Care Plan on Record page
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { DayState, DayStateRoutine, DayStateItem } from '../../types/dayState';
 
 // ============================================================================
@@ -39,6 +40,8 @@ export function CarePlanPanel({
   onClearOverride,
   onSetupPress,
 }: CarePlanPanelProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const [expandedRoutines, setExpandedRoutines] = useState<Set<string>>(
     new Set(dayState.routines.filter(r => r.status === 'available').map(r => r.routineId))
@@ -145,7 +148,7 @@ export function CarePlanPanel({
             accessibilityLabel="Care plan settings"
             accessibilityRole="button"
           >
-            <Text style={styles.settingsIcon}>⚙️</Text>
+            <Text style={styles.settingsIcon}>{'\u2699\uFE0F'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -166,7 +169,7 @@ export function CarePlanPanel({
           <Text style={styles.nextUpText}>
             {dayState.nextAction.emoji} {dayState.nextAction.label}
           </Text>
-          <Text style={styles.nextUpChevron}>›</Text>
+          <Text style={styles.nextUpChevron}>{'\u203A'}</Text>
         </TouchableOpacity>
       )}
 
@@ -179,13 +182,14 @@ export function CarePlanPanel({
           onToggle={() => toggleRoutine(routine.routineId)}
           onItemPress={handleItemPress}
           onItemLongPress={(item) => handleItemLongPress(routine.routineId, item)}
+          colors={colors}
         />
       ))}
 
       {/* All Complete Message */}
       {dayState.allComplete && (
         <View style={styles.completeMessage}>
-          <Text style={styles.completeEmoji}>🎉</Text>
+          <Text style={styles.completeEmoji}>{'\uD83C\uDF89'}</Text>
           <Text style={styles.completeText}>All done for today!</Text>
         </View>
       )}
@@ -203,6 +207,7 @@ interface RoutineSectionProps {
   onToggle: () => void;
   onItemPress: (item: DayStateItem) => void;
   onItemLongPress: (item: DayStateItem) => void;
+  colors: typeof Colors;
 }
 
 function RoutineSection({
@@ -211,8 +216,10 @@ function RoutineSection({
   onToggle,
   onItemPress,
   onItemLongPress,
+  colors,
 }: RoutineSectionProps) {
-  const statusColor = getStatusColor(routine.status);
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const statusColor = getStatusColor(routine.status, colors);
 
   // Get upcoming (not done) items for preview when collapsed
   const upcomingItems = routine.items.filter(item => item.status !== 'done');
@@ -242,11 +249,11 @@ function RoutineSection({
         <View style={styles.routineHeaderRight}>
           <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
             <Text style={[styles.statusBadgeText, { color: statusColor }]}>
-              {routine.status === 'completed' ? '✓ Done' :
+              {routine.status === 'completed' ? '\u2713 Done' :
                routine.status === 'available' ? 'Now' : 'Later'}
             </Text>
           </View>
-          <Text style={styles.expandIcon}>{expanded ? '▼' : '▶'}</Text>
+          <Text style={styles.expandIcon}>{expanded ? '\u25BC' : '\u25B6'}</Text>
         </View>
       </TouchableOpacity>
 
@@ -262,7 +269,7 @@ function RoutineSection({
               accessibilityLabel={`${item.label}, ${item.statusText}`}
               accessibilityRole="button"
             >
-              <Text style={styles.previewEmoji}>{item.emoji || '•'}</Text>
+              <Text style={styles.previewEmoji}>{item.emoji || '\u2022'}</Text>
               <Text style={styles.previewLabel} numberOfLines={1}>
                 {item.label}
               </Text>
@@ -293,6 +300,7 @@ function RoutineSection({
               item={item}
               onPress={() => onItemPress(item)}
               onLongPress={() => onItemLongPress(item)}
+              colors={colors}
             />
           ))}
         </View>
@@ -309,9 +317,11 @@ interface RoutineItemProps {
   item: DayStateItem;
   onPress: () => void;
   onLongPress: () => void;
+  colors: typeof Colors;
 }
 
-function RoutineItem({ item, onPress, onLongPress }: RoutineItemProps) {
+function RoutineItem({ item, onPress, onLongPress, colors }: RoutineItemProps) {
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isDone = item.status === 'done';
 
   return (
@@ -327,7 +337,7 @@ function RoutineItem({ item, onPress, onLongPress }: RoutineItemProps) {
       accessibilityHint="Long press to toggle completion"
     >
       <View style={styles.routineItemLeft}>
-        <Text style={styles.routineItemEmoji}>{item.emoji || '•'}</Text>
+        <Text style={styles.routineItemEmoji}>{item.emoji || '\u2022'}</Text>
         <Text style={[styles.routineItemLabel, isDone && styles.routineItemLabelDone]}>
           {item.label}
         </Text>
@@ -341,7 +351,7 @@ function RoutineItem({ item, onPress, onLongPress }: RoutineItemProps) {
           {item.statusText}
           {item.isOverridden && ' *'}
         </Text>
-        <Text style={styles.routineItemChevron}>›</Text>
+        <Text style={styles.routineItemChevron}>{'\u203A'}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -351,12 +361,12 @@ function RoutineItem({ item, onPress, onLongPress }: RoutineItemProps) {
 // HELPERS
 // ============================================================================
 
-function getStatusColor(status: DayStateRoutine['status']): string {
+function getStatusColor(status: DayStateRoutine['status'], colors: typeof Colors): string {
   switch (status) {
-    case 'completed': return Colors.green; // Green
-    case 'available': return Colors.amber; // Amber
-    case 'upcoming': return Colors.textHalf; // Gray
-    default: return Colors.textHalf;
+    case 'completed': return colors.green;
+    case 'available': return colors.amber;
+    case 'upcoming': return colors.textHalf;
+    default: return colors.textHalf;
   }
 }
 
@@ -364,11 +374,11 @@ function getStatusColor(status: DayStateRoutine['status']): string {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   panel: {
-    backgroundColor: Colors.sageTint,
+    backgroundColor: c.sageTint,
     borderWidth: 1,
-    borderColor: Colors.sageBorder,
+    borderColor: c.sageBorder,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -376,9 +386,9 @@ const styles = StyleSheet.create({
 
   // Empty State
   emptyPanel: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
@@ -387,23 +397,23 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: Colors.textHalf,
+    color: c.textHalf,
     textAlign: 'center',
     marginBottom: 16,
   },
   setupButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 10,
   },
   setupButtonText: {
-    color: Colors.background,
+    color: c.background,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -418,12 +428,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 11,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
   headerActions: {
     flexDirection: 'row',
@@ -436,7 +446,7 @@ const styles = StyleSheet.create({
   },
   adjustTodayText: {
     fontSize: 12,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   settingsButton: {
@@ -459,17 +469,17 @@ const styles = StyleSheet.create({
   nextUpLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.amber,
+    color: c.amber,
     marginRight: 8,
   },
   nextUpText: {
     flex: 1,
     fontSize: 13,
-    color: Colors.textBright,
+    color: c.textBright,
   },
   nextUpChevron: {
     fontSize: 14,
-    color: Colors.amber,
+    color: c.amber,
   },
 
   // Routine Section
@@ -493,7 +503,7 @@ const styles = StyleSheet.create({
   routineName: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   routineProgress: {
     fontSize: 11,
@@ -515,7 +525,7 @@ const styles = StyleSheet.create({
   },
   expandIcon: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Preview Section (collapsed state)
@@ -523,7 +533,7 @@ const styles = StyleSheet.create({
     marginLeft: 30,
     paddingLeft: 12,
     borderLeftWidth: 1,
-    borderLeftColor: Colors.border,
+    borderLeftColor: c.border,
     paddingBottom: 4,
   },
   previewItem: {
@@ -541,7 +551,7 @@ const styles = StyleSheet.create({
   previewLabel: {
     flex: 1,
     fontSize: 12,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   previewStatus: {
     fontSize: 10,
@@ -553,14 +563,14 @@ const styles = StyleSheet.create({
   },
   previewMoreText: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Routine Items (expanded)
   routineItems: {
     marginLeft: 30,
     borderLeftWidth: 1,
-    borderLeftColor: Colors.glassActive,
+    borderLeftColor: c.glassActive,
     paddingLeft: 12,
   },
   routineItem: {
@@ -569,7 +579,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.surfaceElevated,
+    borderBottomColor: c.surfaceElevated,
   },
   routineItemDone: {
     opacity: 0.6,
@@ -587,10 +597,10 @@ const styles = StyleSheet.create({
   },
   routineItemLabel: {
     fontSize: 13,
-    color: Colors.textAlmostFull,
+    color: c.textAlmostFull,
   },
   routineItemLabelDone: {
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     textDecorationLine: 'line-through',
   },
   routineItemRight: {
@@ -600,17 +610,17 @@ const styles = StyleSheet.create({
   },
   routineItemStatus: {
     fontSize: 11,
-    color: Colors.sageStrong,
+    color: c.sageStrong,
   },
   routineItemStatusDone: {
-    color: Colors.green,
+    color: c.green,
   },
   routineItemStatusOverride: {
     fontStyle: 'italic',
   },
   routineItemChevron: {
     fontSize: 12,
-    color: Colors.textPlaceholder,
+    color: c.textPlaceholder,
   },
 
   // Complete Message
@@ -628,7 +638,7 @@ const styles = StyleSheet.create({
   completeText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.green,
+    color: c.green,
   },
 });
 

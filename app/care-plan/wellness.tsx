@@ -3,7 +3,7 @@
 // Configure morning and evening wellness check fields
 // ============================================================================
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useWellnessSettings } from '../../hooks/useWellnessSettings';
 
 // ============================================================================
@@ -66,6 +67,8 @@ function formatTime(time: string): string {
 
 export default function WellnessConfigScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { settings, updateSettings } = useWellnessSettings();
 
   const handleTimeChange = useCallback(async (period: 'morning' | 'evening', time: string) => {
@@ -98,7 +101,7 @@ export default function WellnessConfigScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -180,9 +183,9 @@ export default function WellnessConfigScreen() {
               <Switch
                 value={settings.morning.optionalChecks[field.key] ?? false}
                 onValueChange={(value) => handleToggleOptional('morning', field.key, value)}
-                trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
-                thumbColor={(settings.morning.optionalChecks[field.key] ?? false) ? Colors.textPrimary : Colors.switchThumbOff}
-                ios_backgroundColor={Colors.glassStrong}
+                trackColor={{ false: colors.glassStrong, true: colors.accent }}
+                thumbColor={(settings.morning.optionalChecks[field.key] ?? false) ? colors.textPrimary : colors.switchThumbOff}
+                ios_backgroundColor={colors.glassStrong}
                 accessibilityLabel={`Morning ${field.label}`}
                 accessibilityRole="switch"
                 accessibilityState={{ checked: settings.morning.optionalChecks[field.key] ?? false }}
@@ -199,9 +202,9 @@ export default function WellnessConfigScreen() {
             <Switch
               value={settings.morning.reminderEnabled}
               onValueChange={(value) => handleToggleReminder('morning', value)}
-              trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
-              thumbColor={settings.morning.reminderEnabled ? Colors.textPrimary : Colors.switchThumbOff}
-              ios_backgroundColor={Colors.glassStrong}
+              trackColor={{ false: colors.glassStrong, true: colors.accent }}
+              thumbColor={settings.morning.reminderEnabled ? colors.textPrimary : colors.switchThumbOff}
+              ios_backgroundColor={colors.glassStrong}
               accessibilityLabel="Morning Reminder"
               accessibilityRole="switch"
               accessibilityState={{ checked: settings.morning.reminderEnabled }}
@@ -260,9 +263,9 @@ export default function WellnessConfigScreen() {
               <Switch
                 value={settings.evening.optionalChecks[field.key] ?? false}
                 onValueChange={(value) => handleToggleOptional('evening', field.key, value)}
-                trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
-                thumbColor={(settings.evening.optionalChecks[field.key] ?? false) ? Colors.textPrimary : Colors.switchThumbOff}
-                ios_backgroundColor={Colors.glassStrong}
+                trackColor={{ false: colors.glassStrong, true: colors.accent }}
+                thumbColor={(settings.evening.optionalChecks[field.key] ?? false) ? colors.textPrimary : colors.switchThumbOff}
+                ios_backgroundColor={colors.glassStrong}
                 accessibilityLabel={`Evening ${field.label}`}
                 accessibilityRole="switch"
                 accessibilityState={{ checked: settings.evening.optionalChecks[field.key] ?? false }}
@@ -279,9 +282,9 @@ export default function WellnessConfigScreen() {
             <Switch
               value={settings.evening.reminderEnabled}
               onValueChange={(value) => handleToggleReminder('evening', value)}
-              trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
-              thumbColor={settings.evening.reminderEnabled ? Colors.textPrimary : Colors.switchThumbOff}
-              ios_backgroundColor={Colors.glassStrong}
+              trackColor={{ false: colors.glassStrong, true: colors.accent }}
+              thumbColor={settings.evening.reminderEnabled ? colors.textPrimary : colors.switchThumbOff}
+              ios_backgroundColor={colors.glassStrong}
               accessibilityLabel="Evening Reminder"
               accessibilityRole="switch"
               accessibilityState={{ checked: settings.evening.reminderEnabled }}
@@ -313,10 +316,10 @@ export default function WellnessConfigScreen() {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -334,20 +337,20 @@ const styles = StyleSheet.create({
   backButton: {
     width: 44,
     height: 44,
-    backgroundColor: Colors.backgroundElevated,
+    backgroundColor: c.backgroundElevated,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backIcon: {
     fontSize: 24,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   headerLabel: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 1,
     fontWeight: '600',
   },
@@ -368,12 +371,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '300',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   subtitle: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 22,
   },
 
@@ -381,7 +384,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textHalf,
+    color: c.textHalf,
     letterSpacing: 1,
     marginBottom: Spacing.md,
     marginTop: Spacing.xl,
@@ -396,23 +399,23 @@ const styles = StyleSheet.create({
   timeChip: {
     flex: 1,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
   },
   timeChipSelected: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.sageFaint,
+    borderColor: c.accent,
+    backgroundColor: c.sageFaint,
   },
   timeChipText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '500',
   },
   timeChipTextSelected: {
-    color: Colors.accent,
+    color: c.accent,
   },
 
   // Core row (non-toggleable)
@@ -420,15 +423,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderWidth: 1,
-    borderColor: Colors.glassHover,
+    borderColor: c.glassHover,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.sm,
   },
   coreBadge: {
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
@@ -436,7 +439,7 @@ const styles = StyleSheet.create({
   coreBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 0.5,
   },
 
@@ -445,9 +448,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -459,20 +462,20 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   settingDescription: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Info Card
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.purpleMuted,
+    backgroundColor: c.purpleMuted,
     borderWidth: 1,
-    borderColor: Colors.purpleStrong,
+    borderColor: c.purpleStrong,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginTop: Spacing.xl,
@@ -487,12 +490,12 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.purpleBright,
+    color: c.purpleBright,
     marginBottom: 4,
   },
   infoText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
 });

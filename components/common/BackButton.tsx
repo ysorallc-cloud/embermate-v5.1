@@ -3,7 +3,7 @@
 // Provides consistent styling and safe fallback navigation
 // ============================================================================
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -14,6 +14,7 @@ import {
 import { useRouter, usePathname } from 'expo-router';
 import { navigateReplace } from '../../lib/navigate';
 import { Colors, Spacing } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // ============================================================================
 // TYPES
@@ -91,6 +92,9 @@ export function BackButton({
   style,
   disabled = false,
 }: BackButtonProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const router = useRouter();
   const pathname = usePathname();
 
@@ -164,15 +168,15 @@ export function BackButton({
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Icon-only variant (most common)
   iconButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: Colors.surface,
+    width: 32,
+    height: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
     borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -180,8 +184,8 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   icon: {
-    fontSize: 24,
-    color: Colors.textPrimary,
+    fontSize: 16,
+    color: c.textPrimary,
   },
 
   // Text variant
@@ -191,7 +195,7 @@ const styles = StyleSheet.create({
   },
   textLabel: {
     fontSize: 14,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
 

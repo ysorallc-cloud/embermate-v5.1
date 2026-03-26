@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface WelcomeBackBannerProps {
   onDismiss: () => void;
@@ -9,6 +10,9 @@ interface WelcomeBackBannerProps {
 export const WelcomeBackBanner: React.FC<WelcomeBackBannerProps> = ({
   onDismiss,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -30,9 +34,9 @@ export const WelcomeBackBanner: React.FC<WelcomeBackBannerProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.sageLight,
+    backgroundColor: c.sageLight,
     borderRadius: 12,
     padding: 14,
     marginBottom: 16,
@@ -55,11 +59,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   message: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   dismissButton: {
@@ -67,6 +71,6 @@ const styles = StyleSheet.create({
   },
   dismissText: {
     fontSize: 20,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 });

@@ -3,11 +3,12 @@
 // Vertical status lines layout — only shows rows with data
 // ============================================================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { buildTodaySummary, TodaySummary } from '../../utils/careSummaryBuilder';
 import { useDataListener } from '../../lib/events';
 import { logError } from '../../utils/devLog';
@@ -28,6 +29,8 @@ interface StatusLine {
 // ============================================================================
 
 export function HandoffCard() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const [summary, setSummary] = useState<TodaySummary | null>(null);
 
@@ -190,13 +193,13 @@ export function HandoffCard() {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   card: {
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.accentBorder,
+    borderLeftColor: c.accentBorder,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.lg,
@@ -214,12 +217,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   shareText: {
     fontSize: 12,
     fontWeight: '500',
-    color: Colors.sageSoft,
+    color: c.sageSoft,
   },
 
   // Vertical status lines
@@ -238,17 +241,17 @@ const styles = StyleSheet.create({
   statusLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginRight: 6,
   },
   statusValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
   },
   statusValueFlagged: {
-    color: Colors.amber,
+    color: c.amber,
   },
 
   // Appointment row
@@ -261,13 +264,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 1,
     textTransform: 'uppercase',
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 2,
   },
   appointmentValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Flagged items
@@ -279,7 +282,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   flagPill: {
-    backgroundColor: Colors.amberLight,
+    backgroundColor: c.amberLight,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -287,7 +290,7 @@ const styles = StyleSheet.create({
   flagPillText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.amber,
+    color: c.amber,
   },
 
   // Footer link
@@ -299,6 +302,6 @@ const styles = StyleSheet.create({
   footerLinkText: {
     fontSize: 13,
     fontWeight: '500',
-    color: Colors.sageSoft,
+    color: c.sageSoft,
   },
 });

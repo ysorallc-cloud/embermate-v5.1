@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import { MedicationCardSkeleton } from '../components/LoadingSkeleton';
 import { getMedications, deleteMedication, calculateAdherence, Medication, markMedicationTaken } from '../utils/medicationStorage';
@@ -32,6 +33,8 @@ export default function MedicationsScreen() {
   const [interactions, setInteractions] = useState<any[]>([]);
   const [adherenceRates, setAdherenceRates] = useState<{ [key: string]: number }>({});
   const [takingAll, setTakingAll] = useState(false);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useFocusEffect(useCallback(() => {
     loadData();
@@ -185,7 +188,7 @@ export default function MedicationsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -216,7 +219,7 @@ export default function MedicationsScreen() {
           })()}
           keyExtractor={(item) => item.id}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
           }
           stickySectionHeadersEnabled={false}
           renderSectionHeader={({ section }) => (
@@ -407,37 +410,37 @@ export default function MedicationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
   },
-  
+
   // ADD BUTTON
   addButton: {
     width: 44,
     height: 44,
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
+    borderColor: c.accentBorder,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   addIcon: {
     fontSize: 24,
-    color: Colors.accent,
+    color: c.accent,
   },
-  
+
   content: {
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 20,
   },
-  
+
   // WARNING BANNER
   warningBanner: {
     flexDirection: 'row',
@@ -458,19 +461,19 @@ const styles = StyleSheet.create({
   warningTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.error,
+    color: c.error,
     marginBottom: 4,
   },
   warningText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
   warningLink: {
-    color: Colors.error,
+    color: c.error,
     fontWeight: '500',
   },
-  
+
   // SECTION
   section: {
     marginBottom: 32,
@@ -480,18 +483,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.5,
     textTransform: 'uppercase',
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 12,
   },
-  
+
   // TAKE ALL BUTTON
   takeAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: Colors.greenMuted,
+    backgroundColor: c.greenMuted,
     borderWidth: 2,
-    borderColor: Colors.success,
+    borderColor: c.success,
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
@@ -501,7 +504,7 @@ const styles = StyleSheet.create({
   },
   takeAllIcon: {
     fontSize: 32,
-    color: Colors.success,
+    color: c.success,
   },
   takeAllContent: {
     flex: 1,
@@ -509,7 +512,7 @@ const styles = StyleSheet.create({
   takeAllTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.success,
+    color: c.success,
     marginBottom: 2,
   },
   takeAllSubtitle: {
@@ -519,9 +522,9 @@ const styles = StyleSheet.create({
 
   // MEDICATION CARDS
   medCard: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -532,9 +535,9 @@ const styles = StyleSheet.create({
   medCardCompact: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
@@ -552,27 +555,27 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: Colors.glassStrong,
-    backgroundColor: Colors.surfaceElevated,
+    borderColor: c.glassStrong,
+    backgroundColor: c.surfaceElevated,
   },
   medCheckboxDone: {
     width: 24,
     height: 24,
     borderRadius: 6,
-    backgroundColor: Colors.success,
+    backgroundColor: c.success,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
   },
   checkmarkIcon: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 14,
     fontWeight: '600',
   },
   medIconBox: {
     width: 48,
     height: 48,
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -586,25 +589,25 @@ const styles = StyleSheet.create({
   medName: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   medNameTaken: {
     textDecorationLine: 'line-through',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   medDosage: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 8,
   },
   medFrequency: {
     fontSize: 13,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   takenTime: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // TIME BADGES
@@ -615,29 +618,29 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   timeBadge: {
-    backgroundColor: Colors.glassActive,
+    backgroundColor: c.glassActive,
     borderWidth: 1,
-    borderColor: Colors.glassStrong,
+    borderColor: c.glassStrong,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
   timeBadgeNow: {
-    backgroundColor: Colors.greenMuted,
+    backgroundColor: c.greenMuted,
     borderColor: 'rgba(16, 185, 129, 0.5)',
   },
   timeBadgeText: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
   },
   timeBadgeTextNow: {
-    color: Colors.success,
+    color: c.success,
   },
 
   // REFILL WARNING
   refillWarning: {
-    backgroundColor: Colors.amberMuted,
+    backgroundColor: c.amberMuted,
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.5)',
     borderRadius: 6,
@@ -647,20 +650,20 @@ const styles = StyleSheet.create({
   },
   refillWarningText: {
     fontSize: 12,
-    color: Colors.amber,
+    color: c.amber,
     fontWeight: '600',
   },
 
   // ADHERENCE BADGE
   adherenceBadge: {
-    backgroundColor: Colors.greenHint,
+    backgroundColor: c.greenHint,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   adherenceBadgeText: {
     fontSize: 12,
-    color: Colors.success,
+    color: c.success,
     fontWeight: '600',
   },
 
@@ -678,12 +681,12 @@ const styles = StyleSheet.create({
   },
   adherenceLabel: {
     fontSize: 12,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     fontWeight: '500',
   },
   adherenceValue: {
     fontSize: 13,
-    color: Colors.success,
+    color: c.success,
     fontWeight: '600',
   },
   adherenceBar: {
@@ -694,10 +697,10 @@ const styles = StyleSheet.create({
   },
   adherenceBarFill: {
     height: '100%',
-    backgroundColor: Colors.success,
+    backgroundColor: c.success,
     borderRadius: 2,
   },
-  
+
   // EMPTY STATE
   emptyState: {
     alignItems: 'center',
@@ -712,20 +715,20 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
   },
   emptyButton: {
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
+    borderColor: c.accentBorder,
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 24,
@@ -733,6 +736,6 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.accent,
+    color: c.accent,
   },
 });

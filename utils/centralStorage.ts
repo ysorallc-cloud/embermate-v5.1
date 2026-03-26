@@ -8,6 +8,13 @@ import { logError } from './devLog';
 import { withKeyLock } from './keyLock';
 import { StorageKeys, scopedKey } from './storageKeys';
 import { generateUniqueId } from './idGenerator';
+import {
+  emitVitalsEvent,
+  emitMoodEvent,
+  emitSleepEvent,
+  emitMealEvent,
+  emitHydrationEvent,
+} from './eventEmitter';
 
 const DEFAULT_PATIENT_ID = 'default';
 
@@ -165,6 +172,9 @@ export const saveVitalsLog = async (data: Omit<VitalsLog, 'id'>, patientId: stri
       logs.unshift(newLog);
       if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
       await encryptedSetRaw(key, JSON.stringify(logs));
+
+      // Dual-write: emit to unified event store (fire-and-forget)
+      try { await emitVitalsEvent(data as any, { source: 'dedicated_screen' }); } catch (_) { /* non-blocking */ }
     } catch (error) {
       logError('centralStorage.saveVitalsLog', error);
       throw error;
@@ -214,6 +224,9 @@ export const saveMoodLog = async (data: Omit<MoodLog, 'id'>, patientId: string =
       logs.unshift(newLog);
       if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
       await encryptedSetRaw(key, JSON.stringify(logs));
+
+      // Dual-write: emit to unified event store (fire-and-forget)
+      try { await emitMoodEvent((data as any).mood ?? 3, (data as any).label ?? 'Unknown', { source: 'dedicated_screen' }); } catch (_) { /* non-blocking */ }
     } catch (error) {
       logError('centralStorage.saveMoodLog', error);
       throw error;
@@ -308,6 +321,9 @@ export const saveSleepLog = async (data: Omit<SleepLog, 'id'>, patientId: string
       logs.unshift(newLog);
       if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
       await encryptedSetRaw(key, JSON.stringify(logs));
+
+      // Dual-write: emit to unified event store (fire-and-forget)
+      try { await emitSleepEvent((data as any).hours ?? 0, (data as any).quality ?? 'unknown', { source: 'dedicated_screen' }); } catch (_) { /* non-blocking */ }
     } catch (error) {
       logError('centralStorage.saveSleepLog', error);
       throw error;
@@ -355,6 +371,9 @@ export const saveMealsLog = async (data: Omit<MealsLog, 'id'>, patientId: string
       logs.unshift(newLog);
       if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
       await encryptedSetRaw(key, JSON.stringify(logs));
+
+      // Dual-write: emit to unified event store (fire-and-forget)
+      try { await emitMealEvent((data as any).mealType ?? 'meal', { source: 'dedicated_screen' }); } catch (_) { /* non-blocking */ }
     } catch (error) {
       logError('centralStorage.saveMealsLog', error);
       throw error;
@@ -402,6 +421,9 @@ export const saveWaterLog = async (data: Omit<WaterLog, 'id'>, patientId: string
       logs.unshift(newLog);
       if (logs.length > MAX_LOG_ENTRIES) logs.length = MAX_LOG_ENTRIES;
       await encryptedSetRaw(key, JSON.stringify(logs));
+
+      // Dual-write: emit to unified event store (fire-and-forget)
+      try { await emitHydrationEvent((data as any).glasses ?? 1, { source: 'dedicated_screen' }); } catch (_) { /* non-blocking */ }
     } catch (error) {
       logError('centralStorage.saveWaterLog', error);
       throw error;

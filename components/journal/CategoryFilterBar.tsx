@@ -2,10 +2,11 @@
 // CategoryFilterBar — Horizontal scrollable filter chips for Journal feed
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { LogEventType } from '../../utils/logEvents';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // ============================================================================
 // FILTER OPTIONS
@@ -37,6 +38,9 @@ interface Props {
 }
 
 export function CategoryFilterBar({ selectedFilter, onFilterChange }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <ScrollView
       horizontal
@@ -73,7 +77,7 @@ export function CategoryFilterBar({ selectedFilter, onFilterChange }: Props) {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   scrollView: {
     marginBottom: Spacing.md,
   },
@@ -84,17 +88,17 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.full,
     paddingHorizontal: 14,
     paddingVertical: 7,
     gap: 5,
   },
   chipActive: {
-    backgroundColor: Colors.accentLight,
-    borderColor: Colors.accentBorder,
+    backgroundColor: c.accentLight,
+    borderColor: c.accentBorder,
   },
   chipEmoji: {
     fontSize: 14,
@@ -102,10 +106,10 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   chipTextActive: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
 });

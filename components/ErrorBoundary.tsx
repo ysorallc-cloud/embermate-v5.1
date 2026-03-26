@@ -3,7 +3,7 @@
 // Catches JavaScript errors in child component tree and displays fallback UI
 // ============================================================================
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { reportError } from '../utils/errorReporting';
 
 interface Props {
@@ -24,6 +25,55 @@ interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
+}
+
+// Functional fallback UI that uses theme hooks
+function ErrorFallbackUI({
+  error,
+  errorInfo,
+  onRetry,
+}: {
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+  onRetry: () => void;
+}) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.emoji}>{'\uD83D\uDE14'}</Text>
+        <Text style={styles.title}>Something went wrong</Text>
+        <Text style={styles.message}>
+          We're sorry, but something unexpected happened. Please try again.
+        </Text>
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={onRetry}
+          accessibilityLabel="Try again"
+          accessibilityRole="button"
+        >
+          <Text style={styles.buttonText}>Try Again</Text>
+        </TouchableOpacity>
+
+        {__DEV__ && error && (
+          <ScrollView style={styles.debugContainer}>
+            <Text style={styles.debugTitle}>Debug Info:</Text>
+            <Text style={styles.debugText}>
+              {error.toString()}
+            </Text>
+            {errorInfo && (
+              <Text style={styles.debugText}>
+                {errorInfo.componentStack}
+              </Text>
+            )}
+          </ScrollView>
+        )}
+      </View>
+    </View>
+  );
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -66,38 +116,11 @@ class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <View style={styles.container}>
-          <View style={styles.content}>
-            <Text style={styles.emoji}>😔</Text>
-            <Text style={styles.title}>Something went wrong</Text>
-            <Text style={styles.message}>
-              We're sorry, but something unexpected happened. Please try again.
-            </Text>
-
-            <TouchableOpacity
-              style={styles.button}
-              onPress={this.handleRetry}
-              accessibilityLabel="Try again"
-              accessibilityRole="button"
-            >
-              <Text style={styles.buttonText}>Try Again</Text>
-            </TouchableOpacity>
-
-            {__DEV__ && this.state.error && (
-              <ScrollView style={styles.debugContainer}>
-                <Text style={styles.debugTitle}>Debug Info:</Text>
-                <Text style={styles.debugText}>
-                  {this.state.error.toString()}
-                </Text>
-                {this.state.errorInfo && (
-                  <Text style={styles.debugText}>
-                    {this.state.errorInfo.componentStack}
-                  </Text>
-                )}
-              </ScrollView>
-            )}
-          </View>
-        </View>
+        <ErrorFallbackUI
+          error={this.state.error}
+          errorInfo={this.state.errorInfo}
+          onRetry={this.handleRetry}
+        />
       );
     }
 
@@ -105,10 +128,10 @@ class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -124,33 +147,33 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 12,
     textAlign: 'center',
   },
   message: {
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
   },
   button: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,
     marginBottom: 24,
   },
   buttonText: {
-    color: Colors.background,
+    color: c.background,
     fontSize: 16,
     fontWeight: '600',
   },
   debugContainer: {
     maxHeight: 200,
     width: '100%',
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderRadius: 8,
     padding: 12,
     marginTop: 16,
@@ -158,12 +181,12 @@ const styles = StyleSheet.create({
   debugTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.error,
+    color: c.error,
     marginBottom: 8,
   },
   debugText: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontFamily: 'monospace',
   },
 });

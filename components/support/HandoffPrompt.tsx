@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Share, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, BorderRadius, Typography } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useDailyCareInstances } from '../../hooks/useDailyCareInstances';
 import { getTodayDateString } from '../../services/carePlanGenerator';
 import { buildHandoffReport } from '../../utils/handoffReportBuilder';
 import { logError } from '../../utils/devLog';
 
 export function HandoffPrompt() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const today = getTodayDateString();
   const { state } = useDailyCareInstances(today);
@@ -87,15 +90,15 @@ export function HandoffPrompt() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.cardBackground,
+    backgroundColor: c.cardBackground,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginHorizontal: Spacing.md,
     marginBottom: Spacing.md,
     borderLeftWidth: 3,
-    borderLeftColor: Colors.warning || '#F59E0B',
+    borderLeftColor: c.warning || '#F59E0B',
   },
   header: {
     flexDirection: 'row',
@@ -109,11 +112,11 @@ const styles = StyleSheet.create({
   title: {
     ...Typography.body,
     fontWeight: '600' as const,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   body: {
     ...Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.sm,
   },
   actions: {
@@ -122,7 +125,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   reportButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.md,
@@ -135,18 +138,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   viewButton: {
-    backgroundColor: Colors.glassActive,
+    backgroundColor: c.glassActive,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.md,
   },
   viewButtonText: {
     ...Typography.bodySmall,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
   dismissText: {
     ...Typography.bodySmall,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 });

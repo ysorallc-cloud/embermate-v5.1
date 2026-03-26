@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface NotificationPromptProps {
   onEnable: () => void;
@@ -11,6 +12,9 @@ export const NotificationPrompt: React.FC<NotificationPromptProps> = ({
   onEnable,
   onNotNow,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.icon}>🔔</Text>
@@ -40,9 +44,9 @@ export const NotificationPrompt: React.FC<NotificationPromptProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.amberBrightTint,
+    backgroundColor: c.amberBrightTint,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -55,12 +59,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   message: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -69,7 +73,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   enableButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -85,6 +89,6 @@ const styles = StyleSheet.create({
   },
   notNowText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 });

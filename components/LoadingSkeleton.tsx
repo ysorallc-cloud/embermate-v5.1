@@ -3,9 +3,10 @@
 // Provides visual feedback while data is loading
 // ============================================================================
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface LoadingSkeletonProps {
   width?: number | string;
@@ -20,6 +21,8 @@ export function LoadingSkeleton({
   borderRadius: radius = 8,
   style
 }: LoadingSkeletonProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const animatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -64,6 +67,8 @@ export function LoadingSkeleton({
 
 // Predefined skeleton layouts for common patterns
 export function MedicationCardSkeleton() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.cardSkeleton}>
       <View style={styles.cardHeader}>
@@ -83,6 +88,8 @@ export function MedicationCardSkeleton() {
 }
 
 export function AppointmentCardSkeleton() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.cardSkeleton}>
       <View style={styles.appointmentHeader}>
@@ -98,6 +105,8 @@ export function AppointmentCardSkeleton() {
 }
 
 export function ListItemSkeleton() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.listItemSkeleton}>
       <LoadingSkeleton width={40} height={40} borderRadius={20} />
@@ -111,6 +120,8 @@ export function ListItemSkeleton() {
 }
 
 export function LoadingScreen({ message = 'Loading...' }: { message?: string }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.loadingScreen}>
       <LoadingSkeleton width={100} height={100} borderRadius={50} />
@@ -120,15 +131,15 @@ export function LoadingScreen({ message = 'Loading...' }: { message?: string }) 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   skeleton: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
 
   cardSkeleton: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -149,7 +160,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
 
   appointmentHeader: {
@@ -163,7 +174,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
 
   listItemInfo: {
@@ -174,7 +185,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     padding: Spacing.xl,
   },
 });

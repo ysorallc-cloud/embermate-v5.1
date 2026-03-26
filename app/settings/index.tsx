@@ -8,6 +8,7 @@ import Constants from 'expo-constants';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -45,6 +46,7 @@ interface SettingItem {
   subtitle?: string;
   onPress: () => void;
   danger?: boolean;
+  color?: string;
 }
 
 interface SettingsCategory {
@@ -56,7 +58,8 @@ interface SettingsCategory {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { themeMode, setThemeMode, highContrast, setHighContrast } = useTheme();
+  const { themeMode, setThemeMode, highContrast, setHighContrast, colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [patientName, setPatientName] = useState('');
   const [hasSample, setHasSample] = useState(false);
   const [lastModified, setLastModified] = useState<string>('');
@@ -331,6 +334,7 @@ export default function SettingsScreen() {
           icon: '📋',
           title: 'Care Plan',
           subtitle: 'What to track daily',
+          color: 'rgba(147, 197, 253, 0.14)',
           onPress: () => navigate('/care-plan'),
         },
         {
@@ -338,6 +342,7 @@ export default function SettingsScreen() {
           icon: '👤',
           title: 'Patient Information',
           subtitle: `${patientName || 'Patient'} • Medical history & allergies`,
+          color: 'rgba(52, 211, 153, 0.14)',
           onPress: () => router.push('/patient'),
         },
         {
@@ -345,6 +350,7 @@ export default function SettingsScreen() {
           icon: '💊',
           title: 'Medications',
           subtitle: `${medicationCount} active`,
+          color: 'rgba(52, 211, 153, 0.14)',
           onPress: () => router.push('/medications'),
         },
         {
@@ -352,6 +358,7 @@ export default function SettingsScreen() {
           icon: '📅',
           title: 'Appointments',
           subtitle: `${appointmentCount} upcoming`,
+          color: 'rgba(167, 139, 250, 0.14)',
           onPress: () => router.push('/appointments'),
         },
         {
@@ -359,6 +366,7 @@ export default function SettingsScreen() {
           icon: '🚨',
           title: 'Emergency Contacts',
           subtitle: 'Quick dial contacts',
+          color: 'rgba(248, 113, 113, 0.14)',
           onPress: () => router.push('/emergency'),
         },
         {
@@ -366,6 +374,7 @@ export default function SettingsScreen() {
           icon: '📊',
           title: 'Vital Sign Ranges',
           subtitle: 'Custom alert thresholds',
+          color: 'rgba(251, 191, 36, 0.14)',
           onPress: () => navigate('/vital-threshold-settings'),
         },
       ],
@@ -380,6 +389,7 @@ export default function SettingsScreen() {
           icon: '🌙',
           title: 'Theme',
           subtitle: 'Dark',
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: () => {
             // Light mode disabled — StyleSheet.create() at module scope captures
             // dark theme Colors at import time. 70+ screens show white text on
@@ -393,6 +403,7 @@ export default function SettingsScreen() {
           icon: '🔲',
           title: 'High Contrast',
           subtitle: highContrast ? 'On — increased text and border contrast' : 'Off',
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: () => setHighContrast(!highContrast),
         },
         {
@@ -400,6 +411,7 @@ export default function SettingsScreen() {
           icon: '🕐',
           title: '24-Hour Time Format',
           subtitle: use24HourTime ? 'Currently using 24-hour format' : 'Currently using 12-hour format',
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: toggleTimeFormat,
         },
       ],
@@ -414,6 +426,7 @@ export default function SettingsScreen() {
           icon: '🔔',
           title: 'Notification Settings',
           subtitle: 'Sound, quiet hours, escalation',
+          color: 'rgba(251, 191, 36, 0.14)',
           onPress: () => router.push('/notification-settings'),
         },
       ],
@@ -428,6 +441,7 @@ export default function SettingsScreen() {
           icon: '👤',
           title: 'Manage Caregivers',
           subtitle: `${caregiverCount} connected`,
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: async () => {
             const result = await checkFeatureAccess('care_team');
             if (result.allowed) {
@@ -442,6 +456,7 @@ export default function SettingsScreen() {
           icon: '🔗',
           title: 'Family Sharing',
           subtitle: 'Invite & manage access',
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: async () => {
             const result = await checkFeatureAccess('care_team');
             if (result.allowed) {
@@ -456,6 +471,7 @@ export default function SettingsScreen() {
           icon: '📋',
           title: 'Care Team Activity',
           subtitle: 'Recent caregiver actions',
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: async () => {
             const result = await checkFeatureAccess('activity_feed');
             if (result.allowed) {
@@ -477,6 +493,7 @@ export default function SettingsScreen() {
           icon: '🔒',
           title: 'Security Settings',
           subtitle: 'App lock, encryption, audit logs',
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: () => router.push('/settings/security'),
         },
         {
@@ -484,6 +501,7 @@ export default function SettingsScreen() {
           icon: '🛡️',
           title: 'Data & Privacy',
           subtitle: 'Sample data, retention, sharing controls',
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: () => navigate('/data-privacy-settings'),
         },
         {
@@ -491,6 +509,7 @@ export default function SettingsScreen() {
           icon: '💾',
           title: 'Backup & Restore',
           subtitle: 'Back up before switching devices — data is local only',
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: () => router.push('/settings/backup'),
         },
         {
@@ -498,6 +517,7 @@ export default function SettingsScreen() {
           icon: '📤',
           title: 'Export Summary',
           subtitle: 'Create care summary PDF',
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: () => router.push('/care-report?scope=full'),
         },
         {
@@ -505,6 +525,7 @@ export default function SettingsScreen() {
           icon: '🗑️',
           title: 'Delete My Data',
           subtitle: 'Permanently remove all health data from this device',
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: handleDeleteMyData,
           danger: true,
         },
@@ -520,6 +541,7 @@ export default function SettingsScreen() {
           icon: '❓',
           title: 'Help & Guides',
           subtitle: 'How to use EmberMate',
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: () => router.push('/guide-hub'),
         },
         {
@@ -527,6 +549,7 @@ export default function SettingsScreen() {
           icon: '📄',
           title: 'Privacy Policy',
           subtitle: 'How we handle your data',
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: () => Linking.openURL('https://ysorallc.org/privacy'),
         },
         {
@@ -534,6 +557,7 @@ export default function SettingsScreen() {
           icon: '📋',
           title: 'Terms of Service',
           subtitle: 'Usage terms and conditions',
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: () => Linking.openURL('https://ysorallc.org/terms'),
         },
         {
@@ -541,6 +565,7 @@ export default function SettingsScreen() {
           icon: '🔄',
           title: 'Reset Onboarding',
           subtitle: 'View welcome screens again',
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: handleResetOnboarding,
         },
         {
@@ -548,6 +573,7 @@ export default function SettingsScreen() {
           icon: 'ℹ️',
           title: 'Version',
           subtitle: Constants.expoConfig?.version ?? '5.8.0',
+          color: 'rgba(255, 255, 255, 0.07)',
           onPress: () => {},
         },
       ],
@@ -586,7 +612,9 @@ export default function SettingsScreen() {
       accessibilityLabel={`${item.title}${item.subtitle ? `, ${item.subtitle}` : ''}`}
       accessibilityRole="button"
     >
-      <Text style={styles.settingIcon}>{item.icon}</Text>
+      <View style={[styles.settingIconWell, { backgroundColor: item.color ?? 'rgba(255,255,255,0.07)' }]}>
+        <Text style={styles.settingIconEmoji}>{item.icon}</Text>
+      </View>
       <View style={styles.settingContent}>
         <Text style={[styles.settingTitle, item.danger && styles.dangerText]}>
           {item.title}
@@ -632,7 +660,7 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <SubScreenHeader
@@ -646,7 +674,7 @@ export default function SettingsScreen() {
             <TextInput
               style={styles.searchInput}
               placeholder="🔍 Search settings..."
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
               accessibilityLabel="Search settings"
@@ -692,6 +720,17 @@ export default function SettingsScreen() {
             <Text style={styles.disclaimerText}>{AppStrings.disclaimer.short}</Text>
           </View>
 
+          {/* App Footer */}
+          <View style={styles.appFooter}>
+            <Image
+              source={require('../../assets/images/embermate-icon.png')}
+              style={styles.appFooterIcon}
+              accessibilityLabel="EmberMate"
+            />
+            <Text style={styles.appFooterName}>EmberMate</Text>
+            <Text style={styles.appFooterVersion}>v{Constants.expoConfig?.version ?? '5.8.0'}</Text>
+          </View>
+
           <View style={{ height: 40 }} />
         </ScrollView>
       </LinearGradient>
@@ -699,10 +738,10 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -721,13 +760,13 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 14,
   },
   clearSearch: {
@@ -737,14 +776,14 @@ const styles = StyleSheet.create({
   },
   clearSearchText: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   searchResults: {
     marginBottom: 20,
   },
   searchResultsTitle: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 12,
   },
 
@@ -758,15 +797,15 @@ const styles = StyleSheet.create({
   },
   infoBannerText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
   },
 
   // Categories
   categoryContainer: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     marginBottom: 12,
     overflow: 'hidden',
@@ -786,35 +825,46 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   categoryCount: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   collapseIcon: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   categoryItems: {
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
 
   // Setting Items
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    paddingLeft: 56,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.surfaceElevated,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   settingIcon: {
     fontSize: 18,
     marginRight: 12,
+  },
+  settingIconWell: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginRight: 12,
+    flexShrink: 0,
+  },
+  settingIconEmoji: {
+    fontSize: 16,
   },
   settingContent: {
     flex: 1,
@@ -822,23 +872,23 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   settingSubtitle: {
     fontSize: 12,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   arrow: {
     fontSize: 16,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   dangerItem: {
-    backgroundColor: Colors.redFaint,
+    backgroundColor: c.redFaint,
   },
   dangerText: {
-    color: Colors.error,
+    color: c.error,
   },
 
   // Health Disclaimer
@@ -860,8 +910,29 @@ const styles = StyleSheet.create({
   disclaimerText: {
     flex: 1,
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
+  },
+  appFooter: {
+    alignItems: 'center',
+    marginTop: 24,
+    paddingBottom: 8,
+  },
+  appFooterIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  appFooterName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.textSecondary,
+    marginBottom: 2,
+  },
+  appFooterVersion: {
+    fontSize: 12,
+    color: c.textMuted,
   },
 
   // Toggle (for time format)
@@ -869,24 +940,24 @@ const styles = StyleSheet.create({
     width: 48,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.glassActive,
+    backgroundColor: c.glassActive,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: c.border,
     padding: 2,
     justifyContent: 'center',
   },
   toggleActive: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: c.accent,
+    borderColor: c.accent,
   },
   toggleDot: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: Colors.textTertiary,
+    backgroundColor: c.textTertiary,
   },
   toggleDotActive: {
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     alignSelf: 'flex-end',
   },
 });

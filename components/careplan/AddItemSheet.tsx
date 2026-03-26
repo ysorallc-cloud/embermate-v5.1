@@ -4,7 +4,7 @@
 // Routes to the appropriate configuration screen with window pre-set
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { navigate } from '../../lib/navigate';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface AddItemSheetProps {
   visible: boolean;
@@ -24,31 +25,31 @@ interface AddItemSheetProps {
 
 const ITEM_TYPES = [
   {
-    emoji: '💊',
+    emoji: '\uD83D\uDC8A',
     label: 'Medication',
     description: 'Track a medication with dosage and schedule',
     route: '/care-plan/meds',
   },
   {
-    emoji: '📊',
+    emoji: '\uD83D\uDCCA',
     label: 'Vital sign',
     description: 'Monitor blood pressure, temperature, etc.',
     route: '/care-plan/vitals',
   },
   {
-    emoji: '🌅',
+    emoji: '\uD83C\uDF05',
     label: 'Wellness check',
     description: 'Configure morning or evening check-in fields',
     route: '/care-plan/wellness',
   },
   {
-    emoji: '🍽',
+    emoji: '\uD83C\uDF7D',
     label: 'Meal tracking',
     description: 'Log meals and nutrition',
     route: '/care-plan/meals',
   },
   {
-    emoji: '🏃',
+    emoji: '\uD83C\uDFC3',
     label: 'Activity',
     description: 'Track exercise and movement',
     route: '/care-plan/activity',
@@ -56,6 +57,9 @@ const ITEM_TYPES = [
 ] as const;
 
 export function AddItemSheet({ visible, windowLabel, onClose }: AddItemSheetProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const handleSelect = (route: string) => {
     onClose();
     const fullRoute = windowLabel ? `${route}?defaultWindow=${windowLabel}` : route;
@@ -95,7 +99,7 @@ export function AddItemSheet({ visible, windowLabel, onClose }: AddItemSheetProp
                   <Text style={styles.optionLabel}>{item.label}</Text>
                   <Text style={styles.optionDesc}>{item.description}</Text>
                 </View>
-                <Text style={styles.optionChevron}>›</Text>
+                <Text style={styles.optionChevron}>{'\u203A'}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -105,14 +109,14 @@ export function AddItemSheet({ visible, windowLabel, onClose }: AddItemSheetProp
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: Colors.backgroundElevated,
+    backgroundColor: c.backgroundElevated,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 20,
@@ -130,12 +134,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 8,
   },
   options: {
@@ -161,16 +165,16 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   optionDesc: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     lineHeight: 16,
   },
   optionChevron: {
     fontSize: 18,
-    color: Colors.accent,
+    color: c.accent,
   },
 });

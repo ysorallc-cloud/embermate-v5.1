@@ -3,9 +3,10 @@
 // Shows after completing an item with undo option
 // ============================================================================
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Props {
   visible: boolean;
@@ -22,6 +23,9 @@ export const UndoToast: React.FC<Props> = ({
   onDismiss,
   duration = 5000,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const translateY = useRef(new Animated.Value(100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -107,15 +111,15 @@ export const UndoToast: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     position: 'absolute',
     bottom: 100,
     left: 20,
     right: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -130,7 +134,7 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
   },
   undoButton: {
@@ -140,6 +144,6 @@ const styles = StyleSheet.create({
   undoText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
 });

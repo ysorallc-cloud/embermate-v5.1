@@ -8,12 +8,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { CalendarGrid } from '../components/calendar/CalendarGrid';
 import { DayDetail } from '../components/calendar/DayTimeline';
 import { useCalendarData } from '../hooks/useCalendarData';
 import { format, addMonths, subMonths, isSameDay } from 'date-fns';
 
 export default function CalendarScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const params = useLocalSearchParams();
 
@@ -43,7 +46,7 @@ export default function CalendarScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -92,7 +95,7 @@ export default function CalendarScreen() {
                 <Text style={styles.summaryLabel}>AVG DAILY</Text>
               </View>
               <View style={[styles.summaryItem, styles.summaryAccent]}>
-                <Text style={[styles.summaryValue, { color: Colors.accent }]}>
+                <Text style={[styles.summaryValue, { color: colors.accent }]}>
                   {monthSummary.perfectDays}
                 </Text>
                 <Text style={styles.summaryLabel}>PERFECT DAYS</Text>
@@ -103,7 +106,7 @@ export default function CalendarScreen() {
               ]}>
                 <Text style={[
                   styles.summaryValue,
-                  { color: monthSummary.missedMedDays > 3 ? '#F59E0B' : Colors.textPrimary },
+                  { color: monthSummary.missedMedDays > 3 ? '#F59E0B' : colors.textPrimary },
                 ]}>
                   {monthSummary.missedMedDays}
                 </Text>
@@ -115,7 +118,7 @@ export default function CalendarScreen() {
           {/* Loading */}
           {loading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={Colors.accent} />
+              <ActivityIndicator size="small" color={colors.accent} />
             </View>
           )}
 
@@ -156,10 +159,10 @@ export default function CalendarScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -176,18 +179,18 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backButtonText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 18,
   },
   title: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 18,
     fontWeight: '500',
   },
@@ -203,13 +206,13 @@ const styles = StyleSheet.create({
   },
   navArrow: {
     fontSize: 18,
-    color: Colors.textMuted,
+    color: c.textMuted,
     padding: 8,
   },
   monthTitle: {
     fontSize: 20,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   loadingContainer: {
     padding: 20,
@@ -244,7 +247,7 @@ const styles = StyleSheet.create({
   },
   summaryNeutral: {
     backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   summaryValue: {
     fontSize: 18,
@@ -253,7 +256,7 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 9,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 1,
   },
 
@@ -264,7 +267,7 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
     marginHorizontal: 20,
     marginTop: 12,
   },
@@ -286,6 +289,6 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 });

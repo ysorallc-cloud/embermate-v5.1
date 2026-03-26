@@ -5,8 +5,10 @@
     <key>EXUpdatesCheckOnLaunch</key>
     <string>ALWAYS</string>
     <key>EXUpdatesEnabled</key>
-    <false/>
+    <true/>
     <key>EXUpdatesLaunchWaitMs</key>
-    <integer>0</integer>
+    <integer>5000</integer>
+    <key>EXUpdatesURL</key>
+    <string>https://u.expo.dev/c1c2cfb3-2d20-485c-9e9d-29a53d853228</string>
   </dict>
 </plist>

@@ -3,7 +3,7 @@
 // Bottom sheet for configuring per-item notification settings
 // ============================================================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Colors, Spacing } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import type { NotificationConfig, NotificationTiming } from '../../types/notifications';
 import type { CarePlanItemType } from '../../types/carePlan';
 import {
@@ -68,6 +69,9 @@ export const NotificationConfigSheet: React.FC<NotificationConfigSheetProps> = (
   onSave,
   onClose,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   // Get defaults for this item type
   const defaults = getDefaultNotificationConfig(itemType);
 
@@ -161,8 +165,8 @@ export const NotificationConfigSheet: React.FC<NotificationConfigSheetProps> = (
                 <Switch
                   value={enabled}
                   onValueChange={setEnabled}
-                  trackColor={{ false: Colors.glass, true: Colors.accentLight }}
-                  thumbColor={enabled ? Colors.accent : Colors.textMuted}
+                  trackColor={{ false: colors.glass, true: colors.accentLight }}
+                  thumbColor={enabled ? colors.accent : colors.textMuted}
                 />
               </View>
             </View>
@@ -194,7 +198,7 @@ export const NotificationConfigSheet: React.FC<NotificationConfigSheetProps> = (
                           {option.label}
                         </Text>
                         {timing === option.value && (
-                          <Text style={styles.checkmark}>✓</Text>
+                          <Text style={styles.checkmark}>{'\u2713'}</Text>
                         )}
                       </TouchableOpacity>
                     ))}
@@ -214,8 +218,8 @@ export const NotificationConfigSheet: React.FC<NotificationConfigSheetProps> = (
                       <Switch
                         value={followUpEnabled}
                         onValueChange={setFollowUpEnabled}
-                        trackColor={{ false: Colors.glass, true: Colors.accentLight }}
-                        thumbColor={followUpEnabled ? Colors.accent : Colors.textMuted}
+                        trackColor={{ false: colors.glass, true: colors.accentLight }}
+                        thumbColor={followUpEnabled ? colors.accent : colors.textMuted}
                       />
                     </View>
 
@@ -306,14 +310,14 @@ export const NotificationConfigSheet: React.FC<NotificationConfigSheetProps> = (
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: SCREEN_HEIGHT * 0.75,
@@ -326,31 +330,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.glassBorder,
+    borderBottomColor: c.glassBorder,
   },
   cancelButton: {
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   title: {
     fontSize: 17,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   saveButton: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   itemInfo: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.glassBorder,
+    borderBottomColor: c.glassBorder,
   },
   itemName: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
   },
   content: {
@@ -359,12 +363,12 @@ const styles = StyleSheet.create({
   section: {
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.glassBorder,
+    borderBottomColor: c.glassBorder,
   },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 12,
@@ -381,11 +385,11 @@ const styles = StyleSheet.create({
   rowLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   rowDescription: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   optionList: {
@@ -401,24 +405,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   optionItemSelected: {
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
   },
   optionText: {
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   optionTextSelected: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   checkmark: {
     fontSize: 16,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
   subSectionTitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 16,
     marginBottom: 8,
   },
@@ -431,20 +435,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
   },
   chipSelected: {
-    backgroundColor: Colors.accentLight,
-    borderColor: Colors.accentBorder,
+    backgroundColor: c.accentLight,
+    borderColor: c.accentBorder,
   },
   chipText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   chipTextSelected: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   resetButton: {
@@ -454,7 +458,7 @@ const styles = StyleSheet.create({
   },
   resetButtonText: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textDecorationLine: 'underline',
   },
 });

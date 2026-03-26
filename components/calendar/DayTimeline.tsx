@@ -3,10 +3,11 @@
 // Replaces basic timeline with 6-category completion grid
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { CalendarDay } from '@/types/calendar';
 import { Colors } from '@/theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { format, isToday } from 'date-fns';
 
 interface Props {
@@ -14,16 +15,17 @@ interface Props {
 }
 
 function MiniProgressBar({ value, max, color }: { value: number; max: number; color: string }) {
+  const { colors } = useTheme();
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
-    <View style={styles.progressBarBg}>
-      <View style={[styles.progressBarFill, { width: `${pct}%`, backgroundColor: color }]} />
+    <View style={{ height: 3, backgroundColor: colors.border, borderRadius: 2, marginTop: 6, overflow: 'hidden' }}>
+      <View style={{ height: '100%', width: `${pct}%`, backgroundColor: color, borderRadius: 2 }} />
     </View>
   );
 }
 
-function getStatusColor(done: boolean): string {
-  return done ? '#10B981' : Colors.textMuted;
+function getStatusColor(done: boolean, colors: typeof Colors): string {
+  return done ? '#10B981' : colors.textMuted;
 }
 
 function getCountColor(value: number, total: number): string {
@@ -33,6 +35,9 @@ function getCountColor(value: number, total: number): string {
 }
 
 export const DayDetail: React.FC<Props> = ({ day }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (!day) return null;
 
   const dateLabel = isToday(day.date)
@@ -51,11 +56,11 @@ export const DayDetail: React.FC<Props> = ({ day }) => {
         </View>
         {day.appointment ? (
           <View style={styles.appointmentCard}>
-            <Text style={styles.appointmentIcon}>📅</Text>
+            <Text style={styles.appointmentIcon}>{'\uD83D\uDCC5'}</Text>
             <View>
               <Text style={styles.appointmentProvider}>{day.appointment.provider}</Text>
               <Text style={styles.appointmentMeta}>
-                {day.appointment.specialty} · {day.appointment.time}
+                {day.appointment.specialty} {'\u00B7'} {day.appointment.time}
               </Text>
             </View>
           </View>
@@ -113,7 +118,7 @@ export const DayDetail: React.FC<Props> = ({ day }) => {
         {/* Medications */}
         <View style={styles.gridItem}>
           <View style={styles.gridItemHeader}>
-            <Text style={styles.gridItemLabel}>💊 Meds</Text>
+            <Text style={styles.gridItemLabel}>{'\uD83D\uDC8A'} Meds</Text>
             <Text style={[styles.gridItemValue, { color: getCountColor(medsDone, medsTotal) }]}>
               {medsDone}/{medsTotal}
             </Text>
@@ -130,7 +135,7 @@ export const DayDetail: React.FC<Props> = ({ day }) => {
         {/* Meals */}
         <View style={styles.gridItem}>
           <View style={styles.gridItemHeader}>
-            <Text style={styles.gridItemLabel}>🍽️ Meals</Text>
+            <Text style={styles.gridItemLabel}>{'\uD83C\uDF7D\uFE0F'} Meals</Text>
             <Text style={[styles.gridItemValue, { color: getCountColor(mealsLogged, mealsTotal) }]}>
               {mealsLogged}/{mealsTotal}
             </Text>
@@ -145,17 +150,17 @@ export const DayDetail: React.FC<Props> = ({ day }) => {
         {/* Vitals */}
         <View style={styles.gridItem}>
           <View style={styles.gridItemHeader}>
-            <Text style={styles.gridItemLabel}>🩺 Vitals</Text>
-            <Text style={[styles.gridItemValue, { color: getStatusColor(!!day.vitals) }]}>
-              {day.vitals ? '✓' : '—'}
+            <Text style={styles.gridItemLabel}>{'\uD83E\uDE7A'} Vitals</Text>
+            <Text style={[styles.gridItemValue, { color: getStatusColor(!!day.vitals, colors) }]}>
+              {day.vitals ? '\u2713' : '\u2014'}
             </Text>
           </View>
           {day.vitalsData && (
             <Text style={styles.gridItemDetail}>
               {day.vitalsData.bp ? `BP ${day.vitalsData.bp}` : ''}
-              {day.vitalsData.hr ? ` · HR ${day.vitalsData.hr}` : ''}
+              {day.vitalsData.hr ? ` \u00B7 HR ${day.vitalsData.hr}` : ''}
               {day.vitalsData.glucose && day.vitalsData.glucose > 140
-                ? ` · Glucose ${day.vitalsData.glucose}↑`
+                ? ` \u00B7 Glucose ${day.vitalsData.glucose}\u2191`
                 : ''}
             </Text>
           )}
@@ -164,15 +169,15 @@ export const DayDetail: React.FC<Props> = ({ day }) => {
         {/* Wellness */}
         <View style={styles.gridItem}>
           <View style={styles.gridItemHeader}>
-            <Text style={styles.gridItemLabel}>😊 Wellness</Text>
-            <Text style={[styles.gridItemValue, { color: getStatusColor(!!day.wellness) }]}>
-              {day.wellness ? '✓' : '—'}
+            <Text style={styles.gridItemLabel}>{'\uD83D\uDE0A'} Wellness</Text>
+            <Text style={[styles.gridItemValue, { color: getStatusColor(!!day.wellness, colors) }]}>
+              {day.wellness ? '\u2713' : '\u2014'}
             </Text>
           </View>
           {day.wellnessData && (
             <Text style={styles.gridItemDetail}>
               {day.wellnessData.mood ? `Mood: ${day.wellnessData.mood}` : ''}
-              {day.wellnessData.pain ? ` · Pain: ${day.wellnessData.pain}` : ''}
+              {day.wellnessData.pain ? ` \u00B7 Pain: ${day.wellnessData.pain}` : ''}
             </Text>
           )}
         </View>
@@ -180,8 +185,8 @@ export const DayDetail: React.FC<Props> = ({ day }) => {
         {/* Water */}
         <View style={styles.gridItem}>
           <View style={styles.gridItemHeader}>
-            <Text style={styles.gridItemLabel}>💧 Water</Text>
-            <Text style={[styles.gridItemValue, { color: waterGlasses >= 6 ? '#10B981' : Colors.textMuted }]}>
+            <Text style={styles.gridItemLabel}>{'\uD83D\uDCA7'} Water</Text>
+            <Text style={[styles.gridItemValue, { color: waterGlasses >= 6 ? '#10B981' : colors.textMuted }]}>
               {waterGlasses}/{waterTarget}
             </Text>
           </View>
@@ -191,7 +196,7 @@ export const DayDetail: React.FC<Props> = ({ day }) => {
                 key={i}
                 style={[
                   styles.waterDot,
-                  { backgroundColor: i < waterGlasses ? Colors.accent : Colors.border },
+                  { backgroundColor: i < waterGlasses ? colors.accent : colors.border },
                 ]}
               />
             ))}
@@ -201,7 +206,7 @@ export const DayDetail: React.FC<Props> = ({ day }) => {
         {/* Sleep */}
         <View style={styles.gridItem}>
           <View style={styles.gridItemHeader}>
-            <Text style={styles.gridItemLabel}>😴 Sleep</Text>
+            <Text style={styles.gridItemLabel}>{'\uD83D\uDE34'} Sleep</Text>
             <Text style={[
               styles.gridItemValue,
               {
@@ -209,10 +214,10 @@ export const DayDetail: React.FC<Props> = ({ day }) => {
                   ? '#10B981'
                   : day.sleepHours != null
                     ? '#F59E0B'
-                    : Colors.textMuted,
+                    : colors.textMuted,
               },
             ]}>
-              {day.sleepHours != null ? `${day.sleepHours}h` : '—'}
+              {day.sleepHours != null ? `${day.sleepHours}h` : '\u2014'}
             </Text>
           </View>
           {day.sleepQuality && (
@@ -224,11 +229,11 @@ export const DayDetail: React.FC<Props> = ({ day }) => {
       {/* Appointment if present */}
       {day.appointment && (
         <View style={styles.appointmentCard}>
-          <Text style={styles.appointmentIcon}>📅</Text>
+          <Text style={styles.appointmentIcon}>{'\uD83D\uDCC5'}</Text>
           <View>
             <Text style={styles.appointmentProvider}>{day.appointment.provider}</Text>
             <Text style={styles.appointmentMeta}>
-              {day.appointment.specialty} · {day.appointment.time}
+              {day.appointment.specialty} {'\u00B7'} {day.appointment.time}
             </Text>
           </View>
         </View>
@@ -237,11 +242,11 @@ export const DayDetail: React.FC<Props> = ({ day }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 14,
     padding: 16,
     marginHorizontal: 20,
@@ -254,12 +259,12 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   dateLabel: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 15,
     fontWeight: '600',
   },
   upcomingBadge: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontSize: 11,
   },
   pctBadge: {
@@ -273,7 +278,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   futureText: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontSize: 13,
     textAlign: 'center',
     padding: 8,
@@ -296,7 +301,7 @@ const styles = StyleSheet.create({
   },
   gridItemLabel: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   gridItemValue: {
     fontSize: 13,
@@ -304,13 +309,13 @@ const styles = StyleSheet.create({
   },
   gridItemDetail: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 4,
     lineHeight: 14,
   },
   progressBarBg: {
     height: 3,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     borderRadius: 2,
     marginTop: 6,
     overflow: 'hidden',
@@ -344,12 +349,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   appointmentProvider: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 13,
     fontWeight: '500',
   },
   appointmentMeta: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontSize: 11,
   },
 });

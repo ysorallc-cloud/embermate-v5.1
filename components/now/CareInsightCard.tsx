@@ -3,17 +3,21 @@
 // Only shown when it adds unique value beyond Next Up card
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { CareInsight } from '../../utils/nowHelpers';
 
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 interface CareInsightCardProps {
   careInsight: CareInsight | null;
   hasNextUp: boolean;
 }
 
 export function CareInsightCard({ careInsight, hasNextUp }: CareInsightCardProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (!careInsight) return null;
 
   // Only show when it adds unique value beyond Next Up card
@@ -47,18 +51,18 @@ export function CareInsightCard({ careInsight, hasNextUp }: CareInsightCardProps
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   careInsightCard: {
-    backgroundColor: 'rgba(139, 92, 246, 0.05)',
+    backgroundColor: c.accentFaint,
     borderWidth: 1,
-    borderColor: Colors.purpleHint,
+    borderColor: c.purpleHint,
     borderRadius: 12,
     padding: 14,
     marginBottom: 20,
   },
   careInsightReinforcement: {
     backgroundColor: 'rgba(16, 185, 129, 0.05)',
-    borderColor: Colors.greenHint,
+    borderColor: c.greenHint,
   },
   careInsightPattern: {
     backgroundColor: 'rgba(59, 130, 246, 0.05)',
@@ -69,8 +73,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(251, 191, 36, 0.15)',
   },
   careInsightDependency: {
-    backgroundColor: Colors.sageHint,
-    borderColor: Colors.sageBorder,
+    backgroundColor: c.sageHint,
+    borderColor: c.sageBorder,
   },
   careInsightHeader: {
     marginBottom: 10,
@@ -78,7 +82,7 @@ const styles = StyleSheet.create({
   careInsightLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: 'rgba(139, 92, 246, 0.7)',
+    color: c.accentMuted,
     letterSpacing: 1,
   },
   careInsightBody: {
@@ -96,7 +100,7 @@ const styles = StyleSheet.create({
   careInsightTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   careInsightMessage: {

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface OnboardingPromptProps {
   onShowMeWhatMatters: () => void;
@@ -11,6 +12,9 @@ export const OnboardingPrompt: React.FC<OnboardingPromptProps> = ({
   onShowMeWhatMatters,
   onExploreOnMyOwn,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome to EmberMate</Text>
@@ -35,9 +39,9 @@ export const OnboardingPrompt: React.FC<OnboardingPromptProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.sageFaint,
+    backgroundColor: c.sageFaint,
     borderRadius: 16,
     padding: 24,
     marginHorizontal: 20,
@@ -47,17 +51,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 20,
     textAlign: 'center',
   },
   primaryButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 24,
@@ -75,6 +79,6 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 });

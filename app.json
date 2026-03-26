@@ -9,12 +9,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "description": "Secure personal health companion for medication management, appointment tracking, and family care coordination. All your health data stays private on your device.",
-    "primaryColor": "#FF8C94",
-    "backgroundColor": "#051614",
+    "primaryColor": "#4A6B5D",
+    "backgroundColor": "#111318",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#051614"
+      "backgroundColor": "#111318"
     },
     "ios": {
       "supportsTablet": true,
@@ -34,7 +34,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#051614"
+        "backgroundColor": "#111318"
       },
       "package": "com.embermate.app",
       "versionCode": 2,

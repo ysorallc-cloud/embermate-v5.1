@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { BaselineCategory, CategoryBaseline, getBaselineLanguage } from '../../utils/baselineStorage';
 
 interface BaselineConfirmPromptProps {
@@ -46,6 +47,9 @@ export const BaselineConfirmPrompt: React.FC<BaselineConfirmPromptProps> = ({
   onNotReally,
   onDismiss,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.message}>
@@ -81,18 +85,18 @@ export const BaselineConfirmPrompt: React.FC<BaselineConfirmPromptProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 10,
     padding: 12,
     marginBottom: 12,
   },
   message: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
     marginBottom: 10,
   },
@@ -101,7 +105,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   yesButton: {
-    backgroundColor: Colors.sageBorder,
+    backgroundColor: c.sageBorder,
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 14,
@@ -109,17 +113,17 @@ const styles = StyleSheet.create({
   yesText: {
     fontSize: 13,
     fontWeight: '500',
-    color: Colors.accent,
+    color: c.accent,
   },
   notReallyButton: {
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 14,
   },
   notReallyText: {
     fontSize: 13,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   dismissButton: {
     paddingVertical: 6,
@@ -127,6 +131,6 @@ const styles = StyleSheet.create({
   },
   dismissText: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 });

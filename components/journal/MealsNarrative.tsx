@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import type { MealsDetail } from '../../utils/careSummaryBuilder';
 
 interface Props {
@@ -21,6 +22,9 @@ function formatTime(isoOrHHmm: string): string {
 }
 
 export function MealsNarrative({ meals, fluidTarget, swallowingIssues, hydrationGlasses }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const hasHydration = hydrationGlasses != null && hydrationGlasses > 0;
   if (meals.total === 0 && !hasHydration) return null;
 
@@ -97,26 +101,26 @@ export function MealsNarrative({ meals, fluidTarget, swallowingIssues, hydration
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   card: {
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
   },
   narrative: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 20,
     marginBottom: 2,
   },
   bold: {
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   flagged: {
-    color: Colors.amber,
+    color: c.amber,
   },
 });

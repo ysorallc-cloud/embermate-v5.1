@@ -57,6 +57,9 @@ export type CarePlanItemType =
   | 'mood'
   | 'sleep'
   | 'wellness'
+  | 'errand'
+  | 'shift'
+  | 'self_care'
   | 'custom';
 
 export type CarePlanItemPriority = 'required' | 'recommended' | 'optional';

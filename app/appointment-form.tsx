@@ -4,7 +4,7 @@
 // Accessed from appointments screen
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import {
   createAppointment,
@@ -48,6 +49,8 @@ export default function AppointmentFormScreen() {
   const params = useLocalSearchParams();
   const apptId = params.id as string | undefined;
   const isEditing = !!apptId;
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [date, setDate] = useState(new Date());
   const [time, setTime] = useState(new Date());
@@ -299,7 +302,7 @@ export default function AppointmentFormScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <SubScreenHeader title={isEditing ? 'Edit Appointment' : 'Schedule Appointment'} emoji="📅" />
@@ -379,7 +382,7 @@ export default function AppointmentFormScreen() {
                 value={title}
                 onChangeText={setTitle}
                 placeholder="e.g., Annual Checkup, Follow-up Visit"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="words"
                 autoCorrect={false}
                 spellCheck={false}
@@ -396,7 +399,7 @@ export default function AppointmentFormScreen() {
                 value={provider}
                 onChangeText={setProvider}
                 placeholder="e.g., Dr. Sarah Johnson"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="words"
                 autoCorrect={false}
                 spellCheck={false}
@@ -413,7 +416,7 @@ export default function AppointmentFormScreen() {
                 value={location}
                 onChangeText={setLocation}
                 placeholder="e.g., Medical Center Downtown"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="words"
                 autoCorrect={false}
                 spellCheck={false}
@@ -448,9 +451,9 @@ export default function AppointmentFormScreen() {
                 <Switch
                   value={reminderEnabled}
                   onValueChange={setReminderEnabled}
-                  trackColor={{ false: Colors.textMuted, true: Colors.amber }}
-                  thumbColor={Colors.surface}
-                  ios_backgroundColor={Colors.textMuted}
+                  trackColor={{ false: colors.textMuted, true: colors.amber }}
+                  thumbColor={colors.surface}
+                  ios_backgroundColor={colors.textMuted}
                 />
               </TouchableOpacity>
 
@@ -460,11 +463,11 @@ export default function AppointmentFormScreen() {
                   <Text style={styles.reminderExpandedLabel}>NOTIFICATION SCHEDULE</Text>
                   <View style={styles.reminderScheduleInfo}>
                     <View style={styles.reminderScheduleRow}>
-                      <Ionicons name="calendar-outline" size={16} color={Colors.amber} />
+                      <Ionicons name="calendar-outline" size={16} color={colors.amber} />
                       <Text style={styles.reminderScheduleText}>1 day before at 9:00 AM</Text>
                     </View>
                     <View style={styles.reminderScheduleRow}>
-                      <Ionicons name="time-outline" size={16} color={Colors.amber} />
+                      <Ionicons name="time-outline" size={16} color={colors.amber} />
                       <Text style={styles.reminderScheduleText}>1 hour before appointment</Text>
                     </View>
                   </View>
@@ -491,7 +494,7 @@ export default function AppointmentFormScreen() {
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="e.g., Bring medication list, fasting required"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 multiline
                 numberOfLines={3}
                 autoCorrect={false}
@@ -589,10 +592,10 @@ export default function AppointmentFormScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -602,7 +605,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   bottomSaveButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 14,
     padding: 16,
     alignItems: 'center',
@@ -611,16 +614,16 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   bottomSaveButtonText: {
-    color: Colors.background,
+    color: c.background,
     fontSize: 16,
     fontWeight: '700',
   },
 
   // Single Card
   card: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -637,7 +640,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -645,9 +648,9 @@ const styles = StyleSheet.create({
   dateTimeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     padding: 12,
     gap: 8,
@@ -657,14 +660,14 @@ const styles = StyleSheet.create({
   },
   dateTimeText: {
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '500',
   },
 
   // Divider
   divider: {
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     marginVertical: 16,
   },
 
@@ -684,24 +687,24 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   typePillActive: {
-    backgroundColor: Colors.accentLight,
-    borderColor: Colors.accent,
+    backgroundColor: c.accentLight,
+    borderColor: c.accent,
   },
   typePillIcon: {
     fontSize: 16,
   },
   typePillText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '500',
   },
   typePillTextActive: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
 
@@ -710,13 +713,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   input: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     padding: 12,
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // Add Notes Button
@@ -725,47 +728,47 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderStyle: 'dashed',
     backgroundColor: 'transparent',
   },
   addNotesText: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: '500',
   },
 
   // Notes Card (Expanded)
   notesCard: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 16,
     padding: 20,
   },
   notesTextArea: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     padding: 12,
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     minHeight: 80,
     textAlignVertical: 'top',
   },
 
   // Expandable Reminder Controls
   reminderContainer: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     overflow: 'hidden',
   },
   reminderContainerActive: {
-    backgroundColor: Colors.amberFaint,
-    borderColor: Colors.warningBorder,
+    backgroundColor: c.amberFaint,
+    borderColor: c.warningBorder,
   },
   reminderToggleRow: {
     flexDirection: 'row',
@@ -788,22 +791,22 @@ const styles = StyleSheet.create({
   reminderToggleLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   reminderToggleDesc: {
     fontSize: 11,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   reminderExpandedSection: {
     paddingHorizontal: 16,
     paddingBottom: 16,
     borderTopWidth: 1,
-    borderTopColor: Colors.amberMuted,
+    borderTopColor: c.amberMuted,
   },
   reminderExpandedLabel: {
     fontSize: 10,
-    color: Colors.amber,
+    color: c.amber,
     fontWeight: '600',
     letterSpacing: 0.8,
     marginBottom: 12,
@@ -818,7 +821,7 @@ const styles = StyleSheet.create({
   },
   reminderScheduleText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // iOS Picker Modal
@@ -828,7 +831,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   pickerContainer: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingBottom: 34,
@@ -840,20 +843,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   pickerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   pickerCancel: {
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   pickerDone: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
 });

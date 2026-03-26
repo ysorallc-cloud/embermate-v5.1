@@ -3,7 +3,7 @@
 // After applying a template, suggest medications to add
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   Alert,
 } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { TemplateMedSuggestion } from '../../constants/carePlanTemplates';
 import { addMedicationToPlan } from '../../storage/carePlanConfigRepo';
 import { DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
@@ -31,6 +32,8 @@ export function TemplateMedSeedingModal({
   suggestions,
   onClose,
 }: TemplateMedSeedingModalProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [selected, setSelected] = useState<Set<number>>(
     () => new Set(suggestions.map((_, i) => i))
   );
@@ -161,14 +164,14 @@ export function TemplateMedSeedingModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: Colors.menuSurface,
+    backgroundColor: c.menuSurface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -178,19 +181,19 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.glassBorder,
+    backgroundColor: c.glassBorder,
     alignSelf: 'center',
     marginBottom: 16,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 16,
   },
   medRow: {
@@ -199,31 +202,31 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     gap: 12,
   },
   medRowSelected: {
-    backgroundColor: Colors.accentHint,
-    borderColor: Colors.accent,
+    backgroundColor: c.accentHint,
+    borderColor: c.accent,
   },
   checkbox: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: Colors.textMuted,
+    borderColor: c.textMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: c.accent,
+    borderColor: c.accent,
   },
   checkmark: {
     fontSize: 13,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: 'bold',
   },
   medInfo: {
@@ -232,11 +235,11 @@ const styles = StyleSheet.create({
   medName: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   medMeta: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   actions: {
@@ -252,13 +255,13 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: '500',
   },
   applyButton: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 10,
   },
   applyButtonDisabled: {
@@ -267,6 +270,6 @@ const styles = StyleSheet.create({
   applyButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });

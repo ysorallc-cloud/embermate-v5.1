@@ -108,6 +108,33 @@ export const DEFAULT_NOTIFICATION_CONFIG: Record<CarePlanItemType, NotificationC
       maxAttempts: 1,
     },
   },
+  errand: {
+    enabled: false,
+    timing: 'at_time',
+    followUp: {
+      enabled: false,
+      intervalMinutes: 30,
+      maxAttempts: 1,
+    },
+  },
+  shift: {
+    enabled: false,
+    timing: 'before_30',
+    followUp: {
+      enabled: false,
+      intervalMinutes: 30,
+      maxAttempts: 1,
+    },
+  },
+  self_care: {
+    enabled: false,
+    timing: 'at_time',
+    followUp: {
+      enabled: false,
+      intervalMinutes: 30,
+      maxAttempts: 1,
+    },
+  },
 };
 
 /**

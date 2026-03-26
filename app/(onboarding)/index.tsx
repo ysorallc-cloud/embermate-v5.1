@@ -3,7 +3,7 @@
 // Welcome → Who Is This For → Privacy/Disclaimer → Get Started
 // ============================================================================
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { View, StyleSheet, FlatList, Dimensions, Pressable, Text } from 'react-native';
 import Animated, { useSharedValue, useAnimatedScrollHandler } from 'react-native-reanimated';
 import { router } from 'expo-router';
@@ -20,7 +20,10 @@ import { seedSampleData } from '../../utils/sampleData';
 import { initializeSampleData } from '../../utils/sampleDataGenerator';
 import { logError } from '../../utils/devLog';
 import { Colors, Typography, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { StorageKeys } from '../../utils/storageKeys';
+import { generateCarePlanFromOnboarding, OnboardingAnswers } from '../../utils/onboardingToPlan';
+import { saveCarePlanConfig } from '../../storage/carePlanConfigRepo';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -35,6 +38,8 @@ const ONBOARDING_SCREENS = [
 ];
 
 export default function OnboardingFlow() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -75,6 +80,21 @@ export default function OnboardingFlow() {
       await safeSetItem(StorageKeys.ONBOARDING_COMPLETE, 'true');
       await safeSetItem('disclaimer_accepted', 'true');
       await safeSetItem(StorageKeys.CARE_MODE, careMode);
+
+      // Generate initial care plan from onboarding answers
+      try {
+        const answers: OnboardingAnswers = {
+          relationship: careMode === 'self' ? 'self' : 'parent',
+          careAreas: ['medications', 'wellness'],
+          concerns: [],
+          cadence: 'morning_evening',
+        };
+        const carePlanConfig = generateCarePlanFromOnboarding(answers);
+        await saveCarePlanConfig(carePlanConfig);
+      } catch (cpError) {
+        logError('OnboardingFlow.generateCarePlan', cpError);
+        // Non-blocking — app works without initial care plan
+      }
 
       // Seed sample data if requested
       if (seedData) {
@@ -167,10 +187,10 @@ export default function OnboardingFlow() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   footer: {
     position: 'absolute',
@@ -189,7 +209,7 @@ const styles = StyleSheet.create({
     minWidth: 80,
   },
   nextButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
     borderRadius: BorderRadius.lg,
@@ -201,6 +221,6 @@ const styles = StyleSheet.create({
   },
   nextText: {
     ...Typography.label,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });

@@ -4,7 +4,7 @@
 // Full mode (default) → compact mode (after "Keep exploring").
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { hasSampleData } from '../../utils/sampleDataManager';
 import { useDataListener } from '../../lib/events';
 import { logError } from '../../utils/devLog';
@@ -29,6 +30,9 @@ export interface SampleDataBannerProps {
 export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
   onCleared,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const router = useRouter();
   const [visible, setVisible] = useState(false);
   const [mode, setMode] = useState<'full' | 'compact'>('full');
@@ -53,6 +57,12 @@ export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
     try {
       const hasData = await hasSampleData();
       if (hasData) {
+        // Auto-hide if user has started entering real data
+        const firstRealLog = await safeGetItem<string | null>('first_real_log_timestamp', null);
+        if (firstRealLog) {
+          setVisible(false);
+          return;
+        }
         // Check persisted mode
         const savedMode = await safeGetItem<string | null>(StorageKeys.SAMPLE_BANNER_MODE, null);
         if (savedMode === 'compact') {
@@ -143,11 +153,11 @@ export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.purpleMuted,
+    backgroundColor: c.purpleMuted,
     borderWidth: 1,
-    borderColor: Colors.purpleBorder,
+    borderColor: c.purpleBorder,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.md,
@@ -162,7 +172,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.purpleWash,
+    backgroundColor: c.purpleWash,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -175,21 +185,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.purpleBright,
+    color: c.purpleBright,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
   actions: {
     gap: 8,
   },
   primaryButton: {
-    backgroundColor: Colors.purpleBorder,
+    backgroundColor: c.purpleBorder,
     borderWidth: 1,
-    borderColor: Colors.purpleGlow,
+    borderColor: c.purpleGlow,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -198,7 +208,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.purpleBright,
+    color: c.purpleBright,
   },
   secondaryButton: {
     paddingVertical: 8,
@@ -207,14 +217,14 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 13,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
 
   // Compact variant
   compactContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.purpleFaint,
+    backgroundColor: c.purpleFaint,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -231,7 +241,7 @@ const styles = StyleSheet.create({
   },
   compactText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   compactAction: {
     paddingVertical: 4,
@@ -240,7 +250,7 @@ const styles = StyleSheet.create({
   compactActionText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.purpleBright,
+    color: c.purpleBright,
   },
 });
 

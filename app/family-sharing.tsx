@@ -3,7 +3,7 @@
 // Invite caregivers and manage access
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { safeGetItem } from '../utils/safeStorage';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import {
   generateShareCode,
@@ -37,6 +38,8 @@ export default function FamilySharingScreen() {
   const [caregivers, setCaregivers] = useState<CaregiverProfile[]>([]);
   const [showJoinCode, setShowJoinCode] = useState(false);
   const [joinCode, setJoinCode] = useState('');
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     loadData();
@@ -45,11 +48,11 @@ export default function FamilySharingScreen() {
   const loadData = async () => {
     const name = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
     if (name) setPatientName(name);
-    
+
     const loadedInvites = await getShareInvites();
     const activeInvites = loadedInvites.filter(i => !i.used && new Date(i.expiresAt) > new Date());
     setInvites(activeInvites);
-    
+
     const loadedCaregivers = await getCaregivers();
     setCaregivers(loadedCaregivers);
   };
@@ -64,12 +67,12 @@ export default function FamilySharingScreen() {
         canAddNotes: true,
         canExport: false,
       });
-      
+
       await loadData();
-      
+
       // Share the code
       const message = `Join ${patientName}'s care team on EmberMate!\n\nYour invite code: ${invite.code}\n\nThis code expires in 7 days.`;
-      
+
       Alert.alert(
         'Invite Code Created',
         `Share this code with your family member:\n\n${invite.code}\n\nExpires in 7 days`,
@@ -110,7 +113,7 @@ export default function FamilySharingScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <SubScreenHeader
@@ -142,7 +145,7 @@ export default function FamilySharingScreen() {
           {/* Active Caregivers */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>ACTIVE CAREGIVERS ({caregivers.length})</Text>
-            
+
             {caregivers.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyIcon}>👥</Text>
@@ -159,18 +162,18 @@ export default function FamilySharingScreen() {
                   accessibilityLabel={`${caregiver.name}, ${caregiver.role}`}
                   accessibilityRole="button"
                 >
-                  <View 
+                  <View
                     style={[styles.caregiverAvatar, { backgroundColor: caregiver.avatarColor }]}
                   >
                     <Text style={styles.caregiverInitial}>
                       {caregiver.name.charAt(0).toUpperCase()}
                     </Text>
                   </View>
-                  
+
                   <View style={styles.caregiverInfo}>
                     <Text style={styles.caregiverName}>{caregiver.name}</Text>
                     <Text style={styles.caregiverRole}>
-                      {caregiver.role.charAt(0).toUpperCase() + caregiver.role.slice(1)} • 
+                      {caregiver.role.charAt(0).toUpperCase() + caregiver.role.slice(1)} •
                       Joined {new Date(caregiver.joinedAt).toLocaleDateString()}
                     </Text>
                     <View style={styles.permissionTags}>
@@ -186,7 +189,7 @@ export default function FamilySharingScreen() {
                       )}
                     </View>
                   </View>
-                  
+
                   <Text style={styles.chevron}>›</Text>
                 </TouchableOpacity>
               ))
@@ -197,7 +200,7 @@ export default function FamilySharingScreen() {
           {invites.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>PENDING INVITES ({invites.length})</Text>
-              
+
               {invites.map(invite => (
                 <View key={invite.id} style={styles.inviteCard}>
                   <View style={styles.inviteLeft}>
@@ -206,7 +209,7 @@ export default function FamilySharingScreen() {
                       Expires {new Date(invite.expiresAt).toLocaleDateString()}
                     </Text>
                   </View>
-                  
+
                   <TouchableOpacity
                     onPress={() => copyToClipboard(invite.code)}
                     style={styles.copyButton}
@@ -257,10 +260,10 @@ export default function FamilySharingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -270,9 +273,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   explainer: {
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
+    borderColor: c.accentBorder,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginTop: Spacing.lg,
@@ -281,11 +284,11 @@ const styles = StyleSheet.create({
   explainerText: {
     fontSize: 13,
     lineHeight: 20,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   betaNotice: {
     flexDirection: 'row',
-    backgroundColor: Colors.blueTint,
+    backgroundColor: c.blueTint,
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.3)',
     borderRadius: BorderRadius.lg,
@@ -302,13 +305,13 @@ const styles = StyleSheet.create({
   betaTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.blueBright,
+    color: c.blueBright,
     marginBottom: 4,
   },
   betaText: {
     fontSize: 12,
     lineHeight: 18,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   section: {
     marginBottom: Spacing.xl,
@@ -317,7 +320,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.md,
   },
   emptyState: {
@@ -332,19 +335,19 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.xs,
   },
   emptySubtext: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   caregiverCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
@@ -360,7 +363,7 @@ const styles = StyleSheet.create({
   caregiverInitial: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   caregiverInfo: {
     flex: 1,
@@ -368,12 +371,12 @@ const styles = StyleSheet.create({
   caregiverName: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   caregiverRole: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.xs,
   },
   permissionTags: {
@@ -381,7 +384,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   permissionTag: {
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -389,7 +392,7 @@ const styles = StyleSheet.create({
   permissionTagText: {
     fontSize: 10,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   removeButton: {
     width: 24,
@@ -403,16 +406,16 @@ const styles = StyleSheet.create({
   },
   chevron: {
     fontSize: 28,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     opacity: 0.3,
   },
   inviteCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.borderMedium,
+    borderColor: c.borderMedium,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
@@ -423,16 +426,16 @@ const styles = StyleSheet.create({
   inviteCode: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.accent,
+    color: c.accent,
     letterSpacing: 2,
     marginBottom: 4,
   },
   inviteExpires: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   copyButton: {
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
@@ -440,10 +443,10 @@ const styles = StyleSheet.create({
   copyButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   primaryButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     alignItems: 'center',
@@ -452,12 +455,12 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.background,
+    color: c.background,
   },
   secondaryButton: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     alignItems: 'center',
@@ -465,12 +468,12 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   infoBox: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.xxl,
@@ -478,12 +481,12 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   infoText: {
     fontSize: 13,
     lineHeight: 20,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 });

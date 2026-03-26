@@ -210,13 +210,13 @@ export const getSampleMedications = (): (Medication & { origin: DataOrigin })[] 
       name: 'Lorazepam',
       dosage: '0.5mg',
       time: 'As needed',
-      timeSlot: 'asNeeded' as const,
+      timeSlot: 'bedtime' as const,
       taken: false,
       active: true,
       createdAt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString(),
       pillsRemaining: 4,
       daysSupply: 30,
-      notes: 'Anxiety — max 2x per day. LOW SUPPLY.',
+      notes: 'Anxiety PRN — max 2x per day. LOW SUPPLY.',
     }),
   ];
 };
@@ -234,31 +234,48 @@ export const getSampleVitals = () => {
 
   return [
     // Day 1 — critical glucose, elevated BP, low SpO2
-    withSampleOrigin({ type: 'systolic', value: 158, unit: 'mmHg', timestamp: day1.toISOString() }),
-    withSampleOrigin({ type: 'diastolic', value: 95, unit: 'mmHg', timestamp: day1.toISOString() }),
-    withSampleOrigin({ type: 'heartRate', value: 105, unit: 'bpm', timestamp: day1.toISOString() }),
-    withSampleOrigin({ type: 'glucose', value: 260, unit: 'mg/dL', timestamp: day1.toISOString() }),
-    withSampleOrigin({ type: 'oxygen', value: 93, unit: '%', timestamp: day1.toISOString() }),
-    withSampleOrigin({ type: 'temperature', value: 100.2, unit: '°F', timestamp: day1.toISOString() }),
-    withSampleOrigin({ type: 'weight', value: 195, unit: 'lbs', timestamp: day1.toISOString() }),
+    withSampleOrigin({ id: 'sv-d1-sys', type: 'systolic', value: 158, unit: 'mmHg', timestamp: day1.toISOString() }),
+    withSampleOrigin({ id: 'sv-d1-dia', type: 'diastolic', value: 95, unit: 'mmHg', timestamp: day1.toISOString() }),
+    withSampleOrigin({ id: 'sv-d1-hr', type: 'heartRate', value: 105, unit: 'bpm', timestamp: day1.toISOString() }),
+    withSampleOrigin({ id: 'sv-d1-glu', type: 'glucose', value: 260, unit: 'mg/dL', timestamp: day1.toISOString() }),
+    withSampleOrigin({ id: 'sv-d1-o2', type: 'oxygen', value: 93, unit: '%', timestamp: day1.toISOString() }),
+    withSampleOrigin({ id: 'sv-d1-temp', type: 'temperature', value: 100.2, unit: '°F', timestamp: day1.toISOString() }),
+    withSampleOrigin({ id: 'sv-d1-wt', type: 'weight', value: 195, unit: 'lbs', timestamp: day1.toISOString() }),
 
     // Day 2 — improving but still flagged
-    withSampleOrigin({ type: 'systolic', value: 145, unit: 'mmHg', timestamp: day2.toISOString() }),
-    withSampleOrigin({ type: 'diastolic', value: 88, unit: 'mmHg', timestamp: day2.toISOString() }),
-    withSampleOrigin({ type: 'heartRate', value: 90, unit: 'bpm', timestamp: day2.toISOString() }),
-    withSampleOrigin({ type: 'glucose', value: 180, unit: 'mg/dL', timestamp: day2.toISOString() }),
-    withSampleOrigin({ type: 'oxygen', value: 94, unit: '%', timestamp: day2.toISOString() }),
-    withSampleOrigin({ type: 'temperature', value: 99.8, unit: '°F', timestamp: day2.toISOString() }),
-    withSampleOrigin({ type: 'weight', value: 195, unit: 'lbs', timestamp: day2.toISOString() }),
+    withSampleOrigin({ id: 'sv-d2-sys', type: 'systolic', value: 145, unit: 'mmHg', timestamp: day2.toISOString() }),
+    withSampleOrigin({ id: 'sv-d2-dia', type: 'diastolic', value: 88, unit: 'mmHg', timestamp: day2.toISOString() }),
+    withSampleOrigin({ id: 'sv-d2-hr', type: 'heartRate', value: 90, unit: 'bpm', timestamp: day2.toISOString() }),
+    withSampleOrigin({ id: 'sv-d2-glu', type: 'glucose', value: 180, unit: 'mg/dL', timestamp: day2.toISOString() }),
+    withSampleOrigin({ id: 'sv-d2-o2', type: 'oxygen', value: 94, unit: '%', timestamp: day2.toISOString() }),
+    withSampleOrigin({ id: 'sv-d2-temp', type: 'temperature', value: 99.8, unit: '°F', timestamp: day2.toISOString() }),
+    withSampleOrigin({ id: 'sv-d2-wt', type: 'weight', value: 195, unit: 'lbs', timestamp: day2.toISOString() }),
 
     // Day 3 (today) — mostly normal
-    withSampleOrigin({ type: 'systolic', value: 132, unit: 'mmHg', timestamp: day3.toISOString() }),
-    withSampleOrigin({ type: 'diastolic', value: 82, unit: 'mmHg', timestamp: day3.toISOString() }),
-    withSampleOrigin({ type: 'heartRate', value: 76, unit: 'bpm', timestamp: day3.toISOString() }),
-    withSampleOrigin({ type: 'glucose', value: 135, unit: 'mg/dL', timestamp: day3.toISOString() }),
-    withSampleOrigin({ type: 'oxygen', value: 97, unit: '%', timestamp: day3.toISOString() }),
-    withSampleOrigin({ type: 'temperature', value: 98.6, unit: '°F', timestamp: day3.toISOString() }),
-    withSampleOrigin({ type: 'weight', value: 194, unit: 'lbs', timestamp: day3.toISOString() }),
+    withSampleOrigin({ id: 'sv-d3-sys', type: 'systolic', value: 132, unit: 'mmHg', timestamp: day3.toISOString() }),
+    withSampleOrigin({ id: 'sv-d3-dia', type: 'diastolic', value: 82, unit: 'mmHg', timestamp: day3.toISOString() }),
+    withSampleOrigin({ id: 'sv-d3-hr', type: 'heartRate', value: 76, unit: 'bpm', timestamp: day3.toISOString() }),
+    withSampleOrigin({ id: 'sv-d3-glu', type: 'glucose', value: 135, unit: 'mg/dL', timestamp: day3.toISOString() }),
+    withSampleOrigin({ id: 'sv-d3-o2', type: 'oxygen', value: 97, unit: '%', timestamp: day3.toISOString() }),
+    withSampleOrigin({ id: 'sv-d3-temp', type: 'temperature', value: 98.6, unit: '°F', timestamp: day3.toISOString() }),
+    withSampleOrigin({ id: 'sv-d3-wt', type: 'weight', value: 194, unit: 'lbs', timestamp: day3.toISOString() }),
+  ];
+};
+
+/**
+ * Get sample vitals as centralStorage VitalsLog entries (one per day).
+ * This is what the Journal/Calendar/Baselines read from.
+ */
+export const getSampleVitalsLogs = () => {
+  const now = new Date();
+  const day1 = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+  const day2 = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
+  const day3 = now;
+
+  return [
+    withSampleOrigin({ id: 'svl-d1', timestamp: day1.toISOString(), systolic: 158, diastolic: 95, heartRate: 105, glucose: 260, oxygen: 93, temperature: 100.2, weight: 195 }),
+    withSampleOrigin({ id: 'svl-d2', timestamp: day2.toISOString(), systolic: 145, diastolic: 88, heartRate: 90, glucose: 180, oxygen: 94, temperature: 99.8, weight: 195 }),
+    withSampleOrigin({ id: 'svl-d3', timestamp: day3.toISOString(), systolic: 132, diastolic: 82, heartRate: 76, glucose: 135, oxygen: 97, temperature: 98.6, weight: 194 }),
   ];
 };
 
@@ -368,6 +385,7 @@ export async function createSampleCarePlanItems(): Promise<void> {
         priority: 'required',
         active: true,
         emoji: '💊',
+        medicationDetails: { medicationId: 'med-2', dose: '81mg', instructions: 'Low-dose, take with breakfast' },
         schedule: {
           frequency: 'daily',
           times: [{
@@ -391,6 +409,7 @@ export async function createSampleCarePlanItems(): Promise<void> {
         priority: 'required',
         active: true,
         emoji: '💊',
+        medicationDetails: { medicationId: 'med-3', dose: '1000mg', instructions: 'Take with food — diabetes management' },
         schedule: {
           frequency: 'daily',
           times: [{
@@ -414,6 +433,7 @@ export async function createSampleCarePlanItems(): Promise<void> {
         priority: 'required',
         active: true,
         emoji: '💊',
+        medicationDetails: { medicationId: 'med-4', dose: '20mg', instructions: 'Blood pressure medication' },
         schedule: {
           frequency: 'daily',
           times: [{
@@ -437,6 +457,7 @@ export async function createSampleCarePlanItems(): Promise<void> {
         priority: 'required',
         active: true,
         emoji: '💊',
+        medicationDetails: { medicationId: 'med-1', dose: '5mg', instructions: 'Blood thinner — INR check weekly' },
         schedule: {
           frequency: 'daily',
           times: [{
@@ -460,6 +481,7 @@ export async function createSampleCarePlanItems(): Promise<void> {
         priority: 'required',
         active: true,
         emoji: '💊',
+        medicationDetails: { medicationId: 'med-5', dose: '300mg', instructions: 'Nerve pain — take at bedtime' },
         schedule: {
           frequency: 'daily',
           times: [{
@@ -535,9 +557,19 @@ async function seedSampleMedicationLogs(): Promise<void> {
     }
   }
 
-  // Write to the correct centralized key that getMedicationLogs() reads from
+  // Write to centralStorage key (used by Visit Prep adherence calculations)
   const key = scopedKey(StorageKeys.CENTRAL_MED_LOGS, DEFAULT_PATIENT_ID);
   await encryptedSetRaw(key, JSON.stringify(logs));
+
+  // Also write to medicationStorage key (used by Now page legacy med count)
+  const legacyLogs = logs.map(log => ({
+    medicationId: log.medicationIds[0],
+    timestamp: log.timestamp,
+    taken: true,
+    notes: undefined,
+  }));
+  const legacyKey = scopedKey(StorageKeys.MEDICATION_LOGS, DEFAULT_PATIENT_ID);
+  await safeSetItem(legacyKey, legacyLogs);
 
   devLog(`[SampleDataGenerator] Seeded ${logs.length} medication log entries over 14 days`);
 }
@@ -561,7 +593,7 @@ async function seedSamplePatientProfile(): Promise<void> {
       { condition: 'Atrial Fibrillation', status: 'active' },
       { condition: 'Type 2 Diabetes', status: 'active' },
       { condition: 'Osteoarthritis', status: 'active' },
-      { condition: 'Anxiety', status: 'managed' },
+      { condition: 'Anxiety', status: 'active' },
     ],
     surgeries: [
       { procedure: 'Knee Replacement', date: '2021', notes: 'Left knee, recovered well' },
@@ -595,8 +627,12 @@ export const initializeSampleData = async (): Promise<boolean> => {
     // Save medications
     await safeSetItem(StorageKeys.MEDICATIONS, getSampleMedications());
 
-    // Save vitals
+    // Save vitals to both storage layers:
+    // 1. @vitals_readings — individual readings (used by vitalsStorage.ts, Insights, Visit Prep)
     await safeSetItem('@vitals_readings', getSampleVitals());
+    // 2. CENTRAL_VITALS_LOGS — daily aggregates (used by Journal, Calendar, Baselines)
+    const vitalsLogKey = scopedKey(StorageKeys.CENTRAL_VITALS_LOGS, DEFAULT_PATIENT_ID);
+    await encryptedSetRaw(vitalsLogKey, JSON.stringify(getSampleVitalsLogs()));
 
     // Save mood logs
     await safeSetItem(StorageKeys.CENTRAL_MOOD_LOGS, getSampleMoodLogs());
@@ -629,16 +665,44 @@ export const initializeSampleData = async (): Promise<boolean> => {
       timestamp: new Date().toISOString(),
     });
 
-    // Create sample Care Plan items (wellness, meds, meals, vitals)
-    await createSampleCarePlanItems();
-
     // Create sample CarePlanConfig with key buckets enabled
+    // IMPORTANT: Config must be saved BEFORE createSampleCarePlanItems() so that
+    // syncMedicationItemsWithConfig() in ensureDailyInstances() doesn't deactivate
+    // the sample medication CarePlanItems (it checks config.meds.medications).
     const config = createDefaultCarePlanConfig(DEFAULT_PATIENT_ID);
-    config.meds = { ...config.meds, enabled: true };
-    config.vitals = { ...config.vitals, enabled: true };
+    const now = new Date().toISOString();
+    const sampleMeds = getSampleMedications();
+    config.meds = {
+      ...config.meds,
+      enabled: true,
+      medications: sampleMeds
+        .filter(m => m.id !== 'med-6') // Exclude Lorazepam (PRN, not scheduled)
+        .map(m => ({
+          id: m.id,
+          name: m.name,
+          dosage: m.dosage,
+          instructions: m.notes || '',
+          timesOfDay: [m.timeSlot === 'evening' || m.timeSlot === 'bedtime' ? 'evening' as const : 'morning' as const],
+          active: true,
+          createdAt: m.createdAt || now,
+          updatedAt: now,
+        })),
+    };
+    config.vitals = { ...config.vitals, enabled: true, vitalTypes: ['bp', 'hr', 'spo2', 'glucose', 'temp', 'weight'] };
     config.meals = { ...config.meals, enabled: true };
     // wellness is already enabled by default in createDefaultCarePlanConfig
     await saveCarePlanConfig(config);
+
+    // Mark migration as complete to prevent duplicate items from old-format medications
+    await safeSetItem(StorageKeys.MIGRATION_STATUS_V1, JSON.stringify({
+      medicationsToCarePlan: true,
+      rhythmToRegimen: true,
+      lastMigrationDate: new Date().toISOString(),
+      version: 1,
+    }));
+
+    // Create sample Care Plan items (medication CarePlanItems)
+    await createSampleCarePlanItems();
 
     // Pre-complete morning instances for a realistic mid-day demo look
     try {
@@ -657,6 +721,28 @@ export const initializeSampleData = async (): Promise<boolean> => {
       }
     } catch (error) {
       logError('sampleDataGenerator.initializeSampleData', error);
+    }
+
+    // Seed 14 days of historical wellness, sleep, and hydration data
+    // so the Insights screen shows patterns instead of "14 days missing"
+    try {
+      for (let daysAgo = 1; daysAgo <= 14; daysAgo++) {
+        const pastDate = new Date();
+        pastDate.setDate(pastDate.getDate() - daysAgo);
+        const dateStr = pastDate.toISOString().split('T')[0];
+
+        const pastInstances = await ensureDailyInstances(DEFAULT_PATIENT_ID, dateStr);
+
+        for (const inst of pastInstances) {
+          if (['wellness', 'sleep', 'hydration'].includes(inst.itemType) && inst.status === 'pending') {
+            await logInstanceCompletion(DEFAULT_PATIENT_ID, dateStr, inst.id, 'completed');
+          }
+        }
+      }
+      devLog('[initializeSampleData] Seeded 14 days of historical wellness/sleep/hydration data');
+    } catch (error) {
+      logError('initializeSampleData.historicalData', error);
+      // Non-critical — don't block initialization
     }
 
     // Mark as initialized

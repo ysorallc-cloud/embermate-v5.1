@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors, BorderRadius, Spacing, Typography } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface QuickAction {
   icon: string;
@@ -15,7 +16,11 @@ interface Props {
   actions: QuickAction[];
 }
 
-export const QuickActionGrid: React.FC<Props> = ({ actions }) => (
+export const QuickActionGrid: React.FC<Props> = ({ actions }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
   <View style={styles.container} accessibilityRole="toolbar">
     {actions.map((action, i) => (
       <TouchableOpacity
@@ -40,18 +45,19 @@ export const QuickActionGrid: React.FC<Props> = ({ actions }) => (
       </TouchableOpacity>
     ))}
   </View>
-);
+  );
+};
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     gap: Spacing.sm,
   },
   button: {
     flex: 1,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     borderRadius: BorderRadius.md,
     paddingVertical: 12,
     alignItems: 'center',
@@ -62,7 +68,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 });
 

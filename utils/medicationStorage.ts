@@ -259,6 +259,14 @@ export async function logMedicationEvent(
     const trimmedLogs = logs.slice(-1000);
 
     await safeSetItem(scopedKey(MEDICATION_LOGS_KEY, patientId), trimmedLogs);
+
+    // Dual-write: emit to unified event store (fire-and-forget)
+    try {
+      const { emitMedicationEvent } = require('./eventEmitter');
+      await emitMedicationEvent(medicationId, medicationId, taken ? 'taken' : 'skipped', {
+        source: 'dedicated_screen' as const,
+      });
+    } catch (_) { /* non-blocking */ }
   } catch (error) {
     logError('medicationStorage.logMedicationEvent', error);
   }

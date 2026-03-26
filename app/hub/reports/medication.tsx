@@ -1,32 +1,28 @@
 // ============================================================================
 // MEDICATION ADHERENCE REPORT
 // V3: Clinical report for healthcare providers
+// Wired to real user data from medicationStorage
 // ============================================================================
 
-import React from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { View, ScrollView, StyleSheet, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { AuroraBackground } from '../../../components/aurora/AuroraBackground';
 import { GlassCard } from '../../../components/aurora/GlassCard';
 import { SubScreenHeader } from '../../../components/SubScreenHeader';
 import { Colors, Spacing, Typography, BorderRadius } from '../../../theme/theme-tokens';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { getMedications, getMedicationLogs, calculateAdherence, Medication, MedicationLog } from '../../../utils/medicationStorage';
+import { logError } from '../../../utils/devLog';
 
-// Sample data
-const SAMPLE_DATA = {
-  adherence7Day: 100,
-  adherence30Day: 94,
-  medications: [
-    { name: 'Lisinopril 10mg', schedule: 'Once daily (morning)', adherence: 100, missed: 0, late: 0 },
-    { name: 'Metformin 500mg', schedule: 'Twice daily', adherence: 97, missed: 1, late: 1 },
-  ],
-  patterns: [
-    { text: 'Morning medications taken more consistently than evening doses', type: 'info' },
-    { text: '2 doses of Atorvastatin missed this month - consider setting reminder', type: 'warning' },
-  ],
-  sideEffects: [
-    { date: 'Jan 14', symptom: 'Mild nausea', linkedMed: 'Metformin', note: 'Occurred 30 min after dose' },
-  ],
-};
+interface MedReport {
+  name: string;
+  schedule: string;
+  adherence: number;
+  missed: number;
+  late: number;
+}
 
 const getAdherenceColor = (adherence: number) => {
   if (adherence >= 95) return Colors.green;
@@ -34,7 +30,168 @@ const getAdherenceColor = (adherence: number) => {
   return Colors.red;
 };
 
+const getTimeSlotLabel = (slot: string) => {
+  switch (slot) {
+    case 'morning': return 'Morning';
+    case 'afternoon': return 'Afternoon';
+    case 'evening': return 'Evening';
+    case 'bedtime': return 'Bedtime';
+    default: return slot;
+  }
+};
+
 export default function MedicationReport() {
+  const [loading, setLoading] = useState(true);
+  const [adherence7Day, setAdherence7Day] = useState(0);
+  const [adherence30Day, setAdherence30Day] = useState(0);
+  const [medReports, setMedReports] = useState<MedReport[]>([]);
+  const [patterns, setPatterns] = useState<{ text: string; type: 'info' | 'warning' }[]>([]);
+  const [sideEffects, setSideEffects] = useState<{ date: string; symptom: string; linkedMed: string; note: string }[]>([]);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  useFocusEffect(useCallback(() => {
+    loadReport();
+  }, []));
+
+  const loadReport = async () => {
+    try {
+      setLoading(true);
+      const meds = await getMedications();
+      const activeMeds = meds.filter(m => m.active);
+      const logs = await getMedicationLogs();
+
+      if (activeMeds.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      // Group meds by name to avoid duplicates (same med at different times)
+      const medNames = [...new Set(activeMeds.map(m => m.name))];
+
+      // Calculate per-medication adherence
+      const reports: MedReport[] = [];
+      let total7 = 0;
+      let total30 = 0;
+
+      for (const name of medNames) {
+        const medsForName = activeMeds.filter(m => m.name === name);
+        const firstMed = medsForName[0];
+        const slots = medsForName.map(m => getTimeSlotLabel(m.timeSlot)).join(', ');
+
+        // Calculate adherence for each dose of this medication
+        let adh7Sum = 0;
+        let adh30Sum = 0;
+        for (const med of medsForName) {
+          adh7Sum += await calculateAdherence(med.id, 7);
+          adh30Sum += await calculateAdherence(med.id, 30);
+        }
+        const adh7 = Math.round(adh7Sum / medsForName.length);
+        const adh30 = Math.round(adh30Sum / medsForName.length);
+
+        // Count missed doses in last 30 days
+        const cutoff30 = new Date();
+        cutoff30.setDate(cutoff30.getDate() - 30);
+        const medIds = medsForName.map(m => m.id);
+        const recentLogs = logs.filter(
+          l => medIds.includes(l.medicationId) && new Date(l.timestamp) >= cutoff30
+        );
+        const takenCount = recentLogs.filter(l => l.taken).length;
+        const expectedDoses = 30 * medsForName.length;
+        const missed = Math.max(0, expectedDoses - takenCount);
+
+        reports.push({
+          name: `${firstMed.name} ${firstMed.dosage}`,
+          schedule: medsForName.length > 1 ? `${medsForName.length}x daily (${slots})` : `Once daily (${slots})`,
+          adherence: adh30,
+          missed,
+          late: 0,
+        });
+
+        total7 += adh7;
+        total30 += adh30;
+      }
+
+      setAdherence7Day(medNames.length > 0 ? Math.round(total7 / medNames.length) : 0);
+      setAdherence30Day(medNames.length > 0 ? Math.round(total30 / medNames.length) : 0);
+      setMedReports(reports);
+
+      // Generate patterns
+      const detectedPatterns: { text: string; type: 'info' | 'warning' }[] = [];
+      const lowAdherence = reports.filter(r => r.adherence < 85);
+      if (lowAdherence.length > 0) {
+        detectedPatterns.push({
+          text: `${lowAdherence.map(r => r.name).join(', ')} ${lowAdherence.length === 1 ? 'has' : 'have'} adherence below 85% - consider setting reminders.`,
+          type: 'warning',
+        });
+      }
+      const highAdherence = reports.filter(r => r.adherence >= 95);
+      if (highAdherence.length > 0) {
+        detectedPatterns.push({
+          text: `${highAdherence.length} medication${highAdherence.length !== 1 ? 's' : ''} maintained at 95%+ adherence.`,
+          type: 'info',
+        });
+      }
+      if (reports.length > 0 && detectedPatterns.length === 0) {
+        detectedPatterns.push({ text: 'Keep tracking to discover adherence patterns.', type: 'info' });
+      }
+      setPatterns(detectedPatterns);
+
+      // Side effects from logs with notes
+      const effectsFromLogs = logs
+        .filter(l => l.notes && l.notes.trim().length > 0)
+        .slice(-5)
+        .map(l => {
+          const med = meds.find(m => m.id === l.medicationId);
+          const date = new Date(l.timestamp);
+          return {
+            date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            symptom: l.notes!.substring(0, 50),
+            linkedMed: med?.name || 'Unknown',
+            note: l.taken ? 'Noted after taking dose' : 'Dose skipped',
+          };
+        });
+      setSideEffects(effectsFromLogs);
+    } catch (error) {
+      logError('MedicationReport.loadReport', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <AuroraBackground variant="reports" />
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+            <SubScreenHeader title="Medication Adherence" emoji="💊" />
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.accent} />
+              <Text style={styles.loadingText}>Analyzing medication data...</Text>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  if (medReports.length === 0) {
+    return (
+      <View style={styles.container}>
+        <AuroraBackground variant="reports" />
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+            <SubScreenHeader title="Medication Adherence" emoji="💊" />
+            <GlassCard style={styles.emptyCard}>
+              <Text style={styles.emptyText}>No active medications to report on. Add medications from the Care Plan to see adherence data here.</Text>
+            </GlassCard>
+          </ScrollView>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <AuroraBackground variant="reports" />
@@ -53,14 +210,14 @@ export default function MedicationReport() {
           {/* Adherence Overview */}
           <View style={styles.overviewRow}>
             <GlassCard style={styles.statCard}>
-              <Text style={[styles.statValue, { color: getAdherenceColor(SAMPLE_DATA.adherence7Day) }]}>
-                {SAMPLE_DATA.adherence7Day}%
+              <Text style={[styles.statValue, { color: getAdherenceColor(adherence7Day) }]}>
+                {adherence7Day}%
               </Text>
               <Text style={styles.statLabel}>7-Day</Text>
             </GlassCard>
             <GlassCard style={styles.statCard}>
-              <Text style={[styles.statValue, { color: getAdherenceColor(SAMPLE_DATA.adherence30Day) }]}>
-                {SAMPLE_DATA.adherence30Day}%
+              <Text style={[styles.statValue, { color: getAdherenceColor(adherence30Day) }]}>
+                {adherence30Day}%
               </Text>
               <Text style={styles.statLabel}>30-Day</Text>
             </GlassCard>
@@ -69,10 +226,10 @@ export default function MedicationReport() {
           {/* By Medication */}
           <Text style={styles.sectionTitle}>BY MEDICATION</Text>
           <GlassCard noPadding>
-            {SAMPLE_DATA.medications.map((med, i) => (
+            {medReports.map((med, i) => (
               <View key={i} style={[
                 styles.medRow,
-                i < SAMPLE_DATA.medications.length - 1 && styles.medRowBorder,
+                i < medReports.length - 1 && styles.medRowBorder,
               ]}>
                 <View style={styles.medContent}>
                   <View style={styles.medHeader}>
@@ -103,11 +260,6 @@ export default function MedicationReport() {
                         Missed: {med.missed} dose{med.missed > 1 ? 's' : ''}
                       </Text>
                     )}
-                    {med.late > 0 && (
-                      <Text style={styles.medDetail}>
-                        Late: {med.late} time{med.late > 1 ? 's' : ''}
-                      </Text>
-                    )}
                   </View>
                 </View>
               </View>
@@ -115,61 +267,47 @@ export default function MedicationReport() {
           </GlassCard>
 
           {/* Patterns */}
-          <Text style={styles.sectionTitle}>PATTERNS & INSIGHTS</Text>
-          {SAMPLE_DATA.patterns.map((pattern, i) => (
-            <GlassCard key={i} style={[
-              styles.patternCard,
-              pattern.type === 'warning' && styles.patternWarning,
-            ]}>
-              <View style={styles.patternContent}>
-                <Text style={styles.patternIcon}>
-                  {pattern.type === 'info' ? 'ℹ️' : '⚠️'}
-                </Text>
-                <Text style={styles.patternText}>{pattern.text}</Text>
-              </View>
-            </GlassCard>
-          ))}
-
-          {/* Side Effects */}
-          {SAMPLE_DATA.sideEffects.length > 0 && (
+          {patterns.length > 0 && (
             <>
-              <Text style={styles.sectionTitle}>REPORTED SIDE EFFECTS</Text>
+              <Text style={styles.sectionTitle}>PATTERNS & INSIGHTS</Text>
+              {patterns.map((pattern, i) => (
+                <GlassCard key={i} style={[
+                  styles.patternCard,
+                  pattern.type === 'warning' && styles.patternWarning,
+                ]}>
+                  <View style={styles.patternContent}>
+                    <Text style={styles.patternIcon}>
+                      {pattern.type === 'info' ? 'i' : '!'}
+                    </Text>
+                    <Text style={styles.patternText}>{pattern.text}</Text>
+                  </View>
+                </GlassCard>
+              ))}
+            </>
+          )}
+
+          {/* Side Effects / Notes */}
+          {sideEffects.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>RECENT NOTES</Text>
               <GlassCard noPadding>
-                {SAMPLE_DATA.sideEffects.map((effect, i) => (
+                {sideEffects.map((effect, i) => (
                   <View key={i} style={[
                     styles.effectRow,
-                    i < SAMPLE_DATA.sideEffects.length - 1 && styles.effectRowBorder,
+                    i < sideEffects.length - 1 && styles.effectRowBorder,
                   ]}>
                     <View style={styles.effectHeader}>
                       <Text style={styles.effectSymptom}>{effect.symptom}</Text>
                       <Text style={styles.effectDate}>{effect.date}</Text>
                     </View>
                     <Text style={styles.effectNote}>
-                      Linked to {effect.linkedMed} • {effect.note}
+                      {effect.linkedMed} - {effect.note}
                     </Text>
                   </View>
                 ))}
               </GlassCard>
             </>
           )}
-
-          {/* Export Actions */}
-          <View style={styles.exportRow}>
-            <TouchableOpacity
-              style={styles.exportPrimary}
-              accessibilityLabel="Export report as PDF"
-              accessibilityRole="button"
-            >
-              <Text style={styles.exportPrimaryText}>📄 Export PDF</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.exportSecondary}
-              accessibilityLabel="Email report"
-              accessibilityRole="button"
-            >
-              <Text style={styles.exportSecondaryText}>📧 Email</Text>
-            </TouchableOpacity>
-          </View>
 
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -178,10 +316,10 @@ export default function MedicationReport() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   safeArea: {
     flex: 1,
@@ -191,6 +329,29 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: Spacing.xl,
+  },
+
+  // Loading
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xxxl,
+    gap: Spacing.lg,
+  },
+  loadingText: {
+    ...Typography.bodySmall,
+    color: c.textSecondary,
+  },
+
+  // Empty
+  emptyCard: {
+    alignItems: 'center',
+    padding: Spacing.xxl,
+  },
+  emptyText: {
+    ...Typography.body,
+    color: c.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 
   // Overview
@@ -211,13 +372,13 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     ...Typography.bodySmall,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Section
   sectionTitle: {
     ...Typography.caption,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: Spacing.md,
   },
 
@@ -227,7 +388,7 @@ const styles = StyleSheet.create({
   },
   medRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    borderBottomColor: c.borderLight,
   },
   medContent: {
     width: '100%',
@@ -243,13 +404,13 @@ const styles = StyleSheet.create({
   },
   medName: {
     ...Typography.body,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '500',
     marginBottom: 2,
   },
   medSchedule: {
     ...Typography.bodySmall,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   medAdherence: {
     ...Typography.h2,
@@ -259,7 +420,7 @@ const styles = StyleSheet.create({
   // Progress Bar
   progressBar: {
     height: 6,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderRadius: 3,
     overflow: 'hidden',
     marginBottom: Spacing.sm,
@@ -276,7 +437,7 @@ const styles = StyleSheet.create({
   },
   medDetail: {
     ...Typography.captionSmall,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Patterns
@@ -284,8 +445,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   patternWarning: {
-    backgroundColor: `${Colors.amber}10`,
-    borderColor: `${Colors.amber}30`,
+    backgroundColor: `${c.amber}10`,
+    borderColor: `${c.amber}30`,
   },
   patternContent: {
     flexDirection: 'row',
@@ -296,7 +457,7 @@ const styles = StyleSheet.create({
   },
   patternText: {
     ...Typography.bodySmall,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
     lineHeight: 20,
   },
@@ -307,7 +468,7 @@ const styles = StyleSheet.create({
   },
   effectRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    borderBottomColor: c.borderLight,
   },
   effectHeader: {
     flexDirection: 'row',
@@ -316,47 +477,14 @@ const styles = StyleSheet.create({
   },
   effectSymptom: {
     ...Typography.body,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   effectDate: {
     ...Typography.bodySmall,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   effectNote: {
     ...Typography.bodySmall,
-    color: Colors.textSecondary,
-  },
-
-  // Export
-  exportRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginTop: Spacing.xxl,
-  },
-  exportPrimary: {
-    flex: 1,
-    backgroundColor: Colors.accent,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.lg,
-    alignItems: 'center',
-  },
-  exportPrimaryText: {
-    ...Typography.body,
-    color: Colors.textPrimary,
-    fontWeight: '500',
-  },
-  exportSecondary: {
-    flex: 1,
-    backgroundColor: Colors.glass,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.lg,
-    alignItems: 'center',
-  },
-  exportSecondaryText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    fontWeight: '500',
+    color: c.textSecondary,
   },
 });

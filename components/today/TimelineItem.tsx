@@ -2,12 +2,13 @@
 // TIMELINE ITEM - Individual timeline item with status indicators
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { TimelineItem as TimelineItemType } from '../../types/timeline';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { format } from 'date-fns';
 
 interface Props {
@@ -16,6 +17,8 @@ interface Props {
 }
 
 export const TimelineItem: React.FC<Props> = ({ item, isLast }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
 
   const handlePress = () => {
@@ -54,8 +57,8 @@ export const TimelineItem: React.FC<Props> = ({ item, isLast }) => {
     }
   };
 
-  const circleStyles = getCircleStyles(item.status);
-  const colors = getStatusColors(item.status);
+  const circleStyles = getCircleStyles(item.status, colors);
+  const statusColors = getStatusColors(item.status, colors);
 
   return (
     <TouchableOpacity
@@ -76,7 +79,7 @@ export const TimelineItem: React.FC<Props> = ({ item, isLast }) => {
         </View>
 
         {!isLast && (
-          <View style={[styles.line, { backgroundColor: colors.line }]} />
+          <View style={[styles.line, { backgroundColor: statusColors.line }]} />
         )}
       </View>
 
@@ -89,7 +92,7 @@ export const TimelineItem: React.FC<Props> = ({ item, isLast }) => {
       >
         {/* Time row */}
         <View style={styles.timeRow}>
-          <Text style={[styles.time, { color: colors.time }]}>
+          <Text style={[styles.time, { color: statusColors.time }]}>
             {formatTime(item.scheduledTime)}
           </Text>
           {item.status === 'available' && (
@@ -101,7 +104,7 @@ export const TimelineItem: React.FC<Props> = ({ item, isLast }) => {
         <Text style={styles.title}>{item.title}</Text>
 
         {/* Subtitle */}
-        <Text style={[styles.subtitle, { color: colors.subtitle }]}>
+        <Text style={[styles.subtitle, { color: statusColors.subtitle }]}>
           {item.subtitle}
         </Text>
       </View>
@@ -114,61 +117,61 @@ const formatTime = (date: Date): string => {
   return format(date, 'h:mm a');
 };
 
-const getCircleStyles = (status: string) => {
+const getCircleStyles = (status: string, c: typeof Colors) => {
   switch (status) {
     case 'done':
       return {
-        backgroundColor: Colors.green,
-        borderColor: Colors.green,
+        backgroundColor: c.green,
+        borderColor: c.green,
       };
     case 'next':
       return {
         backgroundColor: 'transparent',
-        borderColor: Colors.gold,
+        borderColor: c.gold,
       };
     case 'available':
       return {
-        backgroundColor: Colors.amberBrightTint,
+        backgroundColor: c.amberBrightTint,
         borderColor: 'rgba(251, 191, 36, 0.4)',
       };
     default: // upcoming
       return {
         backgroundColor: 'transparent',
-        borderColor: Colors.border,
+        borderColor: c.border,
       };
   }
 };
 
-const getStatusColors = (status: string) => {
+const getStatusColors = (status: string, c: typeof Colors) => {
   switch (status) {
     case 'done':
       return {
-        time: Colors.textMuted,
-        subtitle: Colors.green,
-        line: Colors.greenBorder,
+        time: c.textMuted,
+        subtitle: c.green,
+        line: c.greenBorder,
       };
     case 'next':
       return {
-        time: Colors.textMuted,
-        subtitle: Colors.gold,
-        line: Colors.border,
+        time: c.textMuted,
+        subtitle: c.gold,
+        line: c.border,
       };
     case 'available':
       return {
-        time: Colors.amberBrightStrong,
-        subtitle: Colors.textMuted,
-        line: Colors.border,
+        time: c.amberBrightStrong,
+        subtitle: c.textMuted,
+        line: c.border,
       };
     default: // upcoming
       return {
-        time: Colors.textMuted,
-        subtitle: Colors.textMuted,
-        line: Colors.border,
+        time: c.textMuted,
+        subtitle: c.textMuted,
+        line: c.border,
       };
   }
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
   },
@@ -185,14 +188,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkmark: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 10,
     fontWeight: '600',
   },
   availableIcon: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.amberBrightStrong,
+    color: c.amberBrightStrong,
   },
   line: {
     flex: 1,
@@ -216,11 +219,11 @@ const styles = StyleSheet.create({
   availableLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: Colors.amberBrightStrong,
+    color: c.amberBrightStrong,
   },
   title: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginTop: 1,
   },
   subtitle: {

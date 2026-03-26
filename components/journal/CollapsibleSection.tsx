@@ -3,10 +3,11 @@
 // Reusable expandable/collapsible wrapper for Care Brief sections
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface CollapsibleSectionProps {
   title: string;
@@ -23,6 +24,8 @@ export function CollapsibleSection({
   defaultOpen = false,
   children,
 }: CollapsibleSectionProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [expanded, setExpanded] = useState(defaultOpen);
 
   if (!children) return null;
@@ -48,7 +51,7 @@ export function CollapsibleSection({
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
           size={18}
-          color={Colors.textMuted}
+          color={colors.textMuted}
         />
       </TouchableOpacity>
       {expanded && (
@@ -60,11 +63,11 @@ export function CollapsibleSection({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.md,
     overflow: 'hidden',
@@ -85,14 +88,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   badge: {
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
+    borderColor: c.accentBorder,
     borderRadius: BorderRadius.sm,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -100,7 +103,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   content: {
     paddingHorizontal: Spacing.lg,

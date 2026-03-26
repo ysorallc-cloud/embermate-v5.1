@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Typography } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Props {
   label: string;
@@ -17,6 +18,9 @@ export const StatusOrb: React.FC<Props> = ({
   size = 90,
   accessibilityLabel: customAccessibilityLabel,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const fontSize = Math.max(14, size * 0.2);
   const labelSize = Math.max(9, size * 0.12);
   const defaultAccessibilityLabel = `${label}: ${value}`;
@@ -53,7 +57,7 @@ export const StatusOrb: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     borderWidth: 1,
     alignItems: 'center',
@@ -63,7 +67,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   label: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
 });

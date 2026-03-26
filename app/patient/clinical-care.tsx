@@ -3,7 +3,7 @@
 // Opt-in screen for Tier 3 clinical detail in Care Brief
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
 import {
   getClinicalCareSettings,
@@ -32,6 +33,8 @@ const DEFAULT_SETTINGS: ClinicalCareSettings = {
 export default function ClinicalCareScreen() {
   const router = useRouter();
   const [settings, setSettings] = useState<ClinicalCareSettings>(DEFAULT_SETTINGS);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useFocusEffect(
     useCallback(() => {
@@ -56,7 +59,7 @@ export default function ClinicalCareScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <SubScreenHeader
@@ -84,8 +87,8 @@ export default function ClinicalCareScreen() {
               <Switch
                 value={settings.enabled}
                 onValueChange={(v) => update({ enabled: v })}
-                trackColor={{ false: Colors.border, true: Colors.accentBorder }}
-                thumbColor={settings.enabled ? Colors.accent : Colors.textMuted}
+                trackColor={{ false: colors.border, true: colors.accentBorder }}
+                thumbColor={settings.enabled ? colors.accent : colors.textMuted}
                 accessibilityLabel="Enable clinical care settings"
               />
             </View>
@@ -104,7 +107,7 @@ export default function ClinicalCareScreen() {
                   value={settings.mobilityStatus || ''}
                   onChangeText={(v) => update({ mobilityStatus: v || undefined })}
                   placeholder="e.g., Ambulatory with walker, Wheelchair"
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   accessibilityLabel="Mobility status"
                 />
               </View>
@@ -117,7 +120,7 @@ export default function ClinicalCareScreen() {
                   value={settings.cognitiveBaseline || ''}
                   onChangeText={(v) => update({ cognitiveBaseline: v || undefined })}
                   placeholder="e.g., Alert and oriented x3, Mild dementia"
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   accessibilityLabel="Cognitive baseline"
                 />
               </View>
@@ -130,7 +133,7 @@ export default function ClinicalCareScreen() {
                   value={settings.codeStatus || ''}
                   onChangeText={(v) => update({ codeStatus: v || undefined })}
                   placeholder="e.g., Full Code, DNR/DNI, Comfort Care"
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   accessibilityLabel="Code status"
                 />
               </View>
@@ -146,7 +149,7 @@ export default function ClinicalCareScreen() {
                     update({ fluidTargetOz: isNaN(num) ? undefined : num });
                   }}
                   placeholder="e.g., 64"
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="numeric"
                   accessibilityLabel="Fluid target in ounces"
                 />
@@ -161,8 +164,8 @@ export default function ClinicalCareScreen() {
                   <Switch
                     value={settings.fallRisk ?? false}
                     onValueChange={(v) => update({ fallRisk: v })}
-                    trackColor={{ false: Colors.border, true: 'rgba(248, 113, 113, 0.4)' }}
-                    thumbColor={settings.fallRisk ? Colors.redBright : Colors.textMuted}
+                    trackColor={{ false: colors.border, true: 'rgba(248, 113, 113, 0.4)' }}
+                    thumbColor={settings.fallRisk ? colors.redBright : colors.textMuted}
                     accessibilityLabel="Fall risk toggle"
                   />
                 </View>
@@ -175,8 +178,8 @@ export default function ClinicalCareScreen() {
                   <Switch
                     value={settings.dnr ?? false}
                     onValueChange={(v) => update({ dnr: v })}
-                    trackColor={{ false: Colors.border, true: 'rgba(248, 113, 113, 0.4)' }}
-                    thumbColor={settings.dnr ? Colors.redBright : Colors.textMuted}
+                    trackColor={{ false: colors.border, true: 'rgba(248, 113, 113, 0.4)' }}
+                    thumbColor={settings.dnr ? colors.redBright : colors.textMuted}
                     accessibilityLabel="DNR order toggle"
                   />
                 </View>
@@ -189,8 +192,8 @@ export default function ClinicalCareScreen() {
                   <Switch
                     value={settings.wanderingRisk ?? false}
                     onValueChange={(v) => update({ wanderingRisk: v })}
-                    trackColor={{ false: Colors.border, true: 'rgba(248, 113, 113, 0.4)' }}
-                    thumbColor={settings.wanderingRisk ? Colors.redBright : Colors.textMuted}
+                    trackColor={{ false: colors.border, true: 'rgba(248, 113, 113, 0.4)' }}
+                    thumbColor={settings.wanderingRisk ? colors.redBright : colors.textMuted}
                     accessibilityLabel="Wandering risk toggle"
                   />
                 </View>
@@ -203,8 +206,8 @@ export default function ClinicalCareScreen() {
                   <Switch
                     value={settings.swallowingIssues ?? false}
                     onValueChange={(v) => update({ swallowingIssues: v })}
-                    trackColor={{ false: Colors.border, true: Colors.amberBorder }}
-                    thumbColor={settings.swallowingIssues ? Colors.amber : Colors.textMuted}
+                    trackColor={{ false: colors.border, true: colors.amberBorder }}
+                    thumbColor={settings.swallowingIssues ? colors.amber : colors.textMuted}
                     accessibilityLabel="Swallowing issues toggle"
                   />
                 </View>
@@ -219,10 +222,10 @@ export default function ClinicalCareScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -233,30 +236,30 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
   },
   explainer: {
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
   },
   explainerText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 20,
   },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     letterSpacing: 1.2,
     marginBottom: Spacing.md,
     marginTop: Spacing.lg,
   },
   toggleCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     padding: Spacing.md,
     marginBottom: Spacing.md,
@@ -273,18 +276,18 @@ const styles = StyleSheet.create({
   toggleLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   toggleHint: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 4,
     lineHeight: 18,
   },
   fieldCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     padding: Spacing.md,
     marginBottom: Spacing.md,
@@ -292,15 +295,15 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.sm,
   },
   fieldInput: {
     fontSize: 14,
-    color: Colors.textPrimary,
-    backgroundColor: Colors.glassFaint,
+    color: c.textPrimary,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,

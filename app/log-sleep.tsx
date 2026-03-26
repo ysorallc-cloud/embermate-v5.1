@@ -3,7 +3,7 @@
 // Individual sleep logging with hours and quality rating
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { navigateBack } from '../lib/navigate';
 import { Colors, BorderRadius, Spacing } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import { saveDailyTracking, getDailyTracking } from '../utils/dailyTrackingStorage';
 import { saveSleepLog } from '../utils/centralStorage';
@@ -33,6 +34,8 @@ import { EVENT } from '../lib/eventNames';
 const QUALITY_LABELS = ['Very Poor', 'Poor', 'Fair', 'Good', 'Excellent'];
 
 export default function LogSleep() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams();
   const [hours, setHours] = useState('');
   const [quality, setQuality] = useState<number | null>(null);
@@ -121,7 +124,7 @@ export default function LogSleep() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <KeyboardAvoidingView
@@ -142,7 +145,7 @@ export default function LogSleep() {
                 <TextInput
                   style={styles.hoursInput}
                   placeholder="7.5"
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="decimal-pad"
                   value={hours}
                   onChangeText={setHours}
@@ -219,10 +222,10 @@ export default function LogSleep() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -240,7 +243,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
     marginBottom: Spacing.lg,
   },
 
@@ -252,24 +255,24 @@ const styles = StyleSheet.create({
   },
   hoursInput: {
     flex: 1,
-    backgroundColor: Colors.surfaceHighlight,
+    backgroundColor: c.surfaceHighlight,
     borderWidth: 1,
-    borderColor: Colors.accentHint,
+    borderColor: c.accentHint,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 24,
     fontWeight: '600',
     textAlign: 'center',
   },
   hoursUnit: {
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     minWidth: 50,
   },
   hint: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: Spacing.sm,
   },
 
@@ -285,23 +288,23 @@ const styles = StyleSheet.create({
     maxWidth: 60,
     maxHeight: 60,
     borderRadius: 30,
-    backgroundColor: Colors.surfaceHighlight,
+    backgroundColor: c.surfaceHighlight,
     borderWidth: 1,
-    borderColor: Colors.accentHint,
+    borderColor: c.accentHint,
     alignItems: 'center',
     justifyContent: 'center',
   },
   qualityButtonSelected: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: c.accent,
+    borderColor: c.accent,
   },
   qualityNumber: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   qualityNumberSelected: {
-    color: Colors.background,
+    color: c.background,
   },
   qualityLabels: {
     flexDirection: 'row',
@@ -311,7 +314,7 @@ const styles = StyleSheet.create({
   },
   qualityLabelText: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   selectedQuality: {
     marginTop: Spacing.lg,
@@ -320,7 +323,7 @@ const styles = StyleSheet.create({
   selectedQualityText: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.accent,
+    color: c.accent,
   },
 
   // Footer
@@ -328,11 +331,11 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     paddingBottom: Spacing.xxl,
     borderTopWidth: 1,
-    borderTopColor: Colors.accentHint,
-    backgroundColor: Colors.background,
+    borderTopColor: c.accentHint,
+    backgroundColor: c.background,
   },
   saveButton: {
-    backgroundColor: Colors.purple,
+    backgroundColor: c.purple,
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
@@ -341,7 +344,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   saveButtonText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

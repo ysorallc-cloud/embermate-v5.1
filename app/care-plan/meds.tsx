@@ -3,7 +3,7 @@
 // Configure medication tracking in the Care Plan
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { navigate } from '../../lib/navigate';
 import {
   View,
@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import {
   MedsBucketConfig,
@@ -42,6 +43,8 @@ interface MedicationItemProps {
 }
 
 function MedicationItem({ medication, onEdit, onToggleActive, onRemove, onToggleNotification }: MedicationItemProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const timeDisplay = medication.customTimes?.length
     ? medication.customTimes.map(t => formatTimeForDisplay(t)).join(', ')
     : medication.timesOfDay?.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ') || 'No time set';
@@ -90,9 +93,9 @@ function MedicationItem({ medication, onEdit, onToggleActive, onRemove, onToggle
           <Switch
             value={medication.active}
             onValueChange={onToggleActive}
-            trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
-            thumbColor={medication.active ? Colors.textPrimary : Colors.switchThumbOff}
-            ios_backgroundColor={Colors.glassStrong}
+            trackColor={{ false: colors.glassStrong, true: colors.accent }}
+            thumbColor={medication.active ? colors.textPrimary : colors.switchThumbOff}
+            ios_backgroundColor={colors.glassStrong}
           />
         </View>
       </TouchableOpacity>
@@ -135,6 +138,8 @@ interface QuickAddPanelProps {
 }
 
 function QuickAddPanel({ visible, onClose, onAdd, onFullForm }: QuickAddPanelProps) {
+  const { colors } = useTheme();
+  const quickAddStyles = useMemo(() => createQuickAddStyles(colors), [colors]);
   const [selectedMed, setSelectedMed] = useState<typeof COMMON_MEDICATIONS[0] | null>(null);
   const [selectedDosage, setSelectedDosage] = useState('');
   const [selectedTime, setSelectedTime] = useState('morning');
@@ -247,7 +252,7 @@ function QuickAddPanel({ visible, onClose, onAdd, onFullForm }: QuickAddPanelPro
   );
 }
 
-const quickAddStyles = StyleSheet.create({
+const createQuickAddStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     backgroundColor: 'rgba(20, 184, 166, 0.04)',
     borderWidth: 1,
@@ -266,16 +271,16 @@ const quickAddStyles = StyleSheet.create({
   headerTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   fullFormLink: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   dropdown: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 8,
     padding: 10,
     flexDirection: 'row',
@@ -283,30 +288,30 @@ const quickAddStyles = StyleSheet.create({
     alignItems: 'center',
   },
   dropdownOpen: {
-    borderColor: Colors.accent,
+    borderColor: c.accent,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
   },
   dropdownText: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
   },
   dropdownPlaceholder: {
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   dropdownArrow: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginLeft: 8,
   },
   dropdownArrowFlipped: {
     transform: [{ rotate: '180deg' }],
   },
   dropdownList: {
-    backgroundColor: Colors.backgroundElevated,
+    backgroundColor: c.backgroundElevated,
     borderWidth: 1,
-    borderColor: Colors.accent,
+    borderColor: c.accent,
     borderTopWidth: 0,
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
@@ -317,11 +322,11 @@ const quickAddStyles = StyleSheet.create({
   },
   dropdownItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   dropdownItemText: {
     fontSize: 13,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   timeRow: {
     flexDirection: 'row',
@@ -334,7 +339,7 @@ const quickAddStyles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   timeButtonActive: {
     backgroundColor: 'rgba(20, 184, 166, 0.08)',
@@ -344,21 +349,21 @@ const quickAddStyles = StyleSheet.create({
     fontSize: 18,
   },
   addButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
   },
   addButtonDisabled: {
-    backgroundColor: Colors.glassStrong,
+    backgroundColor: c.glassStrong,
   },
   addButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.background,
+    color: c.background,
   },
   addButtonTextDisabled: {
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 });
 
@@ -368,6 +373,8 @@ const quickAddStyles = StyleSheet.create({
 
 export default function MedsBucketScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     config,
     loading,
@@ -448,7 +455,7 @@ export default function MedsBucketScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -535,10 +542,10 @@ export default function MedsBucketScreen() {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -556,20 +563,20 @@ const styles = StyleSheet.create({
   backButton: {
     width: 44,
     height: 44,
-    backgroundColor: Colors.backgroundElevated,
+    backgroundColor: c.backgroundElevated,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backIcon: {
     fontSize: 24,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   headerLabel: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 1,
     fontWeight: '600',
   },
@@ -587,7 +594,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textHalf,
+    color: c.textHalf,
     letterSpacing: 1,
     marginBottom: Spacing.md,
     marginTop: Spacing.xl,
@@ -595,15 +602,15 @@ const styles = StyleSheet.create({
 
   addButtonText: {
     fontSize: 14,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
 
   // Medication Item
   medItem: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.md,
     overflow: 'hidden',
@@ -633,24 +640,24 @@ const styles = StyleSheet.create({
   medName: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   medNameInactive: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   medDosage: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 2,
   },
   medTime: {
     fontSize: 13,
-    color: Colors.accent,
+    color: c.accent,
   },
   medInstructions: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 4,
     fontStyle: 'italic',
   },
@@ -672,7 +679,7 @@ const styles = StyleSheet.create({
   medItemActions: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
   medActionButton: {
     flex: 1,
@@ -681,15 +688,15 @@ const styles = StyleSheet.create({
   },
   medActionDivider: {
     width: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
   },
   medActionText: {
     fontSize: 14,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   medActionTextDanger: {
-    color: Colors.red,
+    color: c.red,
   },
 
   // Empty State
@@ -705,12 +712,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     marginBottom: Spacing.xl,
     lineHeight: 20,
@@ -719,7 +726,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.lg,
     borderWidth: 1,
-    borderColor: Colors.sageGlow,
+    borderColor: c.sageGlow,
     borderRadius: BorderRadius.md,
     borderStyle: 'dashed',
   },

@@ -2,7 +2,7 @@
 // GUIDE HUB - Learn & Explore: Quick Start, Tips, Feature Guides
 // ============================================================================
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { BackButton } from '../components/common/BackButton';
 import { StorageKeys, StorageKeyPrefixes } from '../utils/storageKeys';
 import { safeGetItem } from '../utils/safeStorage';
@@ -132,9 +133,9 @@ const FEATURE_GUIDES: FeatureGuide[] = [
     icon: '\uD83D\uDCCA',
     title: 'Insights Tab',
     subtitle: 'Patterns, meds & appointments',
-    color: '#8B5CF6',
-    colorBg: 'rgba(139, 92, 246, 0.08)',
-    colorBorder: 'rgba(139, 92, 246, 0.25)',
+    color: Colors.accent,
+    colorBg: Colors.accentDim,
+    colorBorder: Colors.accentGlow,
     steps: [
       { title: 'Trends', desc: 'Charts show BP, mood, sleep, and med adherence over 7 or 30 day windows.' },
       { title: 'Medications', desc: 'Manage your full medication list \u2014 add, edit, set reminders, track supply.' },
@@ -192,6 +193,8 @@ const FEATURE_GUIDES: FeatureGuide[] = [
 
 export default function GuideHubScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
   const [expandedGuide, setExpandedGuide] = useState<string | null>(null);
   const [tipIndex, setTipIndex] = useState(0);
@@ -265,7 +268,7 @@ export default function GuideHubScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -398,10 +401,10 @@ export default function GuideHubScreen() {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -414,30 +417,30 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backButtonText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 18,
   },
   headerLabel: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 1,
     fontWeight: '600',
   },
   title: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 20,
     fontWeight: '300',
     marginTop: 2,
@@ -451,7 +454,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 16,
     marginBottom: 20,
   },
@@ -489,7 +492,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 2,
   },
   quickStartItem: {
@@ -561,7 +564,7 @@ const styles = StyleSheet.create({
   },
   tipText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 16,
   },
 
@@ -569,7 +572,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 1,
     marginBottom: 10,
     marginTop: 8,
@@ -579,7 +582,7 @@ const styles = StyleSheet.create({
   guideCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 14,
     overflow: 'hidden',
     marginBottom: 8,
@@ -597,11 +600,11 @@ const styles = StyleSheet.create({
   guideTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   guideSubtitle: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 1,
   },
   guideChevron: {
@@ -645,7 +648,7 @@ const styles = StyleSheet.create({
   },
   guideStepDesc: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 17,
   },
 
@@ -657,23 +660,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   resetTitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   resetSubtitle: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   resetAction: {
     fontSize: 13,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
 });

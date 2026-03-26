@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import type { VitalsDetail } from '../../utils/careSummaryBuilder';
 
 interface Props {
@@ -33,6 +34,9 @@ function buildReadingsString(readings: VitalsDetail['readings']): string {
 }
 
 export function VitalsNarrative({ vitals, baselines }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (!vitals.scheduled && !vitals.recorded) return null;
 
   let text: React.ReactNode;
@@ -85,25 +89,25 @@ export function VitalsNarrative({ vitals, baselines }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   card: {
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
   },
   narrative: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 20,
   },
   bold: {
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   flagged: {
-    color: Colors.amber,
+    color: c.amber,
   },
 });

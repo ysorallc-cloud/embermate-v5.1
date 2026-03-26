@@ -3,15 +3,19 @@
 // Renders the generated prose narrative string in a styled card
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface StatusNarrativeProps {
   narrative: string;
 }
 
 export function StatusNarrative({ narrative }: StatusNarrativeProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (!narrative) return null;
 
   return (
@@ -21,17 +25,17 @@ export function StatusNarrative({ narrative }: StatusNarrativeProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   card: {
     borderLeftWidth: 3,
-    borderLeftColor: Colors.accent,
-    backgroundColor: Colors.glassFaint,
+    borderLeftColor: c.accent,
+    backgroundColor: c.glassFaint,
     borderRadius: BorderRadius.sm,
     padding: Spacing.md,
   },
   narrative: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 22,
   },
 });

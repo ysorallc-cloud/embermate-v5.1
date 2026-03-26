@@ -3,9 +3,10 @@
 // Links to /care-report?scope=handoff
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors, BorderRadius, Spacing } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
 
 interface HandoffPromptCardProps {
@@ -13,6 +14,8 @@ interface HandoffPromptCardProps {
 }
 
 export const HandoffPromptCard: React.FC<HandoffPromptCardProps> = ({ completedCount }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [dismissed, setDismissed] = useState(false);
 
   const hour = new Date().getHours();
@@ -51,11 +54,11 @@ export const HandoffPromptCard: React.FC<HandoffPromptCardProps> = ({ completedC
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.purpleFaint,
+    backgroundColor: c.purpleFaint,
     borderWidth: 1,
-    borderColor: Colors.purpleBorder,
+    borderColor: c.purpleBorder,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: 12,
@@ -74,17 +77,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textBright,
+    color: c.textBright,
   },
   subtitle: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
     lineHeight: 17,
   },
   dismissIcon: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     padding: 4,
   },
 });

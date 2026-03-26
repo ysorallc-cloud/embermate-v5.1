@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Modal, ScrollView, Pressable } from 'react-native';
 import { GlassCard } from '../../../components/aurora/GlassCard';
 import { Colors, Typography, Spacing, BorderRadius } from '../../../theme/theme-tokens';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 interface Props {
   visible: boolean;
@@ -9,6 +10,8 @@ interface Props {
 }
 
 export const DisclaimerModal: React.FC<Props> = ({ visible, onClose }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Modal
       visible={visible}
@@ -79,7 +82,7 @@ export const DisclaimerModal: React.FC<Props> = ({ visible, onClose }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -100,7 +103,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.h2,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.xl,
     textAlign: 'center',
   },
@@ -109,12 +112,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...Typography.h3,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   sectionText: {
     ...Typography.body,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 22,
   },
   warningBox: {
@@ -132,7 +135,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   closeButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     alignItems: 'center',
@@ -140,7 +143,7 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     ...Typography.label,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });
 

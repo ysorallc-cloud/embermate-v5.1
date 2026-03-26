@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors, Spacing } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { savePhoto } from '../utils/photoStorage';
 import { logError } from '../utils/devLog';
 
@@ -12,6 +13,9 @@ export interface PhotoCaptureProps {
 }
 
 export default function PhotoCapture({ type, onPhotoSaved, medicationId }: PhotoCaptureProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const requestPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
@@ -70,7 +74,7 @@ export default function PhotoCapture({ type, onPhotoSaved, medicationId }: Photo
         accessibilityLabel={`Take ${type} photo with camera`}
         accessibilityRole="button"
       >
-        <Text style={styles.buttonIcon}>📷</Text>
+        <Text style={styles.buttonIcon}>{'\uD83D\uDCF7'}</Text>
         <Text style={styles.buttonText}>Take Photo</Text>
       </TouchableOpacity>
 
@@ -80,27 +84,27 @@ export default function PhotoCapture({ type, onPhotoSaved, medicationId }: Photo
         accessibilityLabel={`Choose ${type} photo from library`}
         accessibilityRole="button"
       >
-        <Text style={styles.buttonIcon}>🖼️</Text>
+        <Text style={styles.buttonIcon}>{'\uD83D\uDDBC\uFE0F'}</Text>
         <Text style={styles.buttonText}>Choose from Library</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     gap: Spacing.md,
   },
   button: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     padding: Spacing.md,
     alignItems: 'center',
     gap: Spacing.xs,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   buttonIcon: {
     fontSize: 32,
@@ -108,6 +112,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });

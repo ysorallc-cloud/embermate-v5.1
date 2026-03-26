@@ -3,18 +3,21 @@
 // Clean list of upcoming appointments
 // ============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { navigate } from '../lib/navigate';
 import { getUpcomingAppointments, Appointment } from '../utils/appointmentStorage';
 import { logError } from '../utils/devLog';
 
 export default function AppointmentsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -61,11 +64,11 @@ export default function AppointmentsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]} style={styles.gradient}>
+      <LinearGradient colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]} style={styles.gradient}>
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
         >
           {/* Header */}
           <View style={styles.header}>
@@ -137,10 +140,10 @@ export default function AppointmentsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background
+    backgroundColor: c.background
   },
   gradient: {
     flex: 1
@@ -180,7 +183,7 @@ const styles = StyleSheet.create({
   },
   addIcon: {
     fontSize: 24,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // Title Section
@@ -195,7 +198,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
 
   // Appointment Card
@@ -238,16 +241,16 @@ const styles = StyleSheet.create({
   },
   providerTime: {
     fontSize: 13,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginBottom: 2,
   },
   location: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   chevron: {
     fontSize: 18,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
 
   // Empty State
@@ -271,6 +274,6 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: 14,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
 });

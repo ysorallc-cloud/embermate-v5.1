@@ -2,12 +2,15 @@
 // EMPTY CARD - No tasks scheduled (Default surface)
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export const EmptyCard: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
 
   const handleAddSomething = () => {
@@ -35,11 +38,11 @@ export const EmptyCard: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 14,
     padding: 20,
     alignItems: 'center',
@@ -52,32 +55,32 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.5,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 8,
   },
   message: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
   },
   submessage: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     marginTop: 4,
     marginBottom: 16,
   },
   button: {
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     borderWidth: 1,
-    borderColor: Colors.accent,
+    borderColor: c.accent,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 20,
   },
   buttonText: {
     fontSize: 13,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
 });

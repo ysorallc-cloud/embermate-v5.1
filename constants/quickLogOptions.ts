@@ -76,7 +76,7 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
     icon: '💧',
     label: 'Hydration',
     description: 'Water and fluid intake',
-    screen: '/log-hydration',
+    screen: '/log-water',
     isCore: false,
     category: 'daily',
     bucketType: 'water',

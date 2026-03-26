@@ -4,11 +4,12 @@
 // Used across screens to maintain consistent "add X" patterns
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // ============================================================================
 // TYPES
@@ -43,6 +44,9 @@ export function ConsistencyBanner({
   dismissable = false,
   onDismiss,
 }: ConsistencyBannerProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const router = useRouter();
 
   const handlePrimaryAction = () => {
@@ -217,30 +221,30 @@ export function DataIntegrityBanner({
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   banner: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 12,
     padding: 14,
     marginBottom: 12,
   },
   bannerEmpty: {
     borderStyle: 'dashed',
-    borderColor: Colors.glassSubtle,
+    borderColor: c.glassSubtle,
   },
   bannerWarning: {
     backgroundColor: 'rgba(251, 191, 36, 0.08)',
     borderColor: 'rgba(251, 191, 36, 0.25)',
   },
   bannerError: {
-    backgroundColor: Colors.redFaint,
-    borderColor: Colors.redBorder,
+    backgroundColor: c.redFaint,
+    borderColor: c.redBorder,
   },
   bannerInfo: {
-    backgroundColor: Colors.blueFaint,
-    borderColor: Colors.blueBorder,
+    backgroundColor: c.blueFaint,
+    borderColor: c.blueBorder,
   },
 
   dismissButton: {
@@ -254,7 +258,7 @@ const styles = StyleSheet.create({
   },
   dismissIcon: {
     fontSize: 18,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   content: {
@@ -276,7 +280,7 @@ const styles = StyleSheet.create({
   message: {
     flex: 1,
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 20,
   },
   messageWarning: {
@@ -291,9 +295,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   actionButton: {
-    backgroundColor: Colors.sageBorder,
+    backgroundColor: c.sageBorder,
     borderWidth: 1,
-    borderColor: Colors.sageGlow,
+    borderColor: c.sageGlow,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 14,
@@ -303,19 +307,19 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(251, 191, 36, 0.3)',
   },
   actionButtonError: {
-    backgroundColor: Colors.redHint,
-    borderColor: Colors.redStrong,
+    backgroundColor: c.redHint,
+    borderColor: c.redStrong,
   },
   actionButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   actionButtonTextWarning: {
-    color: Colors.amberBright,
+    color: c.amberBright,
   },
   actionButtonTextError: {
-    color: Colors.red,
+    color: c.red,
   },
 
   secondaryButton: {
@@ -324,7 +328,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 13,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
 });
 

@@ -2,10 +2,11 @@
 // CALENDAR DAY ITEMS - List of appointments/events for selected day
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { format } from 'date-fns';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { CalendarItem } from '../../types/calendar';
 import { APPOINTMENT_TYPES } from '../../constants/appointmentTypes';
 
@@ -17,6 +18,9 @@ interface CalendarDayItemsProps {
 }
 
 export function CalendarDayItems({ date, items, isLoading, onItemPress }: CalendarDayItemsProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.container}>
       {/* Date header */}
@@ -25,7 +29,7 @@ export function CalendarDayItems({ date, items, isLoading, onItemPress }: Calend
       {/* Loading state */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={Colors.accent} />
+          <ActivityIndicator size="small" color={colors.accent} />
         </View>
       ) : items.length === 0 ? (
         /* Empty state */
@@ -39,8 +43,8 @@ export function CalendarDayItems({ date, items, isLoading, onItemPress }: Calend
           {items.map((item) => {
             const isAppointment = item.type === 'appointment';
             const icon = isAppointment
-              ? APPOINTMENT_TYPES.find(t => t.id === item.data.type)?.icon || '📋'
-              : '📌';
+              ? APPOINTMENT_TYPES.find(t => t.id === item.data.type)?.icon || '\uD83D\uDCCB'
+              : '\uD83D\uDCCC';
             const title = isAppointment
               ? item.data.providerName
               : item.data.title;
@@ -64,10 +68,10 @@ export function CalendarDayItems({ date, items, isLoading, onItemPress }: Calend
                   <View style={styles.itemText}>
                     <Text style={styles.itemTitle}>{title}</Text>
                     <Text style={styles.itemSubtitle}>
-                      {formatTime(time)} {subtitle && `• ${subtitle}`}
+                      {formatTime(time)} {subtitle && `\u2022 ${subtitle}`}
                     </Text>
                   </View>
-                  <Text style={styles.itemArrow}>→</Text>
+                  <Text style={styles.itemArrow}>{'\u2192'}</Text>
                 </View>
               </TouchableOpacity>
             );
@@ -92,7 +96,7 @@ function formatTime(time: string): string {
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     gap: 16,
   },
@@ -100,7 +104,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.5,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   loadingContainer: {
     padding: 40,
@@ -109,7 +113,7 @@ const styles = StyleSheet.create({
   emptyState: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 14,
     borderStyle: 'dashed',
     padding: 40,
@@ -117,20 +121,20 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 4,
   },
   emptySubtext: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   itemsList: {
     gap: 12,
   },
   itemCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 14,
     overflow: 'hidden',
   },
@@ -149,16 +153,16 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   itemSubtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   itemArrow: {
     fontSize: 16,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginLeft: 8,
   },
 });

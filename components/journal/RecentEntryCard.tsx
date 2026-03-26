@@ -2,17 +2,21 @@
 // RecentEntryCard — Single entry card for the Journal feed
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { RecentEntry } from '../../hooks/useRecentEntries';
 
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 interface Props {
   entry: RecentEntry;
   onPress: (entry: RecentEntry) => void;
 }
 
 export function RecentEntryCard({ entry, onPress }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <TouchableOpacity
       style={styles.card}
@@ -34,9 +38,9 @@ export function RecentEntryCard({ entry, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   card: {
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 14,
@@ -49,7 +53,7 @@ const styles = StyleSheet.create({
   emojiCircle: {
     width: 40,
     height: 40,
-    backgroundColor: Colors.sageBorder,
+    backgroundColor: c.sageBorder,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -63,7 +67,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   detail: {
@@ -72,6 +76,6 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 });

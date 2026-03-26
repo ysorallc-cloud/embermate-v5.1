@@ -3,7 +3,7 @@
 // Manage app lock, encryption, and security features
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { CommonStyles } from '../../theme/commonStyles';
 import {
   checkBiometricCapabilities,
@@ -44,6 +45,8 @@ import { logError } from '../../utils/devLog';
 
 export default function SecuritySettingsScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   // State
   const [capabilities, setCapabilities] = useState<BiometricCapabilities | null>(null);
@@ -223,7 +226,7 @@ export default function SecuritySettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -249,7 +252,7 @@ export default function SecuritySettingsScreen() {
               <Ionicons
                 name={biometricEnabled || pinExists ? 'shield-checkmark' : 'shield-outline'}
                 size={24}
-                color={biometricEnabled || pinExists ? Colors.success : Colors.textMuted}
+                color={biometricEnabled || pinExists ? colors.success : colors.textMuted}
               />
               <View style={styles.statusInfo}>
                 <Text style={styles.statusTitle}>
@@ -275,7 +278,7 @@ export default function SecuritySettingsScreen() {
             {capabilities?.isAvailable && (
               <View style={styles.settingItem}>
                 <View style={styles.settingLeft}>
-                  <Ionicons name="finger-print" size={22} color={Colors.accent} />
+                  <Ionicons name="finger-print" size={22} color={colors.accent} />
                   <View style={styles.settingContent}>
                     <Text style={styles.settingTitle}>
                       {capabilities.biometricName}
@@ -288,8 +291,8 @@ export default function SecuritySettingsScreen() {
                 <Switch
                   value={biometricEnabled}
                   onValueChange={handleToggleBiometric}
-                  trackColor={{ false: Colors.border, true: Colors.accentLight }}
-                  thumbColor={biometricEnabled ? Colors.accent : Colors.textMuted}
+                  trackColor={{ false: colors.border, true: colors.accentLight }}
+                  thumbColor={biometricEnabled ? colors.accent : colors.textMuted}
                 />
               </View>
             )}
@@ -302,7 +305,7 @@ export default function SecuritySettingsScreen() {
               accessibilityRole="button"
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="keypad" size={22} color={Colors.accent} />
+                <Ionicons name="keypad" size={22} color={colors.accent} />
                 <View style={styles.settingContent}>
                   <Text style={styles.settingTitle}>PIN Code</Text>
                   <Text style={styles.settingSubtitle}>
@@ -310,13 +313,13 @@ export default function SecuritySettingsScreen() {
                   </Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
             </TouchableOpacity>
 
             {/* PIN Lockout Status */}
             {lockoutInfo?.locked && (
               <View style={styles.lockoutBanner}>
-                <Ionicons name="warning" size={18} color={Colors.amber} />
+                <Ionicons name="warning" size={18} color={colors.amber} />
                 <Text style={styles.lockoutText}>
                   PIN locked — too many failed attempts. Try again in {lockoutInfo.lockoutSeconds}s
                 </Text>
@@ -326,7 +329,7 @@ export default function SecuritySettingsScreen() {
             {/* Auto-lock Timeout */}
             <TouchableOpacity style={styles.settingItem} onPress={handleAutoLockChange} accessibilityLabel={`Auto-lock timeout, lock after ${autoLockTimeout / 60} minutes`} accessibilityRole="button">
               <View style={styles.settingLeft}>
-                <Ionicons name="timer-outline" size={22} color={Colors.accent} />
+                <Ionicons name="timer-outline" size={22} color={colors.accent} />
                 <View style={styles.settingContent}>
                   <Text style={styles.settingTitle}>Auto-lock Timeout</Text>
                   <Text style={styles.settingSubtitle}>
@@ -334,7 +337,7 @@ export default function SecuritySettingsScreen() {
                   </Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
 
@@ -344,13 +347,13 @@ export default function SecuritySettingsScreen() {
 
             <View style={styles.settingItem}>
               <View style={styles.settingLeft}>
-                <Ionicons name="lock-closed" size={22} color={Colors.success} />
+                <Ionicons name="lock-closed" size={22} color={colors.success} />
                 <View style={styles.settingContent}>
                   <Text style={styles.settingTitle}>Encryption Status</Text>
                   <Text style={styles.settingSubtitle}>AES-256 encryption active</Text>
                 </View>
               </View>
-              <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
+              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
             </View>
 
             <TouchableOpacity
@@ -360,13 +363,13 @@ export default function SecuritySettingsScreen() {
               accessibilityRole="button"
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="save-outline" size={22} color={Colors.accent} />
+                <Ionicons name="save-outline" size={22} color={colors.accent} />
                 <View style={styles.settingContent}>
                   <Text style={styles.settingTitle}>Encrypted Backups</Text>
                   <Text style={styles.settingSubtitle}>Create password-protected backup</Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
 
@@ -382,7 +385,7 @@ export default function SecuritySettingsScreen() {
                 </View>
                 <View style={styles.statRow}>
                   <Text style={styles.statLabel}>Critical Events</Text>
-                  <Text style={[styles.statValue, { color: Colors.error }]}>
+                  <Text style={[styles.statValue, { color: colors.error }]}>
                     {auditStats.criticalEvents}
                   </Text>
                 </View>
@@ -396,13 +399,13 @@ export default function SecuritySettingsScreen() {
               accessibilityRole="button"
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="document-text-outline" size={22} color={Colors.accent} />
+                <Ionicons name="document-text-outline" size={22} color={colors.accent} />
                 <View style={styles.settingContent}>
                   <Text style={styles.settingTitle}>Export Audit Logs</Text>
                   <Text style={styles.settingSubtitle}>Download activity history</Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
 
@@ -443,21 +446,21 @@ export default function SecuritySettingsScreen() {
             <Text style={CommonStyles.sectionTitle}>SECURITY TIPS</Text>
 
             <View style={styles.tipCard}>
-              <Ionicons name="information-circle" size={20} color={Colors.accent} />
+              <Ionicons name="information-circle" size={20} color={colors.accent} />
               <Text style={styles.tipText}>
                 Enable biometric authentication for quick and secure access to your health data.
               </Text>
             </View>
 
             <View style={styles.tipCard}>
-              <Ionicons name="information-circle" size={20} color={Colors.accent} />
+              <Ionicons name="information-circle" size={20} color={colors.accent} />
               <Text style={styles.tipText}>
                 Create encrypted backups regularly and store them in a secure location.
               </Text>
             </View>
 
             <View style={styles.tipCard}>
-              <Ionicons name="information-circle" size={20} color={Colors.accent} />
+              <Ionicons name="information-circle" size={20} color={colors.accent} />
               <Text style={styles.tipText}>
                 Review your activity logs monthly to ensure no unauthorized access.
               </Text>
@@ -471,10 +474,10 @@ export default function SecuritySettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -489,7 +492,7 @@ const styles = StyleSheet.create({
   },
   headerLabel: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 1,
     fontWeight: '600',
   },
@@ -500,15 +503,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '300',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.xl,
   },
 
   // Status Card
   statusCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
@@ -525,16 +528,16 @@ const styles = StyleSheet.create({
   statusTitle: {
     fontSize: 18,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   statusSubtitle: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   lastActivity: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: Spacing.sm,
   },
 
@@ -548,9 +551,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     marginBottom: Spacing.sm,
@@ -567,19 +570,19 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   settingSubtitle: {
     fontSize: 13,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
 
   // Stats Card
   statsCard: {
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
+    borderColor: c.accentBorder,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -592,12 +595,12 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   statValue: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
 
   // Activity Items
@@ -607,51 +610,51 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   activityDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
   },
   activityContent: {
     flex: 1,
   },
   activityTitle: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   activityTime: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   severityBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
   },
   severityCritical: {
-    backgroundColor: Colors.redHint,
+    backgroundColor: c.redHint,
   },
   severityWarning: {
-    backgroundColor: Colors.amberHint,
+    backgroundColor: c.amberHint,
   },
   severityText: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.accent,
+    color: c.accent,
   },
 
   // Tips
   tipCard: {
     flexDirection: 'row',
     gap: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
@@ -659,13 +662,13 @@ const styles = StyleSheet.create({
   tipText: {
     flex: 1,
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
 
   emptyText: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     paddingVertical: Spacing.xl,
   },
@@ -683,7 +686,7 @@ const styles = StyleSheet.create({
   lockoutText: {
     flex: 1,
     fontSize: 13,
-    color: Colors.amber,
+    color: c.amber,
     lineHeight: 18,
   },
 });

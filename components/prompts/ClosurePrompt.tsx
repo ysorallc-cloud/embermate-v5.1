@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface ClosurePromptProps {
   message: string;
 }
 
 export const ClosurePrompt: React.FC<ClosurePromptProps> = ({ message }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.icon}>✨</Text>
@@ -15,9 +19,9 @@ export const ClosurePrompt: React.FC<ClosurePromptProps> = ({ message }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.greenTint,
+    backgroundColor: c.greenTint,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -28,7 +32,7 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
     lineHeight: 22,
   },

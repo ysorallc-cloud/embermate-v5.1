@@ -7,6 +7,7 @@ import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
 import { StorageKeys, scopedKey } from './storageKeys';
 import { generateUniqueId } from './idGenerator';
+import { emitNoteEvent } from './eventEmitter';
 
 const DEFAULT_PATIENT_ID = 'default';
 
@@ -28,6 +29,9 @@ export async function saveNote(note: Omit<NoteLog, 'id'>, patientId: string = DE
     };
     notes.push(newNote);
     await safeSetItem(scopedKey(STORAGE_KEY, patientId), notes);
+
+    // Dual-write: emit to unified event store (fire-and-forget)
+    try { await emitNoteEvent(note.content, { source: 'dedicated_screen' }); } catch (_) { /* non-blocking */ }
   } catch (error) {
     logError('noteStorage.saveNote', error);
     throw error;

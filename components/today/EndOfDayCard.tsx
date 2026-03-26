@@ -2,10 +2,11 @@
 // END OF DAY CARD - Evening reflection prompt (Purple)
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface EndOfDayCardProps {
   careRecipientName: string;
@@ -14,6 +15,8 @@ interface EndOfDayCardProps {
 export const EndOfDayCard: React.FC<EndOfDayCardProps> = ({
   careRecipientName,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
 
   const handleLogMood = () => {
@@ -58,11 +61,11 @@ export const EndOfDayCard: React.FC<EndOfDayCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.purpleLight,
+    backgroundColor: c.purpleLight,
     borderWidth: 1,
-    borderColor: Colors.purpleBorder,
+    borderColor: c.purpleBorder,
     borderRadius: 14,
     padding: 14,
   },
@@ -79,11 +82,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.5,
-    color: Colors.purple,
+    color: c.purple,
   },
   prompt: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 12,
   },
   buttons: {
@@ -96,9 +99,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     borderWidth: 1,
-    borderColor: Colors.purpleBorder,
+    borderColor: c.purpleBorder,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -108,6 +111,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 13,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });

@@ -3,9 +3,10 @@
 // Compact patient info card at the top of the Care Brief
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface PatientSnapshotProps {
   name: string;
@@ -30,6 +31,9 @@ export function PatientSnapshot({
   mobilityStatus,
   cognitiveBaseline,
 }: PatientSnapshotProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const infoParts: string[] = [];
   if (age) infoParts.push(`${age}y`);
   if (gender) infoParts.push(gender);
@@ -77,11 +81,11 @@ export function PatientSnapshot({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -95,15 +99,15 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   relationship: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   infoLine: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.sm,
   },
   tagsRow: {
@@ -113,9 +117,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   conditionTag: {
-    backgroundColor: Colors.accentLight,
+    backgroundColor: c.accentLight,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
+    borderColor: c.accentBorder,
     borderRadius: BorderRadius.sm,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -123,7 +127,7 @@ const styles = StyleSheet.create({
   conditionText: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   allergyRow: {
     flexDirection: 'row',
@@ -137,11 +141,11 @@ const styles = StyleSheet.create({
   allergyLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.redBright,
+    color: c.redBright,
   },
   allergyText: {
     fontSize: 12,
-    color: Colors.redBright,
+    color: c.redBright,
     flex: 1,
   },
   clinicalRow: {
@@ -149,6 +153,6 @@ const styles = StyleSheet.create({
   },
   clinicalText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 });

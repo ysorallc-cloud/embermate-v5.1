@@ -3,14 +3,17 @@
 // Handles onboarding gating (P1.1)
 // ============================================================================
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { Redirect } from 'expo-router';
 import { isOnboardingComplete } from '../utils/sampleData';
 import { logError } from '../utils/devLog';
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function Index() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(true);
   const [onboardingDone, setOnboardingDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +53,7 @@ export default function Index() {
   if (loading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color={Colors.accent} />
+        <ActivityIndicator size="large" color={colors.accent} />
         {error && (
           <Text style={styles.errorText}>{error}</Text>
         )}
@@ -66,17 +69,17 @@ export default function Index() {
   return <Redirect href="/(onboarding)" />;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   loading: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
   },
   errorText: {
     marginTop: 20,
-    color: Colors.error || '#ff6b6b',
+    color: c.error || '#ff6b6b',
     fontSize: 14,
     textAlign: 'center',
   },

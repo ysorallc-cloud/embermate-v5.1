@@ -3,7 +3,7 @@
 // Full-screen modal showing all correlation cards (not just top 3)
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { GlassCard } from '../aurora/GlassCard';
 import type { CorrelationCard, ConfidenceLevel } from '../../utils/understandInsights';
 
@@ -32,10 +33,10 @@ interface PatternsSheetProps {
 // CONFIDENCE BADGE (inline — matches Understand tab style)
 // ============================================================================
 
-function ConfidenceBadge({ level }: { level: ConfidenceLevel }) {
+function ConfidenceBadge({ level, colors }: { level: ConfidenceLevel; colors: typeof Colors }) {
   const config = {
-    strong: { color: Colors.sageStrong, bg: Colors.sageBorder },
-    emerging: { color: Colors.amberBrightStrong, bg: 'rgba(251, 191, 36, 0.15)' },
+    strong: { color: colors.sageStrong, bg: colors.sageBorder },
+    emerging: { color: colors.amberBrightStrong, bg: 'rgba(251, 191, 36, 0.15)' },
     early: { color: 'rgba(148, 163, 184, 0.8)', bg: 'rgba(148, 163, 184, 0.15)' },
   };
 
@@ -60,6 +61,9 @@ function ConfidenceBadge({ level }: { level: ConfidenceLevel }) {
 // ============================================================================
 
 export function PatternsSheet({ visible, onClose, correlationCards, timeRange }: PatternsSheetProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <Modal
       visible={visible}
@@ -105,7 +109,7 @@ export function PatternsSheet({ visible, onClose, correlationCards, timeRange }:
                 <GlassCard key={card.id} style={styles.card}>
                   <View style={styles.cardHeader}>
                     <Text style={styles.cardTitle}>{card.title}</Text>
-                    <ConfidenceBadge level={card.confidence} />
+                    <ConfidenceBadge level={card.confidence} colors={colors} />
                   </View>
                   <Text style={styles.cardInsight}>{card.insight}</Text>
                   <Text style={styles.cardDataPoints}>
@@ -140,10 +144,10 @@ export function PatternsSheet({ visible, onClose, correlationCards, timeRange }:
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   safeArea: {
     flex: 1,
@@ -156,7 +160,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   headerText: {
     flex: 1,
@@ -164,12 +168,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   closeButton: {
     paddingVertical: 6,
@@ -178,7 +182,7 @@ const styles = StyleSheet.create({
   closeText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
   },
   scrollView: {
     flex: 1,
@@ -191,8 +195,8 @@ const styles = StyleSheet.create({
   // Cards
   card: {
     padding: 16,
-    backgroundColor: Colors.glassFaint,
-    borderColor: Colors.glassActive,
+    backgroundColor: c.glassFaint,
+    borderColor: c.glassActive,
     borderWidth: 1,
   },
   cardHeader: {
@@ -204,7 +208,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   cardInsight: {
     fontSize: 14,
@@ -214,7 +218,7 @@ const styles = StyleSheet.create({
   },
   cardDataPoints: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Suggestion
@@ -222,19 +226,19 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
   suggestionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.amberBrightStrong,
+    color: c.amberBrightStrong,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 6,
   },
   suggestionText: {
     fontSize: 13,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     lineHeight: 19,
     fontStyle: 'italic',
   },
@@ -266,19 +270,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
   },
 
   // Disclaimer
   disclaimer: {
     fontSize: 11,
-    color: Colors.textHalf,
+    color: c.textHalf,
     fontStyle: 'italic',
     textAlign: 'center',
     paddingTop: 12,

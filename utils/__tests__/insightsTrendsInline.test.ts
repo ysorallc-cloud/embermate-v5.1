@@ -14,7 +14,7 @@ describe('Insights trends link inline', () => {
     expect(src).toMatch(/vitalsSectionHeader|vitalsHeaderRow/);
   });
 
-  test('trends route still accessible', () => {
-    expect(render).toContain("'/trends'");
+  test('settings route accessible from understand tab', () => {
+    expect(render).toContain("'/settings'");
   });
 });

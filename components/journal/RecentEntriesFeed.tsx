@@ -2,13 +2,14 @@
 // RecentEntriesFeed — Grouped list of recent log entries for the Journal tab
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { RecentEntry, LABEL_MAP } from '../../hooks/useRecentEntries';
 import { RecentEntryCard } from './RecentEntryCard';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { LogEventType } from '../../utils/logEvents';
 
 interface Props {
@@ -31,6 +32,8 @@ const FILTER_EMPTY_MESSAGES: Partial<Record<LogEventType | 'all', string>> = {
 };
 
 export function RecentEntriesFeed({ entries, loading, activeFilter }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
 
   const handlePress = (entry: RecentEntry) => {
@@ -40,7 +43,7 @@ export function RecentEntriesFeed({ entries, loading, activeFilter }: Props) {
   if (loading && entries.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={Colors.accent} />
+        <ActivityIndicator size="small" color={colors.accent} />
       </View>
     );
   }
@@ -85,7 +88,7 @@ export function RecentEntriesFeed({ entries, loading, activeFilter }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     marginBottom: 16,
   },
@@ -99,7 +102,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textHalf,
+    color: c.textHalf,
     letterSpacing: 1,
     marginBottom: 8,
   },
@@ -114,12 +117,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 6,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
   },
 });

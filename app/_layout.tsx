@@ -203,7 +203,7 @@ function RootLayout() {
     <ErrorBoundary>
       <ThemeProvider>
       <WebContainer>
-        <StatusBar style="auto" />
+        <StatusBar style="light" />
         {integrityWarning && (
           <View style={[styles.integrityBanner, { paddingTop: insets.top + 10 }]}>
             <Text style={styles.integrityText}>
@@ -219,15 +219,12 @@ function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="(onboarding)" />
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="coffee" options={{ presentation: 'modal' }} />
           <Stack.Screen name="calendar" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="medication-schedule" />
           <Stack.Screen name="medication-form" />
           <Stack.Screen name="medication-interactions" />
           <Stack.Screen name="medications" />
           <Stack.Screen name="appointment-form" />
           <Stack.Screen name="appointments" />
-          <Stack.Screen name="photos" />
           <Stack.Screen name="emergency" />
           <Stack.Screen name="upgrade" options={{ presentation: 'modal' }} />
           <Stack.Screen name="log-vitals" />
@@ -238,7 +235,6 @@ function RootLayout() {
           <Stack.Screen name="log-symptom" />
           <Stack.Screen name="log-pain" />
           <Stack.Screen name="care-report" />
-          <Stack.Screen name="care-journey" />
           <Stack.Screen name="provider-prep" />
           <Stack.Screen name="family-sharing" />
           <Stack.Screen name="family-activity" />
@@ -249,7 +245,6 @@ function RootLayout() {
           <Stack.Screen name="vital-threshold-settings" />
           <Stack.Screen name="patient" />
           <Stack.Screen name="today-scope" />
-          <Stack.Screen name="trends" />
           <Stack.Screen name="data-privacy-settings" />
           <Stack.Screen name="correlation-report" />
           <Stack.Screen name="log-note" />

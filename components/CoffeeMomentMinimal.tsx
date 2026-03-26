@@ -9,12 +9,13 @@
 // - NOW includes: visual breathing guide + countdown + affirmation
 // ============================================================================
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Modal,
   View,
   Text,
   Pressable,
+  TouchableOpacity,
   StyleSheet,
   Animated,
   Easing,
@@ -23,6 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
 
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 
 const AFFIRMATIONS = [
   'You are doing an incredible job, even on the hard days.',
@@ -57,6 +59,9 @@ export const CoffeeMomentMinimal: React.FC<CoffeeMomentMinimalProps> = ({
   microcopy = 'Pause for a minute',
   duration = 60,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [secondsLeft, setSecondsLeft] = useState(duration);
   const [phase, setPhase] = useState<BreathPhase>('inhale');
   const [phaseSeconds, setPhaseSeconds] = useState(PHASE_DURATION);
@@ -185,6 +190,28 @@ export const CoffeeMomentMinimal: React.FC<CoffeeMomentMinimalProps> = ({
           colors={['#0d1f1c', '#0a0f14']}
           style={styles.gradient}
         >
+          {/* Close button */}
+          <TouchableOpacity
+            onPress={handleExit}
+            style={{
+              position: 'absolute',
+              top: 60,
+              right: 20,
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: 'rgba(255,255,255,0.08)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+            }}
+            accessibilityLabel="Close breathing exercise"
+            accessibilityRole="button"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>{'\u2715'}</Text>
+          </TouchableOpacity>
+
           {/* Microcopy — permission, not invitation */}
           <Text style={styles.microcopy}>{microcopy}</Text>
 
@@ -252,7 +279,7 @@ export const CoffeeMomentMinimal: React.FC<CoffeeMomentMinimalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -327,8 +354,15 @@ const styles = StyleSheet.create({
   dismissHint: {
     position: 'absolute',
     bottom: 50,
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.2)',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.45)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    overflow: 'hidden',
   },
 });
 

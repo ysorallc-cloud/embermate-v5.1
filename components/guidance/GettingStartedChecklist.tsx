@@ -1,9 +1,10 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
 import { useDataListener } from '../../lib/events';
 import { StorageKeys, StorageKeyPrefixes } from '../../utils/storageKeys';
@@ -66,6 +67,8 @@ const items: ChecklistItem[] = [
 ];
 
 export function GettingStartedChecklist() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
   const [dismissed, setDismissed] = useState(true);
   const checkingRef = useRef(false);
@@ -148,9 +151,9 @@ export function GettingStartedChecklist() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.cardBackground,
+    backgroundColor: c.cardBackground,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.md,
@@ -164,11 +167,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   progress: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   item: {
     flexDirection: 'row',
@@ -185,16 +188,16 @@ const styles = StyleSheet.create({
   },
   itemLabel: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '500',
   },
   itemDone: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     textDecorationLine: 'line-through',
   },
   itemDesc: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   dismiss: {
@@ -203,6 +206,6 @@ const styles = StyleSheet.create({
   },
   dismissText: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 });

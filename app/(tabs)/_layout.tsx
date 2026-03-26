@@ -1,5 +1,5 @@
 // ============================================================================
-// TAB LAYOUT - 3 Tabs (Now, Journal, Understand)
+// TAB LAYOUT - 4 Tabs (Now, Journal, Support, Insights)
 // V5 — Team/Support moved to Settings > Care Team (Premium)
 // ============================================================================
 
@@ -46,7 +46,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Platform.OS === 'ios' ? 'transparent' : colors.tabBarBackground,
+          backgroundColor: Platform.OS === 'ios' ? 'transparent' : colors.background,
           borderTopColor: colors.glassBorder,
           borderTopWidth: 1,
           paddingTop: 8,
@@ -59,7 +59,7 @@ export default function TabLayout() {
             <BlurView
               intensity={40}
               tint={resolvedTheme === 'light' ? 'light' : 'dark'}
-              style={{ flex: 1, backgroundColor: resolvedTheme === 'light' ? 'rgba(248, 255, 254, 0.85)' : 'rgba(5, 22, 20, 0.85)' }}
+              style={{ flex: 1, backgroundColor: resolvedTheme === 'light' ? 'rgba(248, 255, 254, 0.85)' : 'rgba(0, 0, 0, 0.92)' }}
             />
           ) : null
         ),
@@ -87,6 +87,15 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => <TabIcon icon="📖" focused={focused} accentGlow={colors.accentGlow} accent={colors.accent} />,
           tabBarAccessibilityLabel: 'Journal tab. Review care history and daily summary',
           tabBarButtonTestID: 'tab-journal',
+        }}
+      />
+      <Tabs.Screen
+        name="support"
+        options={{
+          title: 'Support',
+          tabBarIcon: ({ focused }) => <TabIcon icon="💛" focused={focused} accentGlow={colors.accentGlow} accent={colors.accent} />,
+          tabBarAccessibilityLabel: 'Support tab. Caregiver wellness and resources',
+          tabBarButtonTestID: 'tab-support',
         }}
       />
       <Tabs.Screen

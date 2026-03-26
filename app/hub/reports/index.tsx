@@ -13,6 +13,7 @@ import { GlassCard } from '../../../components/aurora/GlassCard';
 import { SubScreenHeader } from '../../../components/SubScreenHeader';
 import { SectionHeader } from '../../../components/aurora/SectionHeader';
 import { Colors, Spacing, Typography, BorderRadius } from '../../../theme/theme-tokens';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { useEnabledBuckets } from '../../../hooks/useCarePlanConfig';
 import { BucketType } from '../../../types/carePlanConfig';
 
@@ -39,31 +40,33 @@ const REPORT_CATEGORIES: ReportCategory[] = [
     description: 'For healthcare providers',
     reports: [
       { id: 'medication', icon: '💊', name: 'Medication Adherence', badge: '94%', color: Colors.amber, route: '/hub/reports/medication', requiredBuckets: ['meds'] },
-      { id: 'vitals', icon: '🫀', name: 'Vitals Stability', badge: 'Coming soon', color: Colors.rose, route: '/coming-soon', requiredBuckets: ['vitals'] },
-      { id: 'symptoms', icon: '🩺', name: 'Symptom Timeline', badge: 'Coming soon', color: Colors.purple, route: '/coming-soon', requiredBuckets: ['wellness'] },
-      { id: 'nutrition', icon: '🥗', name: 'Hydration & Nutrition', badge: 'Coming soon', color: Colors.green, route: '/coming-soon', requiredBuckets: ['meals', 'water'] },
+      { id: 'vitals', icon: '🫀', name: 'Vitals Stability', badge: 'Coming soon', color: Colors.rose, route: '', requiredBuckets: ['vitals'] },
+      { id: 'symptoms', icon: '🩺', name: 'Symptom Timeline', badge: 'Coming soon', color: Colors.purple, route: '', requiredBuckets: ['wellness'] },
+      { id: 'nutrition', icon: '🥗', name: 'Hydration & Nutrition', badge: 'Coming soon', color: Colors.green, route: '', requiredBuckets: ['meals', 'water'] },
     ],
   },
   {
     title: 'Wellness Reports',
     description: 'Mood, sleep & patterns',
     reports: [
-      { id: 'wellness', icon: '😊', name: 'Sleep, Energy & Mood', badge: 'Coming soon', color: Colors.purple, route: '/coming-soon', requiredBuckets: ['wellness', 'sleep'] },
-      { id: 'correlation', icon: '🧠', name: 'Correlation Insights', badge: 'View patterns', color: Colors.sky, route: '/hub/reports/correlation' }, // Always show - cross-bucket
+      { id: 'wellness', icon: '😊', name: 'Sleep, Energy & Mood', badge: 'Coming soon', color: Colors.purple, route: '', requiredBuckets: ['wellness', 'sleep'] },
+      { id: 'correlation', icon: '🧠', name: 'Correlation Insights', badge: 'View patterns', color: Colors.sky, route: '/correlation-report' }, // Always show - cross-bucket
     ],
   },
   {
     title: 'Care Reports',
     description: 'For visits & family',
     reports: [
-      { id: 'redflags', icon: '🚨', name: 'Red Flags & Alerts', badge: 'Coming soon', color: Colors.red, route: '/coming-soon' }, // Always show
-      { id: 'visitprep', icon: '📋', name: 'Visit Prep Report', badge: 'Coming soon', color: Colors.accent, route: '/coming-soon' }, // Always show
+      { id: 'redflags', icon: '🚨', name: 'Red Flags & Alerts', badge: 'Coming soon', color: Colors.red, route: '' }, // Always show
+      { id: 'visitprep', icon: '📋', name: 'Visit Prep Report', badge: 'Coming soon', color: Colors.accent, route: '' }, // Always show
     ],
   },
 ];
 
 export default function ReportsHub() {
   const { enabledBuckets } = useEnabledBuckets();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Filter reports by enabled buckets
   // If no buckets enabled (no Care Plan), show all reports
@@ -124,7 +127,7 @@ export default function ReportsHub() {
                       i < category.reports.length - 1 && styles.reportRowBorder,
                     ]}
                     onPress={() => {
-                      if (report.route === '/coming-soon') {
+                      if (!report.route) {
                         Alert.alert(report.name, 'This report is coming in a future update.');
                       } else {
                         navigate(report.route);
@@ -180,10 +183,10 @@ export default function ReportsHub() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   safeArea: {
     flex: 1,
@@ -197,13 +200,13 @@ const styles = StyleSheet.create({
 
   // Intro
   introCard: {
-    backgroundColor: `${Colors.purple}08`,
-    borderColor: `${Colors.purple}20`,
+    backgroundColor: `${c.purple}08`,
+    borderColor: `${c.purple}20`,
     marginBottom: Spacing.xxl,
   },
   introText: {
     ...Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 22,
   },
 
@@ -213,7 +216,7 @@ const styles = StyleSheet.create({
   },
   categoryDescription: {
     ...Typography.bodySmall,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: Spacing.md,
   },
 
@@ -226,7 +229,7 @@ const styles = StyleSheet.create({
   },
   reportRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    borderBottomColor: c.borderLight,
   },
   reportIcon: {
     width: 44,
@@ -243,7 +246,7 @@ const styles = StyleSheet.create({
   },
   reportName: {
     ...Typography.body,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   badge: {
@@ -259,7 +262,7 @@ const styles = StyleSheet.create({
   },
   reportArrow: {
     fontSize: 20,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Export All
@@ -267,8 +270,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   exportAllCard: {
-    backgroundColor: `${Colors.accent}10`,
-    borderColor: `${Colors.accent}30`,
+    backgroundColor: `${c.accent}10`,
+    borderColor: `${c.accent}30`,
   },
   exportAllContent: {
     flexDirection: 'row',
@@ -283,11 +286,11 @@ const styles = StyleSheet.create({
   },
   exportAllTitle: {
     ...Typography.body,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '500',
   },
   exportAllSubtitle: {
     ...Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 });

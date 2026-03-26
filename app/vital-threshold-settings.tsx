@@ -3,7 +3,7 @@
 // Customize patient-specific vital sign normal ranges
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import { VITAL_THRESHOLDS, VitalType, loadCustomThresholds } from '../utils/vitalThresholds';
 import { logError } from '../utils/devLog';
@@ -49,6 +50,9 @@ export default function VitalThresholdSettings() {
   const [customThresholds, setCustomThresholds] = useState<CustomThresholds>({});
   const [editingValues, setEditingValues] = useState<Record<string, string>>({});
   const [hasChanges, setHasChanges] = useState(false);
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     loadCustomThresholds();
@@ -295,10 +299,10 @@ export default function VitalThresholdSettings() {
         </View>
 
         <View style={styles.fieldsGrid}>
-          {renderThresholdField(vitalKey, 'criticalLow', 'Critical Low', Colors.red)}
-          {renderThresholdField(vitalKey, 'low', 'Low', Colors.amber)}
-          {renderThresholdField(vitalKey, 'high', 'High', Colors.amber)}
-          {renderThresholdField(vitalKey, 'criticalHigh', 'Critical High', Colors.red)}
+          {renderThresholdField(vitalKey, 'criticalLow', 'Critical Low', colors.red)}
+          {renderThresholdField(vitalKey, 'low', 'Low', colors.amber)}
+          {renderThresholdField(vitalKey, 'high', 'High', colors.amber)}
+          {renderThresholdField(vitalKey, 'criticalHigh', 'Critical High', colors.red)}
         </View>
 
         <Text style={styles.rangePreview}>
@@ -311,7 +315,7 @@ export default function VitalThresholdSettings() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <SubScreenHeader
@@ -372,10 +376,10 @@ export default function VitalThresholdSettings() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -388,24 +392,24 @@ const styles = StyleSheet.create({
 
   // Info Banner
   infoBanner: {
-    backgroundColor: Colors.accentTint,
+    backgroundColor: c.accentTint,
     borderWidth: 1,
-    borderColor: Colors.accentHint,
+    borderColor: c.accentHint,
     borderRadius: 10,
     padding: 14,
     marginBottom: 20,
   },
   infoBannerText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 19,
   },
 
   // Vital Card
   vitalCard: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
@@ -428,15 +432,15 @@ const styles = StyleSheet.create({
   vitalName: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   vitalUnit: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 1,
   },
   customBadge: {
-    color: Colors.accent,
+    color: c.accent,
     fontSize: 11,
     fontWeight: '500',
   },
@@ -458,10 +462,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(239, 68, 68, 0.4)',
   },
   warningSegment: {
-    backgroundColor: Colors.amberGlow,
+    backgroundColor: c.amberGlow,
   },
   normalSegment: {
-    backgroundColor: Colors.greenGlow,
+    backgroundColor: c.greenGlow,
     flex: 2,
   },
 
@@ -481,17 +485,17 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     flex: 1,
   },
   fieldInput: {
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 15,
     fontWeight: '500',
     width: 80,
@@ -501,7 +505,7 @@ const styles = StyleSheet.create({
   // Range Preview
   rangePreview: {
     fontSize: 12,
-    color: Colors.accent,
+    color: c.accent,
     marginTop: 10,
     textAlign: 'center',
     opacity: 0.8,
@@ -509,16 +513,16 @@ const styles = StyleSheet.create({
 
   // Reset Button
   resetButton: {
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   resetButtonText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '500',
   },
 
@@ -528,36 +532,36 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   saveButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.lg,
     alignItems: 'center',
   },
   saveButtonDisabled: {
-    backgroundColor: Colors.borderMedium,
+    backgroundColor: c.borderMedium,
   },
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.background,
+    color: c.background,
   },
   saveButtonTextDisabled: {
-    color: Colors.textPlaceholder,
+    color: c.textPlaceholder,
   },
   resetAllButton: {
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.lg,
     alignItems: 'center',
   },
   resetAllButtonText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   disclaimerText: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     lineHeight: 16,
     textAlign: 'center',
     fontStyle: 'italic',

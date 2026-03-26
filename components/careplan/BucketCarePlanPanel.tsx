@@ -16,6 +16,7 @@ import {
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import { useDailyCareInstances } from '../../hooks/useDailyCareInstances';
 import {
@@ -70,11 +71,11 @@ interface BucketCarePlanPanelProps {
 // ============================================================================
 
 const TIME_OF_DAY_CONFIG: Record<TimeOfDay, { displayName: string; emoji: string; order: number }> = {
-  morning: { displayName: 'Morning', emoji: '🌅', order: 0 },
-  midday: { displayName: 'Midday', emoji: '☀️', order: 1 },
-  evening: { displayName: 'Evening', emoji: '🌆', order: 2 },
-  night: { displayName: 'Night', emoji: '🌙', order: 3 },
-  custom: { displayName: 'Other', emoji: '📋', order: 4 },
+  morning: { displayName: 'Morning', emoji: '\u{1F305}', order: 0 },
+  midday: { displayName: 'Midday', emoji: '\u{2600}\u{FE0F}', order: 1 },
+  evening: { displayName: 'Evening', emoji: '\u{1F306}', order: 2 },
+  night: { displayName: 'Night', emoji: '\u{1F319}', order: 3 },
+  custom: { displayName: 'Other', emoji: '\u{1F4CB}', order: 4 },
 };
 
 function getTimeOfDayFromHHmm(time: string): TimeOfDay {
@@ -112,6 +113,8 @@ interface BucketPlaceholder {
 
 export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { config, enabledBuckets, loading: configLoading } = useCarePlanConfig();
   const { state: instancesState, loading: instancesLoading } = useDailyCareInstances();
 
@@ -145,7 +148,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
             id: `med-${instance.id}`,
             bucket: 'meds',
             label: instance.itemName,
-            emoji: instance.itemEmoji || '💊',
+            emoji: instance.itemEmoji || '\u{1F48A}',
             time: instance.scheduledTime,
             timeDisplay: formatTimeForDisplay(instance.scheduledTime),
             timeOfDay,
@@ -158,7 +161,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
               itemDosage: instance.itemDosage || '',
             },
             status: instance.status === 'completed' ? 'done' : 'pending',
-            statusText: instance.status === 'completed' ? '✓ Taken' : 'Tap to log',
+            statusText: instance.status === 'completed' ? '\u2713 Taken' : 'Tap to log',
             instanceId: instance.id,
             medicationId: instance.carePlanItemId,
           });
@@ -173,7 +176,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
               id: `med-${med.id}-${tod}`,
               bucket: 'meds',
               label: `${med.name} ${med.dosage}`,
-              emoji: '💊',
+              emoji: '\u{1F48A}',
               time,
               timeDisplay: formatTimeForDisplay(time),
               timeOfDay: tod,
@@ -204,7 +207,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
             id: `vitals-${tod}`,
             bucket: 'vitals',
             label: `Check vitals (${vitalTypes.map(v => v.toUpperCase()).join(', ')})`,
-            emoji: '📊',
+            emoji: '\u{1F4CA}',
             time,
             timeDisplay: formatTimeForDisplay(time),
             timeOfDay: tod,
@@ -239,7 +242,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
             id: `meal-${tod}`,
             bucket: 'meals',
             label: mealNames[tod] || 'Meal',
-            emoji: '🍽️',
+            emoji: '\u{1F37D}\u{FE0F}',
             time,
             timeDisplay: formatTimeForDisplay(time),
             timeOfDay: tod,
@@ -269,7 +272,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
               id: `water-${time}`,
               bucket: 'water',
               label: 'Drink water',
-              emoji: '💧',
+              emoji: '\u{1F4A7}',
               time,
               timeDisplay: formatTimeForDisplay(time),
               timeOfDay: tod,
@@ -285,7 +288,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
             id: 'water-daily',
             bucket: 'water',
             label: 'Water intake',
-            emoji: '💧',
+            emoji: '\u{1F4A7}',
             time: '12:00',
             timeDisplay: 'Anytime',
             timeOfDay: 'midday',
@@ -404,7 +407,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
             accessibilityLabel="Care Plan settings"
             accessibilityRole="button"
           >
-            <Text style={styles.settingsIcon}>⚙️</Text>
+            <Text style={styles.settingsIcon}>{'\u2699\uFE0F'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -452,7 +455,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
               </View>
             </View>
             <Text style={styles.expandIcon}>
-              {expandedGroups.has(group.timeOfDay) ? '▼' : '▶'}
+              {expandedGroups.has(group.timeOfDay) ? '\u25BC' : '\u25B6'}
             </Text>
           </TouchableOpacity>
 
@@ -481,7 +484,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
                     <Text style={[styles.itemStatus, item.status === 'done' && styles.itemStatusDone]}>
                       {item.statusText}
                     </Text>
-                    <Text style={styles.itemChevron}>›</Text>
+                    <Text style={styles.itemChevron}>{'\u203A'}</Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -512,7 +515,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
               </View>
               <View style={styles.placeholderRight}>
                 <Text style={styles.placeholderTime}>Anytime</Text>
-                <Text style={styles.placeholderCta}>Configure ›</Text>
+                <Text style={styles.placeholderCta}>{`Configure \u203A`}</Text>
               </View>
             </TouchableOpacity>
           ))}
@@ -522,7 +525,7 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
       {/* All Complete */}
       {stats.done === stats.total && stats.total > 0 && (
         <View style={styles.completeMessage}>
-          <Text style={styles.completeEmoji}>🎉</Text>
+          <Text style={styles.completeEmoji}>{'\u{1F389}'}</Text>
           <Text style={styles.completeText}>All done for today!</Text>
         </View>
       )}
@@ -534,11 +537,11 @@ export function BucketCarePlanPanel(_props: BucketCarePlanPanelProps) {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   panel: {
-    backgroundColor: Colors.sageTint,
+    backgroundColor: c.sageTint,
     borderWidth: 1,
-    borderColor: Colors.sageBorder,
+    borderColor: c.sageBorder,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -546,9 +549,9 @@ const styles = StyleSheet.create({
 
   // Empty State
   emptyPanel: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
@@ -557,23 +560,23 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: Colors.textHalf,
+    color: c.textHalf,
     textAlign: 'center',
     marginBottom: 16,
   },
   setupButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 10,
   },
   setupButtonText: {
-    color: Colors.background,
+    color: c.background,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -581,7 +584,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   configureButtonText: {
-    color: Colors.accent,
+    color: c.accent,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -596,12 +599,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 11,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
   headerActions: {
     flexDirection: 'row',
@@ -614,7 +617,7 @@ const styles = StyleSheet.create({
   },
   adjustTodayText: {
     fontSize: 12,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   settingsButton: {
@@ -646,23 +649,23 @@ const styles = StyleSheet.create({
   groupName: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   groupProgress: {
     fontSize: 11,
-    color: Colors.textHalf,
+    color: c.textHalf,
     marginTop: 2,
   },
   expandIcon: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Items List
   itemsList: {
     marginLeft: 30,
     borderLeftWidth: 1,
-    borderLeftColor: Colors.glassActive,
+    borderLeftColor: c.glassActive,
     paddingLeft: 12,
   },
   itemRow: {
@@ -671,7 +674,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.surfaceElevated,
+    borderBottomColor: c.surfaceElevated,
   },
   itemRowDone: {
     opacity: 0.6,
@@ -692,15 +695,15 @@ const styles = StyleSheet.create({
   },
   itemLabel: {
     fontSize: 13,
-    color: Colors.textAlmostFull,
+    color: c.textAlmostFull,
   },
   itemLabelDone: {
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     textDecorationLine: 'line-through',
   },
   itemTime: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   itemRight: {
@@ -710,14 +713,14 @@ const styles = StyleSheet.create({
   },
   itemStatus: {
     fontSize: 11,
-    color: Colors.sageStrong,
+    color: c.sageStrong,
   },
   itemStatusDone: {
-    color: Colors.green,
+    color: c.green,
   },
   itemChevron: {
     fontSize: 12,
-    color: Colors.textPlaceholder,
+    color: c.textPlaceholder,
   },
 
   // Bucket Chips Strip
@@ -728,22 +731,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   bucketChip: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.glassSubtle,
+    borderColor: c.glassSubtle,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   bucketChipConfigured: {
-    backgroundColor: Colors.sageLight,
-    borderColor: Colors.sageGlow,
+    backgroundColor: c.sageLight,
+    borderColor: c.sageGlow,
   },
   bucketChipEmoji: {
     fontSize: 16,
@@ -755,7 +758,7 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: Colors.amber,
+    backgroundColor: c.amber,
     color: '#000',
     fontSize: 10,
     fontWeight: '700',
@@ -769,12 +772,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
   placeholdersHeader: {
     fontSize: 10,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 1,
     marginBottom: 8,
   },
@@ -786,7 +789,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     backgroundColor: 'rgba(245, 158, 11, 0.06)',
     borderWidth: 1,
-    borderColor: Colors.amberHint,
+    borderColor: c.amberHint,
     borderRadius: 10,
     marginBottom: 8,
   },
@@ -807,11 +810,11 @@ const styles = StyleSheet.create({
   placeholderTitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.amber,
+    color: c.amber,
   },
   placeholderSubtitle: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   placeholderRight: {
@@ -819,12 +822,12 @@ const styles = StyleSheet.create({
   },
   placeholderTime: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 2,
   },
   placeholderCta: {
     fontSize: 12,
-    color: Colors.amber,
+    color: c.amber,
     fontWeight: '500',
   },
 
@@ -843,7 +846,7 @@ const styles = StyleSheet.create({
   completeText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.green,
+    color: c.green,
   },
 });
 

@@ -3,7 +3,7 @@
 // Individual meal logging with meal type and optional description
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { navigateBack } from '../lib/navigate';
 import { Colors, BorderRadius, Spacing } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { saveDailyTracking, getDailyTracking } from '../utils/dailyTrackingStorage';
 import { saveMealsLog, getTodayMealsLog, MealsLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
@@ -72,6 +73,8 @@ const QUICK_FOODS: Record<string, { label: string; icon: string }[]> = {
 };
 
 export default function LogMeal() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams();
 
   // Parse CarePlan context from navigation params
@@ -248,7 +251,7 @@ export default function LogMeal() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <KeyboardAvoidingView
@@ -364,7 +367,7 @@ export default function LogMeal() {
               <TextInput
                 style={styles.descriptionInput}
                 placeholder="Oatmeal with berries and coffee..."
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 multiline
                 numberOfLines={4}
                 value={description}
@@ -403,10 +406,10 @@ export default function LogMeal() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -427,20 +430,20 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surfaceHighlight,
+    backgroundColor: c.surfaceHighlight,
     borderWidth: 1,
-    borderColor: Colors.accentLight,
+    borderColor: c.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backIcon: {
     fontSize: 20,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // Rhythm context banner
@@ -454,20 +457,20 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   carePlanBanner: {
-    backgroundColor: Colors.purpleFaint,
-    borderColor: Colors.purpleWash,
+    backgroundColor: c.purpleFaint,
+    borderColor: c.purpleWash,
   },
   carePlanBannerLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.violetBright,
+    color: c.violetBright,
     letterSpacing: 1,
     textAlign: 'center',
     marginBottom: 4,
   },
   contextText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
   },
 
@@ -479,12 +482,12 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.accent,
+    color: c.accent,
     marginBottom: Spacing.lg,
   },
   hint: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: Spacing.md,
     textAlign: 'center',
   },
@@ -497,17 +500,17 @@ const styles = StyleSheet.create({
   },
   mealCard: {
     width: '47%',
-    backgroundColor: Colors.surfaceHighlight,
+    backgroundColor: c.surfaceHighlight,
     borderWidth: 1,
-    borderColor: Colors.accentHint,
+    borderColor: c.accentHint,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     alignItems: 'center',
     position: 'relative',
   },
   mealCardSelected: {
-    backgroundColor: Colors.greenLight,
-    borderColor: Colors.green,
+    backgroundColor: c.greenLight,
+    borderColor: c.green,
   },
   mealIcon: {
     fontSize: 32,
@@ -516,10 +519,10 @@ const styles = StyleSheet.create({
   mealLabel: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   mealLabelSelected: {
-    color: Colors.green,
+    color: c.green,
     fontWeight: '600',
   },
   checkBadge: {
@@ -529,24 +532,24 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.green,
+    backgroundColor: c.green,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkBadgeText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 14,
     fontWeight: 'bold',
   },
 
   // Description Input
   descriptionInput: {
-    backgroundColor: Colors.surfaceHighlight,
+    backgroundColor: c.surfaceHighlight,
     borderWidth: 1,
-    borderColor: Colors.accentHint,
+    borderColor: c.accentHint,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 15,
     minHeight: 120,
   },
@@ -561,17 +564,17 @@ const styles = StyleSheet.create({
   quickFoodChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surfaceHighlight,
+    backgroundColor: c.surfaceHighlight,
     borderWidth: 1,
-    borderColor: Colors.accentHint,
+    borderColor: c.accentHint,
     borderRadius: 20,
     paddingVertical: 8,
     paddingHorizontal: 12,
     gap: 6,
   },
   quickFoodChipSelected: {
-    backgroundColor: Colors.greenLight,
-    borderColor: Colors.green,
+    backgroundColor: c.greenLight,
+    borderColor: c.green,
   },
   quickFoodIcon: {
     fontSize: 16,
@@ -579,10 +582,10 @@ const styles = StyleSheet.create({
   quickFoodLabel: {
     fontSize: 13,
     fontWeight: '500',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   quickFoodLabelSelected: {
-    color: Colors.green,
+    color: c.green,
     fontWeight: '600',
   },
 
@@ -591,11 +594,11 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     paddingBottom: Spacing.xxl,
     borderTopWidth: 1,
-    borderTopColor: Colors.accentHint,
-    backgroundColor: Colors.background,
+    borderTopColor: c.accentHint,
+    backgroundColor: c.background,
   },
   saveButton: {
-    backgroundColor: Colors.orange,
+    backgroundColor: c.orange,
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
@@ -604,7 +607,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   saveButtonText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

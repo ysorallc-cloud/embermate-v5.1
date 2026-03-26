@@ -3,7 +3,7 @@
 // Premium feature comparison and purchase flow
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import { getSubscriptionState, activatePromoCode } from '../storage/subscriptionRepo';
 import { SubscriptionTier } from '../types/subscription';
@@ -49,6 +50,8 @@ export default function UpgradeScreen() {
   const [promoCode, setPromoCode] = useState('');
   const [showPromo, setShowPromo] = useState(false);
   const [promoLoading, setPromoLoading] = useState(false);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     loadTier();
@@ -109,7 +112,7 @@ export default function UpgradeScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <LinearGradient
-          colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+          colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
           style={styles.gradient}
         >
           <SubScreenHeader title="Premium" />
@@ -128,7 +131,7 @@ export default function UpgradeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <SubScreenHeader title="Upgrade" />
@@ -148,7 +151,7 @@ export default function UpgradeScreen() {
             <View style={styles.tableHeader}>
               <Text style={[styles.tableHeaderText, { flex: 1 }]}>Feature</Text>
               <Text style={[styles.tableHeaderText, styles.tableCol]}>Free</Text>
-              <Text style={[styles.tableHeaderText, styles.tableCol, { color: Colors.accent }]}>Premium</Text>
+              <Text style={[styles.tableHeaderText, styles.tableCol, { color: colors.accent }]}>Premium</Text>
             </View>
 
             {FEATURES.map((f, i) => (
@@ -162,7 +165,7 @@ export default function UpgradeScreen() {
                     <Ionicons
                       name={f.free ? 'checkmark-circle' : 'close-circle'}
                       size={18}
-                      color={f.free ? Colors.success : Colors.textMuted}
+                      color={f.free ? colors.success : colors.textMuted}
                     />
                   ) : (
                     <Text style={styles.tableCellText}>{f.free}</Text>
@@ -173,10 +176,10 @@ export default function UpgradeScreen() {
                     <Ionicons
                       name={f.premium ? 'checkmark-circle' : 'close-circle'}
                       size={18}
-                      color={f.premium ? Colors.accent : Colors.textMuted}
+                      color={f.premium ? colors.accent : colors.textMuted}
                     />
                   ) : (
-                    <Text style={[styles.tableCellText, { color: Colors.accent }]}>{f.premium}</Text>
+                    <Text style={[styles.tableCellText, { color: colors.accent }]}>{f.premium}</Text>
                   )}
                 </View>
               </View>
@@ -222,7 +225,7 @@ export default function UpgradeScreen() {
                 value={promoCode}
                 onChangeText={setPromoCode}
                 placeholder="Enter code"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="characters"
                 autoCorrect={false}
               />
@@ -242,7 +245,7 @@ export default function UpgradeScreen() {
 
           {/* Privacy Note */}
           <View style={styles.privacyNote}>
-            <Ionicons name="shield-checkmark" size={16} color={Colors.success} />
+            <Ionicons name="shield-checkmark" size={16} color={colors.success} />
             <Text style={styles.privacyNoteText}>
               Your data stays on your device. Premium only unlocks features — no data leaves your phone.
             </Text>
@@ -255,8 +258,8 @@ export default function UpgradeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (c: typeof Colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   gradient: { flex: 1 },
   scrollView: { flex: 1, paddingHorizontal: Spacing.xl },
 
@@ -269,12 +272,12 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   heroSubtitle: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     paddingHorizontal: Spacing.lg,
@@ -282,9 +285,9 @@ const styles = StyleSheet.create({
 
   // Feature Table
   tableCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
     marginBottom: Spacing.xl,
@@ -295,14 +298,14 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.surfaceAlt,
+    borderBottomColor: c.border,
+    backgroundColor: c.surfaceAlt,
   },
   tableHeaderText: {
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.5,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textTransform: 'uppercase',
   },
   tableRow: {
@@ -311,11 +314,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   tableLabel: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   tableCol: {
     width: 64,
@@ -324,13 +327,13 @@ const styles = StyleSheet.create({
   tableCellText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
   },
 
   // Subscribe Button
   subscribeButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: BorderRadius.lg,
     paddingVertical: 16,
     alignItems: 'center',
@@ -349,7 +352,7 @@ const styles = StyleSheet.create({
   },
   secondaryActionText: {
     fontSize: 14,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
 
@@ -362,19 +365,19 @@ const styles = StyleSheet.create({
   },
   promoInput: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: 12,
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     letterSpacing: 2,
     fontWeight: '600',
   },
   promoButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.lg,
     justifyContent: 'center',
@@ -399,7 +402,7 @@ const styles = StyleSheet.create({
   privacyNoteText: {
     flex: 1,
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     lineHeight: 17,
   },
 
@@ -414,12 +417,12 @@ const styles = StyleSheet.create({
   premiumActiveTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   premiumActiveText: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },

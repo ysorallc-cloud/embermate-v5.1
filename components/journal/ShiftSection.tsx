@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Props {
   title: string;
@@ -8,6 +9,9 @@ interface Props {
 }
 
 export function ShiftSection({ title, children }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (!children) return null;
 
   return (
@@ -18,13 +22,13 @@ export function ShiftSection({ title, children }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   sectionHeader: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: Spacing.md,
     marginTop: Spacing.lg,
   },

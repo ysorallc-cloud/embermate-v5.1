@@ -3,10 +3,11 @@
 // Three states: overdue items (red, with category hint), next upcoming, all caught up
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { parseTimeForDisplay, getTimeWindow } from '../../utils/nowHelpers';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // Map itemType back to display label for hint text
 const ITEM_TYPE_TO_DISPLAY: Record<string, string> = {
@@ -40,6 +41,9 @@ export function NextUpCard({
   onViewTasks,
   overdueItems,
 }: NextUpStripProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   // No care plan — don't render
   if (!hasRegimenInstances) return null;
 
@@ -136,12 +140,12 @@ export function NextUpCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Overdue strip — red tint
   stripOverdue: {
-    backgroundColor: Colors.redFaint,
+    backgroundColor: c.redFaint,
     borderWidth: 1,
-    borderColor: Colors.redBorder,
+    borderColor: c.redBorder,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -160,7 +164,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: Colors.red,
+    backgroundColor: c.red,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -175,19 +179,19 @@ const styles = StyleSheet.create({
   overdueLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.red,
+    color: c.red,
   },
   overdueHint: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 1,
   },
 
   // Default strip — glass
   stripDefault: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -199,21 +203,21 @@ const styles = StyleSheet.create({
   nextUpLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.accent,
+    color: c.accent,
     letterSpacing: 1,
     marginBottom: 2,
   },
   nextUpDetail: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // All done strip — glass with green
   stripDone: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -223,13 +227,13 @@ const styles = StyleSheet.create({
   },
   doneCheck: {
     fontSize: 16,
-    color: Colors.green,
+    color: c.green,
     fontWeight: '700',
     marginRight: 8,
   },
   doneText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.green,
+    color: c.green,
   },
 });

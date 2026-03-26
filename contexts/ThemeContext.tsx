@@ -6,7 +6,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
-import { Colors, _syncColors } from '../theme/theme-tokens';
+import { Colors, _syncColors, getDarkColors } from '../theme/theme-tokens';
 import { LightColors } from '../theme/light-tokens';
 import { HighContrastDarkOverrides, HighContrastLightOverrides } from '../theme/high-contrast-tokens';
 import { StorageKeys } from '../utils/storageKeys';
@@ -15,9 +15,6 @@ import { StorageKeys } from '../utils/storageKeys';
 // TYPES
 // ============================================================================
 
-// 'light' is defined but disabled in the UI — StyleSheet.create() at module scope
-// captures dark-theme Colors values, making light mode show white-on-white text.
-// To re-enable: migrate all 70 screens from static StyleSheet to useTheme() hook.
 export type ThemeMode = 'dark' | 'light' | 'system';
 
 interface ThemeContextValue {
@@ -44,7 +41,7 @@ const HC_STORAGE_KEY = StorageKeys.HIGH_CONTRAST;
 
 const ThemeContext = createContext<ThemeContextValue>({
   colors: Colors,
-  themeMode: 'dark',
+  themeMode: 'system',
   resolvedTheme: 'dark',
   highContrast: false,
   setThemeMode: () => {},
@@ -67,18 +64,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       safeGetItem<string | null>(STORAGE_KEY, null),
       safeGetItem<string | null>(HC_STORAGE_KEY, null),
     ]).then(([themeValue, hcValue]) => {
-      if (themeValue === 'dark') {
-        setThemeModeState('dark');
-      } else if (themeValue === 'system') {
-        // System theme can resolve to 'light' which is broken,
-        // so force dark until light mode StyleSheet migration is done
-        setThemeModeState('dark');
-        safeSetItem(STORAGE_KEY, 'dark');
-      } else {
-        // 'light' or any other value — force back to dark
-        setThemeModeState('dark');
-        safeSetItem(STORAGE_KEY, 'dark');
+      if (themeValue === 'dark' || themeValue === 'light' || themeValue === 'system') {
+        setThemeModeState(themeValue);
       }
+      // No saved preference → keep 'system' default
       if (hcValue === 'true') {
         setHighContrastState(true);
       }
@@ -102,19 +91,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       ? (systemScheme === 'light' ? 'light' : 'dark')
       : themeMode;
 
-  // Build final colors
-  // NOTE: Light theme disabled — StyleSheet.create() at module scope captures
-  // dark-theme color values at import time, so switching to light colors
-  // only changes backgrounds (read at render) while text stays white (frozen).
-  // Always use dark base until all 70 screens migrate to useTheme() hook.
+  // Build final colors: pick base theme, then overlay high-contrast if enabled
   const colors = useMemo(() => {
-    const base = Colors; // Always dark — light mode disabled
-    if (!highContrast) return base;
-    return { ...base, ...HighContrastDarkOverrides } as typeof Colors;
-  }, [highContrast]);
+    const base = resolvedTheme === 'light'
+      ? (LightColors as typeof Colors)
+      : (getDarkColors() as typeof Colors);
 
-  // Prong 1: keep global Colors object in sync so non-migrated files
-  // that read Colors.X at render time get the correct values.
+    if (!highContrast) return base;
+
+    const overrides = resolvedTheme === 'light'
+      ? HighContrastLightOverrides
+      : HighContrastDarkOverrides;
+
+    return { ...base, ...overrides } as typeof Colors;
+  }, [resolvedTheme, highContrast]);
+
+  // Keep global Colors object in sync so files that read Colors.X at render
+  // time (including static StyleSheet.create references) pick up updates.
   useEffect(() => {
     _syncColors(colors);
   }, [colors]);

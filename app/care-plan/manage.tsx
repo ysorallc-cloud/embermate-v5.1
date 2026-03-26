@@ -4,7 +4,7 @@
 // Uses NEW types from types/carePlan.ts and storage/carePlanRepo.ts
 // ============================================================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   CarePlan,
   CarePlanItem,
@@ -91,6 +92,8 @@ const TIME_WINDOWS: { label: TimeWindowLabel; display: string; emoji: string }[]
 
 export default function CarePlanManageScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [carePlan, setCarePlan] = useState<CarePlan | null>(null);
   const [items, setItems] = useState<CarePlanItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -332,7 +335,7 @@ export default function CarePlanManageScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <AuroraBackground variant="log" />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.accent} />
+          <ActivityIndicator size="large" color={colors.accent} />
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
       </SafeAreaView>
@@ -423,8 +426,8 @@ export default function CarePlanManageScreen() {
                       <Switch
                         value={item.active}
                         onValueChange={() => handleToggleActive(item)}
-                        trackColor={{ false: Colors.glassActive, true: Colors.sageGlow }}
-                        thumbColor={item.active ? Colors.accent : Colors.textHalf}
+                        trackColor={{ false: colors.glassActive, true: colors.sageGlow }}
+                        thumbColor={item.active ? colors.accent : colors.textHalf}
                       />
                     </TouchableOpacity>
                   ))}
@@ -523,7 +526,7 @@ export default function CarePlanManageScreen() {
                   value={formName}
                   onChangeText={setFormName}
                   placeholder="e.g., Sertraline, Morning vitals check"
-                  placeholderTextColor={Colors.textPlaceholder}
+                  placeholderTextColor={colors.textPlaceholder}
                   accessibilityLabel="Care plan item name"
                 />
               </View>
@@ -536,7 +539,7 @@ export default function CarePlanManageScreen() {
                   value={formInstructions}
                   onChangeText={setFormInstructions}
                   placeholder="e.g., Take with food"
-                  placeholderTextColor={Colors.textPlaceholder}
+                  placeholderTextColor={colors.textPlaceholder}
                   multiline
                   numberOfLines={2}
                   accessibilityLabel="Care plan item instructions"
@@ -605,8 +608,8 @@ export default function CarePlanManageScreen() {
                   <Switch
                     value={formActive}
                     onValueChange={setFormActive}
-                    trackColor={{ false: Colors.glassActive, true: Colors.sageGlow }}
-                    thumbColor={formActive ? Colors.accent : Colors.textHalf}
+                    trackColor={{ false: colors.glassActive, true: colors.sageGlow }}
+                    thumbColor={formActive ? colors.accent : colors.textHalf}
                   />
                 </View>
                 <Text style={styles.formHint}>
@@ -652,10 +655,10 @@ export default function CarePlanManageScreen() {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   loadingContainer: {
     flex: 1,
@@ -663,7 +666,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 16,
     marginTop: 10,
   },
@@ -683,22 +686,22 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
 
   // Info Card
   infoCard: {
-    backgroundColor: Colors.sageTint,
+    backgroundColor: c.sageTint,
     borderWidth: 1,
-    borderColor: Colors.sageBorder,
+    borderColor: c.sageBorder,
     borderRadius: 12,
     padding: 14,
     marginBottom: 20,
   },
   infoText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 20,
   },
 
@@ -706,7 +709,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textHalf,
+    color: c.textHalf,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 12,
@@ -722,7 +725,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   quickAddButton: {
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 10,
@@ -737,7 +740,7 @@ const styles = StyleSheet.create({
   },
   quickAddLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Items List
@@ -759,12 +762,12 @@ const styles = StyleSheet.create({
   typeLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textBright,
+    color: c.textBright,
   },
   typeCount: {
     fontSize: 12,
-    color: Colors.textMuted,
-    backgroundColor: Colors.glassHover,
+    color: c.textMuted,
+    backgroundColor: c.glassHover,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
@@ -772,7 +775,7 @@ const styles = StyleSheet.create({
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderRadius: 10,
     padding: 12,
     marginBottom: 6,
@@ -786,7 +789,7 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   itemNameInactive: {
@@ -794,7 +797,7 @@ const styles = StyleSheet.create({
   },
   itemMeta: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Empty State
@@ -809,20 +812,20 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
   },
 
   // Add Custom Button
   addCustomButton: {
-    backgroundColor: Colors.sageLight,
+    backgroundColor: c.sageLight,
     borderWidth: 1,
-    borderColor: Colors.sageGlow,
+    borderColor: c.sageGlow,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
@@ -830,7 +833,7 @@ const styles = StyleSheet.create({
   addCustomText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.accent,
+    color: c.accent,
   },
 
   // Modal
@@ -840,7 +843,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '85%',
@@ -851,16 +854,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.glassActive,
+    borderBottomColor: c.glassActive,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   modalClose: {
     fontSize: 20,
-    color: Colors.textHalf,
+    color: c.textHalf,
     padding: 4,
   },
   modalScroll: {
@@ -875,23 +878,23 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: 13,
     fontWeight: '500',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 8,
   },
   formHint: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 4,
   },
   textInput: {
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   textInputMultiline: {
     minHeight: 60,
@@ -908,26 +911,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   typeChipSelected: {
-    backgroundColor: Colors.sageBorder,
-    borderColor: Colors.accent,
+    backgroundColor: c.sageBorder,
+    borderColor: c.accent,
   },
   typeChipEmoji: {
     fontSize: 14,
   },
   typeChipLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   typeChipLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
 
@@ -941,26 +944,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   windowChipSelected: {
-    backgroundColor: Colors.sageBorder,
-    borderColor: Colors.accent,
+    backgroundColor: c.sageBorder,
+    borderColor: c.accent,
   },
   windowEmoji: {
     fontSize: 16,
   },
   windowLabel: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   windowLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
 
@@ -971,23 +974,23 @@ const styles = StyleSheet.create({
   },
   priorityChip: {
     flex: 1,
-    backgroundColor: Colors.glassHover,
+    backgroundColor: c.glassHover,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: 'center',
   },
   priorityChipSelected: {
-    backgroundColor: Colors.sageBorder,
-    borderColor: Colors.accent,
+    backgroundColor: c.sageBorder,
+    borderColor: c.accent,
   },
   priorityLabel: {
     fontSize: 12,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   priorityLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
 
@@ -1000,14 +1003,14 @@ const styles = StyleSheet.create({
 
   // Buttons
   saveButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 10,
   },
   saveButtonText: {
-    color: Colors.background,
+    color: c.background,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1020,7 +1023,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   deleteButtonText: {
-    color: Colors.red,
+    color: c.red,
     fontSize: 15,
     fontWeight: '500',
   },

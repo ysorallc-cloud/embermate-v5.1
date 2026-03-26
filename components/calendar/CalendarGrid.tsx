@@ -2,10 +2,11 @@
 // CALENDAR GRID - Month view with completion heatmap
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CalendarDay } from '@/types/calendar';
 import { Colors } from '@/theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { isSameDay } from 'date-fns';
 
 const DAYS_OF_WEEK = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -19,16 +20,16 @@ function getHeatColor(pct: number | undefined): string {
   return 'rgba(239,68,68,0.1)';
 }
 
-function getHeatBorder(pct: number | undefined): string {
-  if (pct === undefined || pct < 0) return Colors.border;
+function getHeatBorder(pct: number | undefined, colors: typeof Colors): string {
+  if (pct === undefined || pct < 0) return colors.border;
   if (pct >= 90) return 'rgba(16,185,129,0.4)';
   if (pct >= 70) return 'rgba(16,185,129,0.25)';
   if (pct >= 50) return 'rgba(245,158,11,0.25)';
-  return Colors.border;
+  return colors.border;
 }
 
-function getDotColor(pct: number | undefined): string {
-  if (pct === undefined) return Colors.textMuted;
+function getDotColor(pct: number | undefined, colors: typeof Colors): string {
+  if (pct === undefined) return colors.textMuted;
   if (pct >= 70) return '#10B981';
   if (pct >= 40) return '#F59E0B';
   return '#EF4444';
@@ -41,6 +42,8 @@ interface Props {
 }
 
 export const CalendarGrid: React.FC<Props> = ({ days, selectedDate, onDayPress }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const today = new Date();
 
   return (
@@ -70,14 +73,14 @@ export const CalendarGrid: React.FC<Props> = ({ days, selectedDate, onDayPress }
                 styles.dayCell,
                 {
                   backgroundColor: isSelected
-                    ? Colors.accent
+                    ? colors.accent
                     : getHeatColor(pct),
                   borderWidth: isSelected ? 2 : isToday ? 1.5 : 1,
                   borderColor: isSelected
-                    ? Colors.accent
+                    ? colors.accent
                     : isToday
-                      ? Colors.accent
-                      : getHeatBorder(pct),
+                      ? colors.accent
+                      : getHeatBorder(pct, colors),
                   opacity: isFuture ? 0.35 : !day.isCurrentMonth ? 0.25 : 1,
                 },
               ]}
@@ -108,7 +111,7 @@ export const CalendarGrid: React.FC<Props> = ({ days, selectedDate, onDayPress }
                   {pct !== undefined && (
                     <View style={[
                       styles.dot,
-                      { backgroundColor: isSelected ? 'rgba(0,0,0,0.5)' : getDotColor(pct) },
+                      { backgroundColor: isSelected ? 'rgba(0,0,0,0.5)' : getDotColor(pct, colors) },
                     ]} />
                   )}
                 </View>
@@ -121,7 +124,7 @@ export const CalendarGrid: React.FC<Props> = ({ days, selectedDate, onDayPress }
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     paddingHorizontal: 12,
   },
@@ -142,7 +145,7 @@ const styles = StyleSheet.create({
   dayHeader: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   dayCell: {
     aspectRatio: 1,
@@ -150,13 +153,13 @@ const styles = StyleSheet.create({
   },
   dayNumber: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   selectedText: {
     color: '#000000',
   },
   todayText: {
-    color: Colors.accent,
+    color: c.accent,
   },
   dots: {
     flexDirection: 'row',

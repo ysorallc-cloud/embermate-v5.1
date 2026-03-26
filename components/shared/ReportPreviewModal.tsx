@@ -4,7 +4,7 @@
 // Used by Journal (daily/clinical) and Provider Prep screens
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export interface ReportPreviewModalProps {
   visible: boolean;
@@ -35,6 +36,16 @@ export function ReportPreviewModal({
   onClose,
   exporting = false,
 }: ReportPreviewModalProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  function getLineStyle(line: string) {
+    if (line.startsWith('[SECTION]')) return styles.previewLineSectionTitle;
+    if (line.startsWith('[HEADER]')) return styles.previewLineHeader;
+    if (/^\s{2}[•]/.test(line) || /^\d+\./.test(line)) return styles.previewLineQuestion;
+    return null;
+  }
+
   return (
     <Modal
       visible={visible}
@@ -90,23 +101,16 @@ export function ReportPreviewModal({
   );
 }
 
-function getLineStyle(line: string) {
-  if (line.startsWith('[SECTION]')) return styles.previewLineSectionTitle;
-  if (line.startsWith('[HEADER]')) return styles.previewLineHeader;
-  if (/^\s{2}[•]/.test(line) || /^\d+\./.test(line)) return styles.previewLineQuestion;
-  return null;
-}
-
 function formatLine(line: string): string {
   if (line.startsWith('[SECTION]')) return line.replace('[SECTION] ', '');
   if (line.startsWith('[HEADER]')) return line.replace('[HEADER] ', '');
   return line;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   previewContainer: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   previewHeader: {
     flexDirection: 'row',
@@ -115,22 +119,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.glassBorder,
+    borderBottomColor: c.glassBorder,
   },
   previewCloseButton: {
     padding: 4,
   },
   previewCloseText: {
     fontSize: 15,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   previewTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   previewExportButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -138,7 +142,7 @@ const styles = StyleSheet.create({
   previewExportText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   previewScroll: {
     flex: 1,
@@ -147,46 +151,46 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   previewCard: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     borderRadius: 10,
     padding: 12,
     marginBottom: 16,
   },
   previewHTMLNote: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
   },
   previewContent: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     borderRadius: 12,
     padding: 20,
   },
   previewLine: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 22,
     marginBottom: 2,
   },
   previewLineHeader: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   previewLineSectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.accent,
+    color: c.accent,
     marginTop: 12,
     marginBottom: 6,
   },
   previewLineQuestion: {
     fontSize: 14,
-    color: Colors.textBright,
+    color: c.textBright,
     paddingLeft: 8,
     marginBottom: 4,
   },

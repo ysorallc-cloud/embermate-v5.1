@@ -3,7 +3,7 @@
 // Configure vitals tracking in the Care Plan
 // ============================================================================
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import {
   VitalsBucketConfig,
@@ -24,6 +25,7 @@ import {
   VITAL_TYPE_OPTIONS,
   PRIORITY_OPTIONS,
 } from '../../types/carePlanConfig';
+import { getHealthDataProvider } from '../../utils/healthDataProvider';
 
 // ============================================================================
 // VITAL TYPE ITEM COMPONENT
@@ -36,6 +38,8 @@ interface VitalTypeItemProps {
 }
 
 function VitalTypeItem({ vital, selected, onToggle }: VitalTypeItemProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <TouchableOpacity
       style={[styles.vitalItem, selected && styles.vitalItemSelected]}
@@ -62,6 +66,8 @@ function VitalTypeItem({ vital, selected, onToggle }: VitalTypeItemProps) {
 
 export default function VitalsBucketScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     config,
     loading,
@@ -74,6 +80,12 @@ export default function VitalsBucketScreen() {
   const priority = vitalsConfig?.priority ?? 'recommended';
   const vitalTypes = vitalsConfig?.vitalTypes ?? ['bp', 'hr'];
   const frequency = vitalsConfig?.frequency ?? 'daily';
+
+  // HealthKit availability check
+  const [healthKitAvailable, setHealthKitAvailable] = useState(false);
+  useEffect(() => {
+    getHealthDataProvider().isAvailable().then(setHealthKitAvailable);
+  }, []);
 
   const handleToggleEnabled = useCallback(async (value: boolean) => {
     await toggleBucket('vitals', value);
@@ -102,7 +114,7 @@ export default function VitalsBucketScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -143,9 +155,9 @@ export default function VitalsBucketScreen() {
             <Switch
               value={enabled}
               onValueChange={handleToggleEnabled}
-              trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
-              thumbColor={enabled ? Colors.textPrimary : Colors.switchThumbOff}
-              ios_backgroundColor={Colors.glassStrong}
+              trackColor={{ false: colors.glassStrong, true: colors.accent }}
+              thumbColor={enabled ? colors.textPrimary : colors.switchThumbOff}
+              ios_backgroundColor={colors.glassStrong}
               accessibilityLabel="Track Vitals"
               accessibilityRole="switch"
               accessibilityState={{ checked: enabled }}
@@ -237,13 +249,33 @@ export default function VitalsBucketScreen() {
                 <Switch
                   value={vitalsConfig?.notificationsEnabled ?? false}
                   onValueChange={(value) => updateBucket('vitals', { notificationsEnabled: value })}
-                  trackColor={{ false: Colors.glassStrong, true: Colors.accent }}
-                  thumbColor={(vitalsConfig?.notificationsEnabled ?? false) ? Colors.textPrimary : Colors.switchThumbOff}
-                  ios_backgroundColor={Colors.glassStrong}
+                  trackColor={{ false: colors.glassStrong, true: colors.accent }}
+                  thumbColor={(vitalsConfig?.notificationsEnabled ?? false) ? colors.textPrimary : colors.switchThumbOff}
+                  ios_backgroundColor={colors.glassStrong}
                   accessibilityLabel="Vitals reminders"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: vitalsConfig?.notificationsEnabled ?? false }}
                 />
+              </View>
+            </>
+          )}
+
+          {/* Auto-import toggle — only visible when HealthKit is available (iOS) */}
+          {healthKitAvailable && enabled && (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionLabel}>Auto-Import</Text>
+              </View>
+              <View style={styles.autoImportCard}>
+                <Text style={styles.autoImportDesc}>
+                  Import vitals automatically from Apple Health. Data stays on your device.
+                </Text>
+                {VITAL_TYPE_OPTIONS.filter(v => vitalTypes.includes(v.value)).map(vital => (
+                  <View key={vital.value} style={styles.autoImportRow}>
+                    <Text style={styles.autoImportLabel}>{vital.emoji} {vital.label}</Text>
+                    <Text style={styles.autoImportStatus}>Manual only</Text>
+                  </View>
+                ))}
               </View>
             </>
           )}
@@ -260,10 +292,10 @@ export default function VitalsBucketScreen() {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -281,20 +313,20 @@ const styles = StyleSheet.create({
   backButton: {
     width: 44,
     height: 44,
-    backgroundColor: Colors.backgroundElevated,
+    backgroundColor: c.backgroundElevated,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backIcon: {
     fontSize: 24,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   headerLabel: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     letterSpacing: 1,
     fontWeight: '600',
   },
@@ -315,12 +347,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '300',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   subtitle: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 22,
   },
 
@@ -328,7 +360,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textHalf,
+    color: c.textHalf,
     letterSpacing: 1,
     marginBottom: Spacing.md,
     marginTop: Spacing.xl,
@@ -339,9 +371,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -353,12 +385,12 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   settingDescription: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Priority
@@ -366,28 +398,28 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   priorityOption: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
   },
   priorityOptionSelected: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.sageFaint,
+    borderColor: c.accent,
+    backgroundColor: c.sageFaint,
   },
   priorityLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   priorityLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
   },
   priorityDescription: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Vitals Grid
@@ -397,16 +429,16 @@ const styles = StyleSheet.create({
   vitalItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     gap: Spacing.md,
   },
   vitalItemSelected: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.sageFaint,
+    borderColor: c.accent,
+    backgroundColor: c.sageFaint,
   },
   vitalEmoji: {
     fontSize: 24,
@@ -414,10 +446,10 @@ const styles = StyleSheet.create({
   vitalLabel: {
     flex: 1,
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   vitalLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '500',
   },
   checkbox: {
@@ -425,16 +457,16 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: Colors.textPlaceholder,
+    borderColor: c.textPlaceholder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxSelected: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: c.accent,
+    borderColor: c.accent,
   },
   checkmark: {
-    color: Colors.background,
+    color: c.background,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -444,27 +476,58 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   frequencyOption: {
-    backgroundColor: Colors.glassFaint,
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
   },
   frequencyOptionSelected: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.sageFaint,
+    borderColor: c.accent,
+    backgroundColor: c.sageFaint,
   },
   frequencyLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   frequencyLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
   },
   frequencyDescription: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
+  },
+
+  // Auto-import
+  autoImportCard: {
+    backgroundColor: c.glassFaint,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    padding: Spacing.md,
+  },
+  autoImportDesc: {
+    fontSize: 13,
+    color: c.textSecondary,
+    lineHeight: 18,
+    marginBottom: Spacing.sm,
+  },
+  autoImportRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: c.glassBorder,
+  },
+  autoImportLabel: {
+    fontSize: 14,
+    color: c.textPrimary,
+  },
+  autoImportStatus: {
+    fontSize: 12,
+    color: c.textMuted,
   },
 });

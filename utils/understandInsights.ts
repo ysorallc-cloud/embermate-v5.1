@@ -1071,7 +1071,7 @@ function capitalize(str: string): string {
 
 const VALID_ROUTES = new Set([
   '/vitals',
-  '/trends',
+  '/vitals',
   '/care-report',
   '/(tabs)/now',
   '/(tabs)/journal',
@@ -1091,4 +1091,59 @@ export function isValidRoute(route: string): boolean {
 export function getRouteOrFallback(route: string | undefined): string | undefined {
   if (!route) return undefined;
   return isValidRoute(route) ? route : undefined;
+}
+
+// ============================================================================
+// PLAIN LANGUAGE SUMMARY — Replaces Care Score ring
+// ============================================================================
+
+export function generatePlainLanguageSummary(data: UnderstandPageData, range: TimeRange): string {
+  if (data.daysOfData < 7) return '';
+
+  const sentences: string[] = [];
+
+  // Medication adherence
+  if (data.dosesScheduled > 0) {
+    const rate = Math.round(data.adherenceRate);
+    if (rate >= 90) {
+      sentences.push(`Medication adherence has been strong at ${rate}% over the past ${range} days.`);
+    } else if (rate >= 70) {
+      sentences.push(`Medication adherence is at ${rate}% over the past ${range} days — some doses were missed.`);
+    } else {
+      sentences.push(`Medication adherence has been ${rate}% over the past ${range} days, which may need attention.`);
+    }
+  }
+
+  // Nutrition
+  if (data.avgMealsPerDay > 0) {
+    const meals = data.avgMealsPerDay.toFixed(1);
+    sentences.push(`Averaging ${meals} meals per day.`);
+  }
+
+  // Sleep
+  if (data.avgSleepHours > 0) {
+    const sleep = data.avgSleepHours.toFixed(1);
+    if (data.avgSleepHours >= 7) {
+      sentences.push(`Sleep has been adequate at ${sleep} hours per night.`);
+    } else {
+      sentences.push(`Sleep averaging ${sleep} hours per night — below the recommended 7 hours.`);
+    }
+  }
+
+  // Hydration
+  if (data.avgHydrationPerDay > 0) {
+    const water = data.avgHydrationPerDay.toFixed(1);
+    sentences.push(`Hydration averages ${water} glasses per day.`);
+  }
+
+  // Patterns detected
+  if (data.standOutInsights.length > 0) {
+    sentences.push(`${data.standOutInsights.length} pattern${data.standOutInsights.length !== 1 ? 's' : ''} detected that may be worth discussing with a provider.`);
+  }
+
+  if (sentences.length === 0) {
+    return `Over the past ${range} days, care data has been logged but no strong patterns have emerged yet. Continue tracking to build a clearer picture.`;
+  }
+
+  return sentences.join(' ');
 }

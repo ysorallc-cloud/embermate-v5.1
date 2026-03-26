@@ -103,8 +103,8 @@ describe('S3: ProgressRings bucket alignment', () => {
     expect(progressRingsSrc).not.toMatch(/const DEFAULT_BUCKETS.*BucketType/);
   });
 
-  test('uses PRIMARY_BUCKETS as fallback', () => {
-    expect(progressRingsSrc).toContain('enabledBuckets : PRIMARY_BUCKETS');
+  test('uses CORE_BUCKETS for always-visible first row', () => {
+    expect(progressRingsSrc).toContain('CORE_BUCKETS');
   });
 });
 

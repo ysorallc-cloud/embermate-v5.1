@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Colors } from '../../../theme/theme-tokens';
+import { useTheme } from '../../../contexts/ThemeContext';
 import Animated, {
   useAnimatedStyle,
   interpolate,
@@ -20,6 +21,8 @@ interface DotProps {
 }
 
 const AnimatedDot: React.FC<DotProps> = ({ index, scrollX, width }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const animatedStyle = useAnimatedStyle(() => {
     const inputRange = [
       (index - 1) * width,
@@ -51,6 +54,8 @@ const AnimatedDot: React.FC<DotProps> = ({ index, scrollX, width }) => {
 };
 
 export const PaginationDots: React.FC<Props> = ({ count, scrollX, width }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.container}>
       {Array.from({ length: count }).map((_, index) => (
@@ -60,7 +65,7 @@ export const PaginationDots: React.FC<Props> = ({ count, scrollX, width }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -71,7 +76,7 @@ const styles = StyleSheet.create({
   dot: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.textPrimary,
+    backgroundColor: c.textPrimary,
   },
 });
 

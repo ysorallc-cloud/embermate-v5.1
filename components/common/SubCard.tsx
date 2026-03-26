@@ -3,7 +3,7 @@
 // Provides consistent layout and styling for all sub-cards across the app
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   AccessibilityRole,
 } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   SubCardTokens,
   SubCardRoleColors,
@@ -100,6 +101,9 @@ export const SubCard: React.FC<SubCardProps> = ({
   disabled = false,
   testID,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   // Get colors based on status (if provided) or role
   const roleColors = SubCardRoleColors[__role];
   const statusColors = status ? SubCardStatusColors[status] : null;
@@ -279,7 +283,7 @@ export const SubCardCheck: React.FC<{ color?: string }> = ({
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   leading: {
     marginRight: SubCardTokens.gap,
   },
@@ -306,7 +310,7 @@ const styles = StyleSheet.create({
     width: SubCardTokens.leadingSize,
     height: SubCardTokens.leadingSize,
     borderRadius: SubCardTokens.leadingBorderRadius,
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -315,11 +319,11 @@ const styles = StyleSheet.create({
   },
   title: {
     ...SubCardTypography.title,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   subtitle: {
     ...SubCardTypography.subtitle,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 1,
   },
   arrow: {

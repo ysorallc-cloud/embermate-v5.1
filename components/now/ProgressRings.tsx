@@ -37,9 +37,16 @@ const BUCKET_TILE_MAP: Record<string, Omit<TileItem, 'bucket'>> = {
   water:     { icon: '\uD83D\uDCA7', label: 'Water',    statKey: 'water',    itemType: 'hydration' },
   sleep:     { icon: '\uD83D\uDE34', label: 'Sleep',    statKey: 'sleep',    itemType: 'sleep' },
   activity:  { icon: '\uD83D\uDEB6', label: 'Activity', statKey: 'activity', itemType: 'activity' },
-  wellness:  { icon: '\uD83C\uDF05', label: 'Well.',    statKey: 'wellness', itemType: 'wellness' },
+  wellness:  { icon: '\uD83C\uDF05', label: 'Check',    statKey: 'wellness', itemType: 'wellness' },
+  appointments: { icon: '\uD83D\uDCC5', label: 'Appts', statKey: 'appointments' as any, itemType: 'appointment' },
+  errands:   { icon: '\uD83D\uDCCB', label: 'Errands',  statKey: 'errands' as any,  itemType: 'errand' },
+  shifts:    { icon: '\uD83D\uDD04', label: 'Shifts',   statKey: 'shifts' as any,   itemType: 'shift' },
+  self_care: { icon: '\uD83D\uDC9B', label: 'Self',     statKey: 'self_care' as any, itemType: 'self_care' },
   custom:    { icon: '\uD83D\uDCCB', label: 'Tasks',    statKey: 'custom',   itemType: 'custom' },
 };
+
+// Core buckets always rendered in first row
+const CORE_BUCKETS: BucketType[] = ['meds', 'vitals', 'wellness', 'meals'];
 
 // Use PRIMARY_BUCKETS from types/carePlanConfig as the default
 
@@ -49,7 +56,7 @@ const BUCKET_BAR_COLOR: Record<string, string> = {
   vitals:   '#3B82F6',
   meals:    '#10B981',
   water:    '#38BDF8',
-  sleep:    '#8B5CF6',
+  sleep:    Colors.accent,
   activity: '#F97316',
   wellness: '#EC4899',
   custom:   '#A78BFA',
@@ -169,21 +176,23 @@ export function ProgressRings({
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  // Build dynamic items from enabled buckets
-  const tileItems: TileItem[] = useMemo(() => {
-    const buckets = enabledBuckets.length > 0 ? enabledBuckets : PRIMARY_BUCKETS;
-    const items = buckets
+  // ── Row 1: Core tiles — ALWAYS exactly these 4, unconditionally ──
+  const coreTiles: TileItem[] = useMemo(() => {
+    return CORE_BUCKETS
       .filter(b => BUCKET_TILE_MAP[b])
       .map(b => ({ bucket: b, ...BUCKET_TILE_MAP[b] }));
+  }, []);
 
-    // Auto-include custom tile if custom instances exist
-    const customStat = todayStats.custom;
-    if (customStat && customStat.total > 0 && !buckets.includes('custom' as BucketType)) {
-      items.push({ bucket: 'custom' as BucketType, ...BUCKET_TILE_MAP.custom });
-    }
-
-    return items;
-  }, [enabledBuckets, todayStats.custom]);
+  // ── Row 2: Optional tiles — ONLY non-core buckets that are explicitly
+  //    enabled via useCarePlanConfig. If none are enabled, this row is empty
+  //    and does not render at all. ──
+  const optionalTiles: TileItem[] = useMemo(() => {
+    const coreSet = new Set<string>(CORE_BUCKETS);
+    // Strict filter: must be in enabledBuckets AND not a core bucket AND have a tile mapping
+    return enabledBuckets
+      .filter(b => !coreSet.has(b) && BUCKET_TILE_MAP[b])
+      .map(b => ({ bucket: b, ...BUCKET_TILE_MAP[b] }));
+  }, [enabledBuckets]);
 
   // Track critical tiles for above-fold cap
   let criticalTileCount = 0;
@@ -268,8 +277,13 @@ export function ProgressRings({
   return (
     <View style={styles.section}>
       <View style={styles.strip}>
-        {tileItems.map(item => renderCell(item))}
+        {coreTiles.map(item => renderCell(item))}
       </View>
+      {optionalTiles.length > 0 && (
+        <View style={[styles.strip, { marginTop: 6 }]}>
+          {optionalTiles.map(item => renderCell(item))}
+        </View>
+      )}
     </View>
   );
 }

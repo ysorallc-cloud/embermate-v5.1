@@ -3,7 +3,7 @@
 // Manage cloud backup, encryption, and data restoration
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
 import {
   quickBackup,
@@ -42,6 +43,8 @@ import { logError } from '../../utils/devLog';
 
 export default function BackupSettingsScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Processing...');
   const [settings, setSettings] = useState<CloudBackupSettings | null>(null);
@@ -273,11 +276,11 @@ export default function BackupSettingsScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <LinearGradient
-          colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+          colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
           style={styles.gradient}
         >
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.accent} />
+            <ActivityIndicator size="large" color={colors.accent} />
             <Text style={styles.loadingText}>{loadingMessage}</Text>
           </View>
         </LinearGradient>
@@ -288,7 +291,7 @@ export default function BackupSettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
+        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
         style={styles.gradient}
       >
         <SubScreenHeader
@@ -324,7 +327,7 @@ export default function BackupSettingsScreen() {
               <TextInput
                 style={styles.passwordInput}
                 placeholder="Enter password (min 6 characters)"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
@@ -335,7 +338,7 @@ export default function BackupSettingsScreen() {
               <TextInput
                 style={styles.passwordInput}
                 placeholder="Confirm password"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 secureTextEntry
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
@@ -385,7 +388,7 @@ export default function BackupSettingsScreen() {
               <TextInput
                 style={styles.passwordInput}
                 placeholder="Backup password"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
@@ -537,10 +540,10 @@ export default function BackupSettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   gradient: {
     flex: 1,
@@ -557,7 +560,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 14,
   },
 
@@ -580,21 +583,21 @@ const styles = StyleSheet.create({
   migrationTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.amber,
+    color: c.amber,
     marginBottom: 4,
   },
   migrationText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
 
   // Info Banner
   infoBanner: {
     flexDirection: 'row',
-    backgroundColor: Colors.blueTint,
+    backgroundColor: c.blueTint,
     borderWidth: 1,
-    borderColor: Colors.blueWash,
+    borderColor: c.blueWash,
     borderRadius: 12,
     padding: 14,
     marginBottom: 20,
@@ -606,7 +609,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 13,
     lineHeight: 20,
   },
@@ -618,11 +621,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 12,
   },
   sectionDescription: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 13,
     marginBottom: 12,
     lineHeight: 20,
@@ -632,9 +635,9 @@ const styles = StyleSheet.create({
   actionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     padding: 16,
     marginBottom: 10,
@@ -649,25 +652,25 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   actionSubtitle: {
     fontSize: 12,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   arrow: {
     fontSize: 18,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Toggle
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     padding: 16,
   },
@@ -677,57 +680,57 @@ const styles = StyleSheet.create({
   toggleTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   toggleSubtitle: {
     fontSize: 12,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   toggle: {
     width: 48,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.glassActive,
+    backgroundColor: c.glassActive,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: c.border,
     padding: 2,
     justifyContent: 'center',
   },
   toggleActive: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: c.accent,
+    borderColor: c.accent,
   },
   toggleDot: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: Colors.textTertiary,
+    backgroundColor: c.textTertiary,
   },
   toggleDotActive: {
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     alignSelf: 'flex-end',
   },
   lastBackupText: {
     marginTop: 10,
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // Password Input
   passwordInput: {
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 14,
     marginBottom: 12,
   },
   errorText: {
-    color: Colors.error,
+    color: c.error,
     fontSize: 12,
     marginBottom: 12,
   },
@@ -745,23 +748,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
   },
   secondaryButton: {
-    backgroundColor: Colors.glassActive,
+    backgroundColor: c.glassActive,
     borderWidth: 1,
-    borderColor: Colors.glassStrong,
+    borderColor: c.glassStrong,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   primaryButtonText: {
-    color: Colors.background,
+    color: c.background,
     fontWeight: '600',
     fontSize: 14,
   },
   secondaryButtonText: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '500',
     fontSize: 14,
   },
@@ -770,9 +773,9 @@ const styles = StyleSheet.create({
   backupItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 10,
     padding: 14,
     marginBottom: 8,
@@ -782,12 +785,12 @@ const styles = StyleSheet.create({
   },
   backupDate: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   backupSize: {
     fontSize: 12,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   deleteButton: {
     padding: 8,

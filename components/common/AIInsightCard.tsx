@@ -3,9 +3,10 @@
 // Read-only, non-nagging, confidence-filtered
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { AIInsight, InsightType } from '../../utils/insightRules';
 import { ComponentRole } from '../../types/componentRoles';
 
@@ -49,7 +50,9 @@ export const AIInsightCard: React.FC<AIInsightCardProps> = ({
   style,
   testID,
 }) => {
-  const typeColors = getTypeColors(insight.type);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const typeColors = getTypeColors(insight.type, colors);
 
   return (
     <View
@@ -112,7 +115,11 @@ export const AIInsightCard: React.FC<AIInsightCardProps> = ({
 export const AIInsightCardLoading: React.FC<{
   compact?: boolean;
   style?: ViewStyle;
-}> = ({ compact = false, style }) => (
+}> = ({ compact = false, style }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
   <View style={[styles.container, styles.containerLoading, compact && styles.containerCompact, style]}>
     <View style={[styles.iconContainer, styles.iconLoading]}>
       <Text style={styles.icon}>✨</Text>
@@ -122,7 +129,8 @@ export const AIInsightCardLoading: React.FC<{
       <Text style={styles.loadingText}>Looking for patterns...</Text>
     </View>
   </View>
-);
+  );
+};
 
 // ============================================================================
 // EMPTY STATE
@@ -136,24 +144,29 @@ export const AIInsightCardEmpty: React.FC<{
   message = 'No patterns detected right now',
   compact = false,
   style,
-}) => (
+}) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
   <View style={[styles.container, styles.containerEmpty, compact && styles.containerCompact, style]}>
     <View style={[styles.iconContainer, styles.iconEmpty]}>
       <Text style={styles.icon}>✓</Text>
     </View>
     <View style={styles.content}>
-      <Text style={[styles.label, { color: Colors.green }]}>ALL GOOD</Text>
+      <Text style={[styles.label, { color: colors.green }]}>ALL GOOD</Text>
       <Text style={styles.title}>Everything on track</Text>
       <Text style={[styles.message, compact && styles.messageCompact]}>{message}</Text>
     </View>
   </View>
-);
+  );
+};
 
 // ============================================================================
 // HELPERS
 // ============================================================================
 
-function getTypeColors(type: InsightType): {
+function getTypeColors(type: InsightType, c: typeof Colors): {
   background: string;
   border: string;
   accent: string;
@@ -162,32 +175,32 @@ function getTypeColors(type: InsightType): {
   switch (type) {
     case 'reinforcement':
       return {
-        background: Colors.greenLight,
-        border: Colors.greenBorder,
-        accent: Colors.green,
-        iconBackground: Colors.greenMuted,
+        background: c.greenLight,
+        border: c.greenBorder,
+        accent: c.green,
+        iconBackground: c.greenMuted,
       };
     case 'dependency':
       return {
-        background: Colors.amberLight,
-        border: Colors.amberBorder,
-        accent: Colors.amber,
-        iconBackground: Colors.amberMuted,
+        background: c.amberLight,
+        border: c.amberBorder,
+        accent: c.amber,
+        iconBackground: c.amberMuted,
       };
     case 'pattern':
       return {
-        background: Colors.purpleLight,
-        border: Colors.purpleBorder,
-        accent: Colors.purple,
-        iconBackground: Colors.purpleWash,
+        background: c.purpleLight,
+        border: c.purpleBorder,
+        accent: c.purple,
+        iconBackground: c.purpleWash,
       };
     case 'contextual':
     default:
       return {
-        background: Colors.accentLight,
-        border: Colors.accentBorder,
-        accent: Colors.accent,
-        iconBackground: Colors.borderMedium,
+        background: c.accentLight,
+        border: c.accentBorder,
+        accent: c.accent,
+        iconBackground: c.borderMedium,
       };
   }
 }
@@ -211,7 +224,7 @@ function getTypeLabel(type: InsightType): string {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     borderRadius: BorderRadius.md + 2,
     padding: 14,
@@ -223,12 +236,12 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   containerLoading: {
-    backgroundColor: Colors.glass,
-    borderColor: Colors.glassBorder,
+    backgroundColor: c.glass,
+    borderColor: c.glassBorder,
   },
   containerEmpty: {
-    backgroundColor: Colors.greenLight,
-    borderColor: Colors.greenBorder,
+    backgroundColor: c.greenLight,
+    borderColor: c.greenBorder,
   },
   iconContainer: {
     width: 44,
@@ -239,10 +252,10 @@ const styles = StyleSheet.create({
     marginRight: Spacing.md,
   },
   iconLoading: {
-    backgroundColor: Colors.glassActive,
+    backgroundColor: c.glassActive,
   },
   iconEmpty: {
-    backgroundColor: Colors.greenMuted,
+    backgroundColor: c.greenMuted,
   },
   icon: {
     fontSize: 22,
@@ -262,7 +275,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   confidenceBadge: {
-    backgroundColor: Colors.glassSubtle,
+    backgroundColor: c.glassSubtle,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -270,18 +283,18 @@ const styles = StyleSheet.create({
   confidenceText: {
     fontSize: 9,
     fontWeight: '500',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   title: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   message: {
     fontSize: 13,
     lineHeight: 18,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   messageCompact: {
     fontSize: 12,
@@ -289,11 +302,11 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontStyle: 'italic',
   },
   badge: {
-    backgroundColor: Colors.glassStrong,
+    backgroundColor: c.glassStrong,
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -303,7 +316,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });
 

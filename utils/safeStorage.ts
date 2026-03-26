@@ -36,6 +36,7 @@ export const SENSITIVE_KEY_PREFIXES = [
   StorageKeys.CAREPLAN,              // carePlanRepo keys
   'medical_info',                    // medicalInfo.ts key (no @ prefix)
   'emergency_contacts',              // emergencyContacts.ts key (no @ prefix)
+  'events:',                         // CareEvents contain health data (vitals, meds, symptoms)
 ];
 
 export function isSensitiveKey(key: string): boolean {

@@ -3,9 +3,10 @@
 // Display current streak with visual indicator
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Props {
   type: string;
@@ -15,6 +16,8 @@ interface Props {
 }
 
 export const StreakBadge: React.FC<Props> = ({ type, count, label, size = 'medium' }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const getEmoji = () => {
     if (count >= 30) return '🏆';
     if (count >= 14) return '🔥';
@@ -28,7 +31,7 @@ export const StreakBadge: React.FC<Props> = ({ type, count, label, size = 'mediu
     if (count >= 14) return '#FF6B6B'; // Fire red
     if (count >= 7) return '#FFD93D'; // Yellow
     if (count >= 3) return '#6BCF7F'; // Green
-    return Colors.border;
+    return colors.border;
   };
 
   const sizeStyles = {
@@ -69,7 +72,7 @@ export const StreakBadge: React.FC<Props> = ({ type, count, label, size = 'mediu
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   badge: {
     alignItems: 'center',
     borderRadius: 12,
@@ -83,7 +86,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   label: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     fontWeight: '600',

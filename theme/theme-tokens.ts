@@ -1,216 +1,186 @@
 // ============================================================================
-// EMBERMATE AURORA THEME TOKENS
-// Aurora design system with glassmorphism
+// EMBERMATE MIDNIGHT CALM THEME TOKENS
+// Deep midnight with soft purple accents
+// Colors are initialized at module load based on system appearance.
 // NOTE: Not a route - utility file only
 // ============================================================================
+
+import { LightColors } from './light-tokens';
 
 // Prevent Expo Router warning (this is not a route component)
 export default null;
 
-export const Colors = {
-  // Base
-  background: '#051614',
-  backgroundAlt: '#042420',
+// ============================================================================
+// DARK THEME — Midnight Calm
+// ============================================================================
 
-  // Surfaces (Glassmorphism)
-  glass: 'rgba(255, 255, 255, 0.03)',
+const DarkColors = {
+  background: '#000000',
+  backgroundAlt: '#050505',
+  glass: '#111111',
   glassHover: 'rgba(255, 255, 255, 0.06)',
-  glassBorder: 'rgba(255, 255, 255, 0.08)',
-  glassActive: 'rgba(255, 255, 255, 0.1)',
+  glassBorder: 'rgba(255, 255, 255, 0.10)',
+  glassActive: 'rgba(255, 255, 255, 0.12)',
   glassDim: 'rgba(255, 255, 255, 0.04)',
-  glassFaint: 'rgba(255, 255, 255, 0.04)',
-  glassSubtle: 'rgba(255, 255, 255, 0.15)',
-  glassStrong: 'rgba(255, 255, 255, 0.2)',
-  glassBold: 'rgba(255, 255, 255, 0.3)',
-
-  // Legacy surface support (map to glass)
-  surface: 'rgba(255, 255, 255, 0.03)',
-  surfaceElevated: 'rgba(255, 255, 255, 0.05)',
-  surfaceAlt: 'rgba(255, 255, 255, 0.02)',
-  surfaceHighlight: 'rgba(20, 184, 166, 0.08)',
-
-  // Aurora Colors (for backgrounds)
-  auroraTeal: 'hsla(160, 70%, 30%, 0.4)',
-  auroraPurple: 'hsla(280, 50%, 40%, 0.3)',
-  auroraBlue: 'hsla(220, 60%, 35%, 0.35)',
-  auroraViolet: 'hsla(260, 50%, 30%, 0.25)',
-  auroraRose: 'hsla(320, 40%, 35%, 0.25)',
-
-  // Primary Accent
-  accent: '#14B8A6',
-  accentLight: 'rgba(20, 184, 166, 0.12)',
-  accentBorder: 'rgba(20, 184, 166, 0.25)',
-  accentGlow: 'rgba(20, 184, 166, 0.4)',
-  accentFaint: 'rgba(20, 184, 166, 0.05)',
-  accentTint: 'rgba(20, 184, 166, 0.06)',
-  accentDim: 'rgba(20, 184, 166, 0.1)',
-  accentHint: 'rgba(20, 184, 166, 0.15)',
-  accentSubtle: 'rgba(20, 184, 166, 0.15)',
-  accentMuted: 'rgba(94, 234, 212, 0.5)',
-  accentGradientStart: '#14B8A6',
-  accentGradientMid: '#0D9488',
-  accentGradientEnd: '#5EEAD4',
-
-  // Semantic Colors
-  green: '#10B981',
-  greenTint: 'rgba(16, 185, 129, 0.1)',
-  greenLight: 'rgba(16, 185, 129, 0.12)',
-  greenHint: 'rgba(16, 185, 129, 0.15)',
-  greenMuted: 'rgba(16, 185, 129, 0.2)',
-  greenBorder: 'rgba(16, 185, 129, 0.25)',
-  greenStrong: 'rgba(16, 185, 129, 0.3)',
-  greenGlow: 'rgba(16, 185, 129, 0.4)',
-
-  amber: '#F59E0B',
-  amberFaint: 'rgba(245, 158, 11, 0.08)',
-  amberLight: 'rgba(245, 158, 11, 0.12)',
-  amberHint: 'rgba(245, 158, 11, 0.15)',
-  amberMuted: 'rgba(245, 158, 11, 0.2)',
-  amberBorder: 'rgba(245, 158, 11, 0.25)',
-  amberGlow: 'rgba(245, 158, 11, 0.4)',
-
-  red: '#EF4444',
-  redFaint: 'rgba(239, 68, 68, 0.08)',
-  redLight: 'rgba(239, 68, 68, 0.12)',
-  redHint: 'rgba(239, 68, 68, 0.15)',
-  redMuted: 'rgba(239, 68, 68, 0.2)',
-  redBorder: 'rgba(239, 68, 68, 0.25)',
-  redStrong: 'rgba(239, 68, 68, 0.3)',
-
-  rose: '#F43F5E',
-  roseLight: 'rgba(244, 63, 94, 0.12)',
-  roseBorder: 'rgba(244, 63, 94, 0.25)',
-
-  purple: '#8B5CF6',
-  purpleFaint: 'rgba(139, 92, 246, 0.08)',
-  purpleMuted: 'rgba(139, 92, 246, 0.1)',
-  purpleLight: 'rgba(139, 92, 246, 0.12)',
-  purpleHint: 'rgba(139, 92, 246, 0.15)',
-  purpleWash: 'rgba(139, 92, 246, 0.2)',
-  purpleBorder: 'rgba(139, 92, 246, 0.25)',
-  purpleStrong: 'rgba(139, 92, 246, 0.3)',
-  purpleGlow: 'rgba(139, 92, 246, 0.4)',
-
-  sky: '#0EA5E9',
-  skyLight: 'rgba(14, 165, 233, 0.12)',
-  skyBorder: 'rgba(14, 165, 233, 0.25)',
-
-  gold: '#EAB308',
-  goldLight: 'rgba(234, 179, 8, 0.12)',
-  goldBorder: 'rgba(234, 179, 8, 0.25)',
-
-  violet: '#A78BFA',
-  violetLight: 'rgba(167, 139, 250, 0.12)',
-  violetBorder: 'rgba(167, 139, 250, 0.25)',
-  violetBright: 'rgba(167, 139, 250, 0.9)',
-
-  blue: '#3B82F6',
-  blueFaint: 'rgba(59, 130, 246, 0.08)',
-  blueTint: 'rgba(59, 130, 246, 0.1)',
-  blueLight: 'rgba(59, 130, 246, 0.12)',
-  blueWash: 'rgba(59, 130, 246, 0.2)',
-  blueBorder: 'rgba(59, 130, 246, 0.25)',
-
-  indigo: '#6366F1',
-  indigoLight: 'rgba(99, 102, 241, 0.12)',
-  indigoBorder: 'rgba(99, 102, 241, 0.25)',
-
-  orange: '#F97316',
-  orangeLight: 'rgba(249, 115, 22, 0.12)',
-  orangeBorder: 'rgba(249, 115, 22, 0.25)',
-
-  cyan: '#06B6D4',
-  cyanLight: 'rgba(6, 182, 212, 0.12)',
-  cyanBorder: 'rgba(6, 182, 212, 0.25)',
-
-  // Secondary teal tones
-  sage: '#5EEAD4',
-  sageHint: 'rgba(94, 234, 212, 0.05)',
-  sageTint: 'rgba(94, 234, 212, 0.06)',
-  sageFaint: 'rgba(94, 234, 212, 0.08)',
-  sageLight: 'rgba(94, 234, 212, 0.1)',
-  sageSubtle: 'rgba(94, 234, 212, 0.12)',
-  sageBorder: 'rgba(94, 234, 212, 0.15)',
-  sageWash: 'rgba(94, 234, 212, 0.2)',
-  sageGlow: 'rgba(94, 234, 212, 0.3)',
-  sageMuted: 'rgba(94, 234, 212, 0.4)',
-  sageSoft: 'rgba(94, 234, 212, 0.7)',
-  sageStrong: 'rgba(94, 234, 212, 0.8)',
-  sageBright: 'rgba(94, 234, 212, 0.9)',
-  sageDim: 'rgba(20, 184, 166, 0.08)',
-
-  // Bright/chart hex variants
-  purpleBright: '#A78BFA',
+  glassFaint: 'rgba(255, 255, 255, 0.03)',
+  glassSubtle: 'rgba(255, 255, 255, 0.12)',
+  glassStrong: 'rgba(255, 255, 255, 0.18)',
+  glassBold: 'rgba(255, 255, 255, 0.25)',
+  surface: '#111111',
+  surfaceElevated: '#1A1A1A',
+  surfaceAlt: 'rgba(255, 255, 255, 0.03)',
+  surfaceHighlight: 'rgba(52, 211, 153, 0.08)',
+  auroraTeal: 'hsla(160, 40%, 12%, 0.4)',
+  auroraPurple: 'hsla(160, 50%, 15%, 0.35)',
+  auroraBlue: 'hsla(165, 40%, 10%, 0.3)',
+  auroraViolet: 'hsla(155, 45%, 12%, 0.25)',
+  auroraRose: 'hsla(160, 35%, 10%, 0.2)',
+  accent: '#34D399',
+  accentLight: 'rgba(52, 211, 153, 0.15)',
+  accentBorder: 'rgba(52, 211, 153, 0.25)',
+  accentGlow: 'rgba(52, 211, 153, 0.40)',
+  accentFaint: 'rgba(52, 211, 153, 0.06)',
+  accentTint: 'rgba(52, 211, 153, 0.07)',
+  accentDim: 'rgba(52, 211, 153, 0.10)',
+  accentHint: 'rgba(52, 211, 153, 0.14)',
+  accentSubtle: 'rgba(52, 211, 153, 0.14)',
+  accentMuted: 'rgba(52, 211, 153, 0.50)',
+  accentGradientStart: '#34D399',
+  accentGradientMid: '#059669',
+  accentGradientEnd: '#6EE7B7',
+  green: '#34D399',
+  greenTint: 'rgba(52, 211, 153, 0.10)',
+  greenLight: 'rgba(52, 211, 153, 0.13)',
+  greenHint: 'rgba(52, 211, 153, 0.16)',
+  greenMuted: 'rgba(52, 211, 153, 0.20)',
+  greenBorder: 'rgba(52, 211, 153, 0.25)',
+  greenStrong: 'rgba(52, 211, 153, 0.30)',
+  greenGlow: 'rgba(52, 211, 153, 0.40)',
+  amber: '#FBBF24',
+  amberFaint: 'rgba(251, 191, 36, 0.06)',
+  amberLight: 'rgba(251, 191, 36, 0.10)',
+  amberHint: 'rgba(251, 191, 36, 0.12)',
+  amberMuted: 'rgba(251, 191, 36, 0.15)',
+  amberBorder: 'rgba(251, 191, 36, 0.20)',
+  amberGlow: 'rgba(251, 191, 36, 0.35)',
+  red: '#F87171',
+  redFaint: 'rgba(248, 113, 113, 0.06)',
+  redLight: 'rgba(248, 113, 113, 0.10)',
+  redHint: 'rgba(248, 113, 113, 0.12)',
+  redMuted: 'rgba(248, 113, 113, 0.15)',
+  redBorder: 'rgba(248, 113, 113, 0.20)',
+  redStrong: 'rgba(248, 113, 113, 0.25)',
+  rose: '#FB7185',
+  roseLight: 'rgba(251, 113, 133, 0.10)',
+  roseBorder: 'rgba(251, 113, 133, 0.20)',
+  purple: '#A78BFA',
+  purpleFaint: 'rgba(167, 139, 250, 0.06)',
+  purpleMuted: 'rgba(167, 139, 250, 0.08)',
+  purpleLight: 'rgba(167, 139, 250, 0.10)',
+  purpleHint: 'rgba(167, 139, 250, 0.12)',
+  purpleWash: 'rgba(167, 139, 250, 0.15)',
+  purpleBorder: 'rgba(167, 139, 250, 0.20)',
+  purpleStrong: 'rgba(167, 139, 250, 0.25)',
+  purpleGlow: 'rgba(167, 139, 250, 0.35)',
+  sky: '#7DD3FC',
+  skyLight: 'rgba(125, 211, 252, 0.10)',
+  skyBorder: 'rgba(125, 211, 252, 0.20)',
+  gold: '#FBBF24',
+  goldLight: 'rgba(251, 191, 36, 0.10)',
+  goldBorder: 'rgba(251, 191, 36, 0.20)',
+  violet: '#C4B5FD',
+  violetLight: 'rgba(196, 181, 253, 0.10)',
+  violetBorder: 'rgba(196, 181, 253, 0.20)',
+  violetBright: 'rgba(196, 181, 253, 0.9)',
+  blue: '#93C5FD',
+  blueFaint: 'rgba(147, 197, 253, 0.06)',
+  blueTint: 'rgba(147, 197, 253, 0.08)',
+  blueLight: 'rgba(147, 197, 253, 0.10)',
+  blueWash: 'rgba(147, 197, 253, 0.15)',
+  blueBorder: 'rgba(147, 197, 253, 0.20)',
+  indigo: '#A5B4FC',
+  indigoLight: 'rgba(165, 180, 252, 0.10)',
+  indigoBorder: 'rgba(165, 180, 252, 0.20)',
+  orange: '#FB923C',
+  orangeLight: 'rgba(251, 146, 60, 0.10)',
+  orangeBorder: 'rgba(251, 146, 60, 0.20)',
+  cyan: '#67E8F9',
+  cyanLight: 'rgba(103, 232, 249, 0.10)',
+  cyanBorder: 'rgba(103, 232, 249, 0.20)',
+  sage: '#C4B5FD',
+  sageHint: 'rgba(196, 181, 253, 0.04)',
+  sageTint: 'rgba(196, 181, 253, 0.05)',
+  sageFaint: 'rgba(196, 181, 253, 0.06)',
+  sageLight: 'rgba(196, 181, 253, 0.08)',
+  sageSubtle: 'rgba(196, 181, 253, 0.10)',
+  sageBorder: 'rgba(196, 181, 253, 0.12)',
+  sageWash: 'rgba(196, 181, 253, 0.15)',
+  sageGlow: 'rgba(196, 181, 253, 0.22)',
+  sageMuted: 'rgba(196, 181, 253, 0.35)',
+  sageSoft: 'rgba(196, 181, 253, 0.55)',
+  sageStrong: 'rgba(196, 181, 253, 0.70)',
+  sageBright: 'rgba(196, 181, 253, 0.85)',
+  sageDim: 'rgba(52, 211, 153, 0.06)',
+  purpleBright: '#C4B5FD',
   amberBright: '#FBBF24',
-  amberBrightTint: 'rgba(251, 191, 36, 0.1)',
-  amberBrightStrong: 'rgba(251, 191, 36, 0.8)',
+  amberBrightTint: 'rgba(251, 191, 36, 0.08)',
+  amberBrightStrong: 'rgba(251, 191, 36, 0.75)',
   greenBright: '#34D399',
   redBright: '#F87171',
-  blueBright: '#60A5FA',
-  skyBright: '#38BDF8',
-
-  // Status colors
-  success: '#10B981',
-  warning: '#F59E0B',
-  warningLight: 'rgba(245, 158, 11, 0.12)',
-  warningBorder: 'rgba(245, 158, 11, 0.3)',
-  error: '#EF4444',
-
-  // Text
+  blueBright: '#93C5FD',
+  skyBright: '#7DD3FC',
+  success: '#34D399',
+  warning: '#FBBF24',
+  warningLight: 'rgba(251, 191, 36, 0.10)',
+  warningBorder: 'rgba(251, 191, 36, 0.25)',
+  error: '#F87171',
   textPrimary: '#FFFFFF',
-  textSecondary: 'rgba(255, 255, 255, 0.7)',
-  textTertiary: 'rgba(255, 255, 255, 0.6)',
-  textSoft: 'rgba(255, 255, 255, 0.5)',
-  textMuted: 'rgba(255, 255, 255, 0.6)',
-  textDisabled: 'rgba(255, 255, 255, 0.4)',
-  textHalf: 'rgba(255, 255, 255, 0.5)',
-  textPlaceholder: 'rgba(255, 255, 255, 0.5)',
-  textBright: 'rgba(255, 255, 255, 0.8)',
-  textAlmostFull: 'rgba(255, 255, 255, 0.9)',
-  textNearFull: 'rgba(255, 255, 255, 0.95)',
-  textHighContrast: 'rgba(255, 255, 255, 0.95)',
-
-  // Borders
+  textSecondary: 'rgba(255, 255, 255, 0.72)',
+  textTertiary: 'rgba(255, 255, 255, 0.50)',
+  textSoft: 'rgba(255, 255, 255, 0.42)',
+  textMuted: 'rgba(255, 255, 255, 0.48)',
+  textDisabled: 'rgba(255, 255, 255, 0.28)',
+  textHalf: 'rgba(255, 255, 255, 0.42)',
+  textPlaceholder: 'rgba(255, 255, 255, 0.35)',
+  textBright: 'rgba(255, 255, 255, 0.88)',
+  textAlmostFull: 'rgba(255, 255, 255, 0.92)',
+  textNearFull: 'rgba(255, 255, 255, 0.96)',
+  textHighContrast: '#FFFFFF',
   border: 'rgba(255, 255, 255, 0.08)',
   borderLight: 'rgba(255, 255, 255, 0.05)',
-  borderMedium: 'rgba(20, 184, 166, 0.2)',
-  borderStrong: 'rgba(20, 184, 166, 0.3)',
-
-  // Tab Bar
-  tabBarBackground: '#051614',
-  tabBarBorder: 'rgba(20, 184, 166, 0.15)',
-  tabBarActive: '#14B8A6',
-  tabBarInactive: 'rgba(255, 255, 255, 0.6)',
-
-  // Overlay & Menu
-  overlay: 'rgba(0, 0, 0, 0.85)',
-  menuSurface: '#042420',
-
-  // Gradients (as strings for LinearGradient)
-  gradientBackground: ['#051614', '#042420'],
-  gradientAuroraToday: ['rgba(20, 100, 90, 0.3)', 'transparent'],
-  gradientAuroraHub: ['rgba(60, 60, 120, 0.3)', 'transparent'],
-  gradientAuroraFamily: ['rgba(80, 60, 80, 0.3)', 'transparent'],
-
-  // Backwards compatibility
-  backgroundGradientStart: '#051614',
-  backgroundGradientEnd: '#042420',
-  cardBackground: '#0a1f1c',
-
-  // Background variants
-  backgroundDark: '#0a0a0a',
-  backgroundDeep: '#0D1F1C',
-  backgroundElevated: '#0d332e',
-
-  // Additional background/input
-  inputBackground: '#0D332E',
-
-  // Switch tokens
+  borderMedium: 'rgba(52, 211, 153, 0.22)',
+  borderStrong: 'rgba(52, 211, 153, 0.35)',
+  tabBarBackground: '#000000',
+  tabBarBorder: 'rgba(52, 211, 153, 0.15)',
+  tabBarActive: '#34D399',
+  tabBarInactive: 'rgba(255, 255, 255, 0.40)',
+  overlay: 'rgba(0, 0, 0, 0.90)',
+  menuSurface: '#0A0A0A',
+  gradientBackground: ['#000000', '#050505'],
+  gradientAuroraToday: ['rgba(52, 211, 153, 0.10)', 'transparent'],
+  gradientAuroraHub: ['rgba(52, 211, 153, 0.06)', 'transparent'],
+  gradientAuroraFamily: ['rgba(52, 211, 153, 0.08)', 'transparent'],
+  backgroundGradientStart: '#000000',
+  backgroundGradientEnd: '#050505',
+  cardBackground: '#111111',
+  backgroundDark: '#000000',
+  backgroundDeep: '#050505',
+  backgroundElevated: '#1A1A1A',
+  inputBackground: '#111111',
   switchThumbOn: '#FFFFFF',
   switchThumbOff: '#F4F3F4',
   switchThumb: '#F4F3F4',
-  switchTrackOff: 'rgba(255, 255, 255, 0.2)',
+  switchTrackOff: 'rgba(255, 255, 255, 0.15)',
 };
+
+// ============================================================================
+// EXPORTED Colors — initialized based on system appearance at module load.
+// This ensures static StyleSheet.create() calls (148 files) capture the
+// correct theme values before any component mounts.
+// ============================================================================
+
+// Always initialize with dark theme — dark mode is the primary design
+export const Colors: typeof DarkColors = { ...DarkColors };
 
 /** Mutate the exported Colors object in-place so every file that reads Colors.X
  *  at render time picks up the active theme without needing a hook. */
@@ -218,6 +188,10 @@ export function _syncColors(newColors: Partial<typeof Colors>) {
   Object.assign(Colors, newColors);
 }
 
+/** Get the dark color palette (used by ThemeContext) */
+export function getDarkColors(): typeof DarkColors {
+  return DarkColors;
+}
 export const Spacing = {
   xs: 4,
   sm: 8,
@@ -311,26 +285,39 @@ export const Shadows = {
   glow: (color: string) => ({
     shadowColor: color,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.5,
     shadowRadius: 12,
     elevation: 8,
   }),
   glowSmall: (color: string) => ({
     shadowColor: color,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   }),
   soft: {
-    shadowColor: Colors.background,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  card: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
   },
+  elevated: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.10,
+    shadowRadius: 20,
+    elevation: 6,
+  },
 };
-
 // Animation constants
 export const Animation = {
   aurora: {

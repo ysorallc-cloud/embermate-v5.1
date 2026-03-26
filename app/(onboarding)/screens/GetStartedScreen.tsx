@@ -3,11 +3,12 @@
 // Screen 4 of 4: Collects context then starts fresh or with sample data
 // ============================================================================
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, Image, StyleSheet, Dimensions, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { Colors, Spacing, BorderRadius } from '../../../theme/theme-tokens';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { BucketType, BUCKET_META } from '../../../types/carePlanConfig';
 import { updatePatient } from '../../../storage/patientRegistry';
 import { getOrCreateCarePlanConfig, saveCarePlanConfig } from '../../../storage/carePlanConfigRepo';
@@ -25,6 +26,8 @@ interface Props {
 }
 
 export const GetStartedScreen: React.FC<Props> = ({ onComplete, careMode = 'caregiver' }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [patientName, setPatientName] = useState('');
   const [selectedBuckets, setSelectedBuckets] = useState<Set<BucketType>>(
     () => new Set(DEFAULT_SELECTED)
@@ -77,8 +80,12 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete, careMode = 'care
       <View style={styles.container}>
         <AuroraBackground variant="welcome" />
         <View style={styles.loadingOverlay}>
-          <Text style={styles.loadingEmoji}>{'\u{1F525}'}</Text>
-          <ActivityIndicator size="large" color={Colors.accent} style={styles.loadingSpinner} />
+          <Image
+            source={require('../../../assets/images/embermate-icon.png')}
+            style={styles.loadingIcon}
+            accessibilityLabel="EmberMate"
+          />
+          <ActivityIndicator size="large" color={colors.accent} style={styles.loadingSpinner} />
           <Text style={styles.loadingText}>{loadingMessage}</Text>
         </View>
       </View>
@@ -99,7 +106,7 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete, careMode = 'care
           <TextInput
             style={styles.input}
             placeholder={isSelf ? 'Your name' : 'e.g. Mom, Dad'}
-            placeholderTextColor={Colors.textSecondary}
+            placeholderTextColor={colors.textSecondary}
             value={patientName}
             onChangeText={setPatientName}
             autoCapitalize="words"
@@ -175,11 +182,11 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete, careMode = 'care
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
     width: SCREEN_WIDTH,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -191,7 +198,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '300',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
     marginBottom: Spacing.xl,
   },
@@ -201,30 +208,30 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 6,
     textAlign: 'center',
   },
   input: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
     marginBottom: 4,
   },
   sectionHint: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     marginBottom: Spacing.lg,
   },
@@ -237,16 +244,16 @@ const styles = StyleSheet.create({
   },
   bucketCard: {
     width: '30%',
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     alignItems: 'center',
   },
   bucketCardSelected: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.accentHint,
+    borderColor: c.accent,
+    backgroundColor: c.accentHint,
   },
   bucketEmoji: {
     fontSize: 24,
@@ -254,34 +261,34 @@ const styles = StyleSheet.create({
   },
   bucketLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '500',
   },
   bucketLabelSelected: {
-    color: Colors.accent,
+    color: c.accent,
   },
   optionCard: {
     width: '100%',
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
     alignItems: 'center',
   },
   optionCardSecondary: {
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   optionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   optionSubtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
   },
   // Loading overlay
@@ -291,8 +298,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 60,
   },
-  loadingEmoji: {
-    fontSize: 56,
+  loadingIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
     marginBottom: Spacing.xl,
   },
   loadingSpinner: {
@@ -300,12 +309,12 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '500',
   },
   backupTip: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 17,
     marginTop: Spacing.md,

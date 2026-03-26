@@ -3,11 +3,12 @@
 // Role: display - Read-only presentation of next pending task
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { UpNextData } from '../../types/contextCard';
 import { ComponentRole, getRoleLabel, getRoleA11yHint } from '../../types/componentRoles';
 
@@ -24,6 +25,8 @@ export const UpNextCard: React.FC<UpNextCardProps> = ({
   __role = 'display',
   roleLabel,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const displayLabel = getRoleLabel(__role, roleLabel);
 
@@ -87,11 +90,11 @@ export const UpNextCard: React.FC<UpNextCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.goldLight,
+    backgroundColor: c.goldLight,
     borderWidth: 1,
-    borderColor: Colors.goldBorder,
+    borderColor: c.goldBorder,
     borderRadius: 14,
     padding: 14,
     flexDirection: 'row',
@@ -101,7 +104,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: Colors.glassActive,
+    backgroundColor: c.glassActive,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -122,14 +125,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.5,
-    color: Colors.gold,
+    color: c.gold,
   },
   roleLabel: {
     fontSize: 8,
     fontWeight: '600',
     letterSpacing: 0.5,
-    color: Colors.textMuted,
-    backgroundColor: Colors.glassActive,
+    color: c.textMuted,
+    backgroundColor: c.glassActive,
     paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 3,
@@ -137,16 +140,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   subtitle: {
     fontSize: 12,
-    color: Colors.gold,
+    color: c.gold,
     marginTop: 1,
   },
   arrow: {
     fontSize: 18,
-    color: Colors.gold,
+    color: c.gold,
     marginLeft: 8,
   },
 });

@@ -13,7 +13,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export type AuroraVariant = 'today' | 'now' | 'journal' | 'hub' | 'log' | 'care' | 'reports' | 'settings' | 'family' | 'insights' | 'connect';
+export type AuroraVariant = 'today' | 'now' | 'journal' | 'hub' | 'log' | 'care' | 'reports' | 'settings' | 'family' | 'insights' | 'connect' | 'support';
 
 interface Props {
   variant?: AuroraVariant;
@@ -99,6 +99,13 @@ const AURORA_CONFIGS: Record<AuroraVariant, {
       'transparent',
     ],
   },
+  support: {
+    colors: [
+      'rgba(20, 140, 110, 0.35)',  // Teal — calming
+      'rgba(30, 70, 90, 0.20)',    // Deep teal-blue
+      'transparent',
+    ],
+  },
 };
 
 // Light theme: subtle static gradients (no animation)
@@ -116,6 +123,7 @@ const LIGHT_AURORA_CONFIGS: Record<AuroraVariant, {
   family: { colors: ['rgba(124, 58, 237, 0.04)', 'rgba(79, 70, 229, 0.02)', 'transparent'] },
   insights: { colors: ['rgba(124, 58, 237, 0.05)', 'rgba(37, 99, 235, 0.02)', 'transparent'] },
   connect: { colors: ['rgba(124, 58, 237, 0.04)', 'rgba(79, 70, 229, 0.02)', 'transparent'] },
+  support: { colors: ['rgba(13, 148, 136, 0.05)', 'rgba(6, 95, 70, 0.02)', 'transparent'] },
 };
 
 export const AuroraBackground: React.FC<Props> = ({ variant = 'today' }) => {

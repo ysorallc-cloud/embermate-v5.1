@@ -2,10 +2,11 @@
 // TOMORROW ONLY CARD - No tasks today, shows tomorrow (Blue)
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../theme/theme-tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 import { TomorrowPreviewItem } from '../../types/contextCard';
 
 interface TomorrowOnlyCardProps {
@@ -17,6 +18,8 @@ export const TomorrowOnlyCard: React.FC<TomorrowOnlyCardProps> = ({
   tomorrowItems,
   tomorrowCount,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
 
   // Show max 2 items
@@ -60,11 +63,11 @@ export const TomorrowOnlyCard: React.FC<TomorrowOnlyCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: Colors.blueLight,
+    backgroundColor: c.blueLight,
     borderWidth: 1,
-    borderColor: Colors.blueBorder,
+    borderColor: c.blueBorder,
     borderRadius: 14,
     padding: 14,
   },
@@ -86,11 +89,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.5,
-    color: Colors.blue,
+    color: c.blue,
   },
   viewDayLink: {
     fontSize: 11,
-    color: Colors.accent,
+    color: c.accent,
   },
   items: {
     gap: 8,
@@ -106,15 +109,15 @@ const styles = StyleSheet.create({
   itemTitle: {
     flex: 1,
     fontSize: 13,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   itemTime: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   moreText: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 8,
   },
 });

@@ -3,14 +3,18 @@
 // Success feedback after saving appointment
 // ============================================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { Colors } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
+
 export default function AppointmentConfirmation() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Extract appointment details from params
   const { date, time, provider, location, type, specialty } = params;
@@ -78,7 +82,7 @@ export default function AppointmentConfirmation() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0a1612',
@@ -109,7 +113,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.textHalf,
+    color: c.textHalf,
     marginBottom: 32,
   },
   summaryCard: {
@@ -152,7 +156,7 @@ const styles = StyleSheet.create({
   },
   meta: {
     fontSize: 13,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
   primaryButton: {
     width: '100%',
@@ -165,7 +169,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   secondaryButton: {
     width: '100%',
@@ -177,6 +181,6 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 15,
-    color: Colors.textHalf,
+    color: c.textHalf,
   },
 });

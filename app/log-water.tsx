@@ -2,7 +2,7 @@
 // WATER LOGGING SCREEN - Quick Water Counter
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { navigateBack } from '../lib/navigate';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { Colors, Spacing } from '../theme/theme-tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { getTodayWaterLog, updateTodayWaterLog } from '../utils/centralStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
@@ -26,6 +27,8 @@ import { getTodayDateString } from '../services/carePlanGenerator';
 const WATER_GOAL = 8;
 
 export default function LogWaterScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams();
   const [glasses, setGlasses] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -183,10 +186,10 @@ export default function LogWaterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   safeArea: {
     flex: 1,
@@ -207,12 +210,12 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 28,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   placeholder: {
     width: 44,
@@ -225,7 +228,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 40,
   },
 
@@ -240,16 +243,16 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: Colors.sageBorder,
+    backgroundColor: c.sageBorder,
     borderWidth: 1,
-    borderColor: Colors.sageGlow,
+    borderColor: c.sageGlow,
     alignItems: 'center',
     justifyContent: 'center',
   },
   counterButtonText: {
     fontSize: 32,
     fontWeight: '300',
-    color: Colors.accent,
+    color: c.accent,
   },
   counterButtonDisabled: {
     opacity: 0.3,
@@ -260,11 +263,11 @@ const styles = StyleSheet.create({
   counterNumber: {
     fontSize: 72,
     fontWeight: '200',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   counterLabel: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: -5,
   },
 
@@ -277,19 +280,19 @@ const styles = StyleSheet.create({
   progressBar: {
     width: '100%',
     height: 8,
-    backgroundColor: Colors.glassActive,
+    backgroundColor: c.glassActive,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 12,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Colors.cyan,
+    backgroundColor: c.cyan,
     borderRadius: 4,
   },
   progressText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Quick Add
@@ -300,25 +303,25 @@ const styles = StyleSheet.create({
   quickAddButton: {
     paddingVertical: 12,
     paddingHorizontal: 20,
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: Colors.glassActive,
+    borderColor: c.glassActive,
     borderRadius: 8,
   },
   quickAddText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // Bottom
   bottomActions: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: Colors.glassHover,
+    borderTopColor: c.glassHover,
   },
   saveButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -329,6 +332,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.background,
+    color: c.background,
   },
 });

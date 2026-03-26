@@ -3,11 +3,12 @@
 // Screen 1 of 4: Lead with emotional connection, then value points
 // ============================================================================
 
-import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, Image, StyleSheet, Dimensions } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { Colors, Spacing } from '../../../theme/theme-tokens';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -18,13 +19,19 @@ const VALUE_POINTS = [
 ];
 
 export const WelcomeScreen: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.container}>
       <AuroraBackground variant="welcome" />
       <View style={styles.content}>
-        <Animated.Text entering={FadeInDown.delay(100).duration(300)} style={styles.emoji}>
-          {'\u{1F525}'}
-        </Animated.Text>
+        <Animated.View entering={FadeInDown.delay(100).duration(300)}>
+          <Image
+            source={require('../../../assets/images/embermate-icon.png')}
+            style={styles.appIcon}
+            accessibilityLabel="EmberMate"
+          />
+        </Animated.View>
         <Animated.Text entering={FadeInDown.delay(200).duration(300)} style={styles.title}>
           Caring for someone{'\n'}is a lot to carry.
         </Animated.Text>
@@ -48,11 +55,11 @@ export const WelcomeScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
     width: SCREEN_WIDTH,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   content: {
     flex: 1,
@@ -61,21 +68,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxl,
     paddingBottom: 100,
   },
-  emoji: {
-    fontSize: 56,
+  appIcon: {
+    width: 88,
+    height: 88,
+    borderRadius: 20,
     marginBottom: Spacing.xl,
   },
   title: {
     fontSize: 22,
     fontWeight: '300',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
     marginBottom: Spacing.lg,
     lineHeight: 30,
   },
   subtitle: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: Spacing.xxxl,
@@ -96,7 +105,7 @@ const styles = StyleSheet.create({
   },
   pointText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     flex: 1,
     lineHeight: 20,
   },
