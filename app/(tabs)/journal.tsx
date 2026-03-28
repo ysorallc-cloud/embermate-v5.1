@@ -47,6 +47,14 @@ import { hasSampleData } from '../../utils/sampleDataManager';
 import { ReportPreviewModal } from '../../components/shared/ReportPreviewModal';
 import { buildDailySummaryReport, buildClinicalReportData } from '../../utils/reportBuilders';
 import { generateAndSharePDF, ReportData } from '../../utils/pdfExport';
+import { DateTabStrip } from '../../components/journal/DateTabStrip';
+import { MonthCalendar } from '../../components/journal/MonthCalendar';
+import { DetailedEventLog } from '../../components/journal/DetailedEventLog';
+import { ReflectionPrompt } from '../../components/journal/ReflectionPrompt';
+import { useJournalEvents } from '../../hooks/useJournalEvents';
+import { useCalendarStatuses } from '../../hooks/useCalendarStatuses';
+import { getDailyPrompt } from '../../utils/reflectionPrompts';
+import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
 
 // ============================================================================
 // HELPERS
@@ -105,6 +113,44 @@ export default function JournalTab() {
   const [dailyReport, setDailyReport] = useState<{ reportData: ReportData; previewLines: string[] } | null>(null);
   const [clinicalReport, setClinicalReport] = useState<{ reportData: ReportData; previewLines: string[] } | null>(null);
   const [exporting, setExporting] = useState(false);
+
+  // ── Phase 7 state ──
+  const [selectedDate, setSelectedDate] = useState(getTodayDateString());
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const now = new Date();
+  const [calendarMonth, setCalendarMonth] = useState({ year: now.getFullYear(), month: now.getMonth() });
+  const { statuses: calendarStatuses } = useCalendarStatuses(calendarMonth.year, calendarMonth.month);
+  const { events: journalEvents } = useJournalEvents(selectedDate);
+  const [reflection, setReflection] = useState<StoredReflection | null>(null);
+
+  // Load reflection when date changes
+  useEffect(() => {
+    getReflection(selectedDate).then(setReflection);
+  }, [selectedDate]);
+
+  const handleDateSelect = useCallback((date: string) => {
+    setSelectedDate(date);
+    setCalendarOpen(false); // tab strip selection closes calendar
+  }, []);
+
+  const handleCalendarDateSelect = useCallback((date: string) => {
+    setSelectedDate(date);
+    // Calendar stays open when selecting from calendar
+  }, []);
+
+  const handleSaveReflection = useCallback(async (text: string) => {
+    const prompt = getDailyPrompt(selectedDate);
+    const saved = await saveReflection(selectedDate, text, prompt);
+    setReflection(saved);
+  }, [selectedDate]);
+
+  // Format subtitle date
+  const subtitleDate = useMemo(() => {
+    const d = new Date(selectedDate + 'T12:00:00');
+    return selectedDate === getTodayDateString()
+      ? 'Today'
+      : d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  }, [selectedDate]);
 
   const loadReport = useCallback(async () => {
     try {
@@ -726,10 +772,30 @@ export default function JournalTab() {
             </TouchableOpacity>
           )}
 
-          {/* ═══════════════════════════════════════════════════════
-              SECTION 1: THE NARRATIVE
-              ═══════════════════════════════════════════════════════ */}
-          <Text style={s.narrativeText}>{getBriefingText()}</Text>
+          {/* ═══ DATE TAB STRIP ═══ */}
+          <DateTabStrip
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+            onCalendarToggle={() => setCalendarOpen(prev => !prev)}
+            calendarOpen={calendarOpen}
+          />
+
+          {/* ═══ MONTH CALENDAR ═══ */}
+          <MonthCalendar
+            visible={calendarOpen}
+            selectedDate={selectedDate}
+            onDateSelect={handleCalendarDateSelect}
+            dayStatuses={calendarStatuses}
+          />
+
+          {/* ═══ SUMMARY ═══ */}
+          <View style={s.accentBarRow}>
+            <View style={[s.accentBar, { backgroundColor: '#5DCAA5' }]} />
+            <Text style={s.accentBarLabel}>Summary</Text>
+          </View>
+          <View style={s.lightCard}>
+            <Text style={[s.narrativeText, { paddingLeft: 22 }]}>{getBriefingText()}</Text>
+          </View>
 
           {/* First-use guidance when nothing logged today */}
           {medsTotal === 0 && mealsTotal === 0 && waterGlasses === 0 && !hasMorning && !hasEvening && !hasVitals && (
@@ -741,136 +807,87 @@ export default function JournalTab() {
             </View>
           )}
 
-          <View style={s.divider} />
-
-          {/* ═══════════════════════════════════════════════════════
-              SECTION 2: HANDOFF NOTES
-              ═══════════════════════════════════════════════════════ */}
-          {handoffNotes.length > 0 && (
+          {/* ═══ FLAGGED (merged handoff + patterns) ═══ */}
+          {(handoffNotes.length > 0 || insights.length > 0) && (
             <>
-              <View style={s.sectionHeader}>
-                <Text style={s.sectionTitle}>Handoff Notes</Text>
+              <View style={s.accentBarRow}>
+                <View style={[s.accentBar, { backgroundColor: '#c8a44e' }]} />
+                <Text style={s.accentBarLabel}>Flagged</Text>
               </View>
-              {handoffNotes.map((item, i) => (
-                <View
-                  key={`handoff-${i}`}
-                  style={[
-                    s.handoffItem,
-                    {
-                      borderLeftColor: handoffBorderColor(item.type),
-                      backgroundColor: handoffBgColor(item.type),
-                    },
-                  ]}
-                >
-                  <Text style={s.handoffIcon}>{item.icon}</Text>
-                  <Text style={s.handoffText}>{item.text}</Text>
-                </View>
-              ))}
-              <View style={s.divider} />
-            </>
-          )}
-
-          {/* ═══════════════════════════════════════════════════════
-              SECTION 3: PATTERNS TO WATCH
-              ═══════════════════════════════════════════════════════ */}
-          {insights.length > 0 && (
-            <>
-              <View style={s.sectionHeader}>
-                <Text style={s.sectionTitle}>Patterns to Watch</Text>
-              </View>
-              {insights.map((insight, i) => {
-                const isExpanded = expandedPattern === i;
-                const rotation = chevronAnims[i]
-                  ? chevronAnims[i].interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0deg', '180deg'],
-                    })
-                  : '0deg';
-
-                return (
-                  <TouchableOpacity
-                    key={insight.id}
+              <View style={s.lightCard}>
+                {handoffNotes.map((item, i) => (
+                  <View
+                    key={`handoff-${i}`}
                     style={[
-                      s.patternCard,
-                      { borderColor: patternBorderColor(insight.severity) + '30' },
+                      s.handoffItem,
+                      {
+                        borderLeftColor: handoffBorderColor(item.type),
+                        backgroundColor: handoffBgColor(item.type),
+                      },
                     ]}
-                    onPress={() => togglePattern(i)}
-                    activeOpacity={0.8}
-                    accessibilityLabel={`Pattern: ${insight.title}. ${isExpanded ? 'Collapse' : 'Expand'}`}
-                    accessibilityRole="button"
                   >
-                    <View style={s.patternHeader}>
-                      <Text style={s.patternTitle}>{insight.title}</Text>
-                      <Animated.Text
-                        style={[s.patternChevron, { transform: [{ rotate: rotation }] }]}
-                      >
-                        {'\u25BC'}
-                      </Animated.Text>
-                    </View>
-                    {isExpanded && (
-                      <View style={s.patternDetail}>
-                        <Text style={s.patternContext}>{insight.context}</Text>
-                        {insight.actions.length > 0 && (
-                          <View style={s.patternAction}>
-                            <Text style={s.patternActionArrow}>{'\u2192'}</Text>
-                            <Text style={s.patternActionText}>{insight.actions[0].label}</Text>
-                          </View>
-                        )}
-                        <TouchableOpacity
-                          onPress={() => {
-                            const trendKey = insight.type === 'medication' ? 'meds'
-                              : insight.type === 'vitals' ? 'bp'
-                              : insight.type === 'mood' ? 'mood'
-                              : insight.type;
-                            navigate(`/(tabs)/understand?focusTrend=${trendKey}`);
-                          }}
-                          style={s.patternTrendLink}
-                          activeOpacity={0.7}
-                          accessibilityLabel="View trend on Insights"
-                          accessibilityRole="link"
-                        >
-                          <Text style={s.patternTrendLinkText}>{'\uD83D\uDCCA'} View trend on Insights →</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-              <View style={s.divider} />
-            </>
-          )}
-
-          {/* ═══════════════════════════════════════════════════════
-              SECTION 4: BEFORE BED
-              ═══════════════════════════════════════════════════════ */}
-          {beforeBedItems.length > 0 && (
-            <>
-              <View style={s.sectionHeader}>
-                <Text style={s.sectionTitle}>Before Bed</Text>
-              </View>
-              {beforeBedItems.map((item, i) => (
-                <TouchableOpacity
-                  key={`bed-${i}`}
-                  style={s.beforeBedItem}
-                  onPress={() => item.route && navigate(item.route)}
-                  activeOpacity={0.7}
-                  accessibilityLabel={item.text}
-                  accessibilityRole="button"
-                >
-                  <View style={s.beforeBedLeft}>
-                    <Text style={s.beforeBedIcon}>{item.icon}</Text>
-                    <Text style={s.beforeBedText}>{item.text}</Text>
+                    <Text style={s.handoffIcon}>{item.icon}</Text>
+                    <Text style={s.handoffText}>{item.text}</Text>
                   </View>
-                  <Text style={s.beforeBedArrow}>{'\u2192'}</Text>
-                </TouchableOpacity>
-              ))}
-              <View style={s.divider} />
+                ))}
+                {insights.map((insight, i) => {
+                  const isExpanded = expandedPattern === i;
+                  const rotation = chevronAnims[i]
+                    ? chevronAnims[i].interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '180deg'],
+                      })
+                    : '0deg';
+                  return (
+                    <TouchableOpacity
+                      key={insight.id}
+                      style={[s.patternCard, { borderColor: patternBorderColor(insight.severity) + '30' }]}
+                      onPress={() => togglePattern(i)}
+                      activeOpacity={0.8}
+                      accessibilityLabel={`Pattern: ${insight.title}. ${isExpanded ? 'Collapse' : 'Expand'}`}
+                      accessibilityRole="button"
+                    >
+                      <View style={s.patternHeader}>
+                        <Text style={s.patternTitle}>{insight.title}</Text>
+                        <Animated.Text style={[s.patternChevron, { transform: [{ rotate: rotation }] }]}>{'\u25BC'}</Animated.Text>
+                      </View>
+                      {isExpanded && (
+                        <View style={s.patternDetail}>
+                          <Text style={s.patternContext}>{insight.context}</Text>
+                          {insight.actions.length > 0 && (
+                            <View style={s.patternAction}>
+                              <Text style={s.patternActionArrow}>{'\u2192'}</Text>
+                              <Text style={s.patternActionText}>{insight.actions[0].label}</Text>
+                            </View>
+                          )}
+                          <TouchableOpacity
+                            onPress={() => {
+                              const trendKey = insight.type === 'medication' ? 'meds'
+                                : insight.type === 'vitals' ? 'bp'
+                                : insight.type === 'mood' ? 'mood'
+                                : insight.type;
+                              navigate(`/(tabs)/understand?focusTrend=${trendKey}`);
+                            }}
+                            style={s.patternTrendLink}
+                            activeOpacity={0.7}
+                            accessibilityLabel="View trend on Insights"
+                            accessibilityRole="link"
+                          >
+                            <Text style={s.patternTrendLinkText}>{'\uD83D\uDCCA'} View trend on Insights →</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </>
           )}
 
-          {/* ═══════════════════════════════════════════════════════
-              SECTION 6: DAY AT A GLANCE
-              ═══════════════════════════════════════════════════════ */}
+          {/* ═══ DETAILED EVENT LOG ═══ */}
+          <DetailedEventLog events={journalEvents} defaultExpanded={false} />
+
+          {/* ═══ DAY AT A GLANCE ═══ */}
           <View style={s.sectionHeader}>
             <Text style={s.sectionTitle}>Day at a Glance</Text>
           </View>
@@ -883,14 +900,17 @@ export default function JournalTab() {
             ))}
           </View>
 
-          {/* ─── TIMESTAMP ─── */}
-          {brief && (
-            <Text style={s.timestamp}>
-              Updated {new Date(brief.generatedAt).toLocaleTimeString('en-US', {
-                hour: 'numeric', minute: '2-digit',
-              })} {'\u00B7'} Not a medical record
-            </Text>
-          )}
+          {/* ═══ REFLECTION ═══ */}
+          <ReflectionPrompt
+            date={selectedDate}
+            prompt={getDailyPrompt(selectedDate)}
+            savedText={reflection?.text}
+            savedAt={reflection?.savedAt}
+            onSave={handleSaveReflection}
+          />
+
+          {/* ─── FOOTER ─── */}
+          <Text style={s.timestamp}>Not a medical record</Text>
 
         </ScrollView>
       </SafeAreaView>
@@ -1152,6 +1172,31 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
 
   // ─── SECTION 1: NARRATIVE ───
+  // ─── Light card + accent bar (Phase 7) ───
+  lightCard: {
+    backgroundColor: 'rgba(74,107,93,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(74,107,93,0.1)',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 24,
+  },
+  accentBarRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    paddingVertical: 10,
+  },
+  accentBar: {
+    width: 3,
+    height: 16,
+    borderRadius: 2,
+  },
+  accentBarLabel: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: 'rgba(200,195,180,0.5)',
+  },
   narrativeText: {
     fontSize: 16.5,
     color: c.textPrimary,
