@@ -111,7 +111,7 @@ export function MoodSlider() {
       {/* Log button or affirmation */}
       {!logged ? (
         <TouchableOpacity
-          style={[styles.logButton, { backgroundColor: colors.accent }]}
+          style={styles.logButton}
           onPress={handleLog}
           disabled={saving}
           accessibilityLabel="Log this"
@@ -148,11 +148,11 @@ export function MoodSlider() {
 function createStyles(c: any) {
   return StyleSheet.create({
     container: {
-      padding: 20,
+      padding: 28,
+      paddingHorizontal: 16,
       borderRadius: 16,
-      backgroundColor: c.glass,
-      borderWidth: 1,
-      borderColor: c.glassBorder,
+      backgroundColor: 'rgba(52, 211, 153, 0.04)',
+      alignItems: 'center',
     },
     emoji: {
       fontSize: 40,
@@ -160,9 +160,9 @@ function createStyles(c: any) {
       marginBottom: 4,
     },
     label: {
-      fontSize: 18,
-      fontWeight: '600',
-      color: c.textPrimary,
+      fontSize: 16,
+      fontWeight: '500',
+      color: c.textSecondary,
       textAlign: 'center',
       marginBottom: 20,
     },
@@ -184,18 +184,18 @@ function createStyles(c: any) {
       borderRadius: 2,
     },
     sliderDot: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
+      width: 16,
+      height: 16,
+      borderRadius: 8,
       backgroundColor: c.glassBorder,
       zIndex: 1,
     },
     sliderDotActive: {
-      width: 26,
-      height: 26,
-      borderRadius: 13,
-      borderWidth: 3,
-      borderColor: '#fff',
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      borderWidth: 2,
+      borderColor: c.background,
     },
     scaleLabels: {
       flexDirection: 'row',
@@ -209,14 +209,16 @@ function createStyles(c: any) {
       color: c.textMuted,
     },
     logButton: {
-      paddingVertical: 12,
-      borderRadius: 10,
-      alignItems: 'center',
+      paddingVertical: 8,
+      paddingHorizontal: 24,
+      borderRadius: 20,
+      alignSelf: 'center',
+      backgroundColor: 'rgba(52, 211, 153, 0.12)',
     },
     logButtonText: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: '#fff',
+      fontSize: 13,
+      fontWeight: '500',
+      color: c.accent,
     },
     affirmation: {
       borderLeftWidth: 3,
