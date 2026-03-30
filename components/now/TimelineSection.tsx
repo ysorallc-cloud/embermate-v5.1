@@ -213,6 +213,13 @@ const TIME_WINDOW_LABELS: Record<TimeWindow, string> = {
   night: 'Night',
 };
 
+const TIME_WINDOW_ICONS: Record<TimeWindow, string> = {
+  morning: '\u2600\uFE0F',    // ☀️
+  afternoon: '\uD83C\uDF24\uFE0F', // 🌤️
+  evening: '\uD83C\uDF19',    // 🌙
+  night: '\uD83C\uDF19',      // 🌙
+};
+
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -601,56 +608,84 @@ function TimelineModeBContent({
   const currentWindow = getCurrentTimeWindow();
   const windowOrder: TimeWindow[] = ['morning', 'afternoon', 'evening', 'night'];
 
+  // Pre-compute window statuses for spine coloring
+  const windowStatuses = useMemo(() => {
+    const statuses: Record<string, 'completed' | 'active' | 'future'> = {};
+    for (const w of windowOrder) {
+      const items = grouped[w];
+      if (items.length === 0) {
+        statuses[w] = 'future';
+        continue;
+      }
+      const done = items.filter(i => i.status === 'completed' || i.status === 'skipped').length;
+      statuses[w] = done === items.length ? 'completed' : 'active';
+    }
+    return statuses;
+  }, [grouped, windowOrder]);
+
+  const spineColor = (status: 'completed' | 'active' | 'future') => {
+    switch (status) {
+      case 'completed': return 'rgba(255, 255, 255, 0.10)';
+      case 'active': return '#34D399';
+      case 'future': return 'rgba(255, 255, 255, 0.06)';
+    }
+  };
+
   return (
     <>
-      {/* Time-grouped list — section header is rendered by now.tsx SectionHeaderRow */}
+      {/* Time-grouped list with vertical spine */}
       {windowOrder.map((window) => {
         const items = grouped[window];
         if (items.length === 0) return null;
 
-        const isCurrent = window === currentWindow;
         const isCollapsed = collapsedWindows.has(window);
 
         // Count remaining = anything NOT completed and NOT skipped
-        // This includes 'pending' AND 'missed' items — both need attention
         const completedCount = items.filter(i =>
           i.status === 'completed' || i.status === 'skipped'
         ).length;
         const remainingCount = items.length - completedCount;
+        const windowStatus = windowStatuses[window];
 
         return (
           <View key={window} style={styles.timeGroup}>
-            {/* Collapsible header */}
-            <TouchableOpacity
-              style={styles.timeGroupHeader}
-              onPress={() => toggleWindow(window)}
-              activeOpacity={0.7}
-              accessibilityLabel={`${TIME_WINDOW_LABELS[window]}, ${remainingCount} remaining, ${completedCount} done. ${isCollapsed ? 'Expand' : 'Collapse'}`}
-              accessibilityRole="button"
-              accessibilityState={{ expanded: !isCollapsed }}
-            >
-              <Text style={styles.timeGroupTitle}>
-                {TIME_WINDOW_LABELS[window]}
-              </Text>
-              <Text style={styles.timeGroupCount}>
-                {remainingCount > 0 ? `${remainingCount} remaining` : `Complete \u2713`}
-              </Text>
-              {isCollapsed && remainingCount > 0 && (
-                <TouchableOpacity
-                  onPress={() => toggleWindow(window)}
-                  style={styles.startRoutineButton}
-                  activeOpacity={0.7}
-                  accessibilityLabel={`Start ${TIME_WINDOW_LABELS[window]} items`}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.startRoutineText}>Start</Text>
-                </TouchableOpacity>
-              )}
-            </TouchableOpacity>
+            {/* Spine segment + header row */}
+            <View style={styles.spineRow}>
+              <View style={[styles.spineSegment, { backgroundColor: spineColor(windowStatus) }]} />
+              <TouchableOpacity
+                style={styles.timeGroupHeader}
+                onPress={() => toggleWindow(window)}
+                activeOpacity={0.7}
+                accessibilityLabel={`${TIME_WINDOW_LABELS[window]}, ${remainingCount} remaining, ${completedCount} done. ${isCollapsed ? 'Expand' : 'Collapse'}`}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: !isCollapsed }}
+              >
+                <Text style={styles.windowIcon}>{TIME_WINDOW_ICONS[window]}</Text>
+                <Text style={styles.timeGroupTitle}>
+                  {TIME_WINDOW_LABELS[window]}
+                </Text>
+                <Text style={styles.timeGroupCount}>
+                  {remainingCount > 0 ? `${remainingCount} remaining` : `Complete \u2713`}
+                </Text>
+                {isCollapsed && remainingCount > 0 && (
+                  <TouchableOpacity
+                    onPress={() => toggleWindow(window)}
+                    style={styles.startRoutineButton}
+                    activeOpacity={0.7}
+                    accessibilityLabel={`Start ${TIME_WINDOW_LABELS[window]} items`}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.startRoutineText}>Start</Text>
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+            </View>
 
-            {/* Items */}
+            {/* Items with spine continuation */}
             {!isCollapsed && (
-              <View style={styles.timeGroupItems}>
+              <View style={styles.spineItemsRow}>
+                <View style={[styles.spineSegmentItems, { backgroundColor: spineColor(windowStatus) }]} />
+                <View style={styles.timeGroupItems}>
                 {items.map((instance, index) => {
                   const isDone = instance.status === 'completed' || instance.status === 'skipped';
                   const isMissed = instance.status === 'missed';
@@ -808,6 +843,7 @@ function TimelineModeBContent({
                     </TouchableOpacity>
                   );
                 })}
+                </View>
               </View>
             )}
           </View>
@@ -996,19 +1032,37 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // MODE B — Clean Timeline
   // ============================================================================
   timeGroup: {
-    marginBottom: 12,
+    marginBottom: 4,
+  },
+  // Spine: vertical line alongside each window
+  spineRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'stretch' as const,
+  },
+  spineSegment: {
+    width: 2,
+    borderRadius: 1,
+    marginRight: 10,
+    minHeight: 28,
+  },
+  spineItemsRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'stretch' as const,
+  },
+  spineSegmentItems: {
+    width: 2,
+    borderRadius: 1,
+    marginRight: 10,
+  },
+  windowIcon: {
+    fontSize: 14,
   },
   timeGroupHeader: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 3,
-    paddingHorizontal: 4,
-    marginTop: 2,
-  },
-  timeGroupHeaderCurrent: {
-    backgroundColor: c.accentDim,
-    borderRadius: 8,
+    paddingVertical: 6,
   },
   timeGroupChevron: {
     fontSize: 8,
@@ -1021,9 +1075,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 1,
-  },
-  timeGroupTitleCurrent: {
-    color: c.accent,
   },
   timeGroupCount: {
     flex: 1,
@@ -1043,10 +1094,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.background,
   },
   timeGroupItems: {
-    marginLeft: 4,
-    paddingLeft: 16,
-    borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255, 255, 255, 0.04)',
+    flex: 1,
+    paddingLeft: 8,
   },
 
   // Timeline item (pending)
