@@ -108,21 +108,27 @@ export default function SupportScreen() {
             accessibilityLabel="Call Caregiver Helpline. 1-855-227-3640. Free and confidential."
             accessibilityRole="button"
           >
-            <Text style={styles.reachIcon}>📞</Text>
+            <View style={[styles.reachCircle, { backgroundColor: 'rgba(52, 211, 153, 0.08)' }]}>
+              <Text style={[styles.reachCircleIcon, { color: colors.accent }]}>{'\u260E'}</Text>
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.reachTitle}>Caregiver Helpline</Text>
               <Text style={styles.reachDesc}>1-855-227-3640 · Free, confidential</Text>
             </View>
+            <Text style={styles.reachChevron}>{'\u203A'}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.reachRow, { borderBottomWidth: 0 }]} activeOpacity={0.7}
             accessibilityLabel="Caregiver community. Connect with people who understand."
             accessibilityRole="button"
           >
-            <Text style={styles.reachIcon}>💬</Text>
+            <View style={[styles.reachCircle, { backgroundColor: 'rgba(167, 139, 250, 0.08)' }]}>
+              <Text style={[styles.reachCircleIcon, { color: colors.purple }]}>{'\u2661'}</Text>
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.reachTitle}>Caregiver community</Text>
               <Text style={styles.reachDesc}>Connect with people who understand</Text>
             </View>
+            <Text style={styles.reachChevron}>{'\u203A'}</Text>
           </TouchableOpacity>
 
           <View style={styles.zoneDivider} />
@@ -269,25 +275,37 @@ function createStyles(c: typeof Colors) {
     },
     // ── Reach out ──
     reachRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
       gap: 12,
       paddingVertical: 14,
       borderBottomWidth: 0.5,
       borderBottomColor: c.glassDim,
     },
-    reachIcon: {
-      fontSize: 20,
+    reachCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    reachCircleIcon: {
+      fontSize: 15,
     },
     reachTitle: {
       fontSize: 14,
-      fontWeight: '500',
+      fontWeight: '500' as const,
       color: c.textSecondary,
       marginBottom: 2,
     },
     reachDesc: {
       fontSize: 12,
       color: c.textMuted,
+    },
+    reachChevron: {
+      fontSize: 14,
+      color: c.textMuted,
+      opacity: 0.3,
     },
     // ── Your wellness link ──
     wellnessLink: {

@@ -1,6 +1,6 @@
 // ============================================================================
-// RESOURCES LIST — Expandable caregiver resource categories
-// 5 categories with 3-4 resource links each
+// RESOURCES LIST — Flat expandable caregiver resource categories
+// No bordered cards, no emoji — title + subtitle + chevron rows
 // ============================================================================
 
 import React, { useState, useMemo } from 'react';
@@ -107,10 +107,11 @@ export function ResourcesList() {
 
   return (
     <View style={styles.container}>
-      {RESOURCE_CATEGORIES.map((cat) => {
+      {RESOURCE_CATEGORIES.map((cat, index) => {
         const isExpanded = expandedId === cat.id;
+        const isLast = index === RESOURCE_CATEGORIES.length - 1;
         return (
-          <View key={cat.id} style={styles.categoryCard}>
+          <View key={cat.id} style={[styles.categoryCard, isLast && { borderBottomWidth: 0 }]}>
             <TouchableOpacity
               style={styles.categoryHeader}
               onPress={() => toggleCategory(cat.id)}
@@ -119,12 +120,11 @@ export function ResourcesList() {
               accessibilityLabel={`${cat.title}, ${isExpanded ? 'expanded' : 'collapsed'}`}
               accessibilityState={{ expanded: isExpanded }}
             >
-              <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
               <View style={styles.categoryInfo}>
                 <Text style={styles.categoryTitle}>{cat.title}</Text>
                 <Text style={styles.categoryDesc} numberOfLines={1}>{cat.description}</Text>
               </View>
-              <Text style={styles.chevron}>{isExpanded ? '▾' : '›'}</Text>
+              <Text style={styles.chevron}>{isExpanded ? '\u25BE' : '\u203A'}</Text>
             </TouchableOpacity>
 
             {isExpanded && (
@@ -157,31 +157,24 @@ export function ResourcesList() {
 function createStyles(c: any) {
   return StyleSheet.create({
     container: {
-      gap: 8,
     },
     categoryCard: {
-      backgroundColor: c.glass,
-      borderWidth: 1,
-      borderColor: c.glassBorder,
-      borderRadius: 14,
-      overflow: 'hidden',
+      borderBottomWidth: 0.5,
+      borderBottomColor: 'rgba(255, 255, 255, 0.04)',
     },
     categoryHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: 14,
+      paddingVertical: 12,
       gap: 12,
-    },
-    categoryEmoji: {
-      fontSize: 22,
     },
     categoryInfo: {
       flex: 1,
     },
     categoryTitle: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: c.textPrimary,
+      fontSize: 14,
+      fontWeight: '500',
+      color: c.textSecondary,
       marginBottom: 2,
     },
     categoryDesc: {
@@ -189,29 +182,31 @@ function createStyles(c: any) {
       color: c.textMuted,
     },
     chevron: {
-      fontSize: 16,
+      fontSize: 14,
       color: c.textMuted,
+      opacity: 0.3,
     },
     linksList: {
-      paddingHorizontal: 14,
+      paddingHorizontal: 0,
       paddingBottom: 12,
+      paddingLeft: 16,
     },
     linkRow: {
       paddingVertical: 10,
-      paddingLeft: 34,
+      paddingLeft: 0,
     },
     linkRowBorder: {
-      borderBottomWidth: 1,
-      borderBottomColor: c.glassFaint,
+      borderBottomWidth: 0.5,
+      borderBottomColor: 'rgba(255, 255, 255, 0.04)',
     },
     linkTitle: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '500',
-      color: c.textPrimary,
+      color: c.textSecondary,
       marginBottom: 2,
     },
     linkDesc: {
-      fontSize: 12,
+      fontSize: 11,
       color: c.textMuted,
     },
   });
