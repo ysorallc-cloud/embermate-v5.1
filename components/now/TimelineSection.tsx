@@ -676,67 +676,101 @@ function TimelineModeBContent({
                   const isFinished = isDone || isMissed;
 
                   if (isFinished) {
-                    const statusText = isMissed ? 'Missed' : instance.status === 'skipped' ? 'Skipped' : 'Done';
-                    const Wrapper = isMissed ? TouchableOpacity : View;
-                    const wrapperProps = isMissed
-                      ? { onPress: () => onItemPress(instance), activeOpacity: 0.7 }
-                      : {};
+                    const isSkipped = instance.status === 'skipped';
+                    const isCompleted = instance.status === 'completed';
+                    const timeStr = parseTimeForDisplay(instance.scheduledTime);
+
+                    // ── COMPLETED: dimmed, ✓ indicator, logged time ──
+                    if (isCompleted) {
+                      return (
+                        <View
+                          key={instance.id}
+                          style={[
+                            styles.timelineItem,
+                            { opacity: 0.4 },
+                            index < items.length - 1 && styles.timelineItemBorder,
+                          ]}
+                          accessibilityLabel={`${instance.itemName}, logged${timeStr ? ` at ${timeStr}` : ''}`}
+                        >
+                          <View style={styles.timelineDotWrap}>
+                            <View style={styles.timelineDotDone}>
+                              <Text style={styles.timelineDotDoneIcon}>{'\u2713'}</Text>
+                            </View>
+                          </View>
+                          <View style={styles.timelineItemBody}>
+                            {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
+                              <Text style={[styles.typeBadge, { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted, opacity: 0.6 }]}>
+                                {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
+                              </Text>
+                            )}
+                            <Text style={styles.timelineNameDone} numberOfLines={1}>{instance.itemName}</Text>
+                            <Text style={styles.timelineSubDone}>{timeStr ? `Logged at ${timeStr}` : 'Logged'}</Text>
+                          </View>
+                          <Text style={styles.timelineStatusText}>{'\u2713'}</Text>
+                        </View>
+                      );
+                    }
+
+                    // ── SKIPPED: amber indicator ──
+                    if (isSkipped) {
+                      return (
+                        <View
+                          key={instance.id}
+                          style={[
+                            styles.timelineItem,
+                            { opacity: 0.6 },
+                            index < items.length - 1 && styles.timelineItemBorder,
+                          ]}
+                          accessibilityLabel={`${instance.itemName}, skipped`}
+                        >
+                          <View style={styles.timelineDotWrap}>
+                            <View style={styles.timelineDotMissed}>
+                              <Text style={styles.timelineDotMissedIcon}>{'\u2014'}</Text>
+                            </View>
+                          </View>
+                          <View style={styles.timelineItemBody}>
+                            {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
+                              <Text style={[styles.typeBadge, { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted, opacity: 0.6 }]}>
+                                {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
+                              </Text>
+                            )}
+                            <Text style={styles.timelineNameMissed} numberOfLines={1}>{instance.itemName}</Text>
+                            <Text style={styles.timelineSubDone}>{timeStr || 'Skipped'}</Text>
+                          </View>
+                          <Text style={styles.timelineStatusSkipped}>Skipped</Text>
+                        </View>
+                      );
+                    }
+
+                    // ── MISSED: truly unlogged — show "Log Late" button ──
                     return (
-                      <Wrapper
+                      <TouchableOpacity
                         key={instance.id}
-                        {...wrapperProps}
+                        onPress={() => onItemPress(instance)}
+                        activeOpacity={0.7}
                         style={[
                           styles.timelineItem,
-                          !isMissed && styles.timelineItemDone,
                           index < items.length - 1 && styles.timelineItemBorder,
                         ]}
-                        accessibilityLabel={`${instance.itemName}, ${statusText}${isMissed ? '. Tap to log late.' : ''}`}
+                        accessibilityLabel={`${instance.itemName}, missed. Tap to log late.`}
+                        accessibilityRole="button"
                       >
                         <View style={styles.timelineDotWrap}>
-                          <View style={[
-                            styles.timelineDotDone,
-                            isMissed && styles.timelineDotMissed,
-                          ]}>
-                            <Text style={[styles.timelineDotDoneIcon, isMissed && styles.timelineDotMissedIcon]}>
-                              {isMissed ? '\u2014' : '\u2713'}
-                            </Text>
+                          <View style={styles.timelineDotMissed}>
+                            <Text style={styles.timelineDotMissedIcon}>{'\u2014'}</Text>
                           </View>
                         </View>
                         <View style={styles.timelineItemBody}>
                           {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
-                            <Text style={[
-                              styles.typeBadge,
-                              { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted, opacity: isDone ? 0.5 : 1 },
-                            ]}>
+                            <Text style={[styles.typeBadge, { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted }]}>
                               {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
                             </Text>
                           )}
-                          <Text style={isMissed ? styles.timelineNameMissed : styles.timelineNameDone} numberOfLines={1}>{instance.itemName}</Text>
-                          <Text style={styles.timelineSubDone}>
-                            {parseTimeForDisplay(instance.scheduledTime) || statusText}
-                          </Text>
-                          {(() => {
-                            const progress = getSubItemProgress(instance, allItems);
-                            if (!progress) return null;
-                            const pct = Math.round((progress.done / progress.total) * 100);
-                            return (
-                              <View style={styles.subProgress}>
-                                <Text style={[styles.subProgressText, { opacity: 0.5 }]}>{progress.done}/{progress.total}</Text>
-                                <View style={styles.subProgressBar}>
-                                  <View style={[styles.subProgressFill, { width: `${pct}%`, backgroundColor: colors.green }]} />
-                                </View>
-                              </View>
-                            );
-                          })()}
+                          <Text style={styles.timelineNameMissed} numberOfLines={1}>{instance.itemName}</Text>
+                          <Text style={styles.timelineSubDone}>{timeStr || 'Missed'}</Text>
                         </View>
-                        {isMissed ? (
-                          <Text style={styles.logLateText}>Log Late</Text>
-                        ) : (
-                          <Text style={[styles.timelineStatusText]}>
-                            {statusText}
-                          </Text>
-                        )}
-                      </Wrapper>
+                        <Text style={styles.logLateText}>Log Late</Text>
+                      </TouchableOpacity>
                     );
                   }
 
@@ -1202,6 +1236,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: 'rgba(16, 185, 129, 0.5)',
+  },
+  timelineStatusSkipped: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: c.amber,
   },
   timelineStatusMissed: {
     color: 'rgba(245, 158, 11, 0.6)',

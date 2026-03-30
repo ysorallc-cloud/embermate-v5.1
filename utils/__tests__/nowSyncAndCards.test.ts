@@ -91,20 +91,20 @@ describe('S2: useDailyCareInstances emits events', () => {
 });
 
 // ============================================================================
-// S3: ProgressRings uses PRIMARY_BUCKETS
+// S3: ProgressRings uses hardcoded CORE_BUCKETS
 // ============================================================================
 describe('S3: ProgressRings bucket alignment', () => {
-  test('imports PRIMARY_BUCKETS from carePlanConfig', () => {
-    expect(progressRingsSrc).toContain('PRIMARY_BUCKETS');
-    expect(progressRingsSrc).toMatch(/import.*PRIMARY_BUCKETS.*from.*carePlanConfig/);
+  test('defines CORE_BUCKETS locally (hardcoded, not imported)', () => {
+    expect(progressRingsSrc).toContain("const CORE_BUCKETS: BucketType[] = ['meds', 'vitals', 'wellness', 'meals']");
   });
 
   test('does not define DEFAULT_BUCKETS locally', () => {
     expect(progressRingsSrc).not.toMatch(/const DEFAULT_BUCKETS.*BucketType/);
   });
 
-  test('uses CORE_BUCKETS for always-visible first row', () => {
-    expect(progressRingsSrc).toContain('CORE_BUCKETS');
+  test('uses CORE_SET for filtering optional tiles', () => {
+    expect(progressRingsSrc).toContain('CORE_SET');
+    expect(progressRingsSrc).toContain('!CORE_SET.has(b)');
   });
 });
 
