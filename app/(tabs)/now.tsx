@@ -915,7 +915,6 @@ export default function NowScreen() {
             accessibilityLiveRegion="polite"
             accessibilityRole="summary"
           >
-            <View style={styles.heroOrb} pointerEvents="none" />
             <ProgressRings
               todayStats={todayStats}
               enabledBuckets={enabledBuckets}
@@ -1283,17 +1282,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(52, 211, 153, 0.15)',
   },
-  heroOrb: {
-    position: 'absolute',
-    right: -20,
-    top: -20,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#34D399',
-    opacity: 0.15,
-  },
-
   // ── Section Card wrapper ──
   sectionCard: {
     backgroundColor: c.glass,
