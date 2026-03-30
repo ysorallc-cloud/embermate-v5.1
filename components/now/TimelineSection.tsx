@@ -224,6 +224,20 @@ const TIME_WINDOW_ICONS: Record<TimeWindow, string> = {
 // HELPERS
 // ============================================================================
 
+function parseTimeShort(scheduledTime: string): string | null {
+  if (!scheduledTime) return null;
+  let date = new Date(scheduledTime);
+  if (isNaN(date.getTime()) && /^\d{2}:\d{2}$/.test(scheduledTime)) {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    date = new Date(`${todayStr}T${scheduledTime}:00`);
+  }
+  if (isNaN(date.getTime())) return null;
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const hour12 = hours % 12 || 12;
+  return `${hour12}:${minutes.toString().padStart(2, '0')}`;
+}
+
 function getItemSubtitle(instance: any): string {
   const parts: string[] = [];
 
@@ -608,242 +622,169 @@ function TimelineModeBContent({
   const currentWindow = getCurrentTimeWindow();
   const windowOrder: TimeWindow[] = ['morning', 'afternoon', 'evening', 'night'];
 
-  // Pre-compute window statuses for spine coloring
-  const windowStatuses = useMemo(() => {
-    const statuses: Record<string, 'completed' | 'active' | 'future'> = {};
-    for (const w of windowOrder) {
-      const items = grouped[w];
-      if (items.length === 0) {
-        statuses[w] = 'future';
-        continue;
-      }
-      const done = items.filter(i => i.status === 'completed' || i.status === 'skipped').length;
-      statuses[w] = done === items.length ? 'completed' : 'active';
-    }
-    return statuses;
-  }, [grouped, windowOrder]);
-
-  const spineColor = (status: 'completed' | 'active' | 'future') => {
-    switch (status) {
-      case 'completed': return 'rgba(255, 255, 255, 0.10)';
-      case 'active': return '#34D399';
-      case 'future': return 'rgba(255, 255, 255, 0.06)';
-    }
-  };
-
   return (
     <>
-      {/* Time-grouped list with vertical spine */}
       {windowOrder.map((window) => {
         const items = grouped[window];
         if (items.length === 0) return null;
 
         const isCollapsed = collapsedWindows.has(window);
-
-        // Count remaining = anything NOT completed and NOT skipped
         const completedCount = items.filter(i =>
           i.status === 'completed' || i.status === 'skipped'
         ).length;
         const remainingCount = items.length - completedCount;
-        const windowStatus = windowStatuses[window];
 
         return (
           <View key={window} style={styles.timeGroup}>
-            {/* Spine segment + header row */}
-            <View style={styles.spineRow}>
-              <View style={[styles.spineSegment, { backgroundColor: spineColor(windowStatus) }]} />
-              <TouchableOpacity
-                style={styles.timeGroupHeader}
-                onPress={() => toggleWindow(window)}
-                activeOpacity={0.7}
-                accessibilityLabel={`${TIME_WINDOW_LABELS[window]}, ${remainingCount} remaining, ${completedCount} done. ${isCollapsed ? 'Expand' : 'Collapse'}`}
-                accessibilityRole="button"
-                accessibilityState={{ expanded: !isCollapsed }}
-              >
-                <Text style={styles.windowIcon}>{TIME_WINDOW_ICONS[window]}</Text>
-                <Text style={styles.timeGroupTitle}>
-                  {TIME_WINDOW_LABELS[window]}
-                </Text>
-                <Text style={styles.timeGroupCount}>
-                  {remainingCount > 0 ? `${remainingCount} remaining` : `Complete \u2713`}
-                </Text>
-                {isCollapsed && remainingCount > 0 && (
-                  <TouchableOpacity
-                    onPress={() => toggleWindow(window)}
-                    style={styles.startRoutineButton}
-                    activeOpacity={0.7}
-                    accessibilityLabel={`Start ${TIME_WINDOW_LABELS[window]} items`}
-                    accessibilityRole="button"
-                  >
-                    <Text style={styles.startRoutineText}>Start</Text>
-                  </TouchableOpacity>
-                )}
-              </TouchableOpacity>
-            </View>
+            {/* ── Period banner bar ── */}
+            <TouchableOpacity
+              style={styles.windowBanner}
+              onPress={() => toggleWindow(window)}
+              activeOpacity={0.7}
+              accessibilityLabel={`${TIME_WINDOW_LABELS[window]}, ${remainingCount} remaining, ${completedCount} done. ${isCollapsed ? 'Expand' : 'Collapse'}`}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: !isCollapsed }}
+            >
+              <Text style={styles.windowIcon}>{TIME_WINDOW_ICONS[window]}</Text>
+              <Text style={styles.windowBannerTitle}>{TIME_WINDOW_LABELS[window]}</Text>
+              <Text style={styles.windowBannerCount}>
+                {remainingCount > 0 ? `${remainingCount} remaining` : `Complete \u2713`}
+              </Text>
+              {isCollapsed && remainingCount > 0 && (
+                <TouchableOpacity
+                  onPress={() => toggleWindow(window)}
+                  style={styles.startRoutineButton}
+                  activeOpacity={0.7}
+                  accessibilityLabel={`Start ${TIME_WINDOW_LABELS[window]} items`}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.startRoutineText}>Start</Text>
+                </TouchableOpacity>
+              )}
+            </TouchableOpacity>
 
-            {/* Items with spine continuation */}
+            {/* ── Expanded items with time gutter ── */}
             {!isCollapsed && (
-              <View style={styles.spineItemsRow}>
-                <View style={[styles.spineSegmentItems, { backgroundColor: spineColor(windowStatus) }]} />
-                <View style={styles.timeGroupItems}>
-                {items.map((instance, index) => {
-                  const isDone = instance.status === 'completed' || instance.status === 'skipped';
-                  const isMissed = instance.status === 'missed';
-                  const isFinished = isDone || isMissed;
+              <View>
+                {(() => {
+                  let lastShownTime: string | null = null;
+                  return items.map((instance: any, index: number) => {
+                    const shortTime = parseTimeShort(instance.scheduledTime);
+                    const showTime = shortTime != null && shortTime !== lastShownTime;
+                    if (showTime) lastShownTime = shortTime;
 
-                  if (isFinished) {
-                    const isSkipped = instance.status === 'skipped';
+                    const isDone = instance.status === 'completed' || instance.status === 'skipped';
+                    const isMissed = instance.status === 'missed';
+                    const isFinished = isDone || isMissed;
                     const isCompleted = instance.status === 'completed';
+                    const isSkipped = instance.status === 'skipped';
                     const timeStr = parseTimeForDisplay(instance.scheduledTime);
 
-                    // ── COMPLETED: dimmed, ✓ indicator, logged time ──
+                    // ── Build the item content (right of divider) ──
+                    let itemContent: React.ReactNode;
+
                     if (isCompleted) {
-                      return (
-                        <View
-                          key={instance.id}
-                          style={[
-                            styles.timelineItem,
-                            { opacity: 0.4 },
-                            index < items.length - 1 && styles.timelineItemBorder,
-                          ]}
-                          accessibilityLabel={`${instance.itemName}, logged${timeStr ? ` at ${timeStr}` : ''}`}
-                        >
-                          <View style={styles.timelineDotWrap}>
-                            <View style={styles.timelineDotDone}>
-                              <Text style={styles.timelineDotDoneIcon}>{'\u2713'}</Text>
-                            </View>
-                          </View>
-                          <View style={styles.timelineItemBody}>
-                            {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
-                              <Text style={[styles.typeBadge, { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted, opacity: 0.6 }]}>
-                                {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
-                              </Text>
-                            )}
+                      itemContent = (
+                        <View style={[styles.gutterContent, { opacity: 0.4 }]} accessibilityLabel={`${instance.itemName}, logged${timeStr ? ` at ${timeStr}` : ''}`}>
+                          {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
+                            <Text style={[styles.typeBadge, { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted, opacity: 0.6 }]}>
+                              {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
+                            </Text>
+                          )}
+                          <View style={styles.gutterItemRow}>
                             <Text style={styles.timelineNameDone} numberOfLines={1}>{instance.itemName}</Text>
-                            <Text style={styles.timelineSubDone}>{timeStr ? `Logged at ${timeStr}` : 'Logged'}</Text>
+                            <Text style={styles.timelineStatusText}>{'\u2713'}</Text>
                           </View>
-                          <Text style={styles.timelineStatusText}>{'\u2713'}</Text>
+                          <Text style={styles.timelineSubDone}>{timeStr ? `Logged at ${timeStr}` : 'Logged'}</Text>
                         </View>
                       );
-                    }
-
-                    // ── SKIPPED: amber indicator ──
-                    if (isSkipped) {
-                      return (
-                        <View
-                          key={instance.id}
-                          style={[
-                            styles.timelineItem,
-                            { opacity: 0.6 },
-                            index < items.length - 1 && styles.timelineItemBorder,
-                          ]}
-                          accessibilityLabel={`${instance.itemName}, skipped`}
-                        >
-                          <View style={styles.timelineDotWrap}>
-                            <View style={styles.timelineDotMissed}>
-                              <Text style={styles.timelineDotMissedIcon}>{'\u2014'}</Text>
-                            </View>
-                          </View>
-                          <View style={styles.timelineItemBody}>
-                            {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
-                              <Text style={[styles.typeBadge, { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted, opacity: 0.6 }]}>
-                                {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
-                              </Text>
-                            )}
+                    } else if (isSkipped) {
+                      itemContent = (
+                        <View style={[styles.gutterContent, { opacity: 0.6 }]} accessibilityLabel={`${instance.itemName}, skipped`}>
+                          {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
+                            <Text style={[styles.typeBadge, { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted, opacity: 0.6 }]}>
+                              {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
+                            </Text>
+                          )}
+                          <View style={styles.gutterItemRow}>
                             <Text style={styles.timelineNameMissed} numberOfLines={1}>{instance.itemName}</Text>
-                            <Text style={styles.timelineSubDone}>{timeStr || 'Skipped'}</Text>
+                            <Text style={styles.timelineStatusSkipped}>Skipped</Text>
                           </View>
-                          <Text style={styles.timelineStatusSkipped}>Skipped</Text>
                         </View>
                       );
-                    }
-
-                    // ── MISSED: truly unlogged — show "Log Late" button ──
-                    return (
-                      <TouchableOpacity
-                        key={instance.id}
-                        onPress={() => onItemPress(instance)}
-                        activeOpacity={0.7}
-                        style={[
-                          styles.timelineItem,
-                          index < items.length - 1 && styles.timelineItemBorder,
-                        ]}
-                        accessibilityLabel={`${instance.itemName}, missed. Tap to log late.`}
-                        accessibilityRole="button"
-                      >
-                        <View style={styles.timelineDotWrap}>
-                          <View style={styles.timelineDotMissed}>
-                            <Text style={styles.timelineDotMissedIcon}>{'\u2014'}</Text>
-                          </View>
-                        </View>
-                        <View style={styles.timelineItemBody}>
+                    } else if (isMissed) {
+                      itemContent = (
+                        <TouchableOpacity
+                          style={styles.gutterContent}
+                          onPress={() => onItemPress(instance)}
+                          activeOpacity={0.7}
+                          accessibilityLabel={`${instance.itemName}, missed. Tap to log late.`}
+                          accessibilityRole="button"
+                        >
                           {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
                             <Text style={[styles.typeBadge, { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted }]}>
                               {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
                             </Text>
                           )}
-                          <Text style={styles.timelineNameMissed} numberOfLines={1}>{instance.itemName}</Text>
-                          <Text style={styles.timelineSubDone}>{timeStr || 'Missed'}</Text>
-                        </View>
-                        <Text style={styles.logLateText}>Log Late</Text>
-                      </TouchableOpacity>
-                    );
-                  }
-
-                  // Pending item
-                  const subtitle = getItemSubtitle(instance);
-                  const delta = getTimeDelta(instance.scheduledTime);
-                  const dotColor = getDotColor(instance);
-
-                  return (
-                    <TouchableOpacity
-                      key={instance.id}
-                      style={[
-                        styles.timelineItem,
-                        index < items.length - 1 && styles.timelineItemBorder,
-                      ]}
-                      onPress={() => onItemPress(instance)}
-                      activeOpacity={0.7}
-                      accessibilityLabel={`${instance.itemName}, ${subtitle}`}
-                      accessibilityRole="button"
-                    >
-                      <View style={styles.timelineDotWrap}>
-                        <View style={[styles.timelineDot, { backgroundColor: dotColor }]} />
-                      </View>
-                      <View style={styles.timelineItemBody}>
-                        {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
-                          <Text style={[
-                            styles.typeBadge,
-                            { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted },
-                          ]}>
-                            {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
-                          </Text>
-                        )}
-                        <Text style={styles.timelineName} numberOfLines={1}>{instance.itemName}</Text>
-                        {subtitle ? (
-                          <Text style={styles.timelineSub} numberOfLines={1}>{subtitle}</Text>
-                        ) : null}
-                        {(() => {
-                          const progress = getSubItemProgress(instance, allItems);
-                          if (!progress) return null;
-                          const pct = Math.round((progress.done / progress.total) * 100);
-                          return (
-                            <View style={styles.subProgress}>
-                              <Text style={styles.subProgressText}>{progress.done}/{progress.total}</Text>
-                              <View style={styles.subProgressBar}>
-                                <View style={[styles.subProgressFill, { width: `${pct}%`, backgroundColor: colors.accent }]} />
-                              </View>
+                          <View style={styles.gutterItemRow}>
+                            <Text style={styles.timelineNameMissed} numberOfLines={1}>{instance.itemName}</Text>
+                            <Text style={styles.logLateText}>Log Late</Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    } else {
+                      // Pending
+                      const subtitle = getItemSubtitle(instance);
+                      itemContent = (
+                        <TouchableOpacity
+                          style={styles.gutterContent}
+                          onPress={() => onItemPress(instance)}
+                          activeOpacity={0.7}
+                          accessibilityLabel={`${instance.itemName}, ${subtitle}`}
+                          accessibilityRole="button"
+                        >
+                          {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
+                            <Text style={[styles.typeBadge, { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted }]}>
+                              {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
+                            </Text>
+                          )}
+                          <View style={styles.gutterItemRow}>
+                            <Text style={styles.timelineName} numberOfLines={1}>{instance.itemName}</Text>
+                            <View style={styles.timelineLogButton}>
+                              <Text style={styles.timelineLogButtonText}>Log</Text>
                             </View>
-                          );
-                        })()}
+                          </View>
+                          {subtitle ? <Text style={styles.timelineSub} numberOfLines={1}>{subtitle}</Text> : null}
+                          {(() => {
+                            const progress = getSubItemProgress(instance, allItems);
+                            if (!progress) return null;
+                            const pct = Math.round((progress.done / progress.total) * 100);
+                            return (
+                              <View style={styles.subProgress}>
+                                <Text style={styles.subProgressText}>{progress.done}/{progress.total}</Text>
+                                <View style={styles.subProgressBar}>
+                                  <View style={[styles.subProgressFill, { width: `${pct}%`, backgroundColor: colors.accent }]} />
+                                </View>
+                              </View>
+                            );
+                          })()}
+                        </TouchableOpacity>
+                      );
+                    }
+
+                    return (
+                      <View key={instance.id} style={styles.gutterRow}>
+                        <View style={styles.timeGutter}>
+                          {showTime && <Text style={styles.gutterTime}>{shortTime}</Text>}
+                        </View>
+                        <View style={styles.gutterDivider} />
+                        <View style={[styles.gutterContentWrap, index < items.length - 1 && styles.gutterContentBorder]}>
+                          {itemContent}
+                        </View>
                       </View>
-                      <View style={styles.timelineLogButton}>
-                        <Text style={styles.timelineLogButtonText}>Log</Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-                </View>
+                    );
+                  });
+                })()}
               </View>
             )}
           </View>
@@ -1029,58 +970,38 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
 
   // ============================================================================
-  // MODE B — Clean Timeline
+  // MODE B — Time Gutter Timeline
   // ============================================================================
   timeGroup: {
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  // Spine: vertical line alongside each window
-  spineRow: {
+  // ── Period header banner ──
+  windowBanner: {
     flexDirection: 'row' as const,
-    alignItems: 'stretch' as const,
-  },
-  spineSegment: {
-    width: 2,
-    borderRadius: 1,
-    marginRight: 10,
-    minHeight: 28,
-  },
-  spineItemsRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'stretch' as const,
-  },
-  spineSegmentItems: {
-    width: 2,
-    borderRadius: 1,
-    marginRight: 10,
+    alignItems: 'center' as const,
+    gap: 10,
+    backgroundColor: 'rgba(46, 125, 80, 0.12)',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 2,
+    marginTop: 8,
   },
   windowIcon: {
     fontSize: 14,
   },
-  timeGroupHeader: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 6,
-  },
-  timeGroupChevron: {
-    fontSize: 8,
-    color: c.textMuted,
-    width: 12,
-  },
-  timeGroupTitle: {
+  windowBannerTitle: {
     fontSize: 10,
-    fontWeight: '700',
-    color: c.textMuted,
-    textTransform: 'uppercase',
+    fontWeight: '700' as const,
+    color: c.textPrimary,
+    textTransform: 'uppercase' as const,
     letterSpacing: 1,
   },
-  timeGroupCount: {
+  windowBannerCount: {
     flex: 1,
     fontSize: 11,
+    fontWeight: '500' as const,
     color: c.textMuted,
-    fontWeight: '500',
   },
   startRoutineButton: {
     backgroundColor: c.accent,
@@ -1090,17 +1011,48 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   startRoutineText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: c.background,
   },
-  timeGroupItems: {
+  // ── Time gutter layout ──
+  gutterRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'stretch' as const,
+    minHeight: 44,
+  },
+  timeGutter: {
+    width: 52,
+    paddingRight: 10,
+    justifyContent: 'flex-start' as const,
+    alignItems: 'flex-end' as const,
+    paddingTop: 10,
+  },
+  gutterTime: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: c.accent,
+  },
+  gutterDivider: {
+    width: 1.5,
+    backgroundColor: c.accent,
+    opacity: 0.3,
+  },
+  gutterContentWrap: {
     flex: 1,
-    paddingLeft: 44,
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 4,
-    marginBottom: 4,
+  },
+  gutterContentBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+  },
+  gutterContent: {
+    flex: 1,
+    paddingLeft: 14,
+    paddingVertical: 8,
+  },
+  gutterItemRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
   },
 
   // Timeline item (pending)
