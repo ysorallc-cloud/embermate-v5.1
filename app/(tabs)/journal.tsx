@@ -49,9 +49,9 @@ import { buildDailySummaryReport, buildClinicalReportData } from '../../utils/re
 import { generateAndSharePDF, ReportData } from '../../utils/pdfExport';
 import { DateTabStrip } from '../../components/journal/DateTabStrip';
 import { MonthCalendar } from '../../components/journal/MonthCalendar';
-import { DetailedEventLog } from '../../components/journal/DetailedEventLog';
+// DetailedEventLog removed — Now tab timeline serves this purpose
 import { ReflectionPrompt } from '../../components/journal/ReflectionPrompt';
-import { useJournalEvents } from '../../hooks/useJournalEvents';
+// useJournalEvents removed — DetailedEventLog no longer rendered
 import { useCalendarStatuses } from '../../hooks/useCalendarStatuses';
 import { getDailyPrompt } from '../../utils/reflectionPrompts';
 import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
@@ -132,7 +132,7 @@ export default function JournalTab() {
   const now = new Date();
   const [calendarMonth, setCalendarMonth] = useState({ year: now.getFullYear(), month: now.getMonth() });
   const { statuses: calendarStatuses } = useCalendarStatuses(calendarMonth.year, calendarMonth.month);
-  const { events: journalEvents } = useJournalEvents(selectedDate);
+  // journalEvents removed — DetailedEventLog no longer rendered
   const [reflection, setReflection] = useState<StoredReflection | null>(null);
 
   // Load reflection when date changes
@@ -788,13 +788,10 @@ export default function JournalTab() {
             dayStatuses={calendarStatuses}
           />
 
-          {/* ═══ SUMMARY ═══ */}
-          <View style={s.accentBarRow}>
-            <View style={[s.accentBar, { backgroundColor: '#5DCAA5' }]} />
-            <Text style={s.accentBarLabel}>Summary</Text>
-          </View>
-          <View style={s.lightCard}>
-            <Text style={[s.narrativeText, { paddingLeft: 22 }]}>{getBriefingText()}</Text>
+          {/* ═══ SHIFT SUMMARY ═══ */}
+          <SectionLabel title="Shift Summary" styles={s} />
+          <View style={s.summaryCard}>
+            <Text style={s.summaryText}>{getBriefingText()}</Text>
           </View>
 
           {/* First-use guidance when nothing logged today */}
@@ -807,100 +804,85 @@ export default function JournalTab() {
             </View>
           )}
 
-          {/* ═══ FLAGGED (merged handoff + patterns) ═══ */}
-          {(handoffNotes.length > 0 || insights.length > 0) && (
+          {/* ═══ WATCH FOR ═══ */}
+          {handoffNotes.length > 0 && (
             <>
-              <View style={s.accentBarRow}>
-                <View style={[s.accentBar, { backgroundColor: '#c8a44e' }]} />
-                <Text style={s.accentBarLabel}>Flagged</Text>
-              </View>
-              <View style={s.lightCard}>
+              <SectionLabel title="Watch For" color={colors.amberBright} styles={s} />
+              <View style={s.watchCard}>
                 {handoffNotes.map((item, i) => (
                   <View
                     key={`handoff-${i}`}
-                    style={[
-                      s.handoffItem,
-                      {
-                        borderLeftColor: handoffBorderColor(item.type),
-                        backgroundColor: handoffBgColor(item.type),
-                      },
-                    ]}
+                    style={[s.watchItem, {
+                      borderLeftColor: handoffBorderColor(item.type),
+                      backgroundColor: handoffBgColor(item.type),
+                    }]}
                   >
-                    <Text style={s.handoffIcon}>{item.icon}</Text>
-                    <Text style={s.handoffText}>{item.text}</Text>
+                    <Text style={s.watchTitle}>{item.text}</Text>
                   </View>
                 ))}
-                {insights.map((insight, i) => {
-                  const isExpanded = expandedPattern === i;
-                  const rotation = chevronAnims[i]
-                    ? chevronAnims[i].interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0deg', '180deg'],
-                      })
-                    : '0deg';
-                  return (
-                    <TouchableOpacity
-                      key={insight.id}
-                      style={[s.patternCard, { borderColor: patternBorderColor(insight.severity) + '30' }]}
-                      onPress={() => togglePattern(i)}
-                      activeOpacity={0.8}
-                      accessibilityLabel={`Pattern: ${insight.title}. ${isExpanded ? 'Collapse' : 'Expand'}`}
-                      accessibilityRole="button"
-                    >
-                      <View style={s.patternHeader}>
-                        <Text style={s.patternTitle}>{insight.title}</Text>
-                        <Animated.Text style={[s.patternChevron, { transform: [{ rotate: rotation }] }]}>{'\u25BC'}</Animated.Text>
-                      </View>
-                      {isExpanded && (
-                        <View style={s.patternDetail}>
-                          <Text style={s.patternContext}>{insight.context}</Text>
-                          {insight.actions.length > 0 && (
-                            <View style={s.patternAction}>
-                              <Text style={s.patternActionArrow}>{'\u2192'}</Text>
-                              <Text style={s.patternActionText}>{insight.actions[0].label}</Text>
-                            </View>
-                          )}
-                          <TouchableOpacity
-                            onPress={() => {
-                              const trendKey = insight.type === 'medication' ? 'meds'
-                                : insight.type === 'vitals' ? 'bp'
-                                : insight.type === 'mood' ? 'mood'
-                                : insight.type;
-                              navigate(`/(tabs)/understand?focusTrend=${trendKey}`);
-                            }}
-                            style={s.patternTrendLink}
-                            activeOpacity={0.7}
-                            accessibilityLabel="View trend on Insights"
-                            accessibilityRole="link"
-                          >
-                            <Text style={s.patternTrendLinkText}>{'\uD83D\uDCCA'} View trend on Insights →</Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
               </View>
             </>
           )}
 
-          {/* ═══ DETAILED EVENT LOG ═══ */}
-          <DetailedEventLog events={journalEvents} defaultExpanded={false} />
-
-          {/* ═══ DAY AT A GLANCE ═══ */}
-          <View style={s.sectionHeader}>
-            <Text style={s.sectionTitle}>Day at a Glance</Text>
-          </View>
-          <View style={s.glanceGrid}>
-            {glanceStats.map((stat, i) => (
-              <View key={i} style={s.glanceTile}>
-                <Text style={[s.glanceValue, { color: stat.color }]}>{stat.value}</Text>
-                <Text style={s.glanceLabel}>{stat.label}</Text>
-              </View>
-            ))}
-          </View>
+          {/* ═══ PATTERNS ═══ */}
+          {insights.length > 0 && (
+            <>
+              <SectionLabel title="Patterns" styles={s} />
+              {insights.map((insight, i) => {
+                const isExpanded = expandedPattern === i;
+                const rotation = chevronAnims[i]
+                  ? chevronAnims[i].interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '180deg'],
+                    })
+                  : '0deg';
+                return (
+                  <TouchableOpacity
+                    key={insight.id}
+                    style={[s.patternCard, { borderColor: patternBorderColor(insight.severity) + '30' }]}
+                    onPress={() => togglePattern(i)}
+                    activeOpacity={0.8}
+                    accessibilityLabel={`Pattern: ${insight.title}. ${isExpanded ? 'Collapse' : 'Expand'}`}
+                    accessibilityRole="button"
+                  >
+                    <View style={s.patternHeader}>
+                      <Text style={s.patternTitle}>{insight.title}</Text>
+                      <Animated.Text style={[s.patternChevron, { transform: [{ rotate: rotation }] }]}>{'\u25BC'}</Animated.Text>
+                    </View>
+                    {isExpanded && (
+                      <View style={s.patternDetail}>
+                        <Text style={s.patternContext}>{insight.context}</Text>
+                        {insight.actions.length > 0 && (
+                          <View style={s.patternAction}>
+                            <Text style={s.patternActionArrow}>{'\u2192'}</Text>
+                            <Text style={s.patternActionText}>{insight.actions[0].label}</Text>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          onPress={() => {
+                            const trendKey = insight.type === 'medication' ? 'meds'
+                              : insight.type === 'vitals' ? 'bp'
+                              : insight.type === 'mood' ? 'mood'
+                              : insight.type;
+                            navigate(`/(tabs)/understand?focusTrend=${trendKey}`);
+                          }}
+                          style={s.patternTrendLink}
+                          activeOpacity={0.7}
+                          accessibilityLabel="View trend on Insights"
+                          accessibilityRole="link"
+                        >
+                          <Text style={s.patternTrendLinkText}>{'\uD83D\uDCCA'} View trend on Insights →</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
 
           {/* ═══ REFLECTION ═══ */}
+          <SectionLabel title="Reflection" styles={s} />
           <ReflectionPrompt
             date={selectedDate}
             prompt={getDailyPrompt(selectedDate)}
@@ -1181,17 +1163,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
 
   // ─── SECTION HEADER ───
-  sectionHeader: {
-    paddingTop: 18,
-    paddingBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: c.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-  },
 
   // ─── DIVIDER ───
   divider: {
@@ -1200,38 +1171,36 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginHorizontal: -16,
   },
 
-  // ─── SECTION 1: NARRATIVE ───
-  // ─── Light card + accent bar (Phase 7) ───
-  lightCard: {
-    backgroundColor: 'rgba(74,107,93,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(74,107,93,0.1)',
-    borderRadius: 14,
+  // ─── SHIFT SUMMARY ───
+  summaryCard: {
+    backgroundColor: c.glassFaint,
+    borderRadius: 10,
     padding: 16,
-    marginBottom: 24,
+    marginBottom: 18,
   },
-  accentBarRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 8,
-    paddingVertical: 10,
+  summaryText: {
+    fontSize: 14,
+    color: c.textSecondary,
+    lineHeight: 22,
   },
-  accentBar: {
-    width: 3,
-    height: 16,
-    borderRadius: 2,
+  // ─── WATCH FOR ───
+  watchCard: {
+    backgroundColor: c.glassFaint,
+    borderRadius: 10,
+    padding: 4,
+    marginBottom: 18,
   },
-  accentBarLabel: {
+  watchItem: {
+    borderLeftWidth: 2,
+    borderRadius: 0,
+    padding: 10,
+    paddingLeft: 12,
+    marginBottom: 4,
+  },
+  watchTitle: {
     fontSize: 13,
-    fontWeight: '600' as const,
-    color: 'rgba(200,195,180,0.5)',
-  },
-  narrativeText: {
-    fontSize: 16.5,
-    color: c.textPrimary,
-    lineHeight: 27,
-    marginBottom: 20,
-    marginTop: 8,
+    fontWeight: '500' as const,
+    color: c.textSecondary,
   },
 
   // ─── FIRST-USE GUIDANCE ───
@@ -1376,32 +1345,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
 
   // ─── SECTION 5: DAY AT A GLANCE ───
-  glanceGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 4,
-  },
-  glanceTile: {
-    width: '31%' as any,
-    backgroundColor: 'rgba(20,50,40,0.3)',
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-  },
-  glanceValue: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  glanceLabel: {
-    fontSize: 10,
-    color: c.textSecondary,
-    marginTop: 3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-
   // ─── TIMESTAMP ───
   timestamp: {
     fontSize: 10,

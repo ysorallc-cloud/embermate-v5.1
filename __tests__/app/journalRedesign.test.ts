@@ -1,5 +1,5 @@
 // ============================================================================
-// Journal Redesign (7G) — Integration verification
+// Journal Redesign — Integration verification
 // ============================================================================
 
 import * as fs from 'fs';
@@ -8,76 +8,95 @@ import * as path from 'path';
 const journalPath = path.resolve(__dirname, '../../app/(tabs)/journal.tsx');
 const src = fs.readFileSync(journalPath, 'utf-8');
 
-describe('Journal redesign (Step 7G)', () => {
+describe('Journal redesign', () => {
   it('DateTabStrip is imported and rendered', () => {
     expect(src).toContain("import { DateTabStrip }");
     expect(src).toContain('<DateTabStrip');
     expect(src).toContain('selectedDate');
     expect(src).toContain('onDateSelect');
-    expect(src).toContain('onCalendarToggle');
   });
 
   it('MonthCalendar is imported and rendered', () => {
     expect(src).toContain("import { MonthCalendar }");
     expect(src).toContain('<MonthCalendar');
     expect(src).toContain('calendarOpen');
-    expect(src).toContain('dayStatuses');
   });
 
-  it('Summary section uses accent bar (teal) + light card', () => {
-    expect(src).toContain("backgroundColor: '#5DCAA5'");
-    expect(src).toContain('Summary');
-    expect(src).toContain('lightCard');
-    expect(src).toContain('paddingLeft: 22');
+  it('Shift Summary section uses SectionLabel + summaryCard', () => {
+    expect(src).toContain('title="Shift Summary"');
+    expect(src).toContain('summaryCard');
+    expect(src).toContain('summaryText');
   });
 
-  it('Flagged section merges handoff notes and patterns', () => {
-    expect(src).toContain("backgroundColor: '#c8a44e'");
-    expect(src).toContain('Flagged');
-    // Both handoffNotes and insights render inside Flagged
-    expect(src).toContain('handoffNotes.map');
-    expect(src).toContain('insights.map');
+  it('Watch For section is separate from Patterns', () => {
+    expect(src).toContain('title="Watch For"');
+    expect(src).toContain('watchCard');
+    expect(src).toContain('watchItem');
+    expect(src).toContain('watchTitle');
   });
 
-  it('Flagged section hidden when both empty', () => {
-    expect(src).toContain('handoffNotes.length > 0 || insights.length > 0');
+  it('Patterns section uses SectionLabel', () => {
+    expect(src).toContain('title="Patterns"');
   });
 
-  it('DetailedEventLog is rendered', () => {
-    expect(src).toContain("import { DetailedEventLog }");
-    expect(src).toContain('<DetailedEventLog');
-    expect(src).toContain('journalEvents');
+  it('Day at a Glance tiles do NOT render', () => {
+    expect(src).not.toContain("'Day at a Glance'");
+    expect(src).not.toContain('<View style={s.glanceGrid}');
   });
 
-  it('ReflectionPrompt is rendered with per-date data', () => {
-    expect(src).toContain("import { ReflectionPrompt }");
+  it('DetailedEventLog does NOT render', () => {
+    expect(src).not.toContain('<DetailedEventLog');
+  });
+
+  it('ReflectionPrompt rendered with SectionLabel', () => {
+    expect(src).toContain('title="Reflection"');
     expect(src).toContain('<ReflectionPrompt');
     expect(src).toContain('getDailyPrompt(selectedDate)');
-    expect(src).toContain('handleSaveReflection');
   });
 
   it('footer says "Not a medical record"', () => {
     expect(src).toContain('Not a medical record');
   });
 
-  it('no ALL CAPS section headers remain', () => {
-    // Old ALL CAPS headers should be gone
-    expect(src).not.toContain("'KEEP AN EYE ON'");
-    expect(src).not.toContain("'IF YOU'RE HANDING OFF'");
+  it('header uses inline header with Share/Report pills', () => {
+    expect(src).toContain('headerRow');
+    expect(src).toContain('headerTitle');
+    expect(src).toContain('headerPill');
+    expect(src).toContain('headerPillReport');
   });
 
-  it('no "Updated X:XX PM" timestamp', () => {
-    // Old "Updated" timestamp removed
-    expect(src).not.toContain("'Updated '");
+  it('SectionLabel component exists', () => {
+    expect(src).toContain('function SectionLabel');
+    expect(src).toContain('sectionLabelRow');
+    expect(src).toContain('sectionLabelText');
   });
 
-  it('tab strip date selection closes calendar', () => {
-    expect(src).toContain('setCalendarOpen(false)');
+  it('all section headers use SectionLabel', () => {
+    expect(src).toContain('<SectionLabel title="Shift Summary"');
+    expect(src).toContain('<SectionLabel title="Watch For"');
+    expect(src).toContain('<SectionLabel title="Patterns"');
+    expect(src).toContain('<SectionLabel title="Reflection"');
   });
 
-  it('calendar date selection keeps calendar open', () => {
-    expect(src).toContain('handleCalendarDateSelect');
-    // handleCalendarDateSelect does NOT call setCalendarOpen(false)
-    expect(src).toMatch(/handleCalendarDateSelect[\s\S]*?setSelectedDate\(date\)[\s\S]*?Calendar stays open/);
+  it('old accent bar and glance styles are removed', () => {
+    expect(src).not.toMatch(/accentBarRow:\s*\{/);
+    expect(src).not.toMatch(/accentBarLabel:\s*\{/);
+    expect(src).not.toMatch(/lightCard:\s*\{/);
+    expect(src).not.toMatch(/glanceGrid:\s*\{/);
+    expect(src).not.toMatch(/glanceTile:\s*\{/);
+  });
+
+  it('Watch For uses amber color', () => {
+    expect(src).toContain('colors.amberBright');
+  });
+
+  it('section order: Summary → Watch For → Patterns → Reflection', () => {
+    const summaryIdx = src.indexOf('title="Shift Summary"');
+    const watchIdx = src.indexOf('title="Watch For"');
+    const patternsIdx = src.indexOf('title="Patterns"');
+    const reflectionIdx = src.indexOf('title="Reflection"');
+    expect(summaryIdx).toBeLessThan(watchIdx);
+    expect(watchIdx).toBeLessThan(patternsIdx);
+    expect(patternsIdx).toBeLessThan(reflectionIdx);
   });
 });
