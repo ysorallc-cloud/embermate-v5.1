@@ -610,17 +610,17 @@ function TimelineModeBContent({
 
         const isCurrent = window === currentWindow;
         const isCollapsed = collapsedWindows.has(window);
-        const pendingCount = items.filter(i => i.status === 'pending').length;
-        const doneCount = items.length - pendingCount;
 
-        // Dot color must match what the expanded children show:
-        // Green only when every item is completed/skipped (no missed, no pending)
-        // Red when any pending item is overdue OR any item is missed
-        // Amber otherwise (has pending items)
-        const hasMissedItems = items.some(i => i.status === 'missed');
-        const allDone = !hasMissedItems && items.every(i =>
+        // Count remaining = anything NOT completed and NOT skipped
+        // This includes 'pending' AND 'missed' items — both need attention
+        const completedCount = items.filter(i =>
           i.status === 'completed' || i.status === 'skipped'
-        );
+        ).length;
+        const remainingCount = items.length - completedCount;
+
+        // allDone = every item is completed or skipped (no pending, no missed)
+        const allDone = remainingCount === 0;
+        const hasMissedItems = items.some(i => i.status === 'missed');
         const hasOverdueItems = hasMissedItems || items.some(i =>
           i.status === 'pending' && isOverdue(i.scheduledTime)
         );
@@ -635,7 +635,7 @@ function TimelineModeBContent({
               ]}
               onPress={() => toggleWindow(window)}
               activeOpacity={0.7}
-              accessibilityLabel={`${TIME_WINDOW_LABELS[window]}, ${pendingCount} remaining, ${doneCount} done. ${isCollapsed ? 'Expand' : 'Collapse'}`}
+              accessibilityLabel={`${TIME_WINDOW_LABELS[window]}, ${remainingCount} remaining, ${completedCount} done. ${isCollapsed ? 'Expand' : 'Collapse'}`}
               accessibilityRole="button"
               accessibilityState={{ expanded: !isCollapsed }}
             >
@@ -652,9 +652,9 @@ function TimelineModeBContent({
                 {TIME_WINDOW_LABELS[window]}
               </Text>
               <Text style={styles.timeGroupCount}>
-                {pendingCount > 0 ? `${pendingCount} remaining` : `Complete \u2713`}
+                {remainingCount > 0 ? `${remainingCount} remaining` : `Complete \u2713`}
               </Text>
-              {isCurrent && pendingCount > 0 && onStartRoutine && (
+              {isCurrent && remainingCount > 0 && onStartRoutine && (
                 <TouchableOpacity
                   onPress={() => onStartRoutine(window)}
                   style={styles.startRoutineButton}
