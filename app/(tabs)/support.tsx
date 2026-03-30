@@ -1,6 +1,6 @@
 // ============================================================================
 // SUPPORT TAB — Caregiver rest stop
-// Mood check-in, breathing exercise, resources, wellness tracking
+// Three zones: "How are you?" → "Need a reset?" → "Here when you're ready"
 // ============================================================================
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -33,14 +33,9 @@ export default function SupportScreen() {
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    // Brief delay for pull-to-refresh feel
     await new Promise(r => setTimeout(r, 500));
     setRefreshing(false);
   }, []);
-
-  // Format today's date
-  const today = new Date();
-  const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   return (
     <View style={styles.root}>
@@ -62,80 +57,89 @@ export default function SupportScreen() {
           {/* ═══ HEADER ═══ */}
           <View style={styles.header}>
             <Text style={styles.title}>Support</Text>
-            <Text style={styles.date}>{dateStr}</Text>
-            <Text style={styles.subtitle}>This space is yours.</Text>
+            <Text style={styles.subtitle}>This space is yours. Take a moment.</Text>
           </View>
 
-          {/* ═══ CHECK IN ═══ */}
-          <Text style={styles.sectionLabel}>CHECK IN</Text>
+          <View style={styles.zoneSpacer} />
+
+          {/* ═══ Zone 1: Check in ═══ */}
+          <Text style={styles.zoneLabel}>How are you right now?</Text>
           <MoodSlider />
 
-          {/* ═══ BREATHE ═══ */}
-          <Text style={styles.sectionLabel}>BREATHE</Text>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Guided breathing</Text>
-            <Text style={styles.cardDesc}>
-              A 1-minute 4-4-4 breathing exercise to help you reset.
-            </Text>
-            <TouchableOpacity
-              style={[styles.startButton, { backgroundColor: colors.accent }]}
-              onPress={() => setBreathingVisible(true)}
-              accessibilityLabel="Start breathing exercise"
-              accessibilityRole="button"
-            >
-              <Text style={styles.startButtonText}>Start</Text>
-            </TouchableOpacity>
-          </View>
+          <View style={styles.zoneSpacer} />
+
+          {/* ═══ Zone 2: Breathe ═══ */}
+          <Text style={styles.zoneLabel}>Need a reset?</Text>
+          <Text style={styles.breatheTitle}>Guided breathing</Text>
+          <Text style={styles.breatheDesc}>
+            A 1-minute 4-4-4 breathing exercise to help you reset.
+          </Text>
+          <TouchableOpacity
+            style={styles.breathePill}
+            onPress={() => setBreathingVisible(true)}
+            accessibilityLabel="Start 1-minute breathing exercise"
+            accessibilityRole="button"
+          >
+            <Text style={styles.breathePillText}>Begin</Text>
+          </TouchableOpacity>
 
           <BreathingExercise
             visible={breathingVisible}
             onClose={() => setBreathingVisible(false)}
           />
 
-          {/* ═══ REACH OUT ═══ */}
-          <Text style={styles.sectionLabel}>REACH OUT</Text>
-          <View style={styles.card}>
-            <TouchableOpacity style={styles.reachRow} activeOpacity={0.7}>
-              <Text style={styles.reachIcon}>📞</Text>
-              <View style={styles.reachInfo}>
-                <Text style={styles.reachTitle}>Caregiver Helpline</Text>
-                <Text style={styles.reachDesc}>1-855-227-3640 · Free, confidential</Text>
-              </View>
-            </TouchableOpacity>
-            <View style={styles.reachDivider} />
-            <TouchableOpacity style={styles.reachRow} activeOpacity={0.7}>
-              <Text style={styles.reachIcon}>💬</Text>
-              <View style={styles.reachInfo}>
-                <Text style={styles.reachTitle}>Caregiver community</Text>
-                <Text style={styles.reachDesc}>Connect with people who understand</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
+          <View style={styles.zoneDivider} />
 
-          {/* ═══ YOUR WELLNESS ═══ */}
-          <Text style={styles.sectionLabel}>YOUR WELLNESS</Text>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigate('/caregiver-wellness')}
-            activeOpacity={0.7}
-            accessibilityLabel="View your wellness"
+          {/* ═══ Zone 3: Talk to someone ═══ */}
+          <Text style={styles.zoneLabel}>Talk to someone</Text>
+          <TouchableOpacity style={styles.reachRow} activeOpacity={0.7}
+            accessibilityLabel="Call Caregiver Helpline. 1-855-227-3640. Free and confidential."
             accessibilityRole="button"
           >
-            <View style={styles.wellnessRow}>
-              <View>
-                <Text style={styles.cardTitle}>Your wellness</Text>
-                <Text style={styles.cardDesc}>Mood history, breathing sessions, self-care trends</Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
+            <Text style={styles.reachIcon}>📞</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.reachTitle}>Caregiver Helpline</Text>
+              <Text style={styles.reachDesc}>1-855-227-3640 · Free, confidential</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.reachRow, { borderBottomWidth: 0 }]} activeOpacity={0.7}
+            accessibilityLabel="Caregiver community. Connect with people who understand."
+            accessibilityRole="button"
+          >
+            <Text style={styles.reachIcon}>💬</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.reachTitle}>Caregiver community</Text>
+              <Text style={styles.reachDesc}>Connect with people who understand</Text>
             </View>
           </TouchableOpacity>
 
-          {/* ═══ RESOURCES ═══ */}
-          <Text style={styles.sectionLabel}>RESOURCES</Text>
+          <View style={styles.zoneDivider} />
+
+          {/* ═══ Zone 4: Resources ═══ */}
+          <Text style={styles.zoneLabel}>Resources</Text>
           <ResourcesList />
 
-          {/* Bottom padding for tab bar */}
-          <View style={{ height: 100 }} />
+          <View style={styles.zoneDivider} />
+
+          {/* ═══ Your wellness — single row ═══ */}
+          <TouchableOpacity
+            style={styles.wellnessLink}
+            onPress={() => navigate('/caregiver-wellness')}
+            activeOpacity={0.7}
+            accessibilityLabel="View your wellness history"
+            accessibilityRole="button"
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.wellnessLinkTitle}>Your wellness</Text>
+              <Text style={styles.wellnessLinkDesc}>Mood history, breathing sessions, trends</Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
+          </TouchableOpacity>
+
+          {/* ═══ FOOTER ═══ */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>You're doing something{'\n'}most people never see.</Text>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -161,97 +165,115 @@ function createStyles(c: typeof Colors) {
     },
     header: {
       paddingTop: 8,
-      paddingBottom: 16,
+      paddingBottom: 8,
     },
     title: {
       fontSize: 28,
-      fontWeight: '700',
+      fontWeight: '200',
       color: c.textPrimary,
-      marginBottom: 2,
-    },
-    date: {
-      fontSize: 13,
-      color: c.textMuted,
-      marginBottom: 4,
+      marginBottom: 8,
     },
     subtitle: {
       fontSize: 14,
-      color: c.textSecondary,
-      fontStyle: 'italic',
-    },
-    sectionLabel: {
-      fontSize: 11,
-      fontWeight: '700',
       color: c.textMuted,
-      textTransform: 'uppercase',
-      letterSpacing: 1.4,
-      marginTop: 24,
-      marginBottom: 10,
+      lineHeight: 20,
     },
-    card: {
-      backgroundColor: c.glass,
-      borderWidth: 1,
-      borderColor: c.glassBorder,
-      borderRadius: 14,
-      padding: 16,
+    zoneLabel: {
+      fontSize: 14,
+      fontWeight: '400',
+      color: c.textMuted,
+      marginBottom: 14,
     },
-    cardTitle: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: c.textPrimary,
+    zoneSpacer: {
+      height: 32,
+    },
+    zoneDivider: {
+      height: 0.5,
+      backgroundColor: c.glassHover,
+      marginVertical: 24,
+    },
+    // ── Breathe ──
+    breatheTitle: {
+      fontSize: 15,
+      fontWeight: '500',
+      color: c.textSecondary,
       marginBottom: 4,
     },
-    cardDesc: {
+    breatheDesc: {
       fontSize: 13,
-      color: c.textSecondary,
-      marginBottom: 12,
+      color: c.textMuted,
+      marginBottom: 16,
       lineHeight: 18,
     },
-    startButton: {
-      paddingVertical: 10,
-      borderRadius: 10,
-      alignItems: 'center',
+    breathePill: {
+      alignSelf: 'flex-start',
+      backgroundColor: 'rgba(52, 211, 153, 0.08)',
+      borderWidth: 1,
+      borderColor: 'rgba(52, 211, 153, 0.15)',
+      borderRadius: 20,
+      paddingVertical: 8,
+      paddingHorizontal: 24,
     },
-    startButtonText: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: '#fff',
+    breathePillText: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: c.accent,
     },
+    // ── Reach out ──
     reachRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
-      paddingVertical: 4,
+      paddingVertical: 14,
+      borderBottomWidth: 0.5,
+      borderBottomColor: c.glassDim,
     },
     reachIcon: {
-      fontSize: 24,
-    },
-    reachInfo: {
-      flex: 1,
+      fontSize: 20,
     },
     reachTitle: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: c.textPrimary,
+      fontSize: 14,
+      fontWeight: '500',
+      color: c.textSecondary,
       marginBottom: 2,
     },
     reachDesc: {
       fontSize: 12,
       color: c.textMuted,
     },
-    reachDivider: {
-      height: 1,
-      backgroundColor: c.glassFaint,
-      marginVertical: 8,
-    },
-    wellnessRow: {
+    // ── Your wellness link ──
+    wellnessLink: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      paddingVertical: 12,
+    },
+    wellnessLinkTitle: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: c.textSecondary,
+    },
+    wellnessLinkDesc: {
+      fontSize: 12,
+      color: c.textMuted,
+      marginTop: 2,
     },
     chevron: {
-      fontSize: 22,
+      fontSize: 18,
       color: c.textMuted,
+      opacity: 0.3,
+    },
+    // ── Footer ──
+    footer: {
+      alignItems: 'center',
+      paddingTop: 40,
+      paddingBottom: 100,
+    },
+    footerText: {
+      fontSize: 12,
+      color: c.textMuted,
+      textAlign: 'center',
+      lineHeight: 18,
+      opacity: 0.4,
     },
   });
 }
