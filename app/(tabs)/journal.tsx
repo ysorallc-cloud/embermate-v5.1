@@ -84,6 +84,18 @@ const SLEEP_QUALITY_WORDS: Record<number, string> = {
 };
 
 // ============================================================================
+// SECTION LABEL — Consistent header for all journal sections
+// ============================================================================
+
+function SectionLabel({ title, color, styles: s }: { title: string; color?: string; styles: ReturnType<typeof createStyles> }) {
+  return (
+    <View style={s.sectionLabelRow}>
+      <Text style={[s.sectionLabelText, color ? { color } : undefined]}>{title}</Text>
+    </View>
+  );
+}
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -702,34 +714,22 @@ export default function JournalTab() {
           }
         >
           {/* ─── HEADER ─── */}
-          <ScreenHeader
-            title="Journal"
-            subtitle={`${dayName}, ${dateStr}`}
-            purpose="Record thoughts and observations."
-            style={s.journalHeader}
-            rightAction={
-              <View style={s.headerButtons}>
-                <TouchableOpacity
-                  style={s.headerShareBtn}
-                  onPress={handleShareDaily}
-                  activeOpacity={0.7}
-                  accessibilityLabel="Share daily summary"
-                  accessibilityRole="button"
-                >
-                  <Text style={s.headerShareBtnText}>{'\uD83D\uDCCB'} Share</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={s.headerReportBtn}
-                  onPress={handleShareClinical}
-                  activeOpacity={0.7}
-                  accessibilityLabel="Clinical report"
-                  accessibilityRole="button"
-                >
-                  <Text style={s.headerReportBtnText}>{'\uD83E\uDE7A'} Report</Text>
-                </TouchableOpacity>
-              </View>
-            }
-          />
+          <View style={s.headerRow}>
+            <View>
+              <Text style={s.headerTitle}>Journal</Text>
+              <Text style={s.headerDate}>{dayName}, {dateStr}</Text>
+            </View>
+            <View style={s.headerActions}>
+              <TouchableOpacity style={s.headerPill} onPress={handleShareDaily}
+                activeOpacity={0.7} accessibilityLabel="Share daily summary" accessibilityRole="button">
+                <Text style={s.headerPillText}>Share</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.headerPillReport} onPress={handleShareClinical}
+                activeOpacity={0.7} accessibilityLabel="Clinical report" accessibilityRole="button">
+                <Text style={s.headerPillReportText}>Report</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           {/* ─── SAMPLE DATA INDICATOR ─── */}
           {isSampleMode && (
@@ -1047,40 +1047,69 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
 
   // ─── HEADER ───
-  journalHeader: {
-    borderBottomWidth: 1,
-    borderBottomColor: c.glassBorder,
-    marginBottom: 8,
+  headerRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'flex-start' as const,
+    paddingBottom: 14,
+    borderBottomWidth: 0.5,
+    borderBottomColor: c.glassHover,
   },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 6,
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '200' as const,
+    color: c.textPrimary,
   },
-  headerShareBtn: {
-    backgroundColor: c.accentDim,
+  headerDate: {
+    fontSize: 13,
+    color: c.textMuted,
+    marginTop: 4,
+  },
+  headerActions: {
+    flexDirection: 'row' as const,
+    gap: 8,
+    marginTop: 6,
+  },
+  headerPill: {
+    backgroundColor: c.accentFaint,
     borderWidth: 1,
     borderColor: c.accentBorder,
-    borderRadius: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 9,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  headerShareBtnText: {
-    fontSize: 11,
-    fontWeight: '600',
+  headerPillText: {
+    fontSize: 12,
     color: c.accent,
+    fontWeight: '500' as const,
   },
-  headerReportBtn: {
+  headerPillReport: {
     backgroundColor: c.purpleFaint,
     borderWidth: 1,
     borderColor: c.purpleBorder,
-    borderRadius: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 9,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  headerReportBtnText: {
+  headerPillReportText: {
+    fontSize: 12,
+    color: c.purple,
+    fontWeight: '500' as const,
+  },
+  // ── Section label (Phase 1B) ──
+  sectionLabelRow: {
+    paddingTop: 6,
+    marginBottom: 8,
+    borderTopWidth: 0.5,
+    borderTopColor: c.glassHover,
+  },
+  sectionLabelText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: c.purpleBright,
+    fontWeight: '600' as const,
+    color: c.textMuted,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 2,
+    paddingTop: 10,
   },
 
   // ─── PATIENT CONTEXT CARD ───
