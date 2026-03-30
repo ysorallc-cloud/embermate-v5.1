@@ -1,7 +1,8 @@
 // ============================================================================
 // PROGRESS STRIP - Compact 4-column care plan progress cells
-// Mini progress bars with emoji, label, and fraction.
-// Tappable to filter the timeline section by category.
+// Row 1: ALWAYS exactly 4 core tiles (Meds, Vitals, Wellness, Meals)
+// Row 2: ONLY non-core buckets explicitly enabled in CarePlanConfig
+//        If none enabled, row 2 does not render.
 // ============================================================================
 
 import React, { useMemo } from 'react';
@@ -16,7 +17,15 @@ import { useTheme } from '../../contexts/ThemeContext';
 import type { StatData, TodayStats } from '../../utils/nowHelpers';
 import { getUrgencyStatus, getCategoryUrgencyStatus, type UrgencyStatus } from '../../utils/nowUrgency';
 import type { UrgencyTier, UrgencyTone } from '../../utils/urgency';
-import { type BucketType, PRIMARY_BUCKETS } from '../../types/carePlanConfig';
+import type { BucketType } from '../../types/carePlanConfig';
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+// Hardcoded. These 4 ALWAYS render in row 1. Nothing else goes in row 1.
+const CORE_BUCKETS: BucketType[] = ['meds', 'vitals', 'wellness', 'meals'];
+const CORE_SET = new Set<string>(CORE_BUCKETS);
 
 // ============================================================================
 // BUCKET → TILE MAPPING
@@ -42,13 +51,7 @@ const BUCKET_TILE_MAP: Record<string, Omit<TileItem, 'bucket'>> = {
   errands:   { icon: '\uD83D\uDCCB', label: 'Errands',  statKey: 'errands' as any,  itemType: 'errand' },
   shifts:    { icon: '\uD83D\uDD04', label: 'Shifts',   statKey: 'shifts' as any,   itemType: 'shift' },
   self_care: { icon: '\uD83D\uDC9B', label: 'Self',     statKey: 'self_care' as any, itemType: 'self_care' },
-  custom:    { icon: '\uD83D\uDCCB', label: 'Tasks',    statKey: 'custom',   itemType: 'custom' },
 };
-
-// Core buckets always rendered in first row
-const CORE_BUCKETS: BucketType[] = ['meds', 'vitals', 'wellness', 'meals'];
-
-// Use PRIMARY_BUCKETS from types/carePlanConfig as the default
 
 // Bar color per bucket
 const BUCKET_BAR_COLOR: Record<string, string> = {
@@ -59,7 +62,6 @@ const BUCKET_BAR_COLOR: Record<string, string> = {
   sleep:    Colors.accent,
   activity: '#F97316',
   wellness: '#EC4899',
-  custom:   '#A78BFA',
 };
 
 // ============================================================================
@@ -93,14 +95,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   section: {
     marginBottom: 4,
   },
-  // 4-col strip (wraps to second row if >4 tiles)
   strip: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
   },
-
-  // Individual cell — fixed ~24% width for 4-col grid
   cell: {
     width: '23.5%' as any,
     flexGrow: 1,
@@ -127,7 +126,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: 'rgba(20, 184, 166, 0.5)',
     backgroundColor: 'rgba(20, 184, 166, 0.08)',
   },
-
   cellIcon: {
     fontSize: 14,
     marginBottom: 4,
@@ -144,8 +142,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '600',
     lineHeight: 16,
   },
-
-  // Mini progress bar
   progressBar: {
     height: 2,
     backgroundColor: c.glassHover,
@@ -171,26 +167,23 @@ export function ProgressRings({
   instances,
   selectedCategory,
   onRingPress,
-  onManagePress,
 }: ProgressRingsProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  // ── Row 1: Core tiles — ALWAYS exactly these 4, unconditionally ──
+  // ── Row 1: exactly these 4 tiles, always, no exceptions ──
   const coreTiles: TileItem[] = useMemo(() => {
-    return CORE_BUCKETS
-      .filter(b => BUCKET_TILE_MAP[b])
-      .map(b => ({ bucket: b, ...BUCKET_TILE_MAP[b] }));
+    return CORE_BUCKETS.map(b => ({ bucket: b, ...BUCKET_TILE_MAP[b] }));
   }, []);
 
-  // ── Row 2: Optional tiles — ONLY non-core buckets that are explicitly
-  //    enabled via useCarePlanConfig. If none are enabled, this row is empty
-  //    and does not render at all. ──
+  // ── Row 2: ONLY buckets where ALL of these are true:
+  //    1. The bucket is in enabledBuckets (from useCarePlanConfig)
+  //    2. The bucket is NOT in CORE_BUCKETS
+  //    3. The bucket has an entry in BUCKET_TILE_MAP
+  //    If this list is empty, row 2 does not render at all. ──
   const optionalTiles: TileItem[] = useMemo(() => {
-    const coreSet = new Set<string>(CORE_BUCKETS);
-    // Strict filter: must be in enabledBuckets AND not a core bucket AND have a tile mapping
     return enabledBuckets
-      .filter(b => !coreSet.has(b) && BUCKET_TILE_MAP[b])
+      .filter(b => !CORE_SET.has(b) && BUCKET_TILE_MAP[b])
       .map(b => ({ bucket: b, ...BUCKET_TILE_MAP[b] }));
   }, [enabledBuckets]);
 
@@ -204,7 +197,6 @@ export function ProgressRings({
     const isInactive = stat.total === 0;
     const isSelected = selectedCategory === item.bucket;
 
-    // Urgency computation
     let nextUpIsCritical = false;
     if (nextUp) {
       const nextUpUrgency = getUrgencyStatus(nextUp.scheduledTime, false, nextUp.itemType);
@@ -222,19 +214,16 @@ export function ProgressRings({
       criticalTileCount++;
     }
 
-    // Bar color
     const barColor = isComplete
       ? colors.green
       : BUCKET_BAR_COLOR[item.bucket] || colors.accent;
 
-    // Count text color
     const countColor = isComplete ? colors.green
       : isInactive ? colors.textMuted
       : urgencyResult.tone === 'danger' ? colors.red
       : urgencyResult.tone === 'warn' ? colors.amber
       : colors.textSecondary;
 
-    // Cell urgency style
     const getCellStyle = () => {
       if (isComplete || isInactive) return null;
       if (urgencyResult.tone === 'danger') return styles.cellOverdue;
@@ -276,12 +265,14 @@ export function ProgressRings({
 
   return (
     <View style={styles.section}>
+      {/* Row 1: ALWAYS exactly 4 core tiles */}
       <View style={styles.strip}>
-        {coreTiles.map(item => renderCell(item))}
+        {coreTiles.map(renderCell)}
       </View>
+      {/* Row 2: ONLY if there are enabled non-core buckets */}
       {optionalTiles.length > 0 && (
         <View style={[styles.strip, { marginTop: 6 }]}>
-          {optionalTiles.map(item => renderCell(item))}
+          {optionalTiles.map(renderCell)}
         </View>
       )}
     </View>
