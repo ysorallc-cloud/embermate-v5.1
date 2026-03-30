@@ -1095,7 +1095,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   timeGroupItems: {
     flex: 1,
-    paddingLeft: 8,
+    paddingLeft: 44,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 4,
+    marginBottom: 4,
   },
 
   // Timeline item (pending)
@@ -1124,9 +1129,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   typeBadge: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     marginBottom: 2,
   },
   // Sub-item progress (e.g., "1/3" with thin bar for meds with multiple doses)
