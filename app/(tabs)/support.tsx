@@ -108,7 +108,7 @@ export default function SupportScreen() {
             accessibilityLabel="Call Caregiver Helpline. 1-855-227-3640. Free and confidential."
             accessibilityRole="button"
           >
-            <View style={[styles.reachCircle, { backgroundColor: 'rgba(52, 211, 153, 0.08)' }]}>
+            <View style={[styles.reachCircle, { backgroundColor: colors.accentFaint }]}>
               <Text style={[styles.reachCircleIcon, { color: colors.accent }]}>{'\u260E'}</Text>
             </View>
             <View style={{ flex: 1 }}>
@@ -121,7 +121,7 @@ export default function SupportScreen() {
             accessibilityLabel="Caregiver community. Connect with people who understand."
             accessibilityRole="button"
           >
-            <View style={[styles.reachCircle, { backgroundColor: 'rgba(167, 139, 250, 0.08)' }]}>
+            <View style={[styles.reachCircle, { backgroundColor: colors.purpleFaint }]}>
               <Text style={[styles.reachCircleIcon, { color: colors.purple }]}>{'\u2661'}</Text>
             </View>
             <View style={{ flex: 1 }}>
