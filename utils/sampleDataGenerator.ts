@@ -672,9 +672,9 @@ export const initializeSampleData = async (): Promise<boolean> => {
     const config = createDefaultCarePlanConfig(DEFAULT_PATIENT_ID);
     const now = new Date().toISOString();
     const sampleMeds = getSampleMedications();
+    // Core 4 are already enabled by default — just add sample medications and vitals config
     config.meds = {
       ...config.meds,
-      enabled: true,
       medications: sampleMeds
         .filter(m => m.id !== 'med-6') // Exclude Lorazepam (PRN, not scheduled)
         .map(m => ({
@@ -688,9 +688,8 @@ export const initializeSampleData = async (): Promise<boolean> => {
           updatedAt: now,
         })),
     };
-    config.vitals = { ...config.vitals, enabled: true, vitalTypes: ['bp', 'hr', 'spo2', 'glucose', 'temp', 'weight'] };
-    config.meals = { ...config.meals, enabled: true };
-    // wellness is already enabled by default in createDefaultCarePlanConfig
+    config.vitals = { ...config.vitals, vitalTypes: ['bp', 'hr', 'spo2', 'glucose', 'temp', 'weight'] };
+    // meals and wellness already enabled by default in createDefaultCarePlanConfig
     await saveCarePlanConfig(config);
 
     // Mark migration as complete to prevent duplicate items from old-format medications
