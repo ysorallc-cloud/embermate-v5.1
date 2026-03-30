@@ -1,56 +1,50 @@
 // ============================================================================
-// PROGRESS STRIP - Compact 4-column care plan progress cells
-// Row 1: ALWAYS exactly 4 core tiles (Meds, Vitals, Wellness, Meals)
-// Row 2: ONLY non-core buckets explicitly enabled in CarePlanConfig
-//        If none enabled, row 2 does not render.
+// TODAY'S PROGRESS — Flat centered inline text row
+// No cards, no icons, just: ● Label N/N per category, colored by status
 // ============================================================================
 
 import React, { useMemo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
+import { CATEGORY_CONFIG } from '../../constants/categoryLabels';
 import type { StatData, TodayStats } from '../../utils/nowHelpers';
+import { isOverdue } from '../../utils/nowHelpers';
 import type { BucketType } from '../../types/carePlanConfig';
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
-// Hardcoded. These 4 ALWAYS render in row 1. Nothing else goes in row 1.
 const CORE_BUCKETS: BucketType[] = ['meds', 'vitals', 'wellness', 'meals'];
 const CORE_SET = new Set<string>(CORE_BUCKETS);
 
-// ============================================================================
-// BUCKET → TILE MAPPING
-// ============================================================================
-
-interface TileItem {
-  bucket: BucketType;
-  icon: string;
-  label: string;
-  statKey: keyof TodayStats;
-  itemType: string;
-}
-
-const BUCKET_TILE_MAP: Record<string, Omit<TileItem, 'bucket'>> = {
-  meds:      { icon: '\uD83D\uDC8A', label: 'Meds',     statKey: 'meds',     itemType: 'medication' },
-  vitals:    { icon: '\uD83D\uDCCA', label: 'Vitals',   statKey: 'vitals',   itemType: 'vitals' },
-  meals:     { icon: '\uD83C\uDF7D\uFE0F', label: 'Meals',    statKey: 'meals',    itemType: 'nutrition' },
-  water:     { icon: '\uD83D\uDCA7', label: 'Water',    statKey: 'water',    itemType: 'hydration' },
-  sleep:     { icon: '\uD83D\uDE34', label: 'Sleep',    statKey: 'sleep',    itemType: 'sleep' },
-  activity:  { icon: '\uD83D\uDEB6', label: 'Activity', statKey: 'activity', itemType: 'activity' },
-  wellness:  { icon: '\uD83C\uDF05', label: 'Check',    statKey: 'wellness', itemType: 'wellness' },
-  appointments: { icon: '\uD83D\uDCC5', label: 'Appts', statKey: 'appointments' as any, itemType: 'appointment' },
-  errands:   { icon: '\uD83D\uDCCB', label: 'Errands',  statKey: 'errands' as any,  itemType: 'errand' },
-  shifts:    { icon: '\uD83D\uDD04', label: 'Shifts',   statKey: 'shifts' as any,   itemType: 'shift' },
-  self_care: { icon: '\uD83D\uDC9B', label: 'Self',     statKey: 'self_care' as any, itemType: 'self_care' },
+// Bucket → itemType mapping (for overdue detection via instances)
+const BUCKET_TO_ITEM_TYPE: Record<string, string> = {
+  meds: 'medication',
+  vitals: 'vitals',
+  meals: 'nutrition',
+  water: 'hydration',
+  sleep: 'sleep',
+  activity: 'activity',
+  wellness: 'wellness',
+  errands: 'errand',
+  shifts: 'shift',
+  self_care: 'self_care',
+  appointments: 'appointment',
 };
 
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function isCategoryOverdue(itemType: string, instances: any[]): boolean {
+  return instances.some(
+    i => i.itemType === itemType &&
+         (i.status === 'pending' || !i.status) &&
+         isOverdue(i.scheduledTime)
+  );
+}
 
 // ============================================================================
 // PROPS
@@ -59,8 +53,8 @@ const BUCKET_TILE_MAP: Record<string, Omit<TileItem, 'bucket'>> = {
 interface ProgressRingsProps {
   todayStats: TodayStats;
   enabledBuckets: BucketType[];
-  nextUp?: any | null;       // kept for interface compat, unused in render
-  instances?: any[];          // kept for interface compat, unused in render
+  nextUp?: any | null;
+  instances?: any[];
   selectedCategory?: BucketType | null;
   onRingPress?: (bucket: BucketType) => void;
   onManagePress?: () => void;
@@ -68,71 +62,30 @@ interface ProgressRingsProps {
 }
 
 // ============================================================================
-// HELPERS
-// ============================================================================
-
-function getProgressPercent(completed: number, total: number) {
-  return total > 0 ? (completed / total) * 100 : 0;
-}
-
-// ============================================================================
 // STYLES
 // ============================================================================
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
-  section: {
-    marginBottom: 4,
-  },
-  strip: {
+  row: {
     flexDirection: 'row',
+    justifyContent: 'center',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 16,
+    paddingVertical: 10,
   },
-  cell: {
-    width: '23.5%' as any,
-    flexGrow: 1,
-    backgroundColor: c.glassFaint,
-    borderWidth: 1,
-    borderColor: c.glassBorder,
-    borderRadius: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 8,
+  item: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 5,
   },
-  cellInactive: {
-    opacity: 0.5,
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
-  cellSelected: {
-    borderColor: 'rgba(20, 184, 166, 0.5)',
-    backgroundColor: 'rgba(20, 184, 166, 0.08)',
-  },
-  cellIcon: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  cellLabel: {
-    fontSize: 9,
-    color: c.textMuted,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-    marginBottom: 3,
-  },
-  cellFrac: {
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 16,
-  },
-  progressBar: {
-    height: 2,
-    backgroundColor: c.glassHover,
-    borderRadius: 1,
-    marginTop: 5,
-    overflow: 'hidden',
-    alignSelf: 'stretch',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 1,
+  label: {
+    fontSize: 11,
+    fontWeight: '500',
   },
 });
 
@@ -143,80 +96,83 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 export function ProgressRings({
   todayStats,
   enabledBuckets,
-  nextUp,
-  instances,
-  selectedCategory,
-  onRingPress,
+  instances = [],
 }: ProgressRingsProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  // ── Row 1: exactly these 4 tiles, always, no exceptions ──
-  const coreTiles: TileItem[] = useMemo(() => {
-    return CORE_BUCKETS.map(b => ({ bucket: b, ...BUCKET_TILE_MAP[b] }));
-  }, []);
+  // Build the list of categories to show
+  // Core 4 always, optional only if they have items
+  const categories = useMemo(() => {
+    const result: { bucket: BucketType; itemType: string; statKey: keyof TodayStats }[] = [];
 
-  // ── Row 2: ONLY buckets where ALL of these are true:
-  //    1. The bucket is in enabledBuckets (from useCarePlanConfig)
-  //    2. The bucket is NOT in CORE_BUCKETS
-  //    3. The bucket has an entry in BUCKET_TILE_MAP
-  //    If this list is empty, row 2 does not render at all. ──
-  const optionalTiles: TileItem[] = useMemo(() => {
-    return enabledBuckets
-      .filter(b => !CORE_SET.has(b) && BUCKET_TILE_MAP[b])
-      .map(b => ({ bucket: b, ...BUCKET_TILE_MAP[b] }));
-  }, [enabledBuckets]);
+    // Core 4 always
+    for (const b of CORE_BUCKETS) {
+      result.push({
+        bucket: b,
+        itemType: BUCKET_TO_ITEM_TYPE[b],
+        statKey: b === 'meals' ? 'meals' : b as keyof TodayStats,
+      });
+    }
 
-  const renderCell = (item: TileItem) => {
-    const stat: StatData = todayStats[item.statKey] ?? { completed: 0, total: 0 };
-    const percent = getProgressPercent(stat.completed, stat.total);
-    const isInactive = stat.total === 0;
-    const isSelected = selectedCategory === item.bucket;
+    // Optional: non-core enabled buckets with items > 0
+    for (const b of enabledBuckets) {
+      if (CORE_SET.has(b)) continue;
+      const statKey = b as keyof TodayStats;
+      const stat: StatData = todayStats[statKey] ?? { completed: 0, total: 0 };
+      if (stat.total > 0) {
+        result.push({
+          bucket: b,
+          itemType: BUCKET_TO_ITEM_TYPE[b] || b,
+          statKey,
+        });
+      }
+    }
 
-    // All tiles use identical styling — no urgency highlights, no per-tile colors
-    return (
-      <TouchableOpacity
-        key={item.bucket}
-        style={[
-          styles.cell,
-          isInactive && styles.cellInactive,
-          isSelected && styles.cellSelected,
-        ]}
-        onPress={() => onRingPress?.(item.bucket)}
-        activeOpacity={0.7}
-        accessibilityLabel={`${item.label}. ${stat.completed} of ${stat.total}. Tap to filter.`}
-        accessibilityRole="button"
-        accessibilityState={{ selected: isSelected }}
-      >
-        <Text style={styles.cellIcon}>{item.icon}</Text>
-        <Text style={styles.cellLabel}>{item.label}</Text>
-        <Text style={[styles.cellFrac, { color: isInactive ? colors.textMuted : colors.textSecondary }]}>
-          {stat.total > 0 ? `${stat.completed}/${stat.total}` : '\u2014'}
-        </Text>
-        <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              { width: `${Math.min(percent, 100)}%`, backgroundColor: colors.accent },
-            ]}
-          />
-        </View>
-      </TouchableOpacity>
-    );
-  };
+    return result;
+  }, [enabledBuckets, todayStats]);
 
   return (
-    <View style={styles.section}>
-      {/* Row 1: ALWAYS exactly 4 core tiles */}
-      <View style={styles.strip}>
-        {coreTiles.map(renderCell)}
-      </View>
-      {/* Row 2: ONLY if there are enabled non-core buckets */}
-      {optionalTiles.length > 0 && (
-        <View style={[styles.strip, { marginTop: 6 }]}>
-          {optionalTiles.map(renderCell)}
-        </View>
-      )}
+    <View style={styles.row}>
+      {categories.map(({ bucket, itemType, statKey }) => {
+        const stat: StatData = todayStats[statKey] ?? { completed: 0, total: 0 };
+        const config = CATEGORY_CONFIG[itemType];
+        if (!config) return null;
+
+        const categoryColor = config.color;
+        const overdue = isCategoryOverdue(itemType, instances);
+        const isComplete = stat.total > 0 && stat.completed === stat.total;
+        const isInProgress = stat.completed > 0 && !isComplete;
+
+        // Determine text + dot color
+        let dotColor = categoryColor;
+        let textColor = categoryColor;
+        let textOpacity = 1;
+
+        if (overdue) {
+          dotColor = '#F87171'; // red
+          textColor = '#F87171';
+        } else if (isComplete) {
+          textOpacity = 0.5;
+        } else if (isInProgress) {
+          textOpacity = 0.6;
+        }
+
+        const fraction = stat.total > 0 ? `${stat.completed}/${stat.total}` : '\u2014';
+
+        return (
+          <View
+            key={bucket}
+            style={styles.item}
+            accessibilityLabel={`${config.chipLabel} ${stat.completed} of ${stat.total}`}
+          >
+            <View style={[styles.dot, { backgroundColor: dotColor }]} />
+            <Text style={[styles.label, { color: textColor, opacity: textOpacity }]}>
+              {config.chipLabel} {fraction}
+            </Text>
+          </View>
+        );
+      })}
     </View>
   );
 }

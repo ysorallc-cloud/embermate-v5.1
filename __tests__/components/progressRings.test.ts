@@ -1,118 +1,82 @@
 // ============================================================================
-// ProgressRings — Core vs Optional tile logic tests
-// Tests the tile-building logic, not React rendering (node test env)
+// ProgressRings — Flat inline progress row tests
 // ============================================================================
 
+import { CATEGORY_CONFIG } from '../../constants/categoryLabels';
 import type { BucketType } from '../../types/carePlanConfig';
+import * as fs from 'fs';
+import * as path from 'path';
 
-// Replicate the component's core logic for unit testing
+const srcPath = path.resolve(__dirname, '../../components/now/ProgressRings.tsx');
+const src = fs.readFileSync(srcPath, 'utf-8');
+
 const CORE_BUCKETS: BucketType[] = ['meds', 'vitals', 'wellness', 'meals'];
+const CORE_SET = new Set<string>(CORE_BUCKETS);
 
-const BUCKET_TILE_MAP: Record<string, { label: string; icon: string }> = {
-  meds:      { icon: '💊', label: 'Meds' },
-  vitals:    { icon: '📊', label: 'Vitals' },
-  meals:     { icon: '🍽️', label: 'Meals' },
-  water:     { icon: '💧', label: 'Water' },
-  sleep:     { icon: '😴', label: 'Sleep' },
-  activity:  { icon: '🚶', label: 'Activity' },
-  wellness:  { icon: '🌅', label: 'Check' },
-  appointments: { icon: '📅', label: 'Appts' },
-  errands:   { icon: '📋', label: 'Errands' },
-  shifts:    { icon: '🔄', label: 'Shifts' },
-  self_care: { icon: '💛', label: 'Self' },
+const BUCKET_TO_ITEM_TYPE: Record<string, string> = {
+  meds: 'medication', vitals: 'vitals', meals: 'nutrition',
+  water: 'hydration', wellness: 'wellness',
 };
 
-function buildCoreTiles() {
-  return CORE_BUCKETS
-    .filter(b => BUCKET_TILE_MAP[b])
-    .map(b => ({ bucket: b, ...BUCKET_TILE_MAP[b] }));
-}
-
-function buildOptionalTiles(enabledBuckets: BucketType[]) {
-  const coreSet = new Set<string>(CORE_BUCKETS);
-  return enabledBuckets
-    .filter(b => !coreSet.has(b) && BUCKET_TILE_MAP[b])
-    .map(b => ({ bucket: b, ...BUCKET_TILE_MAP[b] }));
-}
-
-describe('ProgressRings tile logic', () => {
-  it('renders exactly 4 core tiles when no optional buckets enabled', () => {
-    const core = buildCoreTiles();
-    const optional = buildOptionalTiles([]);
-    expect(core).toHaveLength(4);
-    expect(optional).toHaveLength(0);
+describe('ProgressRings (flat inline row)', () => {
+  it('renders as a centered row with no cards, no icons, no gradient', () => {
+    expect(src).toContain("justifyContent: 'center'");
+    expect(src).not.toContain('LinearGradient');
+    expect(src).not.toContain('cellIcon');
+    expect(src).not.toContain('borderRadius: 10');
+    // Uses CATEGORY_CONFIG for labels
+    expect(src).toContain('CATEGORY_CONFIG');
+    expect(src).toContain('config.chipLabel');
   });
 
-  it('renders 4 + N tiles when N optional buckets enabled', () => {
-    const core = buildCoreTiles();
-    const optional = buildOptionalTiles(['meds', 'vitals', 'wellness', 'meals', 'errands', 'shifts']);
-    expect(core).toHaveLength(4);
-    // meds, vitals, wellness, meals are core — only errands + shifts are optional
-    expect(optional).toHaveLength(2);
-    expect(optional[0].bucket).toBe('errands');
-    expect(optional[1].bucket).toBe('shifts');
+  it('always shows 4 core buckets', () => {
+    expect(src).toContain("const CORE_BUCKETS: BucketType[] = ['meds', 'vitals', 'wellness', 'meals']");
   });
 
-  it('core tile order is always: Meds, Vitals, Wellness, Meals', () => {
-    const core = buildCoreTiles();
-    expect(core[0].bucket).toBe('meds');
-    expect(core[1].bucket).toBe('vitals');
-    expect(core[2].bucket).toBe('wellness');
-    expect(core[3].bucket).toBe('meals');
+  it('shows optional buckets only when they have items > 0', () => {
+    expect(src).toContain('stat.total > 0');
+    expect(src).toContain('CORE_SET.has(b)');
   });
 
-  it('optional tiles appear in second row (separate from core)', () => {
-    const core = buildCoreTiles();
-    const optional = buildOptionalTiles(['water', 'sleep', 'errands', 'self_care']);
-
-    // Core should not contain any optional tiles
-    const coreIds = core.map(t => t.bucket);
-    expect(coreIds).not.toContain('water');
-    expect(coreIds).not.toContain('errands');
-
-    // Optional should only contain non-core tiles
-    const optIds = optional.map(t => t.bucket);
-    expect(optIds).toContain('water');
-    expect(optIds).toContain('sleep');
-    expect(optIds).toContain('errands');
-    expect(optIds).toContain('self_care');
-    expect(optIds).not.toContain('meds');
+  it('dot is 6px circle', () => {
+    expect(src).toContain('width: 6');
+    expect(src).toContain('height: 6');
+    expect(src).toContain('borderRadius: 3');
   });
 
-  it('each tile has emoji, label, and bucket', () => {
-    const core = buildCoreTiles();
-    const optional = buildOptionalTiles(['errands', 'shifts', 'self_care']);
-    const all = [...core, ...optional];
-
-    for (const tile of all) {
-      expect(tile.bucket).toBeDefined();
-      expect(tile.icon).toBeDefined();
-      expect(tile.label).toBeDefined();
-      expect(typeof tile.icon).toBe('string');
-      expect(typeof tile.label).toBe('string');
-    }
+  it('text is 11px fontSize 500 weight', () => {
+    expect(src).toContain('fontSize: 11');
+    expect(src).toContain("fontWeight: '500'");
   });
 
-  it('non-enabled non-core buckets do NOT appear in optional row', () => {
-    // Only 'water' is in enabledBuckets — sleep, activity, etc. should NOT appear
-    const optional = buildOptionalTiles(['meds', 'vitals', 'wellness', 'meals', 'water']);
-    expect(optional).toHaveLength(1);
-    expect(optional[0].bucket).toBe('water');
-
-    // sleep, activity, errands etc. are NOT in enabledBuckets → not in optional
-    const optIds = optional.map(t => t.bucket);
-    expect(optIds).not.toContain('sleep');
-    expect(optIds).not.toContain('activity');
-    expect(optIds).not.toContain('errands');
+  it('gap between items is 16px', () => {
+    expect(src).toContain('gap: 16');
   });
 
-  it('second row is empty when enabledBuckets only contains core buckets', () => {
-    const optional = buildOptionalTiles(['meds', 'vitals', 'wellness', 'meals']);
-    expect(optional).toHaveLength(0);
+  it('overdue categories use red color', () => {
+    expect(src).toContain("'#F87171'");
+    expect(src).toContain('isCategoryOverdue');
   });
 
-  it('second row is empty when enabledBuckets is empty', () => {
-    const optional = buildOptionalTiles([]);
-    expect(optional).toHaveLength(0);
+  it('complete categories show at 0.5 opacity', () => {
+    expect(src).toContain('textOpacity = 0.5');
+  });
+
+  it('in-progress categories show at 0.6 opacity', () => {
+    expect(src).toContain('textOpacity = 0.6');
+  });
+
+  it('uses chipLabel from CATEGORY_CONFIG', () => {
+    expect(CATEGORY_CONFIG.medication.chipLabel).toBe('Meds');
+    expect(CATEGORY_CONFIG.vitals.chipLabel).toBe('Vitals');
+    expect(CATEGORY_CONFIG.wellness.chipLabel).toBe('Check-ins');
+    expect(CATEGORY_CONFIG.nutrition.chipLabel).toBe('Meals');
+  });
+
+  it('dot colors match CATEGORY_CONFIG colors', () => {
+    expect(CATEGORY_CONFIG.medication.color).toBe('#34D399');
+    expect(CATEGORY_CONFIG.vitals.color).toBe('#A78BFA');
+    expect(CATEGORY_CONFIG.wellness.color).toBe('#34D399');
+    expect(CATEGORY_CONFIG.nutrition.color).toBe('#FBBF24');
   });
 });

@@ -102,9 +102,9 @@ describe('S3: ProgressRings bucket alignment', () => {
     expect(progressRingsSrc).not.toMatch(/const DEFAULT_BUCKETS.*BucketType/);
   });
 
-  test('uses CORE_SET for filtering optional tiles', () => {
+  test('uses CORE_SET to exclude core buckets from optional list', () => {
     expect(progressRingsSrc).toContain('CORE_SET');
-    expect(progressRingsSrc).toContain('!CORE_SET.has(b)');
+    expect(progressRingsSrc).toContain('CORE_SET.has(b)');
   });
 });
 

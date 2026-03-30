@@ -13,7 +13,6 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { navigate } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../theme/theme-tokens';
@@ -907,25 +906,11 @@ export default function NowScreen() {
             onAction={() => navigate('/care-plan')}
             styles={styles}
           />
-          <LinearGradient
-            colors={['#061A12', '#0D2A1F', '#071E14']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroCard}
-            accessibilityLiveRegion="polite"
-            accessibilityRole="summary"
-          >
-            <ProgressRings
-              todayStats={todayStats}
-              enabledBuckets={enabledBuckets}
-              nextUp={todayTimeline?.nextUp}
-              instances={instancesState?.instances || []}
-              selectedCategory={selectedCategory}
-              onRingPress={handleRingPress}
-              onManagePress={() => navigate('/care-plan')}
-              patientName={patientName}
-            />
-          </LinearGradient>
+          <ProgressRings
+            todayStats={todayStats}
+            enabledBuckets={enabledBuckets}
+            instances={instancesState?.instances || []}
+          />
 
           {/* ═══ ZONE 2: TODAY'S SCHEDULE ═══ */}
           <SectionHeaderRow
