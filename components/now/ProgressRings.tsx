@@ -15,8 +15,6 @@ import {
 import { Colors } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { StatData, TodayStats } from '../../utils/nowHelpers';
-import { getUrgencyStatus, getCategoryUrgencyStatus, type UrgencyStatus } from '../../utils/nowUrgency';
-import type { UrgencyTier, UrgencyTone } from '../../utils/urgency';
 import type { BucketType } from '../../types/carePlanConfig';
 
 // ============================================================================
@@ -53,16 +51,6 @@ const BUCKET_TILE_MAP: Record<string, Omit<TileItem, 'bucket'>> = {
   self_care: { icon: '\uD83D\uDC9B', label: 'Self',     statKey: 'self_care' as any, itemType: 'self_care' },
 };
 
-// Bar color per bucket
-const BUCKET_BAR_COLOR: Record<string, string> = {
-  meds:     '#F59E0B',
-  vitals:   '#3B82F6',
-  meals:    '#10B981',
-  water:    '#38BDF8',
-  sleep:    Colors.accent,
-  activity: '#F97316',
-  wellness: '#EC4899',
-};
 
 // ============================================================================
 // PROPS
@@ -71,8 +59,8 @@ const BUCKET_BAR_COLOR: Record<string, string> = {
 interface ProgressRingsProps {
   todayStats: TodayStats;
   enabledBuckets: BucketType[];
-  nextUp: any | null;
-  instances: any[];
+  nextUp?: any | null;       // kept for interface compat, unused in render
+  instances?: any[];          // kept for interface compat, unused in render
   selectedCategory?: BucketType | null;
   onRingPress?: (bucket: BucketType) => void;
   onManagePress?: () => void;
@@ -113,14 +101,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   cellInactive: {
     opacity: 0.5,
-  },
-  cellOverdue: {
-    borderColor: 'rgba(239, 68, 68, 0.35)',
-    backgroundColor: 'rgba(239, 68, 68, 0.05)',
-  },
-  cellWarn: {
-    borderColor: 'rgba(245, 158, 11, 0.25)',
-    backgroundColor: 'rgba(245, 158, 11, 0.05)',
   },
   cellSelected: {
     borderColor: 'rgba(20, 184, 166, 0.5)',
@@ -187,57 +167,19 @@ export function ProgressRings({
       .map(b => ({ bucket: b, ...BUCKET_TILE_MAP[b] }));
   }, [enabledBuckets]);
 
-  // Track critical tiles for above-fold cap
-  let criticalTileCount = 0;
-
   const renderCell = (item: TileItem) => {
     const stat: StatData = todayStats[item.statKey] ?? { completed: 0, total: 0 };
     const percent = getProgressPercent(stat.completed, stat.total);
-    const isComplete = stat.total > 0 && stat.completed === stat.total;
     const isInactive = stat.total === 0;
     const isSelected = selectedCategory === item.bucket;
 
-    let nextUpIsCritical = false;
-    if (nextUp) {
-      const nextUpUrgency = getUrgencyStatus(nextUp.scheduledTime, false, nextUp.itemType);
-      nextUpIsCritical = nextUpUrgency.tier === 'critical';
-    }
-
-    const urgencyResult = item.itemType
-      ? getCategoryUrgencyStatus(instances, item.itemType, stat, {
-          hasCriticalNextUp: nextUpIsCritical,
-          criticalTileCount,
-        })
-      : { status: 'NOT_APPLICABLE' as UrgencyStatus, tier: 'info' as UrgencyTier, tone: 'neutral' as UrgencyTone, label: '', isCritical: false };
-
-    if (urgencyResult.isCritical) {
-      criticalTileCount++;
-    }
-
-    const barColor = isComplete
-      ? colors.green
-      : BUCKET_BAR_COLOR[item.bucket] || colors.accent;
-
-    const countColor = isComplete ? colors.green
-      : isInactive ? colors.textMuted
-      : urgencyResult.tone === 'danger' ? colors.red
-      : urgencyResult.tone === 'warn' ? colors.amber
-      : colors.textSecondary;
-
-    const getCellStyle = () => {
-      if (isComplete || isInactive) return null;
-      if (urgencyResult.tone === 'danger') return styles.cellOverdue;
-      if (urgencyResult.tone === 'warn') return styles.cellWarn;
-      return null;
-    };
-
+    // All tiles use identical styling — no urgency highlights, no per-tile colors
     return (
       <TouchableOpacity
         key={item.bucket}
         style={[
           styles.cell,
           isInactive && styles.cellInactive,
-          getCellStyle(),
           isSelected && styles.cellSelected,
         ]}
         onPress={() => onRingPress?.(item.bucket)}
@@ -248,14 +190,14 @@ export function ProgressRings({
       >
         <Text style={styles.cellIcon}>{item.icon}</Text>
         <Text style={styles.cellLabel}>{item.label}</Text>
-        <Text style={[styles.cellFrac, { color: countColor }]}>
+        <Text style={[styles.cellFrac, { color: isInactive ? colors.textMuted : colors.textSecondary }]}>
           {stat.total > 0 ? `${stat.completed}/${stat.total}` : '\u2014'}
         </Text>
         <View style={styles.progressBar}>
           <View
             style={[
               styles.progressFill,
-              { width: `${Math.min(percent, 100)}%`, backgroundColor: barColor },
+              { width: `${Math.min(percent, 100)}%`, backgroundColor: colors.accent },
             ]}
           />
         </View>
