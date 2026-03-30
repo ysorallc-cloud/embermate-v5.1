@@ -618,13 +618,6 @@ function TimelineModeBContent({
         ).length;
         const remainingCount = items.length - completedCount;
 
-        // allDone = every item is completed or skipped (no pending, no missed)
-        const allDone = remainingCount === 0;
-        const hasMissedItems = items.some(i => i.status === 'missed');
-        const hasOverdueItems = hasMissedItems || items.some(i =>
-          i.status === 'pending' && isOverdue(i.scheduledTime)
-        );
-
         return (
           <View key={window} style={styles.timeGroup}>
             {/* Collapsible header */}
@@ -636,12 +629,6 @@ function TimelineModeBContent({
               accessibilityRole="button"
               accessibilityState={{ expanded: !isCollapsed }}
             >
-              <View style={[
-                styles.windowDot,
-                allDone ? styles.windowDotGreen
-                  : hasOverdueItems ? styles.windowDotRed
-                  : styles.windowDotAmber,
-              ]} />
               <Text style={styles.timeGroupTitle}>
                 {TIME_WINDOW_LABELS[window]}
               </Text>
@@ -1022,20 +1009,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   timeGroupHeaderCurrent: {
     backgroundColor: c.accentDim,
     borderRadius: 8,
-  },
-  windowDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  windowDotGreen: {
-    backgroundColor: c.green,
-  },
-  windowDotAmber: {
-    backgroundColor: c.amber,
-  },
-  windowDotRed: {
-    backgroundColor: c.red,
   },
   timeGroupChevron: {
     fontSize: 8,
