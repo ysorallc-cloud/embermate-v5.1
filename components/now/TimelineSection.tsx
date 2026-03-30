@@ -629,10 +629,7 @@ function TimelineModeBContent({
           <View key={window} style={styles.timeGroup}>
             {/* Collapsible header */}
             <TouchableOpacity
-              style={[
-                styles.timeGroupHeader,
-                isCurrent && styles.timeGroupHeaderCurrent,
-              ]}
+              style={styles.timeGroupHeader}
               onPress={() => toggleWindow(window)}
               activeOpacity={0.7}
               accessibilityLabel={`${TIME_WINDOW_LABELS[window]}, ${remainingCount} remaining, ${completedCount} done. ${isCollapsed ? 'Expand' : 'Collapse'}`}
@@ -645,21 +642,18 @@ function TimelineModeBContent({
                   : hasOverdueItems ? styles.windowDotRed
                   : styles.windowDotAmber,
               ]} />
-              <Text style={[
-                styles.timeGroupTitle,
-                isCurrent && styles.timeGroupTitleCurrent,
-              ]}>
+              <Text style={styles.timeGroupTitle}>
                 {TIME_WINDOW_LABELS[window]}
               </Text>
               <Text style={styles.timeGroupCount}>
                 {remainingCount > 0 ? `${remainingCount} remaining` : `Complete \u2713`}
               </Text>
-              {isCurrent && remainingCount > 0 && onStartRoutine && (
+              {isCollapsed && remainingCount > 0 && (
                 <TouchableOpacity
-                  onPress={() => onStartRoutine(window)}
+                  onPress={() => toggleWindow(window)}
                   style={styles.startRoutineButton}
                   activeOpacity={0.7}
-                  accessibilityLabel={`Start ${TIME_WINDOW_LABELS[window]} routine`}
+                  accessibilityLabel={`Start ${TIME_WINDOW_LABELS[window]} items`}
                   accessibilityRole="button"
                 >
                   <Text style={styles.startRoutineText}>Start</Text>
