@@ -109,15 +109,14 @@ describe('INS-3: Priority-based generateCareInsight', () => {
 // ============================================================================
 describe('INS-4: Footer simplified', () => {
   test('footer does not reference careInsight', () => {
-    const footerSection = nowRender.match(/footerSection[\s\S]*?<\/View>/);
-    expect(footerSection).not.toBeNull();
-    expect(footerSection![0]).not.toContain('careInsight');
+    // footerSection was removed — coffee moment + encouragement text moved to Support tab
+    expect(nowRender).not.toContain('careInsight');
   });
 
-  test('footer shows static encouragement messages', () => {
+  test('footer section removed (Support tab is now the wellness surface)', () => {
+    // footerSection no longer exists in now.tsx
     const footerSection = nowRender.match(/footerSection[\s\S]*?<\/View>/);
-    expect(footerSection).not.toBeNull();
-    expect(footerSection![0]).toContain('showed up today');
+    expect(footerSection).toBeNull();
   });
 });
 
