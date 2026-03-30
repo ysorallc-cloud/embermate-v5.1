@@ -458,7 +458,7 @@ export default function JournalTab() {
   // HANDOFF NOTES
   // ============================================================================
   type HandoffType = 'done' | 'watch' | 'flag';
-  interface HandoffItem { icon: string; text: string; type: HandoffType; }
+  interface HandoffItem { icon: string; text: string; context?: string; type: HandoffType; }
 
   function buildHandoffNotes(): HandoffItem[] {
     if (!brief) return [];
@@ -486,9 +486,20 @@ export default function JournalTab() {
       for (const ai of brief.attentionItems) {
         const text = ai.text || '';
         let type: HandoffType = 'watch';
-        if (/miss|skip|overdue/i.test(text)) type = 'flag';
+        let context: string | undefined;
+        if (/miss|skip|overdue/i.test(text)) {
+          type = 'flag';
+          if (/med|medication/i.test(text)) {
+            context = 'Check whether this was intentional or if there\'s a side effect concern.';
+          } else if (/meal|breakfast|lunch|dinner/i.test(text)) {
+            context = 'Ensure adequate nutrition at next meal.';
+          }
+        }
+        if (/confus|disorient/i.test(text)) {
+          context = 'Monitor if this recurs at the same time tomorrow.';
+        }
         const icon = type === 'flag' ? '\uD83D\uDED1' : '\uD83D\uDC41\uFE0F';
-        items.push({ icon, text, type });
+        items.push({ icon, text, context, type });
       }
     }
 
@@ -674,6 +685,12 @@ export default function JournalTab() {
   const handoffNotes = buildHandoffNotes();
   const beforeBedItems = buildBeforeBedItems();
 
+  function getBedItemColor(item: BeforeBedItem): string {
+    if (/med|acetaminophen|amlodipine|medication/i.test(item.text)) return colors.red;
+    if (/sleep/i.test(item.text)) return colors.purple;
+    return colors.amberBright;
+  }
+
   // All possible glance tiles, keyed by their Care Plan bucket type
   const allGlanceTiles: { bucket: string; label: string; value: string; color: string }[] = [
     { bucket: 'meds',     label: 'Meds',     value: getMedsValue(),                color: dotColorToStyle(getMedsDotColor()) },
@@ -791,7 +808,25 @@ export default function JournalTab() {
           {/* ═══ SHIFT SUMMARY ═══ */}
           <SectionLabel title="Shift Summary" styles={s} />
           <View style={s.summaryCard}>
-            <Text style={s.summaryText}>{getBriefingText()}</Text>
+            {(() => {
+              const raw = getBriefingText();
+              const paras = raw
+                .split(/(?<=\.)\s+/)
+                .reduce((acc: string[], sentence: string) => {
+                  if (acc.length === 0 || acc[acc.length - 1].split('.').length > 3) {
+                    acc.push(sentence);
+                  } else {
+                    acc[acc.length - 1] += ' ' + sentence;
+                  }
+                  return acc;
+                }, [])
+                .filter((p: string) => p.trim().length > 0);
+              return paras.map((para: string, i: number) => (
+                <Text key={i} style={[s.summaryText, i < paras.length - 1 && { marginBottom: 12 }]}>
+                  {para}
+                </Text>
+              ));
+            })()}
           </View>
 
           {/* First-use guidance when nothing logged today */}
@@ -818,6 +853,7 @@ export default function JournalTab() {
                     }]}
                   >
                     <Text style={s.watchTitle}>{item.text}</Text>
+                    {item.context && <Text style={s.watchContext}>{item.context}</Text>}
                   </View>
                 ))}
               </View>
@@ -878,6 +914,29 @@ export default function JournalTab() {
                   </TouchableOpacity>
                 );
               })}
+            </>
+          )}
+
+          {/* ═══ BEFORE BED ═══ */}
+          {beforeBedItems.length > 0 && (
+            <>
+              <SectionLabel title="Before Bed" styles={s} />
+              <View style={s.beforeBedCard}>
+                {beforeBedItems.map((item, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={[s.beforeBedRow, i < beforeBedItems.length - 1 && s.beforeBedRowBorder]}
+                    onPress={() => item.route && navigate(item.route)}
+                    activeOpacity={0.7}
+                    accessibilityLabel={`${item.text}. Tap to log.`}
+                    accessibilityRole="button"
+                  >
+                    <View style={[s.beforeBedDot, { backgroundColor: getBedItemColor(item) }]} />
+                    <Text style={s.beforeBedText}>{item.text}</Text>
+                    <Text style={s.beforeBedAction}>Log →</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </>
           )}
 
@@ -1201,6 +1260,45 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '500' as const,
     color: c.textSecondary,
+  },
+  watchContext: {
+    fontSize: 12,
+    color: c.textMuted,
+    marginTop: 4,
+    lineHeight: 18,
+  },
+
+  // ─── BEFORE BED ───
+  beforeBedCard: {
+    backgroundColor: c.glassFaint,
+    borderRadius: 10,
+    marginBottom: 18,
+  },
+  beforeBedRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  beforeBedRowBorder: {
+    borderBottomWidth: 0.5,
+    borderBottomColor: c.glassDim,
+  },
+  beforeBedDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  beforeBedText: {
+    flex: 1,
+    fontSize: 13,
+    color: c.textSecondary,
+  },
+  beforeBedAction: {
+    fontSize: 12,
+    color: c.accent,
+    fontWeight: '500' as const,
   },
 
   // ─── FIRST-USE GUIDANCE ───
