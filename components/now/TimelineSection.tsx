@@ -6,6 +6,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { CATEGORY_CONFIG } from '../../constants/categoryLabels';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { MedsBatchPanel } from './MedsBatchPanel';
@@ -82,80 +83,6 @@ const ITEM_TYPE_TO_DOT_COLOR: Record<string, string> = {
 };
 
 // ============================================================================
-// TYPE LEGEND — Dynamic: scans today's timeline items, shows dots only for
-// types present in today's schedule. Canonical order for consistency.
-// ============================================================================
-
-// Display order for legend — controls which types render and in what order
-export const LEGEND_TYPES: { itemType: string; label: string; color: string }[] = [
-  { itemType: 'medication', label: 'CARE',     color: '#34D399' },  // green
-  { itemType: 'vitals',     label: 'VITALS',   color: '#A78BFA' },  // purple
-  { itemType: 'wellness',   label: 'WELLNESS', color: '#34D399' },  // green
-  { itemType: 'nutrition',  label: 'MEAL',     color: '#FBBF24' },  // amber
-  { itemType: 'errand',     label: 'ERRAND',   color: '#FBBF24' },  // amber
-  { itemType: 'appointment',label: 'APPT',     color: '#EF4444' },  // red
-  { itemType: 'self_care',  label: 'YOU',       color: '#F472B6' },  // rose
-  { itemType: 'shift',      label: 'HANDOFF',  color: '#7DD3FC' },  // sky
-];
-
-interface TypeLegendProps {
-  instances: any[];
-}
-
-export function TypeLegend({ instances }: TypeLegendProps) {
-  const { colors } = useTheme();
-
-  // Build set of item types present in today's schedule
-  const activeLegend = useMemo(() => {
-    const presentTypes = new Set<string>();
-    for (const inst of instances) {
-      if (inst.itemType) presentTypes.add(inst.itemType);
-    }
-    // Filter canonical list to only types present in today's items
-    return LEGEND_TYPES.filter(lt => presentTypes.has(lt.itemType));
-  }, [instances]);
-
-  if (activeLegend.length === 0) return null;
-
-  return (
-    <View style={legendStyles.row}>
-      {activeLegend.map(t => (
-        <View key={t.itemType} style={legendStyles.item}>
-          <View style={[legendStyles.dot, { backgroundColor: t.color }]} />
-          <Text style={[legendStyles.label, { color: colors.textMuted }]}>{t.label}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-const legendStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    paddingHorizontal: 4,
-    paddingVertical: 6,
-    marginBottom: 4,
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-});
-
-// ============================================================================
 // SUB-ITEM PROGRESS — Shows "1/3" with thin bar for grouped items (e.g. 3 med doses)
 // ============================================================================
 
@@ -171,40 +98,6 @@ function getSubItemProgress(instance: any, allItems: any[]): { done: number; tot
   ).length;
   return { done, total: siblings.length };
 }
-
-// ============================================================================
-// TYPE BADGE MAPPINGS
-// ============================================================================
-
-export const ITEM_TYPE_TO_BADGE_TEXT: Record<string, string> = {
-  medication: 'CARE',
-  vitals: 'VITALS',
-  wellness: 'WELLNESS',
-  nutrition: 'MEAL',
-  hydration: 'WATER',
-  sleep: 'SLEEP',
-  activity: 'ACTIVITY',
-  errand: 'ERRAND',
-  self_care: 'YOU',
-  shift: 'HANDOFF',
-  appointment: 'APPT',
-  custom: 'TASK',
-};
-
-export const ITEM_TYPE_TO_BADGE_COLOR: Record<string, string> = {
-  medication: '#34D399',    // green  — CARE
-  vitals: '#A78BFA',        // purple — VITALS
-  wellness: '#34D399',      // green  — WELLNESS
-  nutrition: '#FBBF24',     // amber  — MEAL
-  hydration: '#38BDF8',     // blue   — WATER
-  sleep: Colors.accent,     // accent — SLEEP
-  activity: '#F97316',      // orange — ACTIVITY
-  errand: '#FBBF24',        // amber  — ERRAND
-  self_care: '#F472B6',     // rose   — YOU
-  shift: '#7DD3FC',         // sky    — HANDOFF
-  appointment: '#EF4444',   // red    — APPT
-  custom: '#A78BFA',        // purple — TASK
-};
 
 const TIME_WINDOW_LABELS: Record<TimeWindow, string> = {
   morning: 'Morning',
@@ -686,9 +579,9 @@ function TimelineModeBContent({
                     if (isCompleted) {
                       itemContent = (
                         <View style={[styles.gutterContent, { opacity: 0.4 }]} accessibilityLabel={`${instance.itemName}, logged${timeStr ? ` at ${timeStr}` : ''}`}>
-                          {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
-                            <Text style={[styles.typeBadge, { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted, opacity: 0.6 }]}>
-                              {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
+                          {CATEGORY_CONFIG[instance.itemType]?.label && (
+                            <Text style={[styles.typeBadge, { color: CATEGORY_CONFIG[instance.itemType]?.color || colors.textMuted, opacity: 0.6 }]}>
+                              {CATEGORY_CONFIG[instance.itemType]?.label}
                             </Text>
                           )}
                           <View style={styles.gutterItemRow}>
@@ -701,9 +594,9 @@ function TimelineModeBContent({
                     } else if (isSkipped) {
                       itemContent = (
                         <View style={[styles.gutterContent, { opacity: 0.6 }]} accessibilityLabel={`${instance.itemName}, skipped`}>
-                          {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
-                            <Text style={[styles.typeBadge, { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted, opacity: 0.6 }]}>
-                              {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
+                          {CATEGORY_CONFIG[instance.itemType]?.label && (
+                            <Text style={[styles.typeBadge, { color: CATEGORY_CONFIG[instance.itemType]?.color || colors.textMuted, opacity: 0.6 }]}>
+                              {CATEGORY_CONFIG[instance.itemType]?.label}
                             </Text>
                           )}
                           <View style={styles.gutterItemRow}>
@@ -721,9 +614,9 @@ function TimelineModeBContent({
                           accessibilityLabel={`${instance.itemName}, missed. Tap to log late.`}
                           accessibilityRole="button"
                         >
-                          {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
-                            <Text style={[styles.typeBadge, { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted }]}>
-                              {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
+                          {CATEGORY_CONFIG[instance.itemType]?.label && (
+                            <Text style={[styles.typeBadge, { color: CATEGORY_CONFIG[instance.itemType]?.color || colors.textMuted }]}>
+                              {CATEGORY_CONFIG[instance.itemType]?.label}
                             </Text>
                           )}
                           <View style={styles.gutterItemRow}>
@@ -743,9 +636,9 @@ function TimelineModeBContent({
                           accessibilityLabel={`${instance.itemName}, ${subtitle}`}
                           accessibilityRole="button"
                         >
-                          {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType] && (
-                            <Text style={[styles.typeBadge, { color: ITEM_TYPE_TO_BADGE_COLOR[instance.itemType] || colors.textMuted }]}>
-                              {ITEM_TYPE_TO_BADGE_TEXT[instance.itemType]}
+                          {CATEGORY_CONFIG[instance.itemType]?.label && (
+                            <Text style={[styles.typeBadge, { color: CATEGORY_CONFIG[instance.itemType]?.color || colors.textMuted }]}>
+                              {CATEGORY_CONFIG[instance.itemType]?.label}
                             </Text>
                           )}
                           <View style={styles.gutterItemRow}>

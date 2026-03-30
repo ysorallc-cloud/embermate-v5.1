@@ -83,7 +83,7 @@ import { ProgressRings } from '../../components/now/ProgressRings';
 import { ScreenHeader } from '../../components/ScreenHeader';
 // SectionHeader replaced by inline SectionHeaderRow (flat, no icons)
 import { MorningMedsBanner } from '../../components/now/MorningMedsBanner';
-import { TimelineSection, TypeLegend } from '../../components/now/TimelineSection';
+import { TimelineSection } from '../../components/now/TimelineSection';
 import { RoutineSheet } from '../../components/now/RoutineSheet';
 import { HandoffPromptCard } from '../../components/now/HandoffPromptCard';
 
@@ -936,11 +936,6 @@ export default function NowScreen() {
             onToggleCollapse={() => setTimelineCollapsed(prev => !prev)}
             styles={styles}
           />
-
-          {/* Type legend — colored dots + type names for active types */}
-          {!timelineCollapsed && (
-            <TypeLegend instances={[...allPending, ...todayTimeline.completed]} />
-          )}
 
           {timelineCollapsed ? (
             /* Collapsed: window summary rows */
