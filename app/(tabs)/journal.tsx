@@ -134,6 +134,7 @@ export default function JournalTab() {
   const { statuses: calendarStatuses } = useCalendarStatuses(calendarMonth.year, calendarMonth.month);
   // journalEvents removed — DetailedEventLog no longer rendered
   const [reflection, setReflection] = useState<StoredReflection | null>(null);
+  const [reflectionDirty, setReflectionDirty] = useState(false);
 
   // Load reflection when date changes
   useEffect(() => {
@@ -141,14 +142,35 @@ export default function JournalTab() {
   }, [selectedDate]);
 
   const handleDateSelect = useCallback((date: string) => {
+    if (reflectionDirty) {
+      Alert.alert(
+        'Unsaved reflection',
+        'You have an unsaved reflection. Save it before switching days?',
+        [
+          { text: 'Discard', style: 'destructive', onPress: () => { setReflectionDirty(false); setSelectedDate(date); setCalendarOpen(false); } },
+          { text: 'Go back', style: 'cancel' },
+        ]
+      );
+      return;
+    }
     setSelectedDate(date);
-    setCalendarOpen(false); // tab strip selection closes calendar
-  }, []);
+    setCalendarOpen(false);
+  }, [reflectionDirty]);
 
   const handleCalendarDateSelect = useCallback((date: string) => {
+    if (reflectionDirty) {
+      Alert.alert(
+        'Unsaved reflection',
+        'You have an unsaved reflection. Save it before switching days?',
+        [
+          { text: 'Discard', style: 'destructive', onPress: () => { setReflectionDirty(false); setSelectedDate(date); } },
+          { text: 'Go back', style: 'cancel' },
+        ]
+      );
+      return;
+    }
     setSelectedDate(date);
-    // Calendar stays open when selecting from calendar
-  }, []);
+  }, [reflectionDirty]);
 
   const handleSaveReflection = useCallback(async (text: string) => {
     const prompt = getDailyPrompt(selectedDate);
@@ -565,6 +587,7 @@ export default function JournalTab() {
       dayName,
       glanceStats,
       buildHandoffNotes(),
+      reflection?.text,
     );
     setDailyReport(result);
     setShowDailyPreview(true);
@@ -948,6 +971,7 @@ export default function JournalTab() {
             savedText={reflection?.text}
             savedAt={reflection?.savedAt}
             onSave={handleSaveReflection}
+            onDirtyChange={setReflectionDirty}
           />
 
           {/* ─── FOOTER ─── */}

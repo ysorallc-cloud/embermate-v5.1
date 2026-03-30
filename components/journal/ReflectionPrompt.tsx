@@ -1,8 +1,9 @@
 // ============================================================================
 // REFLECTION PROMPT — Optional single-prompt daily caregiver reflection
+// Section header rendered by parent (journal.tsx SectionLabel)
 // ============================================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -16,17 +17,24 @@ export interface ReflectionPromptProps {
   savedText?: string;
   savedAt?: string;
   onSave: (text: string) => Promise<void>;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 // ============================================================================
 // COMPONENT
 // ============================================================================
 
-export function ReflectionPrompt({ date, prompt, savedText, savedAt, onSave }: ReflectionPromptProps) {
+export function ReflectionPrompt({ date, prompt, savedText, savedAt, onSave, onDirtyChange }: ReflectionPromptProps) {
   const { colors } = useTheme();
   const [editing, setEditing] = useState(!savedText);
   const [text, setText] = useState(savedText || '');
   const [saving, setSaving] = useState(false);
+
+  const handleTextChange = (newText: string) => {
+    setText(newText);
+    const isDirty = newText.trim() !== (savedText || '').trim();
+    onDirtyChange?.(isDirty);
+  };
 
   const handleSave = async () => {
     if (!text.trim() || saving) return;
@@ -34,6 +42,7 @@ export function ReflectionPrompt({ date, prompt, savedText, savedAt, onSave }: R
     await onSave(text.trim());
     setSaving(false);
     setEditing(false);
+    onDirtyChange?.(false);
   };
 
   const formattedTime = savedAt
@@ -41,53 +50,48 @@ export function ReflectionPrompt({ date, prompt, savedText, savedAt, onSave }: R
     : null;
 
   return (
-    <View>
-      {/* Accent bar + label */}
-      <View style={styles.headerRow}>
-        <View style={styles.accentBar} />
-        <Text style={styles.headerLabel}>Reflection</Text>
-      </View>
+    <View style={styles.card}>
+      {/* Prompt */}
+      <Text style={styles.prompt}>{prompt}</Text>
 
-      <View style={styles.card}>
-        {/* Prompt */}
-        <Text style={styles.prompt}>{prompt}</Text>
-
-        {editing ? (
-          <>
-            <TextInput
-              style={[styles.input, { color: colors.textPrimary, borderColor: 'rgba(74,107,93,0.15)' }]}
-              placeholder="Write a few words, or skip..."
-              placeholderTextColor="rgba(200,195,180,0.3)"
-              value={text}
-              onChangeText={setText}
-              multiline
-              textAlignVertical="top"
-            />
-            <TouchableOpacity
-              style={[styles.saveBtn, !text.trim() && styles.saveBtnDisabled]}
-              onPress={handleSave}
-              disabled={!text.trim() || saving}
-              activeOpacity={0.7}
-              accessibilityLabel="Save reflection"
-              accessibilityRole="button"
-            >
-              <Text style={styles.saveBtnText}>{saving ? 'Saving...' : 'Save'}</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
+      {editing ? (
+        <>
+          <TextInput
+            style={[styles.input, { color: colors.textPrimary, borderColor: 'rgba(74,107,93,0.15)' }]}
+            placeholder="Write a few words, or skip..."
+            placeholderTextColor="rgba(200,195,180,0.3)"
+            value={text}
+            onChangeText={handleTextChange}
+            multiline
+            textAlignVertical="top"
+          />
+          <Text style={styles.storageHint}>
+            Your reflection is saved privately on this device and included in shared reports only if you choose.
+          </Text>
           <TouchableOpacity
-            onPress={() => setEditing(true)}
+            style={[styles.saveBtn, !text.trim() && styles.saveBtnDisabled]}
+            onPress={handleSave}
+            disabled={!text.trim() || saving}
             activeOpacity={0.7}
-            accessibilityLabel="Tap to edit reflection"
+            accessibilityLabel="Save reflection"
             accessibilityRole="button"
           >
-            <Text style={styles.savedText}>{text}</Text>
-            {formattedTime && (
-              <Text style={styles.timestamp}>Saved at {formattedTime}</Text>
-            )}
+            <Text style={styles.saveBtnText}>{saving ? 'Saving...' : 'Save reflection'}</Text>
           </TouchableOpacity>
-        )}
-      </View>
+        </>
+      ) : (
+        <TouchableOpacity
+          onPress={() => setEditing(true)}
+          activeOpacity={0.7}
+          accessibilityLabel="Tap to edit reflection"
+          accessibilityRole="button"
+        >
+          <Text style={styles.savedText}>{text}</Text>
+          <Text style={styles.storageNotice}>
+            Saved{formattedTime ? ` at ${formattedTime}` : ''} · Stored privately on this device
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -97,23 +101,6 @@ export function ReflectionPrompt({ date, prompt, savedText, savedAt, onSave }: R
 // ============================================================================
 
 const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    gap: 8,
-  },
-  accentBar: {
-    width: 3,
-    height: 16,
-    borderRadius: 2,
-    backgroundColor: 'rgba(200,195,180,0.15)',
-  },
-  headerLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: 'rgba(200,195,180,0.5)',
-  },
   card: {
     backgroundColor: 'rgba(74,107,93,0.06)',
     borderWidth: 1,
@@ -139,6 +126,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.15)',
     marginBottom: 10,
   },
+  storageHint: {
+    fontSize: 11,
+    color: 'rgba(200,195,180,0.3)',
+    marginBottom: 10,
+    lineHeight: 16,
+  },
   saveBtn: {
     backgroundColor: '#5DCAA5',
     borderRadius: 8,
@@ -159,8 +152,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 6,
   },
-  timestamp: {
+  storageNotice: {
     fontSize: 11,
     color: 'rgba(200,195,180,0.3)',
+    marginTop: 4,
   },
 });

@@ -33,6 +33,7 @@ export function buildDailySummaryReport(
   dayName: string,
   glanceStats: GlanceStat[],
   handoffNotes: HandoffNote[],
+  reflectionText?: string,
 ): DailyReportResult {
   const previewLines: string[] = [];
   const sections: ReportSection[] = [];
@@ -107,6 +108,14 @@ export function buildDailySummaryReport(
     notes,
     generatedAt: new Date(),
   };
+
+  // Include caregiver reflection if provided
+  if (reflectionText && reflectionText.trim()) {
+    sections.push({
+      heading: 'Caregiver Reflection',
+      rows: [{ label: '', value: reflectionText.trim() }],
+    });
+  }
 
   return { reportData, previewLines };
 }

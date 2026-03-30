@@ -37,6 +37,7 @@ export const SENSITIVE_KEY_PREFIXES = [
   'medical_info',                    // medicalInfo.ts key (no @ prefix)
   'emergency_contacts',              // emergencyContacts.ts key (no @ prefix)
   'events:',                         // CareEvents contain health data (vitals, meds, symptoms)
+  'reflection_',                     // caregiver reflections — personal emotional content
 ];
 
 export function isSensitiveKey(key: string): boolean {
