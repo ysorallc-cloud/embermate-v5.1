@@ -16,10 +16,12 @@ describe('Support tab', () => {
     expect(src).toContain('export default function SupportScreen');
   });
 
-  it('header: light weight title, no date line, conversational subtitle', () => {
+  it('header: warm room title + emotionally intelligent copy', () => {
     expect(src).toContain('>Support</Text>');
     expect(src).toContain("fontWeight: '300'");
-    expect(src).toContain('This space is yours. Take a moment.');
+    expect(src).toContain('This page is for');
+    expect(src).toContain('not your loved one.');
+    expect(src).toContain('Caregivers who check in on themselves');
     expect(src).not.toContain('dateStr');
   });
 

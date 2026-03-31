@@ -21,10 +21,9 @@ describe('Aurora support variant', () => {
     expect(auroraSrc).toMatch(/support:\s*\{\s*colors:/);
   });
 
-  it('support config uses teal tones', () => {
-    // The dark config should contain teal-ish rgba values
+  it('support config uses warm sage tones', () => {
     const supportMatch = auroraSrc.match(/support:\s*\{\s*colors:\s*\[\s*'([^']+)'/);
     expect(supportMatch).not.toBeNull();
-    expect(supportMatch![1]).toContain('140, 110'); // teal green component
+    expect(supportMatch![1]).toContain('100, 70'); // warm sage-teal component
   });
 });

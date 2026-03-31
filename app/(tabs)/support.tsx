@@ -55,9 +55,16 @@ export default function SupportScreen() {
           }
         >
           {/* ═══ HEADER ═══ */}
-          <View style={styles.header}>
+          <View style={styles.headerWrap}>
             <Text style={styles.title}>Support</Text>
-            <Text style={styles.subtitle}>This space is yours. Take a moment.</Text>
+            <Text style={styles.headerMessage}>
+              This page is for{' '}
+              <Text style={styles.headerYou}>you</Text>
+              {' '}— not your loved one.
+            </Text>
+            <Text style={styles.headerContext}>
+              Caregivers who check in on themselves provide better care. Take a moment.
+            </Text>
           </View>
 
           <View style={styles.zoneSpacer} />
@@ -172,7 +179,7 @@ function createStyles(c: typeof Colors) {
   return StyleSheet.create({
     root: {
       flex: 1,
-      backgroundColor: c.background,
+      backgroundColor: '#0c100e',
     },
     scroll: {
       flex: 1,
@@ -181,23 +188,34 @@ function createStyles(c: typeof Colors) {
       paddingHorizontal: 16,
       paddingBottom: 20,
     },
-    header: {
-      paddingTop: 8,
-      paddingBottom: 12,
+    headerWrap: {
+      paddingTop: 12,
+      paddingBottom: 20,
+      paddingHorizontal: 4,
       borderBottomWidth: 0.5,
-      borderBottomColor: c.glassHover,
+      borderBottomColor: 'rgba(255, 255, 255, 0.06)',
     },
     title: {
       fontSize: 32,
-      fontWeight: '300',
-      color: c.textPrimary,
+      fontWeight: '300' as const,
+      color: '#d8e8e0',
       letterSpacing: -0.5,
-      marginBottom: 8,
+      marginBottom: 10,
     },
-    subtitle: {
-      fontSize: 14,
-      color: c.textMuted,
-      lineHeight: 20,
+    headerMessage: {
+      fontSize: 15,
+      color: '#6a8a7a',
+      lineHeight: 22,
+    },
+    headerYou: {
+      color: '#c0d0c8',
+      fontWeight: '500' as const,
+    },
+    headerContext: {
+      fontSize: 13,
+      color: '#4a6a5a',
+      lineHeight: 19,
+      marginTop: 6,
     },
     zoneLabel: {
       fontSize: 14,

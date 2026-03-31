@@ -101,8 +101,8 @@ const AURORA_CONFIGS: Record<AuroraVariant, {
   },
   support: {
     colors: [
-      'rgba(20, 140, 110, 0.35)',  // Teal — calming
-      'rgba(30, 70, 90, 0.20)',    // Deep teal-blue
+      'rgba(20, 100, 70, 0.45)',   // Warm sage-teal
+      'rgba(15, 60, 45, 0.30)',    // Deep warm green
       'transparent',
     ],
   },
