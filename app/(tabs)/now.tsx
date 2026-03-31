@@ -396,10 +396,7 @@ export default function NowScreen() {
 
   // Extracted hooks
   const { showOnboarding, briefing, handlers, getBaselineStatusMessage, computePrompts: computePromptsHook, checkNotificationPrompt: checkNotifPrompt, loadBaselines } = useNowPrompts(todayStats, dailyTracking);
-  // useNowInsights removed — QuickPulseStatus replaces InsightBanner
-  useEffect(() => {
-    // placeholder to maintain hook call order if needed
-  }, [insight?.message]);
+  // useNowInsights + InsightBanner removed — QuickPulseStatus replaces them
 
   // ============================================================================
   // TODAY TIMELINE - Built from DailyCareInstances
