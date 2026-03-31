@@ -183,12 +183,15 @@ function createStyles(c: typeof Colors) {
     },
     header: {
       paddingTop: 8,
-      paddingBottom: 8,
+      paddingBottom: 12,
+      borderBottomWidth: 0.5,
+      borderBottomColor: c.glassHover,
     },
     title: {
-      fontSize: 28,
-      fontWeight: '200',
+      fontSize: 32,
+      fontWeight: '300',
       color: c.textPrimary,
+      letterSpacing: -0.5,
       marginBottom: 8,
     },
     subtitle: {

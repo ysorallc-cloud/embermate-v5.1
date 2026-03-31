@@ -15,11 +15,11 @@ interface ScreenHeaderProps {
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingTop: 44,
+    paddingTop: 12,
     paddingBottom: 16,
     marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: c.glassBorder,
+    borderBottomWidth: 0.5,
+    borderBottomColor: c.glassHover,
   },
   headerRow: {
     flexDirection: 'row',
@@ -39,7 +39,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   subtitle: {
     fontSize: 15,
     fontWeight: '400',
-    color: c.textTertiary,
+    color: c.textMuted,
     letterSpacing: 0.2,
     marginTop: 6,
   },

@@ -18,7 +18,7 @@ describe('Support tab', () => {
 
   it('header: light weight title, no date line, conversational subtitle', () => {
     expect(src).toContain('>Support</Text>');
-    expect(src).toContain("fontWeight: '200'");
+    expect(src).toContain("fontWeight: '300'");
     expect(src).toContain('This space is yours. Take a moment.');
     expect(src).not.toContain('dateStr');
   });

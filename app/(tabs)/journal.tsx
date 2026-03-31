@@ -1121,9 +1121,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderBottomColor: c.glassHover,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '200' as const,
+    fontSize: 32,
+    fontWeight: '300' as const,
     color: c.textPrimary,
+    letterSpacing: -0.5,
   },
   headerDate: {
     fontSize: 13,
