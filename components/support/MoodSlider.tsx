@@ -84,17 +84,14 @@ export function MoodSlider() {
       <Text style={styles.emoji}>{selected.emoji}</Text>
       <Text style={styles.label}>{selected.label}</Text>
 
-      {/* Position selector */}
+      {/* Slider track with single thumb */}
       <View style={styles.sliderTrack}>
-        <View style={[styles.sliderFill, { width: `${(selectedIndex / 4) * 100}%`, backgroundColor: colors.accent }]} />
+        <View style={[styles.sliderFill, { width: `${(selectedIndex / 4) * 100}%` }]} />
+        <View style={[styles.sliderThumb, { left: `${(selectedIndex / 4) * 100}%` }]} />
         {MOOD_POSITIONS.map((pos, i) => (
           <TouchableOpacity
             key={pos.score}
-            style={[
-              styles.sliderDot,
-              i <= selectedIndex && { backgroundColor: colors.accent },
-              i === selectedIndex && styles.sliderDotActive,
-            ]}
+            style={styles.sliderDot}
             onPress={() => { if (!logged) setSelectedIndex(i); }}
             accessibilityLabel={pos.label}
             accessibilityRole="button"
@@ -157,65 +154,70 @@ function createStyles(c: any) {
       marginBottom: 4,
     },
     label: {
-      fontSize: 16,
-      fontWeight: '500',
-      color: c.textSecondary,
-      textAlign: 'center',
+      fontSize: 15,
+      fontWeight: '500' as const,
+      color: '#c0c8c4',
+      textAlign: 'center' as const,
       marginBottom: 20,
     },
     sliderTrack: {
       height: 4,
-      backgroundColor: c.glassBorder,
+      backgroundColor: '#1a2a22',
       borderRadius: 2,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginHorizontal: 8,
-      position: 'relative',
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      marginHorizontal: 12,
+      position: 'relative' as const,
     },
     sliderFill: {
-      position: 'absolute',
+      position: 'absolute' as const,
       left: 0,
       top: 0,
       height: 4,
       borderRadius: 2,
+      backgroundColor: '#34D399',
+    },
+    sliderThumb: {
+      position: 'absolute' as const,
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      backgroundColor: '#34D399',
+      borderWidth: 2.5,
+      borderColor: '#131a16',
+      zIndex: 2,
+      top: -5,
+      marginLeft: -7,
     },
     sliderDot: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
-      backgroundColor: c.glassBorder,
+      width: 14,
+      height: 28,
+      backgroundColor: 'transparent',
       zIndex: 1,
     },
-    sliderDotActive: {
-      width: 18,
-      height: 18,
-      borderRadius: 9,
-      borderWidth: 2,
-      borderColor: c.background,
-    },
     scaleLabels: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: 8,
-      marginHorizontal: 4,
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      marginTop: 6,
+      marginHorizontal: 12,
       marginBottom: 20,
     },
     scaleLabel: {
       fontSize: 11,
-      color: c.textMuted,
+      color: '#4a5a52',
     },
     logButton: {
-      paddingVertical: 8,
-      paddingHorizontal: 24,
+      paddingVertical: 9,
+      paddingHorizontal: 32,
       borderRadius: 20,
-      alignSelf: 'center',
+      alignSelf: 'center' as const,
       backgroundColor: 'rgba(52, 211, 153, 0.12)',
     },
     logButtonText: {
       fontSize: 13,
-      fontWeight: '500',
-      color: c.accent,
+      fontWeight: '500' as const,
+      color: '#34D399',
     },
     affirmation: {
       borderLeftWidth: 3,
