@@ -148,10 +148,7 @@ export function MoodSlider() {
 function createStyles(c: any) {
   return StyleSheet.create({
     container: {
-      padding: 28,
-      paddingHorizontal: 16,
-      borderRadius: 16,
-      backgroundColor: 'rgba(52, 211, 153, 0.04)',
+      // No background/border — parent warmCard provides the surface
       alignItems: 'center',
     },
     emoji: {

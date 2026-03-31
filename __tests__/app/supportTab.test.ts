@@ -25,8 +25,9 @@ describe('Support tab', () => {
     expect(src).not.toContain('dateStr');
   });
 
-  it('uses conversational zone labels, no uppercase section headers', () => {
-    expect(src).toContain('How are you right now?');
+  it('uses warm section labels with emotional context', () => {
+    expect(src).toContain('Pause and check in');
+    expect(src).toContain('No one asks caregivers');
     expect(src).toContain('Need a reset?');
     expect(src).toContain('Talk to someone');
     expect(src).toContain('Resources');

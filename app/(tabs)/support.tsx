@@ -70,8 +70,14 @@ export default function SupportScreen() {
           <View style={styles.zoneSpacer} />
 
           {/* ═══ Zone 1: Check in ═══ */}
-          <Text style={styles.zoneLabel}>How are you right now?</Text>
-          <MoodSlider />
+          <View style={styles.warmCard}>
+            <Text style={styles.sectionLabel}>Pause and check in</Text>
+            <Text style={styles.sectionContext}>
+              No one asks caregivers how they're doing. We are.
+            </Text>
+            <MoodSlider />
+            <Text style={styles.privacyHint}>Private · saved to your wellness history</Text>
+          </View>
 
           <View style={styles.zoneSpacer} />
 
@@ -216,6 +222,34 @@ function createStyles(c: typeof Colors) {
       color: '#4a6a5a',
       lineHeight: 19,
       marginTop: 6,
+    },
+    // ── Warm card surface system ──
+    warmCard: {
+      backgroundColor: '#131a16',
+      borderWidth: 1,
+      borderColor: '#1a2a22',
+      borderRadius: 16,
+      padding: 24,
+      paddingHorizontal: 20,
+      marginBottom: 12,
+    },
+    sectionLabel: {
+      fontSize: 13,
+      fontWeight: '500' as const,
+      color: '#5a9a6e',
+      marginBottom: 4,
+    },
+    sectionContext: {
+      fontSize: 12,
+      color: '#4a6a5a',
+      lineHeight: 17,
+      marginBottom: 20,
+    },
+    privacyHint: {
+      fontSize: 11,
+      color: '#3a5a4a',
+      textAlign: 'center' as const,
+      marginTop: 10,
     },
     zoneLabel: {
       fontSize: 14,
