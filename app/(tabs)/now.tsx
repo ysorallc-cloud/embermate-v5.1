@@ -75,10 +75,10 @@ import {
 } from '../../utils/nowHelpers';
 // Extracted hooks
 import { useNowPrompts } from '../../hooks/useNowPrompts';
-import { useNowInsights } from '../../hooks/useNowInsights';
+// useNowInsights removed — replaced by QuickPulseStatus
 
 // Extracted components
-import { ProgressRings } from '../../components/now/ProgressRings';
+// ProgressRings removed — replaced by QuickPulseStatus
 import { ScreenHeader } from '../../components/ScreenHeader';
 // SectionHeader replaced by inline SectionHeaderRow (flat, no icons)
 import { MorningMedsBanner } from '../../components/now/MorningMedsBanner';
@@ -184,33 +184,84 @@ function SectionHeaderRow({
 }
 
 // ============================================================================
-// INLINE COMPONENT — Insight banner (amber left border, dismissable)
+// INLINE COMPONENT — Quick Pulse Status Block
 // ============================================================================
 
-function InsightBanner({
-  icon,
-  message,
-  onDismiss,
+function buildOverdueCallouts(
+  todayStats: TodayStats,
+  instances: any[],
+): { text: string; color: string }[] {
+  const callouts: { text: string; color: string }[] = [];
+  const categories = [
+    { key: 'meds' as keyof TodayStats, itemType: 'medication', label: 'Meds', color: '#F87171' },
+    { key: 'vitals' as keyof TodayStats, itemType: 'vitals', label: 'Vitals', color: '#F87171' },
+    { key: 'wellness' as keyof TodayStats, itemType: 'wellness', label: 'Check-ins', color: '#F87171' },
+    { key: 'meals' as keyof TodayStats, itemType: 'nutrition', label: 'Meals', color: '#FBBF24' },
+  ];
+  for (const cat of categories) {
+    const stat = todayStats[cat.key];
+    if (!stat || stat.total === 0) continue;
+    const overdueInstances = instances.filter(
+      (i: any) => i.itemType === cat.itemType &&
+           (i.status === 'pending' || !i.status) &&
+           isOverdue(i.scheduledTime)
+    );
+    if (overdueInstances.length > 0) {
+      if (cat.itemType === 'medication') {
+        const names = [...new Set(overdueInstances.map((i: any) => i.itemName))].join(', ');
+        callouts.push({ text: `Meds overdue — ${names}`, color: '#F87171' });
+      } else {
+        callouts.push({ text: `${cat.label} overdue — ${stat.completed} of ${stat.total} done`, color: cat.color });
+      }
+    }
+  }
+  return callouts;
+}
+
+function QuickPulseStatus({
+  todayStats,
+  instances,
+  completedCount,
+  totalCount,
   styles: s,
 }: {
-  icon: string;
-  message: string;
-  onDismiss: () => void;
+  todayStats: TodayStats;
+  instances: any[];
+  completedCount: number;
+  totalCount: number;
   styles: ReturnType<typeof createStyles>;
 }) {
+  const { colors } = useTheme();
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const overdueItems = buildOverdueCallouts(todayStats, instances);
+  const hasOverdue = overdueItems.length > 0;
+  const dotColor = hasOverdue ? colors.red : colors.accent;
+  const barColor = hasOverdue ? colors.amberBright : colors.accent;
+  const fractionColor = completedCount > 0 ? colors.accent : colors.textMuted;
+
   return (
-    <View style={s.insightBanner}>
-      <Text style={s.insightIcon}>{icon}</Text>
-      <Text style={s.insightMessage}>{message}</Text>
-      <TouchableOpacity
-        onPress={onDismiss}
-        style={s.insightDismiss}
-        accessibilityLabel="Dismiss insight"
-        accessibilityRole="button"
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Text style={s.insightDismissText}>{'\u2715'}</Text>
-      </TouchableOpacity>
+    <View style={s.pulseContainer}>
+      <View style={s.pulseRow}>
+        <View style={s.pulseLeft}>
+          <View style={[s.pulseDot, { backgroundColor: dotColor }]} />
+          <Text style={s.pulseGreeting}>{greeting}</Text>
+        </View>
+        <Text style={[s.pulseFraction, { color: fractionColor }]}>
+          {completedCount}
+          <Text style={s.pulseFractionTotal}> / {totalCount}</Text>
+        </Text>
+      </View>
+      <View style={s.pulseBar}>
+        <View style={[s.pulseBarFill, { width: `${progressPercent}%`, backgroundColor: barColor }]} />
+      </View>
+      {overdueItems.map((item, i) => (
+        <View key={i} style={s.pulseCallout}>
+          <View style={[s.pulseCalloutDot, { backgroundColor: item.color }]} />
+          <Text style={[s.pulseCalloutText, { color: item.color }]}>{item.text}</Text>
+        </View>
+      ))}
     </View>
   );
 }
@@ -345,18 +396,9 @@ export default function NowScreen() {
 
   // Extracted hooks
   const { showOnboarding, briefing, handlers, getBaselineStatusMessage, computePrompts: computePromptsHook, checkNotificationPrompt: checkNotifPrompt, loadBaselines } = useNowPrompts(todayStats, dailyTracking);
-  const { insight } = useNowInsights(
-    todayStats, instancesState, today, medications, appointments, dailyTracking
-  );
-  const [insightDismissed, setInsightDismissed] = useState(false);
-  const [lastInsightMsg, setLastInsightMsg] = useState<string | null>(null);
-
-  // Reset dismiss when insight changes
+  // useNowInsights removed — QuickPulseStatus replaces InsightBanner
   useEffect(() => {
-    if (insight?.message && insight.message !== lastInsightMsg) {
-      setInsightDismissed(false);
-      setLastInsightMsg(insight.message);
-    }
+    // placeholder to maintain hook call order if needed
   }, [insight?.message]);
 
   // ============================================================================
@@ -861,60 +903,20 @@ export default function NowScreen() {
 
         <View style={styles.content}>
 
-          {/* ═══ INSIGHT BANNER ═══ */}
-          {insight && !insightDismissed && (
-            <InsightBanner
-              icon={insight.icon}
-              message={insight.message}
-              onDismiss={() => setInsightDismissed(true)}
-              styles={styles}
-            />
-          )}
-
-          {/* ═══ MORNING CONTEXT LINE ═══ */}
-          {allPending.length > 0 && (() => {
-            const hour = new Date().getHours();
-            const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
-            const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-
-            const windowPending = allPending.filter((i: any) => {
-              if (timeOfDay === 'morning') return i.windowLabel === 'morning';
-              if (timeOfDay === 'afternoon') return i.windowLabel === 'afternoon';
-              return i.windowLabel === 'evening' || i.windowLabel === 'night';
-            });
-
-            const count = windowPending.length;
-            const suffix = count > 0
-              ? `${count} item${count === 1 ? '' : 's'} for this ${timeOfDay}.`
-              : `You're caught up for the ${timeOfDay}.`;
-
-            return (
-              <Text
-                style={styles.morningContextLine}
-                accessibilityRole="text"
-                accessibilityLabel={`${greeting}. ${suffix}`}
-              >
-                {greeting}. {suffix}
-              </Text>
-            );
-          })()}
-
-          {/* ═══ ZONE 1: TODAY'S PROGRESS ═══ */}
-          <SectionHeaderRow
-            title="Today's Progress"
-            action="Care Plan"
-            onAction={() => navigate('/care-plan')}
-            styles={styles}
-          />
-          <ProgressRings
+          {/* ═══ QUICK PULSE STATUS ═══ */}
+          <QuickPulseStatus
             todayStats={todayStats}
-            enabledBuckets={enabledBuckets}
             instances={instancesState?.instances || []}
+            completedCount={todayTimeline?.completed?.length || 0}
+            totalCount={(allPending?.length || 0) + (todayTimeline?.completed?.length || 0)}
+            styles={styles}
           />
 
           {/* ═══ ZONE 2: TODAY'S SCHEDULE ═══ */}
           <SectionHeaderRow
             title="Today's Schedule"
+            action="Care Plan"
+            onAction={() => navigate('/care-plan')}
             iconAction="+"
             onIconAction={() => navigate('/quick-log-more')}
             collapsed={timelineCollapsed}
@@ -1191,12 +1193,63 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 4,
   },
-  morningContextLine: {
-    fontSize: 14,
+  // ── Quick Pulse Status ──
+  pulseContainer: {
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+  },
+  pulseRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    marginBottom: 10,
+  },
+  pulseLeft: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+  },
+  pulseDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  pulseGreeting: {
+    fontSize: 15,
     color: c.textSecondary,
-    paddingHorizontal: 20,
-    paddingBottom: 8,
-    lineHeight: 20,
+  },
+  pulseFraction: {
+    fontSize: 15,
+  },
+  pulseFractionTotal: {
+    fontSize: 12,
+    color: c.textMuted,
+  },
+  pulseBar: {
+    height: 3,
+    backgroundColor: c.glassDim,
+    borderRadius: 2,
+    overflow: 'hidden' as const,
+    marginBottom: 4,
+  },
+  pulseBarFill: {
+    height: '100%' as any,
+    borderRadius: 2,
+  },
+  pulseCallout: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    paddingTop: 8,
+  },
+  pulseCalloutDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+  },
+  pulseCalloutText: {
+    fontSize: 12,
+    opacity: 0.8,
   },
   hiddenBanner: {
     flexDirection: 'row',
@@ -1253,15 +1306,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     overflow: 'hidden' as const,
   },
 
-  // ── Hero Card (ProgressRings gradient) ──
-  heroCard: {
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.15)',
-  },
   // ── Section Card wrapper ──
   sectionCard: {
     backgroundColor: c.glass,
@@ -1354,38 +1398,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingHorizontal: 20,
   },
   // Insight banner
-  insightBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    borderLeftWidth: 2,
-    borderLeftColor: c.amber ?? '#FBBF24',
-    backgroundColor: 'rgba(245,158,11,0.03)',
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
-    padding: 10,
-    paddingRight: 32,
-    marginBottom: 8,
-  },
-  insightIcon: {
-    fontSize: 14,
-  },
-  insightMessage: {
-    flex: 1,
-    fontSize: 12,
-    color: c.textSecondary,
-    lineHeight: 18,
-  },
-  insightDismiss: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  insightDismissText: {
-    fontSize: 12,
-    color: c.textMuted,
-  },
-
   footerSection: {
     alignItems: 'center',
     paddingTop: 20,

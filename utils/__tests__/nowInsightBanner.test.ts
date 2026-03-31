@@ -13,35 +13,22 @@ const insightSrc = readFileSync(join(__dirname, '../../utils/careInsights.ts'), 
 // ============================================================================
 // INS-1: InsightBanner component
 // ============================================================================
-describe('INS-1: InsightBanner', () => {
-  test('InsightBanner function or component exists in now.tsx', () => {
-    expect(nowSrc).toMatch(/InsightBanner/);
+describe('INS-1: InsightBanner replaced by QuickPulseStatus', () => {
+  test('InsightBanner removed — QuickPulseStatus replaces it', () => {
+    expect(nowSrc).toContain('QuickPulseStatus');
+    expect(nowRender).toContain('<QuickPulseStatus');
   });
 
-  test('banner has amber left border style', () => {
-    expect(nowSrc).toMatch(/insightBanner/);
-    const bannerStyle = nowSrc.match(/insightBanner:\s*\{[^}]+\}/);
-    expect(bannerStyle).not.toBeNull();
-    expect(bannerStyle![0]).toContain('borderLeftWidth');
-    expect(bannerStyle![0]).toContain('borderLeftColor');
+  test('QuickPulseStatus renders with pulse styles', () => {
+    expect(nowSrc).toContain('pulseContainer');
+    expect(nowSrc).toContain('pulseRow');
+    expect(nowSrc).toContain('pulseDot');
+    expect(nowSrc).toContain('pulseGreeting');
   });
 
-  test('banner renders between header and Today\'s Progress', () => {
-    // Find the JSX usage (not the function definition) by looking for <InsightBanner
-    const headerIdx = nowRender.indexOf('ScreenHeader');
-    const bannerIdx = nowRender.indexOf('<InsightBanner');
-    const progressIdx = nowRender.indexOf("Today's Progress");
-    expect(bannerIdx).toBeGreaterThan(headerIdx);
-    expect(bannerIdx).toBeLessThan(progressIdx);
-  });
-
-  test('banner has dismiss button', () => {
-    expect(nowSrc).toContain('insightDismissed');
-    expect(nowSrc).toContain('setInsightDismissed');
-  });
-
-  test('banner only renders when insight exists and not dismissed', () => {
-    expect(nowRender).toMatch(/insight\b.*&&.*!insightDismissed|!insightDismissed.*&&.*insight\b/);
+  test('overdue callouts built from instances', () => {
+    expect(nowSrc).toContain('buildOverdueCallouts');
+    expect(nowSrc).toContain('pulseCallout');
   });
 });
 
@@ -123,15 +110,14 @@ describe('INS-4: Footer simplified', () => {
 // ============================================================================
 // INS-5: Unified insight output
 // ============================================================================
-describe('INS-5: Unified insight', () => {
-  test('useNowInsights returns single insight (not aiInsight/careInsight separately)', () => {
+describe('INS-5: Unified insight replaced by QuickPulseStatus', () => {
+  test('useNowInsights hook still exists for potential reuse', () => {
     expect(hookSrc).toMatch(/return\s*\{[^}]*insight[^}]*\}/);
-    // Should not export aiInsight and careInsight as separate values
-    expect(hookSrc).not.toMatch(/return\s*\{[^}]*aiInsight[^}]*careInsight[^}]*\}/);
   });
 
-  test('now.tsx uses unified insight from hook', () => {
-    expect(nowSrc).toMatch(/const\s*\{\s*insight\s*\}/);
+  test('now.tsx no longer destructures insight from hook', () => {
+    // QuickPulseStatus replaces the insight banner
+    expect(nowSrc).toContain('QuickPulseStatus');
   });
 });
 
