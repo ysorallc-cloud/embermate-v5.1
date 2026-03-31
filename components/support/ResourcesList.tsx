@@ -160,7 +160,7 @@ function createStyles(c: any) {
     },
     categoryCard: {
       borderBottomWidth: 0.5,
-      borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+      borderBottomColor: '#1a201a',
     },
     categoryHeader: {
       flexDirection: 'row',
@@ -174,17 +174,16 @@ function createStyles(c: any) {
     categoryTitle: {
       fontSize: 14,
       fontWeight: '500',
-      color: c.textSecondary,
+      color: '#8a9a92',
       marginBottom: 2,
     },
     categoryDesc: {
       fontSize: 12,
-      color: c.textMuted,
+      color: '#4a6a5a',
     },
     chevron: {
       fontSize: 14,
-      color: c.textMuted,
-      opacity: 0.3,
+      color: '#2a3a2a',
     },
     linksList: {
       paddingHorizontal: 0,
@@ -197,17 +196,17 @@ function createStyles(c: any) {
     },
     linkRowBorder: {
       borderBottomWidth: 0.5,
-      borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+      borderBottomColor: '#1a201a',
     },
     linkTitle: {
       fontSize: 13,
       fontWeight: '500',
-      color: c.textSecondary,
+      color: '#8a9a92',
       marginBottom: 2,
     },
     linkDesc: {
       fontSize: 11,
-      color: c.textMuted,
+      color: '#4a6a5a',
     },
   });
 }

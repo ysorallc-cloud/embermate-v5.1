@@ -11,6 +11,7 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
@@ -116,59 +117,74 @@ export default function SupportScreen() {
             onClose={() => setBreathingVisible(false)}
           />
 
-          <View style={styles.zoneDivider} />
+          {/* ═══ Zone 3: Connection ═══ */}
+          <View style={[styles.warmCard, styles.warmCardPurple]}>
+            <Text style={[styles.sectionLabel, { color: '#8a7aBA' }]}>You're not alone</Text>
+            <Text style={[styles.sectionContext, { color: '#4a5a7a' }]}>
+              53 million Americans are caregivers. These people listen — no judgment, no cost.
+            </Text>
 
-          {/* ═══ Zone 3: Talk to someone ═══ */}
-          <Text style={styles.zoneLabel}>Talk to someone</Text>
-          <TouchableOpacity style={styles.reachRow} activeOpacity={0.7}
-            accessibilityLabel="Call Caregiver Helpline. 1-855-227-3640. Free and confidential."
-            accessibilityRole="button"
-          >
-            <View style={[styles.reachCircle, { backgroundColor: colors.accentFaint }]}>
-              <Text style={[styles.reachCircleIcon, { color: colors.accent }]}>{'\u260E'}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.reachTitle}>Caregiver Helpline</Text>
-              <Text style={styles.reachDesc}>1-855-227-3640 · Free, confidential</Text>
-            </View>
-            <Text style={styles.reachChevron}>{'\u203A'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.reachRow, { borderBottomWidth: 0 }]} activeOpacity={0.7}
-            accessibilityLabel="Caregiver community. Connect with people who understand."
-            accessibilityRole="button"
-          >
-            <View style={[styles.reachCircle, { backgroundColor: colors.purpleFaint }]}>
-              <Text style={[styles.reachCircleIcon, { color: colors.purple }]}>{'\u2661'}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.reachTitle}>Caregiver community</Text>
-              <Text style={styles.reachDesc}>Connect with people who understand</Text>
-            </View>
-            <Text style={styles.reachChevron}>{'\u203A'}</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.contactRow}
+              activeOpacity={0.7}
+              onPress={() => Linking.openURL('tel:18552273640')}
+              accessibilityLabel="Call Caregiver Helpline. 1-855-227-3640. Free and confidential."
+              accessibilityRole="button"
+            >
+              <View style={[styles.contactCircle, { backgroundColor: 'rgba(52, 211, 153, 0.08)' }]}>
+                <Text style={{ fontSize: 15, color: '#34D399' }}>{'\u260E'}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.contactTitle}>Caregiver Helpline</Text>
+                <Text style={styles.contactDesc}>1-855-227-3640 · Free, confidential</Text>
+              </View>
+              <Text style={styles.contactChevron}>{'\u203A'}</Text>
+            </TouchableOpacity>
 
-          <View style={styles.zoneDivider} />
+            <View style={styles.contactDivider} />
+
+            <TouchableOpacity
+              style={styles.contactRow}
+              activeOpacity={0.7}
+              accessibilityLabel="Caregiver community. Connect with people who understand."
+              accessibilityRole="button"
+            >
+              <View style={[styles.contactCircle, { backgroundColor: 'rgba(167, 139, 250, 0.08)' }]}>
+                <Text style={{ fontSize: 15, color: '#A78BFA' }}>{'\u2661'}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.contactTitle}>Caregiver community</Text>
+                <Text style={styles.contactDesc}>Connect with people who understand</Text>
+              </View>
+              <Text style={styles.contactChevron}>{'\u203A'}</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* ═══ Zone 4: Resources ═══ */}
-          <Text style={styles.zoneLabel}>Resources</Text>
-          <ResourcesList />
+          <View style={[styles.warmCard, styles.warmCardQuiet]}>
+            <Text style={[styles.sectionLabel, { color: '#6a7a72' }]}>Plan ahead</Text>
+            <Text style={[styles.sectionContext, { color: '#3a5a4a' }]}>
+              When things are calm, these help you prepare.
+            </Text>
+            <ResourcesList />
+          </View>
 
-          <View style={styles.zoneDivider} />
-
-          {/* ═══ Your wellness — single row ═══ */}
-          <TouchableOpacity
-            style={styles.wellnessLink}
-            onPress={() => navigate('/caregiver-wellness')}
-            activeOpacity={0.7}
-            accessibilityLabel="View your wellness history"
-            accessibilityRole="button"
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.wellnessLinkTitle}>Your wellness</Text>
-              <Text style={styles.wellnessLinkDesc}>Mood history, breathing sessions, trends</Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
+          {/* ═══ Your wellness ═══ */}
+          <View style={[styles.warmCard, styles.warmCardQuiet, { paddingVertical: 14 }]}>
+            <TouchableOpacity
+              style={styles.wellnessLink}
+              onPress={() => navigate('/caregiver-wellness')}
+              activeOpacity={0.7}
+              accessibilityLabel="View your wellness history"
+              accessibilityRole="button"
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.wellnessTitle}>Your wellness over time</Text>
+                <Text style={styles.wellnessDesc}>See how your mood trends week to week</Text>
+              </View>
+              <Text style={styles.contactChevron}>{'\u203A'}</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* ═══ FOOTER ═══ */}
           <View style={styles.footer}>
@@ -254,19 +270,8 @@ function createStyles(c: typeof Colors) {
       textAlign: 'center' as const,
       marginTop: 10,
     },
-    zoneLabel: {
-      fontSize: 14,
-      fontWeight: '400',
-      color: c.textMuted,
-      marginBottom: 14,
-    },
     zoneSpacer: {
       height: 32,
-    },
-    zoneDivider: {
-      height: 0.5,
-      backgroundColor: c.glassHover,
-      marginVertical: 24,
     },
     // ── Breathe ──
     breatheCenter: {
@@ -330,73 +335,74 @@ function createStyles(c: typeof Colors) {
       fontWeight: '500' as const,
       color: '#34D399',
     },
-    // ── Reach out ──
-    reachRow: {
+    // ── Card variants ──
+    warmCardPurple: {
+      backgroundColor: '#131720',
+      borderColor: '#1a2030',
+    },
+    warmCardQuiet: {
+      backgroundColor: '#10140f',
+      borderColor: '#1a201a',
+    },
+    // ── Connection rows ──
+    contactRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       gap: 12,
-      paddingVertical: 14,
-      borderBottomWidth: 0.5,
-      borderBottomColor: c.glassDim,
+      paddingVertical: 12,
     },
-    reachCircle: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
+    contactCircle: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
-    reachCircleIcon: {
-      fontSize: 15,
-    },
-    reachTitle: {
+    contactTitle: {
       fontSize: 14,
       fontWeight: '500' as const,
-      color: c.textSecondary,
-      marginBottom: 2,
+      color: '#b0b8b4',
+      marginBottom: 1,
     },
-    reachDesc: {
-      fontSize: 12,
-      color: c.textMuted,
+    contactDesc: {
+      fontSize: 11,
+      color: '#4a6a5a',
     },
-    reachChevron: {
-      fontSize: 14,
-      color: c.textMuted,
-      opacity: 0.3,
+    contactDivider: {
+      height: 0.5,
+      backgroundColor: '#1a2030',
     },
-    // ── Your wellness link ──
+    contactChevron: {
+      fontSize: 16,
+      color: '#2a3a32',
+    },
+    // ── Wellness link ──
     wellnessLink: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 12,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
     },
-    wellnessLinkTitle: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: c.textSecondary,
+    wellnessTitle: {
+      fontSize: 13,
+      fontWeight: '500' as const,
+      color: '#8a9a92',
+      marginBottom: 1,
     },
-    wellnessLinkDesc: {
-      fontSize: 12,
-      color: c.textMuted,
-      marginTop: 2,
-    },
-    chevron: {
-      fontSize: 18,
-      color: c.textMuted,
-      opacity: 0.3,
+    wellnessDesc: {
+      fontSize: 11,
+      color: '#3a5a4a',
     },
     // ── Footer ──
     footer: {
-      alignItems: 'center',
-      paddingTop: 40,
+      alignItems: 'center' as const,
+      paddingTop: 36,
       paddingBottom: 100,
     },
     footerText: {
-      fontSize: 12,
-      color: c.textMuted,
-      textAlign: 'center',
-      lineHeight: 18,
-      opacity: 0.4,
+      fontSize: 13,
+      color: '#2a4a3a',
+      textAlign: 'center' as const,
+      lineHeight: 21,
+      fontStyle: 'italic' as const,
     },
   });
 }
