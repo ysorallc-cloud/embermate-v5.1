@@ -79,33 +79,36 @@ export default function SupportScreen() {
             <Text style={styles.privacyHint}>Private · saved to your wellness history</Text>
           </View>
 
-          <View style={styles.zoneSpacer} />
-
           {/* ═══ Zone 2: Breathe ═══ */}
-          <View style={styles.breatheZone}>
-            <Text style={styles.zoneLabel}>Need a reset?</Text>
+          <View style={styles.warmCard}>
+            <Text style={styles.sectionLabel}>Take a breath</Text>
+            <Text style={styles.sectionContext}>
+              When everything feels urgent, your body needs a signal that you're safe.
+            </Text>
 
-            <View style={styles.breatheVisual}>
-              <View style={styles.breatheRing3}>
-                <View style={styles.breatheRing2}>
-                  <View style={styles.breatheRing1}>
-                    <Text style={styles.breatheRingLabel}>4:4:4</Text>
+            <View style={styles.breatheCenter}>
+              <View style={styles.breatheVisual}>
+                <View style={styles.breatheRing3}>
+                  <View style={styles.breatheRing2}>
+                    <View style={styles.breatheRing1}>
+                      <Text style={styles.breatheLabel}>4:4:4</Text>
+                    </View>
                   </View>
                 </View>
               </View>
+
+              <Text style={styles.breatheTitle}>1-minute guided breathing</Text>
+              <Text style={styles.breatheDesc}>Inhale, hold, exhale. Four seconds each.</Text>
+
+              <TouchableOpacity
+                style={styles.breathePill}
+                onPress={() => setBreathingVisible(true)}
+                accessibilityLabel="Start 1-minute breathing exercise"
+                accessibilityRole="button"
+              >
+                <Text style={styles.breathePillText}>Begin</Text>
+              </TouchableOpacity>
             </View>
-
-            <Text style={styles.breatheTitle}>1-minute guided breathing</Text>
-            <Text style={styles.breatheDesc}>Inhale, hold, exhale. Four seconds each.</Text>
-
-            <TouchableOpacity
-              style={styles.breathePill}
-              onPress={() => setBreathingVisible(true)}
-              accessibilityLabel="Start 1-minute breathing exercise"
-              accessibilityRole="button"
-            >
-              <Text style={styles.breathePillText}>Begin</Text>
-            </TouchableOpacity>
           </View>
 
           <BreathingExercise
@@ -266,9 +269,8 @@ function createStyles(c: typeof Colors) {
       marginVertical: 24,
     },
     // ── Breathe ──
-    breatheZone: {
-      alignItems: 'center',
-      paddingVertical: 8,
+    breatheCenter: {
+      alignItems: 'center' as const,
     },
     breatheVisual: {
       marginBottom: 16,
@@ -277,56 +279,56 @@ function createStyles(c: typeof Colors) {
       width: 80,
       height: 80,
       borderRadius: 40,
-      borderWidth: 1.5,
-      borderColor: 'rgba(52, 211, 153, 0.2)',
-      alignItems: 'center',
-      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: '#1a3a2a',
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     breatheRing2: {
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      borderWidth: 1.5,
-      borderColor: 'rgba(52, 211, 153, 0.15)',
-      alignItems: 'center',
-      justifyContent: 'center',
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      borderWidth: 1,
+      borderColor: '#163024',
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     breatheRing1: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: 'rgba(52, 211, 153, 0.08)',
-      alignItems: 'center',
-      justifyContent: 'center',
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: '#142820',
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
-    breatheRingLabel: {
+    breatheLabel: {
       fontSize: 12,
-      fontWeight: '300',
-      color: c.accent,
+      fontWeight: '300' as const,
+      color: '#4a8a6a',
     },
     breatheTitle: {
-      fontSize: 15,
-      fontWeight: '500',
-      color: c.textSecondary,
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: '#b0c0b8',
       marginBottom: 4,
     },
     breatheDesc: {
       fontSize: 12,
-      color: c.textMuted,
-      marginBottom: 16,
+      color: '#4a6a5a',
+      marginBottom: 18,
     },
     breathePill: {
       backgroundColor: 'rgba(52, 211, 153, 0.08)',
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.15)',
+      borderColor: '#1a3a2a',
       borderRadius: 20,
-      paddingVertical: 8,
-      paddingHorizontal: 24,
+      paddingVertical: 9,
+      paddingHorizontal: 32,
     },
     breathePillText: {
       fontSize: 13,
-      fontWeight: '500',
-      color: c.accent,
+      fontWeight: '500' as const,
+      color: '#34D399',
     },
     // ── Reach out ──
     reachRow: {
