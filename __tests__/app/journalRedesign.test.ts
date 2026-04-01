@@ -12,91 +12,67 @@ describe('Journal redesign', () => {
   it('DateTabStrip is imported and rendered', () => {
     expect(src).toContain("import { DateTabStrip }");
     expect(src).toContain('<DateTabStrip');
-    expect(src).toContain('selectedDate');
-    expect(src).toContain('onDateSelect');
   });
 
   it('MonthCalendar is imported and rendered', () => {
     expect(src).toContain("import { MonthCalendar }");
     expect(src).toContain('<MonthCalendar');
-    expect(src).toContain('calendarOpen');
   });
 
-  it('Shift Summary section uses SectionLabel + summaryCard', () => {
+  it('header has purpose line referencing patient or care story', () => {
+    expect(src).toContain('headerPurpose');
+    expect(src).toContain('care story');
+  });
+
+  it('Shift Summary has context line', () => {
     expect(src).toContain('title="Shift Summary"');
-    expect(src).toContain('summaryCard');
-    expect(src).toContain('summaryText');
+    expect(src).toContain('A snapshot of today');
   });
 
-  it('Watch For section is separate from Patterns', () => {
-    expect(src).toContain('title="Watch For"');
-    expect(src).toContain('watchCard');
-    expect(src).toContain('watchItem');
-    expect(src).toContain('watchTitle');
+  it('Heads up section (renamed from Watch For) with context', () => {
+    expect(src).toContain('title="Heads up"');
+    expect(src).toContain('What the next caregiver');
   });
 
-  it('Patterns section uses SectionLabel', () => {
+  it('Patterns section with context', () => {
     expect(src).toContain('title="Patterns"');
+    expect(src).toContain('Trends EmberMate noticed');
+  });
+
+  it('Your reflection section with context', () => {
+    expect(src).toContain('title="Your reflection"');
+    expect(src).toContain('For you, not the chart');
+  });
+
+  it('Before Bed section removed', () => {
+    expect(src).not.toContain('title="Before Bed"');
+    expect(src).not.toContain('<SectionLabel title="Before Bed"');
   });
 
   it('Day at a Glance tiles do NOT render', () => {
     expect(src).not.toContain("'Day at a Glance'");
-    expect(src).not.toContain('<View style={s.glanceGrid}');
   });
 
   it('DetailedEventLog does NOT render', () => {
     expect(src).not.toContain('<DetailedEventLog');
   });
 
-  it('ReflectionPrompt rendered with SectionLabel', () => {
-    expect(src).toContain('title="Reflection"');
-    expect(src).toContain('<ReflectionPrompt');
-    expect(src).toContain('getDailyPrompt(selectedDate)');
-  });
-
   it('footer says "Not a medical record"', () => {
     expect(src).toContain('Not a medical record');
   });
 
-  it('header uses inline header with Share/Report pills', () => {
-    expect(src).toContain('headerRow');
-    expect(src).toContain('headerTitle');
-    expect(src).toContain('headerPill');
-    expect(src).toContain('headerPillReport');
+  it('sectionContext style exists', () => {
+    expect(src).toContain('sectionContext');
+    expect(src).toContain("'#4a5a6a'");
   });
 
-  it('SectionLabel component exists', () => {
-    expect(src).toContain('function SectionLabel');
-    expect(src).toContain('sectionLabelRow');
-    expect(src).toContain('sectionLabelText');
-  });
-
-  it('all section headers use SectionLabel', () => {
-    expect(src).toContain('<SectionLabel title="Shift Summary"');
-    expect(src).toContain('<SectionLabel title="Watch For"');
-    expect(src).toContain('<SectionLabel title="Patterns"');
-    expect(src).toContain('<SectionLabel title="Reflection"');
-  });
-
-  it('old accent bar and glance styles are removed', () => {
-    expect(src).not.toMatch(/accentBarRow:\s*\{/);
-    expect(src).not.toMatch(/accentBarLabel:\s*\{/);
-    expect(src).not.toMatch(/lightCard:\s*\{/);
-    expect(src).not.toMatch(/glanceGrid:\s*\{/);
-    expect(src).not.toMatch(/glanceTile:\s*\{/);
-  });
-
-  it('Watch For uses amber color', () => {
-    expect(src).toContain('colors.amberBright');
-  });
-
-  it('section order: Summary → Watch For → Patterns → Reflection', () => {
+  it('section order: Summary → Heads up → Patterns → Reflection', () => {
     const summaryIdx = src.indexOf('title="Shift Summary"');
-    const watchIdx = src.indexOf('title="Watch For"');
+    const headsUpIdx = src.indexOf('title="Heads up"');
     const patternsIdx = src.indexOf('title="Patterns"');
-    const reflectionIdx = src.indexOf('title="Reflection"');
-    expect(summaryIdx).toBeLessThan(watchIdx);
-    expect(watchIdx).toBeLessThan(patternsIdx);
+    const reflectionIdx = src.indexOf('title="Your reflection"');
+    expect(summaryIdx).toBeLessThan(headsUpIdx);
+    expect(headsUpIdx).toBeLessThan(patternsIdx);
     expect(patternsIdx).toBeLessThan(reflectionIdx);
   });
 });

@@ -758,6 +758,7 @@ export default function JournalTab() {
             <View>
               <Text style={s.headerTitle}>Journal</Text>
               <Text style={s.headerDate}>{dayName}, {dateStr}</Text>
+              <Text style={s.headerPurpose}>{patientName ? `${patientName}'s care story for today` : "Today's care story"}. Share with the next caregiver or bring to a visit.</Text>
             </View>
             <View style={s.headerActions}>
               <TouchableOpacity style={s.headerPill} onPress={handleShareDaily}
@@ -830,6 +831,7 @@ export default function JournalTab() {
 
           {/* ═══ SHIFT SUMMARY ═══ */}
           <SectionLabel title="Shift Summary" styles={s} />
+          <Text style={s.sectionContext}>A snapshot of today — what was done and what was missed.</Text>
           <View style={s.summaryCard}>
             {(() => {
               const raw = getBriefingText();
@@ -865,7 +867,8 @@ export default function JournalTab() {
           {/* ═══ WATCH FOR ═══ */}
           {handoffNotes.length > 0 && (
             <>
-              <SectionLabel title="Watch For" color={colors.amberBright} styles={s} />
+              <SectionLabel title="Heads up" color={colors.amberBright} styles={s} />
+              <Text style={[s.sectionContext, { color: '#8a7a5a' }]}>What the next caregiver — or you tomorrow — should know.</Text>
               <View style={s.watchCard}>
                 {handoffNotes.map((item, i) => (
                   <View
@@ -887,6 +890,7 @@ export default function JournalTab() {
           {insights.length > 0 && (
             <>
               <SectionLabel title="Patterns" styles={s} />
+              <Text style={s.sectionContext}>Trends EmberMate noticed across recent days.</Text>
               {insights.map((insight, i) => {
                 const isExpanded = expandedPattern === i;
                 const rotation = chevronAnims[i]
@@ -940,31 +944,11 @@ export default function JournalTab() {
             </>
           )}
 
-          {/* ═══ BEFORE BED ═══ */}
-          {beforeBedItems.length > 0 && (
-            <>
-              <SectionLabel title="Before Bed" styles={s} />
-              <View style={s.beforeBedCard}>
-                {beforeBedItems.map((item, i) => (
-                  <TouchableOpacity
-                    key={i}
-                    style={[s.beforeBedRow, i < beforeBedItems.length - 1 && s.beforeBedRowBorder]}
-                    onPress={() => item.route && navigate(item.route)}
-                    activeOpacity={0.7}
-                    accessibilityLabel={`${item.text}. Tap to log.`}
-                    accessibilityRole="button"
-                  >
-                    <View style={[s.beforeBedDot, { backgroundColor: getBedItemColor(item) }]} />
-                    <Text style={s.beforeBedText}>{item.text}</Text>
-                    <Text style={s.beforeBedAction}>Log →</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </>
-          )}
+          {/* Before Bed removed — Journal is a read surface, Now is the action surface */}
 
           {/* ═══ REFLECTION ═══ */}
-          <SectionLabel title="Reflection" styles={s} />
+          <SectionLabel title="Your reflection" styles={s} />
+          <Text style={s.sectionContext}>For you, not the chart. When you look back at this day, what do you want to remember?</Text>
           <ReflectionPrompt
             date={selectedDate}
             prompt={getDailyPrompt(selectedDate)}
@@ -1131,6 +1115,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textMuted,
     marginTop: 4,
   },
+  headerPurpose: {
+    fontSize: 13,
+    color: '#4a5a6a',
+    marginTop: 4,
+    lineHeight: 18,
+  },
   headerActions: {
     flexDirection: 'row' as const,
     gap: 8,
@@ -1176,6 +1166,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     textTransform: 'uppercase' as const,
     letterSpacing: 2,
     paddingTop: 10,
+  },
+  sectionContext: {
+    fontSize: 11,
+    color: '#4a5a6a',
+    marginTop: 2,
+    marginBottom: 10,
   },
 
   // ─── PATIENT CONTEXT CARD ───
