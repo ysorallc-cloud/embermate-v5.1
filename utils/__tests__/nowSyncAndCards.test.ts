@@ -143,11 +143,11 @@ describe('S7: ScreenHeader purpose prop', () => {
     expect(screenHeaderSrc).toContain('{purpose && <Text style={styles.purpose}>{purpose}</Text>}');
   });
 
-  test('purpose style exists with correct properties', () => {
+  test('purpose style exists with warm hint color', () => {
     const purposeMatch = screenHeaderSrc.match(/purpose:\s*\{[^}]+\}/);
     expect(purposeMatch).not.toBeNull();
-    expect(purposeMatch![0]).toContain('fontSize: 12');
-    expect(purposeMatch![0]).toContain('c.textSecondary');
+    expect(purposeMatch![0]).toContain('fontSize: 13');
+    expect(purposeMatch![0]).toContain('#4a5a6a');
   });
 
   test('Now page does not pass purpose prop (v2: removed for clean header)', () => {

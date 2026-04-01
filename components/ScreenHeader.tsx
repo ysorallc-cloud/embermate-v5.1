@@ -51,10 +51,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingLeft: 12,
   },
   purpose: {
-    fontSize: 12,
-    color: c.textSecondary,
-    marginTop: 3,
+    fontSize: 13,
+    color: '#4a5a6a',
+    marginTop: 4,
     letterSpacing: 0.1,
+    lineHeight: 18,
   },
 });
 

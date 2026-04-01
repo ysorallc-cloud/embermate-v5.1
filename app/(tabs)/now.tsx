@@ -89,9 +89,9 @@ import { HandoffPromptCard } from '../../components/now/HandoffPromptCard';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good Morning';
-  if (hour < 17) return 'Good Afternoon';
-  return 'Good Evening';
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
 }
 
 function formatTime(t: string): string {
@@ -246,7 +246,6 @@ function QuickPulseStatus({
       <View style={s.pulseRow}>
         <View style={s.pulseLeft}>
           <View style={[s.pulseDot, { backgroundColor: dotColor }]} />
-          <Text style={s.pulseGreeting}>{greeting}</Text>
         </View>
         <Text style={[s.pulseFraction, { color: fractionColor }]}>
           {completedCount}
@@ -816,9 +815,9 @@ export default function NowScreen() {
       >
         {/* Header: greeting + date left, patient chip right */}
         <ScreenHeader
-          title="Now"
+          title={getGreeting()}
           subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-          purpose="What's happening today."
+          purpose={`Here's where ${patientName || 'your loved one'}'s care stands right now.`}
           rightAction={
             <TouchableOpacity
               onPress={() => setShowPatientSwitcher(true)}
@@ -920,6 +919,9 @@ export default function NowScreen() {
             onToggleCollapse={() => setTimelineCollapsed(prev => !prev)}
             styles={styles}
           />
+          <Text style={styles.sectionContext}>
+            Tap Start when you're ready to begin a care window.
+          </Text>
 
           {timelineCollapsed ? (
             /* Collapsed: window summary rows */
@@ -1045,7 +1047,7 @@ export default function NowScreen() {
           {todayTimeline.completed.length < 5 ? (
             <View style={styles.journalPreviewDimmed}>
               <Text style={styles.journalPreviewDimmedText}>
-                {'\uD83D\uDCD3'} Daily journal · Appears as the day wraps up
+                Your journal entry builds throughout the day. Review it tonight.
               </Text>
             </View>
           ) : brief ? (
@@ -1271,6 +1273,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '500',
   },
   // ── Section Header Row ──
+  sectionContext: {
+    fontSize: 11,
+    color: '#4a5a6a',
+    marginTop: 3,
+    marginBottom: 8,
+  },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
