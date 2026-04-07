@@ -218,68 +218,7 @@ describe('Sprint 1 Data Enrichment — Integration Tests', () => {
   });
 
   // ==========================================================================
-  // Task 1.3: Symptom-medication linking insights
-  // ==========================================================================
-
-  describe('Task 1.3: Symptom-medication linking insights', () => {
-    it('should generate med-symptom correlation insight after afternoon meds', () => {
-      const ctx: InsightContext = {
-        tasks: [
-          makeTask({ type: 'medication', status: 'completed', title: 'Lisinopril 10mg' }),
-          makeTask({ id: 't2', type: 'medication', status: 'completed', title: 'Metformin 500mg' }),
-        ],
-        stats: makeStats({ completed: 2, pending: 3 }),
-        byWindow: { morning: [], afternoon: [], evening: [], night: [], custom: [] },
-        currentHour: 15,
-        currentWindow: 'afternoon',
-      };
-
-      const insights = generateInsights(ctx);
-      const medCorr = insights.find(i => i.id === 'med-symptom-correlation');
-
-      expect(medCorr).toBeDefined();
-      expect(medCorr!.message).toContain('medications');
-      expect(medCorr!.category).toBe('meds');
-    });
-
-    it('should NOT generate med-symptom insight when only vitals are done', () => {
-      const ctx: InsightContext = {
-        tasks: [
-          makeTask({ type: 'vitals', status: 'completed', title: 'Morning BP' }),
-        ],
-        stats: makeStats({ completed: 1, pending: 4 }),
-        byWindow: { morning: [], afternoon: [], evening: [], night: [], custom: [] },
-        currentHour: 16,
-        currentWindow: 'afternoon',
-      };
-
-      const insights = generateInsights(ctx);
-      expect(insights.find(i => i.id === 'med-symptom-correlation')).toBeUndefined();
-    });
-
-    it('should coexist with other insights (all-complete + med-correlation)', () => {
-      const ctx: InsightContext = {
-        tasks: [
-          makeTask({ type: 'medication', status: 'completed', title: 'Aspirin' }),
-        ],
-        stats: makeStats({ total: 1, pending: 0, completed: 1 }),
-        byWindow: { morning: [], afternoon: [], evening: [], night: [], custom: [] },
-        currentHour: 16,
-        currentWindow: 'afternoon',
-        consecutiveLoggingDays: 5,
-        recentCompletionRate: 95,
-      };
-
-      const insights = generateInsights(ctx);
-      const ids = insights.map(i => i.id);
-
-      expect(ids).toContain('all-complete');
-      expect(ids).toContain('med-symptom-correlation');
-      expect(ids).toContain('streak');
-      expect(ids).toContain('high-completion');
-    });
-  });
-
+  // Task 1.3: Symptom-medication linking insights — REMOVED in v6 redesign
   // ==========================================================================
   // Task 1.4: EveningWellnessData type enrichment
   // ==========================================================================

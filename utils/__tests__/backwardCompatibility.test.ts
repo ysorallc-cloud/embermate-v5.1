@@ -4,6 +4,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeSetItem } from '../safeStorage';
 import { getMorningWellness } from '../wellnessCheckStorage';
 import { getEveningWellness } from '../wellnessCheckStorage';
 import { getLogEvents, MealEvent } from '../logEvents';
@@ -39,7 +40,7 @@ describe('backwardCompatibility', () => {
           completedAt: '2025-01-15T08:00:00.000Z',
         },
       ];
-      await AsyncStorage.setItem(MORNING_KEY, JSON.stringify(oldData));
+      await safeSetItem(MORNING_KEY, oldData);
 
       const result = await getMorningWellness('2025-01-15');
 
@@ -64,7 +65,7 @@ describe('backwardCompatibility', () => {
           completedAt: '2025-01-15T07:30:00.000Z',
         },
       ];
-      await AsyncStorage.setItem(MORNING_KEY, JSON.stringify(oldData));
+      await safeSetItem(MORNING_KEY, oldData);
 
       const result = await getMorningWellness('2025-01-15');
       expect(result!.completedAt).toBeInstanceOf(Date);
@@ -88,7 +89,7 @@ describe('backwardCompatibility', () => {
           completedAt: '2025-01-15T20:00:00.000Z',
         },
       ];
-      await AsyncStorage.setItem(EVENING_KEY, JSON.stringify(oldData));
+      await safeSetItem(EVENING_KEY, oldData);
 
       const result = await getEveningWellness('2025-01-15');
 

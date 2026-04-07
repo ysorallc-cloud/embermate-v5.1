@@ -4,6 +4,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from '../safeStorage';
 import {
   getMedications,
   createMedication,
@@ -20,8 +21,8 @@ describe('Medication → Now Sync Integration', () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-01-15T10:00:00.000Z'));
     await AsyncStorage.setItem(LAST_RESET_DATE_KEY, '2025-01-15');
     await AsyncStorage.setItem('@embermate_onboarding_complete', 'true');
-    await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify([]));
-    await AsyncStorage.setItem(MEDICATION_LOGS_KEY, JSON.stringify([]));
+    await safeSetItem(MEDICATIONS_KEY, []);
+    await safeSetItem(MEDICATION_LOGS_KEY, []);
   });
 
   afterEach(() => {
@@ -124,6 +125,5 @@ describe('Medication → Now Sync Integration', () => {
 
 // Helper to access medication logs (needed for verification)
 async function getMedicationLogs() {
-  const raw = await AsyncStorage.getItem(MEDICATION_LOGS_KEY);
-  return raw ? JSON.parse(raw) : [];
+  return await safeGetItem<any[]>(MEDICATION_LOGS_KEY, []);
 }

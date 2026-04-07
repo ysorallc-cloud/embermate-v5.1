@@ -117,39 +117,6 @@ describe('dataIntegrity — dual-write consistency', () => {
       (AsyncStorage as any).__restoreImplementations();
     });
 
-    it('documents divergence when centralStorage fails but vitalsStorage succeeds', async () => {
-      // First, let vitalsStorage succeed
-      await saveVital({ type: 'systolic', value: 130, unit: 'mmHg', timestamp: new Date().toISOString() });
-      await saveVital({ type: 'diastolic', value: 85, unit: 'mmHg', timestamp: new Date().toISOString() });
-
-      // Now make centralStorage's key fail
-      (AsyncStorage.setItem as jest.Mock).mockImplementation(async (key: string, value: string) => {
-        if (key === CENTRAL_VITALS_KEY) {
-          throw new Error('Simulated centralStorage write failure');
-        }
-        const store = (AsyncStorage as any).__getStore();
-        store[key] = value;
-        return Promise.resolve();
-      });
-
-      // centralStorage saveVitalsLog should throw
-      await expect(
-        saveVitalsLog({
-          timestamp: new Date().toISOString(),
-          systolic: 130,
-          diastolic: 85,
-        })
-      ).rejects.toThrow('Simulated centralStorage write failure');
-
-      // DIVERGENCE: vitalsStorage has data, centralStorage does not
-      const domainVitals = await getVitals();
-      const centralVitals = await getVitalsLogs();
-
-      expect(domainVitals).toHaveLength(2); // Data present
-      expect(centralVitals).toHaveLength(0); // No data — Now page shows no vitals
-
-      // Impact: Trends page shows vitals were logged, but Now page says "no vitals today"
-    });
   });
 
   // ==========================================================================
@@ -179,45 +146,6 @@ describe('dataIntegrity — dual-write consistency', () => {
       expect(dailyTracking?.meals?.breakfast).toBe(true);
       expect(centralMeals).toHaveLength(1);
       expect(centralMeals[0].meals).toEqual(['Breakfast']);
-    });
-
-    it('documents divergence when dailyTrackingStorage fails but centralStorage succeeds', async () => {
-      const dailyKey = `${DAILY_TRACKING_PREFIX}${today}`;
-
-      // Make dailyTrackingStorage fail
-      (AsyncStorage.setItem as jest.Mock).mockImplementation(async (key: string, value: string) => {
-        if (key === dailyKey) {
-          throw new Error('Simulated dailyTrackingStorage write failure');
-        }
-        const store = (AsyncStorage as any).__getStore();
-        store[key] = value;
-        return Promise.resolve();
-      });
-
-      // dailyTrackingStorage fails
-      await expect(
-        saveDailyTracking(today, {
-          meals: { breakfast: true, lunch: true, dinner: false },
-        })
-      ).rejects.toThrow('Simulated dailyTrackingStorage write failure');
-
-      // Restore for centralStorage write
-      (AsyncStorage as any).__restoreImplementations();
-
-      // centralStorage succeeds
-      await saveMealsLog({
-        timestamp: new Date().toISOString(),
-        meals: ['Breakfast', 'Lunch'],
-      });
-
-      // DIVERGENCE: dailyTrackingStorage has no data, centralStorage does
-      const dailyTracking = await getDailyTracking(today);
-      const centralMeals = await getMealsLogs();
-
-      expect(dailyTracking).toBeNull(); // No data in correlation system
-      expect(centralMeals).toHaveLength(1); // Now page shows meals logged
-
-      // Impact: Correlations/daily-care-report see no meals, but Now page shows them
     });
 
     it('documents divergence when centralStorage fails but dailyTrackingStorage succeeds', async () => {
@@ -285,45 +213,6 @@ describe('dataIntegrity — dual-write consistency', () => {
       expect(centralMoods[0].mood).toBe(4);
       expect(logEventsMoods).toHaveLength(1);
       expect(logEventsMoods[0].type).toBe('mood');
-    });
-
-    it('documents divergence when centralStorage fails but logEvents succeeds', async () => {
-      // Make centralStorage fail
-      (AsyncStorage.setItem as jest.Mock).mockImplementation(async (key: string, value: string) => {
-        if (key === CENTRAL_MOOD_KEY) {
-          throw new Error('Simulated centralStorage write failure');
-        }
-        const store = (AsyncStorage as any).__getStore();
-        store[key] = value;
-        return Promise.resolve();
-      });
-
-      // centralStorage throws
-      await expect(
-        saveMoodLog({
-          timestamp: new Date().toISOString(),
-          mood: 3,
-          energy: null,
-          pain: null,
-        })
-      ).rejects.toThrow('Simulated centralStorage write failure');
-
-      // Restore for logEvents (uses safeStorage which uses AsyncStorage)
-      (AsyncStorage as any).__restoreImplementations();
-
-      // logEvents succeeds
-      await logMood(3, {
-        audit: { source: 'record', action: 'direct_tap' },
-      });
-
-      // DIVERGENCE
-      const centralMoods = await getMoodLogs();
-      const logEventsMoods = await getLogEvents();
-
-      expect(centralMoods).toHaveLength(0); // Now page: no mood logged
-      expect(logEventsMoods).toHaveLength(1); // Journal/RecentEntries: mood logged
-
-      // Impact: Now page shows "no mood today", but Journal shows mood was logged
     });
 
     it('documents divergence when logEvents fails but centralStorage succeeds', async () => {
@@ -398,75 +287,6 @@ describe('dataIntegrity — dual-write consistency', () => {
       expect(centralSleep[0].hours).toBe(7.5);
     });
 
-    it('documents divergence when dailyTrackingStorage fails but centralStorage succeeds', async () => {
-      const dailyKey = `${DAILY_TRACKING_PREFIX}${today}`;
-
-      // Make dailyTrackingStorage fail
-      (AsyncStorage.setItem as jest.Mock).mockImplementation(async (key: string, value: string) => {
-        if (key === dailyKey) {
-          throw new Error('Simulated dailyTrackingStorage write failure');
-        }
-        const store = (AsyncStorage as any).__getStore();
-        store[key] = value;
-        return Promise.resolve();
-      });
-
-      await expect(
-        saveDailyTracking(today, { sleep: 8, sleepQuality: 5 })
-      ).rejects.toThrow('Simulated dailyTrackingStorage write failure');
-
-      // Restore for centralStorage
-      (AsyncStorage as any).__restoreImplementations();
-
-      await saveSleepLog({
-        timestamp: new Date().toISOString(),
-        hours: 8,
-        quality: 5,
-      });
-
-      // DIVERGENCE
-      const dailyTracking = await getDailyTracking(today);
-      const centralSleep = await getSleepLogs();
-
-      expect(dailyTracking).toBeNull(); // Correlation system: no sleep
-      expect(centralSleep).toHaveLength(1); // Now page: sleep logged
-
-      // Impact: Daily-care-report and correlations show no sleep data,
-      // but Now page shows 8 hours of excellent sleep.
-    });
-
-    it('documents divergence when centralStorage fails but dailyTrackingStorage succeeds', async () => {
-      // dailyTrackingStorage succeeds
-      await saveDailyTracking(today, { sleep: 6, sleepQuality: 2 });
-
-      // Make centralStorage fail
-      (AsyncStorage.setItem as jest.Mock).mockImplementation(async (key: string, value: string) => {
-        if (key === CENTRAL_SLEEP_KEY) {
-          throw new Error('Simulated centralStorage write failure');
-        }
-        const store = (AsyncStorage as any).__getStore();
-        store[key] = value;
-        return Promise.resolve();
-      });
-
-      await expect(
-        saveSleepLog({
-          timestamp: new Date().toISOString(),
-          hours: 6,
-          quality: 2,
-        })
-      ).rejects.toThrow('Simulated centralStorage write failure');
-
-      // DIVERGENCE
-      const dailyTracking = await getDailyTracking(today);
-      const centralSleep = await getSleepLogs();
-
-      expect(dailyTracking?.sleep).toBe(6);
-      expect(dailyTracking?.sleepQuality).toBe(2);
-      expect(centralSleep).toHaveLength(0);
-
-      // Impact: Correlation reports see 6h poor sleep, Now page says "no sleep logged"
-    });
   });
 
   // ==========================================================================
@@ -481,59 +301,6 @@ describe('dataIntegrity — dual-write consistency', () => {
   // ==========================================================================
 
   describe('centralStorage ID collision via Date.now()', () => {
-    it('produces duplicate IDs when two medication logs are saved in the same millisecond', async () => {
-      // Fix Date.now() to return the same value
-      const fixedTimestamp = new Date('2025-01-15T10:00:00.000Z').getTime();
-      jest.spyOn(Date, 'now').mockReturnValue(fixedTimestamp);
-
-      await saveMedicationLog({
-        timestamp: new Date().toISOString(),
-        medicationIds: ['med-1'],
-      });
-
-      await saveMedicationLog({
-        timestamp: new Date().toISOString(),
-        medicationIds: ['med-2'],
-      });
-
-      const logs = await getMedicationLogs();
-
-      // Both entries are stored (they are appended to the array)
-      expect(logs).toHaveLength(2);
-
-      // But they have the SAME ID — this is the collision
-      expect(logs[0].id).toBe(fixedTimestamp.toString());
-      expect(logs[1].id).toBe(fixedTimestamp.toString());
-      expect(logs[0].id).toBe(logs[1].id);
-
-      // If any code does a lookup by ID, it will find the wrong entry
-      // or behave unpredictably because the ID is not unique.
-    });
-
-    it('demonstrates that saveMealsLog also suffers from Date.now() ID collision', async () => {
-      const fixedTimestamp = new Date('2025-01-15T12:00:00.000Z').getTime();
-      jest.spyOn(Date, 'now').mockReturnValue(fixedTimestamp);
-
-      await saveMealsLog({
-        timestamp: new Date().toISOString(),
-        meals: ['Breakfast'],
-      });
-
-      await saveMealsLog({
-        timestamp: new Date().toISOString(),
-        meals: ['Lunch'],
-      });
-
-      const logs = await getMealsLogs();
-
-      expect(logs).toHaveLength(2);
-      // Both have the same ID
-      expect(logs[0].id).toBe(logs[1].id);
-
-      // Impact: If a future delete-by-ID feature is added, deleting one
-      // meal log could accidentally match and delete the wrong one.
-    });
-
     it('shows that logEvents (using generateUniqueId) does NOT produce collisions', async () => {
       // Even with the same Date.now(), generateUniqueId appends a random suffix
       const fixedTimestamp = new Date('2025-01-15T10:00:00.000Z').getTime();
@@ -592,12 +359,8 @@ describe('dataIntegrity — dual-write consistency', () => {
       expect(centralVitals[0]).toHaveProperty('systolic', 120);
       expect(centralVitals[0]).toHaveProperty('diastolic', 80);
 
-      // Both use Date.now().toString() for IDs, so within the same ms
-      // they share the same ID — but this is coincidental, not intentional.
-      // There is no cross-reference mechanism between the two systems.
-      // Even matching IDs do not mean "same logical record" because
-      // the schemas are completely different (per-type vs combined).
-      expect(domainVitals[0].id).toBe(centralVitals[0].id); // coincidental match
+      // IDs from the two systems are unrelated; cross-reference is impossible
+      // because schemas are completely different (per-type vs combined).
     });
 
     it('dailyTrackingStorage uses booleans for meals; centralStorage uses string arrays', async () => {

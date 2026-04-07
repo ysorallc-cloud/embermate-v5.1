@@ -4,6 +4,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeSetItem } from '../safeStorage';
 import {
   getAppointments,
   getAppointment,
@@ -55,14 +56,14 @@ describe('AppointmentStorage', () => {
   // ============================================================================
   describe('getAppointments', () => {
     it('should return empty array when no appointments exist', async () => {
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify([]));
+      await safeSetItem(APPOINTMENTS_KEY, []);
       const result = await getAppointments();
       expect(result).toEqual([]);
     });
 
     it('should return stored appointments', async () => {
       const testAppts = [createTestAppointment({ provider: 'Dr. Chen' })];
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(testAppts));
+      await safeSetItem(APPOINTMENTS_KEY, testAppts);
 
       const result = await getAppointments();
 
@@ -77,7 +78,7 @@ describe('AppointmentStorage', () => {
         createTestAppointment({ id: 'appt-1', provider: 'Dr. Smith' }),
         createTestAppointment({ id: 'appt-2', provider: 'Dr. Jones' }),
       ];
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(testAppts));
+      await safeSetItem(APPOINTMENTS_KEY, testAppts);
 
       const result = await getAppointment('appt-2');
 
@@ -86,7 +87,7 @@ describe('AppointmentStorage', () => {
     });
 
     it('should return null for non-existent appointment', async () => {
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify([]));
+      await safeSetItem(APPOINTMENTS_KEY, []);
       const result = await getAppointment('nonexistent');
       expect(result).toBeNull();
     });
@@ -94,7 +95,7 @@ describe('AppointmentStorage', () => {
 
   describe('createAppointment', () => {
     beforeEach(async () => {
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify([]));
+      await safeSetItem(APPOINTMENTS_KEY, []);
     });
 
     it('should create appointment with generated ID', async () => {
@@ -139,7 +140,7 @@ describe('AppointmentStorage', () => {
   describe('updateAppointment', () => {
     it('should update appointment properties', async () => {
       const testAppts = [createTestAppointment({ id: 'update-appt' })];
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(testAppts));
+      await safeSetItem(APPOINTMENTS_KEY, testAppts);
 
       const result = await updateAppointment('update-appt', {
         location: 'New Location',
@@ -152,7 +153,7 @@ describe('AppointmentStorage', () => {
     });
 
     it('should return null for non-existent appointment', async () => {
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify([]));
+      await safeSetItem(APPOINTMENTS_KEY, []);
       const result = await updateAppointment('nonexistent', { notes: 'Test' });
       expect(result).toBeNull();
     });
@@ -161,7 +162,7 @@ describe('AppointmentStorage', () => {
   describe('cancelAppointment', () => {
     it('should mark appointment as cancelled', async () => {
       const testAppts = [createTestAppointment({ id: 'cancel-appt' })];
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(testAppts));
+      await safeSetItem(APPOINTMENTS_KEY, testAppts);
 
       const result = await cancelAppointment('cancel-appt');
 
@@ -174,7 +175,7 @@ describe('AppointmentStorage', () => {
   describe('completeAppointment', () => {
     it('should mark appointment as completed', async () => {
       const testAppts = [createTestAppointment({ id: 'complete-appt' })];
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(testAppts));
+      await safeSetItem(APPOINTMENTS_KEY, testAppts);
 
       const result = await completeAppointment('complete-appt');
 
@@ -190,7 +191,7 @@ describe('AppointmentStorage', () => {
         createTestAppointment({ id: 'delete-appt' }),
         createTestAppointment({ id: 'keep-appt' }),
       ];
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(testAppts));
+      await safeSetItem(APPOINTMENTS_KEY, testAppts);
 
       const result = await deleteAppointment('delete-appt');
 
@@ -201,7 +202,7 @@ describe('AppointmentStorage', () => {
     });
 
     it('should return false if appointment does not exist', async () => {
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify([]));
+      await safeSetItem(APPOINTMENTS_KEY, []);
       const result = await deleteAppointment('nonexistent');
       expect(result).toBe(false);
     });
@@ -218,7 +219,7 @@ describe('AppointmentStorage', () => {
         createTestAppointment({ id: 'cancelled', date: '2025-01-22T10:00:00.000Z', cancelled: true }),
         createTestAppointment({ id: 'completed', date: '2025-01-23T10:00:00.000Z', completed: true }),
       ];
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(testAppts));
+      await safeSetItem(APPOINTMENTS_KEY, testAppts);
 
       const result = await getUpcomingAppointments();
 
@@ -232,7 +233,7 @@ describe('AppointmentStorage', () => {
         createTestAppointment({ id: 'sooner', date: '2025-01-18T10:00:00.000Z' }),
         createTestAppointment({ id: 'soonest', date: '2025-01-16T10:00:00.000Z' }),
       ];
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(testAppts));
+      await safeSetItem(APPOINTMENTS_KEY, testAppts);
 
       const result = await getUpcomingAppointments();
 
@@ -249,7 +250,7 @@ describe('AppointmentStorage', () => {
         createTestAppointment({ id: 'jan20-2', date: '2025-01-20T14:00:00.000Z' }),
         createTestAppointment({ id: 'jan21', date: '2025-01-21T10:00:00.000Z' }),
       ];
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(testAppts));
+      await safeSetItem(APPOINTMENTS_KEY, testAppts);
 
       const result = await getAppointmentsByDate(new Date('2025-01-20'));
 
@@ -263,7 +264,7 @@ describe('AppointmentStorage', () => {
         createTestAppointment({ id: 'active', date: '2025-01-20T10:00:00.000Z' }),
         createTestAppointment({ id: 'cancelled', date: '2025-01-20T14:00:00.000Z', cancelled: true }),
       ];
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(testAppts));
+      await safeSetItem(APPOINTMENTS_KEY, testAppts);
 
       const result = await getAppointmentsByDate(new Date('2025-01-20'));
 
@@ -301,7 +302,7 @@ describe('AppointmentStorage', () => {
         createTestAppointment({ id: 'soonest', date: '2025-01-16T10:00:00.000Z' }),
         createTestAppointment({ id: 'sooner', date: '2025-01-20T10:00:00.000Z' }),
       ];
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(testAppts));
+      await safeSetItem(APPOINTMENTS_KEY, testAppts);
 
       const result = await getNextAppointment();
 
@@ -314,7 +315,7 @@ describe('AppointmentStorage', () => {
         createTestAppointment({ id: 'past', date: '2025-01-10T10:00:00.000Z' }),
         createTestAppointment({ id: 'cancelled', date: '2025-01-20T10:00:00.000Z', cancelled: true }),
       ];
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(testAppts));
+      await safeSetItem(APPOINTMENTS_KEY, testAppts);
 
       const result = await getNextAppointment();
 
@@ -330,7 +331,7 @@ describe('AppointmentStorage', () => {
         createTestAppointment({ id: 'past', date: '2025-01-10T10:00:00.000Z' }),
         createTestAppointment({ id: 'cancelled', date: '2025-01-22T10:00:00.000Z', cancelled: true }),
       ];
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(testAppts));
+      await safeSetItem(APPOINTMENTS_KEY, testAppts);
 
       const result = await countUpcomingAppointments();
 
@@ -338,7 +339,7 @@ describe('AppointmentStorage', () => {
     });
 
     it('should return 0 when no appointments', async () => {
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify([]));
+      await safeSetItem(APPOINTMENTS_KEY, []);
       const result = await countUpcomingAppointments();
       expect(result).toBe(0);
     });

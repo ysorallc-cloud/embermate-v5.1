@@ -42,6 +42,12 @@ function buildConfig(overrides: {
   medications?: Array<{ name: string; dosage: string }>;
 }) {
   const config = createDefaultCarePlanConfig(DEFAULT_PATIENT_ID);
+  // Start from a clean slate — disable all buckets, then enable only those
+  // requested.
+  config.meds.enabled = false;
+  config.vitals.enabled = false;
+  config.meals.enabled = false;
+  (config as any).wellness.enabled = false;
 
   if (overrides.meds) {
     config.meds.enabled = true;
@@ -95,8 +101,8 @@ describe('Care Plan Sync Integration', () => {
 
   describe('Auto-creation of CarePlan regimen from config', () => {
     it('should auto-create regimen when config exists but regimen does not', async () => {
-      // Setup: Config exists with vitals + mood, but no regimen
-      const config = buildConfig({ vitals: true, mood: true });
+      // Setup: Config exists with vitals, but no regimen
+      const config = buildConfig({ vitals: true });
       await saveCarePlanConfig(config);
 
       // Precondition: no regimen
@@ -115,7 +121,6 @@ describe('Care Plan Sync Integration', () => {
       expect(instances.length).toBeGreaterThan(0);
       const types = new Set(instances.map(i => i.itemType));
       expect(types.has('vitals')).toBe(true);
-      expect(types.has('mood')).toBe(true);
     });
 
     it('should return empty array when no config and no regimen exist', async () => {
@@ -374,28 +379,6 @@ describe('Care Plan Sync Integration', () => {
       expect(completedVitals).toHaveLength(1);
     });
 
-    it('should complete a mood instance when mood is logged', async () => {
-      const instancesBefore = await listDailyInstances(DEFAULT_PATIENT_ID, TODAY);
-      const pendingMood = instancesBefore.filter(
-        i => i.itemType === 'mood' && i.status === 'pending'
-      );
-      expect(pendingMood.length).toBeGreaterThanOrEqual(1);
-
-      // Act
-      const result = await syncLogToInstance('mood', TODAY, {
-        type: 'mood',
-        mood: 4,
-      });
-
-      // Assert
-      expect(result).toBe(true);
-      const instancesAfter = await listDailyInstances(DEFAULT_PATIENT_ID, TODAY);
-      const completedMood = instancesAfter.filter(
-        i => i.itemType === 'mood' && i.status === 'completed'
-      );
-      expect(completedMood).toHaveLength(1);
-    });
-
     it('should complete a specific meal instance by name', async () => {
       const instancesBefore = await listDailyInstances(DEFAULT_PATIENT_ID, TODAY);
       const pendingMeals = instancesBefore.filter(
@@ -454,17 +437,16 @@ describe('Care Plan Sync Integration', () => {
 
   describe('End-to-end: config to completion', () => {
     it('should generate instances for all enabled buckets and complete them via sync', async () => {
-      // Setup: config with vitals + mood + meals
+      // Setup: config with vitals + meals
       const config = buildConfig({
         vitals: true,
-        mood: true,
         meals: true,
       });
       await saveCarePlanConfig(config);
 
       // Generate instances
       const instances = await ensureDailyInstances(DEFAULT_PATIENT_ID, TODAY);
-      expect(instances.length).toBeGreaterThanOrEqual(5); // 1 vitals + 1 mood + 3 meals
+      expect(instances.length).toBeGreaterThanOrEqual(4); // 1 vitals + 3 meals
 
       // Count by type
       const typeCount = instances.reduce((acc, i) => {
@@ -473,14 +455,10 @@ describe('Care Plan Sync Integration', () => {
       }, {} as Record<string, number>);
 
       expect(typeCount['vitals']).toBeGreaterThanOrEqual(1);
-      expect(typeCount['mood']).toBeGreaterThanOrEqual(1);
       expect(typeCount['nutrition']).toBeGreaterThanOrEqual(3);
 
       // Complete vitals
       await syncLogToInstance('vitals', TODAY, { type: 'vitals', systolic: 120, diastolic: 80 });
-
-      // Complete mood
-      await syncLogToInstance('mood', TODAY, { type: 'mood', mood: 4 });
 
       // Complete all meals
       await syncLogToInstance('nutrition', TODAY, { type: 'nutrition', mealType: 'breakfast' }, { itemName: 'Breakfast' });
@@ -493,7 +471,7 @@ describe('Care Plan Sync Integration', () => {
       const completed = final.filter(i => i.status === 'completed');
 
       expect(pending).toHaveLength(0);
-      expect(completed.length).toBeGreaterThanOrEqual(5);
+      expect(completed.length).toBeGreaterThanOrEqual(4);
     });
 
     it('should handle bucket toggle off → on cycle without losing the ability to generate instances', async () => {

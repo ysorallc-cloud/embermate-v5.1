@@ -14,6 +14,17 @@ import {
   getMedicationsNeedingRefill,
   checkDuplicateMedication,
 } from '../medicationStorage';
+import { safeSetItem, safeGetItem } from '../safeStorage';
+import { DEFAULT_PATIENT_ID } from '../../types/patient';
+
+// Helper: scoped medication logs key matching medicationStorage.ts internal routing.
+const SCOPED_MED_LOGS_KEY = '@embermate_medication_logs';
+async function seedMedicationLogs(logs: any[]) {
+  await safeSetItem(SCOPED_MED_LOGS_KEY, logs);
+}
+async function readMedicationLogs(): Promise<any[]> {
+  return await safeGetItem<any[]>(SCOPED_MED_LOGS_KEY, []);
+}
 
 const MEDICATIONS_KEY = '@embermate_medications';
 const MEDICATION_LOGS_KEY = '@embermate_medication_logs';
@@ -78,13 +89,13 @@ describe('Medication Flow Integration', () => {
       for (let i = 1; i < 7; i++) {
         const date = new Date('2025-01-15');
         date.setDate(date.getDate() - i);
-        const existingLogs = JSON.parse(await AsyncStorage.getItem(MEDICATION_LOGS_KEY) || '[]');
+        const existingLogs = await readMedicationLogs();
         existingLogs.push({
           medicationId: medication.id,
           timestamp: date.toISOString(),
           taken: true,
         });
-        await AsyncStorage.setItem(MEDICATION_LOGS_KEY, JSON.stringify(existingLogs));
+        await seedMedicationLogs(existingLogs);
       }
 
       const adherence = await calculateAdherence(medication.id, 7);
@@ -118,7 +129,7 @@ describe('Medication Flow Integration', () => {
           taken: true,
         });
       }
-      await AsyncStorage.setItem(MEDICATION_LOGS_KEY, JSON.stringify(logs));
+      await seedMedicationLogs(logs);
 
       // Step 3: Calculate adherence
       const adherence = await calculateAdherence(medication.id, 7);

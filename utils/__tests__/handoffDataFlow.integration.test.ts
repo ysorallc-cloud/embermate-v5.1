@@ -9,6 +9,7 @@ import { buildTodaySummary } from '../careSummaryBuilder';
 import { getUpcomingAppointments } from '../appointmentStorage';
 import { getTodayVitalsLog, getMealsLogs } from '../centralStorage';
 import { listDailyInstances } from '../../storage/carePlanRepo';
+import { ensureDailyInstances } from '../../services/carePlanGenerator';
 import { saveMorningWellness, saveEveningWellness } from '../wellnessCheckStorage';
 import { MorningWellnessData, EveningWellnessData } from '../../types/timeline';
 
@@ -16,11 +17,15 @@ import { MorningWellnessData, EveningWellnessData } from '../../types/timeline';
 jest.mock('../appointmentStorage');
 jest.mock('../centralStorage');
 jest.mock('../../storage/carePlanRepo');
+jest.mock('../../services/carePlanGenerator', () => ({
+  ensureDailyInstances: jest.fn(),
+  getTodayDateString: () => '2025-01-15',
+}));
 
 const mockGetUpcomingAppointments = getUpcomingAppointments as jest.Mock;
 const mockGetTodayVitalsLog = getTodayVitalsLog as jest.Mock;
 const mockGetMealsLogs = getMealsLogs as jest.Mock;
-const mockListDailyInstances = listDailyInstances as jest.Mock;
+const mockListDailyInstances = ensureDailyInstances as jest.Mock;
 
 describe('handoffDataFlow — integration', () => {
   beforeEach(async () => {

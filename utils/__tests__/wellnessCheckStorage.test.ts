@@ -4,6 +4,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from '../safeStorage';
 import {
   saveMorningWellness,
   getMorningWellness,
@@ -95,9 +96,8 @@ describe('wellnessCheckStorage', () => {
       expect(result!.mood).toBe(4);
 
       // Should only have one record for this date
-      const raw = await AsyncStorage.getItem(MORNING_KEY);
-      const all = JSON.parse(raw!);
-      const forDate = all.filter((w: any) => w.date === '2025-01-15');
+      const all = await safeGetItem<any[]>(MORNING_KEY, []);
+      const forDate = all!.filter((w: any) => w.date === '2025-01-15');
       expect(forDate).toHaveLength(1);
     });
 
@@ -244,7 +244,7 @@ describe('wellnessCheckStorage', () => {
           completedAt: '2025-01-15T10:00:00.000Z',
         },
       ];
-      await AsyncStorage.setItem(MORNING_KEY, JSON.stringify(oldData));
+      await safeSetItem(MORNING_KEY, oldData);
 
       const result = await getMorningWellness('2025-01-15');
       expect(result).not.toBeNull();
@@ -265,7 +265,7 @@ describe('wellnessCheckStorage', () => {
           completedAt: '2025-01-15T20:00:00.000Z',
         },
       ];
-      await AsyncStorage.setItem(EVENING_KEY, JSON.stringify(oldData));
+      await safeSetItem(EVENING_KEY, oldData);
 
       const result = await getEveningWellness('2025-01-15');
       expect(result).not.toBeNull();

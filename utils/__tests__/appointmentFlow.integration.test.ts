@@ -4,6 +4,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from '../safeStorage';
 import {
   getAppointments,
   createAppointment,
@@ -22,7 +23,7 @@ describe('Appointment Flow Integration', () => {
     jest.clearAllMocks();
     jest.useFakeTimers().setSystemTime(new Date('2025-01-15T10:00:00.000Z'));
     await AsyncStorage.setItem('@embermate_onboarding_complete', 'true');
-    await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify([]));
+    await safeSetItem(APPOINTMENTS_KEY, []);
   });
 
   afterEach(() => {
@@ -163,8 +164,9 @@ describe('Appointment Flow Integration', () => {
       });
 
       // Add a past appointment (should be filtered out)
-      await AsyncStorage.setItem(APPOINTMENTS_KEY, JSON.stringify([
-        ...JSON.parse(await AsyncStorage.getItem(APPOINTMENTS_KEY) || '[]'),
+      const existing = await safeGetItem<any[]>(APPOINTMENTS_KEY, []);
+      await safeSetItem(APPOINTMENTS_KEY, [
+        ...existing,
         {
           id: 'past-appt',
           provider: 'Dr. Past',
@@ -177,7 +179,7 @@ describe('Appointment Flow Integration', () => {
           cancelled: false,
           createdAt: '2025-01-01T00:00:00.000Z',
         },
-      ]));
+      ]);
 
       // Step 2: Get upcoming appointments
       const upcoming = await getUpcomingAppointments();

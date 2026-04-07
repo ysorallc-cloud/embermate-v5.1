@@ -4,6 +4,7 @@
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeSetItem } from '../safeStorage';
 import {
   getMedications,
   getMedication,
@@ -58,14 +59,14 @@ describe('MedicationStorage', () => {
   // ============================================================================
   describe('getMedications', () => {
     it('should return empty array when no medications exist', async () => {
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify([]));
+      await safeSetItem(MEDICATIONS_KEY, []);
       const result = await getMedications();
       expect(result).toEqual([]);
     });
 
     it('should return stored medications', async () => {
       const testMeds = [createTestMedication({ name: 'Aspirin' })];
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(testMeds));
+      await safeSetItem(MEDICATIONS_KEY, testMeds);
 
       const result = await getMedications();
 
@@ -80,7 +81,7 @@ describe('MedicationStorage', () => {
         createTestMedication({ id: 'med-1', name: 'Aspirin' }),
         createTestMedication({ id: 'med-2', name: 'Metformin' }),
       ];
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(testMeds));
+      await safeSetItem(MEDICATIONS_KEY, testMeds);
 
       const result = await getMedication('med-2');
 
@@ -89,7 +90,7 @@ describe('MedicationStorage', () => {
     });
 
     it('should return null for non-existent medication', async () => {
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify([]));
+      await safeSetItem(MEDICATIONS_KEY, []);
       const result = await getMedication('nonexistent');
       expect(result).toBeNull();
     });
@@ -97,7 +98,7 @@ describe('MedicationStorage', () => {
 
   describe('createMedication', () => {
     beforeEach(async () => {
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify([]));
+      await safeSetItem(MEDICATIONS_KEY, []);
     });
 
     it('should create medication with generated ID', async () => {
@@ -119,7 +120,7 @@ describe('MedicationStorage', () => {
 
     it('should reject duplicate medication', async () => {
       const existingMed = createTestMedication({ name: 'Aspirin' });
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify([existingMed]));
+      await safeSetItem(MEDICATIONS_KEY, [existingMed]);
 
       const duplicateMed = {
         name: 'Aspirin',
@@ -139,7 +140,7 @@ describe('MedicationStorage', () => {
   describe('updateMedication', () => {
     it('should update medication properties', async () => {
       const testMeds = [createTestMedication({ id: 'update-med', name: 'Old Name' })];
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(testMeds));
+      await safeSetItem(MEDICATIONS_KEY, testMeds);
 
       const result = await updateMedication('update-med', { name: 'New Name' });
 
@@ -148,7 +149,7 @@ describe('MedicationStorage', () => {
     });
 
     it('should return null for non-existent medication', async () => {
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify([]));
+      await safeSetItem(MEDICATIONS_KEY, []);
       const result = await updateMedication('nonexistent', { name: 'Test' });
       expect(result).toBeNull();
     });
@@ -157,7 +158,7 @@ describe('MedicationStorage', () => {
   describe('deleteMedication', () => {
     it('should soft delete by setting active to false', async () => {
       const testMeds = [createTestMedication({ id: 'delete-med', active: true })];
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(testMeds));
+      await safeSetItem(MEDICATIONS_KEY, testMeds);
 
       const result = await deleteMedication('delete-med');
 
@@ -173,7 +174,7 @@ describe('MedicationStorage', () => {
   describe('markMedicationTaken', () => {
     it('should mark medication as taken and log event', async () => {
       const testMeds = [createTestMedication({ id: 'take-med' })];
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(testMeds));
+      await safeSetItem(MEDICATIONS_KEY, testMeds);
 
       const result = await markMedicationTaken('take-med', true);
 
@@ -191,14 +192,14 @@ describe('MedicationStorage', () => {
   // ============================================================================
   describe('calculateAdherence', () => {
     it('should return 0 for non-existent medication', async () => {
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify([]));
+      await safeSetItem(MEDICATIONS_KEY, []);
       const adherence = await calculateAdherence('nonexistent', 7);
       expect(adherence).toBe(0);
     });
 
     it('should calculate adherence based on logs', async () => {
       const testMeds = [createTestMedication({ id: 'adherence-med' })];
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(testMeds));
+      await safeSetItem(MEDICATIONS_KEY, testMeds);
 
       // Create logs for 7 days
       const logs = [];
@@ -211,7 +212,7 @@ describe('MedicationStorage', () => {
           taken: true,
         });
       }
-      await AsyncStorage.setItem(MEDICATION_LOGS_KEY, JSON.stringify(logs));
+      await safeSetItem(MEDICATION_LOGS_KEY, logs);
 
       const adherence = await calculateAdherence('adherence-med', 7);
       expect(adherence).toBe(100);
@@ -227,11 +228,11 @@ describe('MedicationStorage', () => {
         createTestMedication({ id: 'reset-1', taken: true }),
         createTestMedication({ id: 'reset-2', taken: true }),
       ];
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(testMeds));
+      await safeSetItem(MEDICATIONS_KEY, testMeds);
 
       await resetDailyMedicationStatus();
 
-      const meds = JSON.parse(await AsyncStorage.getItem(MEDICATIONS_KEY) || '[]');
+      const meds = await safeGetItem<any[]>(MEDICATIONS_KEY, []);
       expect(meds[0].taken).toBe(false);
       expect(meds[1].taken).toBe(false);
     });
@@ -246,7 +247,7 @@ describe('MedicationStorage', () => {
         createTestMedication({ id: 'low', name: 'Low Supply', daysSupply: 5 }),
         createTestMedication({ id: 'high', name: 'High Supply', daysSupply: 30 }),
       ];
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(testMeds));
+      await safeSetItem(MEDICATIONS_KEY, testMeds);
 
       const result = await getMedicationsNeedingRefill();
 
@@ -258,7 +259,7 @@ describe('MedicationStorage', () => {
   describe('addMedicationRefill', () => {
     it('should increase pills remaining', async () => {
       const testMeds = [createTestMedication({ id: 'refill-med', pillsRemaining: 5 })];
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(testMeds));
+      await safeSetItem(MEDICATIONS_KEY, testMeds);
 
       const result = await addMedicationRefill('refill-med', 30, 30);
 
@@ -273,7 +274,7 @@ describe('MedicationStorage', () => {
   describe('checkDuplicateMedication', () => {
     it('should detect exact name match (case-insensitive)', async () => {
       const testMeds = [createTestMedication({ name: 'Aspirin' })];
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(testMeds));
+      await safeSetItem(MEDICATIONS_KEY, testMeds);
 
       const result = await checkDuplicateMedication('aspirin');
 
@@ -282,7 +283,7 @@ describe('MedicationStorage', () => {
 
     it('should not detect inactive medications', async () => {
       const testMeds = [createTestMedication({ name: 'Aspirin', active: false })];
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(testMeds));
+      await safeSetItem(MEDICATIONS_KEY, testMeds);
 
       const result = await checkDuplicateMedication('Aspirin');
 
@@ -290,7 +291,7 @@ describe('MedicationStorage', () => {
     });
 
     it('should return null when no match', async () => {
-      await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify([]));
+      await safeSetItem(MEDICATIONS_KEY, []);
       const result = await checkDuplicateMedication('Nonexistent');
       expect(result).toBeNull();
     });

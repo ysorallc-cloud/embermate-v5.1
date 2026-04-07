@@ -117,10 +117,6 @@ describe('Medication data consistency', () => {
     expect(medFormSource).toContain('addMedicationToPlan');
     expect(medFormSource).toContain('createMedication'); // Also syncs to legacy
 
-    // care-brief.tsx reads from medicationStorage (legacy)
-    const careBriefSource = readSource('app/care-brief.tsx');
-    expect(careBriefSource).toContain("from '../utils/medicationStorage'");
-    expect(careBriefSource).toContain('getMedications');
   });
 
   it('DOCUMENTS: medication-form.tsx syncs CarePlan-source meds to legacy storage', () => {
@@ -320,9 +316,6 @@ describe('Appointment data consistency', () => {
     expect(nowSource).toContain('getUpcomingAppointments');
     expect(nowSource).toContain("from '../../utils/appointmentStorage'");
 
-    // care-brief.tsx also reads from appointmentStorage
-    const careBriefSource = readSource('app/care-brief.tsx');
-    expect(careBriefSource).toContain("from '../utils/appointmentStorage'");
   });
 });
 

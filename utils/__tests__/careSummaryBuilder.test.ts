@@ -8,11 +8,16 @@ import { getMorningWellness, getEveningWellness } from '../wellnessCheckStorage'
 import { getUpcomingAppointments } from '../appointmentStorage';
 import { getTodayVitalsLog, getMealsLogs } from '../centralStorage';
 import { listDailyInstances } from '../../storage/carePlanRepo';
+import { ensureDailyInstances } from '../../services/carePlanGenerator';
 
 jest.mock('../wellnessCheckStorage');
 jest.mock('../appointmentStorage');
 jest.mock('../centralStorage');
 jest.mock('../../storage/carePlanRepo');
+jest.mock('../../services/carePlanGenerator', () => ({
+  ensureDailyInstances: jest.fn(),
+  getTodayDateString: () => '2025-01-15',
+}));
 
 const mockGetMorningWellness = getMorningWellness as jest.Mock;
 const mockGetEveningWellness = getEveningWellness as jest.Mock;
@@ -20,9 +25,11 @@ const mockGetUpcomingAppointments = getUpcomingAppointments as jest.Mock;
 const mockGetTodayVitalsLog = getTodayVitalsLog as jest.Mock;
 const mockGetMealsLogs = getMealsLogs as jest.Mock;
 const mockListDailyInstances = listDailyInstances as jest.Mock;
+const mockEnsureDailyInstances = ensureDailyInstances as jest.Mock;
 
 function setupDefaults() {
-  mockListDailyInstances.mockResolvedValue([]);
+  mockEnsureDailyInstances.mockResolvedValue([]);
+  mockEnsureDailyInstances.mockResolvedValue([]);
   mockGetMorningWellness.mockResolvedValue(null);
   mockGetEveningWellness.mockResolvedValue(null);
   mockGetUpcomingAppointments.mockResolvedValue([]);
@@ -47,7 +54,7 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
 
   describe('medsAdherence', () => {
     it('should count taken vs total medication instances', async () => {
-      mockListDailyInstances.mockResolvedValue([
+      mockEnsureDailyInstances.mockResolvedValue([
         { id: '1', itemType: 'medication', itemName: 'Aspirin', status: 'completed', scheduledTime: '2025-01-15T08:00:00.000Z' },
         { id: '2', itemType: 'medication', itemName: 'Lisinopril', status: 'pending', scheduledTime: '2025-01-15T08:00:00.000Z' },
         { id: '3', itemType: 'medication', itemName: 'Metformin', status: 'completed', scheduledTime: '2025-01-15T12:00:00.000Z' },
@@ -61,7 +68,7 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
     });
 
     it('should return 0/0 when no medication instances', async () => {
-      mockListDailyInstances.mockResolvedValue([]);
+      mockEnsureDailyInstances.mockResolvedValue([]);
 
       const summary = await buildTodaySummary();
       expect(summary.medsAdherence.taken).toBe(0);
@@ -69,7 +76,7 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
     });
 
     it('should exclude non-medication instances from med count', async () => {
-      mockListDailyInstances.mockResolvedValue([
+      mockEnsureDailyInstances.mockResolvedValue([
         { id: '1', itemType: 'medication', itemName: 'Aspirin', status: 'completed', scheduledTime: '2025-01-15T08:00:00.000Z' },
         { id: '2', itemType: 'vitals', itemName: 'Blood Pressure', status: 'completed', scheduledTime: '2025-01-15T08:00:00.000Z' },
         { id: '3', itemType: 'mood', itemName: 'Mood Check', status: 'pending', scheduledTime: '2025-01-15T12:00:00.000Z' },
@@ -176,7 +183,7 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
 
   describe('flaggedItems', () => {
     it('should flag unlogged medications', async () => {
-      mockListDailyInstances.mockResolvedValue([
+      mockEnsureDailyInstances.mockResolvedValue([
         { id: '1', itemType: 'medication', itemName: 'Aspirin', status: 'pending', scheduledTime: '2025-01-15T08:00:00.000Z' },
         { id: '2', itemType: 'medication', itemName: 'Lisinopril', status: 'pending', scheduledTime: '2025-01-15T08:00:00.000Z' },
         { id: '3', itemType: 'medication', itemName: 'Metformin', status: 'completed', scheduledTime: '2025-01-15T08:00:00.000Z' },
@@ -214,7 +221,7 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
     });
 
     it('should flag all issues when all are present', async () => {
-      mockListDailyInstances.mockResolvedValue([
+      mockEnsureDailyInstances.mockResolvedValue([
         { id: '1', itemType: 'medication', itemName: 'Aspirin', status: 'pending', scheduledTime: '2025-01-15T08:00:00.000Z' },
       ]);
       mockGetMorningWellness.mockResolvedValue({
@@ -236,7 +243,7 @@ describe('careSummaryBuilder — buildTodaySummary', () => {
     });
 
     it('should have empty flaggedItems when everything is normal', async () => {
-      mockListDailyInstances.mockResolvedValue([
+      mockEnsureDailyInstances.mockResolvedValue([
         { id: '1', itemType: 'medication', itemName: 'Aspirin', status: 'completed', scheduledTime: '2025-01-15T08:00:00.000Z' },
       ]);
       mockGetMorningWellness.mockResolvedValue({

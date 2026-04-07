@@ -48,6 +48,13 @@ function buildConfig(overrides: {
   mood?: boolean;
 }) {
   const config = createDefaultCarePlanConfig(DEFAULT_PATIENT_ID);
+  // Start from a clean slate — disable all buckets, then enable only those
+  // requested. This matches the intended test-only overrides regardless of
+  // production defaults.
+  config.meds.enabled = false;
+  config.vitals.enabled = false;
+  config.meals.enabled = false;
+  (config as any).wellness.enabled = false;
 
   if (overrides.vitals) {
     config.vitals.enabled = true;
