@@ -355,6 +355,31 @@ jest.mock('expo-updates', () => ({
 // MOCK: expo-sharing
 // ============================================================================
 
+jest.mock('expo-linking', () => ({
+  openURL: jest.fn(() => Promise.resolve()),
+  canOpenURL: jest.fn(() => Promise.resolve(true)),
+  createURL: jest.fn((path) => `embermate://${path}`),
+  parse: jest.fn(() => ({})),
+}));
+
+jest.mock('expo-localization', () => ({
+  locale: 'en-US',
+  locales: ['en-US'],
+  timezone: 'America/New_York',
+  isRTL: false,
+  getLocales: jest.fn(() => [{ languageTag: 'en-US', languageCode: 'en', regionCode: 'US' }]),
+}));
+
+jest.mock('expo-store-review', () => ({
+  isAvailableAsync: jest.fn(() => Promise.resolve(true)),
+  hasAction: jest.fn(() => Promise.resolve(true)),
+  requestReview: jest.fn(() => Promise.resolve()),
+}));
+
+// ============================================================================
+// MOCK: expo-sharing
+// ============================================================================
+
 jest.mock('expo-sharing', () => ({
   isAvailableAsync: jest.fn(() => Promise.resolve(true)),
   shareAsync: jest.fn(() => Promise.resolve()),

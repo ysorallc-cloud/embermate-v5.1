@@ -19,6 +19,13 @@ module.exports = {
           jsx: 'react',
           esModuleInterop: true,
           allowSyntheticDefaultImports: true,
+          // Tests use untyped literals (e.g. `const logs = []`) and inline
+          // jest fixtures that don't fully model production types. Loosen
+          // strictness for the test compile pass only — production app code
+          // is still compiled with strict mode via tsc.
+          strict: false,
+          noImplicitAny: false,
+          strictNullChecks: false,
         },
       },
     ],
