@@ -117,9 +117,15 @@ async function decryptData(encryptedData: string): Promise<string> {
     }
 
     if (parts.length !== 4) {
-      // Data is not in any recognized encrypted format — likely plain text
-      // stored before encryption was enabled. Return as-is.
-      return encryptedData;
+      if (parts.length === 1) {
+        // No version prefix at all — likely plain text stored before encryption
+        // was enabled. Return as-is for backward compatibility.
+        return encryptedData;
+      }
+      // Multiple colon-separated parts but neither v2 nor v3 — malformed/corrupt.
+      // Throw so getSecureItem falls back to its default rather than handing
+      // ciphertext to callers.
+      throw new Error(`Unrecognized encrypted data format (parts=${parts.length})`);
     }
 
     const [version, ivHex, ciphertextHex, tagHex] = parts;
@@ -401,7 +407,11 @@ export async function testEncryption(): Promise<boolean> {
 
     // Test tamper detection
     try {
-      const tamperedData = encrypted.replace(/.$/, '0'); // Modify last character
+      // Flip the last hex char to a guaranteed-different value. Using a
+      // constant '0' is non-deterministic: when the original char is already
+      // '0' the string is unchanged and tamper detection appears to fail.
+      const lastChar = encrypted.slice(-1);
+      const tamperedData = encrypted.slice(0, -1) + (lastChar === '0' ? '1' : '0');
       await decryptData(tamperedData);
       logError('secureStorage.testEncryption', 'Tamper detection FAILED - this should have thrown an error');
       return false;
