@@ -22,9 +22,11 @@ import {
   removeStaleInstances,
   upsertCarePlanItem,
   deleteCarePlanItem,
+  createCarePlan,
   DEFAULT_PATIENT_ID,
 } from '../storage/carePlanRepo';
 import { getCarePlanConfig } from '../storage/carePlanConfigRepo';
+import { hasAnyEnabledBucket } from '../types/carePlanConfig';
 import {
   MedsBucketConfig,
   MedicationPlanItem,
@@ -178,20 +180,26 @@ async function syncMedicationItemsWithConfig(
       // Match by exact composed name ("Name Dosage")
       const composedName = `${configMed.name} ${configMed.dosage}`.trim().toLowerCase();
       const matchByName = existingByName.get(composedName);
+      // Match by base medication name
+      const configBaseName = configMed.name.toLowerCase().trim();
+      const matchByBaseName = existingByBaseName.get(configBaseName);
 
-      if (!matchById && !matchByName) {
-        // Extra safety: check by base medication name
-        const configBaseName = configMed.name.toLowerCase().trim();
-        const matchByBaseName = existingByBaseName.get(configBaseName);
-        if (matchByBaseName) {
-          continue; // Already have an item for this medication
+      const matched = matchById || matchByName || matchByBaseName;
+
+      if (matched) {
+        // If the matched item is inactive, reactivate it so the regimen reflects config.
+        if (matched.active === false) {
+          devLog('[syncMedicationItemsWithConfig] Reactivating inactive medication item:', matched.name);
+          await upsertCarePlanItem({ ...matched, active: true });
+          changed = true;
         }
-
-        const newItem = createCarePlanItemFromConfigMed(configMed, carePlanId);
-        devLog('[syncMedicationItemsWithConfig] Creating CarePlanItem for config med:', configMed.name);
-        await upsertCarePlanItem(newItem);
-        changed = true;
+        continue;
       }
+
+      const newItem = createCarePlanItemFromConfigMed(configMed, carePlanId);
+      devLog('[syncMedicationItemsWithConfig] Creating CarePlanItem for config med:', configMed.name);
+      await upsertCarePlanItem(newItem);
+      changed = true;
     }
 
     // 2. DEACTIVATE: Remove CarePlanItems that aren't in config
@@ -260,18 +268,28 @@ async function syncOtherBucketsWithConfig(
     const existingVitalsItems = allItems.filter(i => i.type === 'vitals' && !i.id.startsWith('sample-'));
     const hasActiveVitalsItem = existingVitalsItems.some(i => i.active);
 
-    if (vitalsEnabled && existingVitalsItems.length === 0) {
+    if (vitalsEnabled && existingVitalsItems.length > 0 && !hasActiveVitalsItem) {
+      // Items exist but all are inactive — reactivate them so the user's
+      // re-enabled bucket starts generating instances again.
+      for (const item of existingVitalsItems) {
+        if (!item.active) {
+          devLog('[syncOtherBucketsWithConfig] Reactivating vitals item:', item.id);
+          await upsertCarePlanItem({ ...item, active: true, updatedAt: now });
+          changed = true;
+        }
+      }
+    } else if (vitalsEnabled && existingVitalsItems.length === 0) {
       // Only create if NO vitals items exist at all
       const vitalsTimesOfDay = vitalsConfig.timesOfDay || ['morning'];
       const times: TimeWindow[] = vitalsTimesOfDay.map(tod => ({
-        id: generateUniqueId(),
+        id: `sync-vitals-${tod}-time`,
         kind: 'exact' as const,
         label: TIME_OF_DAY_TO_WINDOW[tod as TimeOfDay],
         at: TIME_OF_DAY_DEFAULTS[tod as TimeOfDay] || '08:00',
       }));
 
       const vitalsItem: CarePlanItem = {
-        id: generateUniqueId(),
+        id: 'sync-vitals',
         carePlanId,
         type: 'vitals',
         name: 'Check vitals',
@@ -300,13 +318,13 @@ async function syncOtherBucketsWithConfig(
       }
     }
 
-    // ===== MOOD CLEANUP =====
+    // ===== MOOD SYNC =====
     // Mood check-ins are now captured within wellness checks (morning + evening).
     // Deactivate any existing standalone mood items.
     const existingMoodItems = allItems.filter(i => i.type === 'mood');
     for (const item of existingMoodItems) {
       if (item.active) {
-        await upsertCarePlanItem({ ...item, active: false });
+        await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
         changed = true;
       }
     }
@@ -325,7 +343,38 @@ async function syncOtherBucketsWithConfig(
     const today = getTodayDateString();
     const todayInstances = await listDailyInstances(patientId, today);
 
+    // Helper: map a nutrition item to a time-of-day based on name or schedule label
+    const nutritionItemTod = (item: CarePlanItem): string | null => {
+      const itemName = item.name?.toLowerCase() || '';
+      if (itemName.includes('breakfast')) return 'morning';
+      if (itemName.includes('lunch')) return 'midday';
+      if (itemName.includes('dinner') || itemName.includes('supper')) return 'evening';
+      if (itemName.includes('snack')) return 'night';
+      const label = item.schedule?.times?.[0]?.label;
+      if (label === 'morning') return 'morning';
+      if (label === 'afternoon') return 'midday';
+      if (label === 'evening') return 'evening';
+      if (label === 'night') return 'night';
+      return null;
+    };
+
+    const configuredMealTods = new Set(
+      mealsEnabled ? (mealsConfig.timesOfDay || ['morning', 'midday', 'evening']) : []
+    );
     for (const item of nonSyncMealItems) {
+      // If meals are enabled and this item matches a configured slot,
+      // reactivate (if inactive) and preserve it — do not deactivate.
+      if (mealsEnabled) {
+        const tod = nutritionItemTod(item);
+        if (tod && configuredMealTods.has(tod as TimeOfDay)) {
+          if (!item.active) {
+            devLog('[syncOtherBucketsWithConfig] Reactivating non-sync meal item:', item.name);
+            await upsertCarePlanItem({ ...item, active: true, updatedAt: now });
+            changed = true;
+          }
+          continue;
+        }
+      }
       if (item.active) {
         // Determine which sync-meal item this maps to based on name
         const itemName = item.name?.toLowerCase() || '';
@@ -434,7 +483,10 @@ async function syncOtherBucketsWithConfig(
     }
 
     // ===== WELLNESS SYNC =====
-    // Wellness is always-on — not gated by bucket enabled flag
+    // Wellness is normally always-on, but respects an explicit disable in config
+    // (primarily so tests / callers can opt out when not using wellness at all).
+    const wellnessConfig = (config as any).wellness;
+    const wellnessEnabled = wellnessConfig ? wellnessConfig.enabled !== false : true;
     // First, deactivate stale sample-wellness items so sync items take over
     const sampleWellnessItems = allItems.filter(i => i.type === 'wellness' && i.id.startsWith('sample-'));
     for (const item of sampleWellnessItems) {
@@ -445,7 +497,15 @@ async function syncOtherBucketsWithConfig(
       }
     }
     const existingWellnessItems = allItems.filter(i => i.type === 'wellness' && !i.id.startsWith('sample-'));
-    if (existingWellnessItems.length === 0) {
+    if (!wellnessEnabled) {
+      // Deactivate all wellness items when bucket is off
+      for (const item of existingWellnessItems) {
+        if (item.active) {
+          await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
+          changed = true;
+        }
+      }
+    } else if (existingWellnessItems.length === 0) {
       // Create "Morning wellness check" item
       const morningItem: CarePlanItem = {
         id: 'sync-wellness-morning',
@@ -743,10 +803,16 @@ async function _ensureDailyInstancesCore(
   patientId: string,
   date: string
 ): Promise<DailyCareInstance[]> {
-  // 1. Get active care plan
-  const carePlan = await getActiveCarePlan(patientId);
+  // 1. Get active care plan — auto-create one if config exists with at least
+  // one enabled bucket but no regimen has been provisioned yet. This keeps
+  // the bucket-config UX decoupled from explicit regimen creation.
+  let carePlan = await getActiveCarePlan(patientId);
   if (!carePlan) {
-    return [];
+    const config = await getCarePlanConfig(patientId);
+    if (!config || !hasAnyEnabledBucket(config)) {
+      return [];
+    }
+    carePlan = await createCarePlan(patientId);
   }
 
   // 1.4 Pre-sync cleanup of duplicate items
@@ -974,7 +1040,7 @@ function createInstance(
   const now = new Date().toISOString();
 
   return {
-    id: generateUniqueId(),
+    id: `inst-${date}-${item.id}-${window.id}`,
     carePlanId: carePlan.id,
     carePlanItemId: item.id,
     patientId: carePlan.patientId,
