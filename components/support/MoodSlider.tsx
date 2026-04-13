@@ -93,8 +93,9 @@ export function MoodSlider() {
             key={pos.score}
             style={styles.sliderDot}
             onPress={() => { if (!logged) setSelectedIndex(i); }}
-            accessibilityLabel={pos.label}
-            accessibilityRole="button"
+            accessibilityLabel={`${pos.emoji} ${pos.label}`}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: i === selectedIndex }}
           />
         ))}
       </View>
@@ -145,8 +146,10 @@ export function MoodSlider() {
 function createStyles(c: any) {
   return StyleSheet.create({
     container: {
-      // No background/border — parent warmCard provides the surface
-      alignItems: 'center',
+      // No background/border — parent warmCard provides the surface.
+      // Intentionally no cross-axis centering: that would collapse the
+      // sliderTrack to its content width (basically zero, since the dots
+      // are absolute-positioned) and make the dots unreachable.
     },
     emoji: {
       fontSize: 40,
@@ -167,6 +170,8 @@ function createStyles(c: any) {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'space-between' as const,
+      alignSelf: 'stretch' as const,
+      width: '100%' as const,
       marginHorizontal: 12,
       position: 'relative' as const,
     },
@@ -199,9 +204,12 @@ function createStyles(c: any) {
     scaleLabels: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
+      alignSelf: 'stretch' as const,
+      width: '100%' as const,
       marginTop: 6,
       marginHorizontal: 12,
       marginBottom: 20,
+      paddingHorizontal: 4,
     },
     scaleLabel: {
       fontSize: 11,

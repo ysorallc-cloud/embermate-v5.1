@@ -174,7 +174,7 @@ export function BreathingExercise({ visible, onClose }: BreathingExerciseProps) 
           <TouchableOpacity
             style={[styles.beginButton, { backgroundColor: colors.accent }]}
             onPress={handleBegin}
-            accessibilityLabel="Begin breathing exercise"
+            accessibilityLabel="Start breathing exercise, 1 minute"
             accessibilityRole="button"
           >
             <Text style={styles.beginButtonText}>Begin</Text>

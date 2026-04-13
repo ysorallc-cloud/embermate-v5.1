@@ -151,7 +151,11 @@ function QuickPulseStatus({
           const stat = todayStats[tile.key as keyof TodayStats] ?? { completed: 0, total: 0 };
 
           return (
-            <View key={tile.key} style={s.tile}>
+            <View
+              key={tile.key}
+              style={s.tile}
+              accessibilityLabel={stat.total > 0 ? `${tile.label}, ${stat.completed} of ${stat.total} completed` : `${tile.label}, none scheduled`}
+            >
               <Text style={s.tileEmoji}>{tile.emoji}</Text>
               <Text style={s.tileLabel}>{tile.label}</Text>
               <Text style={s.tileCount}>

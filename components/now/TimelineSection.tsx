@@ -12,7 +12,6 @@ import { navigate } from '../../lib/navigate';
 import { MedsBatchPanel } from './MedsBatchPanel';
 import { WindowReceipt } from './WindowReceipt';
 import {
-  parseTimeForDisplay,
   isOverdue,
   groupByTimeWindow,
   getCurrentTimeWindow,
@@ -117,6 +116,8 @@ const TIME_WINDOW_ICONS: Record<TimeWindow, string> = {
 // HELPERS
 // ============================================================================
 
+// Compact time format for the left gutter: "7a", "8a", "12p", "7p".
+// Minutes shown only when non-zero: "7:30a".
 function parseTimeShort(scheduledTime: string): string | null {
   if (!scheduledTime) return null;
   let date = new Date(scheduledTime);
@@ -128,24 +129,16 @@ function parseTimeShort(scheduledTime: string): string | null {
   const hours = date.getHours();
   const minutes = date.getMinutes();
   const hour12 = hours % 12 || 12;
-  return `${hour12}:${minutes.toString().padStart(2, '0')}`;
+  const ampm = hours >= 12 ? 'p' : 'a';
+  return minutes > 0 ? `${hour12}:${minutes.toString().padStart(2, '0')}${ampm}` : `${hour12}${ampm}`;
 }
 
+// Subtitle for the pending-item row: dosage or instructions only.
+// Time is no longer included — it's shown in the left gutter column.
 function getItemSubtitle(instance: any): string {
-  const parts: string[] = [];
-
-  // Time
-  const time = parseTimeForDisplay(instance.scheduledTime);
-  if (time) parts.push(time);
-
-  // Context from instructions or dosage
-  if (instance.instructions) {
-    parts.push(instance.instructions);
-  } else if (instance.itemDosage) {
-    parts.push(instance.itemDosage);
-  }
-
-  return parts.join(' \u00B7 ');
+  if (instance.instructions) return instance.instructions;
+  if (instance.itemDosage) return instance.itemDosage;
+  return '';
 }
 
 function getTimeDelta(scheduledTime: string): { text: string; tone: 'late' | 'soon' | 'later' } | null {
@@ -214,6 +207,12 @@ interface TimelineSectionProps {
   onClearCategory: () => void;
   onItemPress: (instance: any) => void;
   onBatchMedConfirm?: (instanceIds: string[]) => Promise<void>;
+  /**
+   * Inline one-tap confirm for routine items (e.g. medications). Implementations
+   * should complete the instance without navigating away from the Now screen.
+   * Called by the per-row "Confirm" button added in Phase 1.
+   */
+  onQuickConfirm?: (instance: any) => Promise<void>;
   todayStats: TodayStats;
   enabledBuckets: BucketType[];
   waterGlasses?: number;
@@ -234,6 +233,7 @@ export function TimelineSection({
   onClearCategory,
   onItemPress,
   onBatchMedConfirm,
+  onQuickConfirm,
   todayStats,
   enabledBuckets,
   waterGlasses = 0,
@@ -368,7 +368,7 @@ export function TimelineSection({
         )}
 
         {categoryAll.map((instance) => {
-          const timeDisplay = parseTimeForDisplay(instance.scheduledTime);
+          const timeDisplay = parseTimeShort(instance.scheduledTime);
           const isPending = instance.status === 'pending' || !instance.status;
           const isMissed = instance.status === 'missed';
           const isDone = instance.status === 'completed' || instance.status === 'skipped';
@@ -382,7 +382,7 @@ export function TimelineSection({
                 style={styles.categoryItemRow}
                 onPress={() => onItemPress(instance)}
                 activeOpacity={0.7}
-                accessibilityLabel={`${instance.itemName}, Missed. Tap to log late.`}
+                accessibilityLabel={`${instance.itemName}, Missed. Tap to log.`}
                 accessibilityRole="button"
               >
                 <View style={[styles.statusCircle, styles.statusCircleMissed]}>
@@ -394,7 +394,7 @@ export function TimelineSection({
                     {timeDisplay ? `${timeDisplay} \u00B7 Missed` : 'Missed'}
                   </Text>
                 </View>
-                <Text style={styles.logLateText}>Log Late</Text>
+                <Text style={styles.logLateText}>Log</Text>
               </TouchableOpacity>
             );
           }
@@ -421,15 +421,40 @@ export function TimelineSection({
                     {timeDelta ? ` \u00B7 ${timeDelta}` : ''}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.logButton}
-                  onPress={() => onItemPress(instance)}
-                  activeOpacity={0.7}
-                  accessibilityLabel={`Log ${instance.itemName}`}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.logButtonText}>Log</Text>
-                </TouchableOpacity>
+                {(instance.itemType === 'medication' || instance.itemType === 'nutrition') && onQuickConfirm ? (
+                  <TouchableOpacity
+                    style={styles.confirmButton}
+                    onPress={() => onQuickConfirm(instance)}
+                    onLongPress={() => onItemPress(instance)}
+                    activeOpacity={0.7}
+                    accessibilityLabel={
+                      instance.itemType === 'medication'
+                        ? `Confirm ${instance.itemName}. Long press for options.`
+                        : `Log ${instance.itemName}. Long press for details.`
+                    }
+                    accessibilityRole="button"
+                    accessibilityHint={
+                      instance.itemType === 'medication'
+                        ? 'Long press to add notes or skip'
+                        : 'Long press to add appetite or food details'
+                    }
+                  >
+                    <Text style={styles.confirmButtonText}>
+                      {instance.itemType === 'medication' ? 'Confirm' : 'Logged'}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.logButton}
+                    onPress={() => onItemPress(instance)}
+                    activeOpacity={0.7}
+                    accessibilityLabel={`Log ${instance.itemName}`}
+                    accessibilityRole="button"
+                    accessibilityHint="Double tap to log this item"
+                  >
+                    <Text style={styles.logButtonText}>Log</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             );
           }
@@ -560,18 +585,16 @@ function TimelineModeBContent({
             {!isCollapsed && (
               <View>
                 {(() => {
-                  let lastShownTime: string | null = null;
                   return items.map((instance: any, index: number) => {
                     const shortTime = parseTimeShort(instance.scheduledTime);
-                    const showTime = shortTime != null && shortTime !== lastShownTime;
-                    if (showTime) lastShownTime = shortTime;
+                    // Every item shows its time in the left gutter — no dedup.
 
                     const isDone = instance.status === 'completed' || instance.status === 'skipped';
                     const isMissed = instance.status === 'missed';
                     const isFinished = isDone || isMissed;
                     const isCompleted = instance.status === 'completed';
                     const isSkipped = instance.status === 'skipped';
-                    const timeStr = parseTimeForDisplay(instance.scheduledTime);
+                    const timeStr = parseTimeShort(instance.scheduledTime);
 
                     // ── Build the item content (right of divider) ──
                     let itemContent: React.ReactNode;
@@ -611,8 +634,9 @@ function TimelineModeBContent({
                           style={styles.gutterContent}
                           onPress={() => onItemPress(instance)}
                           activeOpacity={0.7}
-                          accessibilityLabel={`${instance.itemName}, missed. Tap to log late.`}
+                          accessibilityLabel={`${instance.itemName}, missed. Tap to log.`}
                           accessibilityRole="button"
+                          accessibilityHint="Double tap to log this item"
                         >
                           {CATEGORY_CONFIG[instance.itemType]?.label && (
                             <Text style={[styles.typeBadge, { color: CATEGORY_CONFIG[instance.itemType]?.color || colors.textMuted }]}>
@@ -621,7 +645,7 @@ function TimelineModeBContent({
                           )}
                           <View style={styles.gutterItemRow}>
                             <Text style={styles.timelineNameMissed} numberOfLines={1}>{instance.itemName}</Text>
-                            <Text style={styles.logLateText}>Log Late</Text>
+                            <Text style={styles.logLateText}>Log</Text>
                           </View>
                         </TouchableOpacity>
                       );
@@ -635,6 +659,7 @@ function TimelineModeBContent({
                           activeOpacity={0.7}
                           accessibilityLabel={`${instance.itemName}, ${subtitle}`}
                           accessibilityRole="button"
+                          accessibilityHint="Double tap to log this item"
                         >
                           {CATEGORY_CONFIG[instance.itemType]?.label && (
                             <Text style={[styles.typeBadge, { color: CATEGORY_CONFIG[instance.itemType]?.color || colors.textMuted }]}>
@@ -668,7 +693,7 @@ function TimelineModeBContent({
                     return (
                       <View key={instance.id} style={styles.gutterRow}>
                         <View style={styles.timeGutter}>
-                          {showTime && <Text style={styles.gutterTime}>{shortTime}</Text>}
+                          {shortTime && <Text style={styles.gutterTime}>{shortTime}</Text>}
                         </View>
                         <View style={styles.gutterDivider} />
                         <View style={[styles.gutterContentWrap, index < items.length - 1 && styles.gutterContentBorder]}>
@@ -853,6 +878,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 12,
   },
+  // Inline one-tap confirm button (Phase 1B). Filled accent so it reads as
+  // the primary action; long-press still opens the full log screen.
+  confirmButton: {
+    backgroundColor: c.accent,
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+  },
+  confirmButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0a0c0a',
+  },
   logButtonOverdue: {
     backgroundColor: c.redMuted,
   },
@@ -1024,7 +1062,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingVertical: 2,
   },
   timelineLogButtonText: {
-    fontSize: 9,
+    // Bumped from 9 → 11 (a11y minimum on interactive labels). The pill's
+    // paddingVertical/Horizontal absorb the slightly taller glyph.
+    fontSize: 11,
     fontWeight: '600',
     color: c.accent,
   },

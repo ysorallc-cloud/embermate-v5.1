@@ -4,6 +4,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, LayoutAnimation } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Colors } from '../../theme/theme-tokens';
 
 // ============================================================================
 // TYPES
@@ -53,18 +55,25 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-const DOT_COLORS: Record<DayStatus['status'], string | null> = {
-  full: '#5DCAA5',
-  partial: '#c8a44e',
-  none: 'rgba(200,195,180,0.15)',
-  future: null,
-};
+// Status dots resolved against the active palette inside the component so
+// dark/light themes both light correctly. The map keys mirror DayStatus.
+function buildDotColors(c: typeof Colors): Record<DayStatus['status'], string | null> {
+  return {
+    full: c.accent,           // green for completed days
+    partial: c.amberBright,   // amber for partially completed days
+    none: c.warmSurfaceBorder, // muted for empty days
+    future: null,              // no dot rendered for future days
+  };
+}
 
 // ============================================================================
 // COMPONENT
 // ============================================================================
 
 export function MonthCalendar({ selectedDate, onDateSelect, dayStatuses, visible }: MonthCalendarProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const dotColors = useMemo(() => buildDotColors(colors), [colors]);
   const today = todayStr();
   const todayDate = new Date();
   const currentYear = todayDate.getFullYear();
@@ -110,7 +119,7 @@ export function MonthCalendar({ selectedDate, onDateSelect, dayStatuses, visible
     <View style={styles.container}>
       {/* Month header */}
       <View style={styles.monthHeader}>
-        <TouchableOpacity onPress={() => navigateMonth(-1)} style={styles.arrow} accessibilityLabel="Previous month">
+        <TouchableOpacity onPress={() => navigateMonth(-1)} style={styles.arrow} accessibilityLabel="Previous month" accessibilityRole="button">
           <Text style={styles.arrowText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.monthLabel}>{MONTH_NAMES[viewMonth]} {viewYear}</Text>
@@ -119,6 +128,7 @@ export function MonthCalendar({ selectedDate, onDateSelect, dayStatuses, visible
           style={[styles.arrow, !canGoForward && { opacity: 0.2 }]}
           disabled={!canGoForward}
           accessibilityLabel="Next month"
+          accessibilityRole="button"
         >
           <Text style={styles.arrowText}>›</Text>
         </TouchableOpacity>
@@ -142,7 +152,7 @@ export function MonthCalendar({ selectedDate, onDateSelect, dayStatuses, visible
             const isSelected = dateStr === selectedDate;
             const isToday = dateStr === today;
             const status = statusMap.get(dateStr) || (isFuture ? 'future' : 'none');
-            const dotColor = DOT_COLORS[status];
+            const dotColor = dotColors[status];
 
             return (
               <TouchableOpacity
@@ -151,7 +161,8 @@ export function MonthCalendar({ selectedDate, onDateSelect, dayStatuses, visible
                 onPress={() => !isFuture && onDateSelect(dateStr)}
                 disabled={isFuture}
                 activeOpacity={0.7}
-                accessibilityLabel={`${MONTH_NAMES[viewMonth]} ${day}${isSelected ? ', selected' : ''}${isFuture ? ', future' : ''}`}
+                accessibilityRole="button"
+                accessibilityLabel={`${MONTH_NAMES[viewMonth]} ${day}${isSelected ? ', selected' : ''}${status === 'full' ? ', all logged' : status === 'partial' ? ', partially logged' : status === 'none' ? ', no data' : ', future'}`}
               >
                 <View style={[isSelected && styles.daySelected]}>
                   <Text style={[
@@ -177,11 +188,14 @@ export function MonthCalendar({ selectedDate, onDateSelect, dayStatuses, visible
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
+// Theme-aware factory: builds the calendar's style sheet against the
+// active palette so the warm-surface tokens (and dark/light variants)
+// flow through without re-rendering.
+const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(74,107,93,0.06)',
+    backgroundColor: c.warmSurface,
     borderWidth: 1,
-    borderColor: 'rgba(74,107,93,0.1)',
+    borderColor: c.warmSurfaceBorder,
     borderRadius: 14,
     padding: 16,
     marginBottom: 24,
@@ -200,12 +214,12 @@ const styles = StyleSheet.create({
   },
   arrowText: {
     fontSize: 22,
-    color: 'rgba(200,195,180,0.5)',
+    color: c.textWarmMuted,
   },
   monthLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#eae6db',
+    color: c.textWarmPrimary,
   },
   dowRow: {
     flexDirection: 'row',
@@ -215,7 +229,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     fontSize: 11,
-    color: 'rgba(200,195,180,0.3)',
+    color: c.textWarmHint,
   },
   weekRow: {
     flexDirection: 'row',
@@ -228,24 +242,24 @@ const styles = StyleSheet.create({
   },
   dayNumber: {
     fontSize: 13,
-    color: 'rgba(200,195,180,0.5)',
+    color: c.textWarmMuted,
     textAlign: 'center',
   },
   dayNumberSelected: {
-    color: '#eae6db',
+    color: c.textWarmPrimary,
     fontWeight: '600',
   },
   dayNumberToday: {
-    color: '#5DCAA5',
+    color: c.accent,
   },
   dayNumberFuture: {
-    color: 'rgba(200,195,180,0.15)',
+    color: c.textWarmDim,
   },
   daySelected: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(93,202,165,0.2)',
+    backgroundColor: c.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
   },

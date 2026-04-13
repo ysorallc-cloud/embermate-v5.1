@@ -73,4 +73,38 @@ describe('MoodSlider', () => {
     expect(typeof updateStreak).toBe('function');
     await expect(updateStreak('wellnessCheck')).resolves.not.toThrow();
   });
+
+  // Regression: the sliderTrack container was collapsing to 0 width when
+  // the outer container had alignItems:center. The invisible sliderDot
+  // tap targets were all stacked at the center, so only one position
+  // could ever be selected. Assert the layout fix is in place.
+  describe('sliderTrack layout (tap target regression)', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.resolve(__dirname, '../../components/support/MoodSlider.tsx'),
+      'utf8',
+    );
+
+    it('outer container does NOT force alignItems:center', () => {
+      // Container style block must not set alignItems:'center' (collapses track).
+      const containerBlock = src.match(/container:\s*\{[^}]*\}/);
+      expect(containerBlock).toBeTruthy();
+      expect(containerBlock![0]).not.toMatch(/alignItems:\s*['"]center['"]/);
+    });
+
+    it('sliderTrack stretches to full parent width', () => {
+      const trackBlock = src.match(/sliderTrack:\s*\{[^}]*\}/);
+      expect(trackBlock).toBeTruthy();
+      expect(trackBlock![0]).toMatch(/alignSelf:\s*['"]stretch['"]/);
+      expect(trackBlock![0]).toMatch(/width:\s*['"]100%['"]/);
+    });
+
+    it('sliderDot TouchableOpacity renders one per MOOD_POSITION with onPress', () => {
+      // Render path: `MOOD_POSITIONS.map((pos, i) => (<TouchableOpacity ... onPress={() => setSelectedIndex(i)} ...))`
+      expect(src).toMatch(/MOOD_POSITIONS\.map/);
+      expect(src).toMatch(/onPress=\{\(\)\s*=>\s*\{\s*if\s*\(!logged\)\s*setSelectedIndex\(i\);?\s*\}\}/);
+      expect(src).toMatch(/accessibilityLabel=\{`\$\{pos\.emoji\} \$\{pos\.label\}`\}/);
+    });
+  });
 });
