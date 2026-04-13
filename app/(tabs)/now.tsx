@@ -34,15 +34,9 @@ import { checkTodayVitalsExceedances } from '../../utils/vitalsGuidance';
 import { getVitalsByType } from '../../utils/vitalsStorage';
 import { recordVisit } from '../../utils/lastVisitTracker';
 
-// Prompt Components
-import {
-  OnboardingPrompt,
-} from '../../components/prompts';
-
 // Aurora Components
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { PatientSwitcherModal } from '../../components/now/PatientSwitcherModal';
 import { usePatient } from '../../contexts/PatientContext';
 // CarePlan System
 import { useCarePlan } from '../../hooks/useCarePlan';
@@ -50,8 +44,6 @@ import { useCareTasks } from '../../hooks/useCareTasks';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import { useTodayScope } from '../../hooks/useTodayScope';
-import { useCoffeeMoment } from '../../hooks/useCoffeeMoment';
-import { CoffeeMomentMinimal } from '../../components/CoffeeMomentMinimal';
 import { getTodayDateString } from '../../services/carePlanGenerator';
 import { BucketType } from '../../types/carePlanConfig';
 
@@ -78,110 +70,21 @@ import { useNowPrompts } from '../../hooks/useNowPrompts';
 // useNowInsights removed — replaced by QuickPulseStatus
 
 // Extracted components
-// ProgressRings removed — replaced by QuickPulseStatus
-import { ScreenHeader } from '../../components/ScreenHeader';
-// SectionHeader replaced by inline SectionHeaderRow (flat, no icons)
-import { MorningMedsBanner } from '../../components/now/MorningMedsBanner';
-import { TimelineSection } from '../../components/now/TimelineSection';
 import { RoutineSheet } from '../../components/now/RoutineSheet';
-import { HandoffPromptCard } from '../../components/now/HandoffPromptCard';
+import { NowHeader } from '../../components/now/NowHeader';
+import { NowTimeline } from '../../components/now/NowTimeline';
+import { NowFooter } from '../../components/now/NowFooter';
 
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
-}
-
-function formatTime(t: string): string {
-  if (!t) return '';
-  if (t.includes('T')) {
-    const date = new Date(t);
-    if (isNaN(date.getTime())) return '';
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  }
-  const parts = t.split(':');
-  if (parts.length < 2) return t;
-  const hr = parseInt(parts[0]);
-  const min = parts[1];
-  const period = hr >= 12 ? 'PM' : 'AM';
-  return `${hr % 12 || 12}:${min} ${period}`;
-}
-
-type HandoffType = 'done' | 'watch' | 'flag';
-interface HandoffItem { icon: string; text: string; type: HandoffType; }
-interface BeforeBedItem { icon: string; text: string; route: string; }
 
 // Banners (removed: NoMedicationsBanner, NoCarePlanBanner, DataIntegrityBanner)
 import { logError } from '../../utils/devLog';
+import { hapticSuccess } from '../../utils/hapticFeedback';
+import { updateDailyInstanceStatus, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 import { useDataListener, emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
-import { GettingStartedChecklist } from '../../components/guidance';
-import { buildCareBrief, buildJournalPreview, CareBrief } from '../../utils/careSummaryBuilder';
+import { buildCareBrief, CareBrief } from '../../utils/careSummaryBuilder';
 import { hasSampleData } from '../../utils/sampleDataManager';
-import { SampleDataBanner } from '../../components/common/SampleDataBanner';
 
-// ============================================================================
-// INLINE COMPONENT — Section header row (flat, no emoji icons)
-// ============================================================================
-
-function SectionHeaderRow({
-  title,
-  action,
-  onAction,
-  collapsed,
-  onToggleCollapse,
-  iconAction,
-  onIconAction,
-  styles: s,
-}: {
-  title: string;
-  action?: string;
-  onAction?: () => void;
-  collapsed?: boolean;
-  onToggleCollapse?: () => void;
-  iconAction?: string;
-  onIconAction?: () => void;
-  styles: ReturnType<typeof createStyles>;
-}) {
-  return (
-    <View style={s.sectionHeaderRow}>
-      {onToggleCollapse ? (
-        <TouchableOpacity
-          onPress={onToggleCollapse}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
-          accessibilityRole="button"
-          accessibilityLabel={`${title}, ${collapsed ? 'collapsed' : 'expanded'}`}
-          accessibilityState={{ expanded: !collapsed }}
-        >
-          <Text style={s.sectionHeaderTitle}>{title}</Text>
-          <Text style={{ fontSize: 12, color: Colors.textMuted }}>{collapsed ? '\u25B6' : '\u25BC'}</Text>
-        </TouchableOpacity>
-      ) : (
-        <Text style={s.sectionHeaderTitle}>{title}</Text>
-      )}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        {iconAction && onIconAction && (
-          <TouchableOpacity
-            onPress={onIconAction}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Quick log"
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={s.sectionHeaderIcon}>{iconAction}</Text>
-          </TouchableOpacity>
-        )}
-        {action && onAction && (
-          <TouchableOpacity onPress={onAction} accessibilityRole="button" accessibilityLabel={action}>
-            <Text style={s.sectionHeaderAction}>{action} →</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
-  );
-}
 
 // ============================================================================
 // INLINE COMPONENT — Quick Pulse Status Block
@@ -193,74 +96,71 @@ function buildOverdueCallouts(
 ): { text: string; color: string }[] {
   const callouts: { text: string; color: string }[] = [];
   const categories = [
-    { key: 'meds' as keyof TodayStats, itemType: 'medication', label: 'Meds', color: '#F87171' },
-    { key: 'vitals' as keyof TodayStats, itemType: 'vitals', label: 'Vitals', color: '#F87171' },
-    { key: 'wellness' as keyof TodayStats, itemType: 'wellness', label: 'Check-ins', color: '#F87171' },
-    { key: 'meals' as keyof TodayStats, itemType: 'nutrition', label: 'Meals', color: '#FBBF24' },
+    { key: 'meds' as keyof TodayStats, itemType: 'medication', label: 'Meds', color: Colors.red },
+    { key: 'vitals' as keyof TodayStats, itemType: 'vitals', label: 'Vitals', color: Colors.red },
+    { key: 'wellness' as keyof TodayStats, itemType: 'wellness', label: 'Check-ins', color: Colors.red },
+    { key: 'meals' as keyof TodayStats, itemType: 'nutrition', label: 'Meals', color: Colors.amberBright },
   ];
   for (const cat of categories) {
-    const stat = todayStats[cat.key];
-    if (!stat || stat.total === 0) continue;
+    // Read directly from instances — todayStats can lag or be empty for
+    // sources that don't populate legacy counters (regimen instances only).
     const overdueInstances = instances.filter(
       (i: any) => i.itemType === cat.itemType &&
            (i.status === 'pending' || !i.status) &&
            isOverdue(i.scheduledTime)
     );
-    if (overdueInstances.length > 0) {
-      if (cat.itemType === 'medication') {
-        const names = [...new Set(overdueInstances.map((i: any) => i.itemName))].join(', ');
-        callouts.push({ text: `Meds overdue — ${names}`, color: '#F87171' });
-      } else {
-        callouts.push({ text: `${cat.label} overdue — ${stat.completed} of ${stat.total} done`, color: cat.color });
-      }
+    if (overdueInstances.length === 0) continue;
+
+    if (cat.itemType === 'medication') {
+      const names = [...new Set(overdueInstances.map((i: any) => i.itemName))].join(', ');
+      callouts.push({ text: `Meds overdue — ${names}`, color: Colors.red });
+    } else {
+      const stat = todayStats[cat.key];
+      const total = stat?.total ?? overdueInstances.length;
+      const completed = stat?.completed ?? 0;
+      callouts.push({ text: `${cat.label} overdue — ${completed} of ${total} done`, color: cat.color });
     }
   }
   return callouts;
 }
 
+// Core 4 progress tiles — 1×4 grid inside the pulseCard showing
+// emoji + label + count for each bucket. Replaces the single progress bar.
+const CORE_TILES = [
+  { key: 'meds', emoji: '\uD83D\uDC8A', label: 'MEDS', itemType: 'medication' },
+  { key: 'vitals', emoji: '\uD83D\uDCCA', label: 'VITALS', itemType: 'vitals' },
+  { key: 'wellness', emoji: '\uD83C\uDF05', label: 'WELLNESS', itemType: 'wellness' },
+  { key: 'meals', emoji: '\uD83C\uDF7D\uFE0F', label: 'MEALS', itemType: 'nutrition' },
+] as const;
+
 function QuickPulseStatus({
   todayStats,
   instances,
-  completedCount,
-  totalCount,
   styles: s,
 }: {
   todayStats: TodayStats;
   instances: any[];
-  completedCount: number;
-  totalCount: number;
   styles: ReturnType<typeof createStyles>;
 }) {
   const { colors } = useTheme();
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-  const overdueItems = buildOverdueCallouts(todayStats, instances);
-  const hasOverdue = overdueItems.length > 0;
-  const dotColor = hasOverdue ? colors.red : colors.accent;
-  const barColor = hasOverdue ? colors.amberBright : colors.accent;
-  const fractionColor = completedCount > 0 ? colors.accent : colors.textMuted;
 
   return (
     <View style={s.pulseContainer}>
-      <View style={s.pulseRow}>
-        <View style={s.pulseLeft}>
-          <View style={[s.pulseDot, { backgroundColor: dotColor }]} />
-        </View>
-        <Text style={[s.pulseFraction, { color: fractionColor }]}>
-          {completedCount}
-          <Text style={s.pulseFractionTotal}> / {totalCount}</Text>
-        </Text>
+      <View style={s.tileGrid}>
+        {CORE_TILES.map(tile => {
+          const stat = todayStats[tile.key as keyof TodayStats] ?? { completed: 0, total: 0 };
+
+          return (
+            <View key={tile.key} style={s.tile}>
+              <Text style={s.tileEmoji}>{tile.emoji}</Text>
+              <Text style={s.tileLabel}>{tile.label}</Text>
+              <Text style={s.tileCount}>
+                {stat.total > 0 ? `${stat.completed}/${stat.total}` : '\u2014'}
+              </Text>
+            </View>
+          );
+        })}
       </View>
-      <View style={s.pulseBar}>
-        <View style={[s.pulseBarFill, { width: `${progressPercent}%`, backgroundColor: barColor }]} />
-      </View>
-      {overdueItems.map((item, i) => (
-        <View key={i} style={s.pulseCallout}>
-          <View style={[s.pulseCalloutDot, { backgroundColor: item.color }]} />
-          <Text style={[s.pulseCalloutText, { color: item.color }]}>{item.text}</Text>
-        </View>
-      ))}
     </View>
   );
 }
@@ -308,6 +208,8 @@ export default function NowScreen() {
   // Category filter state (tappable rings)
   const [selectedCategory, setSelectedCategory] = useState<BucketType | null>(null);
   const [activeRoutineWindow, setActiveRoutineWindow] = useState<TimeWindow | null>(null);
+  // Phase 1C/D — undo toast for inline quick-confirm actions
+  const [undoItem, setUndoItem] = useState<{ id: string; name: string } | null>(null);
 
   const handleRingPress = useCallback((bucket: BucketType) => {
     setSelectedCategory(prev => prev === bucket ? null : bucket);
@@ -326,7 +228,7 @@ export default function NowScreen() {
 
   // Water stats from direct storage (not care plan instances, since water is counted in glasses not task completions)
   const [waterGlasses, setWaterGlasses] = useState(0);
-  const [patientName, setPatientName] = useState('Patient');
+  const [patientName, setPatientName] = useState('your loved one');
   const [patientGender, setPatientGender] = useState<string | null>(null);
 
   // Vitals guidance state (Task 4.1)
@@ -335,7 +237,9 @@ export default function NowScreen() {
   const [vitalsGuidanceDismissed, setVitalsGuidanceDismissed] = useState(false);
 
   // Timeline collapse state — default expanded so users see their schedule
-  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
+  // Default collapsed: caregiver sees the schedule overview (window banners)
+  // first, then taps Start / a window to expand its items.
+  const [timelineCollapsed, setTimelineCollapsed] = useState(true);
 
   // Handoff / Patterns / Before Bed (mirrored from Journal)
   const [brief, setBrief] = useState<CareBrief | null>(null);
@@ -499,7 +403,6 @@ export default function NowScreen() {
   const hasLateMedication = todayTimeline.overdue.some(
     (i: any) => i.itemType === 'medication'
   );
-  const coffeeMoment = useCoffeeMoment(overdueCount, hasLateMedication);
 
   // Handler for timeline item tap
   const handleTimelineItemPress = useCallback((instance: any) => {
@@ -569,6 +472,55 @@ export default function NowScreen() {
     emitDataUpdate(EVENT.DAILY_INSTANCES);
   }, [completeInstance]);
 
+  // Phase 2B — batch-complete every pending item in a routine window
+  const handleBatchWindowComplete = useCallback(async (instanceIds: string[]) => {
+    try {
+      for (const id of instanceIds) {
+        await completeInstance(id, 'taken');
+      }
+      emitDataUpdate(EVENT.DAILY_INSTANCES);
+      void hapticSuccess();
+    } catch (err) {
+      logError('handleBatchWindowComplete', err);
+    }
+  }, [completeInstance]);
+
+  // Phase 1C — inline one-tap confirm for routine items.
+  // Completes a medication (or other quick-confirmable item) without
+  // navigating, fires success haptics, and surfaces an undo toast.
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleQuickConfirm = useCallback(async (instance: any) => {
+    try {
+      const confirmedAt = new Date().toISOString();
+      if (instance.itemType === 'medication') {
+        await completeInstance(instance.id, 'taken', {
+          confirmedAt,
+          source: 'quick_confirm',
+        });
+      } else if (instance.itemType === 'nutrition') {
+        await completeInstance(instance.id, 'completed', {
+          confirmedAt,
+          source: 'quick_confirm',
+          mealType: instance.itemName?.toLowerCase() || 'meal',
+        });
+      } else {
+        await completeInstance(instance.id, 'completed', {
+          confirmedAt,
+          source: 'quick_confirm',
+        });
+      }
+      emitDataUpdate(EVENT.DAILY_INSTANCES);
+      void hapticSuccess();
+
+      setUndoItem({ id: instance.id, name: instance.itemName });
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = setTimeout(() => setUndoItem(null), 5000);
+    } catch (err) {
+      logError('handleQuickConfirm', err);
+      Alert.alert('Error', 'Could not confirm. Try again.');
+    }
+  }, [completeInstance]);
+
   // ============================================================================
   // DATA LOADING
   // ============================================================================
@@ -621,9 +573,15 @@ export default function NowScreen() {
           // Migration: sync legacy name to patient registry
           try {
             await updatePatient(activePatient?.id || 'default', { name });
-          } catch {}
+          } catch (err) {
+            logError('NowScreen.migratePatientName', err);
+          }
         } else {
-          setPatientName(activePatient?.name || 'Patient');
+          // activePatient.name is the literal 'Patient' here (the legacy
+          // default that callers above already filter out). Show the
+          // friendlier user-facing fallback instead.
+          const candidate = activePatient?.name;
+          setPatientName(candidate && candidate !== 'Patient' ? candidate : 'your loved one');
         }
       }
 
@@ -669,7 +627,8 @@ export default function NowScreen() {
       try {
         const waterLog = await getTodayWaterLog();
         setWaterGlasses(waterLog?.glasses ?? 0);
-      } catch {
+      } catch (err) {
+        logError('NowScreen.loadWaterLog', err);
         setWaterGlasses(0);
       }
 
@@ -681,7 +640,8 @@ export default function NowScreen() {
           const recent = await getVitalsByType(exceedances[0].type as any);
           setVitalsRecentReadings(recent.slice(0, 5));
         }
-      } catch {
+      } catch (err) {
+        logError('NowScreen.loadVitalsExceedances', err);
         setVitalsExceedances([]);
       }
 
@@ -692,7 +652,8 @@ export default function NowScreen() {
           return daysUntil >= 0 && daysUntil <= 14;
         });
         setUpcomingPrepAppointment(prepAppt || null);
-      } catch {
+      } catch (err) {
+        logError('NowScreen.loadPrepAppointment', err);
         setUpcomingPrepAppointment(null);
       }
 
@@ -723,76 +684,6 @@ export default function NowScreen() {
   }, []);
 
   // ============================================================================
-  // HANDOFF NOTES + BEFORE BED (mirrored from Journal)
-  // ============================================================================
-  function buildHandoffNotes(): HandoffItem[] {
-    if (!brief) return [];
-    const items: HandoffItem[] = [];
-
-    for (const med of brief.medications) {
-      if ((med.status === 'completed' || med.status === 'skipped') && med.takenAt) {
-        items.push({
-          icon: '\uD83D\uDC8A',
-          text: `${med.name} taken at ${formatTime(med.takenAt)}`,
-          type: 'done',
-        });
-      }
-    }
-
-    if (brief.attentionItems) {
-      for (const ai of brief.attentionItems) {
-        const text = ai.text || '';
-        let type: HandoffType = 'watch';
-        if (/miss|skip|overdue/i.test(text)) type = 'flag';
-        const icon = type === 'flag' ? '\uD83D\uDED1' : '\uD83D\uDC41\uFE0F';
-        items.push({ icon, text, type });
-      }
-    }
-
-    if (brief.interpretations?.medications) {
-      items.push({ icon: '\uD83D\uDC8A', text: brief.interpretations.medications, type: 'watch' });
-    }
-    if (brief.interpretations?.vitals) {
-      items.push({ icon: '\uD83C\uDF21\uFE0F', text: brief.interpretations.vitals, type: 'watch' });
-    }
-    if (brief.interpretations?.nutrition) {
-      items.push({ icon: '\uD83C\uDF5E', text: brief.interpretations.nutrition, type: 'watch' });
-    }
-
-    return items;
-  }
-
-  function buildBeforeBedItems(): BeforeBedItem[] {
-    const items: BeforeBedItem[] = [];
-
-    if (careTasksState) {
-      const eveningTasks = careTasksState.byWindow['evening'] || [];
-      const nightTasks = careTasksState.byWindow['night'] || [];
-      for (const task of [...eveningTasks, ...nightTasks]) {
-        if (task.status === 'pending') {
-          items.push({
-            icon: task.emoji || '\u2705',
-            text: task.title,
-            route: task.primaryAction?.route || '',
-          });
-        }
-      }
-    }
-
-    if (brief && !brief.sleep.logged) {
-      const pronoun = patientGender?.toLowerCase() === 'male' ? 'he' : patientGender?.toLowerCase() === 'female' ? 'she' : 'they';
-      items.push({ icon: '\uD83D\uDE34', text: `Log sleep when ${pronoun} go${pronoun === 'they' ? '' : 'es'} to bed`, route: '/log-sleep' });
-    }
-
-    const hasEvening = brief?.mood.eveningWellness != null;
-    if (brief && !hasEvening && new Date().getHours() >= 17) {
-      items.push({ icon: '\uD83D\uDCCB', text: 'Evening wellness check', route: '/log-evening-wellness' });
-    }
-
-    return items;
-  }
-
-  // ============================================================================
   // RENDER
   // ============================================================================
   return (
@@ -813,210 +704,59 @@ export default function NowScreen() {
           />
         }
       >
-        {/* Header: greeting + date left, patient chip right */}
-        <ScreenHeader
-          title={getGreeting()}
-          subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-          purpose={`Here's where ${patientName || 'your loved one'}'s care stands right now.`}
-          rightAction={
-            <TouchableOpacity
-              onPress={() => setShowPatientSwitcher(true)}
-              style={[styles.patientChip, isSampleMode && styles.patientChipDemo]}
-              accessibilityLabel={`Patient: ${patientName}${isSampleMode ? ' (demo)' : ''}. Tap to switch.`}
-              accessibilityRole="button"
-            >
-                <View style={styles.patientAvatar}>
-                  <Text style={styles.patientAvatarText}>
-                    {patientName.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-                <Text style={styles.patientChipName}>{patientName}</Text>
-                {isSampleMode && (
-                  <Text style={styles.demoBadge}>DEMO</Text>
-                )}
-                {patients.length > 1 && (
-                  <Text style={{ fontSize: 10, color: colors.textMuted }}>{'\u25BC'}</Text>
-                )}
-            </TouchableOpacity>
-          }
+        <NowHeader
+          patientName={patientName}
+          patients={patients}
+          isSampleMode={isSampleMode}
+          showPatientSwitcher={showPatientSwitcher}
+          onShowPatientSwitcher={setShowPatientSwitcher}
+          onSampleCleared={() => { setIsSampleMode(false); loadData(); refreshCareTasks(); }}
+          suppressedItems={suppressedItems}
+          onRestoreSuppressed={restoreAllSuppressed}
+          showOnboarding={showOnboarding}
+          onboardingHandlers={handlers}
         />
-        <PatientSwitcherModal
-          visible={showPatientSwitcher}
-          onClose={() => setShowPatientSwitcher(false)}
-        />
-
-        {/* Sample Data Banner */}
-        {isSampleMode && (
-          <View style={styles.sampleBannerWrap}>
-            <SampleDataBanner onCleared={() => { setIsSampleMode(false); loadData(); refreshCareTasks(); }} />
-          </View>
-        )}
-
-        {/* Hidden Items Banner */}
-        {suppressedItems.length > 0 && (
-          <View
-            style={styles.hiddenBanner}
-            accessibilityLabel={`${suppressedItems.length} item${suppressedItems.length === 1 ? '' : 's'} hidden for today`}
-            accessibilityRole="text"
-          >
-            <Text style={styles.hiddenBannerText}>
-              {suppressedItems.length} item{suppressedItems.length === 1 ? '' : 's'} hidden for today
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                Alert.alert(
-                  'Restore Hidden Items',
-                  'Show all Care Plan items for today?',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Restore All',
-                      onPress: async () => {
-                        await restoreAllSuppressed();
-                      },
-                    },
-                  ],
-                );
-              }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityRole="button"
-              accessibilityLabel="Restore all hidden items"
-            >
-              <Text style={styles.hiddenBannerAction}>Restore All</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Coffee moment removed — Support tab is the dedicated wellness surface */}
-
-        {/* Onboarding Prompt */}
-        {showOnboarding && (
-          <OnboardingPrompt
-            onShowMeWhatMatters={handlers.handleShowMeWhatMatters}
-            onExploreOnMyOwn={handlers.handleExploreOnMyOwn}
-          />
-        )}
 
         <View style={styles.content}>
 
           {/* ═══ QUICK PULSE STATUS ═══ */}
-          <QuickPulseStatus
-            todayStats={todayStats}
-            instances={instancesState?.instances || []}
-            completedCount={todayTimeline?.completed?.length || 0}
-            totalCount={(allPending?.length || 0) + (todayTimeline?.completed?.length || 0)}
-            styles={styles}
-          />
+          <View style={styles.pulseCard}>
+            <QuickPulseStatus
+              todayStats={todayStats}
+              instances={instancesState?.instances || []}
+              styles={styles}
+            />
+          </View>
 
           {/* ═══ ZONE 2: TODAY'S SCHEDULE ═══ */}
-          <SectionHeaderRow
-            title="Today's Schedule"
-            action="Care Plan"
-            onAction={() => navigate('/care-plan')}
-            iconAction="+"
-            onIconAction={() => navigate('/quick-log-more')}
-            collapsed={timelineCollapsed}
+          <NowTimeline
+            timelineCollapsed={timelineCollapsed}
             onToggleCollapse={() => setTimelineCollapsed(prev => !prev)}
-            styles={styles}
+            windowSummary={windowSummary}
+            allPending={allPending}
+            completed={todayTimeline.completed}
+            hasRegimenInstances={!!hasRegimenInstances}
+            hasBucketCarePlan={!!hasBucketCarePlan}
+            hasCarePlan={!!carePlan}
+            selectedCategory={selectedCategory}
+            onClearCategory={handleClearCategory}
+            onItemPress={handleTimelineItemPress}
+            onBatchMedConfirm={handleBatchMedConfirm}
+            onQuickConfirm={handleQuickConfirm}
+            onStartRoutine={setActiveRoutineWindow}
+            todayStats={todayStats}
+            enabledBuckets={enabledBuckets}
+            waterGlasses={waterGlasses}
+            waterGoal={waterGoal}
+            onWaterUpdate={handleWaterUpdate}
           />
-          <Text style={styles.sectionContext}>
-            Tap Start when you're ready to begin a care window.
-          </Text>
-
-          {timelineCollapsed ? (
-            /* Collapsed: window summary rows */
-            windowSummary.length > 0 && (
-              <View style={styles.sectionCard}>
-                {windowSummary.map((w) => (
-                  <View
-                    key={w.window}
-                    style={[
-                      styles.windowRow,
-                      w.isCurrent && !w.allDone && styles.windowRowCurrent,
-                    ]}
-                  >
-                    <View style={[styles.windowDot, { backgroundColor: w.allDone ? colors.green : colors.redBright }]} />
-                    <Text style={[styles.windowLabel, w.isCurrent && !w.allDone && styles.windowLabelCurrent]}>
-                      {w.label.toUpperCase()}
-                    </Text>
-                    <Text style={styles.windowStatus}>
-                      {w.allDone ? 'Complete \u2713' : `${w.pending} remaining`}
-                    </Text>
-                    {w.isCurrent && !w.allDone && (
-                      <TouchableOpacity
-                        style={styles.windowStartBtn}
-                        onPress={() => {
-                          setActiveRoutineWindow(w.window);
-                        }}
-                        activeOpacity={0.7}
-                        accessibilityLabel={`Start ${w.label} routine`}
-                        accessibilityRole="button"
-                      >
-                        <Text style={styles.windowStartText}>Start</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                ))}
-              </View>
-            )
-          ) : (
-            <View style={styles.sectionCard}>
-              {/* Morning Meds Banner — batch confirm */}
-              <MorningMedsBanner
-                pendingCount={allPending.filter((i: any) => i.itemType === 'medication').length}
-                pendingInstanceIds={allPending.filter((i: any) => i.itemType === 'medication').map((i: any) => i.id)}
-                onConfirmAll={handleBatchMedConfirm}
-              />
-
-              {/* Timeline — what's happening today */}
-              <TimelineSection
-                allPending={allPending}
-                completed={todayTimeline.completed}
-                hasRegimenInstances={!!hasRegimenInstances}
-                selectedCategory={selectedCategory}
-                onClearCategory={handleClearCategory}
-                onItemPress={handleTimelineItemPress}
-                onBatchMedConfirm={handleBatchMedConfirm}
-                todayStats={todayStats}
-                enabledBuckets={enabledBuckets}
-                waterGlasses={waterGlasses}
-                waterGoal={waterGoal}
-                onWaterUpdate={handleWaterUpdate}
-                onStartRoutine={setActiveRoutineWindow}
-              />
-
-              {/* Empty states */}
-              {!hasRegimenInstances && !hasBucketCarePlan && !carePlan && (
-                <View style={styles.emptyTimeline}>
-                  <Text style={styles.emptyTimelineText}>No Care Plan set up yet</Text>
-                  <Text style={styles.emptyTimelineSubtext}>Add medications or items to see your timeline</Text>
-                </View>
-              )}
-
-              {!hasRegimenInstances && (hasBucketCarePlan || carePlan) && (
-                <View style={styles.emptyTimeline}>
-                  <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
-                  <Text style={styles.emptyTimelineSubtext}>Check your Care Plan settings</Text>
-                </View>
-              )}
-
-              {hasRegimenInstances &&
-                allPending.length === 0 &&
-                todayTimeline.completed.length === 0 && (
-                <View style={styles.emptyTimeline}>
-                  <Text style={styles.emptyTimelineText}>No items scheduled for today</Text>
-                </View>
-              )}
-            </View>
-          )}
 
           {/* ═══ ZONE 3: UPCOMING THIS WEEK ═══ */}
           {upcomingPrepAppointment && (
             <>
-              <SectionHeaderRow
-                title="Upcoming This Week"
-                styles={styles}
-              />
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionHeaderTitle}>Upcoming This Week</Text>
+              </View>
               <View style={styles.sectionCard}>
                 <TouchableOpacity
                   style={styles.appointmentPrepCard}
@@ -1040,52 +780,14 @@ export default function NowScreen() {
             </>
           )}
 
-          {/* ═══ HANDOFF PROMPT ═══ */}
-          <HandoffPromptCard completedCount={todayTimeline.completed.length} />
-
-          {/* ═══ JOURNAL PREVIEW ═══ */}
-          {todayTimeline.completed.length < 5 ? (
-            <View style={styles.journalPreviewDimmed}>
-              <Text style={styles.journalPreviewDimmedText}>
-                Your journal entry builds throughout the day. Review it tonight.
-              </Text>
-            </View>
-          ) : brief ? (
-            <TouchableOpacity
-              style={styles.journalPreviewCard}
-              onPress={() => navigate('/(tabs)/journal')}
-              activeOpacity={0.7}
-              accessibilityLabel="View journal"
-              accessibilityRole="button"
-            >
-              <Text style={styles.journalPreviewTitle}>{'\uD83D\uDCD3'} Today's Journal</Text>
-              <Text style={styles.journalPreviewText} numberOfLines={2}>
-                {buildJournalPreview(brief)}
-              </Text>
-              <Text style={styles.journalPreviewLink}>View journal →</Text>
-            </TouchableOpacity>
-          ) : null}
-
           {/* ═══ FOOTER ═══ */}
-          {/* All-done celebration */}
-          {hasRegimenInstances &&
-            allPending.length === 0 &&
-            todayTimeline.completed.length > 0 && (() => {
-              const hasMissed = todayTimeline.completed.some(i => i.status === 'missed');
-              if (hasMissed) return null;
-              return (
-                <View
-                  style={styles.allDoneMessage}
-                  accessible={true}
-                  accessibilityRole="text"
-                  accessibilityLabel="All caught up! All care plan items are complete for today."
-                  accessibilityLiveRegion="polite"
-                >
-                  <Text style={styles.allDoneEmoji}>🎉</Text>
-                  <Text style={styles.allDoneText}>All caught up!</Text>
-                </View>
-              );
-            })()}
+          <NowFooter
+            completedCount={todayTimeline.completed.length}
+            allPendingCount={allPending.length}
+            hasRegimenInstances={!!hasRegimenInstances}
+            hasMissed={todayTimeline.completed.some(i => i.status === 'missed')}
+            brief={brief}
+          />
 
         </View>
 
@@ -1093,6 +795,41 @@ export default function NowScreen() {
         <View style={{ height: 83 }} />
       </ScrollView>
       </SafeAreaView>
+
+      {/* Phase 1D — undo toast for inline quick-confirm */}
+      {undoItem && (
+        <View style={styles.undoToast}>
+          <Text style={styles.undoToastText}>{undoItem.name} confirmed</Text>
+          <TouchableOpacity
+            onPress={async () => {
+              const item = undoItem;
+              if (!item) return;
+              try {
+                // Best-effort revert: flip the instance back to 'pending' and
+                // clear its logId. The completion log entry is left dangling
+                // (no UI references it once the instance no longer points at
+                // it) — acceptable for the undo window.
+                await updateDailyInstanceStatus(
+                  DEFAULT_PATIENT_ID,
+                  today,
+                  item.id,
+                  'pending'
+                );
+                emitDataUpdate(EVENT.DAILY_INSTANCES);
+              } catch (err) {
+                logError('handleQuickConfirm.undo', err);
+              } finally {
+                if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+                setUndoItem(null);
+              }
+            }}
+            accessibilityLabel="Undo confirmation"
+            accessibilityRole="button"
+          >
+            <Text style={styles.undoToastAction}>Undo</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Routine Sheet — batch logging for a time window */}
       {activeRoutineWindow && (
@@ -1104,6 +841,7 @@ export default function NowScreen() {
           )}
           onItemPress={handleTimelineItemPress}
           onDismiss={() => setActiveRoutineWindow(null)}
+          onBatchComplete={handleBatchWindowComplete}
         />
       )}
     </View>
@@ -1111,452 +849,55 @@ export default function NowScreen() {
 }
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: c.background,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingTop: 16,
-  },
-  // closureContainer and orientationContainer removed — prompts consolidated into MorningBriefing
-  content: {
-    paddingHorizontal: 16,
-    paddingTop: 0,
-  },
+  container: { flex: 1, backgroundColor: c.background },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingTop: 16 },
+  content: { paddingHorizontal: 16, paddingTop: 0 },
 
-  // Header + button (opens unified log)
-  headerAddBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: c.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
+  // Undo toast (floats above tab bar)
+  undoToast: {
+    position: 'absolute', bottom: 100, left: 16, right: 16,
+    backgroundColor: c.warmSurfaceAlert, borderWidth: 1, borderColor: c.warmSurfaceAlertBorder,
+    borderRadius: 10, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  headerAddBtnText: {
-    fontSize: 20,
-    fontWeight: '300',
-    color: '#fff',
-    lineHeight: 22,
-  },
+  undoToastText: { fontSize: 13, color: c.textAlertPrimary },
+  undoToastAction: { fontSize: 13, fontWeight: '600', color: c.textAlertLabel },
 
-  // Patient chip (header uses ScreenHeader)
-  patientChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: c.accentLight,
-    borderWidth: 1,
-    borderColor: c.accentBorder,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    gap: 6,
+  // Quick Pulse card
+  pulseCard: {
+    backgroundColor: c.warmSurface, borderWidth: 1, borderColor: c.warmSurfaceBorder,
+    borderRadius: 12, padding: 14, marginBottom: 4, marginTop: 4,
   },
-  patientAvatar: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: c.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  patientAvatarText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: c.textPrimary,
-  },
-  patientChipName: {
-    fontSize: 12,
-    color: c.textSecondary,
-    fontWeight: '500',
-  },
-  patientChipDemo: {
-    borderColor: c.purpleBright,
-    borderWidth: 1.5,
-  },
-  demoBadge: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: c.purpleBright,
-    backgroundColor: c.purpleFaint,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 3,
-    overflow: 'hidden',
-    letterSpacing: 0.5,
-  },
-  sampleBannerWrap: {
-    paddingHorizontal: 20,
-    marginTop: 4,
-  },
-  // ── Quick Pulse Status ──
-  pulseContainer: {
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-  },
-  pulseRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
-    marginBottom: 10,
-  },
-  pulseLeft: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 10,
-  },
-  pulseDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  pulseGreeting: {
-    fontSize: 15,
-    color: c.textSecondary,
-  },
-  pulseFraction: {
-    fontSize: 15,
-  },
-  pulseFractionTotal: {
-    fontSize: 12,
-    color: c.textMuted,
-  },
-  pulseBar: {
-    height: 3,
-    backgroundColor: c.glassDim,
-    borderRadius: 2,
-    overflow: 'hidden' as const,
-    marginBottom: 4,
-  },
-  pulseBarFill: {
-    height: '100%' as any,
-    borderRadius: 2,
-  },
-  pulseCallout: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 8,
-    paddingTop: 8,
-  },
-  pulseCalloutDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-  },
-  pulseCalloutText: {
-    fontSize: 12,
-    opacity: 0.8,
-  },
-  hiddenBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginHorizontal: 20,
-    marginBottom: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    backgroundColor: c.glass,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: c.glassHover,
-  },
-  hiddenBannerText: {
-    fontSize: 13,
-    color: c.textHalf,
-  },
-  hiddenBannerAction: {
-    fontSize: 13,
-    color: c.accent,
-    fontWeight: '500',
-  },
-  // ── Section Header Row ──
-  sectionContext: {
-    fontSize: 11,
-    color: '#4a5a6a',
-    marginTop: 3,
-    marginBottom: 8,
-  },
+  pulseContainer: { paddingVertical: 0, paddingHorizontal: 0 },
+  tileGrid: { flexDirection: 'row', justifyContent: 'space-between' },
+  tile: { flex: 1, alignItems: 'center', paddingVertical: 4 },
+  tileEmoji: { fontSize: 20, marginBottom: 4 },
+  tileLabel: { fontSize: 9, fontWeight: '600', color: c.textWarmHint, letterSpacing: 0.5, marginBottom: 2 },
+  tileCount: { fontSize: 14, fontWeight: '500', color: c.textPrimary },
+
+  // Section header (used by Upcoming This Week)
   sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 20,
-    paddingBottom: 10,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 8, paddingBottom: 10,
   },
   sectionHeaderTitle: {
-    fontSize: 9,
-    fontWeight: '600',
-    letterSpacing: 2,
-    color: c.textTertiary,
-    textTransform: 'uppercase',
-  },
-  sectionHeaderAction: {
-    fontSize: 11,
-    color: c.accent,
-    fontWeight: '500',
-  },
-  sectionHeaderIcon: {
-    fontSize: 18,
-    fontWeight: '400' as const,
-    color: c.accent,
-    width: 26,
-    height: 26,
-    lineHeight: 26,
-    textAlign: 'center' as const,
-    borderRadius: 13,
-    backgroundColor: c.accentLight,
-    overflow: 'hidden' as const,
+    fontSize: 9, fontWeight: '600', letterSpacing: 2, color: c.textTertiary, textTransform: 'uppercase',
   },
 
-  // ── Section Card wrapper ──
+  // Section card (used by Upcoming This Week)
   sectionCard: {
-    backgroundColor: c.glass,
-    borderWidth: 1,
-    borderColor: c.glassBorder,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: c.glass, borderWidth: 1, borderColor: c.glassBorder,
+    borderRadius: 16, padding: 16, marginBottom: 12,
   },
 
-  emptyTimeline: {
-    backgroundColor: c.glass,
-    borderRadius: 8,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  emptyTimelineText: {
-    fontSize: 14,
-    color: c.textHalf,
-  },
-  emptyTimelineSubtext: {
-    fontSize: 12,
-    color: c.textDisabled,
-    marginTop: 4,
-  },
-  allDoneMessage: {
-    backgroundColor: c.greenTint,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  allDoneEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  allDoneText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: c.green,
-  },
-  // ── Journal preview ──
-  journalPreviewDimmed: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderStyle: 'dashed' as any,
-    borderColor: c.glassBorder,
-    opacity: 0.5,
-    alignItems: 'center' as const,
-  },
-  journalPreviewDimmedText: {
-    fontSize: 13,
-    color: c.textMuted,
-    textAlign: 'center' as const,
-  },
-  journalPreviewCard: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: c.glass,
-    borderWidth: 1,
-    borderColor: c.glassBorder,
-  },
-  journalPreviewTitle: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: c.textPrimary,
-    marginBottom: 4,
-  },
-  journalPreviewText: {
-    fontSize: 13,
-    color: c.textSecondary,
-    marginBottom: 8,
-  },
-  journalPreviewLink: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: c.accent,
-  },
-  encouragementText: {
-    fontSize: 14,
-    color: c.textSecondary,
-    textAlign: 'center',
-    marginVertical: 16,
-    paddingHorizontal: 20,
-  },
-  // Insight banner
-  footerSection: {
-    alignItems: 'center',
-    paddingTop: 20,
-    paddingBottom: 8,
-  },
-  footerMessage: {
-    fontSize: 13,
-    fontStyle: 'italic',
-    color: c.textMuted,
-    textAlign: 'center',
-    lineHeight: 18,
-    paddingHorizontal: 16,
-  },
-  footerCoffeeLink: {
-    marginTop: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: c.glassDim,
-    borderWidth: 1,
-    borderColor: c.glassBorder,
-  },
-  footerCoffeeLinkText: {
-    fontSize: 13,
-    color: c.textSecondary,
-    fontWeight: '500',
-  },
+  // Appointment prep
   appointmentPrepCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(20, 55, 45, 0.3)',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(40, 80, 65, 0.3)',
-    padding: 12,
-    marginBottom: 4,
-    gap: 12,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(20, 55, 45, 0.3)',
+    borderRadius: 10, borderWidth: 1, borderColor: 'rgba(40, 80, 65, 0.3)',
+    padding: 12, marginBottom: 4, gap: 12,
   },
-  appointmentPrepIcon: {
-    fontSize: 20,
-  },
-  appointmentPrepTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.textBright,
-  },
-  appointmentPrepSubtitle: {
-    fontSize: 12,
-    color: c.textMuted,
-    marginTop: 2,
-  },
-  appointmentPrepArrow: {
-    fontSize: 20,
-    color: c.textMuted,
-  },
-
-  // ── Collapsed window summary ──
-  windowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  windowRowCurrent: {
-    backgroundColor: 'rgba(20, 184, 166, 0.08)',
-    borderRadius: 10,
-    marginHorizontal: -4,
-    paddingHorizontal: 18,
-  },
-  windowDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  windowLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-    color: c.textSecondary,
-  },
-  windowLabelCurrent: {
-    color: c.accent,
-  },
-  windowStatus: {
-    flex: 1,
-    fontSize: 13,
-    color: c.textHalf,
-  },
-  windowStartBtn: {
-    backgroundColor: c.accent,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-  },
-  windowStartText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: c.textPrimary,
-  },
-
-  // ── Handoff notes ──
-  handoffRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: c.border,
-  },
-  handoffIcon: {
-    fontSize: 16,
-  },
-  handoffText: {
-    flex: 1,
-    fontSize: 13,
-    color: c.textSecondary,
-    lineHeight: 18,
-  },
-
-  // ── Patterns ──
-  patternRow: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: c.border,
-  },
-  patternTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: c.textPrimary,
-  },
-
-  // ── Before bed ──
-  beforeBedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: c.border,
-  },
-  beforeBedIcon: {
-    fontSize: 16,
-  },
-  beforeBedText: {
-    flex: 1,
-    fontSize: 13,
-    color: c.textSecondary,
-  },
-  beforeBedArrow: {
-    fontSize: 14,
-    color: c.accent,
-  },
+  appointmentPrepIcon: { fontSize: 20 },
+  appointmentPrepTitle: { fontSize: 14, fontWeight: '600', color: c.textBright },
+  appointmentPrepSubtitle: { fontSize: 12, color: c.textMuted, marginTop: 2 },
+  appointmentPrepArrow: { fontSize: 20, color: c.textMuted },
 });
