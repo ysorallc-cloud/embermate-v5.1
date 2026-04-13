@@ -7,6 +7,10 @@ import * as path from 'path';
 
 const journalPath = path.resolve(__dirname, '../../app/(tabs)/journal.tsx');
 const src = fs.readFileSync(journalPath, 'utf-8');
+const flaggedPath = path.resolve(__dirname, '../../components/journal/JournalFlagged.tsx');
+const flaggedSrc = fs.readFileSync(flaggedPath, 'utf-8');
+const patternsPath = path.resolve(__dirname, '../../components/journal/JournalPatterns.tsx');
+const patternsSrc = fs.readFileSync(patternsPath, 'utf-8');
 
 describe('Journal redesign', () => {
   it('DateTabStrip is imported and rendered', () => {
@@ -24,24 +28,24 @@ describe('Journal redesign', () => {
     expect(src).toContain('care story');
   });
 
-  it('Shift Summary has context line', () => {
-    expect(src).toContain('title="Shift Summary"');
-    expect(src).toContain('A snapshot of today');
+  it('Heads up section renders via JournalFlagged component', () => {
+    // Phase 10.2 — extracted to JournalFlagged component
+    expect(src).toContain('<JournalFlagged');
+    expect(flaggedSrc).toContain('>Heads up<');
+    expect(flaggedSrc).toContain('bar');
   });
 
-  it('Heads up section (renamed from Watch For) with context', () => {
-    expect(src).toContain('title="Heads up"');
-    expect(src).toContain('What the next caregiver');
+  it('Patterns section renders via JournalPatterns component', () => {
+    // Phase 10.2 — extracted to JournalPatterns component
+    expect(src).toContain('<JournalPatterns');
+    expect(patternsSrc).toContain('>Patterns<');
   });
 
-  it('Patterns section with context', () => {
-    expect(src).toContain('title="Patterns"');
-    expect(src).toContain('Trends EmberMate noticed');
-  });
-
-  it('Your reflection section with context', () => {
-    expect(src).toContain('title="Your reflection"');
-    expect(src).toContain('For you, not the chart');
+  it('Reflection renders via ReflectionPrompt component without a section header', () => {
+    // Phase 6 — the SectionLabel + context line were removed; the italic
+    // prompt inside ReflectionPrompt now serves as the section anchor.
+    expect(src).toContain('<ReflectionPrompt');
+    expect(src).not.toContain('title="Your reflection"');
   });
 
   it('Before Bed section removed', () => {
@@ -61,17 +65,23 @@ describe('Journal redesign', () => {
     expect(src).toContain('Not a medical record');
   });
 
-  it('sectionContext style exists', () => {
-    expect(src).toContain('sectionContext');
+  it('headerPurpose style uses muted color', () => {
+    // sectionContext was removed during decomposition; headerPurpose
+    // serves the same purpose with the same color.
+    expect(src).toContain('headerPurpose');
     expect(src).toContain("'#4a5a6a'");
   });
 
-  it('section order: Summary → Heads up → Patterns → Reflection', () => {
-    const summaryIdx = src.indexOf('title="Shift Summary"');
-    const headsUpIdx = src.indexOf('title="Heads up"');
-    const patternsIdx = src.indexOf('title="Patterns"');
-    const reflectionIdx = src.indexOf('title="Your reflection"');
-    expect(summaryIdx).toBeLessThan(headsUpIdx);
+  it('section order: Status → Heads up → Patterns → Reflection', () => {
+    // The flat redesign anchors on the day status block instead of an
+    // "At a glance" SectionLabel. Subsequent sections still reference the
+    // headers that remain in the render path.
+    const statusIdx = src.indexOf('DAY STATUS');
+    const headsUpIdx = src.indexOf('HEADS UP');
+    const patternsIdx = src.indexOf('PATTERNS');
+    const reflectionIdx = src.indexOf('REFLECTION');
+    expect(statusIdx).toBeGreaterThan(-1);
+    expect(statusIdx).toBeLessThan(headsUpIdx);
     expect(headsUpIdx).toBeLessThan(patternsIdx);
     expect(patternsIdx).toBeLessThan(reflectionIdx);
   });

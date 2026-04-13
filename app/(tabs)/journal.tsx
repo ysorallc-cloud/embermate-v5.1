@@ -1,7 +1,6 @@
 // ============================================================================
 // JOURNAL PAGE - Narrative intelligence layer (shift-change briefing)
-// Six sections: Narrative, Handoff Notes, Patterns, Before Bed, Visit Prep,
-//               Day at a Glance
+// Sections: Status dot, Stats strip, Timeline, Heads up, Patterns, Reflection
 // ============================================================================
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
@@ -14,7 +13,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  Animated,
   Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -24,7 +22,6 @@ import { useTheme } from '../../contexts/ThemeContext';
 import {
   buildCareBrief,
   CareBrief,
-  MedicationDetail,
 } from '../../utils/careSummaryBuilder';
 import { getAllInsights, InsightData } from '../../utils/insightEngine';
 import { logError } from '../../utils/devLog';
@@ -38,9 +35,9 @@ import { isBiometricEnabled, shouldLockSession, requireAuthentication, updateLas
 import { getNotesLogs, NotesLog } from '../../utils/centralStorage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { CarePlanTask } from '../../types/carePlanTask';
 import { getMedicalInfo, MedicalInfo } from '../../utils/medicalInfo';
 import { safeGetItem } from '../../utils/safeStorage';
+import { usePatient } from '../../contexts/PatientContext';
 import { StorageKeys } from '../../utils/storageKeys';
 import { getMedications } from '../../utils/medicationStorage';
 import { hasSampleData } from '../../utils/sampleDataManager';
@@ -51,49 +48,13 @@ import { DateTabStrip } from '../../components/journal/DateTabStrip';
 import { MonthCalendar } from '../../components/journal/MonthCalendar';
 // DetailedEventLog removed — Now tab timeline serves this purpose
 import { ReflectionPrompt } from '../../components/journal/ReflectionPrompt';
+import { JournalSummary } from '../../components/journal/JournalSummary';
+import { JournalFlagged, buildHandoffNotes } from '../../components/journal/JournalFlagged';
+import { JournalPatterns } from '../../components/journal/JournalPatterns';
 // useJournalEvents removed — DetailedEventLog no longer rendered
 import { useCalendarStatuses } from '../../hooks/useCalendarStatuses';
 import { getDailyPrompt } from '../../utils/reflectionPrompts';
 import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-function formatTime(t: string): string {
-  if (!t) return '';
-  if (t.includes('T')) {
-    const date = new Date(t);
-    if (isNaN(date.getTime())) return '';
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  }
-  const parts = t.split(':');
-  if (parts.length < 2) return t;
-  const hr = parseInt(parts[0]);
-  const min = parts[1];
-  const period = hr >= 12 ? 'PM' : 'AM';
-  return `${hr % 12 || 12}:${min} ${period}`;
-}
-
-const SLEEP_QUALITY_WORDS: Record<number, string> = {
-  1: 'very poor',
-  2: 'poor',
-  3: 'fair',
-  4: 'good',
-  5: 'excellent',
-};
-
-// ============================================================================
-// SECTION LABEL — Consistent header for all journal sections
-// ============================================================================
-
-function SectionLabel({ title, color, styles: s }: { title: string; color?: string; styles: ReturnType<typeof createStyles> }) {
-  return (
-    <View style={s.sectionLabelRow}>
-      <Text style={[s.sectionLabelText, color ? { color } : undefined]}>{title}</Text>
-    </View>
-  );
-}
 
 // ============================================================================
 // MAIN COMPONENT
@@ -101,6 +62,7 @@ function SectionLabel({ title, color, styles: s }: { title: string; color?: stri
 
 export default function JournalTab() {
   const { colors } = useTheme();
+  const { activePatient } = usePatient();
   const insets = useSafeAreaInsets();
   const s = useMemo(() => createStyles(colors), [colors]);
   const [brief, setBrief] = useState<CareBrief | null>(null);
@@ -110,8 +72,6 @@ export default function JournalTab() {
   const [authRequired, setAuthRequired] = useState(false);
   const [todayNotes, setTodayNotes] = useState<NotesLog[]>([]);
   const [insights, setInsights] = useState<InsightData[]>([]);
-  const [expandedPattern, setExpandedPattern] = useState<number | null>(null);
-  const chevronAnims = useRef<Animated.Value[]>([]).current;
   const { state: careTasksState } = useCareTasks(getTodayDateString());
   const { enabledBuckets } = useEnabledBuckets();
   const [medicalInfo, setMedicalInfo] = useState<MedicalInfo | null>(null);
@@ -189,17 +149,22 @@ export default function JournalTab() {
   const loadReport = useCallback(async () => {
     try {
       setError(null);
-      const data = await buildCareBrief();
+      // Phase 7: pass the journal's selected date so navigating to past
+      // dates loads that day's brief instead of always re-loading today.
+      const data = await buildCareBrief(selectedDate);
       setBrief(data);
 
       try {
         const allNotes = await getNotesLogs();
-        const today = new Date().toDateString();
+        // Anchor the selected date at noon to dodge DST edges so the
+        // toDateString() filter matches the calendar day the user picked.
+        const targetKey = new Date(`${selectedDate}T12:00:00`).toDateString();
         const filtered = allNotes.filter(
-          (n) => new Date(n.timestamp).toDateString() === today
+          (n) => new Date(n.timestamp).toDateString() === targetKey
         );
         setTodayNotes(filtered);
-      } catch {
+      } catch (err) {
+        logError('JournalTab.loadNotes', err);
         setTodayNotes([]);
       }
 
@@ -207,7 +172,8 @@ export default function JournalTab() {
       try {
         const allInsights = await getAllInsights();
         setInsights(allInsights);
-      } catch {
+      } catch (err) {
+        logError('JournalTab.loadInsights', err);
         setInsights([]);
       }
 
@@ -221,11 +187,25 @@ export default function JournalTab() {
           getMedications(),
         ]);
         setMedicalInfo(mi);
-        setPatientName(name || '');
+        // Resolve patient name with priority: PatientContext → safeStorage.
+        // Filter out the legacy 'Patient' default and the friendly skip
+        // placeholder 'your loved one' so the patient card and possessive
+        // header copy ("Mom's care story") only show when a *real* name
+        // has been entered. journal.tsx uses an empty string as the
+        // not-set sentinel that drives `showPatientCard` + the
+        // "Today's care story" fallback header.
+        const PLACEHOLDERS = new Set(['', 'Patient', 'your loved one']);
+        const fromContext =
+          activePatient?.name && !PLACEHOLDERS.has(activePatient.name)
+            ? activePatient.name
+            : null;
+        const fromStorage = name && !PLACEHOLDERS.has(name) ? name : null;
+        setPatientName(fromContext || fromStorage || '');
         setPatientAge(ageVal);
         setPatientGender(genderVal);
         setActiveMedCount(meds?.length ?? 0);
-      } catch {
+      } catch (err) {
+        logError('JournalTab.loadPatientContext', err);
         // Non-critical — patient card just won't show
       }
 
@@ -235,7 +215,7 @@ export default function JournalTab() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedDate, activePatient]);
 
   useEffect(() => {
     loadReport();
@@ -327,6 +307,41 @@ export default function JournalTab() {
   const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
+  // Phase 1A — day status (first read on the Journal page).
+  // MUST live above the loading/error early returns so the hook order
+  // stays stable across renders. Inlines its counter logic for the same
+  // reason: the medsDone/etc consts below this point are computed AFTER
+  // the early returns and can't be referenced here.
+  const dayStatus = useMemo(() => {
+    if (!brief) {
+      return { color: colors.textWarmMuted, label: 'No data yet', detail: 'Start logging on the Now tab' };
+    }
+    const md = brief.medications.filter(m => m.status === 'completed' || m.status === 'skipped').length;
+    const mt = brief.medications.length;
+    const mm = brief.medications.filter(m => m.status === 'missed').length;
+    const eaD = brief.meals.meals.filter(m => m.status === 'completed' || m.status === 'skipped').length;
+    const eaT = brief.meals.total;
+    const wD = brief.wellnessChecks.done;
+    const wT = brief.wellnessChecks.total;
+
+    const totalItems = mt + eaT + wT;
+    const doneItems = md + eaD + wD;
+
+    if (totalItems === 0) {
+      return { color: colors.textWarmMuted, label: 'No data yet', detail: 'Start logging on the Now tab' };
+    }
+    if (doneItems === totalItems) {
+      return { color: colors.accent, label: 'Good day', detail: 'All items completed' };
+    }
+    if (mm > 0) {
+      return { color: colors.amberBright, label: 'Needs attention', detail: `${mm} med${mm > 1 ? 's' : ''} missed` };
+    }
+    if (doneItems > 0) {
+      return { color: colors.amberBright, label: 'Incomplete day', detail: `${doneItems} of ${totalItems} items done` };
+    }
+    return { color: colors.textWarmMuted, label: 'Day starting', detail: `${totalItems} items scheduled` };
+  }, [brief, colors]);
+
   if (loading && !brief) {
     return (
       <View style={s.container}>
@@ -402,191 +417,28 @@ export default function JournalTab() {
     return buildHandoffSummary(brief, medsDone, medsTotal, allMedsDone, hasVitals);
   }
 
-  // ============================================================================
-  // HELPERS FOR DAY AT A GLANCE
-  // ============================================================================
-  type DotColor = 'green' | 'amber' | 'red' | 'muted';
-
-  function getMedsDotColor(): DotColor {
-    if (medsTotal === 0) return 'muted';
-    if (medsMissed > 0) return 'red';
-    if (allMedsDone) return 'green';
-    return 'amber';
-  }
-
-  function getMedsValue(): string {
-    return `${medsDone}/${medsTotal}`;
-  }
-
-  function getMealsDotColor(): DotColor {
-    if (mealsTotal === 0) return 'muted';
-    if (mealsMissed > 0) return 'red';
-    if (mealsDone >= mealsTotal && mealsTotal > 0) return 'green';
-    return 'amber';
-  }
-
-  function getHydrationDotColor(): DotColor {
-    if (waterGlasses >= 8) return 'green';
-    if (waterGlasses === 0) return 'muted';
-    return 'amber';
-  }
-
-  function getWellnessDotColor(): DotColor {
-    if (wellnessTotal === 0) return 'muted';
-    if (wellnessDone >= wellnessTotal) return 'green';
-    if (wellnessDone > 0) return 'amber';
-    return 'muted';
-  }
-
-  function getWellnessValue(): string {
-    return `${wellnessDone}/${wellnessTotal}`;
-  }
-
-  function getSleepDotColor(): DotColor {
-    if (!brief?.sleep.logged) return 'muted';
-    return 'green';
-  }
-
-  function getSleepValue(): string {
-    if (!brief?.sleep.logged) return '\u2014';
-    if (brief.sleep.hours != null) return `${brief.sleep.hours}h`;
-    return 'Logged';
-  }
-
-  function getVitalsDotColor(): DotColor {
-    if (!hasVitals) return 'muted';
-    const r = brief?.vitals?.readings;
-    if (r && ((r.systolic ?? 0) > 140 || (r.diastolic ?? 0) > 90 || ((r.oxygen ?? 100) < 92))) return 'red';
-    return 'green';
-  }
-
-  function getVitalsValue(): string {
-    if (!hasVitals) return '\u2014';
-    const r = brief?.vitals?.readings;
-    if (r?.systolic != null && r?.diastolic != null) return `${r.systolic}/${r.diastolic}`;
-    return 'Logged';
-  }
-
-  function dotColorToStyle(dc: DotColor) {
-    switch (dc) {
-      case 'green': return colors.green;
-      case 'amber': return colors.amberBright;
-      case 'red': return colors.redBright;
-      default: return colors.textTertiary;
-    }
-  }
-
-  // ============================================================================
-  // HANDOFF NOTES
-  // ============================================================================
-  type HandoffType = 'done' | 'watch' | 'flag';
-  interface HandoffItem { icon: string; text: string; context?: string; type: HandoffType; }
-
-  function buildHandoffNotes(): HandoffItem[] {
-    if (!brief) return [];
-    const items: HandoffItem[] = [];
-
-    // Completed meds with times (deduplicate by name + time)
-    const seenMeds = new Set<string>();
-    for (const med of brief.medications) {
-      if ((med.status === 'completed' || med.status === 'skipped') && med.takenAt) {
-        const timeStr = formatTime(med.takenAt);
-        const dedupKey = `${med.name}|${timeStr}`;
-        if (seenMeds.has(dedupKey)) continue;
-        seenMeds.add(dedupKey);
-
-        items.push({
-          icon: '\uD83D\uDC8A',
-          text: `${med.name} taken at ${timeStr}`,
-          type: 'done',
-        });
-      }
-    }
-
-    // Attention items
-    if (brief.attentionItems) {
-      for (const ai of brief.attentionItems) {
-        const text = ai.text || '';
-        let type: HandoffType = 'watch';
-        let context: string | undefined;
-        if (/miss|skip|overdue/i.test(text)) {
-          type = 'flag';
-          if (/med|medication/i.test(text)) {
-            context = 'Check whether this was intentional or if there\'s a side effect concern.';
-          } else if (/meal|breakfast|lunch|dinner/i.test(text)) {
-            context = 'Ensure adequate nutrition at next meal.';
-          }
-        }
-        if (/confus|disorient/i.test(text)) {
-          context = 'Monitor if this recurs at the same time tomorrow.';
-        }
-        const icon = type === 'flag' ? '\uD83D\uDED1' : '\uD83D\uDC41\uFE0F';
-        items.push({ icon, text, context, type });
-      }
-    }
-
-    // Interpretations
-    if (brief.interpretations?.medications) {
-      items.push({ icon: '\uD83D\uDC8A', text: brief.interpretations.medications, type: 'watch' });
-    }
-    if (brief.interpretations?.vitals) {
-      items.push({ icon: '\uD83C\uDF21\uFE0F', text: brief.interpretations.vitals, type: 'watch' });
-    }
-    if (brief.interpretations?.nutrition) {
-      items.push({ icon: '\uD83C\uDF5E', text: brief.interpretations.nutrition, type: 'watch' });
-    }
-
-    return items;
-  }
-
-  // ============================================================================
-  // BEFORE BED
-  // ============================================================================
-  interface BeforeBedItem { icon: string; text: string; route: string; }
-
-  function buildBeforeBedItems(): BeforeBedItem[] {
-    const items: BeforeBedItem[] = [];
-
-    // Pending evening/night tasks
-    if (careTasksState) {
-      const eveningTasks = careTasksState.byWindow['evening'] || [];
-      const nightTasks = careTasksState.byWindow['night'] || [];
-      for (const task of [...eveningTasks, ...nightTasks]) {
-        if (task.status === 'pending') {
-          items.push({
-            icon: task.emoji || '\u2705',
-            text: task.title,
-            route: task.primaryAction?.route || '',
-          });
-        }
-      }
-    }
-
-    // Unlogged sleep
-    if (brief && !brief.sleep.logged) {
-      const pronoun = patientGender?.toLowerCase() === 'male' ? 'he' : patientGender?.toLowerCase() === 'female' ? 'she' : 'they';
-      items.push({ icon: '\uD83D\uDE34', text: `Log sleep when ${pronoun} go${pronoun === 'they' ? '' : 'es'} to bed`, route: '/log-sleep' });
-    }
-
-    // Unlogged evening wellness
-    if (brief && !hasEvening && new Date().getHours() >= 17) {
-      items.push({ icon: '\uD83D\uDCCB', text: 'Evening wellness check', route: '/log-evening-wellness' });
-    }
-
-    return items;
-  }
 
   // ============================================================================
   // SHARE / REPORT HANDLERS
   // ============================================================================
   function handleShareDaily() {
-    if (!brief) return;
+    if (loading) {
+      Alert.alert('Loading', 'Please wait while the journal loads.');
+      return;
+    }
+    if (!brief) {
+      Alert.alert(
+        'No Data',
+        'Nothing has been logged today. Start tracking on the Now tab.',
+      );
+      return;
+    }
     const result = buildDailySummaryReport(
       brief,
       dateStr,
       dayName,
       glanceStats,
-      buildHandoffNotes(),
+      buildHandoffNotes(brief),
       reflection?.text,
     );
     setDailyReport(result);
@@ -594,7 +446,17 @@ export default function JournalTab() {
   }
 
   function handleShareClinical() {
-    if (!brief) return;
+    if (loading) {
+      Alert.alert('Loading', 'Please wait while the journal loads.');
+      return;
+    }
+    if (!brief) {
+      Alert.alert(
+        'No Data',
+        'Nothing has been logged today. Start tracking on the Now tab.',
+      );
+      return;
+    }
     const result = buildClinicalReportData(brief);
     setClinicalReport(result);
     setShowClinicalPreview(true);
@@ -617,7 +479,11 @@ export default function JournalTab() {
                 age: patientAge || undefined,
               });
               setShowDailyPreview(false);
-            } catch { /* user cancelled or error handled in util */ }
+            } catch (err: any) {
+              if (err?.message !== 'User cancelled') {
+                logError('JournalTab.handleDailyExport', err);
+              }
+            }
             setExporting(false);
           },
         },
@@ -643,7 +509,11 @@ export default function JournalTab() {
                 age: patientAge || undefined,
               });
               setShowClinicalPreview(false);
-            } catch { /* user cancelled or error handled in util */ }
+            } catch (err: any) {
+              if (err?.message !== 'User cancelled') {
+                logError('JournalTab.handleClinicalExport', err);
+              }
+            }
             setExporting(false);
           },
         },
@@ -651,91 +521,44 @@ export default function JournalTab() {
     );
   }
 
-  // ============================================================================
-  // PATTERN EXPAND/COLLAPSE
-  // ============================================================================
-  // Ensure we have enough animated values
-  while (chevronAnims.length < insights.length) {
-    chevronAnims.push(new Animated.Value(0));
-  }
-
-  const togglePattern = (index: number) => {
-    const expanding = expandedPattern !== index;
-    // Collapse previous
-    if (expandedPattern != null && expandedPattern < chevronAnims.length) {
-      Animated.timing(chevronAnims[expandedPattern], {
-        toValue: 0, duration: 200, useNativeDriver: true,
-      }).start();
-    }
-    if (expanding) {
-      Animated.timing(chevronAnims[index], {
-        toValue: 1, duration: 200, useNativeDriver: true,
-      }).start();
-      setExpandedPattern(index);
-    } else {
-      setExpandedPattern(null);
-    }
-  };
-
-  // ============================================================================
-  // SEVERITY HELPERS
-  // ============================================================================
-  function handoffBorderColor(type: HandoffType): string {
-    switch (type) {
-      case 'flag': return colors.redBright;
-      case 'watch': return colors.amberBright;
-      case 'done': return colors.green;
-    }
-  }
-
-  function handoffBgColor(type: HandoffType): string {
-    switch (type) {
-      case 'flag': return 'rgba(239,68,68,0.06)';
-      case 'watch': return 'rgba(245,158,11,0.05)';
-      case 'done': return 'rgba(74,222,128,0.05)';
-    }
-  }
-
-  function patternBorderColor(severity: string): string {
-    if (severity === 'alert') return colors.redBright;
-    if (severity === 'warning') return colors.amberBright;
-    return 'rgba(96,165,250,0.3)';
-  }
 
   // ============================================================================
   // BUILD DATA
   // ============================================================================
-  const handoffNotes = buildHandoffNotes();
-  const beforeBedItems = buildBeforeBedItems();
+  const handoffNotes = buildHandoffNotes(brief);
 
-  function getBedItemColor(item: BeforeBedItem): string {
-    if (/med|acetaminophen|amlodipine|medication/i.test(item.text)) return colors.red;
-    if (/sleep/i.test(item.text)) return colors.purple;
-    return colors.amberBright;
-  }
-
-  // All possible glance tiles, keyed by their Care Plan bucket type
-  const allGlanceTiles: { bucket: string; label: string; value: string; color: string }[] = [
-    { bucket: 'meds',     label: 'Meds',     value: getMedsValue(),                color: dotColorToStyle(getMedsDotColor()) },
-    { bucket: 'meals',    label: 'Meals',     value: `${mealsDone}/${mealsTotal}`,  color: dotColorToStyle(getMealsDotColor()) },
-    { bucket: 'water',    label: 'Water',     value: `${waterGlasses}/8`,           color: dotColorToStyle(getHydrationDotColor()) },
-    { bucket: 'wellness', label: 'Wellness',  value: getWellnessValue(),            color: dotColorToStyle(getWellnessDotColor()) },
-    { bucket: 'sleep',    label: 'Sleep',     value: getSleepValue(),               color: dotColorToStyle(getSleepDotColor()) },
-    { bucket: 'vitals',   label: 'BP',        value: getVitalsValue(),              color: dotColorToStyle(getVitalsDotColor()) },
-  ];
-
-  // Filter to only buckets the user has enabled in Care Plan
-  // If no buckets configured yet, fall back to showing all (first-run experience)
-  const glanceStats = enabledBuckets.length > 0
-    ? allGlanceTiles.filter(t => enabledBuckets.includes(t.bucket as any))
-    : allGlanceTiles;
+  // Glance stats for the share/report flow — no longer rendered on screen
+  // (the flat stats strip replaced the visual tiles) but still needed by
+  // buildDailySummaryReport. Inline derivation replaces the deleted helper
+  // functions.
+  const glanceStats = (() => {
+    const sem = (cond: boolean, total: number, missed: number) =>
+      total === 0 ? colors.textTertiary : missed > 0 ? colors.redBright : cond ? colors.green : colors.amberBright;
+    const bpVal = hasVitals
+      ? (brief?.vitals?.readings?.systolic != null && brief?.vitals?.readings?.diastolic != null
+          ? `${brief.vitals.readings.systolic}/${brief.vitals.readings.diastolic}` : 'Logged')
+      : '\u2014';
+    const sleepVal = !brief?.sleep.logged ? '\u2014' : (brief.sleep.hours != null ? `${brief.sleep.hours}h` : 'Logged');
+    const all = [
+      { bucket: 'meds',     label: 'Meds',     value: `${medsDone}/${medsTotal}`,    color: sem(allMedsDone, medsTotal, medsMissed) },
+      { bucket: 'meals',    label: 'Meals',     value: `${mealsDone}/${mealsTotal}`,  color: sem(mealsDone >= mealsTotal && mealsTotal > 0, mealsTotal, mealsMissed) },
+      { bucket: 'water',    label: 'Water',     value: `${waterGlasses}/8`,           color: waterGlasses >= 8 ? colors.green : waterGlasses === 0 ? colors.textTertiary : colors.amberBright },
+      { bucket: 'wellness', label: 'Wellness',  value: `${wellnessDone}/${wellnessTotal}`, color: sem(wellnessDone >= wellnessTotal, wellnessTotal, 0) },
+      { bucket: 'sleep',    label: 'Sleep',     value: sleepVal,                      color: brief?.sleep.logged ? colors.green : colors.textTertiary },
+      { bucket: 'vitals',   label: 'BP',        value: bpVal,                         color: hasVitals ? colors.green : colors.textTertiary },
+    ];
+    return enabledBuckets.length > 0
+      ? all.filter(t => enabledBuckets.includes(t.bucket as any))
+      : all;
+  })();
 
   // ============================================================================
   // PATIENT CONTEXT
   // ============================================================================
   const activeDiagnoses = (medicalInfo?.diagnoses ?? []).filter(d => d.status === 'active');
   const allergies = medicalInfo?.allergies ?? [];
-  const showPatientCard = patientName.length > 0;
+  // Patient name is used in the header purpose line ("Mom's care story for
+  // today") — no standalone patient card is rendered.
 
   // ============================================================================
   // RENDER — MAIN
@@ -761,12 +584,24 @@ export default function JournalTab() {
               <Text style={s.headerPurpose}>{patientName ? `${patientName}'s care story for today` : "Today's care story"}. Share with the next caregiver or bring to a visit.</Text>
             </View>
             <View style={s.headerActions}>
-              <TouchableOpacity style={s.headerPill} onPress={handleShareDaily}
-                activeOpacity={0.7} accessibilityLabel="Share daily summary" accessibilityRole="button">
+              <TouchableOpacity
+                style={[s.headerPill, loading && { opacity: 0.4 }]}
+                onPress={handleShareDaily}
+                activeOpacity={0.7}
+                accessibilityLabel={loading ? 'Share daily summary, loading' : 'Share daily summary'}
+                accessibilityRole="button"
+                accessibilityState={{ busy: loading }}
+              >
                 <Text style={s.headerPillText}>Share</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={s.headerPillReport} onPress={handleShareClinical}
-                activeOpacity={0.7} accessibilityLabel="Clinical report" accessibilityRole="button">
+              <TouchableOpacity
+                style={[s.headerPillReport, loading && { opacity: 0.4 }]}
+                onPress={handleShareClinical}
+                activeOpacity={0.7}
+                accessibilityLabel={loading ? 'Clinical report, loading' : 'Clinical report'}
+                accessibilityRole="button"
+                accessibilityState={{ busy: loading }}
+              >
                 <Text style={s.headerPillReportText}>Report</Text>
               </TouchableOpacity>
             </View>
@@ -779,39 +614,7 @@ export default function JournalTab() {
             </View>
           )}
 
-          {/* ─── PATIENT CONTEXT CARD ─── */}
-          {showPatientCard && (
-            <TouchableOpacity
-              style={s.patientCard}
-              onPress={() => navigate('/patient')}
-              activeOpacity={0.7}
-              accessibilityLabel={`Patient: ${patientName}. Tap to view profile.`}
-              accessibilityRole="button"
-            >
-              <View style={s.patientCardAvatar}>
-                <Text style={s.patientCardAvatarText}>{patientName.charAt(0).toUpperCase()}</Text>
-              </View>
-              <View style={s.patientCardInfo}>
-                <View style={s.patientCardNameRow}>
-                  <Text style={s.patientCardName}>{patientName}</Text>
-                  {patientAge != null && (
-                    <Text style={s.patientCardAge}>{patientAge} y/o</Text>
-                  )}
-                  {allergies.length > 0 && (
-                    <View style={s.allergyBadge}>
-                      <Text style={s.allergyBadgeText}>{'\u26A0'} {allergies[0]}</Text>
-                    </View>
-                  )}
-                </View>
-                {activeDiagnoses.length > 0 && (
-                  <Text style={s.patientCardConditions} numberOfLines={1}>
-                    {activeDiagnoses.map(d => d.condition).join(' \u00B7 ')}
-                  </Text>
-                )}
-              </View>
-              <Text style={s.patientCardChevron}>{'\u203A'}</Text>
-            </TouchableOpacity>
-          )}
+          {/* Patient name shown inline in header: "Mom's care story for today" */}
 
           {/* ═══ DATE TAB STRIP ═══ */}
           <DateTabStrip
@@ -829,126 +632,29 @@ export default function JournalTab() {
             dayStatuses={calendarStatuses}
           />
 
-          {/* ═══ SHIFT SUMMARY ═══ */}
-          <SectionLabel title="Shift Summary" styles={s} />
-          <Text style={s.sectionContext}>A snapshot of today — what was done and what was missed.</Text>
-          <View style={s.summaryCard}>
-            {(() => {
-              const raw = getBriefingText();
-              const paras = raw
-                .split(/(?<=\.)\s+/)
-                .reduce((acc: string[], sentence: string) => {
-                  if (acc.length === 0 || acc[acc.length - 1].split('.').length > 3) {
-                    acc.push(sentence);
-                  } else {
-                    acc[acc.length - 1] += ' ' + sentence;
-                  }
-                  return acc;
-                }, [])
-                .filter((p: string) => p.trim().length > 0);
-              return paras.map((para: string, i: number) => (
-                <Text key={i} style={[s.summaryText, i < paras.length - 1 && { marginBottom: 12 }]}>
-                  {para}
-                </Text>
-              ));
-            })()}
+          {/* ═══ DAY STATUS (Phase 1B) ═══ */}
+          <View style={s.statusBlock}>
+            <View style={[s.statusDot, { backgroundColor: dayStatus.color }]} />
+            <View>
+              <Text style={s.statusLabel}>{dayStatus.label}</Text>
+              <Text style={s.statusDetail}>{dayStatus.detail}</Text>
+            </View>
           </View>
 
-          {/* First-use guidance when nothing logged today */}
-          {medsTotal === 0 && mealsTotal === 0 && waterGlasses === 0 && !hasMorning && !hasEvening && !hasVitals && (
-            <View style={s.firstUseCard}>
-              <Text style={s.firstUseTitle}>Your journal builds as you log</Text>
-              <Text style={s.firstUseText}>
-                Track medications, meals, vitals, or mood from the Now tab and your daily summary will appear here.
-              </Text>
-            </View>
-          )}
+          {/* ═══ TODAY'S RECORD ═══ */}
+          <JournalSummary
+            brief={brief}
+            selectedDate={selectedDate}
+            enabledBuckets={enabledBuckets}
+          />
 
-          {/* ═══ WATCH FOR ═══ */}
-          {handoffNotes.length > 0 && (
-            <>
-              <SectionLabel title="Heads up" color={colors.amberBright} styles={s} />
-              <Text style={[s.sectionContext, { color: '#8a7a5a' }]}>What the next caregiver — or you tomorrow — should know.</Text>
-              <View style={s.watchCard}>
-                {handoffNotes.map((item, i) => (
-                  <View
-                    key={`handoff-${i}`}
-                    style={[s.watchItem, {
-                      borderLeftColor: handoffBorderColor(item.type),
-                      backgroundColor: handoffBgColor(item.type),
-                    }]}
-                  >
-                    <Text style={s.watchTitle}>{item.text}</Text>
-                    {item.context && <Text style={s.watchContext}>{item.context}</Text>}
-                  </View>
-                ))}
-              </View>
-            </>
-          )}
+          {/* ═══ HEADS UP — Phase 4 ═══ */}
+          <JournalFlagged items={handoffNotes} />
 
-          {/* ═══ PATTERNS ═══ */}
-          {insights.length > 0 && (
-            <>
-              <SectionLabel title="Patterns" styles={s} />
-              <Text style={s.sectionContext}>Trends EmberMate noticed across recent days.</Text>
-              {insights.map((insight, i) => {
-                const isExpanded = expandedPattern === i;
-                const rotation = chevronAnims[i]
-                  ? chevronAnims[i].interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0deg', '180deg'],
-                    })
-                  : '0deg';
-                return (
-                  <TouchableOpacity
-                    key={insight.id}
-                    style={[s.patternCard, { borderColor: patternBorderColor(insight.severity) + '30' }]}
-                    onPress={() => togglePattern(i)}
-                    activeOpacity={0.8}
-                    accessibilityLabel={`Pattern: ${insight.title}. ${isExpanded ? 'Collapse' : 'Expand'}`}
-                    accessibilityRole="button"
-                  >
-                    <View style={s.patternHeader}>
-                      <Text style={s.patternTitle}>{insight.title}</Text>
-                      <Animated.Text style={[s.patternChevron, { transform: [{ rotate: rotation }] }]}>{'\u25BC'}</Animated.Text>
-                    </View>
-                    {isExpanded && (
-                      <View style={s.patternDetail}>
-                        <Text style={s.patternContext}>{insight.context}</Text>
-                        {insight.actions.length > 0 && (
-                          <View style={s.patternAction}>
-                            <Text style={s.patternActionArrow}>{'\u2192'}</Text>
-                            <Text style={s.patternActionText}>{insight.actions[0].label}</Text>
-                          </View>
-                        )}
-                        <TouchableOpacity
-                          onPress={() => {
-                            const trendKey = insight.type === 'medication' ? 'meds'
-                              : insight.type === 'vitals' ? 'bp'
-                              : insight.type === 'mood' ? 'mood'
-                              : insight.type;
-                            navigate(`/(tabs)/understand?focusTrend=${trendKey}`);
-                          }}
-                          style={s.patternTrendLink}
-                          activeOpacity={0.7}
-                          accessibilityLabel="View trend on Insights"
-                          accessibilityRole="link"
-                        >
-                          <Text style={s.patternTrendLinkText}>{'\uD83D\uDCCA'} View trend on Insights →</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </>
-          )}
+          {/* ═══ PATTERNS — Phase 5 ═══ */}
+          <JournalPatterns insights={insights} />
 
-          {/* Before Bed removed — Journal is a read surface, Now is the action surface */}
-
-          {/* ═══ REFLECTION ═══ */}
-          <SectionLabel title="Your reflection" styles={s} />
-          <Text style={s.sectionContext}>For you, not the chart. When you look back at this day, what do you want to remember?</Text>
+          {/* ═══ REFLECTION — Phase 6 (compact) ═══ */}
           <ReflectionPrompt
             date={selectedDate}
             prompt={getDailyPrompt(selectedDate)}
@@ -1152,318 +858,29 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.purple,
     fontWeight: '500' as const,
   },
-  // ── Section label (Phase 1B) ──
-  sectionLabelRow: {
-    paddingTop: 6,
-    marginBottom: 8,
-    borderTopWidth: 0.5,
-    borderTopColor: c.glassHover,
+  // ─── Day status block (Phase 1B) ───
+  statusBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
   },
-  sectionLabelText: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: c.textMuted,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 2,
-    paddingTop: 10,
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
-  sectionContext: {
-    fontSize: 11,
-    color: '#4a5a6a',
+  statusLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: c.textWarmPrimary,
+  },
+  statusDetail: {
+    fontSize: 12,
+    color: c.textWarmMuted,
     marginTop: 2,
-    marginBottom: 10,
   },
 
-  // ─── PATIENT CONTEXT CARD ───
-  patientCard: {
-    backgroundColor: c.glass,
-    borderWidth: 1,
-    borderColor: c.glassBorder,
-    borderRadius: 10,
-    padding: 10,
-    paddingHorizontal: 12,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  patientCardAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: c.accentDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  patientCardAvatarText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.accent,
-  },
-  patientCardInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  patientCardNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
-  },
-  patientCardName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: c.textPrimary,
-  },
-  patientCardAge: {
-    fontSize: 10,
-    color: c.textSecondary,
-  },
-  allergyBadge: {
-    backgroundColor: 'rgba(239,68,68,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.25)',
-    borderRadius: 3,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-  },
-  allergyBadgeText: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: '#EF4444',
-  },
-  patientCardConditions: {
-    fontSize: 11,
-    color: c.textSecondary,
-  },
-  patientCardChevron: {
-    fontSize: 14,
-    color: c.textSecondary,
-  },
-
-  // ─── SECTION HEADER ───
-
-  // ─── DIVIDER ───
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    marginHorizontal: -16,
-  },
-
-  // ─── SHIFT SUMMARY ───
-  summaryCard: {
-    backgroundColor: c.glassFaint,
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 18,
-  },
-  summaryText: {
-    fontSize: 14,
-    color: c.textSecondary,
-    lineHeight: 22,
-  },
-  // ─── WATCH FOR ───
-  watchCard: {
-    backgroundColor: c.glassFaint,
-    borderRadius: 10,
-    padding: 4,
-    marginBottom: 18,
-  },
-  watchItem: {
-    borderLeftWidth: 2,
-    borderRadius: 0,
-    padding: 10,
-    paddingLeft: 12,
-    marginBottom: 4,
-  },
-  watchTitle: {
-    fontSize: 13,
-    fontWeight: '500' as const,
-    color: c.textSecondary,
-  },
-  watchContext: {
-    fontSize: 12,
-    color: c.textMuted,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-
-  // ─── BEFORE BED ───
-  beforeBedCard: {
-    backgroundColor: c.glassFaint,
-    borderRadius: 10,
-    marginBottom: 18,
-  },
-  beforeBedRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  beforeBedRowBorder: {
-    borderBottomWidth: 0.5,
-    borderBottomColor: c.glassDim,
-  },
-  beforeBedDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  beforeBedText: {
-    flex: 1,
-    fontSize: 13,
-    color: c.textSecondary,
-  },
-  beforeBedAction: {
-    fontSize: 12,
-    color: c.accent,
-    fontWeight: '500' as const,
-  },
-
-  // ─── FIRST-USE GUIDANCE ───
-  firstUseCard: {
-    backgroundColor: 'rgba(255, 140, 148, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 140, 148, 0.2)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  firstUseTitle: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: c.accent,
-    marginBottom: 4,
-  },
-  firstUseText: {
-    fontSize: 13,
-    color: c.textSecondary,
-    lineHeight: 19,
-  },
-
-  // ─── SECTION 2: HANDOFF NOTES ───
-  handoffItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderLeftWidth: 2,
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
-    marginBottom: 8,
-  },
-  handoffIcon: {
-    fontSize: 16,
-    marginTop: 1,
-  },
-  handoffText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 21,
-    color: c.textPrimary,
-  },
-
-  // ─── SECTION 3: PATTERNS ───
-  patternCard: {
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 10,
-  },
-  patternHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  patternTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.textPrimary,
-    flex: 1,
-  },
-  patternChevron: {
-    fontSize: 11,
-    color: c.textSecondary,
-  },
-  patternDetail: {
-    marginTop: 10,
-  },
-  patternContext: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: c.textSecondary,
-    marginBottom: 10,
-  },
-  patternAction: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    backgroundColor: 'rgba(45,200,170,0.08)',
-    borderRadius: 6,
-    padding: 10,
-  },
-  patternActionArrow: {
-    fontSize: 12,
-    color: c.accent,
-    marginTop: 1,
-  },
-  patternActionText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: c.accent,
-    flex: 1,
-  },
-
-  patternTrendLink: {
-    marginTop: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: c.glassFaint,
-  },
-  patternTrendLinkText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: c.accent,
-  },
-
-  // ─── SECTION 4: BEFORE BED ───
-  beforeBedItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(45,200,170,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(45,200,170,0.12)',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
-  },
-  beforeBedLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  beforeBedIcon: {
-    fontSize: 18,
-  },
-  beforeBedText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: c.textPrimary,
-    flex: 1,
-  },
-  beforeBedArrow: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.accent,
-  },
-
-  // ─── SECTION 5: DAY AT A GLANCE ───
   // ─── TIMESTAMP ───
   timestamp: {
     fontSize: 10,
