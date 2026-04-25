@@ -806,6 +806,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'flex-start' as const,
+    paddingTop: 40,
     paddingBottom: 14,
     borderBottomWidth: 0.5,
     borderBottomColor: c.glassHover,

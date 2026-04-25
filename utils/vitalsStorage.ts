@@ -174,6 +174,41 @@ export async function getVitalsForDate(date: string, patientId: string = DEFAULT
 /**
  * Get latest vitals by types
  */
+/**
+ * Returns the most recent reading for each vital type as a flat record
+ * shaped for form-prefill: `{ systolic: { value, date }, ... }`. Used by
+ * the log-vitals smart-defaults flow.
+ */
+export async function getLatestVitals(
+  patientId: string = DEFAULT_PATIENT_ID
+): Promise<Record<string, { value: number; date: string }>> {
+  try {
+    const vitals = await getVitals(patientId);
+    const latest: Record<string, { value: number; date: string }> = {};
+
+    // Sort by timestamp descending so the first occurrence per type wins
+    const sorted = [...vitals].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    for (const vital of sorted) {
+      if (!latest[vital.type]) {
+        latest[vital.type] = {
+          value: vital.value,
+          date: new Date(vital.timestamp).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+          }),
+        };
+      }
+    }
+    return latest;
+  } catch (error) {
+    logError('vitalsStorage.getLatestVitals', error);
+    return {};
+  }
+}
+
 export async function getLatestVitalsByTypes(
   types: VitalType[],
   patientId: string = DEFAULT_PATIENT_ID

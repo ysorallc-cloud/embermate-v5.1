@@ -357,6 +357,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
 
   // Section Labels
+  sectionHeader: {
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.sm,
+  },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',

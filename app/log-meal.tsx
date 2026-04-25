@@ -33,6 +33,16 @@ import { EVENT } from '../lib/eventNames';
 import { logError } from '../utils/devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
 
+// Phase 3A — auto-detect meal type from time of day. Used as the third
+// fallback after `params.mealType` and CarePlan pre-selection hints.
+function getDefaultMealType(): string {
+  const hour = new Date().getHours();
+  if (hour < 10) return 'breakfast';
+  if (hour < 14) return 'lunch';
+  if (hour < 19) return 'dinner';
+  return 'snack';
+}
+
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Breakfast', icon: '🌅' },
   { id: 'lunch', label: 'Lunch', icon: '☀️' },
@@ -86,6 +96,8 @@ export default function LogMeal() {
   const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  // Phase 3B — quick "She ate" save vs. expanded details
+  const [showDetails, setShowDetails] = useState(false);
   const [progress, setProgress] = useState<TodayProgress | null>(null);
 
   const today = getTodayDateString();
@@ -110,7 +122,13 @@ export default function LogMeal() {
       const mealId = preSelectionHints.mealType.toLowerCase();
       if (MEAL_TYPES.some(m => m.id === mealId)) {
         setSelectedMeals([mealId]);
+      } else {
+        setSelectedMeals([getDefaultMealType()]);
       }
+    }
+    // Third priority (Phase 3A): auto-detect by time of day
+    else {
+      setSelectedMeals([getDefaultMealType()]);
     }
     loadExistingData();
   }, []);
@@ -332,7 +350,36 @@ export default function LogMeal() {
               <Text style={styles.hint}>Tap to select one or more meals</Text>
             </View>
 
-            {/* Description (Optional) */}
+            {/* Phase 3B — quick "She ate" + expand-for-details */}
+            {!showDetails && (
+              <View style={styles.section}>
+                <TouchableOpacity
+                  style={[styles.quickSaveButton, loading && styles.saveButtonDisabled]}
+                  onPress={() => {
+                    if (selectedMeals.length === 0) {
+                      setSelectedMeals([getDefaultMealType()]);
+                    }
+                    handleSave();
+                  }}
+                  disabled={loading}
+                  accessibilityLabel={`Log ${selectedMeals[0] || 'meal'} — she ate`}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.quickSaveText}>She ate</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.expandDetailsButton}
+                  onPress={() => setShowDetails(true)}
+                  accessibilityLabel="Add meal details"
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.expandDetailsText}>Add details</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Description (Optional) — only when details expanded */}
+            {showDetails && (
             <View style={styles.section}>
               <Text style={styles.label}>What did you eat? (optional)</Text>
 
@@ -376,6 +423,7 @@ export default function LogMeal() {
                 accessibilityLabel="Meal description"
               />
             </View>
+            )}
 
             <View style={{ height: 100 }} />
           </ScrollView>
@@ -610,5 +658,26 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textPrimary,
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Phase 3B — quick "She ate" save + collapsible details
+  quickSaveButton: {
+    backgroundColor: c.accent,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  quickSaveText: {
+    color: '#0a0c0a',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  expandDetailsButton: {
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  expandDetailsText: {
+    fontSize: 13,
+    color: c.textWarmHint,
   },
 });

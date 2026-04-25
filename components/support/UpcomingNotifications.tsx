@@ -48,6 +48,9 @@ const ITEM_EMOJIS: Record<CarePlanItemType, string> = {
   sleep: '\uD83D\uDE34',
   appointment: '\uD83D\uDCC5',
   wellness: '\uD83C\uDF05',
+  errand: '\uD83D\uDCDD',
+  shift: '\uD83D\uDD04',
+  self_care: '\uD83E\uDDD8',
   custom: '\uD83D\uDCCB',
 };
 

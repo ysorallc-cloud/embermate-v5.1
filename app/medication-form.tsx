@@ -16,6 +16,7 @@ import {
   Alert,
   Switch,
   Animated,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -580,6 +581,7 @@ export default function MedicationFormScreen() {
       >
         <SubScreenHeader title={isEditing ? 'Edit Medication' : 'Add Medication'} emoji="💊" />
 
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
           {/* Medication Name — Dropdown Selector */}
@@ -1111,6 +1113,7 @@ export default function MedicationFormScreen() {
 
           <View style={{ height: 40 }} />
         </ScrollView>
+        </KeyboardAvoidingView>
 
         {/* Confirmation Toast */}
         {toastVisible && (

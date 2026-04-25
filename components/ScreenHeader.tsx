@@ -15,7 +15,10 @@ interface ScreenHeaderProps {
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    // 40pt below the SafeAreaView top inset gives ~56pt total clearance
+    // from the iOS status bar on notched devices (safe-area inset ≈ 16pt).
+    // This is the target spacing for all tab headers across the app.
+    paddingTop: 40,
     paddingBottom: 16,
     marginBottom: 12,
     borderBottomWidth: 0.5,
@@ -35,6 +38,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textPrimary,
     marginBottom: 0,
     letterSpacing: -0.5,
+  },
+  // Longer greetings like "Good afternoon" overflow the header row next to
+  // the right-action chip; shrink to 28pt so they fit without truncation.
+  titleShrink: {
+    fontSize: 28,
+    letterSpacing: -0.4,
   },
   subtitle: {
     fontSize: 15,
@@ -79,7 +88,13 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
       )}
       <View style={styles.headerRow}>
         <View style={styles.titleContainer}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          <Text
+            style={[styles.title, title.length > 16 && styles.titleShrink]}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+          >
+            {title}
+          </Text>
           {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
           {purpose && <Text style={styles.purpose}>{purpose}</Text>}
         </View>

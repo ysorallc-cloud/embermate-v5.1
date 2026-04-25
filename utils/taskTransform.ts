@@ -35,6 +35,9 @@ const TYPE_EMOJIS: Record<CarePlanItemType, string> = {
   mood: '😊',
   sleep: '😴',
   wellness: '🌅',
+  errand: '📝',
+  shift: '🔄',
+  self_care: '🧘',
   custom: '📋',
 };
 
@@ -56,6 +59,9 @@ const ACTION_LABELS: Record<CarePlanItemType, string> = {
   mood: 'Log mood',
   sleep: 'Log sleep',
   wellness: 'Check in',
+  errand: 'Complete errand',
+  shift: 'Log handoff',
+  self_care: 'Log self-care',
   custom: 'Complete',
 };
 

@@ -3,12 +3,14 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 describe('Batch med confirm elevation', () => {
-  const now = readFileSync(
-    join(__dirname, '../../app/(tabs)/now.tsx'), 'utf8');
+  // After Phase 10.3 decomposition, MorningMedsBanner + TimelineSection
+  // live in NowTimeline.tsx rather than now.tsx.
+  const timeline = readFileSync(
+    join(__dirname, '../../components/now/NowTimeline.tsx'), 'utf8');
 
   test('MorningMedsBanner renders before TimelineSection', () => {
-    const bannerPos = now.indexOf('MorningMedsBanner');
-    const timelinePos = now.indexOf('TimelineSection');
+    const bannerPos = timeline.indexOf('MorningMedsBanner');
+    const timelinePos = timeline.indexOf('TimelineSection');
     expect(bannerPos).toBeGreaterThan(-1);
     expect(bannerPos).toBeLessThan(timelinePos);
   });

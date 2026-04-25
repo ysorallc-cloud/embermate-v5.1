@@ -4,7 +4,7 @@
 // ============================================================================
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, Appearance } from 'react-native';
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { Colors, _syncColors, getDarkColors } from '../theme/theme-tokens';
 import { LightColors } from '../theme/light-tokens';
@@ -15,24 +15,30 @@ import { StorageKeys } from '../utils/storageKeys';
 // TYPES
 // ============================================================================
 
-export type ThemeMode = 'dark' | 'light' | 'system';
+export type ThemeMode = 'dark' | 'light' | 'auto';
 
 interface ThemeContextValue {
   /** The resolved color map (dark or light, with optional high-contrast overrides) */
   colors: typeof Colors;
-  /** Current theme mode preference */
+  /** Current appearance mode preference */
+  mode: ThemeMode;
+  /** Update the appearance mode and persist to storage */
+  setMode: (mode: ThemeMode) => void;
+  /** Current theme mode preference (alias for mode — kept for back-compat) */
   themeMode: ThemeMode;
-  /** The resolved theme (always 'dark' or 'light', never 'system') */
+  /** The resolved theme (always 'dark' or 'light', never 'auto') */
   resolvedTheme: 'dark' | 'light';
   /** Whether high contrast is enabled */
   highContrast: boolean;
-  /** Update the theme mode */
+  /** Update the theme mode (alias for setMode — kept for back-compat) */
   setThemeMode: (mode: ThemeMode) => void;
   /** Toggle high contrast on/off */
   setHighContrast: (enabled: boolean) => void;
 }
 
-const STORAGE_KEY = StorageKeys.THEME;
+// Persistence key — distinct from the legacy StorageKeys.THEME so existing
+// 'system' values don't collide with the new 'auto' vocabulary.
+const APPEARANCE_KEY = 'embermate.appearance.mode';
 const HC_STORAGE_KEY = StorageKeys.HIGH_CONTRAST;
 
 // ============================================================================
@@ -41,7 +47,9 @@ const HC_STORAGE_KEY = StorageKeys.HIGH_CONTRAST;
 
 const ThemeContext = createContext<ThemeContextValue>({
   colors: Colors,
-  themeMode: 'system',
+  mode: 'auto',
+  setMode: () => {},
+  themeMode: 'auto',
   resolvedTheme: 'dark',
   highContrast: false,
   setThemeMode: () => {},
@@ -54,20 +62,58 @@ const ThemeContext = createContext<ThemeContextValue>({
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useColorScheme();
-  const [themeMode, setThemeModeState] = useState<ThemeMode>('dark');
+  // Fresh installs default to 'auto' (follow OS). The upgrade-detection
+  // logic below overrides this to 'dark' for existing users so they don't
+  // get a surprise light-mode flip on upgrade.
+  const [themeMode, setThemeModeState] = useState<ThemeMode>('auto');
   const [highContrast, setHighContrastState] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  // Track the live OS scheme for 'auto' mode. useColorScheme provides
+  // the initial value; Appearance.addChangeListener keeps it in sync
+  // when the OS setting flips while the app is foregrounded.
+  const [osScheme, setOsScheme] = useState<'light' | 'dark'>(
+    systemScheme === 'light' ? 'light' : 'dark',
+  );
 
-  // Load saved preferences
+  // Subscribe to live OS appearance changes so 'auto' mode reacts
+  // immediately when the user toggles dark/light in system settings.
+  useEffect(() => {
+    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      setOsScheme(colorScheme === 'light' ? 'light' : 'dark');
+    });
+    return () => subscription.remove();
+  }, []);
+
+  // Load saved preferences + detect upgrade scenario
   useEffect(() => {
     Promise.all([
-      safeGetItem<string | null>(STORAGE_KEY, null),
+      safeGetItem<string | null>(APPEARANCE_KEY, null),
+      // Also check the legacy key for migration
+      safeGetItem<string | null>(StorageKeys.THEME, null),
       safeGetItem<string | null>(HC_STORAGE_KEY, null),
-    ]).then(([themeValue, hcValue]) => {
-      if (themeValue === 'dark' || themeValue === 'light' || themeValue === 'system') {
-        setThemeModeState(themeValue);
+      // Detect existing user: if ONBOARDING_COMPLETE is set, this is an
+      // upgrade — not a fresh install.
+      safeGetItem<string | null>(StorageKeys.ONBOARDING_COMPLETE, null),
+    ]).then(([modeValue, legacyTheme, hcValue, onboardingDone]) => {
+      if (modeValue === 'dark' || modeValue === 'light' || modeValue === 'auto') {
+        // Explicit saved preference — use it.
+        setThemeModeState(modeValue);
+      } else if (legacyTheme === 'dark' || legacyTheme === 'light') {
+        // Migrate from legacy 'system' → 'auto', or keep dark/light.
+        const migrated: ThemeMode = legacyTheme === 'dark' ? 'dark' : 'light';
+        setThemeModeState(migrated);
+        safeSetItem(APPEARANCE_KEY, migrated);
+      } else if (legacyTheme === 'system') {
+        // Legacy 'system' maps to our 'auto'.
+        setThemeModeState('auto');
+        safeSetItem(APPEARANCE_KEY, 'auto');
+      } else if (onboardingDone) {
+        // Existing user upgrade with no theme preference persisted:
+        // default to 'dark' to avoid a surprise flip.
+        setThemeModeState('dark');
       }
-      // No saved preference → keep 'system' default
+      // else: fresh install — keep the 'auto' default from useState.
+
       if (hcValue === 'true') {
         setHighContrastState(true);
       }
@@ -75,20 +121,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const setThemeMode = useCallback((mode: ThemeMode) => {
+  const setMode = useCallback((mode: ThemeMode) => {
     setThemeModeState(mode);
-    safeSetItem(STORAGE_KEY, mode);
+    safeSetItem(APPEARANCE_KEY, mode);
   }, []);
+
+  // Back-compat alias
+  const setThemeMode = setMode;
 
   const setHighContrast = useCallback((enabled: boolean) => {
     setHighContrastState(enabled);
     safeSetItem(HC_STORAGE_KEY, enabled ? 'true' : 'false');
   }, []);
 
-  // Resolve 'system' to actual theme
+  // Resolve 'auto' to the live OS color scheme
   const resolvedTheme: 'dark' | 'light' =
-    themeMode === 'system'
-      ? (systemScheme === 'light' ? 'light' : 'dark')
+    themeMode === 'auto'
+      ? osScheme
       : themeMode;
 
   // Build final colors: pick base theme, then overlay high-contrast if enabled
@@ -113,7 +162,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [colors]);
 
   return (
-    <ThemeContext.Provider value={{ colors, themeMode, resolvedTheme, highContrast, setThemeMode, setHighContrast }}>
+    <ThemeContext.Provider value={{ colors, mode: themeMode, setMode, themeMode, resolvedTheme, highContrast, setThemeMode, setHighContrast }}>
       {children}
     </ThemeContext.Provider>
   );

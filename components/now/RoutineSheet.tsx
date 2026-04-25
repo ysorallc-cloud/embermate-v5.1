@@ -38,6 +38,11 @@ interface RoutineSheetProps {
   items: any[];
   onItemPress: (instance: any) => void;
   onDismiss: () => void;
+  /**
+   * Phase 2A — batch-complete every pending item in the window with one tap.
+   * Optional; when omitted the "Complete all" button is hidden.
+   */
+  onBatchComplete?: (instanceIds: string[]) => Promise<void>;
 }
 
 export function RoutineSheet({
@@ -46,6 +51,7 @@ export function RoutineSheet({
   items,
   onItemPress,
   onDismiss,
+  onBatchComplete,
 }: RoutineSheetProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -97,6 +103,27 @@ export function RoutineSheet({
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* Phase 2A — batch complete the entire window */}
+          {pendingItems.length > 1 && onBatchComplete && (
+            <TouchableOpacity
+              style={styles.batchButton}
+              onPress={async () => {
+                const ids = pendingItems.map(i => i.id);
+                await onBatchComplete(ids);
+                onDismiss();
+              }}
+              accessibilityLabel={`Complete all ${pendingItems.length} items`}
+              accessibilityRole="button"
+            >
+              <Text style={styles.batchButtonText}>
+                Complete all {pendingItems.length} items
+              </Text>
+              <Text style={styles.batchButtonHint}>
+                You can undo individual items after
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {/* Pending items */}
           {pendingItems.length > 0 && (
             <>
@@ -244,6 +271,27 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     textTransform: 'uppercase',
     marginTop: 16,
     marginBottom: 8,
+  },
+  // Phase 2A — batch "Complete all" button
+  batchButton: {
+    backgroundColor: 'rgba(52, 211, 153, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.15)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  batchButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: c.accent,
+    marginBottom: 2,
+  },
+  batchButtonHint: {
+    fontSize: 11,
+    color: c.textWarmHint,
   },
   itemRow: {
     flexDirection: 'row',

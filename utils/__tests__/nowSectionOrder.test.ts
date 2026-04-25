@@ -9,7 +9,7 @@ describe('Now screen section order', () => {
 
   test('QuickPulseStatus appears before Today\'s Schedule', () => {
     const pulse = render.indexOf('QuickPulseStatus');
-    const timeline = render.indexOf('TimelineSection');
+    const timeline = render.indexOf('NowTimeline');
     expect(pulse).toBeGreaterThan(-1);
     expect(timeline).toBeGreaterThan(-1);
     expect(pulse).toBeLessThan(timeline);

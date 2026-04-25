@@ -19,16 +19,15 @@ describe('INS-1: InsightBanner replaced by QuickPulseStatus', () => {
     expect(nowRender).toContain('<QuickPulseStatus');
   });
 
-  test('QuickPulseStatus renders with pulse styles', () => {
+  test('QuickPulseStatus renders with tile grid styles', () => {
     expect(nowSrc).toContain('pulseContainer');
-    expect(nowSrc).toContain('pulseRow');
-    expect(nowSrc).toContain('pulseDot');
-    expect(nowSrc).toContain('pulseGreeting');
+    expect(nowSrc).toContain('tileGrid');
+    expect(nowSrc).toContain('tileEmoji');
+    expect(nowSrc).toContain('tileLabel');
   });
 
   test('overdue callouts built from instances', () => {
     expect(nowSrc).toContain('buildOverdueCallouts');
-    expect(nowSrc).toContain('pulseCallout');
   });
 });
 

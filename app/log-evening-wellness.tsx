@@ -3,7 +3,7 @@
 // Mood, meals logged, day rating, highlights/concerns
 // ============================================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -119,6 +119,7 @@ export default function LogEveningWellnessScreen() {
   const [bathingStatus, setBathingStatus] = useState<'independent' | 'partial-assist' | 'full-assist' | 'not-today' | null>(null);
   const [mobilityStatus, setMobilityStatus] = useState<'independent' | 'walker' | 'cane' | 'wheelchair' | 'bed-bound' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [detailedMode, setDetailedMode] = useState(false);
 
   const toggleSymptom = (symptom: string) => {
     if (symptom === 'None today') {
@@ -216,6 +217,14 @@ export default function LogEveningWellnessScreen() {
     }
   };
 
+  const handleQuickSave = useCallback(() => {
+    if (mood === null || dayRating === null) {
+      Alert.alert('Pick a mood and day rating');
+      return;
+    }
+    handleSubmit();
+  }, [mood, dayRating, handleSubmit]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
@@ -239,6 +248,8 @@ export default function LogEveningWellnessScreen() {
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
         >
+          {detailedMode ? (
+          <>
           {/* Mood */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>How are they feeling now?</Text>
@@ -603,10 +614,97 @@ export default function LogEveningWellnessScreen() {
               )}
             </View>
           )}
+          </>
+          ) : (
+          <>
+            <Text style={styles.pageTitle}>End of day</Text>
+            <Text style={styles.pageSubtitle}>A quick check before bed. Expand for more detail.</Text>
+
+            <View style={styles.quickSection}>
+              <Text style={styles.quickLabel}>How are they feeling now?</Text>
+              <View style={styles.emojiRow}>
+                {MOOD_OPTIONS.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.emojiCircle,
+                      mood === option.value && styles.emojiCircleSelected,
+                    ]}
+                    onPress={() => setMood(option.value)}
+                    accessibilityLabel={option.label}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: mood === option.value }}
+                  >
+                    <Text style={styles.emojiText}>{option.emoji}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.quickSection}>
+              <Text style={styles.quickLabel}>How was the day overall?</Text>
+              <View style={styles.starRow}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <TouchableOpacity
+                    key={n}
+                    onPress={() => setDayRating(n as 1 | 2 | 3 | 4 | 5)}
+                    accessibilityLabel={`${n} star${n > 1 ? 's' : ''}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: dayRating === n }}
+                  >
+                    <Text
+                      style={[
+                        styles.star,
+                        dayRating !== null && n <= dayRating && styles.starActive,
+                      ]}
+                    >
+                      ★
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.quickSection}>
+              <Text style={styles.quickLabel}>Anything to note? (optional)</Text>
+              <TextInput
+                style={styles.quickNote}
+                value={highlights}
+                onChangeText={setHighlights}
+                placeholder="A quick note about the day..."
+                placeholderTextColor={colors.textWarmHint}
+                multiline
+                accessibilityLabel="Optional note about the day"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.saveButton, !canSubmit && styles.submitButtonDisabled]}
+              onPress={handleQuickSave}
+              disabled={isSubmitting}
+              accessibilityLabel="Save evening check"
+              accessibilityRole="button"
+            >
+              <Text style={styles.saveButtonText}>
+                {isSubmitting ? 'Saving...' : 'Save evening check'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.expandButton}
+              onPress={() => setDetailedMode(true)}
+              accessibilityLabel="Expand for detailed check"
+              accessibilityRole="button"
+            >
+              <Text style={styles.expandText}>Expand for detailed check ▾</Text>
+            </TouchableOpacity>
+          </>
+          )}
         </ScrollView>
         </KeyboardAvoidingView>
 
         {/* Footer */}
+        {detailedMode && (
         <View style={styles.footer}>
           <TouchableOpacity
             style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
@@ -621,6 +719,7 @@ export default function LogEveningWellnessScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+        )}
       </LinearGradient>
     </SafeAreaView>
   );
@@ -889,5 +988,94 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: c.textPrimary,
+  },
+  pageTitle: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: c.textWarmPrimary,
+    marginBottom: 6,
+  },
+  pageSubtitle: {
+    fontSize: 15,
+    color: c.textWarmSecondary,
+    marginBottom: 24,
+  },
+  quickSection: {
+    marginBottom: 28,
+    padding: 18,
+    backgroundColor: c.warmSurface,
+    borderRadius: 16,
+  },
+  quickLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: c.textWarmPrimary,
+    marginBottom: 14,
+  },
+  emojiRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  emojiCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  emojiCircleSelected: {
+    backgroundColor: c.warmSurface,
+    borderColor: c.amberBright,
+  },
+  emojiText: {
+    fontSize: 30,
+  },
+  starRow: {
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center',
+  },
+  star: {
+    fontSize: 40,
+    color: c.textWarmDim,
+  },
+  starActive: {
+    color: c.amberBright,
+  },
+  quickNote: {
+    minHeight: 70,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: c.warmSurface,
+    borderWidth: 1,
+    borderColor: c.textWarmDim,
+    color: c.textWarmPrimary,
+    fontSize: 15,
+    textAlignVertical: 'top',
+  },
+  saveButton: {
+    paddingVertical: 16,
+    backgroundColor: c.amberBright,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: c.textWarmPrimary,
+  },
+  expandButton: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  expandText: {
+    fontSize: 15,
+    color: c.textWarmSecondary,
   },
 });

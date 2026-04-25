@@ -3,12 +3,16 @@
 // Extracted from now.tsx for maintainability
 // ============================================================================
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
 import { buildJournalPreview, CareBrief } from '../../utils/careSummaryBuilder';
 import { HandoffPromptCard } from './HandoffPromptCard';
+import { CareCircleTeaser } from '../CareCircleTeaser';
+import { CareCircleEmailCapture } from '../CareCircleEmailCapture';
+import { shouldShowTeaser } from '../../utils/careCircleTeaser';
+import { safeSetItem } from '../../utils/safeStorage';
 
 // ============================================================================
 // TYPES
@@ -35,6 +39,23 @@ export function NowFooter({
 }: NowFooterProps) {
   const { colors } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
+
+  // Care Circle teaser — non-blocking async visibility check
+  const [showTeaser, setShowTeaser] = useState(false);
+  const [emailSheetVisible, setEmailSheetVisible] = useState(false);
+
+  useEffect(() => {
+    shouldShowTeaser().then(show => setShowTeaser(show));
+  }, []);
+
+  const handleTeaserDismiss = useCallback(() => {
+    setShowTeaser(false);
+    safeSetItem('embermate.careCircle.teaserDismissed', 'true');
+  }, []);
+
+  const handleTeaserJoin = useCallback(() => {
+    setEmailSheetVisible(true);
+  }, []);
 
   return (
     <>
@@ -77,6 +98,23 @@ export function NowFooter({
           <Text style={s.allDoneText}>All caught up!</Text>
         </View>
       )}
+
+      {/* Care Circle teaser — only for invested users (14+ days) */}
+      {showTeaser && (
+        <CareCircleTeaser
+          onJoin={handleTeaserJoin}
+          onDismiss={handleTeaserDismiss}
+        />
+      )}
+
+      <CareCircleEmailCapture
+        visible={emailSheetVisible}
+        onClose={() => {
+          setEmailSheetVisible(false);
+          // Re-check visibility — if user joined, teaser should hide
+          shouldShowTeaser().then(show => setShowTeaser(show));
+        }}
+      />
     </>
   );
 }

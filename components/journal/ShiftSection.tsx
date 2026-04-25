@@ -24,10 +24,9 @@ export function ShiftSection({ title, children }: Props) {
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   sectionHeader: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.3,
     color: c.textMuted,
     marginBottom: Spacing.md,
     marginTop: Spacing.lg,

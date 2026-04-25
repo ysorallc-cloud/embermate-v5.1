@@ -1,6 +1,6 @@
 // ============================================================================
-// SUPPORT TAB — Caregiver rest stop
-// Three zones: "How are you?" → "Need a reset?" → "Here when you're ready"
+// YOU TAB — Caregiver self-care hub
+// Dual-primary layout: Mood check-in + Breathing side by side
 // ============================================================================
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -17,10 +17,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
-import { MoodSlider } from '../../components/support/MoodSlider';
+import { MOOD_POSITIONS, AFFIRMATIONS } from '../../components/support/MoodSlider';
 import { BreathingExercise } from '../../components/support/BreathingExercise';
 import { ResourcesList } from '../../components/support/ResourcesList';
+import { emitMoodEvent } from '../../utils/eventEmitter';
+import { saveDailyCheck } from '../../utils/caregiverWellnessStorage';
+import { updateStreak } from '../../utils/streakStorage';
+import { logError } from '../../utils/devLog';
 import { Colors } from '../../theme/theme-tokens';
+
+// Inline emoji set for the compact mood row
+const MOOD_EMOJIS = ['\u{1F614}', '\u{1F615}', '\u{1F610}', '\u{1F642}', '\u{1F60A}'];
 
 // ============================================================================
 // MAIN COMPONENT
@@ -32,11 +39,39 @@ export default function SupportScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [breathingVisible, setBreathingVisible] = useState(false);
 
+  // Inline mood state (replaces MoodSlider component)
+  const [selectedMoodIndex, setSelectedMoodIndex] = useState(2);
+  const [moodLogged, setMoodLogged] = useState(false);
+  const [moodSaving, setMoodSaving] = useState(false);
+
+  const selectedMood = MOOD_POSITIONS[selectedMoodIndex];
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await new Promise(r => setTimeout(r, 500));
     setRefreshing(false);
   }, []);
+
+  const handleLogMood = useCallback(async () => {
+    if (moodSaving || moodLogged) return;
+    setMoodSaving(true);
+    try {
+      await emitMoodEvent(selectedMood.score, selectedMood.label, { source: 'dedicated_screen' });
+      const today = new Date().toISOString().split('T')[0];
+      await saveDailyCheck({
+        date: today,
+        sleep: selectedMood.score,
+        stress: 6 - selectedMood.score,
+        meals: selectedMood.score,
+      });
+      await updateStreak('wellnessCheck');
+      setMoodLogged(true);
+    } catch (err) {
+      logError('SupportScreen.handleLogMood', err);
+    } finally {
+      setMoodSaving(false);
+    }
+  }, [selectedMood, moodSaving, moodLogged]);
 
   return (
     <View style={styles.root}>
@@ -57,11 +92,11 @@ export default function SupportScreen() {
         >
           {/* ═══ HEADER ═══ */}
           <View style={styles.headerWrap}>
-            <Text style={styles.title}>Support</Text>
+            <Text style={styles.title}>You</Text>
             <Text style={styles.headerMessage}>
               This page is for{' '}
               <Text style={styles.headerYou}>you</Text>
-              {' '}— not your loved one.
+              {' '}{'\u2014'} not your loved one.
             </Text>
             <Text style={styles.headerContext}>
               Caregivers who check in on themselves provide better care. Take a moment.
@@ -70,46 +105,80 @@ export default function SupportScreen() {
 
           <View style={styles.zoneSpacer} />
 
-          {/* ═══ Zone 1: Check in ═══ */}
-          <View style={styles.warmCard}>
-            <Text style={styles.sectionLabel}>Pause and check in</Text>
-            <Text style={styles.sectionContext}>
-              No one asks caregivers how they're doing. We are.
-            </Text>
-            <MoodSlider />
-            <Text style={styles.privacyHint}>Private · saved to your wellness history</Text>
-          </View>
+          {/* ═══ PRIMARY ROW: Mood + Breathing side by side ═══ */}
+          <View style={styles.primaryRow}>
+            {/* ── Mood check-in card (LEFT) ── */}
+            <View style={[styles.primaryCard, styles.primaryCardLeft]}>
+              {!moodLogged ? (
+                <>
+                  <View style={styles.emojiRow}>
+                    {MOOD_EMOJIS.map((emoji, i) => (
+                      <TouchableOpacity
+                        key={i}
+                        style={[
+                          styles.emojiCircle,
+                          selectedMoodIndex === i && styles.emojiCircleSelected,
+                        ]}
+                        onPress={() => setSelectedMoodIndex(i)}
+                        accessibilityLabel={MOOD_POSITIONS[i].label}
+                        accessibilityRole="button"
+                      >
+                        <Text
+                          style={[
+                            styles.emojiText,
+                            selectedMoodIndex === i && styles.emojiTextSelected,
+                          ]}
+                        >
+                          {emoji}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <Text style={styles.moodLabel}>{selectedMood.label}</Text>
+                  <TouchableOpacity
+                    style={styles.logButton}
+                    onPress={handleLogMood}
+                    disabled={moodSaving}
+                    accessibilityLabel="Log this"
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.logButtonText}>
+                      {moodSaving ? 'Saving...' : 'Log this'}
+                    </Text>
+                  </TouchableOpacity>
+                  <Text style={styles.privacyText}>
+                    Private {'\u00B7'} saved to your wellness
+                  </Text>
+                </>
+              ) : (
+                <View style={styles.affirmationWrap}>
+                  <Text style={styles.affirmationText}>
+                    {AFFIRMATIONS[selectedMood.score]}
+                  </Text>
+                </View>
+              )}
+            </View>
 
-          {/* ═══ Zone 2: Breathe ═══ */}
-          <View style={styles.warmCard}>
-            <Text style={styles.sectionLabel}>Take a breath</Text>
-            <Text style={styles.sectionContext}>
-              When everything feels urgent, your body needs a signal that you're safe.
-            </Text>
-
-            <View style={styles.breatheCenter}>
+            {/* ── Breathing card (RIGHT) ── */}
+            <TouchableOpacity
+              style={[styles.primaryCard, styles.primaryCardRight]}
+              onPress={() => setBreathingVisible(true)}
+              activeOpacity={0.7}
+              accessibilityLabel="Take a breath. 1-minute guided breathing exercise."
+              accessibilityRole="button"
+            >
               <View style={styles.breatheVisual}>
                 <View style={styles.breatheRing3}>
                   <View style={styles.breatheRing2}>
                     <View style={styles.breatheRing1}>
-                      <Text style={styles.breatheLabel}>4:4:4</Text>
+                      <View style={styles.breathePlayTriangle} />
                     </View>
                   </View>
                 </View>
               </View>
-
-              <Text style={styles.breatheTitle}>1-minute guided breathing</Text>
-              <Text style={styles.breatheDesc}>Inhale, hold, exhale. Four seconds each.</Text>
-
-              <TouchableOpacity
-                style={styles.breathePill}
-                onPress={() => setBreathingVisible(true)}
-                accessibilityLabel="Start 1-minute breathing exercise"
-                accessibilityRole="button"
-              >
-                <Text style={styles.breathePillText}>Begin</Text>
-              </TouchableOpacity>
-            </View>
+              <Text style={styles.breatheTitle}>Take a breath</Text>
+              <Text style={styles.breatheDesc}>1 min {'\u00B7'} 4-4-4</Text>
+            </TouchableOpacity>
           </View>
 
           <BreathingExercise
@@ -117,15 +186,10 @@ export default function SupportScreen() {
             onClose={() => setBreathingVisible(false)}
           />
 
-          {/* ═══ Zone 3: Connection ═══ */}
-          <View style={[styles.warmCard, styles.warmCardPurple]}>
-            <Text style={[styles.sectionLabel, { color: '#8a7aBA' }]}>You're not alone</Text>
-            <Text style={[styles.sectionContext, { color: '#4a5a7a' }]}>
-              53 million Americans are caregivers. These people listen — no judgment, no cost.
-            </Text>
-
+          {/* ═══ CONTACT TILES: Helpline + Community ═══ */}
+          <View style={styles.contactTilesRow}>
             <TouchableOpacity
-              style={styles.contactRow}
+              style={styles.contactTile}
               activeOpacity={0.7}
               onPress={() => Linking.openURL('tel:18552273640')}
               accessibilityLabel="Call Caregiver Helpline. 1-855-227-3640. Free and confidential."
@@ -135,16 +199,13 @@ export default function SupportScreen() {
                 <Text style={{ fontSize: 15, color: '#34D399' }}>{'\u260E'}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.contactTitle}>Caregiver Helpline</Text>
-                <Text style={styles.contactDesc}>1-855-227-3640 · Free, confidential</Text>
+                <Text style={styles.contactTitle}>Helpline</Text>
+                <Text style={styles.contactDesc}>1-855-227-3640</Text>
               </View>
-              <Text style={styles.contactChevron}>{'\u203A'}</Text>
             </TouchableOpacity>
 
-            <View style={styles.contactDivider} />
-
             <TouchableOpacity
-              style={styles.contactRow}
+              style={styles.contactTile}
               activeOpacity={0.7}
               accessibilityLabel="Caregiver community. Connect with people who understand."
               accessibilityRole="button"
@@ -153,20 +214,10 @@ export default function SupportScreen() {
                 <Text style={{ fontSize: 15, color: '#A78BFA' }}>{'\u2661'}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.contactTitle}>Caregiver community</Text>
-                <Text style={styles.contactDesc}>Connect with people who understand</Text>
+                <Text style={styles.contactTitle}>Community</Text>
+                <Text style={styles.contactDesc}>People who understand</Text>
               </View>
-              <Text style={styles.contactChevron}>{'\u203A'}</Text>
             </TouchableOpacity>
-          </View>
-
-          {/* ═══ Zone 4: Resources ═══ */}
-          <View style={[styles.warmCard, styles.warmCardQuiet]}>
-            <Text style={[styles.sectionLabel, { color: '#6a7a72' }]}>Plan ahead</Text>
-            <Text style={[styles.sectionContext, { color: '#3a5a4a' }]}>
-              When things are calm, these help you prepare.
-            </Text>
-            <ResourcesList />
           </View>
 
           {/* ═══ Your wellness ═══ */}
@@ -184,6 +235,15 @@ export default function SupportScreen() {
               </View>
               <Text style={styles.contactChevron}>{'\u203A'}</Text>
             </TouchableOpacity>
+          </View>
+
+          {/* ═══ Resources ═══ */}
+          <View style={[styles.warmCard, styles.warmCardQuiet]}>
+            <Text style={[styles.sectionLabel, { color: '#6a7a72' }]}>Plan ahead</Text>
+            <Text style={[styles.sectionContext, { color: '#3a5a4a' }]}>
+              When things are calm, these help you prepare.
+            </Text>
+            <ResourcesList />
           </View>
 
           {/* ═══ FOOTER ═══ */}
@@ -214,7 +274,7 @@ function createStyles(c: typeof Colors) {
       paddingBottom: 20,
     },
     headerWrap: {
-      paddingTop: 12,
+      paddingTop: 56,
       paddingBottom: 20,
       paddingHorizontal: 4,
       borderBottomWidth: 0.5,
@@ -242,15 +302,191 @@ function createStyles(c: typeof Colors) {
       lineHeight: 19,
       marginTop: 6,
     },
-    // ── Warm card surface system ──
+    zoneSpacer: {
+      height: 8,
+    },
+    // ── Primary row: two equal cards ──
+    primaryRow: {
+      flexDirection: 'row' as const,
+      gap: 10,
+      marginBottom: 12,
+    },
+    primaryCard: {
+      flex: 1,
+      backgroundColor: c.warmSurface,
+      borderWidth: 1,
+      borderColor: c.warmSurfaceBorder,
+      borderRadius: 14,
+      padding: 14,
+      alignItems: 'center' as const,
+    },
+    primaryCardLeft: {},
+    primaryCardRight: {
+      justifyContent: 'center' as const,
+    },
+    // ── Mood emoji row ──
+    emojiRow: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      width: '100%' as const,
+      marginBottom: 8,
+    },
+    emojiCircle: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    emojiCircleSelected: {
+      borderWidth: 1.5,
+      borderColor: 'rgba(52, 211, 153, 0.4)',
+    },
+    emojiText: {
+      fontSize: 18,
+    },
+    emojiTextSelected: {
+      fontSize: 20,
+    },
+    moodLabel: {
+      fontSize: 12,
+      color: c.textWarmSecondary,
+      marginBottom: 10,
+      textAlign: 'center' as const,
+    },
+    logButton: {
+      // Uses accentSoftBg in light mode (#ecfdf5), accentLight in dark mode.
+      // The token resolves via the active palette from useTheme().
+      backgroundColor: c.accentLight,
+      borderRadius: 20,
+      paddingVertical: 8,
+      alignSelf: 'stretch' as const,
+      alignItems: 'center' as const,
+      marginBottom: 6,
+    },
+    logButtonText: {
+      fontSize: 12,
+      fontWeight: '500' as const,
+      color: c.accent,
+    },
+    privacyText: {
+      fontSize: 9,
+      color: c.textWarmDim,
+      textAlign: 'center' as const,
+    },
+    affirmationWrap: {
+      paddingVertical: 8,
+    },
+    affirmationText: {
+      fontSize: 13,
+      color: c.textWarmSecondary,
+      fontStyle: 'italic' as const,
+      lineHeight: 19,
+      textAlign: 'center' as const,
+    },
+    // ── Breathe (compact in primary card) ──
+    breatheVisual: {
+      marginBottom: 10,
+    },
+    breatheRing3: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      borderWidth: 1.5,
+      borderColor: 'rgba(52, 211, 153, 0.15)',
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    breatheRing2: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      borderWidth: 1.5,
+      borderColor: c.accentLight,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    breatheRing1: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      backgroundColor: 'rgba(52, 211, 153, 0.08)',
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    breathePlayTriangle: {
+      width: 0,
+      height: 0,
+      borderTopWidth: 6,
+      borderBottomWidth: 6,
+      borderLeftWidth: 10,
+      borderTopColor: 'transparent' as const,
+      borderBottomColor: 'transparent' as const,
+      borderLeftColor: 'rgba(52, 211, 153, 0.6)',
+      marginLeft: 2,
+    },
+    breatheTitle: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: '#b0c0b8',
+      marginBottom: 2,
+      marginTop: 10,
+    },
+    breatheDesc: {
+      fontSize: 12,
+      color: '#4a6a5a',
+    },
+    // ── Contact tiles ──
+    contactTilesRow: {
+      flexDirection: 'row' as const,
+      gap: 10,
+      marginBottom: 12,
+    },
+    contactTile: {
+      flex: 1,
+      backgroundColor: c.warmSurfacePurple,
+      borderWidth: 1,
+      borderColor: c.warmSurfacePurpleBorder,
+      borderRadius: 12,
+      padding: 12,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 10,
+    },
+    contactCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    contactTitle: {
+      fontSize: 13,
+      fontWeight: '500' as const,
+      color: '#b0b8b4',
+      marginBottom: 1,
+    },
+    contactDesc: {
+      fontSize: 11,
+      color: '#4a6a5a',
+    },
+    contactChevron: {
+      fontSize: 16,
+      color: '#2a3a32',
+    },
+    // ── Warm card surface system (for resources + wellness) ──
     warmCard: {
       backgroundColor: '#131a16',
       borderWidth: 1,
       borderColor: '#1a2a22',
       borderRadius: 16,
-      padding: 24,
+      padding: 18,
       paddingHorizontal: 20,
       marginBottom: 12,
+    },
+    warmCardQuiet: {
+      backgroundColor: '#10140f',
+      borderColor: '#1a201a',
     },
     sectionLabel: {
       fontSize: 13,
@@ -263,118 +499,6 @@ function createStyles(c: typeof Colors) {
       color: '#4a6a5a',
       lineHeight: 17,
       marginBottom: 20,
-    },
-    privacyHint: {
-      fontSize: 11,
-      color: '#3a5a4a',
-      textAlign: 'center' as const,
-      marginTop: 10,
-    },
-    zoneSpacer: {
-      height: 32,
-    },
-    // ── Breathe ──
-    breatheCenter: {
-      alignItems: 'center' as const,
-    },
-    breatheVisual: {
-      marginBottom: 16,
-    },
-    breatheRing3: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      borderWidth: 1,
-      borderColor: '#1a3a2a',
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    },
-    breatheRing2: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      borderWidth: 1,
-      borderColor: '#163024',
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    },
-    breatheRing1: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: '#142820',
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    },
-    breatheLabel: {
-      fontSize: 12,
-      fontWeight: '300' as const,
-      color: '#4a8a6a',
-    },
-    breatheTitle: {
-      fontSize: 14,
-      fontWeight: '500' as const,
-      color: '#b0c0b8',
-      marginBottom: 4,
-    },
-    breatheDesc: {
-      fontSize: 12,
-      color: '#4a6a5a',
-      marginBottom: 18,
-    },
-    breathePill: {
-      backgroundColor: 'rgba(52, 211, 153, 0.08)',
-      borderWidth: 1,
-      borderColor: '#1a3a2a',
-      borderRadius: 20,
-      paddingVertical: 9,
-      paddingHorizontal: 32,
-    },
-    breathePillText: {
-      fontSize: 13,
-      fontWeight: '500' as const,
-      color: '#34D399',
-    },
-    // ── Card variants ──
-    warmCardPurple: {
-      backgroundColor: '#131720',
-      borderColor: '#1a2030',
-    },
-    warmCardQuiet: {
-      backgroundColor: '#10140f',
-      borderColor: '#1a201a',
-    },
-    // ── Connection rows ──
-    contactRow: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: 12,
-      paddingVertical: 12,
-    },
-    contactCircle: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    },
-    contactTitle: {
-      fontSize: 14,
-      fontWeight: '500' as const,
-      color: '#b0b8b4',
-      marginBottom: 1,
-    },
-    contactDesc: {
-      fontSize: 11,
-      color: '#4a6a5a',
-    },
-    contactDivider: {
-      height: 0.5,
-      backgroundColor: '#1a2030',
-    },
-    contactChevron: {
-      fontSize: 16,
-      color: '#2a3a32',
     },
     // ── Wellness link ──
     wellnessLink: {

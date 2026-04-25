@@ -8,9 +8,9 @@ import { CATEGORY_CONFIG } from '../../constants/categoryLabels';
 describe('CATEGORY_CONFIG', () => {
   const expectedEntries: [string, string, string, string][] = [
     // [itemType, label, chipLabel, color]
-    ['medication',  'MEDS',     'Meds',      '#34D399'],
-    ['vitals',      'VITALS',   'Vitals',    '#A78BFA'],
-    ['wellness',    'CHECK-IN', 'Check-ins', '#34D399'],
+    ['medication',  'CARE',      'Meds',      '#34D399'],
+    ['vitals',      'VITALS',    'Vitals',    '#A78BFA'],
+    ['wellness',    'WELLNESS',  'Check-ins', '#34D399'],
     ['nutrition',   'MEAL',     'Meals',     '#FBBF24'],
     ['errand',      'ERRAND',   'Errands',   '#FBBF24'],
     ['self_care',   'YOU',      'Self-care', '#F472B6'],
@@ -57,8 +57,8 @@ describe('CATEGORY_CONFIG', () => {
     }
   });
 
-  it('labels use new naming: MEDS not CARE, CHECK-IN not WELLNESS', () => {
-    expect(CATEGORY_CONFIG.medication.label).toBe('MEDS');
-    expect(CATEGORY_CONFIG.wellness.label).toBe('CHECK-IN');
+  it('labels use final naming: CARE for meds, WELLNESS for check-ins', () => {
+    expect(CATEGORY_CONFIG.medication.label).toBe('CARE');
+    expect(CATEGORY_CONFIG.wellness.label).toBe('WELLNESS');
   });
 });

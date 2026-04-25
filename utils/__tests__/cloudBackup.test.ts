@@ -42,7 +42,7 @@ describe('CloudBackup', () => {
       const backup = await createEncryptedBackup('testpassword123');
 
       expect(backup).not.toBeNull();
-      expect(backup!.version).toBe('3.0.0');
+      expect(backup!.version).toBe('3.1.0');
       expect(backup!.algorithm).toBe('AES-256-CTR-HMAC');
       expect(backup!.timestamp).toBeDefined();
       expect(backup!.iv).toBeDefined();

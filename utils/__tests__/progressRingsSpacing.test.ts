@@ -1,5 +1,5 @@
 // File: utils/__tests__/progressRingsSpacing.test.ts
-// PURPOSE: Verify no excessive spacing in ProgressRings wrapper
+// PURPOSE: Verify ProgressRings uses compact flat row layout (no excessive spacing)
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -9,26 +9,27 @@ describe('ProgressRings spacing fix', () => {
     join(__dirname, '../../components/now/ProgressRings.tsx'), 'utf8'
   );
 
-  test('section style has no marginTop', () => {
-    // Extract the section style block
-    const sectionMatch = content.match(/section:\s*\{([^}]+)\}/);
-    expect(sectionMatch).toBeTruthy();
-    const sectionStyle = sectionMatch![1];
-    expect(sectionStyle).not.toMatch(/marginTop/);
+  test('row style has no marginTop', () => {
+    const rowMatch = content.match(/row:\s*\{([^}]+)\}/);
+    expect(rowMatch).toBeTruthy();
+    const rowStyle = rowMatch![1];
+    expect(rowStyle).not.toMatch(/marginTop/);
   });
 
-  test('section style has no paddingTop', () => {
-    const sectionMatch = content.match(/section:\s*\{([^}]+)\}/);
-    const sectionStyle = sectionMatch![1];
-    expect(sectionStyle).not.toMatch(/paddingTop/);
+  test('row style uses flexDirection row for inline layout', () => {
+    const rowMatch = content.match(/row:\s*\{([^}]+)\}/);
+    expect(rowMatch).toBeTruthy();
+    const rowStyle = rowMatch![1];
+    expect(rowStyle).toContain("flexDirection: 'row'");
   });
 
-  test('section marginBottom is reasonable (max 8)', () => {
-    const sectionMatch = content.match(/section:\s*\{([^}]+)\}/);
-    const sectionStyle = sectionMatch![1];
-    const mbMatch = sectionStyle.match(/marginBottom:\s*(\d+)/);
-    if (mbMatch) {
-      expect(parseInt(mbMatch[1])).toBeLessThanOrEqual(8);
+  test('row paddingVertical is reasonable (max 16)', () => {
+    const rowMatch = content.match(/row:\s*\{([^}]+)\}/);
+    expect(rowMatch).toBeTruthy();
+    const rowStyle = rowMatch![1];
+    const pvMatch = rowStyle.match(/paddingVertical:\s*(\d+)/);
+    if (pvMatch) {
+      expect(parseInt(pvMatch[1])).toBeLessThanOrEqual(16);
     }
   });
 });

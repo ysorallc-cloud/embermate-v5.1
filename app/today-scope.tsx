@@ -150,6 +150,9 @@ export default function TodayScopeScreen() {
     activity: { route: '/care-plan/activity', label: 'Configure activity' },
     wellness: { route: '/log-morning-wellness', label: 'Wellness check-in' },
     appointments: { route: '/appointments', label: 'Manage appointments' },
+    errands: { route: '/care-plan/errands', label: 'Manage errands' },
+    shifts: { route: '/care-plan/shifts', label: 'Manage shifts' },
+    self_care: { route: '/care-plan/self-care', label: 'Self-care tasks' },
   };
 
   // Flatten all items from either system

@@ -11,13 +11,14 @@ const src = fs.readFileSync(supportPath, 'utf-8');
 const layoutPath = path.resolve(__dirname, '../../app/(tabs)/_layout.tsx');
 const layoutContent = fs.readFileSync(layoutPath, 'utf-8');
 
-describe('Support tab — Warm Room', () => {
+describe('You tab — Warm Room', () => {
   it('renders with default export', () => {
     expect(src).toContain('export default function SupportScreen');
   });
 
   it('warm room header: emotionally intelligent copy', () => {
-    expect(src).toContain('>Support</Text>');
+    // Tab renamed from "Support" → "You" (self-care framing).
+    expect(src).toContain('>You</Text>');
     expect(src).toContain('This page is for');
     expect(src).toContain('not your loved one.');
     expect(src).toContain('Caregivers who check in on themselves');
@@ -33,18 +34,36 @@ describe('Support tab — Warm Room', () => {
     expect(src).toContain("'#1a2a22'");  // card border
   });
 
-  it('section label + context pattern', () => {
-    expect(src).toContain('Pause and check in');
-    expect(src).toContain('No one asks caregivers');
-    expect(src).toContain('Take a breath');
-    expect(src).toContain('your body needs a signal');
+  it('dual-primary layout: mood + breathing side by side', () => {
+    expect(src).toContain('primaryRow');
+    expect(src).toContain('primaryCard');
+    expect(src).toContain('primaryCardLeft');
+    expect(src).toContain('primaryCardRight');
   });
 
-  it('connection card: purple-warm variant', () => {
-    expect(src).toContain('warmCardPurple');
-    expect(src).toContain("You're not alone");
-    expect(src).toContain('53 million Americans');
+  it('inline mood emoji row (replaces MoodSlider component)', () => {
+    expect(src).toContain('emojiRow');
+    expect(src).toContain('emojiCircle');
+    expect(src).toContain('selectedMoodIndex');
+    expect(src).toContain('MOOD_POSITIONS');
+    expect(src).toContain('AFFIRMATIONS');
+    expect(src).toContain('Log this');
+    // MoodSlider component is no longer rendered directly
+    expect(src).not.toContain('<MoodSlider');
+  });
+
+  it('breathing card in primary row', () => {
+    expect(src).toContain('Take a breath');
+    expect(src).toContain('breathePlayTriangle');
+    expect(src).toContain('setBreathingVisible(true)');
+  });
+
+  it('compact contact tiles: helpline + community', () => {
+    expect(src).toContain('contactTilesRow');
+    expect(src).toContain('contactTile');
     expect(src).toContain('Linking.openURL');
+    expect(src).toContain('Helpline');
+    expect(src).toContain('Community');
   });
 
   it('resources card: quiet variant', () => {
@@ -59,9 +78,9 @@ describe('Support tab — Warm Room', () => {
     expect(src).toContain('Your wellness over time');
   });
 
-  it('MoodSlider + breathing + resources all render', () => {
-    expect(src).toContain('<MoodSlider');
-    expect(src).toContain('breathePill');
+  it('breathing + resources components render', () => {
+    expect(src).toContain('breathePlayTriangle');
+    expect(src).toContain('setBreathingVisible(true)');
     expect(src).toContain('<ResourcesList');
   });
 
@@ -77,13 +96,11 @@ describe('Support tab — Warm Room', () => {
     expect(src).not.toContain('YOUR WELLNESS');
   });
 
-  it('tab bar: Support between Journal and Insights', () => {
+  it('tab bar: You tab is last (after Insights)', () => {
     expect(layoutContent).toContain('name="support"');
-    const journalIdx = layoutContent.indexOf('name="journal"');
-    const supportIdx = layoutContent.indexOf('name="support"');
     const insightsIdx = layoutContent.indexOf('name="understand"');
-    expect(journalIdx).toBeLessThan(supportIdx);
-    expect(supportIdx).toBeLessThan(insightsIdx);
+    const supportIdx = layoutContent.indexOf('name="support"');
+    expect(insightsIdx).toBeLessThan(supportIdx);
   });
 
   it('AuroraBackground with support variant', () => {

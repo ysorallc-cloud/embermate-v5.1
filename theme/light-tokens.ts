@@ -7,15 +7,13 @@
 export default null;
 
 export const LightColors = {
-  // Base — warm linen
-  background: '#E8E4DE',
-  backgroundAlt: '#E0DCD6',
+  // Base — deep parchment cream
+  background: '#e8dcbe',
+  backgroundAlt: '#e0d4b6',
 
-  // Surfaces — OPAQUE white, not translucent. This is critical:
-  // 148 components use static StyleSheet.create with these tokens.
-  // Translucent white on linen = muddy off-white. Opaque = clean.
-  glass: '#FFFFFF',
-  glassHover: '#FFFFFF',
+  // Surfaces — warm-tinted white card surface
+  glass: '#fdfaf0',
+  glassHover: '#fdfaf0',
   glassBorder: 'rgba(0, 0, 0, 0.06)',
   glassActive: 'rgba(0, 0, 0, 0.08)',
   glassDim: '#F5F3EF',
@@ -24,11 +22,22 @@ export const LightColors = {
   glassStrong: 'rgba(0, 0, 0, 0.12)',
   glassBold: 'rgba(0, 0, 0, 0.18)',
 
-  // Surfaces — white cards
-  surface: '#FFFFFF',
-  surfaceElevated: '#FFFFFF',
+  // Surfaces — cards + elevated
+  surface: '#fdfaf0',
+  surfaceElevated: '#ffffff',
   surfaceAlt: '#F5F3EF',
   surfaceHighlight: 'rgba(74, 107, 93, 0.08)',
+  // ── Warm surfaces (light) ──
+  warmSurface: '#fdf8ec',
+  warmSurfaceBorder: '#E2E4E8',
+  warmSurfaceAlert: '#FFF8F0',
+  warmSurfaceAlertBorder: '#F0DCC8',
+  warmSurfaceQuiet: '#F0F2F4',
+  warmSurfaceQuietBorder: '#E0E2E4',
+  warmSurfaceGreen: '#F0F8F4',
+  warmSurfaceGreenBorder: '#D0E8D8',
+  warmSurfacePurple: '#F4F0F8',
+  warmSurfacePurpleBorder: '#DCD0E8',
 
   // Aurora Colors — warm washes
   auroraTeal: 'hsla(153, 18%, 85%, 0.5)',
@@ -37,20 +46,23 @@ export const LightColors = {
   auroraViolet: 'hsla(30, 15%, 87%, 0.2)',
   auroraRose: 'hsla(30, 25%, 85%, 0.2)',
 
-  // Primary Accent — sage green
-  accent: '#4A6B5D',
-  accentLight: 'rgba(74, 107, 93, 0.10)',
-  accentBorder: 'rgba(74, 107, 93, 0.20)',
-  accentGlow: 'rgba(74, 107, 93, 0.25)',
-  accentFaint: 'rgba(74, 107, 93, 0.04)',
-  accentTint: 'rgba(74, 107, 93, 0.05)',
-  accentDim: 'rgba(74, 107, 93, 0.06)',
-  accentHint: 'rgba(74, 107, 93, 0.10)',
-  accentSubtle: 'rgba(74, 107, 93, 0.10)',
-  accentMuted: 'rgba(74, 107, 93, 0.35)',
-  accentGradientStart: '#4A6B5D',
-  accentGradientMid: '#3D5A4E',
-  accentGradientEnd: '#6B8F7E',
+  // Primary Accent — mint green
+  accent: '#047857',
+  accentButton: '#059669',
+  accentSoftBg: '#ecfdf5',
+  accentSoftBorder: 'rgba(5, 150, 105, 0.4)',
+  accentLight: 'rgba(4, 120, 87, 0.10)',
+  accentBorder: 'rgba(4, 120, 87, 0.20)',
+  accentGlow: 'rgba(4, 120, 87, 0.25)',
+  accentFaint: 'rgba(4, 120, 87, 0.04)',
+  accentTint: 'rgba(4, 120, 87, 0.05)',
+  accentDim: 'rgba(4, 120, 87, 0.06)',
+  accentHint: 'rgba(4, 120, 87, 0.10)',
+  accentSubtle: 'rgba(4, 120, 87, 0.10)',
+  accentMuted: 'rgba(4, 120, 87, 0.35)',
+  accentGradientStart: '#047857',
+  accentGradientMid: '#059669',
+  accentGradientEnd: '#10b981',
 
   // Semantic Colors
   green: '#3D7A5F',
@@ -150,32 +162,51 @@ export const LightColors = {
   blueBright: '#4A6B8A',
   skyBright: '#3D7A8A',
 
-  // Status
-  success: '#3D7A5F',
-  warning: '#A16207',
-  warningLight: 'rgba(161, 98, 7, 0.08)',
-  warningBorder: 'rgba(161, 98, 7, 0.20)',
-  error: '#B91C1C',
+  // Status — v6.6 semantic palette
+  success: '#047857',
+  warning: '#b45309',
+  warningLight: 'rgba(180, 83, 9, 0.08)',
+  warningBorder: 'rgba(180, 83, 9, 0.20)',
+  error: '#b91c1c',
+  // Named status tokens for explicit usage
+  statusWarning: '#b45309',
+  statusWarningSoft: '#fef3c7',
+  statusDanger: '#b91c1c',
+  statusDangerSoft: '#fee2e2',
+  statusSuccess: '#047857',
+  statusSuccessSoft: '#d1fae5',
 
-  // Text — darker for linen contrast
-  textPrimary: '#2D3B36',
-  textSecondary: '#4A5550',
-  textTertiary: '#5C6B63',
-  textSoft: '#78716C',
-  textMuted: '#78716C',
-  textDisabled: '#A8A29E',
-  textHalf: '#78716C',
-  textPlaceholder: '#A8A29E',
+  // Text — v6.6 light palette
+  textPrimary: '#0f172a',
+  textSecondary: '#374151',
+  textTertiary: '#6b7280',
+  textSoft: '#6b7280',
+  textMuted: '#6b7280',
+  textDisabled: '#9ca3af',
+  textHalf: '#6b7280',
+  textPlaceholder: '#9ca3af',
+  textInverse: '#ffffff',
+  // ── Warm text (light) ──
+  textWarmPrimary: '#1A1A2E',
+  textWarmSecondary: '#4A4A5A',
+  textWarmMuted: '#7A7A8A',
+  textWarmHint: '#9A9AA8',
+  textWarmDim: '#B0B0BC',
+  textAlertLabel: '#B8860B',
+  textAlertPrimary: '#4A3520',
+  textAlertSecondary: '#7A6A50',
+  textAlertHint: '#9A8A70',
   textBright: '#2D3B36',
   textAlmostFull: '#1E2A25',
   textNearFull: '#1A231F',
   textHighContrast: '#1A231F',
 
-  // Borders
+  // Borders — v6.6 light palette
   border: 'rgba(0, 0, 0, 0.06)',
   borderLight: 'rgba(0, 0, 0, 0.04)',
-  borderMedium: 'rgba(74, 107, 93, 0.18)',
-  borderStrong: 'rgba(74, 107, 93, 0.28)',
+  borderSubtle: 'rgba(0, 0, 0, 0.10)',
+  borderMedium: 'rgba(4, 120, 87, 0.18)',
+  borderStrong: 'rgba(0, 0, 0, 0.18)',
 
   // Tab Bar
   tabBarBackground: '#FFFFFF',

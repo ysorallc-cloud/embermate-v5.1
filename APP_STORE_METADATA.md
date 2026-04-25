@@ -1,7 +1,7 @@
 # App Store Metadata for EmberMate
 
-**Version**: 5.7.0
-**Last Updated**: January 3, 2025
+**Version**: 6.0.0
+**Last Updated**: April 12, 2026
 
 This document contains all metadata, descriptions, and assets needed for App Store (iOS) and Google Play Store (Android) submissions.
 
@@ -12,10 +12,10 @@ This document contains all metadata, descriptions, and assets needed for App Sto
 ### Basic Details
 
 - **App Name**: EmberMate
-- **Subtitle/Short Description**: Your Personal Health Companion
+- **Subtitle/Short Description**: Care tracking for family caregivers
 - **Bundle ID (iOS)**: com.embermate.app
 - **Package Name (Android)**: com.embermate.app
-- **Category**: Medical / Health & Fitness
+- **Category**: Health & Fitness
 - **Content Rating**: 12+ (Medical information)
 - **Price**: Free
 - **In-App Purchases**: None
@@ -28,128 +28,68 @@ This document contains all metadata, descriptions, and assets needed for App Sto
 **EmberMate**
 
 ### Subtitle (30 characters max)
-**Personal Health Companion**
+**Care tracking for caregivers**
 
 ### Promotional Text (170 characters) - Can be updated without submission
-Securely manage medications, track appointments, and coordinate family care. Your health data stays private on your device with military-grade encryption.
+Your caregiving command center. Track meds, log vitals, journal the day, and check in on yourself — all private, all on your device.
 
 ### Description (4000 characters max)
 
-**Take Control of Your Health with EmberMate**
+**Your caregiving command center — in your pocket.**
 
-EmberMate is your secure, private personal health companion designed to help you manage medications, track appointments, monitor symptoms, and coordinate care for yourself and loved ones—all while keeping your sensitive health information completely private on your device.
+53 million Americans are family caregivers. EmberMate is built for you. Four tabs. One scroll. Everything you need to track your loved one's care — and take care of yourself.
 
-**🔐 PRIVACY FIRST**
-• All data stored locally on YOUR device only
-• Military-grade AES-256 encryption
-• No external servers, no data sharing
-• Face ID/Touch ID protection
-• Your data stays on your device with strong local encryption
+**NOW — Your care dashboard**
+See what's happening right now: which meds are due, what vitals to check, which meals to log. Progress tiles show completion at a glance. Tap Confirm to log a routine med in one tap — no navigation, no forms. The timeline collapses by time window (Morning, Afternoon, Evening) so you see the overview first and expand when you're ready.
 
-**💊 MEDICATION MANAGEMENT**
-• Track all medications with dosage and schedules
-• Smart medication reminders
-• Visual medication identification with photos
-• Track refills and days supply
-• Medication adherence tracking
-• Drug interaction checker
-• Medication history and logs
+**JOURNAL — The day's care story**
+A status dot (green/amber/red) tells you "good day" or "needs attention" before you read a word. Below: a stats strip, a chronological timeline of everything logged, heads-up items for the next caregiver, detected patterns, and a private reflection prompt. Share a care summary PDF with a doctor or the next caregiver with one tap.
 
-**📅 APPOINTMENT TRACKING**
-• Calendar view of all medical appointments
-• Specialist tracking (doctors, dentists, therapists)
-• Appointment reminders
-• Location and contact information
-• Preparation notes and questions
-• Visit history
+**YOU — Because caregivers matter too**
+Check in on your own mood with a simple 5-emoji scale. Take a guided 1-minute breathing exercise. Call the Caregiver Helpline (free, confidential). Browse respite care and financial resources. Track your wellness over time. This tab is for you — not your loved one.
 
-**👨‍👩‍👧‍👦 FAMILY CARE COORDINATION**
-• Manage health for multiple family members
-• Perfect for caregivers
-• Coordinate with care team members
-• Share care summaries securely
-• Activity logging for caregivers
-• Patient profiles with medical history
+**INSIGHTS — What the patterns tell us**
+AI-generated weekly summary. Medication adherence percentage. Vitals trends with sparklines. "EmberMate noticed" correlation cards. Data gaps. Visit prep — generate a summary to bring to the next appointment.
 
-**📊 HEALTH MONITORING**
-• Vital signs tracking (blood pressure, temperature, weight, heart rate)
-• Symptom logging with severity and timestamps
-• Photo documentation of conditions
-• Trend analysis and correlations
-• Export health reports for doctors
+**PRIVACY FIRST**
+• All data stored locally on YOUR device — no servers, no cloud, no account required
+• AES-256 encryption at rest
+• Face ID / Touch ID / PIN protection
+• No ads, no tracking, no analytics
+• Export or delete your data anytime
 
-**🏥 CARE SUMMARIES**
-• Generate comprehensive care reports
-• Current medications list
-• Recent appointments and upcoming visits
-• Active symptoms and concerns
-• Emergency contact information
-• Medical history at a glance
-• PDF export for healthcare providers
+**DESIGNED FOR EXHAUSTED CAREGIVERS**
+• One-tap medication confirm (not 6 screens)
+• Smart vitals prefill from last reading ("Same as last time")
+• Morning wellness wizard: 5 taps, 10 seconds
+• Evening check: 3 questions, done
+• Meal logging auto-detects breakfast/lunch/dinner by time of day
+• Timeline collapses by default — scan the overview, expand when ready
 
-**🔒 SECURITY FEATURES**
-• Biometric authentication (Face ID/Touch ID)
-• PIN code protection
-• Auto-lock after inactivity
-• Encrypted data backups
-• Security audit logging
-• Failed attempt lockout
-• No cloud sync (unless you choose)
+**BUILT FOR:**
+• Adult children caring for aging parents
+• Spouses managing a partner's chronic condition
+• Professional caregivers coordinating shifts
+• Anyone tracking medications, vitals, or wellness for a loved one
 
-**✨ DESIGNED FOR EVERYONE**
-• Clean, intuitive interface
-• Large, readable text
-• Simple navigation
-• Beautiful design
-• Dark mode support
-• Tablet optimized
-• Accessibility features
+**WHAT'S INCLUDED — FREE, NO ADS:**
+✓ Medication tracking with reminders
+✓ Vitals logging (BP, glucose, weight, SpO2, temperature)
+✓ Meal and hydration tracking
+✓ Morning and evening wellness checks
+✓ Care plan with customizable buckets
+✓ Journal with date browsing and reflection
+✓ Caregiver mood tracking and breathing exercise
+✓ PDF care summaries for doctors
+✓ Encrypted backup and restore
+✓ Works offline — no internet required
 
-**🌟 PERFECT FOR:**
-• Chronic disease management
-• Elderly care coordination
-• Family health tracking
-• Post-surgery recovery
-• Multiple medication management
-• Caregiver organization
-• Healthcare provider communication
-
-**🛡️ YOUR DATA, YOUR CONTROL**
-Unlike other health apps, EmberMate never transmits your data to external servers. Everything stays on your device, encrypted and secure. You decide when and how to share information with healthcare providers through encrypted exports.
-
-**📱 WORKS OFFLINE**
-No internet connection required. Your health information is always accessible, even without connectivity.
-
-**🔄 BACKUP & EXPORT**
-• Encrypted backup files
-• Export to JSON for data portability
-• Share with healthcare providers securely
-• Import/restore on new devices
-
-**🎯 NO ADS, NO TRACKING**
-We respect your privacy. No advertisements, no analytics, no tracking. Your health information is yours alone.
-
-**💡 FEATURES AT A GLANCE:**
-✓ Medication tracking and reminders
-✓ Appointment calendar
-✓ Symptom and vitals logging
-✓ Family/patient profiles
-✓ Care team coordination
-✓ Photo documentation
-✓ Emergency contacts
-✓ Medical history
-✓ Secure data export
-✓ Encrypted backups
-✓ Biometric security
-✓ Offline access
-✓ Beautiful, intuitive design
-
-**Download EmberMate today and take control of your health journey with confidence, knowing your sensitive information is protected and private.**
+**Download EmberMate and give your caregiving the structure it deserves — without sacrificing your own wellbeing.**
 
 ---
 
 ### Keywords (100 characters max, comma-separated)
-medication tracker,health manager,appointment calendar,pill reminder,family care,caregiver,medical records,encrypted health,private
+caregiver,family caregiver,care tracking,medication tracker,caregiver burnout,caregiver wellness,care journal
 
 ### Support URL
 https://embermate.com/support
@@ -165,10 +105,10 @@ https://ysorallc.org/privacy
 ## Google Play Store Metadata
 
 ### App Name (50 characters max)
-**EmberMate - Health Manager**
+**EmberMate — Caregiver Care Tracker**
 
 ### Short Description (80 characters max)
-**Secure medication tracker & health manager. Your data stays private locally.**
+**Care tracking for family caregivers. Meds, vitals, journal — private on device.**
 
 ### Full Description (4000 characters max)
 
@@ -292,8 +232,7 @@ Zero advertisements, zero analytics, zero tracking. Your health information is p
 ---
 
 ### Category
-**Primary**: Medical
-**Secondary**: Health & Fitness
+**Primary**: Health & Fitness
 
 ---
 
@@ -301,27 +240,17 @@ Zero advertisements, zero analytics, zero tracking. Your health information is p
 
 ### What's New in This Version (500 characters)
 
-**Version 5.7.0 - Major Security & Features Update**
+**Version 6.0.0 — Complete Redesign**
 
-✨ NEW FEATURES:
-• Biometric authentication (Face ID/Touch ID/Fingerprint)
-• PIN code security
-• Encrypted data backups
-• Security audit logging
-• Family care coordination
-• Vitals & symptom tracking
-• Correlation reports
-• Enhanced care summaries
-
-🔒 SECURITY:
-• AES-256 encryption
-• Auto-lock
-• Security event logging
-
-🐛 BUG FIXES:
-• Improved medication reminders
-• Better performance
-• UI enhancements
+• 4-tab navigation: Now, Journal, You, Insights
+• One-tap medication confirm — no more multi-screen logging
+• "You" tab for caregiver wellness: mood check-in, guided breathing, helpline
+• Journal redesigned with date browsing, status dot, flat timeline, care sharing
+• Insights with AI weekly summary, adherence tracking, and visit prep
+• Smart form defaults: vitals prefill, morning wizard, evening quick mode
+• Warm design system with consistent tokens across all screens
+• Timeline collapses by default for a scannable overview
+• Encrypted storage for all sensitive health data
 
 ---
 
@@ -677,28 +606,24 @@ See separate FAQ.md document
 
 ## Version History
 
-### v5.7.0 (Current)
+### v6.0.0 (Current)
+- Complete UI/UX redesign with 4-tab navigation (Now / Journal / You / Insights)
+- Caregiver-first positioning: "You" tab for self-care, mood tracking, breathing exercises
+- One-tap medication confirm, smart vitals prefill, morning wellness wizard
+- Journal with flat status-led layout, date browsing, care summary sharing
+- Insights with AI weekly summary, adherence tracking, visit prep
+- Warm design system with consistent tokens
+- Encrypted-at-rest storage for all sensitive health data
+- 142 test suites, 1400+ tests passing
+
+### v5.7.0
 - Initial App Store/Play Store release
-- Comprehensive security features
+- Comprehensive security features (Face ID, PIN, AES-256)
 - Family care coordination
 - Complete health tracking suite
 
-### Planned Updates
-
-**v5.8.0** (Q1 2025)
-- Apple Health / Google Fit integration
-- Medication interaction database
-- Voice notes for symptoms
-- Improved accessibility
-
-**v6.0.0** (Q2 2025)
-- Optional cloud backup (encrypted)
-- Telemedicine integration
-- Prescription scanning (OCR)
-- Smart health insights
-
 ---
 
-**Last Updated**: January 3, 2025
+**Last Updated**: April 12, 2026
 **Document Owner**: EmberMate Team
 **Next Review**: Before each version release

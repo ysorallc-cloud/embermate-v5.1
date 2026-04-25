@@ -30,25 +30,25 @@ export function MorningMedsBanner({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.cardBackground, borderColor: colors.glassBorder }]}>
+    <View style={[styles.container, { backgroundColor: colors.warmSurfaceAlert, borderColor: colors.warmSurfaceAlertBorder }]}>
       <View style={styles.content}>
         <Text style={[styles.emoji]}>💊</Text>
         <View style={styles.textContainer}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>
+          <Text style={[styles.title, { color: colors.textAlertPrimary }]}>
             {pendingCount} med{pendingCount !== 1 ? 's' : ''} due now
           </Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          <Text style={[styles.subtitle, { color: colors.textAlertSecondary }]}>
             Tap to confirm all at once
           </Text>
         </View>
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: colors.accent }]}
+          style={[styles.button, { backgroundColor: 'rgba(224, 168, 78, 0.2)' }]}
           onPress={handleBatchConfirm}
           disabled={confirming}
           accessibilityLabel={`Confirm all ${pendingCount} medications`}
           accessibilityRole="button"
         >
-          <Text style={styles.buttonText}>
+          <Text style={[styles.buttonText, { color: colors.textAlertLabel }]}>
             {confirming ? '...' : 'Confirm All'}
           </Text>
         </TouchableOpacity>
@@ -90,7 +90,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   buttonText: {
-    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },

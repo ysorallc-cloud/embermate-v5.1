@@ -124,7 +124,7 @@ export function HandoffCard() {
     <View style={styles.card}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerLabel}>TODAY'S SUMMARY</Text>
+        <Text style={styles.headerLabel}>Today's summary</Text>
         <TouchableOpacity
           onPress={() => navigate('/care-report?scope=full')}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -213,10 +213,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: Spacing.md,
   },
   headerLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.3,
     color: c.textMuted,
   },
   shareText: {
@@ -262,8 +261,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   appointmentLabel: {
     fontSize: 11,
     fontWeight: '600',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    letterSpacing: 0.3,
     color: c.textMuted,
     marginBottom: 2,
   },

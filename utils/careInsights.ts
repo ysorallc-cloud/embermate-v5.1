@@ -77,14 +77,16 @@ export function generateCareInsight(
     return {
       icon: '📊',
       title: 'A quick check first',
-      message: `Log vitals before taking ${medName} — helps track if the dose is working.`,
+      message: `${medName} is due and vitals haven't been logged yet. A pre-dose reading helps show whether the current dose is working. Consider checking BP before taking it.`,
       type: 'dependency',
       confidence: 0.95,
     };
   }
 
   // Diabetes med taken + no water + past noon
-  if (completedDiabetesMed && (stats.hydration?.completed ?? 0) === 0 && currentHour >= 12) {
+  // (TodayStats renamed the field from `hydration` to `water` — this call
+  // site was missed in the original refactor, causing the insight to never fire.)
+  if (completedDiabetesMed && (stats.water?.completed ?? 0) === 0 && currentHour >= 12) {
     const medName = completedDiabetesMed.itemName || 'diabetes medication';
     return {
       icon: '💧',
@@ -170,7 +172,7 @@ export function generateCareInsight(
       return {
         icon: '📊',
         title: 'BP trend',
-        message: `Blood pressure has averaged ${Math.round(recentHistory.avgSystolic)}/${Math.round(recentHistory.avgDiastolic)} this week — slightly above recommended range.`,
+        message: `Blood pressure has averaged ${Math.round(recentHistory.avgSystolic)}/${Math.round(recentHistory.avgDiastolic)} over recent readings. This is slightly above the recommended range. Worth mentioning at the next visit.`,
         type: 'pattern',
         confidence: 0.85,
       };
@@ -181,7 +183,7 @@ export function generateCareInsight(
       return {
         icon: '💊',
         title: 'Great consistency',
-        message: `All medications taken on time for ${recentHistory.consecutiveMedDays} days straight.`,
+        message: `All medications have been taken on time for ${recentHistory.consecutiveMedDays} days straight. Consistency like this makes a real difference in outcomes. Keep it going.`,
         type: 'reinforcement',
         confidence: 0.9,
       };
@@ -199,7 +201,7 @@ export function generateCareInsight(
       return {
         icon: '💊',
         title: 'Evening meds',
-        message: `${eveningMedsPending.length} evening medication${eveningMedsPending.length > 1 ? 's' : ''} remaining.`,
+        message: `${eveningMedsPending.length} evening medication${eveningMedsPending.length > 1 ? 's are' : ' is'} still pending. Taking them within the scheduled window keeps the dosing consistent. Tap to confirm when done.`,
         type: 'pattern',
         confidence: 0.75,
       };

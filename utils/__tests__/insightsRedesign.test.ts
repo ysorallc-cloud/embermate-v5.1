@@ -1,6 +1,7 @@
 /**
- * Tests for Insights page redesign (IG-1 through IG-6).
- * Scorecard strip, category trends, actionable suggestions.
+ * Tests for Understand page redesign:
+ * Care Score ring, Correlations, Data Gaps, Vitals Dashboard, Medication Adherence.
+ * StatSpotlight, InsightCallout, heroCard removed.
  */
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -10,23 +11,16 @@ const render = src.slice(src.indexOf('return ('));
 const utilSrc = readFileSync(join(__dirname, '../../utils/understandInsights.ts'), 'utf8');
 
 // ============================================================================
-// IG-1: Scorecard strip replaces StatSpotlight hero
+// IG-1: CareScoreRing replaces StatSpotlight hero
 // ============================================================================
-describe('IG-1: Scorecard strip', () => {
+describe('IG-1: Care Score ring', () => {
   test('StatSpotlight component is removed', () => {
     expect(src).not.toMatch(/function StatSpotlight/);
     expect(render).not.toContain('<StatSpotlight');
   });
 
-  test('Scorecard component or scorecard styles exist', () => {
-    expect(src).toMatch(/Scorecard|scorecard/);
-  });
-
-  test('scorecard shows 4 metrics: adherence, days, hydration, sleep', () => {
-    expect(render).toMatch(/Adherence|adherence/i);
-    expect(render).toMatch(/Days/i);
-    expect(render).toMatch(/Hydration|Glasses|hydration/i);
-    expect(render).toMatch(/Sleep/i);
+  test('CareScoreRing component exists', () => {
+    expect(src).toMatch(/function CareScoreRing/);
   });
 
   test('heroCard style is removed', () => {
@@ -35,62 +29,42 @@ describe('IG-1: Scorecard strip', () => {
 });
 
 // ============================================================================
-// IG-2: Suggestions replace InsightCallout
+// IG-2: Correlation cards with severity
 // ============================================================================
-describe('IG-2: Actionable Suggestions', () => {
+describe('IG-2: Correlations section', () => {
   test('InsightCallout component is removed', () => {
     expect(src).not.toMatch(/function InsightCallout/);
     expect(render).not.toContain('<InsightCallout');
   });
 
-  test('Suggestions section exists in render', () => {
-    expect(render).toMatch(/Suggestion|suggestion/);
+  test('Correlations Found section exists', () => {
+    expect(render).toContain('EmberMate noticed');
   });
 
-  test('generateActionableSuggestions function exists in utils', () => {
-    expect(utilSrc).toContain('generateActionableSuggestions');
+  test('correlationSeverity function exists', () => {
+    expect(src).toContain('correlationSeverity');
   });
 
-  test('suggestion style has amber left border', () => {
-    expect(src).toMatch(/suggestionCard|suggestionRow|suggestion/);
-  });
-
-  test('steady state fallback exists', () => {
-    expect(src).toMatch(/steady|looks steady/i);
+  test('suggestion text is shown for correlation cards', () => {
+    expect(src).toMatch(/suggestion/);
   });
 });
 
 // ============================================================================
-// IG-3: Category trend rows
+// IG-3: Data Gaps section
 // ============================================================================
-describe('IG-3: Category trends', () => {
-  test('computeCategoryTrends function exists', () => {
-    expect(src).toContain('computeCategoryTrends');
+describe('IG-3: Data Gaps', () => {
+  test('computeDataGaps function exists', () => {
+    expect(src).toContain('computeDataGaps');
   });
 
-  test('category trends include Meals, Hydration, Wellness, Sleep', () => {
-    const fn = src.match(/function computeCategoryTrends[\s\S]*?^}/m);
-    expect(fn).not.toBeNull();
-    const block = fn![0];
-    expect(block).toMatch(/Meals/);
-    expect(block).toMatch(/Hydration/);
-    expect(block).toMatch(/Wellness/);
-    expect(block).toMatch(/Sleep/);
+  test('Data Gaps section renders', () => {
+    expect(render).toContain('Missing data');
   });
 });
 
 // ============================================================================
-// IG-4: "0 found Patterns" removed
-// ============================================================================
-describe('IG-4: Patterns chip removed', () => {
-  test('"Patterns" chip with count is removed from scorecard', () => {
-    expect(render).not.toContain('patternsFound');
-    expect(render).not.toContain('found</Text>');
-  });
-});
-
-// ============================================================================
-// IG-5: CarePlanStats expanded
+// IG-5: CarePlanStats expanded in utils
 // ============================================================================
 describe('IG-5: CarePlanStats expanded', () => {
   test('CarePlanStats has avgMealsPerDay', () => {
@@ -115,15 +89,19 @@ describe('IG-5: CarePlanStats expanded', () => {
 });
 
 // ============================================================================
-// IG-6: Renamed section header
+// IG-6: Section labels use sectionLabel style
 // ============================================================================
-describe('IG-6: Section renamed', () => {
-  test('"VITALS AT A GLANCE" is removed', () => {
-    expect(render).not.toContain('VITALS AT A GLANCE');
+describe('IG-6: Section labels', () => {
+  test('sectionLabel style exists', () => {
+    expect(src).toContain('sectionLabel:');
   });
 
-  test('"TRENDS" section header exists', () => {
-    expect(render).toContain('TRENDS');
+  test('Vitals section exists', () => {
+    expect(render).toContain('Vitals');
+  });
+
+  test('Medication Adherence section exists', () => {
+    expect(render).toContain('Medication adherence');
   });
 });
 
@@ -131,19 +109,15 @@ describe('IG-6: Section renamed', () => {
 // Structural integrity
 // ============================================================================
 describe('Structural integrity', () => {
-  test('VitalRow component still exists', () => {
-    expect(src).toMatch(/function VitalRow/);
+  test('CareScoreRing component still exists', () => {
+    expect(src).toMatch(/function CareScoreRing/);
   });
 
-  test('PatternCard component still exists', () => {
-    expect(src).toMatch(/function PatternCard/);
+  test('Sparkline component still exists', () => {
+    expect(src).toMatch(/function Sparkline/);
   });
 
-  test('PATTERNS DETECTED section still renders when cards exist', () => {
-    expect(render).toContain('PATTERNS DETECTED');
-  });
-
-  test('Quick Actions grid still exists', () => {
-    expect(render).toContain('quickActionsGrid');
+  test('generateActionableSuggestions function exists in utils', () => {
+    expect(utilSrc).toContain('generateActionableSuggestions');
   });
 });

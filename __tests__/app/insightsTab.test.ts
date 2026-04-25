@@ -17,7 +17,7 @@ describe('Insights tab', () => {
   });
 
   it('AI summary renders when daysOfData >= 7', () => {
-    expect(insightsContent).toContain('SECTION 1: AI SUMMARY');
+    expect(insightsContent).toContain("SECTION 1: THIS WEEK'S PULSE");
     expect(insightsContent).toContain('generatePlainLanguageSummary');
     expect(insightsContent).toContain('daysOfData >= 7');
     expect(insightsContent).toContain('aiSummarySection');

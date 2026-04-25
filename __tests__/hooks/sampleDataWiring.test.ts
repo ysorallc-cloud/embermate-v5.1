@@ -1,52 +1,60 @@
 /**
- * Verifies that the two sample data systems are properly connected.
+ * Verifies that the sample data generator produces a complete patient profile.
  *
- * Bug: Onboarding "Explore with Sample Data" called seedSampleData() from
- * sampleData.ts (meals/sleep only), not initializeSampleData() from
- * sampleDataGenerator.ts (full Mom profile). Users got empty medications,
- * vitals, and appointments.
+ * The sample data was redesigned: 6 medications (realistic elderly patient),
+ * 3 days of multi-type vitals, 4 appointments across specialties,
+ * and 5 mood logs across 3 days.
  */
 import { getSampleMedications, getSampleVitals, getSampleAppointments, getSampleMoodLogs } from '../../utils/sampleDataGenerator';
 
-describe('sampleDataGenerator produces complete Mom profile', () => {
-  it('should generate 3 medications matching the spec', () => {
+describe('sampleDataGenerator produces complete patient profile', () => {
+  it('should generate 6 medications matching the realistic profile', () => {
     const meds = getSampleMedications();
-    expect(meds).toHaveLength(3);
+    expect(meds).toHaveLength(6);
 
     const names = meds.map(m => m.name);
-    expect(names).toContain('Lisinopril');
+    expect(names).toContain('Warfarin');
+    expect(names).toContain('Aspirin');
     expect(names).toContain('Metformin');
-    expect(names).toContain('Atorvastatin');
+    expect(names).toContain('Lisinopril');
+    expect(names).toContain('Gabapentin');
+    expect(names).toContain('Lorazepam');
 
     // Morning meds should be marked taken, evening pending
-    const lisinopril = meds.find(m => m.name === 'Lisinopril')!;
-    expect(lisinopril.dosage).toBe('10mg');
-    expect(lisinopril.timeSlot).toBe('morning');
-    expect(lisinopril.taken).toBe(true);
+    const aspirin = meds.find(m => m.name === 'Aspirin')!;
+    expect(aspirin.dosage).toBe('81mg');
+    expect(aspirin.timeSlot).toBe('morning');
+    expect(aspirin.taken).toBe(true);
 
-    const atorvastatin = meds.find(m => m.name === 'Atorvastatin')!;
-    expect(atorvastatin.dosage).toBe('20mg');
-    expect(atorvastatin.timeSlot).toBe('evening');
-    expect(atorvastatin.taken).toBe(false);
+    const warfarin = meds.find(m => m.name === 'Warfarin')!;
+    expect(warfarin.dosage).toBe('5mg');
+    expect(warfarin.timeSlot).toBe('evening');
+    expect(warfarin.taken).toBe(false);
   });
 
-  it('should generate 14 days of vitals', () => {
+  it('should generate 3 days of vitals with multiple types per day', () => {
     const vitals = getSampleVitals();
     const systolic = vitals.filter(v => v.type === 'systolic');
-    expect(systolic).toHaveLength(14);
+    expect(systolic).toHaveLength(3);
+    // Each day has 7 vital types
+    expect(vitals.length).toBe(21);
   });
 
-  it('should generate 2 appointments', () => {
+  it('should generate 4 appointments across specialties', () => {
     const appts = getSampleAppointments();
-    expect(appts).toHaveLength(2);
-    expect(appts[0].provider).toBe('Dr. Martinez');
+    expect(appts).toHaveLength(4);
+    expect(appts[0].provider).toBe('Dr. Patel');
     expect(appts[0].specialty).toBe('Cardiology');
-    expect(appts[1].provider).toBe('Dr. Thompson');
-    expect(appts[1].specialty).toBe('Primary Care');
+    expect(appts[1].provider).toBe('Dr. Kim');
+    expect(appts[1].specialty).toBe('Endocrinology');
   });
 
-  it('should generate 14 days of mood logs', () => {
+  it('should generate 5 mood logs across 3 days', () => {
     const moods = getSampleMoodLogs();
-    expect(moods).toHaveLength(14);
+    expect(moods).toHaveLength(5);
+    // Should include a range of moods
+    const moodTypes = moods.map(m => m.mood);
+    expect(moodTypes).toContain('tired');
+    expect(moodTypes).toContain('anxious');
   });
 });

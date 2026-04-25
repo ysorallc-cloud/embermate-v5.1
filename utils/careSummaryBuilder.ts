@@ -7,7 +7,7 @@ import { StorageKeys } from './storageKeys';
 import { safeGetItem } from './safeStorage';
 import { getMorningWellness, getEveningWellness } from './wellnessCheckStorage';
 import { getUpcomingAppointments } from './appointmentStorage';
-import { getTodayVitalsLog, getMealsLogs, getTodaySleepLog, getTodayWaterLog } from './centralStorage';
+import { getTodayVitalsLog, getMealsLogs, getTodaySleepLog, getTodayWaterLog, getVitalsLogs, getSleepLogs, getWaterLogs, type VitalsLog, type SleepLog, type WaterLog } from './centralStorage';
 import { listDailyInstances, listLogsByDate, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { ensureDailyInstances, getTodayDateString } from '../services/carePlanGenerator';
 import { getMedicalInfo, MedicalInfo } from './medicalInfo';
@@ -603,18 +603,32 @@ export interface DefaultOpenSections {
 // CARE BRIEF BUILDER
 // ============================================================================
 
-export async function buildCareBrief(): Promise<CareBrief> {
+/**
+ * Build a CareBrief for a specific date. Defaults to today when no
+ * targetDate is provided so existing callers stay backwards-compatible.
+ *
+ * @param targetDate ISO `YYYY-MM-DD` string. When omitted, uses today's
+ *   local date. Past dates skip the today-only fast paths and inline-filter
+ *   the underlying log arrays for the matching `toDateString()`.
+ */
+export async function buildCareBrief(targetDate?: string): Promise<CareBrief> {
   const today = getTodayDateString();
+  const date = targetDate || today;
+  const isToday = date === today;
+  // toDateString() match key for inline date filters on raw log arrays.
+  // Anchor to noon so DST transitions never push the parsed date one day
+  // either side of the YYYY-MM-DD calendar day we asked for.
+  const targetDateKey = new Date(`${date}T12:00:00`).toDateString();
 
   let instances: Awaited<ReturnType<typeof ensureDailyInstances>>;
   let logs: Awaited<ReturnType<typeof listLogsByDate>>;
   let morningWellness: Awaited<ReturnType<typeof getMorningWellness>>;
   let eveningWellness: Awaited<ReturnType<typeof getEveningWellness>>;
-  let todayVitals: Awaited<ReturnType<typeof getTodayVitalsLog>>;
+  let todayVitals: VitalsLog | null;
   let mealsLogs: Awaited<ReturnType<typeof getMealsLogs>>;
   let upcomingAppointments: Awaited<ReturnType<typeof getUpcomingAppointments>>;
-  let sleepLog: Awaited<ReturnType<typeof getTodaySleepLog>>;
-  let waterLog: Awaited<ReturnType<typeof getTodayWaterLog>>;
+  let sleepLog: SleepLog | null;
+  let waterLog: WaterLog | null;
   let medInfo: MedicalInfo | null;
   let clinicalSettings: ClinicalCareSettings;
   let patientName: string;
@@ -624,20 +638,34 @@ export async function buildCareBrief(): Promise<CareBrief> {
   try {
     // Use ensureDailyInstances (same pipeline as Now page) to get deduplicated,
     // stale-cleaned instances — keeps Journal in sync with Now page counts.
-    const dedupedInstances = await ensureDailyInstances(DEFAULT_PATIENT_ID, today);
+    const dedupedInstances = await ensureDailyInstances(DEFAULT_PATIENT_ID, date);
 
     instances = dedupedInstances;
 
+    // For "today" use the optimized today-only helpers (single filter pass).
+    // For past dates, fall back to the raw log accessors and filter inline
+    // by toDateString() — the today-only helpers can't be retargeted without
+    // a wider centralStorage refactor.
+    const vitalsPromise: Promise<VitalsLog | null> = isToday
+      ? getTodayVitalsLog()
+      : getVitalsLogs().then(arr => arr.find(l => new Date(l.timestamp).toDateString() === targetDateKey) || null);
+    const sleepPromise: Promise<SleepLog | null> = isToday
+      ? getTodaySleepLog()
+      : getSleepLogs().then(arr => arr.find(l => new Date(l.timestamp).toDateString() === targetDateKey) || null);
+    const waterPromise: Promise<WaterLog | null> = isToday
+      ? getTodayWaterLog()
+      : getWaterLogs().then(arr => arr.find(l => new Date(l.timestamp).toDateString() === targetDateKey) || null);
+
     [logs, morningWellness, eveningWellness, todayVitals, mealsLogs, upcomingAppointments, sleepLog, waterLog, medInfo, clinicalSettings, patientName, emergencyContacts, patientRegistry] =
       await Promise.all([
-        listLogsByDate(DEFAULT_PATIENT_ID, today),
-        getMorningWellness(today),
-        getEveningWellness(today),
-        getTodayVitalsLog(),
+        listLogsByDate(DEFAULT_PATIENT_ID, date),
+        getMorningWellness(date),
+        getEveningWellness(date),
+        vitalsPromise,
         getMealsLogs(),
         getUpcomingAppointments(),
-        getTodaySleepLog(),
-        getTodayWaterLog(),
+        sleepPromise,
+        waterPromise,
         getMedicalInfo(),
         getClinicalCareSettings(),
         safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null).then(n => n || 'Patient'),
@@ -713,8 +741,7 @@ export async function buildCareBrief(): Promise<CareBrief> {
   }
 
   const mealInstances = instances.filter(i => i.itemType === 'nutrition');
-  const todayStr = new Date().toDateString();
-  const todayMeals = mealsLogs.filter((m: any) => new Date(m.timestamp).toDateString() === todayStr);
+  const todayMeals = mealsLogs.filter((m: any) => new Date(m.timestamp).toDateString() === targetDateKey);
   const meals: MealsDetail = {
     total: mealInstances.length,
     meals: mealInstances.map(inst => {
@@ -926,8 +953,9 @@ export async function buildCareBrief(): Promise<CareBrief> {
     }
   }
 
-  // Pending evening tasks
-  if (!eveningWellness && new Date().getHours() < 22) {
+  // Pending evening tasks (only meaningful when viewing today — past dates
+  // are read-only history, not actionable reminders).
+  if (isToday && !eveningWellness && new Date().getHours() < 22) {
     handoffParts.push(`Evening wellness check still needs to be completed.`);
   }
 

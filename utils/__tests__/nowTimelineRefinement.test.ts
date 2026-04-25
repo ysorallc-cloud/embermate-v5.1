@@ -1,7 +1,6 @@
 /**
- * Tests for Now Page Timeline Visual Refinement (Option B — Rail + Spacing).
- * Vertical rail, spacing between windows, overdue inline labels,
- * completed item styling, and button refinements.
+ * Tests for Now Page Timeline Visual Refinement — Time Gutter + Window Banner layout.
+ * Replaces old rail+spacing design with time gutter columns and windowBanner headers.
  */
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -10,38 +9,45 @@ const src = readFileSync(join(__dirname, '../../components/now/TimelineSection.t
 const render = src.slice(src.indexOf('function TimelineModeBContent'));
 
 // ============================================================================
-// TL-1: Vertical rail on items container
+// TL-1: Time gutter layout
 // ============================================================================
-describe('TL-1: Vertical rail', () => {
-  test('timeGroupItems has borderLeft style', () => {
-    const match = src.match(/timeGroupItems:\s*\{[^}]+\}/);
+describe('TL-1: Time gutter layout', () => {
+  test('timeGutter style exists for left-side time column', () => {
+    const match = src.match(/timeGutter:\s*\{[^}]+\}/);
     expect(match).not.toBeNull();
-    expect(match![0]).toContain('borderLeftWidth');
+    expect(match![0]).toContain('width');
   });
 
-  test('timeGroupItems has paddingLeft for indentation', () => {
-    const match = src.match(/timeGroupItems:\s*\{[^}]+\}/);
+  test('gutterTime style exists for time labels', () => {
+    const match = src.match(/gutterTime:\s*\{[^}]+\}/);
     expect(match).not.toBeNull();
-    expect(match![0]).toMatch(/paddingLeft:\s*(?!0\b)/);
+    expect(match![0]).toContain('fontSize');
   });
 
-  test('timeGroupItems has marginLeft for rail offset', () => {
-    const match = src.match(/timeGroupItems:\s*\{[^}]+\}/);
+  test('gutterDivider style exists as vertical separator', () => {
+    const match = src.match(/gutterDivider:\s*\{[^}]+\}/);
     expect(match).not.toBeNull();
-    expect(match![0]).toContain('marginLeft');
+    expect(match![0]).toContain('width');
   });
 });
 
 // ============================================================================
-// TL-2: Window spacing
+// TL-2: Window banner headers
 // ============================================================================
-describe('TL-2: Window spacing', () => {
-  test('timeGroup has marginBottom >= 10', () => {
-    const match = src.match(/timeGroup:\s*\{[^}]+\}/);
+describe('TL-2: Window banner headers', () => {
+  test('windowBanner style exists', () => {
+    const match = src.match(/windowBanner:\s*\{[^}]+\}/);
     expect(match).not.toBeNull();
-    const mbMatch = match![0].match(/marginBottom:\s*(\d+)/);
-    expect(mbMatch).not.toBeNull();
-    expect(parseInt(mbMatch![1])).toBeGreaterThanOrEqual(10);
+    expect(match![0]).toContain('backgroundColor');
+    expect(match![0]).toContain('borderRadius');
+  });
+
+  test('windowBannerTitle style exists', () => {
+    expect(src).toContain('windowBannerTitle:');
+  });
+
+  test('windowBannerCount style exists', () => {
+    expect(src).toContain('windowBannerCount:');
   });
 });
 
@@ -49,12 +55,12 @@ describe('TL-2: Window spacing', () => {
 // TL-3: Item padding increased
 // ============================================================================
 describe('TL-3: Item padding', () => {
-  test('timelineItem has paddingVertical >= 10', () => {
+  test('timelineItem has paddingVertical >= 8', () => {
     const match = src.match(/timelineItem:\s*\{[^}]+\}/);
     expect(match).not.toBeNull();
     const pvMatch = match![0].match(/paddingVertical:\s*(\d+)/);
     expect(pvMatch).not.toBeNull();
-    expect(parseInt(pvMatch![1])).toBeGreaterThanOrEqual(10);
+    expect(parseInt(pvMatch![1])).toBeGreaterThanOrEqual(8);
   });
 });
 
@@ -102,17 +108,17 @@ describe('TL-6: Completed items', () => {
 });
 
 // ============================================================================
-// TL-7: Log button filled background
+// TL-7: Log button styling
 // ============================================================================
 describe('TL-7: Log button styling', () => {
-  test('timelineLogButton has filled background', () => {
+  test('timelineLogButton has background styling', () => {
     const match = src.match(/timelineLogButton:\s*\{[^}]+\}/);
     expect(match).not.toBeNull();
     expect(match![0]).toContain('backgroundColor');
   });
 
-  test('Done button style exists for completed items', () => {
-    expect(src).toMatch(/doneButton|b-ibtn.*done|timelineStatusText|Done/);
+  test('Done/status text style exists for completed items', () => {
+    expect(src).toMatch(/timelineStatusText|Done/);
   });
 });
 

@@ -87,10 +87,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   title: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
     color: c.textTertiary,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   badge: {
     backgroundColor: c.accentLight,

@@ -11,6 +11,8 @@ import {
   TouchableOpacity,
   TextInput,
   Animated,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { navigateBack, canNavigateBack, navigateReplace } from '../lib/navigate';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
@@ -108,6 +110,7 @@ export default function LogBathroomScreen() {
     <View style={{ flex: 1 }}>
       <AuroraBackground variant="log" />
       <ScreenHeader title="Bathroom" />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
         {/* Bowel Movement */}
         <Text style={styles.sectionTitle}>Bowel Movement</Text>
@@ -164,6 +167,7 @@ export default function LogBathroomScreen() {
           <Text style={styles.saveButtonText}>Log Bathroom Visit</Text>
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

@@ -3,26 +3,27 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 describe('Now banner cleanup', () => {
-  const src = readFileSync(join(__dirname, '../../app/(tabs)/now.tsx'), 'utf8');
-  const render = src.slice(src.indexOf('return ('));
+  const nowSrc = readFileSync(join(__dirname, '../../app/(tabs)/now.tsx'), 'utf8');
+  const nowRender = nowSrc.slice(nowSrc.indexOf('return ('));
+  const timelineSrc = readFileSync(join(__dirname, '../../components/now/NowTimeline.tsx'), 'utf8');
 
   test('MorningBriefing not rendered', () => {
-    expect(render).not.toContain('<MorningBriefing');
+    expect(nowRender).not.toContain('<MorningBriefing');
   });
 
   test('DataIntegrityBanner not rendered', () => {
-    expect(render).not.toContain('DataIntegrityBanner');
+    expect(nowRender).not.toContain('DataIntegrityBanner');
   });
 
   test('NoMedicationsBanner not rendered', () => {
-    expect(render).not.toContain('NoMedicationsBanner');
+    expect(nowRender).not.toContain('NoMedicationsBanner');
   });
 
   test('NoCarePlanBanner not rendered', () => {
-    expect(render).not.toContain('NoCarePlanBanner');
+    expect(nowRender).not.toContain('NoCarePlanBanner');
   });
 
   test('empty state messages still render', () => {
-    expect(render).toContain('emptyTimeline');
+    expect(timelineSrc).toContain('emptyTimeline');
   });
 });

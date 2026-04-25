@@ -271,11 +271,10 @@ const createStyles = (c: any) => StyleSheet.create({
     paddingBottom: 10,
   },
   sectionHeaderTitle: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: '600',
-    letterSpacing: 2,
+    letterSpacing: 0.5,
     color: c.textTertiary,
-    textTransform: 'uppercase',
   },
   sectionHeaderAction: {
     fontSize: 11,

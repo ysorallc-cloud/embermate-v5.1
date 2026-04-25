@@ -7,15 +7,17 @@ import { join } from 'path';
 
 describe('Footer / FAB overlap fix', () => {
   const content = readFileSync(
-    join(__dirname, '../../app/(tabs)/now.tsx'), 'utf8'
+    join(__dirname, '../../components/now/NowFooter.tsx'), 'utf8'
   );
 
-  test('footerSection has paddingTop >= 16 for FAB clearance', () => {
-    const match = content.match(/footerSection:\s*\{([^}]+)\}/);
+  test('footer has sufficient spacing via marginTop on journal preview cards', () => {
+    // Footer was restructured — footerSection replaced by journal preview +
+    // allDone cards. Verify the top card has marginTop >= 12 for clearance.
+    const match = content.match(/journalPreviewCard:\s*\{([^}]+)\}/);
     expect(match).toBeTruthy();
     const style = match![1];
-    const paddingMatch = style.match(/paddingTop:\s*(\d+)/);
-    expect(paddingMatch).toBeTruthy();
-    expect(parseInt(paddingMatch![1])).toBeGreaterThanOrEqual(16);
+    const marginMatch = style.match(/marginTop:\s*(\d+)/);
+    expect(marginMatch).toBeTruthy();
+    expect(parseInt(marginMatch![1])).toBeGreaterThanOrEqual(12);
   });
 });

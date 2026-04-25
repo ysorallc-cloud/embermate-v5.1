@@ -1,6 +1,6 @@
 {
   "name": "embermate",
-  "version": "5.8.0",
+  "version": "6.6.0",
   "main": "expo-router/entry",
   "homepage": "https://ysorallc-cloud.github.io/embermate-v5.1/",
   "scripts": {

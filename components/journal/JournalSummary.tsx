@@ -185,7 +185,7 @@ export function JournalSummary({ brief, selectedDate, enabledBuckets }: JournalS
       {/* Timeline rows */}
       <View style={s.timelineSection}>
         {timelineEvents.length === 0 ? (
-          <Text style={s.timelineEmpty}>No activity logged yet today.</Text>
+          <Text style={s.timelineEmpty}>Today's a fresh start — log when you're ready.</Text>
         ) : (
           timelineEvents.map((event, i) => (
             <View key={i} style={s.timelineRow}>

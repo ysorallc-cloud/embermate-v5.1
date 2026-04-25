@@ -7,8 +7,10 @@ import * as Sentry from '@sentry/react-native';
 import Constants from 'expo-constants';
 import { StorageKeyPrefixes } from './storageKeys';
 
-// Read DSN from app.json extra config; falls back to placeholder when unconfigured
-const SENTRY_DSN = Constants.expoConfig?.extra?.sentryDsn ?? 'YOUR_DSN_HERE';
+// Read DSN from app.json `expo.extra.sentryDsn`. Empty string when missing
+// — production builds without a configured DSN simply skip Sentry init
+// rather than crashing or reporting to a placeholder host.
+const SENTRY_DSN: string = Constants.expoConfig?.extra?.sentryDsn ?? '';
 
 let initialized = false;
 
@@ -19,8 +21,13 @@ let initialized = false;
 export function initErrorReporting(): void {
   if (initialized) return;
 
-  // Skip initialization if DSN is not configured
+  // Skip initialization if DSN is not configured. Log a single notice so the
+  // dev/QA build is observably crash-reporting-disabled instead of silently
+  // failing to upload events.
   if (!SENTRY_DSN || SENTRY_DSN === 'YOUR_DSN_HERE') {
+    if (__DEV__) {
+      console.log('[ErrorReporting] No Sentry DSN configured — crash reporting disabled.');
+    }
     initialized = true;
     return;
   }

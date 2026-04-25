@@ -4,28 +4,41 @@
 // ============================================================================
 
 import { Tabs } from 'expo-router';
-import { View, Text, Platform } from 'react-native';
+import { View, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 
-const TabIcon = ({ icon, focused, accentGlow, accent }: { icon: string; focused: boolean; accentGlow: string; accent: string }) => (
+type TabName = 'now' | 'journal' | 'support' | 'understand';
+
+const TAB_ICONS: Record<TabName, { active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap }> = {
+  now: { active: 'sunny', inactive: 'sunny-outline' },
+  journal: { active: 'document-text', inactive: 'document-text-outline' },
+  support: { active: 'heart', inactive: 'heart-outline' },
+  understand: { active: 'pulse', inactive: 'pulse-outline' },
+};
+
+const TabIcon = ({
+  name,
+  focused,
+  accent,
+  inactive,
+}: {
+  name: TabName;
+  focused: boolean;
+  accent: string;
+  inactive: string;
+}) => (
   <View
     style={{ alignItems: 'center' }}
     accessible={false}
     importantForAccessibility="no-hide-descendants"
   >
-    <Text style={{
-      fontSize: 24,
-      opacity: focused ? 1 : 0.5,
-      transform: [{ scale: focused ? 1.1 : 1 }],
-      ...(focused && Platform.OS === 'ios' && {
-        textShadowColor: accentGlow,
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 12,
-      }),
-    }}>
-      {icon}
-    </Text>
+    <Ionicons
+      name={focused ? TAB_ICONS[name].active : TAB_ICONS[name].inactive}
+      size={22}
+      color={focused ? accent : inactive}
+    />
     {focused && (
       <View style={{
         width: 4,
@@ -75,7 +88,7 @@ export default function TabLayout() {
         name="now"
         options={{
           title: 'Now',
-          tabBarIcon: ({ focused }) => <TabIcon icon="☀️" focused={focused} accentGlow={colors.accentGlow} accent={colors.accent} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="now" focused={focused} accent={colors.accent} inactive={colors.textMuted} />,
           tabBarAccessibilityLabel: 'Now tab. What is happening right now',
           tabBarButtonTestID: 'tab-now',
         }}
@@ -84,27 +97,27 @@ export default function TabLayout() {
         name="journal"
         options={{
           title: 'Journal',
-          tabBarIcon: ({ focused }) => <TabIcon icon="📖" focused={focused} accentGlow={colors.accentGlow} accent={colors.accent} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="journal" focused={focused} accent={colors.accent} inactive={colors.textMuted} />,
           tabBarAccessibilityLabel: 'Journal tab. Review care history and daily summary',
           tabBarButtonTestID: 'tab-journal',
-        }}
-      />
-      <Tabs.Screen
-        name="support"
-        options={{
-          title: 'Support',
-          tabBarIcon: ({ focused }) => <TabIcon icon="💛" focused={focused} accentGlow={colors.accentGlow} accent={colors.accent} />,
-          tabBarAccessibilityLabel: 'Support tab. Caregiver wellness and resources',
-          tabBarButtonTestID: 'tab-support',
         }}
       />
       <Tabs.Screen
         name="understand"
         options={{
           title: 'Insights',
-          tabBarIcon: ({ focused }) => <TabIcon icon="📊" focused={focused} accentGlow={colors.accentGlow} accent={colors.accent} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="understand" focused={focused} accent={colors.accent} inactive={colors.textMuted} />,
           tabBarAccessibilityLabel: 'Insights tab. View health patterns and insights',
           tabBarButtonTestID: 'tab-understand',
+        }}
+      />
+      <Tabs.Screen
+        name="support"
+        options={{
+          title: 'You',
+          tabBarIcon: ({ focused }) => <TabIcon name="support" focused={focused} accent={colors.accent} inactive={colors.textMuted} />,
+          tabBarAccessibilityLabel: 'You tab. Your wellness and self-care',
+          tabBarButtonTestID: 'tab-support',
         }}
       />
     </Tabs>

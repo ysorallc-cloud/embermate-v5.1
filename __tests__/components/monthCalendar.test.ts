@@ -49,7 +49,8 @@ describe('MonthCalendar', () => {
   it('day-of-week header shows S M T W T F S', () => {
     expect(src).toContain("['S', 'M', 'T', 'W', 'T', 'F', 'S']");
     expect(src).toContain('fontSize: 11');
-    expect(src).toContain('rgba(200,195,180,0.3)');
+    // Phase 17B: dowLabel color is now `c.textWarmHint` (warm-token).
+    expect(src).toMatch(/dowLabel:[\s\S]*?color:\s*c\.textWarmHint/);
   });
 
   it('day cells are 44px height', () => {
@@ -60,28 +61,31 @@ describe('MonthCalendar', () => {
     expect(src).toContain('daySelected');
     // 28px circle
     expect(src).toMatch(/width: 28[\s\S]*?borderRadius: 14/);
-    expect(src).toContain('rgba(93,202,165,0.2)');
+    // Phase 17B: selected day background is now `c.accentLight` (warm-token).
+    expect(src).toMatch(/daySelected:[\s\S]*?backgroundColor:\s*c\.accentLight/);
   });
 
-  it('today (not selected) uses #5DCAA5', () => {
+  it('today (not selected) uses the accent token', () => {
     expect(src).toContain('dayNumberToday');
-    expect(src).toContain("color: '#5DCAA5'");
+    // Phase 17B: was hardcoded #5DCAA5 → now `c.accent`.
+    expect(src).toMatch(/dayNumberToday:[\s\S]*?color:\s*c\.accent/);
   });
 
   it('future days are dimmed and not tappable', () => {
     expect(src).toContain('dayNumberFuture');
-    expect(src).toContain('rgba(200,195,180,0.15)');
+    // Phase 17B: was hardcoded rgba → now `c.textWarmDim`.
+    expect(src).toMatch(/dayNumberFuture:[\s\S]*?color:\s*c\.textWarmDim/);
     expect(src).toContain('disabled={isFuture}');
   });
 
-  it('status dots use correct colors', () => {
-    // full: #5DCAA5
-    expect(src).toContain("full: '#5DCAA5'");
-    // partial: #c8a44e
-    expect(src).toContain("partial: '#c8a44e'");
-    // none: dimmed
-    expect(src).toContain("none: 'rgba(200,195,180,0.15)'");
-    // future: no dot
+  it('status dots use theme-token colors', () => {
+    // Phase 17B: DOT_COLORS constant → buildDotColors(c) factory using
+    // accent (full), amberBright (partial), warmSurfaceBorder (none),
+    // and null for future.
+    expect(src).toContain('buildDotColors');
+    expect(src).toMatch(/full:\s*c\.accent/);
+    expect(src).toMatch(/partial:\s*c\.amberBright/);
+    expect(src).toMatch(/none:\s*c\.warmSurfaceBorder/);
     expect(src).toContain('future: null');
   });
 
@@ -91,12 +95,18 @@ describe('MonthCalendar', () => {
     expect(src).toMatch(/statusDot[\s\S]*?height: 4/);
   });
 
-  it('container uses light card styling', () => {
-    expect(src).toContain('rgba(74,107,93,0.06)');  // bg
-    expect(src).toContain('rgba(74,107,93,0.1)');    // border
+  it('container uses warm-surface theme tokens', () => {
+    // Phase 17B: was hardcoded sage RGBA → now `c.warmSurface` /
+    // `c.warmSurfaceBorder` from the warm-token system. Reads from theme
+    // via createStyles(c) factory and useTheme().
+    expect(src).toMatch(/container:[\s\S]*?backgroundColor:\s*c\.warmSurface/);
+    expect(src).toMatch(/container:[\s\S]*?borderColor:\s*c\.warmSurfaceBorder/);
     expect(src).toContain('borderRadius: 14');
     expect(src).toContain('padding: 16');
     expect(src).toContain('marginBottom: 24');
+    // Component must consume the active palette via useTheme + factory.
+    expect(src).toContain("import { useTheme }");
+    expect(src).toContain('createStyles(colors)');
   });
 
   it('getDaysInMonth returns correct values', () => {

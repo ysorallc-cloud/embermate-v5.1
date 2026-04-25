@@ -5,8 +5,17 @@
 
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { View, Text, StyleSheet, Platform, useWindowDimensions, AppState, AppStateStatus, TouchableOpacity } from 'react-native';
 import { useEffect, useRef, useState, useCallback } from 'react';
+
+// Keep the branded splash visible until the first render is ready —
+// prevents the white-flash-on-cold-start that happens when the JS bundle
+// finishes loading before the React tree paints.
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Safe to ignore — preventAutoHide is best-effort. On web and older
+  // Expo SDK versions it may not be available.
+});
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { requestNotificationPermissions } from '../utils/notificationService';
 import { useNotificationHandler } from '../utils/useNotificationHandler';
@@ -107,8 +116,16 @@ function RootLayout() {
   }, [refreshLockout]);
 
   useEffect(() => {
-    // Orchestrated startup: error reporting → migrations → daily reset → cleanup
-    runStartupSequence();
+    // Orchestrated startup: error reporting → migrations → daily reset → cleanup.
+    // Once complete, dismiss the native splash so the first React render is
+    // visible without a white-flash gap.
+    runStartupSequence().then(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    }).catch(() => {
+      // Splash must hide even if startup fails — otherwise the app is
+      // permanently stuck on the splash image with no way to interact.
+      SplashScreen.hideAsync().catch(() => {});
+    });
 
     // Check device integrity (jailbreak/root) — non-blocking warning
     shouldShowIntegrityWarning().then(async compromised => {

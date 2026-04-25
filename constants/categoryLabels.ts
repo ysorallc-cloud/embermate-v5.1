@@ -5,9 +5,9 @@
 
 // Labels are concrete nouns a caregiver thinks in, not abstract categories.
 export const CATEGORY_CONFIG: Record<string, { label: string; chipLabel: string; color: string }> = {
-  medication:  { label: 'MEDS',      chipLabel: 'Meds',      color: '#34D399' }, // green (accent)
+  medication:  { label: 'CARE',       chipLabel: 'Meds',      color: '#34D399' }, // green (accent)
   vitals:      { label: 'VITALS',    chipLabel: 'Vitals',    color: '#A78BFA' }, // purple
-  wellness:    { label: 'CHECK-IN',  chipLabel: 'Check-ins', color: '#34D399' }, // green (accent)
+  wellness:    { label: 'WELLNESS',  chipLabel: 'Check-ins', color: '#34D399' }, // green (accent)
   nutrition:   { label: 'MEAL',      chipLabel: 'Meals',     color: '#FBBF24' }, // amber
   hydration:   { label: 'WATER',     chipLabel: 'Water',     color: '#38BDF8' }, // sky
   sleep:       { label: 'SLEEP',     chipLabel: 'Sleep',     color: '#A78BFA' }, // purple

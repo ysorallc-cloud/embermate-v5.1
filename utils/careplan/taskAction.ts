@@ -57,14 +57,17 @@ export interface TaskAction {
 // ============================================================================
 
 const ITEM_TYPE_ROUTES: Record<CarePlanItemType, string> = {
-  meds: '/medications',  // Route to canonical medications screen
+  meds: '/medications',
   vitals: '/log-vitals',
   meals: '/log-meal',
-  mood: '/log-morning-wellness',  // Mood captured within wellness checks
+  mood: '/log-morning-wellness',
   sleep: '/log-sleep',
   hydration: '/log-water',
   wellness: '/log-morning-wellness',
-  appointment: '/appointments',  // Route to canonical appointments screen
+  appointment: '/appointments',
+  errand: '/care-plan/errands',
+  shift: '/care-plan/shifts',
+  self_care: '/care-plan/self-care',
   custom: '/log-evening-wellness',
 };
 

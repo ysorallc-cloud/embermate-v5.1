@@ -31,6 +31,7 @@ import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { usePatient } from '../../contexts/PatientContext';
 import {
   loadUnderstandPageData,
   generatePlainLanguageSummary,
@@ -414,7 +415,8 @@ async function computeAdherence(timeRange: number): Promise<AdherenceData> {
     });
 
     return { rate, taken, total, missedDates, doseStatuses };
-  } catch {
+  } catch (err) {
+    logError('UnderstandScreen.computeAdherence', err);
     return { rate: 0, taken: 0, total: 0, missedDates: [], doseStatuses: [] };
   }
 }
@@ -442,6 +444,10 @@ function correlationSeverity(card: CorrelationCard): 'high' | 'medium' | 'low' {
 export default function UnderstandScreen() {
   const { colors } = useTheme();
   const { focusTrend } = useLocalSearchParams<{ focusTrend?: string }>();
+  const { activePatient } = usePatient();
+  const patientName = activePatient?.name && activePatient.name !== 'Patient'
+    ? activePatient.name
+    : 'your loved one';
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -493,7 +499,8 @@ export default function UnderstandScreen() {
         start.setDate(start.getDate() - timeRange);
         const readings = await getVitalsInRange(start.toISOString(), now.toISOString());
         setVitalTiles(computeVitalTiles(readings));
-      } catch {
+      } catch (err) {
+        logError('UnderstandScreen.loadVitals', err);
         setVitalTiles([]);
       }
 
@@ -501,7 +508,8 @@ export default function UnderstandScreen() {
       try {
         const adh = await computeAdherence(timeRange);
         setAdherence(adh);
-      } catch {
+      } catch (err) {
+        logError('UnderstandScreen.loadAdherence', err);
         setAdherence(null);
       }
 
@@ -514,7 +522,8 @@ export default function UnderstandScreen() {
           }))
         );
         setProviderPrep(prep);
-      } catch {
+      } catch (err) {
+        logError('UnderstandScreen.loadProviderPrep', err);
         setProviderPrep(null);
       }
     } catch (error) {
@@ -590,8 +599,8 @@ export default function UnderstandScreen() {
           {/* Header */}
           <ScreenHeader
             title="Insights"
-            subtitle={periodLabel}
-            purpose="Patterns and trends over time."
+            subtitle={`${timeRange}-day trends for ${patientName}`}
+            purpose="What the patterns tell us, and what to bring up at the next visit."
             rightAction={
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 {pageData && !pageData.isSampleData && pageData.daysOfData >= 7 && (
@@ -633,16 +642,24 @@ export default function UnderstandScreen() {
                 Keep tracking — patterns emerge after a few days.{'\n'}
                 You've logged <Text style={{ color: colors.accent, fontWeight: '600' }}>{pageData.daysOfData} day{pageData.daysOfData !== 1 ? 's' : ''}</Text> so far.
               </Text>
+              <Text style={[styles.dataBuildingSubtitle, { marginTop: 8, fontSize: 11 }]}>
+                At 7 days: weekly mood and sleep trends.{'\n'}
+                At 14 days: medication adherence patterns and visit prep.
+              </Text>
             </View>
           )}
 
-          {/* ═══ SECTION 1: AI SUMMARY ═══ */}
-          {pageData.daysOfData >= 7 && (() => {
-            const summaryText = generatePlainLanguageSummary(pageData, selectedRange);
+          {/* ═══ SECTION 1: THIS WEEK'S PULSE (AI SUMMARY) ═══ */}
+          {pageData && pageData.daysOfData >= 7 && (() => {
+            const summaryText = generatePlainLanguageSummary(pageData, timeRange);
             if (!summaryText) return null;
             return (
               <View style={styles.aiSummarySection}>
-                <Text style={styles.aiSummaryLabel}>{'\u2728'} {selectedRange}-day summary</Text>
+                <Text style={styles.sectionLabel}>This week's pulse</Text>
+                <Text style={styles.sectionContext}>
+                  An overall read on how {patientName}'s care is going. Higher is better.
+                </Text>
+                <Text style={styles.aiSummaryLabel}>{'\u2728'} {timeRange}-day summary</Text>
                 <Text style={styles.aiSummaryText}>{summaryText}</Text>
                 <Text style={styles.aiSummaryDisclaimer}>For informational purposes only · Not a diagnosis</Text>
               </View>
@@ -654,8 +671,8 @@ export default function UnderstandScreen() {
           {/* ═══ SECTION 2: CORRELATIONS FOUND ═══ */}
           {correlationCards.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Correlations Found</Text>
-              <Text style={styles.sectionSublabel}>Patterns across your health data that may be connected</Text>
+              <Text style={styles.sectionLabel}>EmberMate noticed</Text>
+              <Text style={styles.sectionSublabel}>Patterns worth mentioning at the next appointment.</Text>
 
               {correlationCards.map((card, i) => {
                 const sev = SEVERITY[correlationSeverity(card)];
@@ -744,7 +761,10 @@ export default function UnderstandScreen() {
           {/* ═══ SECTION 3: DATA GAPS ═══ */}
           {dataGaps.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Data Gaps</Text>
+              <Text style={styles.sectionLabel}>Missing data</Text>
+              <Text style={styles.sectionContext}>
+                What we can't track yet. More data means better insights.
+              </Text>
 
               {dataGaps.map((gap, i) => (
                 <View key={i} style={styles.dataGapCard}>
@@ -765,9 +785,9 @@ export default function UnderstandScreen() {
 
           {/* ═══ REPORTS ═══ */}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Reports</Text>
+            <View style={{ marginTop: 16 }} />
             {[
-              { key: 'provider', title: 'Provider prep', subtitle: 'Auto-generated appointment summary', icon: '🩺' },
+              { key: 'provider', title: 'Visit prep', subtitle: `Generate a summary to bring to ${patientName}'s next appointment.`, icon: '🩺' },
               { key: 'care', title: 'Care report', subtitle: 'Full PDF with trends and patterns', icon: '📋' },
               { key: 'medication', title: 'Medication report', subtitle: 'Adherence history and side effects', icon: '💊' },
             ].map((report) => (
@@ -780,6 +800,10 @@ export default function UnderstandScreen() {
                 <TouchableOpacity
                   style={styles.reportShareBtn}
                   onPress={async () => {
+                    if (report.key === 'provider') {
+                      navigate('/visit-prep');
+                      return;
+                    }
                     try {
                       setShareToastVisible(true);
                       await Share.share({ message: `${report.title} — Generated by EmberMate` });
@@ -797,7 +821,10 @@ export default function UnderstandScreen() {
           {/* ═══ SECTION 4: VITALS DASHBOARD ═══ */}
           {vitalTiles.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Vitals {'\u00B7'} {timeRange} days</Text>
+              <Text style={styles.sectionLabel}>Vitals this week</Text>
+              <Text style={styles.sectionContext}>
+                Key numbers averaged over the last {timeRange} days.
+              </Text>
 
               <View style={styles.vitalsGrid}>
                 {vitalTiles.map((v, i) => (
@@ -829,7 +856,10 @@ export default function UnderstandScreen() {
           {/* ═══ SECTION 5: MEDICATION ADHERENCE ═══ */}
           {adherence && adherence.total > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Medication Adherence</Text>
+              <Text style={styles.sectionLabel}>Medication adherence</Text>
+              <Text style={styles.sectionContext}>
+                How consistently meds are being taken as scheduled.
+              </Text>
 
               <View style={styles.adherenceCard}>
                 <View style={styles.adherenceHeader}>
@@ -964,15 +994,21 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    letterSpacing: 1.5,
+    letterSpacing: 0.5,
     color: c.textMuted,
-    textTransform: 'uppercase',
+    // Rule 3: sentence case, not ALL CAPS
     marginBottom: 6,
   },
   sectionSublabel: {
     fontSize: 12,
     color: c.textTertiary,
     marginBottom: 14,
+  },
+  sectionContext: {
+    fontSize: 11,
+    color: '#4a5a6a',
+    marginTop: 2,
+    marginBottom: 10,
   },
 
   // ─── CARE SCORE ───
@@ -1083,7 +1119,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: 4,
   },
   metricPillText: {
-    fontSize: 10,
+    // 10 → 11 for a11y label minimum. Pill paddingVertical 2 absorbs the
+    // glyph height bump.
+    fontSize: 11,
     color: c.textMuted,
   },
   correlationTitleRow: {

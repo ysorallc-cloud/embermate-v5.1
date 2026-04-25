@@ -12,17 +12,10 @@ const insightsPath = path.resolve(__dirname, '../../app/(tabs)/understand.tsx');
 const insightsContent = fs.readFileSync(insightsPath, 'utf-8');
 
 describe('Cross-tab navigation (Journal → Insights)', () => {
-  it('pattern card on Journal shows "View trend on Insights" link', () => {
-    expect(journalContent).toContain('View trend on Insights');
-    expect(journalContent).toContain('patternTrendLink');
-    expect(journalContent).toContain('patternTrendLinkText');
-  });
-
-  it('tapping pattern navigates to Insights with focusTrend param', () => {
-    expect(journalContent).toContain('focusTrend=');
-    expect(journalContent).toContain('/(tabs)/understand?focusTrend=');
-  });
-
+  // The Journal pattern card's "View trend on Insights" link was removed in
+  // the flat redesign (JOURNAL_FLAT_REDESIGN.md Phase 5). Pattern rows are
+  // now plain "title: context" lines that expand to a single action label.
+  // Insights still reads `focusTrend` for navigation from elsewhere.
   it('Insights tab reads focusTrend param', () => {
     expect(insightsContent).toContain('useLocalSearchParams');
     expect(insightsContent).toContain('focusTrend');

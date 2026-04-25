@@ -1,14 +1,13 @@
 // ============================================================================
 // LOG MORNING WELLNESS CHECK
-// Consolidated compact layout: horizontal emoji rows + 2-column grids
+// Step-by-step wizard: one question per step, auto-advance on tap
 // ============================================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Alert,
   KeyboardAvoidingView,
@@ -64,8 +63,13 @@ const DECISION_MAKING_OPTIONS = [
   { value: 'unable-to-decide', emoji: '⚠️', label: 'Unable to Decide' },
 ] as const;
 
-// Progress dots: 5 sections total (sleep, mood, energy, orientation, decision)
-const TOTAL_SECTIONS = 5;
+const STEPS = [
+  { key: 'sleep', title: 'How did she sleep?', required: true },
+  { key: 'mood', title: "How's her mood?", required: true },
+  { key: 'energy', title: 'Energy level?', required: false },
+  { key: 'orientation', title: 'Orientation', required: false },
+  { key: 'decision', title: 'Decision making', required: false },
+] as const;
 
 export default function LogMorningWellnessScreen() {
   const { colors } = useTheme();
@@ -77,16 +81,9 @@ export default function LogMorningWellnessScreen() {
   const [orientation, setOrientation] = useState<'alert-oriented' | 'confused-responsive' | 'disoriented' | 'unresponsive' | null>(null);
   const [decisionMaking, setDecisionMaking] = useState<'own-decisions' | 'needs-guidance' | 'unable-to-decide' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
 
   const canSubmit = sleepQuality !== null && mood !== null && energyLevel !== null;
-
-  // Count filled sections for progress dots
-  const filledCount =
-    (sleepQuality !== null ? 1 : 0) +
-    (mood !== null ? 1 : 0) +
-    (energyLevel !== null ? 1 : 0) +
-    (orientation !== null ? 1 : 0) +
-    (decisionMaking !== null ? 1 : 0);
 
   const handleSkip = async () => {
     Alert.alert(
@@ -126,7 +123,12 @@ export default function LogMorningWellnessScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit || isSubmitting) return;
+    if (!canSubmit || isSubmitting) {
+      if (!canSubmit) {
+        Alert.alert('Missing info', 'Please answer sleep, mood, and energy to save.');
+      }
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -160,6 +162,74 @@ export default function LogMorningWellnessScreen() {
     }
   };
 
+  const advanceStep = useCallback(() => {
+    setCurrentStep(prev => {
+      if (prev < STEPS.length - 1) {
+        return prev + 1;
+      }
+      // Last step — trigger save
+      handleSubmit();
+      return prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sleepQuality, mood, energyLevel, orientation, decisionMaking, isSubmitting]);
+
+  const goBack = useCallback(() => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+    } else {
+      navigateBack();
+    }
+  }, [currentStep]);
+
+  const renderEmojiRow = <T extends string | number>(
+    options: ReadonlyArray<{ value: T; emoji: string; label: string }>,
+    selected: T | null,
+    onSelect: (value: T) => void,
+    labelPrefix: string,
+  ) => (
+    <View style={styles.emojiWizardRow}>
+      {options.map((option) => {
+        const isSelected = selected === option.value;
+        return (
+          <TouchableOpacity
+            key={String(option.value)}
+            style={styles.emojiWizardItem}
+            onPress={() => {
+              onSelect(option.value);
+              setTimeout(advanceStep, 300);
+            }}
+            accessibilityLabel={`${labelPrefix}: ${option.label}`}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isSelected }}
+          >
+            <View style={[styles.emojiCircle, isSelected && styles.emojiCircleSelected]}>
+              <Text style={styles.emojiIcon}>{option.emoji}</Text>
+            </View>
+            <Text style={styles.emojiLabel}>{option.label}</Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+
+  const renderSleepStep = () =>
+    renderEmojiRow(SLEEP_OPTIONS, sleepQuality, (v) => setSleepQuality(v), 'Sleep quality');
+
+  const renderMoodStep = () =>
+    renderEmojiRow(MOOD_OPTIONS, mood, (v) => setMood(v), 'Mood');
+
+  const renderEnergyStep = () =>
+    renderEmojiRow(ENERGY_OPTIONS, energyLevel, (v) => setEnergyLevel(v), 'Energy level');
+
+  const renderOrientationStep = () =>
+    renderEmojiRow(ORIENTATION_OPTIONS, orientation, (v) => setOrientation(v), 'Orientation');
+
+  const renderDecisionStep = () =>
+    renderEmojiRow(DECISION_MAKING_OPTIONS, decisionMaking, (v) => setDecisionMaking(v), 'Decision making');
+
+  const step = STEPS[currentStep];
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
@@ -170,7 +240,7 @@ export default function LogMorningWellnessScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigateBack()}
+            onPress={goBack}
             accessibilityLabel="Go back"
             accessibilityRole="button"
           >
@@ -182,217 +252,53 @@ export default function LogMorningWellnessScreen() {
             accessibilityLabel="Skip morning wellness check"
             accessibilityRole="button"
           >
-            <Text style={styles.skipText}>Skip</Text>
+            <Text style={styles.headerSkipText}>Skip</Text>
           </TouchableOpacity>
         </View>
 
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={100}>
-        <ScrollView
-          style={styles.content}
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Progress Dots */}
-          <View style={styles.progressRow}>
-            {Array.from({ length: TOTAL_SECTIONS }).map((_, i) => (
+          {/* Segmented progress bar */}
+          <View style={styles.progressBar}>
+            {STEPS.map((_, i) => (
               <View
                 key={i}
                 style={[
-                  styles.progressDot,
-                  i < filledCount && styles.progressDotActive,
+                  styles.progressSegment,
+                  i <= currentStep && styles.progressSegmentActive,
                 ]}
               />
             ))}
           </View>
 
-          {/* Sleep Quality — compact card, horizontal emoji row */}
-          <View style={styles.compactCard}>
-            <View style={styles.compactHeader}>
-              <Text style={styles.compactTitle}>Sleep quality</Text>
-              <View style={styles.requiredBadge}>
-                <Text style={styles.requiredBadgeText}>Required</Text>
-              </View>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.emojiRow}>
-                {SLEEP_OPTIONS.map((option) => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.emojiOption,
-                      sleepQuality === option.value && styles.emojiOptionSelected,
-                    ]}
-                    onPress={() => setSleepQuality(option.value)}
-                    accessibilityLabel={`Sleep quality: ${option.label}`}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: sleepQuality === option.value }}
-                  >
-                    <Text style={styles.emojiIcon}>{option.emoji}</Text>
-                    <Text style={[
-                      styles.emojiLabel,
-                      sleepQuality === option.value && styles.emojiLabelSelected,
-                    ]}>
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-
-          {/* Mood — compact card, horizontal emoji row */}
-          <View style={styles.compactCard}>
-            <View style={styles.compactHeader}>
-              <Text style={styles.compactTitle}>How are they feeling?</Text>
-              <View style={styles.requiredBadge}>
-                <Text style={styles.requiredBadgeText}>Required</Text>
-              </View>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.emojiRow}>
-                {MOOD_OPTIONS.map((option) => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.emojiOption,
-                      mood === option.value && styles.emojiOptionSelected,
-                    ]}
-                    onPress={() => setMood(option.value)}
-                    accessibilityLabel={`Mood: ${option.label}`}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: mood === option.value }}
-                  >
-                    <Text style={styles.emojiIcon}>{option.emoji}</Text>
-                    <Text style={[
-                      styles.emojiLabel,
-                      mood === option.value && styles.emojiLabelSelected,
-                    ]}>
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-
-          {/* Energy Level — compact card, 2-column grid */}
-          <View style={styles.compactCard}>
-            <View style={styles.compactHeader}>
-              <Text style={styles.compactTitle}>Energy level</Text>
-              <View style={styles.requiredBadge}>
-                <Text style={styles.requiredBadgeText}>Required</Text>
-              </View>
-            </View>
-            <View style={styles.radioGrid}>
-              {ENERGY_OPTIONS.map((option, i) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.radioOption,
-                    energyLevel === option.value && styles.radioOptionSelected,
-                    // Last odd item spans 2 columns
-                    i === ENERGY_OPTIONS.length - 1 && ENERGY_OPTIONS.length % 2 !== 0 && styles.radioOptionSpan,
-                  ]}
-                  onPress={() => setEnergyLevel(option.value)}
-                  accessibilityLabel={`Energy level: ${option.label}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: energyLevel === option.value }}
-                >
-                  <Text style={[
-                    styles.radioText,
-                    energyLevel === option.value && styles.radioTextSelected,
-                  ]}>
-                    {option.emoji} {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Orientation — always visible, Optional badge */}
-          <View style={styles.compactCard}>
-            <View style={styles.compactHeader}>
-              <Text style={styles.compactTitle}>Orientation</Text>
-              <View style={styles.optionalBadge}>
-                <Text style={styles.optionalBadgeText}>Optional</Text>
-              </View>
-            </View>
-            <View style={styles.radioGrid}>
-              {ORIENTATION_OPTIONS.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.radioOption,
-                    orientation === option.value && styles.radioOptionSelected,
-                  ]}
-                  onPress={() => setOrientation(orientation === option.value ? null : option.value)}
-                  accessibilityLabel={`Orientation: ${option.label}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: orientation === option.value }}
-                >
-                  <Text style={[
-                    styles.radioText,
-                    orientation === option.value && styles.radioTextSelected,
-                  ]}>
-                    {option.emoji} {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Decision Making — always visible, Optional badge */}
-          <View style={styles.compactCard}>
-            <View style={styles.compactHeader}>
-              <Text style={styles.compactTitle}>Decision making</Text>
-              <View style={styles.optionalBadge}>
-                <Text style={styles.optionalBadgeText}>Optional</Text>
-              </View>
-            </View>
-            <View style={styles.radioGrid}>
-              {DECISION_MAKING_OPTIONS.map((option, i) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.radioOption,
-                    decisionMaking === option.value && styles.radioOptionSelected,
-                    // Last odd item spans 2 columns
-                    i === DECISION_MAKING_OPTIONS.length - 1 && DECISION_MAKING_OPTIONS.length % 2 !== 0 && styles.radioOptionSpan,
-                  ]}
-                  onPress={() => setDecisionMaking(decisionMaking === option.value ? null : option.value)}
-                  accessibilityLabel={`Decision making: ${option.label}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: decisionMaking === option.value }}
-                >
-                  <Text style={[
-                    styles.radioText,
-                    decisionMaking === option.value && styles.radioTextSelected,
-                  ]}>
-                    {option.emoji} {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </ScrollView>
-        </KeyboardAvoidingView>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={!canSubmit || isSubmitting}
-            accessibilityLabel={isSubmitting ? 'Saving wellness check' : 'Complete morning wellness check'}
-            accessibilityHint="Saves morning wellness check answers"
-            accessibilityRole="button"
-            accessibilityState={{ disabled: !canSubmit || isSubmitting }}
-          >
-            <Text style={styles.submitButtonText}>
-              {isSubmitting ? 'Saving...' : 'Complete Check'}
+          {/* Active step */}
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>{step.title}</Text>
+            <Text style={styles.stepHint}>
+              {step.required ? 'Tap one' : 'Optional — tap or skip'}
             </Text>
-          </TouchableOpacity>
-        </View>
+
+            {currentStep === 0 && renderSleepStep()}
+            {currentStep === 1 && renderMoodStep()}
+            {currentStep === 2 && renderEnergyStep()}
+            {currentStep === 3 && renderOrientationStep()}
+            {currentStep === 4 && renderDecisionStep()}
+
+            {!step.required && (
+              <TouchableOpacity
+                style={styles.skipButton}
+                onPress={advanceStep}
+                accessibilityLabel="Skip this step"
+                accessibilityRole="button"
+              >
+                <Text style={styles.skipStepText}>Skip this step →</Text>
+              </TouchableOpacity>
+            )}
+
+            {isSubmitting && (
+              <Text style={styles.savingText}>Saving...</Text>
+            )}
+          </View>
+        </KeyboardAvoidingView>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -433,163 +339,99 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '600',
     color: c.textPrimary,
   },
-  skipText: {
+  headerSkipText: {
     fontSize: 16,
     color: c.textMuted,
   },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-  },
 
-  // Progress dots
-  progressRow: {
+  // Segmented progress bar
+  progressBar: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 4,
-    marginBottom: 16,
+    gap: 3,
+    marginTop: 20,
+    marginBottom: 24,
+    paddingHorizontal: 20,
   },
-  progressDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  progressSegment: {
+    flex: 1,
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 2,
   },
-  progressDotActive: {
-    width: 20,
-    borderRadius: 3,
+  progressSegmentActive: {
     backgroundColor: c.accent,
   },
 
-  // Compact card sections
-  compactCard: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-  },
-  compactHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  // Step container
+  stepContainer: {
+    flex: 1,
     alignItems: 'center',
-    marginBottom: 12,
+    paddingTop: 40,
+    paddingHorizontal: 20,
   },
-  compactTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: c.textPrimary,
+  stepTitle: {
+    fontSize: 22,
+    fontWeight: '300',
+    color: c.textWarmPrimary,
+    marginBottom: 6,
+    textAlign: 'center',
   },
-  requiredBadge: {
-    backgroundColor: 'rgba(251,191,36,0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+  stepHint: {
+    fontSize: 13,
+    color: c.textWarmHint,
+    marginBottom: 32,
+    textAlign: 'center',
   },
-  requiredBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FBBF24',
-    textTransform: 'uppercase',
+  skipButton: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    marginTop: 24,
   },
-  optionalBadge: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+  skipStepText: {
+    fontSize: 13,
+    color: c.textWarmHint,
   },
-  optionalBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.5)',
+  savingText: {
+    marginTop: 24,
+    fontSize: 13,
+    color: c.textWarmHint,
   },
 
-  // Horizontal emoji row
-  emojiRow: {
+  // Wizard emoji row (circular tap targets)
+  emojiWizardRow: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
-  emojiOption: {
-    minWidth: 60,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+  emojiWizardItem: {
     alignItems: 'center',
+    marginHorizontal: 4,
+    marginVertical: 8,
+    width: 72,
   },
-  emojiOptionSelected: {
-    backgroundColor: 'rgba(20,184,166,0.2)',
-    borderColor: c.accent,
+  emojiCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: c.warmSurface,
+    borderWidth: 1,
+    borderColor: c.warmSurfaceBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emojiCircleSelected: {
+    backgroundColor: 'rgba(52, 211, 153, 0.08)',
+    borderColor: 'rgba(52, 211, 153, 0.3)',
+    borderWidth: 1.5,
   },
   emojiIcon: {
-    fontSize: 28,
-    marginBottom: 4,
+    fontSize: 26,
   },
   emojiLabel: {
     fontSize: 10,
-    color: 'rgba(255,255,255,0.6)',
-  },
-  emojiLabelSelected: {
-    color: c.accent,
-    fontWeight: '600',
-  },
-
-  // 2-column radio grid
-  radioGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  radioOption: {
-    width: '48.5%',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-  },
-  radioOptionSelected: {
-    backgroundColor: 'rgba(20,184,166,0.2)',
-    borderColor: c.accent,
-  },
-  radioOptionSpan: {
-    width: '100%',
-  },
-  radioText: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.85)',
-  },
-  radioTextSelected: {
-    color: c.accent,
-    fontWeight: '600',
-  },
-
-  // Footer
-  footer: {
-    padding: 20,
-    paddingBottom: 24,
-    borderTopWidth: 1,
-    borderTopColor: c.border,
-  },
-  submitButton: {
-    paddingVertical: 16,
-    backgroundColor: c.accent,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  submitButtonDisabled: {
-    backgroundColor: c.borderStrong,
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: c.textPrimary,
+    color: c.textWarmHint,
+    marginTop: 6,
+    textAlign: 'center',
   },
 });

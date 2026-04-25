@@ -1,5 +1,5 @@
 // Functional vitals logging
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,7 +7,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
-import { saveVital } from '../utils/vitalsStorage';
+import { saveVital, getLatestVitals } from '../utils/vitalsStorage';
 import { saveVitalsLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage';
@@ -63,6 +63,25 @@ export default function LogVitalsScreen() {
   const [saving, setSaving] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [progress, setProgress] = useState<TodayProgress | null>(null);
+  // Phase 1B — smart defaults from last reading
+  const [prevVitals, setPrevVitals] = useState<Record<string, { value: number; date: string }>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const latest = await getLatestVitals();
+      if (cancelled) return;
+      setPrevVitals(latest);
+      if (latest.systolic) setSystolic(String(latest.systolic.value));
+      if (latest.diastolic) setDiastolic(String(latest.diastolic.value));
+      if (latest.heartRate) setHeartRate(String(latest.heartRate.value));
+      if (latest.oxygen) setOxygen(String(latest.oxygen.value));
+      if (latest.temperature) setTemperature(String(latest.temperature.value));
+      if (latest.glucose) setGlucose(String(latest.glucose.value));
+      if (latest.weight) setWeight(String(latest.weight.value));
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Validation
   const validations = {
@@ -198,6 +217,11 @@ export default function LogVitalsScreen() {
                 {!validations.systolic.error && !validations.diastolic.error && (validations.systolic.warning || validations.diastolic.warning) && (
                   <Text style={styles.validationWarning}>{validations.systolic.warning || validations.diastolic.warning}</Text>
                 )}
+                {(prevVitals.systolic || prevVitals.diastolic) && (
+                  <Text style={styles.lastReading}>
+                    Last: {prevVitals.systolic?.value ?? '—'}/{prevVitals.diastolic?.value ?? '—'} on {prevVitals.systolic?.date || prevVitals.diastolic?.date}
+                  </Text>
+                )}
               </View>
 
               <View style={styles.formGroup}>
@@ -208,6 +232,9 @@ export default function LogVitalsScreen() {
                 </View>
                 {validations.heartRate.error && <Text style={styles.validationError}>{validations.heartRate.error}</Text>}
                 {!validations.heartRate.error && validations.heartRate.warning && <Text style={styles.validationWarning}>{validations.heartRate.warning}</Text>}
+                {prevVitals.heartRate && (
+                  <Text style={styles.lastReading}>Last: {prevVitals.heartRate.value} on {prevVitals.heartRate.date}</Text>
+                )}
               </View>
 
               <View style={styles.formGroup}>
@@ -218,6 +245,9 @@ export default function LogVitalsScreen() {
                 </View>
                 {validations.oxygen.error && <Text style={styles.validationError}>{validations.oxygen.error}</Text>}
                 {!validations.oxygen.error && validations.oxygen.warning && <Text style={styles.validationWarning}>{validations.oxygen.warning}</Text>}
+                {prevVitals.oxygen && (
+                  <Text style={styles.lastReading}>Last: {prevVitals.oxygen.value}% on {prevVitals.oxygen.date}</Text>
+                )}
               </View>
 
               <View style={styles.formGroup}>
@@ -228,6 +258,9 @@ export default function LogVitalsScreen() {
                 </View>
                 {validations.temperature.error && <Text style={styles.validationError}>{validations.temperature.error}</Text>}
                 {!validations.temperature.error && validations.temperature.warning && <Text style={styles.validationWarning}>{validations.temperature.warning}</Text>}
+                {prevVitals.temperature && (
+                  <Text style={styles.lastReading}>Last: {prevVitals.temperature.value}{'\u00B0'}F on {prevVitals.temperature.date}</Text>
+                )}
               </View>
 
               <View style={styles.formGroup}>
@@ -238,6 +271,9 @@ export default function LogVitalsScreen() {
                 </View>
                 {validations.glucose.error && <Text style={styles.validationError}>{validations.glucose.error}</Text>}
                 {!validations.glucose.error && validations.glucose.warning && <Text style={styles.validationWarning}>{validations.glucose.warning}</Text>}
+                {prevVitals.glucose && (
+                  <Text style={styles.lastReading}>Last: {prevVitals.glucose.value} mg/dL on {prevVitals.glucose.date}</Text>
+                )}
               </View>
 
               <View style={styles.formGroup}>
@@ -248,6 +284,9 @@ export default function LogVitalsScreen() {
                 </View>
                 {validations.weight.error && <Text style={styles.validationError}>{validations.weight.error}</Text>}
                 {!validations.weight.error && validations.weight.warning && <Text style={styles.validationWarning}>{validations.weight.warning}</Text>}
+                {prevVitals.weight && (
+                  <Text style={styles.lastReading}>Last: {prevVitals.weight.value} lbs on {prevVitals.weight.date}</Text>
+                )}
               </View>
 
               {/* Medical Disclaimer */}
@@ -257,6 +296,18 @@ export default function LogVitalsScreen() {
                   Readings are for personal tracking only. Consult your healthcare provider for clinical decisions.
                 </Text>
               </View>
+
+              {Object.keys(prevVitals).length > 0 && (
+                <TouchableOpacity
+                  style={styles.sameAsLastButton}
+                  onPress={handleSave}
+                  disabled={saving || hasErrors}
+                  accessibilityLabel="Save with same values as last reading"
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.sameAsLastText}>Same as last time</Text>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity style={[styles.saveButton, (saving || hasErrors) && styles.saveButtonDisabled]} onPress={handleSave} disabled={saving || hasErrors} accessibilityLabel={saving ? 'Saving vitals' : hasErrors ? 'Fix invalid values to save' : 'Log vitals'} accessibilityHint="Saves blood pressure, glucose, and weight readings" accessibilityRole="button" accessibilityState={{ disabled: saving || hasErrors }}>
                 <Text style={styles.saveButtonText}>{saving ? 'Saving...' : 'Log Vitals'}</Text>
@@ -339,6 +390,27 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   inputError: { borderColor: 'rgba(239, 68, 68, 0.5)' },
   validationError: { fontSize: 11, color: '#EF4444', marginTop: 4 },
   validationWarning: { fontSize: 11, color: '#F59E0B', marginTop: 4 },
+  // Phase 1 — smart defaults from last reading
+  lastReading: {
+    fontSize: 11,
+    color: c.textWarmDim,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  sameAsLastButton: {
+    backgroundColor: 'rgba(52, 211, 153, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.15)',
+    borderRadius: 10,
+    padding: 13,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sameAsLastText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: c.accent,
+  },
   saveButton: { backgroundColor: c.accent, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 12 },
   saveButtonDisabled: { opacity: 0.5 },
   saveButtonText: { color: c.textPrimary, fontSize: 15, fontWeight: '600' },

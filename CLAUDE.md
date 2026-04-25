@@ -1,5 +1,7 @@
 # EmberMate — Claude Code Project Guide
 
+Read `DESIGN_SYSTEM.md` before modifying any UI component or screen file.
+
 ## Stack
 - **Framework:** React Native 0.76.9 with Expo SDK 52 (expo-router v4)
 - **Language:** TypeScript (strict mode)

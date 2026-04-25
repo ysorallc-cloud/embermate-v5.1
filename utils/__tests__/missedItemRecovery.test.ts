@@ -19,8 +19,12 @@ describe('Missed item recovery action', () => {
     expect(content).toMatch(/isMissed[\s\S]*?TouchableOpacity/);
   });
 
-  test('missed items show "Log Late" text', () => {
-    expect(content).toMatch(/Log Late|Log late|log late/);
+  test('missed items show a "Log" action button', () => {
+    // The "Late" suffix was intentionally removed — it was accusatory and
+    // the overdue state is already surfaced by the red time color. Both
+    // missed-item branches (categoryItemRow + gutter row) render a
+    // `logLateText` styled "Log" label.
+    expect(content).toMatch(/logLateText[^>]*>Log</);
   });
 
   test('missed items call onItemPress on tap', () => {

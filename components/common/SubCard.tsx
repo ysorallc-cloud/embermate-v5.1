@@ -222,22 +222,36 @@ export const SubCard: React.FC<SubCardProps> = ({
 // ============================================================================
 
 /**
+ * Hook that each subcomponent calls to get the themed styles.
+ * Keeps theme reactivity consistent with the rest of the codebase —
+ * the module-level `Colors` singleton is NOT used because it won't
+ * trigger re-renders on theme change.
+ */
+function useSubCardStyles() {
+  const { colors } = useTheme();
+  return useMemo(() => createStyles(colors), [colors]);
+}
+
+/**
  * Standard leading icon container
  */
 export const SubCardIcon: React.FC<{
   emoji?: string;
   icon?: React.ReactNode;
   backgroundColor?: string;
-}> = ({ emoji, icon, backgroundColor }) => (
-  <View
-    style={[
-      styles.iconContainer,
-      backgroundColor ? { backgroundColor } : null,
-    ]}
-  >
-    {emoji ? <Text style={styles.iconEmoji}>{emoji}</Text> : icon}
-  </View>
-);
+}> = ({ emoji, icon, backgroundColor }) => {
+  const styles = useSubCardStyles();
+  return (
+    <View
+      style={[
+        styles.iconContainer,
+        backgroundColor ? { backgroundColor } : null,
+      ]}
+    >
+      {emoji ? <Text style={styles.iconEmoji}>{emoji}</Text> : icon}
+    </View>
+  );
+};
 
 /**
  * Standard content block with title and subtitle
@@ -252,32 +266,37 @@ export const SubCardContent: React.FC<{
   subtitle,
   titleColor = Colors.textPrimary,
   subtitleColor = Colors.textSecondary,
-}) => (
-  <>
-    <Text style={[styles.title, { color: titleColor }]}>{title}</Text>
-    {subtitle && (
-      <Text style={[styles.subtitle, { color: subtitleColor }]}>{subtitle}</Text>
-    )}
-  </>
-);
+}) => {
+  const styles = useSubCardStyles();
+  return (
+    <>
+      <Text style={[styles.title, { color: titleColor }]}>{title}</Text>
+      {subtitle && (
+        <Text style={[styles.subtitle, { color: subtitleColor }]}>{subtitle}</Text>
+      )}
+    </>
+  );
+};
 
 /**
  * Arrow trailing indicator
  */
 export const SubCardArrow: React.FC<{ color?: string }> = ({
   color = Colors.textMuted,
-}) => (
-  <Text style={[styles.arrow, { color }]}>→</Text>
-);
+}) => {
+  const styles = useSubCardStyles();
+  return <Text style={[styles.arrow, { color }]}>→</Text>;
+};
 
 /**
  * Checkmark trailing indicator
  */
 export const SubCardCheck: React.FC<{ color?: string }> = ({
   color = Colors.green,
-}) => (
-  <Text style={[styles.check, { color }]}>✓</Text>
-);
+}) => {
+  const styles = useSubCardStyles();
+  return <Text style={[styles.check, { color }]}>✓</Text>;
+};
 
 // ============================================================================
 // STYLES

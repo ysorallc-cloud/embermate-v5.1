@@ -57,7 +57,12 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete, careMode = 'care
       // Only save user-entered name and bucket config for "Start Fresh"
       // When seeding sample data, initializeSampleData() handles all of this
       try {
-        const name = patientName.trim() || 'Patient';
+        // Skip fallback uses the friendly placeholder so downstream consumers
+        // (now.tsx, journal.tsx, understand.tsx) read the same display string
+        // they fall back to anyway. The legacy 'Patient' literal is left in
+        // place only as a backwards-compat filter for installs from earlier
+        // versions of the onboarding flow.
+        const name = patientName.trim() || 'your loved one';
         await AsyncStorage.setItem(StorageKeys.PATIENT_NAME, name);
         await updatePatient('default', { name });
 

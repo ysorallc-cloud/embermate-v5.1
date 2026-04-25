@@ -1,6 +1,6 @@
 /**
  * Tests for TimelineSection window group changes:
- * 1. Colored status dots on window headers (green/amber/red)
+ * 1. Window banner headers with icon, title, count
  * 2. Default collapse based on completion status (not time-of-day)
  */
 import * as fs from 'fs';
@@ -11,52 +11,34 @@ const src = fs.readFileSync(
 );
 
 // ============================================================================
-// Change 1: Colored status dots on window group headers
+// Change 1: Window banner headers
 // ============================================================================
-describe('Window header status dots', () => {
-  test('windowDot style exists with 8px dimensions and circular shape', () => {
-    const dotMatch = src.match(/windowDot:\s*\{[^}]+\}/);
-    expect(dotMatch).not.toBeNull();
-    const block = dotMatch![0];
-    expect(block).toContain('width: 8');
-    expect(block).toContain('height: 8');
-    expect(block).toContain('borderRadius: 4');
+describe('Window banner headers', () => {
+  test('windowBanner style exists with background and padding', () => {
+    const bannerMatch = src.match(/windowBanner:\s*\{[^}]+\}/);
+    expect(bannerMatch).not.toBeNull();
+    const block = bannerMatch![0];
+    expect(block).toContain('backgroundColor');
+    expect(block).toContain('borderRadius');
+    expect(block).toContain('paddingHorizontal');
   });
 
-  test('three dot color variants exist (green, amber, red)', () => {
-    expect(src).toContain('windowDotGreen:');
-    expect(src).toContain('windowDotAmber:');
-    expect(src).toContain('windowDotRed:');
+  test('windowBannerTitle and windowBannerCount styles exist', () => {
+    expect(src).toContain('windowBannerTitle:');
+    expect(src).toContain('windowBannerCount:');
   });
 
-  test('window header renders a windowDot View instead of chevron as the first element', () => {
-    // The header should render styles.windowDot, not styles.timeGroupChevron as the leading element
-    // Find the time group header render block
-    const headerBlock = src.match(
-      /style=\{[\s\S]*?timeGroupHeader[\s\S]*?<\/TouchableOpacity>/
-    );
-    expect(headerBlock).not.toBeNull();
-    const block = headerBlock![0];
-    // Should contain windowDot
-    expect(block).toContain('windowDot');
+  test('window header renders banner with icon, title, and count', () => {
+    // The header should render windowBanner, windowIcon, windowBannerTitle, windowBannerCount
+    expect(src).toContain('styles.windowBanner');
+    expect(src).toContain('styles.windowIcon');
+    expect(src).toContain('styles.windowBannerTitle');
+    expect(src).toContain('styles.windowBannerCount');
   });
 
-  test('dot color is computed from window items: green when all done, red when overdue/missed, amber otherwise', () => {
-    expect(src).toContain('windowDotGreen');
-    expect(src).toContain('windowDotAmber');
-    expect(src).toContain('windowDotRed');
-    // Should reference isOverdue or overdue check for red determination
-    expect(src).toMatch(/hasOverdue|isOverdue/);
-    // Missed items should make dot red, not green
-    expect(src).toContain('hasMissedItems');
-  });
-
-  test('missed items prevent green dot and default collapse', () => {
-    // allDone must exclude missed status — green only for completed/skipped
-    const allDoneMatch = src.match(/const allDone = !hasMissedItems && items\.every/);
-    expect(allDoneMatch).not.toBeNull();
-    // hasOverdueItems includes hasMissedItems
-    expect(src).toMatch(/const hasOverdueItems = hasMissedItems \|\|/);
+  test('banner count shows remaining or Complete check', () => {
+    expect(src).toContain('remaining');
+    expect(src).toMatch(/Complete.*\\u2713|Complete.*✓/);
   });
 });
 
@@ -75,13 +57,13 @@ describe('Window default collapse based on completion', () => {
   });
 
   test('collapsed state is computed from item completion status', () => {
-    // The initializer should check if all items in a window are completed/skipped/missed
+    // The initializer should check if all items in a window are completed/skipped
     const stateInit = src.match(
       /const \[collapsedWindows, setCollapsedWindows\] = useState[\s\S]*?\)\);/
     );
     expect(stateInit).not.toBeNull();
     const initBlock = stateInit![0];
-    // Should reference status checks for completed/skipped/missed or allDone
+    // Should reference status checks for completed/skipped or allDone
     expect(initBlock).toMatch(/completed|skipped|allDone|every/);
   });
 
@@ -98,10 +80,8 @@ describe('Window default collapse based on completion', () => {
     expect(pendingSize![1]).toBe(doneSize![1]);
   });
 
-  test('chevron is removed — dot + label + count is sufficient', () => {
-    // No chevron render in JSX (the ▶/▼ Text element was deleted)
-    expect(src).not.toMatch(/\\u25B6|\\u25BC/);
-    // TouchableOpacity wrapper still exists for tap-to-toggle
+  test('tap-to-toggle still works via TouchableOpacity', () => {
     expect(src).toContain('toggleWindow(window)');
+    expect(src).toContain('TouchableOpacity');
   });
 });

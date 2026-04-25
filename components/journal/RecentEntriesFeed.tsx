@@ -70,7 +70,7 @@ export function RecentEntriesFeed({ entries, loading, activeFilter }: Props) {
     <View style={styles.container}>
       {todayEntries.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionHeader}>TODAY</Text>
+          <Text style={styles.sectionHeader}>Today</Text>
           {todayEntries.map(entry => (
             <RecentEntryCard key={entry.id} entry={entry} onPress={handlePress} />
           ))}

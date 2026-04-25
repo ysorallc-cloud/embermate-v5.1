@@ -100,6 +100,9 @@ const BUCKET_CONFIG_ROUTES: Record<BucketType, string> = {
   activity: '/care-plan/activity',
   wellness: '/log-morning-wellness',
   appointments: '/appointments',
+  errands: '/care-plan/errands',
+  shifts: '/care-plan/shifts',
+  self_care: '/care-plan/self-care',
 };
 
 // Placeholder config for unconfigured buckets

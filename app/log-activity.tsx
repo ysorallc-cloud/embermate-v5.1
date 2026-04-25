@@ -11,6 +11,9 @@ import {
   StyleSheet,
   TextInput,
   Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
@@ -94,6 +97,8 @@ export default function LogActivityScreen() {
       <AuroraBackground variant="log" />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+        <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -180,6 +185,8 @@ export default function LogActivityScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+        </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
   );

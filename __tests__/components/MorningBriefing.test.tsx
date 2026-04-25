@@ -12,12 +12,15 @@ jest.mock('react-native', () => ({
   Platform: { OS: 'ios', select: (obj: any) => obj.ios || obj.default },
 }));
 
-// Mock React's useState for node env (no renderer)
+// Mock React's hooks for node env (no renderer)
 jest.mock('react', () => {
   const actualReact = jest.requireActual('react');
   return {
     ...actualReact,
-    useState: (initial: any) => [initial, jest.fn()],
+    useState: (initial: any) => [typeof initial === 'function' ? initial() : initial, jest.fn()],
+    useMemo: (fn: () => any) => fn(),
+    useEffect: () => {},
+    useCallback: (fn: any) => fn,
   };
 });
 
@@ -27,6 +30,36 @@ jest.mock('../../utils/baselineStorage', () => ({
     adverb: confidence === 'confident' ? 'typically' : 'usually',
     verb: 'seems',
   })),
+}));
+
+// Mock ThemeContext (MorningBriefing calls useTheme())
+jest.mock('../../contexts/ThemeContext', () => ({
+  useTheme: () => ({
+    colors: {
+      background: '#000',
+      textPrimary: '#fff',
+      textSecondary: '#aaa',
+      textMuted: '#666',
+      textTertiary: '#444',
+      accent: '#14b8a6',
+      glassFaint: 'rgba(255,255,255,0.05)',
+      glassHover: 'rgba(255,255,255,0.1)',
+      glassActive: 'rgba(255,255,255,0.15)',
+      green: '#10b981',
+      amber: '#f59e0b',
+      amberBright: '#fbbf24',
+      red: '#ef4444',
+      redBright: '#f87171',
+      textBright: '#e2e8f0',
+    },
+    isDark: true,
+  }),
+}));
+
+// Mock caregiverWellnessStorage (used by MorningBriefing for caregiver self-check)
+jest.mock('../../utils/caregiverWellnessStorage', () => ({
+  getTodayCheck: jest.fn().mockResolvedValue(null),
+  saveDailyCheck: jest.fn().mockResolvedValue(undefined),
 }));
 
 import { MorningBriefing, MorningBriefingProps } from '../../components/prompts/MorningBriefing';
