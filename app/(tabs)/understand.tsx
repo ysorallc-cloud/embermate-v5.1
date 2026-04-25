@@ -630,6 +630,10 @@ export default function UnderstandScreen() {
                 Start logging medications, vitals, or mood from the Now tab.{'\n'}
                 Insights and patterns will appear here after a few days of tracking.
               </Text>
+              <Text style={[styles.dataBuildingSubtitle, { marginTop: 8, fontSize: 11 }]}>
+                At 7 days: weekly mood and sleep trends.{'\n'}
+                At 14 days: medication adherence patterns and visit prep.
+              </Text>
             </View>
           )}
 

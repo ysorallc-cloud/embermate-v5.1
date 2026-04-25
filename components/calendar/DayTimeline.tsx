@@ -290,7 +290,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   gridItem: {
     width: '48%',
-    backgroundColor: 'rgba(4,36,32,0.6)',
+    backgroundColor: c.glass,
     borderRadius: 10,
     padding: 10,
   },

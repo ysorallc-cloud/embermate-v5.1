@@ -97,7 +97,7 @@ export async function analyzeMedicationAdherence(lookbackDays: number = 7): Prom
             unit: 'doses',
             percentage: Math.round(adherenceRate),
           },
-          context: `You've taken ${takenDoses} of ${totalExpectedDoses} scheduled doses in the last ${lookbackDays} days.`,
+          context: `Only ${takenDoses} of ${totalExpectedDoses} scheduled doses taken in the last ${lookbackDays} days. Missed doses at this rate can cause BP and blood-sugar swings. Worth checking whether reminder timing or side effects are the blocker.`,
           whyItMatters: 'Taking all doses consistently helps manage your health conditions effectively. Missing doses can lead to fluctuations in blood pressure and blood sugar levels.',
           actions: [
             {
@@ -179,8 +179,8 @@ export async function analyzeMedicationAdherence(lookbackDays: number = 7): Prom
         percentage: Math.round(adherenceRate),
       },
       context: mostMissedDay
-        ? `You're missing doses most often on ${mostMissedDay}.`
-        : `You've taken ${takenDoses} of ${totalExpectedDoses} doses this week.`,
+        ? `Doses are missed most often on ${mostMissedDay}. A recurring pattern like this suggests a scheduling conflict. Consider shifting reminder times for that day.`
+        : `Only ${takenDoses} of ${totalExpectedDoses} doses taken this week. Gaps in adherence can reduce medication effectiveness. Try adjusting reminder timing or ask about side effects at the next visit.`,
       whyItMatters: 'Taking all doses consistently helps manage your health conditions effectively. Missing doses can lead to fluctuations in blood pressure and blood sugar levels.',
       pattern: mostMissedDay ? `Most missed on ${mostMissedDay}` : undefined,
       actions: [
@@ -268,8 +268,8 @@ export async function analyzeBloodPressureTrends(): Promise<InsightData | null> 
         percentage: undefined,
       },
       context: avgDiastolic > 0
-        ? `Your average blood pressure this week is ${Math.round(avgSystolic)}/${Math.round(avgDiastolic)} mmHg.`
-        : `Your average systolic blood pressure this week is ${Math.round(avgSystolic)} mmHg.`,
+        ? `Average BP this week is ${Math.round(avgSystolic)}/${Math.round(avgDiastolic)} mmHg, above the recommended 130/80 target. Sustained elevation increases cardiovascular risk. Consider mentioning this trend at the next appointment.`
+        : `Average systolic BP this week is ${Math.round(avgSystolic)} mmHg, above the typical target. Sustained elevation increases cardiovascular risk. Consider mentioning this trend at the next appointment.`,
       whyItMatters: hasAdherenceIssue
         ? 'This may be related to missed medication doses. Consistent medication helps control blood pressure.'
         : 'Keeping blood pressure under 130/80 reduces risk of heart attack and stroke.',
@@ -349,7 +349,7 @@ export async function analyzeMoodPatterns(): Promise<InsightData | null> {
         unit: 'days',
         percentage: Math.round(lowMoodPercentage),
       },
-      context: `You've reported lower mood on ${lowMoodDays} of the last ${totalDays} days.`,
+      context: `Lower mood reported on ${lowMoodDays} of the last ${totalDays} days. Persistent low mood can affect medication adherence and daily care quality. Consider discussing this with a healthcare provider or using the You tab breathing exercise.`,
       whyItMatters: 'Persistent low mood can affect medication adherence and overall health. It may be helpful to discuss this with your healthcare provider.',
       pattern: undefined,
       actions: [
@@ -433,7 +433,7 @@ export async function analyzeSleepMoodCorrelation(): Promise<InsightData | null>
         unit: 'days',
         percentage: Math.round(correlationStrength),
       },
-      context: `On ${lowSleepLowMood} of ${complete.length} days, low sleep (under 6 hours) coincided with lower mood.`,
+      context: `On ${lowSleepLowMood} of ${complete.length} tracked days, low sleep coincided with lower mood. Poor rest compounds the emotional weight of caregiving. Even 30 extra minutes of sleep can shift the pattern.`,
       whyItMatters: 'Sleep quality significantly affects mood and energy. Improving sleep may help improve overall wellbeing.',
       pattern: 'Low sleep often precedes lower mood days',
       actions: [
@@ -502,7 +502,7 @@ export async function analyzeHydration(): Promise<InsightData | null> {
         unit: 'glasses per day',
         percentage: Math.round((avgWater / target) * 100),
       },
-      context: `You're averaging ${Math.round(avgWater * 10) / 10} glasses of water per day.`,
+      context: `Averaging ${Math.round(avgWater * 10) / 10} glasses per day, below the 8-glass target. Adequate hydration supports medication absorption and energy. Try keeping a glass visible during care tasks as a reminder.`,
       whyItMatters: 'Staying hydrated helps with energy, medication effectiveness, and overall health. Aim for 8 glasses daily.',
       pattern: undefined,
       actions: [
@@ -757,7 +757,7 @@ export async function analyzeCaregiverCorrelations(): Promise<InsightData | null
         target: 0,
         unit: 'minutes later',
       },
-      context: `On days you sleep poorly, medications tend to be logged ~${delayDiffMinutes} minutes later.`,
+      context: `On low-sleep days, medications are logged ~${delayDiffMinutes} minutes later than usual. Fatigue shifts your routine and can delay time-sensitive doses. Consider setting a backup alarm on rough nights.`,
       whyItMatters: 'Getting enough rest helps you stay on schedule with care tasks. Consider adjusting reminder times on tough days.',
       pattern: 'Low caregiver sleep → later medication logging',
       actions: [

@@ -382,7 +382,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Pattern Card
   patternCard: {
-    backgroundColor: 'rgba(45, 59, 45, 0.3)',
+    backgroundColor: c.glass,
     borderWidth: 1,
     borderColor: 'rgba(212, 165, 116, 0.3)',
     borderLeftWidth: 4,
@@ -422,7 +422,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   patternAction: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(45, 59, 45, 0.5)',
+    backgroundColor: c.glassDim,
     padding: Spacing.md,
     borderRadius: BorderRadius.sm,
     marginBottom: Spacing.md,
@@ -446,7 +446,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   strengthBar: {
     flex: 1,
     height: 6,
-    backgroundColor: 'rgba(45, 59, 45, 0.5)',
+    backgroundColor: c.glassDim,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -481,7 +481,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Chart Placeholder
   chartPlaceholder: {
-    backgroundColor: 'rgba(45, 59, 45, 0.2)',
+    backgroundColor: c.glassFaint,
     borderWidth: 1,
     borderColor: 'rgba(212, 165, 116, 0.2)',
     borderRadius: BorderRadius.lg,

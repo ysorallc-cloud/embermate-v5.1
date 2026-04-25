@@ -13,17 +13,14 @@ const insightSrc = readFileSync(join(__dirname, '../../utils/careInsights.ts'), 
 // ============================================================================
 // INS-1: InsightBanner component
 // ============================================================================
-describe('INS-1: InsightBanner replaced by QuickPulseStatus', () => {
-  test('InsightBanner removed — QuickPulseStatus replaces it', () => {
-    expect(nowSrc).toContain('QuickPulseStatus');
-    expect(nowRender).toContain('<QuickPulseStatus');
+describe('INS-1: InsightBanner replaced by StatRings', () => {
+  test('InsightBanner removed — StatRings replaces it', () => {
+    expect(nowSrc).toContain('StatRings');
+    expect(nowRender).toContain('<StatRings');
   });
 
-  test('QuickPulseStatus renders with tile grid styles', () => {
-    expect(nowSrc).toContain('pulseContainer');
-    expect(nowSrc).toContain('tileGrid');
-    expect(nowSrc).toContain('tileEmoji');
-    expect(nowSrc).toContain('tileLabel');
+  test('StatRings is imported from the now components', () => {
+    expect(nowSrc).toContain("import { StatRings }");
   });
 
   test('overdue callouts built from instances', () => {
@@ -109,14 +106,13 @@ describe('INS-4: Footer simplified', () => {
 // ============================================================================
 // INS-5: Unified insight output
 // ============================================================================
-describe('INS-5: Unified insight replaced by QuickPulseStatus', () => {
+describe('INS-5: Unified insight replaced by StatRings', () => {
   test('useNowInsights hook still exists for potential reuse', () => {
     expect(hookSrc).toMatch(/return\s*\{[^}]*insight[^}]*\}/);
   });
 
-  test('now.tsx no longer destructures insight from hook', () => {
-    // QuickPulseStatus replaces the insight banner
-    expect(nowSrc).toContain('QuickPulseStatus');
+  test('now.tsx renders StatRings', () => {
+    expect(nowSrc).toContain('StatRings');
   });
 });
 

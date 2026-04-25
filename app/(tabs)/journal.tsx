@@ -745,7 +745,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 24,
   },
   loadingContainer: {
     flex: 1,
@@ -806,7 +806,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'flex-start' as const,
-    paddingTop: 40,
+    paddingTop: 56,
     paddingBottom: 14,
     borderBottomWidth: 0.5,
     borderBottomColor: c.glassHover,

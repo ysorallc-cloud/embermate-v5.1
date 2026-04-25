@@ -36,7 +36,7 @@ describe('Now tab — collapsed window row tap-to-expand', () => {
     const collapsedBlock = timelineSrc.slice(branchStart, expandedStart);
 
     expect(collapsedBlock).toMatch(
-      /windowSummary\.map\(\(w\)\s*=>\s*\(\s*<TouchableOpacity/,
+      /windowSummary\.map\(\(w[\w\s,]*\)\s*=>\s*\(\s*<TouchableOpacity/,
     );
   });
 

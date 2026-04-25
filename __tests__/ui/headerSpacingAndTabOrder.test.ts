@@ -19,11 +19,11 @@ describe('Header top spacing', () => {
     expect(headerWrapMatch![0]).toMatch(/paddingTop:\s*56/);
   });
 
-  it('Journal headerRow has paddingTop: 40', () => {
+  it('Journal headerRow has paddingTop: 56', () => {
     const src = read('app/(tabs)/journal.tsx');
     const headerRowMatch = src.match(/headerRow:\s*\{[^}]*\}/s);
     expect(headerRowMatch).toBeTruthy();
-    expect(headerRowMatch![0]).toMatch(/paddingTop:\s*40/);
+    expect(headerRowMatch![0]).toMatch(/paddingTop:\s*56/);
   });
 });
 

@@ -264,7 +264,7 @@ function createStyles(c: typeof Colors) {
   return StyleSheet.create({
     root: {
       flex: 1,
-      backgroundColor: '#0c100e',
+      backgroundColor: c.background,
     },
     scroll: {
       flex: 1,
@@ -476,17 +476,17 @@ function createStyles(c: typeof Colors) {
     },
     // ── Warm card surface system (for resources + wellness) ──
     warmCard: {
-      backgroundColor: '#131a16',
+      backgroundColor: c.warmSurfaceGreen,
       borderWidth: 1,
-      borderColor: '#1a2a22',
+      borderColor: c.warmSurfaceGreenBorder,
       borderRadius: 16,
       padding: 18,
       paddingHorizontal: 20,
       marginBottom: 12,
     },
     warmCardQuiet: {
-      backgroundColor: '#10140f',
-      borderColor: '#1a201a',
+      backgroundColor: c.warmSurfaceQuiet,
+      borderColor: c.warmSurfaceQuietBorder,
     },
     sectionLabel: {
       fontSize: 13,

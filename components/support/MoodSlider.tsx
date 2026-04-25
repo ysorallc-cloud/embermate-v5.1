@@ -165,7 +165,7 @@ function createStyles(c: any) {
     },
     sliderTrack: {
       height: 4,
-      backgroundColor: '#1a2a22',
+      backgroundColor: c.warmSurfaceGreenBorder,
       borderRadius: 2,
       flexDirection: 'row' as const,
       alignItems: 'center' as const,

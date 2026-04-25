@@ -82,6 +82,31 @@ export function formatTime(time24: string): string {
   return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
 }
 
+// Format a scheduled time (HH:MM or ISO timestamp) as a 12-hour display string
+// like "8:30 AM". Returns null for empty / unparseable input — callers can
+// treat null as "no upcoming time".
+export function formatNextScheduledTime(scheduledTime: string | null | undefined): string | null {
+  if (!scheduledTime || typeof scheduledTime !== 'string') return null;
+
+  // HH:MM (or HH:MM:SS) — pass the leading 5 chars to formatTime.
+  if (/^\d{2}:\d{2}/.test(scheduledTime)) {
+    const out = formatTime(scheduledTime.slice(0, 5));
+    return out === 'Time not set' ? null : out;
+  }
+
+  // ISO timestamp — extract local hours/minutes and reuse formatTime.
+  if (scheduledTime.includes('T')) {
+    const d = new Date(scheduledTime);
+    if (isNaN(d.getTime())) return null;
+    const hh = d.getHours().toString().padStart(2, '0');
+    const mm = d.getMinutes().toString().padStart(2, '0');
+    const out = formatTime(`${hh}:${mm}`);
+    return out === 'Time not set' ? null : out;
+  }
+
+  return null;
+}
+
 // Helper to check if a scheduled time is overdue
 export function isOverdue(scheduledTime: string, graceMinutes: number = OVERDUE_GRACE_MINUTES): boolean {
   if (!scheduledTime) return false;

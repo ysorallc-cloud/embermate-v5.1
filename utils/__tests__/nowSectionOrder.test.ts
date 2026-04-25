@@ -1,25 +1,26 @@
 // File: utils/__tests__/nowSectionOrder.test.ts
-// Updated: QuickPulseStatus replaces ProgressRings
+// Updated: StatRings replaces QuickPulseStatus
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
 describe('Now screen section order', () => {
   const src = readFileSync(join(__dirname, '../../app/(tabs)/now.tsx'), 'utf8');
-  const render = src.slice(src.indexOf('<View style={styles.content}'));
+  const render = src.slice(src.indexOf('return ('));
 
-  test('QuickPulseStatus appears before Today\'s Schedule', () => {
-    const pulse = render.indexOf('QuickPulseStatus');
+  test('StatRings appears before NowTimeline', () => {
+    const rings = render.indexOf('StatRings');
     const timeline = render.indexOf('NowTimeline');
-    expect(pulse).toBeGreaterThan(-1);
+    expect(rings).toBeGreaterThan(-1);
     expect(timeline).toBeGreaterThan(-1);
-    expect(pulse).toBeLessThan(timeline);
+    expect(rings).toBeLessThan(timeline);
   });
 
-  test('ProgressRings no longer renders (replaced by QuickPulseStatus)', () => {
-    expect(render).not.toContain('<ProgressRings');
+  test('QuickPulseStatus no longer renders (replaced by StatRings)', () => {
+    expect(render).not.toContain('<QuickPulseStatus');
   });
 
-  test('UpNextCard is removed', () => {
-    expect(render).not.toContain('UpNextCard');
+  test('UpNextCard is not rendered in JSX', () => {
+    // The string may appear in a comment — only check for JSX usage
+    expect(render).not.toContain('<UpNextCard');
   });
 });

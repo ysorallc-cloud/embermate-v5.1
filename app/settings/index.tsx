@@ -59,7 +59,7 @@ interface SettingsCategory {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { mode, setMode, themeMode, setThemeMode, highContrast, setHighContrast, colors } = useTheme();
+  const { mode, setMode, highContrast, setHighContrast, colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [patientName, setPatientName] = useState('');
   const [hasSample, setHasSample] = useState(false);
@@ -69,8 +69,15 @@ export default function SettingsScreen() {
   const [appointmentCount, setAppointmentCount] = useState(0);
   const [caregiverCount, setCaregiverCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  // All categories collapsed on mount — keeps the settings surface calm.
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({
-    advanced: true, // Advanced collapsed by default
+    profile: true,
+    appearance: true,
+    notifications: true,
+    careTeam: true,
+    privacy: true,
+    about: true,
+    advanced: true,
   });
 
   useEffect(() => {
@@ -385,20 +392,8 @@ export default function SettingsScreen() {
       icon: '🎨',
       title: 'Appearance & Experience',
       items: [
-        {
-          id: 'theme',
-          icon: '🌙',
-          title: 'Theme',
-          subtitle: 'Dark',
-          color: 'rgba(255, 255, 255, 0.07)',
-          onPress: () => {
-            // Light mode disabled — StyleSheet.create() at module scope captures
-            // dark theme Colors at import time. 70+ screens show white text on
-            // light background. Requires full migration to useTheme() hook.
-            // System mode also broken when phone is in light mode.
-            setThemeMode('dark');
-          },
-        },
+        // Theme row removed — the Appearance pill row at the top of
+        // Settings is now the canonical theme control (Light/Dark/Auto).
         {
           id: 'high-contrast',
           icon: '🔲',

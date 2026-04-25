@@ -85,7 +85,7 @@ export default function AppointmentConfirmation() {
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a1612',
+    backgroundColor: c.background,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -122,7 +122,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     padding: 16,
-    backgroundColor: '#0f1f1a',
+    backgroundColor: c.glass,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(139, 168, 136, 0.2)',

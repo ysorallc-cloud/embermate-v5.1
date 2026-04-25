@@ -153,6 +153,11 @@ const DarkColors = {
   textDisabled: 'rgba(255, 255, 255, 0.28)',
   textHalf: 'rgba(255, 255, 255, 0.42)',
   textPlaceholder: 'rgba(255, 255, 255, 0.35)',
+  // ── Caregiver accent (purple — used by End of Shift + Care Circle) ──
+  caregiverAccent: '#b794f4',
+  caregiverAccentText: '#d4baff',
+  caregiverAccentBg: 'rgba(139, 92, 246, 0.06)',
+  caregiverAccentBorder: 'rgba(139, 92, 246, 0.25)',
   // ── Warm text ──
   textWarmPrimary: '#e0e8f0',
   textWarmSecondary: '#b0b8c0',

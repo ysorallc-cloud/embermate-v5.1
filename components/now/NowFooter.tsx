@@ -9,6 +9,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
 import { buildJournalPreview, CareBrief } from '../../utils/careSummaryBuilder';
 import { HandoffPromptCard } from './HandoffPromptCard';
+import { EndOfShiftCard } from './EndOfShiftCard';
 import { CareCircleTeaser } from '../CareCircleTeaser';
 import { CareCircleEmailCapture } from '../CareCircleEmailCapture';
 import { shouldShowTeaser } from '../../utils/careCircleTeaser';
@@ -98,6 +99,8 @@ export function NowFooter({
           <Text style={s.allDoneText}>All caught up!</Text>
         </View>
       )}
+
+      <EndOfShiftCard completedCount={completedCount} />
 
       {/* Care Circle teaser — only for invested users (14+ days) */}
       {showTeaser && (

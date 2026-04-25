@@ -24,13 +24,13 @@ interface ThemeContextValue {
   mode: ThemeMode;
   /** Update the appearance mode and persist to storage */
   setMode: (mode: ThemeMode) => void;
-  /** Current theme mode preference (alias for mode — kept for back-compat) */
+  /** @deprecated Use `mode` instead. Alias kept for back-compat. */
   themeMode: ThemeMode;
   /** The resolved theme (always 'dark' or 'light', never 'auto') */
   resolvedTheme: 'dark' | 'light';
   /** Whether high contrast is enabled */
   highContrast: boolean;
-  /** Update the theme mode (alias for setMode — kept for back-compat) */
+  /** @deprecated Use `setMode` instead. Alias kept for back-compat. */
   setThemeMode: (mode: ThemeMode) => void;
   /** Toggle high contrast on/off */
   setHighContrast: (enabled: boolean) => void;

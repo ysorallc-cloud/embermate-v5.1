@@ -12,6 +12,7 @@ import { BucketType } from '../../types/carePlanConfig';
 import { type TodayStats, type TimeWindow } from '../../utils/nowHelpers';
 import { MorningMedsBanner } from './MorningMedsBanner';
 import { TimelineSection } from './TimelineSection';
+import { ScheduleCard, type ScheduleWindow } from './ScheduleCard';
 
 // ============================================================================
 // TYPES
@@ -113,17 +114,6 @@ function SectionHeaderRow({
 }
 
 // ============================================================================
-// WINDOW EMOJI MAP
-// ============================================================================
-
-const WINDOW_EMOJI: Record<string, string> = {
-  morning: '\u2600\uFE0F',
-  afternoon: '\uD83C\uDF24\uFE0F',
-  evening: '\uD83C\uDF19',
-  night: '\uD83C\uDF11',
-};
-
-// ============================================================================
 // COMPONENT
 // ============================================================================
 
@@ -163,45 +153,20 @@ export function NowTimeline({
         onToggleCollapse={onToggleCollapse}
         s={s}
       />
-      <Text style={s.sectionContext}>
-        Tap Start when you're ready to begin a care window.
-      </Text>
+      {/* "Tap Start" helper removed — schedule card is self-evident */}
 
       {timelineCollapsed ? (
-        windowSummary.length > 0 && (
-          <View style={s.sectionCard}>
-            {windowSummary.map((w) => (
-              <TouchableOpacity
-                key={w.window}
-                style={[s.windowRow, w.isCurrent && !w.allDone && s.windowRowCurrent]}
-                onPress={onToggleCollapse}
-                activeOpacity={0.7}
-                accessibilityLabel={`${w.label}, ${w.allDone ? 'complete' : `${w.pending} remaining`}. Tap to expand schedule.`}
-                accessibilityRole="button"
-                accessibilityState={{ expanded: false }}
-              >
-                <Text style={s.windowEmoji}>{WINDOW_EMOJI[w.window] ?? '\u2B50'}</Text>
-                <Text style={[s.windowLabel, w.isCurrent && !w.allDone && s.windowLabelCurrent]}>
-                  {w.label}
-                </Text>
-                <Text style={s.windowStatus}>
-                  {w.allDone ? 'Complete \u2713' : `${w.pending} remaining`}
-                </Text>
-                {w.isCurrent && !w.allDone && (
-                  <TouchableOpacity
-                    style={s.windowStartBtn}
-                    onPress={() => onStartRoutine(w.window)}
-                    activeOpacity={0.7}
-                    accessibilityLabel={`Start ${w.label} routine`}
-                    accessibilityRole="button"
-                  >
-                    <Text style={s.windowStartText}>Start</Text>
-                  </TouchableOpacity>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        )
+        <ScheduleCard
+          windows={windowSummary.map<ScheduleWindow>(w => ({
+            window: w.window,
+            name: w.label,
+            status: w.allDone ? 'complete' : 'pending',
+            remaining: w.pending,
+            isActive: w.isCurrent && !w.allDone,
+          }))}
+          onStart={onStartRoutine}
+          onRowPress={onToggleCollapse}
+        />
       ) : (
         <View style={s.sectionCard}>
           <MorningMedsBanner
@@ -271,8 +236,8 @@ const createStyles = (c: any) => StyleSheet.create({
     paddingBottom: 10,
   },
   sectionHeaderTitle: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '500',
     letterSpacing: 0.5,
     color: c.textTertiary,
   },
@@ -297,9 +262,10 @@ const createStyles = (c: any) => StyleSheet.create({
     backgroundColor: c.glass,
     borderWidth: 1,
     borderColor: c.glassBorder,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    overflow: 'hidden',
   },
   emptyTimeline: {
     backgroundColor: c.glass,
@@ -316,46 +282,5 @@ const createStyles = (c: any) => StyleSheet.create({
     fontSize: 12,
     color: c.textDisabled,
     marginTop: 4,
-  },
-  windowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  windowRowCurrent: {
-    backgroundColor: 'rgba(20, 184, 166, 0.08)',
-    borderRadius: 10,
-    marginHorizontal: -4,
-    paddingHorizontal: 18,
-  },
-  windowEmoji: {
-    fontSize: 16,
-  },
-  windowLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-    color: c.textSecondary,
-  },
-  windowLabelCurrent: {
-    color: c.accent,
-  },
-  windowStatus: {
-    flex: 1,
-    fontSize: 13,
-    color: c.textHalf,
-  },
-  windowStartBtn: {
-    backgroundColor: c.accent,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-  },
-  windowStartText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: c.textPrimary,
   },
 });

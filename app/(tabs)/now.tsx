@@ -64,16 +64,18 @@ import {
   getCurrentTimeWindow,
   TIME_WINDOW_HOURS,
   OVERDUE_GRACE_MINUTES,
+  formatNextScheduledTime,
 } from '../../utils/nowHelpers';
 // Extracted hooks
 import { useNowPrompts } from '../../hooks/useNowPrompts';
-// useNowInsights removed — replaced by QuickPulseStatus
+// useNowInsights removed — replaced by StatRings
 
 // Extracted components
 import { RoutineSheet } from '../../components/now/RoutineSheet';
 import { NowHeader } from '../../components/now/NowHeader';
 import { NowTimeline } from '../../components/now/NowTimeline';
 import { NowFooter } from '../../components/now/NowFooter';
+import { StatRings } from '../../components/now/StatRings';
 
 
 // Banners (removed: NoMedicationsBanner, NoCarePlanBanner, DataIntegrityBanner)
@@ -122,51 +124,6 @@ function buildOverdueCallouts(
     }
   }
   return callouts;
-}
-
-// Core 4 progress tiles — 1×4 grid inside the pulseCard showing
-// emoji + label + count for each bucket. Replaces the single progress bar.
-const CORE_TILES = [
-  { key: 'meds', emoji: '\uD83D\uDC8A', label: 'MEDS', itemType: 'medication' },
-  { key: 'vitals', emoji: '\uD83D\uDCCA', label: 'VITALS', itemType: 'vitals' },
-  { key: 'wellness', emoji: '\uD83C\uDF05', label: 'WELLNESS', itemType: 'wellness' },
-  { key: 'meals', emoji: '\uD83C\uDF7D\uFE0F', label: 'MEALS', itemType: 'nutrition' },
-] as const;
-
-function QuickPulseStatus({
-  todayStats,
-  instances,
-  styles: s,
-}: {
-  todayStats: TodayStats;
-  instances: any[];
-  styles: ReturnType<typeof createStyles>;
-}) {
-  const { colors } = useTheme();
-
-  return (
-    <View style={s.pulseContainer}>
-      <View style={s.tileGrid}>
-        {CORE_TILES.map(tile => {
-          const stat = todayStats[tile.key as keyof TodayStats] ?? { completed: 0, total: 0 };
-
-          return (
-            <View
-              key={tile.key}
-              style={s.tile}
-              accessibilityLabel={stat.total > 0 ? `${tile.label}, ${stat.completed} of ${stat.total} completed` : `${tile.label}, none scheduled`}
-            >
-              <Text style={s.tileEmoji}>{tile.emoji}</Text>
-              <Text style={s.tileLabel}>{tile.label}</Text>
-              <Text style={s.tileCount}>
-                {stat.total > 0 ? `${stat.completed}/${stat.total}` : '\u2014'}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
-    </View>
-  );
 }
 
 export default function NowScreen() {
@@ -303,7 +260,7 @@ export default function NowScreen() {
 
   // Extracted hooks
   const { showOnboarding, briefing, handlers, getBaselineStatusMessage, computePrompts: computePromptsHook, checkNotificationPrompt: checkNotifPrompt, loadBaselines } = useNowPrompts(todayStats, dailyTracking);
-  // useNowInsights + InsightBanner removed — QuickPulseStatus replaces them
+  // useNowInsights + InsightBanner removed — StatRings replaces them
 
   // ============================================================================
   // TODAY TIMELINE - Built from DailyCareInstances
@@ -372,6 +329,17 @@ export default function NowScreen() {
   const allPending = useMemo(() => {
     return [...todayTimeline.overdue, ...todayTimeline.upcoming];
   }, [todayTimeline.overdue, todayTimeline.upcoming]);
+
+  // Earliest pending instance whose scheduledTime is still ahead of `now`,
+  // formatted for the contextual greeting subtitle ("Mom's first meds are at
+  // 8:30 AM."). Falls back to null when nothing is upcoming.
+  const nextScheduledTime = useMemo(() => {
+    const upcomingChronological = todayTimeline.upcoming
+      .slice()
+      .sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
+    const next = upcomingChronological[0];
+    return next ? formatNextScheduledTime(next.scheduledTime) : null;
+  }, [todayTimeline.upcoming]);
 
   // Window summary for collapsed timeline view
   const windowSummary = useMemo(() => {
@@ -719,18 +687,14 @@ export default function NowScreen() {
           onRestoreSuppressed={restoreAllSuppressed}
           showOnboarding={showOnboarding}
           onboardingHandlers={handlers}
+          stats={todayStats}
+          nextScheduledTime={nextScheduledTime}
         />
 
         <View style={styles.content}>
 
-          {/* ═══ QUICK PULSE STATUS ═══ */}
-          <View style={styles.pulseCard}>
-            <QuickPulseStatus
-              todayStats={todayStats}
-              instances={instancesState?.instances || []}
-              styles={styles}
-            />
-          </View>
+          {/* ═══ PROGRESS RINGS ═══ */}
+          <StatRings stats={todayStats} />
 
           {/* ═══ ZONE 2: TODAY'S SCHEDULE ═══ */}
           <NowTimeline
@@ -856,7 +820,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   scrollView: { flex: 1 },
   scrollContent: { paddingTop: 16 },
-  content: { paddingHorizontal: 16, paddingTop: 0 },
+  content: { paddingHorizontal: 22, paddingTop: 0 },
 
   // Undo toast (floats above tab bar)
   undoToast: {
@@ -866,18 +830,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   undoToastText: { fontSize: 13, color: c.textAlertPrimary },
   undoToastAction: { fontSize: 13, fontWeight: '600', color: c.textAlertLabel },
-
-  // Quick Pulse card
-  pulseCard: {
-    backgroundColor: c.warmSurface, borderWidth: 1, borderColor: c.warmSurfaceBorder,
-    borderRadius: 12, padding: 14, marginBottom: 4, marginTop: 4,
-  },
-  pulseContainer: { paddingVertical: 0, paddingHorizontal: 0 },
-  tileGrid: { flexDirection: 'row', justifyContent: 'space-between' },
-  tile: { flex: 1, alignItems: 'center', paddingVertical: 4 },
-  tileEmoji: { fontSize: 20, marginBottom: 4 },
-  tileLabel: { fontSize: 9, fontWeight: '600', color: c.textWarmHint, letterSpacing: 0.5, marginBottom: 2 },
-  tileCount: { fontSize: 14, fontWeight: '500', color: c.textPrimary },
 
   // Section header (used by Upcoming This Week)
   sectionHeaderRow: {
@@ -896,8 +848,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Appointment prep
   appointmentPrepCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(20, 55, 45, 0.3)',
-    borderRadius: 10, borderWidth: 1, borderColor: 'rgba(40, 80, 65, 0.3)',
+    flexDirection: 'row', alignItems: 'center', backgroundColor: c.warmSurface,
+    borderRadius: 10, borderWidth: 1, borderColor: c.warmSurfaceBorder,
     padding: 12, marginBottom: 4, gap: 12,
   },
   appointmentPrepIcon: { fontSize: 20 },

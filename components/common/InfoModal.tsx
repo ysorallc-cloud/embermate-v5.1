@@ -109,7 +109,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     padding: 24,
   },
   modal: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: c.surfaceElevated,
     borderRadius: 16,
     padding: 20,
     maxWidth: 340,

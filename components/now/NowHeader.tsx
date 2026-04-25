@@ -6,10 +6,11 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { ScreenHeader } from '../ScreenHeader';
+import { NowGreeting } from './NowGreeting';
 import { PatientSwitcherModal } from './PatientSwitcherModal';
 import { SampleDataBanner } from '../common/SampleDataBanner';
 import { OnboardingPrompt } from '../prompts';
+import type { TodayStats } from '../../utils/nowHelpers';
 
 // ============================================================================
 // TYPES
@@ -29,18 +30,11 @@ export interface NowHeaderProps {
     handleShowMeWhatMatters: () => void;
     handleExploreOnMyOwn: () => void;
   };
+  stats: TodayStats;
+  nextScheduledTime?: string | null;
 }
 
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
-}
+// getGreeting removed — replaced by NowGreeting + buildGreeting()
 
 // ============================================================================
 // COMPONENT
@@ -57,38 +51,43 @@ export function NowHeader({
   onRestoreSuppressed,
   showOnboarding,
   onboardingHandlers,
+  stats,
+  nextScheduledTime = null,
 }: NowHeaderProps) {
   const { colors } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <>
-      <ScreenHeader
-        title={getGreeting()}
-        subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-        purpose={`Here's where ${patientName || 'your loved one'}'s care stands right now.`}
-        rightAction={
-          <TouchableOpacity
-            onPress={() => onShowPatientSwitcher(true)}
-            style={[s.patientChip, isSampleMode && s.patientChipDemo]}
-            accessibilityLabel={`Patient: ${patientName}${isSampleMode ? ' (demo)' : ''}. Tap to switch.`}
-            accessibilityRole="button"
-          >
-            <View style={s.patientAvatar}>
-              <Text style={s.patientAvatarText}>
-                {patientName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-            <Text style={s.patientChipName}>{patientName}</Text>
-            {isSampleMode && (
-              <Text style={s.demoBadge}>DEMO</Text>
-            )}
-            {patients.length > 1 && (
-              <Text style={{ fontSize: 10, color: colors.textMuted }}>{'\u25BC'}</Text>
-            )}
-          </TouchableOpacity>
-        }
-      />
+      {/* Header row: greeting left + patient chip right */}
+      <View style={s.headerRow}>
+        <View style={{ flex: 1 }}>
+          <NowGreeting
+            stats={stats}
+            patientName={patientName || 'your loved one'}
+            nextScheduledTime={nextScheduledTime}
+          />
+        </View>
+        <TouchableOpacity
+          onPress={() => onShowPatientSwitcher(true)}
+          style={[s.patientChip, isSampleMode && s.patientChipDemo]}
+          accessibilityLabel={`Patient: ${patientName}${isSampleMode ? ' (demo)' : ''}. Tap to switch.`}
+          accessibilityRole="button"
+        >
+          <View style={s.patientAvatar}>
+            <Text style={s.patientAvatarText}>
+              {patientName.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <Text style={s.patientChipName}>{patientName}</Text>
+          {isSampleMode && (
+            <Text style={s.demoBadge}>DEMO</Text>
+          )}
+          {patients.length > 1 && (
+            <Text style={{ fontSize: 10, color: colors.textMuted }}>{'\u25BC'}</Text>
+          )}
+        </TouchableOpacity>
+      </View>
       <PatientSwitcherModal
         visible={showPatientSwitcher}
         onClose={() => onShowPatientSwitcher(false)}
@@ -144,6 +143,14 @@ export function NowHeader({
 // ============================================================================
 
 const createStyles = (c: any) => StyleSheet.create({
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 40,
+    paddingBottom: 8,
+  },
   patientChip: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -186,6 +186,11 @@ export const LightColors = {
   textHalf: '#6b7280',
   textPlaceholder: '#9ca3af',
   textInverse: '#ffffff',
+  // ── Caregiver accent (purple — used by End of Shift + Care Circle) ──
+  caregiverAccent: '#6b46c1',
+  caregiverAccentText: '#5b21b6',
+  caregiverAccentBg: 'rgba(107, 70, 193, 0.08)',
+  caregiverAccentBorder: 'rgba(107, 70, 193, 0.30)',
   // ── Warm text (light) ──
   textWarmPrimary: '#1A1A2E',
   textWarmSecondary: '#4A4A5A',
