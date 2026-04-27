@@ -65,6 +65,7 @@ export function ScheduleCard({ windows, onStart, onRowPress }: ScheduleCardProps
                 activeOpacity={0.7}
                 accessibilityLabel={`Start ${w.name} routine`}
                 accessibilityRole="button"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Text style={s.windowStartText}>Start</Text>
               </TouchableOpacity>
@@ -90,7 +91,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 14,
   },
   windowRowDivider: {
@@ -121,7 +122,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.accent,
     borderRadius: 14,
     paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingVertical: 8,
   },
   windowStartText: {
     fontSize: 13,

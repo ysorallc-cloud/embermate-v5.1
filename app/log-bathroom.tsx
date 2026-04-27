@@ -120,6 +120,9 @@ export default function LogBathroomScreen() {
               key={option.id}
               style={[styles.optionChip, bowel === option.id && styles.optionChipSelected]}
               onPress={() => setBowel(bowel === option.id ? null : option.id)}
+              accessibilityRole="button"
+              accessibilityLabel={`Bowel movement: ${option.label}`}
+              accessibilityState={{ selected: bowel === option.id }}
             >
               <Text style={styles.optionIcon}>{option.icon}</Text>
               <Text style={[styles.optionLabel, bowel === option.id && styles.optionLabelSelected]}>
@@ -137,6 +140,9 @@ export default function LogBathroomScreen() {
               key={option.id}
               style={[styles.optionChip, urination === option.id && styles.optionChipSelected]}
               onPress={() => setUrination(urination === option.id ? null : option.id)}
+              accessibilityRole="button"
+              accessibilityLabel={`Urination: ${option.label}`}
+              accessibilityState={{ selected: urination === option.id }}
             >
               <Text style={styles.optionIcon}>{option.icon}</Text>
               <Text style={[styles.optionLabel, urination === option.id && styles.optionLabelSelected]}>
@@ -163,6 +169,9 @@ export default function LogBathroomScreen() {
           style={[styles.saveButton, (!bowel && !urination) && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={!bowel && !urination}
+          accessibilityRole="button"
+          accessibilityLabel="Log bathroom visit"
+          accessibilityState={{ disabled: !bowel && !urination }}
         >
           <Text style={styles.saveButtonText}>Log Bathroom Visit</Text>
         </TouchableOpacity>
@@ -210,7 +219,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
   },
   optionLabelSelected: {
-    color: c.accent,
+    color: c.textPrimary,
     fontWeight: '600',
   },
   notesInput: {

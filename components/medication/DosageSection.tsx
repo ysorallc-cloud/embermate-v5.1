@@ -253,9 +253,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   timeSlotIcon: { fontSize: 20, marginBottom: 2 },
   timeSlotTimeText: { fontSize: 11, fontWeight: '600', color: c.textMuted },
-  timeSlotTimeTextActive: { color: c.accent },
+  // Active state lifts emphasis via the slot's backgroundColor + borderColor
+  // (see timeSlotButtonActive). Label color stays at textMuted so contrast
+  // doesn't drop when the slot is selected.
+  timeSlotTimeTextActive: { color: c.textPrimary },
   timeSlotLabelText: { fontSize: 9, color: c.textMuted, opacity: 0.7 },
-  timeSlotLabelTextActive: { color: c.accent },
+  timeSlotLabelTextActive: { color: c.textPrimary, opacity: 1 },
   suggestionsContainer: {
     position: 'absolute',
     top: '100%',

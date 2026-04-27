@@ -3,7 +3,7 @@
 // Configure medication tracking in the Care Plan
 // ============================================================================
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { navigate } from '../../lib/navigate';
 import {
   View,
@@ -14,6 +14,8 @@ import {
   Switch,
   Platform,
   Alert,
+  Animated,
+  PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -29,6 +31,8 @@ import {
 import { COMMON_MEDICATIONS, TIME_SLOTS } from '../../components/medication/medicationFormHelpers';
 import { emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
+import { SubScreenHeader } from '../../components/SubScreenHeader';
+import { usePatient } from '../../contexts/PatientContext';
 
 // ============================================================================
 // MEDICATION ITEM COMPONENT
@@ -39,89 +43,118 @@ interface MedicationItemProps {
   onEdit: () => void;
   onToggleActive: (active: boolean) => void;
   onRemove: () => void;
-  onToggleNotification: () => void;
 }
 
-function MedicationItem({ medication, onEdit, onToggleActive, onRemove, onToggleNotification }: MedicationItemProps) {
+const REMOVE_ACTION_WIDTH = 96;
+
+function MedicationItem({ medication, onEdit, onToggleActive, onRemove }: MedicationItemProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const timeDisplay = medication.customTimes?.length
     ? medication.customTimes.map(t => formatTimeForDisplay(t)).join(', ')
     : medication.timesOfDay?.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ') || 'No time set';
 
-  // Check if notifications are enabled for this medication
-  const notificationsEnabled = medication.notificationsEnabled ?? true;
+  // Swipe-to-reveal: dragging the row left exposes a Remove action on the
+  // right. Tapping the row anywhere else still opens the edit flow. This
+  // protects Remove from accidental taps that the inline button row didn't.
+  const translateX = useRef(new Animated.Value(0)).current;
+  const isRevealed = useRef(false);
+
+  const snapTo = useCallback((x: number, revealed: boolean) => {
+    isRevealed.current = revealed;
+    Animated.spring(translateX, {
+      toValue: x,
+      useNativeDriver: true,
+      bounciness: 4,
+    }).start();
+  }, [translateX]);
+
+  const close = useCallback(() => snapTo(0, false), [snapTo]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 8 && Math.abs(g.dy) < 10,
+      onPanResponderMove: (_, g) => {
+        const base = isRevealed.current ? -REMOVE_ACTION_WIDTH : 0;
+        const next = Math.min(0, Math.max(-REMOVE_ACTION_WIDTH, base + g.dx));
+        translateX.setValue(next);
+      },
+      onPanResponderRelease: (_, g) => {
+        const base = isRevealed.current ? -REMOVE_ACTION_WIDTH : 0;
+        const final = base + g.dx;
+        if (final < -REMOVE_ACTION_WIDTH / 2) snapTo(-REMOVE_ACTION_WIDTH, true);
+        else snapTo(0, false);
+      },
+      onPanResponderTerminate: () => snapTo(0, false),
+    }),
+  ).current;
+
+  const handleRemovePress = () => {
+    Alert.alert(
+      `Remove ${medication.name}?`,
+      "This can't be undone.",
+      [
+        { text: 'Cancel', style: 'cancel', onPress: close },
+        { text: 'Remove', style: 'destructive', onPress: () => { close(); onRemove(); } },
+      ],
+    );
+  };
 
   return (
     <View style={[styles.medItem, !medication.active && styles.medItemInactive]}>
-      <TouchableOpacity
-        style={styles.medItemMain}
-        onPress={onEdit}
-        activeOpacity={0.7}
-        accessibilityLabel={`Edit ${medication.name}, ${medication.dosage}, ${timeDisplay}`}
-        accessibilityRole="button"
-      >
-        <View style={styles.medItemLeft}>
-          <Text style={styles.medEmoji}>💊</Text>
-          <View style={styles.medInfo}>
-            <Text style={[styles.medName, !medication.active && styles.medNameInactive]}>
-              {medication.name}
-            </Text>
-            <Text style={styles.medDosage}>{medication.dosage}</Text>
-            <Text style={styles.medTime}>{timeDisplay}</Text>
-            {medication.instructions && (
-              <Text style={styles.medInstructions} numberOfLines={1}>
-                {medication.instructions}
-              </Text>
-            )}
-          </View>
-        </View>
-        <View style={styles.medItemRight}>
-          {/* Notification Bell Toggle */}
-          <TouchableOpacity
-            style={styles.notificationButton}
-            onPress={onToggleNotification}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel={notificationsEnabled ? `${medication.name} reminders on, tap to turn off` : `${medication.name} reminders off, tap to turn on`}
-            accessibilityRole="switch"
-            accessibilityState={{ checked: notificationsEnabled }}
-          >
-            <Text style={[styles.notificationIcon, !notificationsEnabled && styles.notificationIconOff]}>
-              {notificationsEnabled ? '🔔' : '🔕'}
-            </Text>
-          </TouchableOpacity>
-          <Switch
-            value={medication.active}
-            onValueChange={onToggleActive}
-            trackColor={{ false: colors.glassStrong, true: colors.accent }}
-            thumbColor={medication.active ? colors.textPrimary : colors.switchThumbOff}
-            ios_backgroundColor={colors.glassStrong}
-          />
-        </View>
-      </TouchableOpacity>
-      <View style={styles.medItemActions}>
-        <TouchableOpacity style={styles.medActionButton} onPress={onEdit} accessibilityLabel={`Edit ${medication.name}`} accessibilityRole="button">
-          <Text style={styles.medActionText}>Edit</Text>
-        </TouchableOpacity>
-        <View style={styles.medActionDivider} />
+      {/* Remove action revealed behind the row when swiped left. */}
+      <View style={styles.removeAction} pointerEvents="box-none">
         <TouchableOpacity
-          style={styles.medActionButton}
-          onPress={() => {
-            Alert.alert(
-              'Remove Medication',
-              `Are you sure you want to remove ${medication.name}?`,
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Remove', style: 'destructive', onPress: onRemove },
-              ]
-            );
-          }}
+          style={styles.removeActionButton}
+          onPress={handleRemovePress}
           accessibilityLabel={`Remove ${medication.name}`}
           accessibilityRole="button"
         >
-          <Text style={[styles.medActionText, styles.medActionTextDanger]}>Remove</Text>
+          <Text style={styles.removeActionLabel}>Remove</Text>
         </TouchableOpacity>
       </View>
+
+      <Animated.View
+        style={[styles.medItemSwipeable, { transform: [{ translateX }] }]}
+        {...panResponder.panHandlers}
+      >
+        <TouchableOpacity
+          style={styles.medItemMain}
+          onPress={() => {
+            if (isRevealed.current) close();
+            else onEdit();
+          }}
+          activeOpacity={0.7}
+          accessibilityLabel={`Edit ${medication.name}, ${medication.dosage}, ${timeDisplay}`}
+          accessibilityRole="button"
+        >
+          <View style={styles.medItemLeft}>
+            <Text style={styles.medEmoji}>💊</Text>
+            <View style={styles.medInfo}>
+              <Text style={[styles.medName, !medication.active && styles.medNameInactive]}>
+                {medication.name}
+              </Text>
+              <Text style={styles.medDosage}>{medication.dosage}</Text>
+              <Text style={styles.medTime}>{timeDisplay}</Text>
+              {medication.instructions && (
+                <Text style={styles.medInstructions} numberOfLines={1}>
+                  {medication.instructions}
+                </Text>
+              )}
+            </View>
+          </View>
+          <View style={styles.medItemRight}>
+            <Switch
+              value={medication.active}
+              onValueChange={onToggleActive}
+              trackColor={{ false: colors.glassStrong, true: colors.accent }}
+              thumbColor={medication.active ? colors.textPrimary : colors.switchThumbOff}
+              ios_backgroundColor={colors.glassStrong}
+            />
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 }
@@ -160,7 +193,11 @@ function QuickAddPanel({ visible, onClose, onAdd, onFullForm }: QuickAddPanelPro
     <View style={quickAddStyles.container}>
       <View style={quickAddStyles.header}>
         <Text style={quickAddStyles.headerTitle}>Quick Add</Text>
-        <TouchableOpacity onPress={onFullForm}>
+        <TouchableOpacity
+          onPress={onFullForm}
+          accessibilityRole="button"
+          accessibilityLabel="Open full medication form"
+        >
           <Text style={quickAddStyles.fullFormLink}>Full form {'\u2192'}</Text>
         </TouchableOpacity>
       </View>
@@ -171,6 +208,9 @@ function QuickAddPanel({ visible, onClose, onAdd, onFullForm }: QuickAddPanelPro
           style={[quickAddStyles.dropdown, showMedDropdown && quickAddStyles.dropdownOpen]}
           onPress={() => { setShowMedDropdown(!showMedDropdown); setShowDosageDropdown(false); }}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={selectedMed ? `Selected medication: ${selectedMed.name}. Tap to change.` : 'Select medication'}
+          accessibilityState={{ expanded: showMedDropdown }}
         >
           <Text style={[quickAddStyles.dropdownText, !selectedMed && quickAddStyles.dropdownPlaceholder]} numberOfLines={1}>
             {selectedMed?.name || 'Select medication...'}
@@ -188,6 +228,8 @@ function QuickAddPanel({ visible, onClose, onAdd, onFullForm }: QuickAddPanelPro
                   setSelectedDosage(med.commonDosages[0] || '');
                   setShowMedDropdown(false);
                 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Choose ${med.name}`}
               >
                 <Text style={quickAddStyles.dropdownItemText}>{med.name}</Text>
               </TouchableOpacity>
@@ -202,6 +244,9 @@ function QuickAddPanel({ visible, onClose, onAdd, onFullForm }: QuickAddPanelPro
           style={[quickAddStyles.dropdown, showDosageDropdown && quickAddStyles.dropdownOpen, !selectedMed && { opacity: 0.5 }]}
           onPress={() => { if (selectedMed) { setShowDosageDropdown(!showDosageDropdown); setShowMedDropdown(false); } }}
           activeOpacity={selectedMed ? 0.7 : 1}
+          accessibilityRole="button"
+          accessibilityLabel={selectedDosage ? `Selected dosage: ${selectedDosage}. Tap to change.` : 'Select dosage'}
+          accessibilityState={{ expanded: showDosageDropdown, disabled: !selectedMed }}
         >
           <Text style={[quickAddStyles.dropdownText, !selectedDosage && quickAddStyles.dropdownPlaceholder]} numberOfLines={1}>
             {selectedDosage || (selectedMed ? 'Select dosage...' : 'Select med first')}
@@ -215,6 +260,8 @@ function QuickAddPanel({ visible, onClose, onAdd, onFullForm }: QuickAddPanelPro
                 key={dose}
                 style={[quickAddStyles.dropdownItem, idx < selectedMed.commonDosages.length - 1 && quickAddStyles.dropdownItemBorder]}
                 onPress={() => { setSelectedDosage(dose); setShowDosageDropdown(false); }}
+                accessibilityRole="button"
+                accessibilityLabel={`Choose dosage ${dose}`}
               >
                 <Text style={quickAddStyles.dropdownItemText}>{dose}</Text>
               </TouchableOpacity>
@@ -231,6 +278,9 @@ function QuickAddPanel({ visible, onClose, onAdd, onFullForm }: QuickAddPanelPro
             style={[quickAddStyles.timeButton, selectedTime === slot.key && quickAddStyles.timeButtonActive]}
             onPress={() => setSelectedTime(slot.key)}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Time slot: ${slot.key}`}
+            accessibilityState={{ selected: selectedTime === slot.key }}
           >
             <Text style={quickAddStyles.timeIcon}>{slot.icon}</Text>
           </TouchableOpacity>
@@ -243,6 +293,9 @@ function QuickAddPanel({ visible, onClose, onAdd, onFullForm }: QuickAddPanelPro
         onPress={handleAdd}
         disabled={!selectedMed || !selectedDosage}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={selectedMed ? `Add ${selectedMed.name}` : 'Add medication'}
+        accessibilityState={{ disabled: !selectedMed || !selectedDosage }}
       >
         <Text style={[quickAddStyles.addButtonText, (!selectedMed || !selectedDosage) && quickAddStyles.addButtonTextDisabled]}>
           {selectedMed ? `Add ${selectedMed.name}` : 'Add Medication'}
@@ -375,6 +428,11 @@ export default function MedsBucketScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { activePatient } = usePatient();
+  const patientName =
+    activePatient?.name && activePatient.name !== 'Patient'
+      ? activePatient.name
+      : 'your loved one';
   const {
     config,
     loading,
@@ -446,12 +504,6 @@ export default function MedsBucketScreen() {
     }
   }, [addMedication]);
 
-  const handleToggleNotification = useCallback(async (med: MedicationPlanItem) => {
-    await updateMedication(med.id, {
-      notificationsEnabled: !(med.notificationsEnabled ?? true),
-    });
-  }, [updateMedication]);
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
@@ -459,13 +511,10 @@ export default function MedsBucketScreen() {
         style={styles.gradient}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerLabel}>MEDICATIONS</Text>
-          <View style={{ width: 44 }} />
-        </View>
+        <SubScreenHeader
+          title="Medications"
+          subtitle={`Set up ${patientName}'s daily meds and reminders.`}
+        />
 
         <ScrollView
           style={styles.scrollView}
@@ -492,7 +541,6 @@ export default function MedsBucketScreen() {
               onEdit={() => handleEditMed(med.id)}
               onToggleActive={(active) => handleToggleMedActive(med.id, active)}
               onRemove={() => handleRemoveMed(med.id)}
-              onToggleNotification={() => handleToggleNotification(med)}
             />
           ))}
 
@@ -617,6 +665,32 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   medItemInactive: {
     opacity: 0.6,
+  },
+  // Container that translates left/right when the user swipes the row.
+  medItemSwipeable: {
+    backgroundColor: c.glassFaint,
+  },
+  // Action revealed beneath the row when swiped left.
+  removeAction: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    right: 0,
+    width: 96,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.red,
+  },
+  removeActionButton: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeActionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.textPrimary,
   },
   medItemMain: {
     flexDirection: 'row',

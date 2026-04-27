@@ -270,7 +270,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '500',
   },
   bucketLabelSelected: {
-    color: c.accent,
+    color: c.textPrimary,
+    fontWeight: '600' as const,
   },
   optionCard: {
     width: '100%',

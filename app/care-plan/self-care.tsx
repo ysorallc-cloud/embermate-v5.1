@@ -117,7 +117,13 @@ export default function SelfCareConfigScreen() {
               <Text style={styles.presetLabel}>Quick add</Text>
               <View style={styles.presetGrid}>
                 {PRESETS.map(p => (
-                  <TouchableOpacity key={p} style={styles.presetChip} onPress={() => handlePreset(p)}>
+                  <TouchableOpacity
+                    key={p}
+                    style={styles.presetChip}
+                    onPress={() => handlePreset(p)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Add self-care preset: ${p}`}
+                  >
                     <Text style={styles.presetChipText}>{p}</Text>
                   </TouchableOpacity>
                 ))}
@@ -155,16 +161,28 @@ export default function SelfCareConfigScreen() {
                     key={opt.value}
                     style={[styles.chip, newTime === opt.value && { backgroundColor: colors.accent }]}
                     onPress={() => setNewTime(opt.value)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`When: ${opt.label}`}
+                    accessibilityState={{ selected: newTime === opt.value }}
                   >
                     <Text style={[styles.chipText, newTime === opt.value && { color: '#fff' }]}>{opt.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
               <View style={styles.formButtons}>
-                <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.accent }]} onPress={handleAdd}>
+                <TouchableOpacity
+                  style={[styles.saveBtn, { backgroundColor: colors.accent }]}
+                  onPress={handleAdd}
+                  accessibilityRole="button"
+                  accessibilityLabel="Save self-care block"
+                >
                   <Text style={styles.saveBtnText}>Save</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => { setShowAdd(false); setNewName(''); }}>
+                <TouchableOpacity
+                  onPress={() => { setShowAdd(false); setNewName(''); }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel adding self-care block"
+                >
                   <Text style={styles.cancelText}>Cancel</Text>
                 </TouchableOpacity>
               </View>

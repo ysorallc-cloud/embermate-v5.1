@@ -64,13 +64,18 @@ export function buildGreeting(
     };
   }
 
+  // Subtitles intentionally drop the patient name — it's already rendered
+  // in the header pill above the metadata row. Repeating it forces the line
+  // to wrap on common iPhone widths. Variants below are tuned to fit a
+  // single line beside the time chip.
+
   // ── Morning (6–11) ──
   if (hour < 12) {
     const subtitle = nextScheduledTime
-      ? `${patientName}'s first meds are at ${nextScheduledTime}.`
+      ? `Next meds: ${nextScheduledTime}`
       : total > 0
         ? `${total} item${total !== 1 ? 's' : ''} on today's schedule.`
-        : `${patientName}'s care day is starting.`;
+        : 'Care day is starting.';
 
     return { title: 'Good morning', subtitle };
   }
@@ -80,8 +85,10 @@ export function buildGreeting(
     const title = 'Good afternoon';
     let subtitle: string;
 
-    if (allDone) {
-      subtitle = `Morning went smoothly — all ${done} tasks done.`;
+    if (nextScheduledTime) {
+      subtitle = `Next meds: ${nextScheduledTime}`;
+    } else if (allDone) {
+      subtitle = "Morning's done. Afternoon's clear.";
     } else if (done > 0) {
       subtitle = `${done} of ${total} done so far. ${left} remaining.`;
     } else {
@@ -103,9 +110,9 @@ export function buildGreeting(
 
   let subtitle: string;
   if (allDone) {
-    subtitle = `All ${done} items completed today.`;
+    subtitle = 'All done. Nice work.';
   } else {
-    subtitle = `${left} item${left !== 1 ? 's' : ''} still remaining tonight.`;
+    subtitle = `Almost done — ${left} left tonight`;
   }
 
   return { title, subtitle };

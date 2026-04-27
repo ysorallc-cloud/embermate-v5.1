@@ -599,8 +599,13 @@ export default function UnderstandScreen() {
           {/* Header */}
           <ScreenHeader
             title="Insights"
-            subtitle={`${timeRange}-day trends for ${patientName}`}
-            purpose="What the patterns tell us, and what to bring up at the next visit."
+            subtitle={(() => {
+              const days = pageData?.daysOfData ?? 0;
+              if (days === 0) return 'Log a few days of meds and mood, and patterns will start to surface.';
+              if (days < 7) return `Building ${patientName}'s picture — ${days} day${days !== 1 ? 's' : ''} in.`;
+              if (days < 30) return `What the last ${days} days are showing.`;
+              return 'What the last 30 days are showing.';
+            })()}
             rightAction={
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 {pageData && !pageData.isSampleData && pageData.daysOfData >= 7 && (
@@ -614,7 +619,7 @@ export default function UnderstandScreen() {
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <View style={styles.settingsGear}>
-                    <Text style={styles.settingsGearText}>{'\u2699\uFE0F'}</Text>
+                    <Text style={styles.settingsGearText}>{'⚙'}</Text>
                   </View>
                 </TouchableOpacity>
               </View>
@@ -704,6 +709,8 @@ export default function UnderstandScreen() {
                       style={styles.correlationHeader}
                       onPress={() => toggleCorrelation(i)}
                       activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${card.title}, tap to ${expandedCorrelation === i ? 'collapse' : 'expand'}`}
                     >
                       <View style={styles.correlationMeta}>
                         <View style={[styles.severityBadge, { backgroundColor: sev.badge }]}>
@@ -1404,6 +1411,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   settingsGearText: {
     fontSize: 16,
+    color: c.textSecondary,
   },
 
   // Footer

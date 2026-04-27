@@ -135,6 +135,7 @@ export function ResourcesList() {
                     style={[styles.linkRow, i < cat.links.length - 1 && styles.linkRowBorder]}
                     onPress={() => link.url ? Linking.openURL(link.url) : undefined}
                     activeOpacity={link.url ? 0.7 : 1}
+                    accessibilityRole="link"
                     accessibilityLabel={`${link.title}: ${link.description}`}
                   >
                     <Text style={styles.linkTitle}>{link.title}</Text>

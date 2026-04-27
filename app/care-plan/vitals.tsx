@@ -26,6 +26,7 @@ import {
   PRIORITY_OPTIONS,
 } from '../../types/carePlanConfig';
 import { getHealthDataProvider } from '../../utils/healthDataProvider';
+import { SubScreenHeader } from '../../components/SubScreenHeader';
 
 // ============================================================================
 // VITAL TYPE ITEM COMPONENT
@@ -118,32 +119,16 @@ export default function VitalsBucketScreen() {
         style={styles.gradient}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerLabel}>VITALS</Text>
-          <View style={{ width: 44 }} />
-        </View>
+        <SubScreenHeader
+          title="Vitals"
+          subtitle="Makes trends visible over time, even when each reading seems normal."
+        />
 
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Title */}
-          <View style={styles.titleSection}>
-            <Text style={styles.title}>Vitals</Text>
-            <Text style={styles.subtitle}>
-              Makes trends visible over time, even when each reading seems normal.
-            </Text>
-          </View>
-
           {/* Enable Toggle */}
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
@@ -174,6 +159,16 @@ export default function VitalsBucketScreen() {
                     key={option.value}
                     style={[
                       styles.priorityOption,
+                      {
+                        // Severity stripe — independent of selection. Required = red,
+                        // Recommended = mint, Optional = gray.
+                        borderLeftWidth: 4,
+                        borderLeftColor:
+                          option.value === 'required' ? colors.error
+                          : option.value === 'recommended' ? colors.accent
+                          : option.value === 'optional' ? colors.textTertiary
+                          : colors.textTertiary,
+                      },
                       priority === option.value && styles.priorityOptionSelected,
                     ]}
                     onPress={() => handleChangePriority(option.value)}
@@ -419,7 +414,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 2,
   },
   priorityLabelSelected: {
-    color: c.accent,
+    fontWeight: '600' as const,
   },
   priorityDescription: {
     fontSize: 13,
@@ -453,7 +448,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textPrimary,
   },
   vitalLabelSelected: {
-    color: c.accent,
     fontWeight: '500',
   },
   checkbox: {
@@ -497,7 +491,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 2,
   },
   frequencyLabelSelected: {
-    color: c.accent,
+    fontWeight: '600' as const,
   },
   frequencyDescription: {
     fontSize: 13,

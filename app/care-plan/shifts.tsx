@@ -131,16 +131,28 @@ export default function ShiftsConfigScreen() {
                     key={day}
                     style={[styles.dayChip, newDays.includes(day) && { backgroundColor: colors.accent }]}
                     onPress={() => toggleDay(day)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Toggle ${day}`}
+                    accessibilityState={{ selected: newDays.includes(day) }}
                   >
                     <Text style={[styles.dayChipText, newDays.includes(day) && { color: '#fff' }]}>{day}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
               <View style={styles.formButtons}>
-                <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.accent }]} onPress={handleAdd}>
+                <TouchableOpacity
+                  style={[styles.saveBtn, { backgroundColor: colors.accent }]}
+                  onPress={handleAdd}
+                  accessibilityRole="button"
+                  accessibilityLabel="Save shift"
+                >
                   <Text style={styles.saveBtnText}>Save</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShowAdd(false)}>
+                <TouchableOpacity
+                  onPress={() => setShowAdd(false)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel adding shift"
+                >
                   <Text style={styles.cancelText}>Cancel</Text>
                 </TouchableOpacity>
               </View>

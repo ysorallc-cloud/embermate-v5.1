@@ -12,6 +12,7 @@ const statRingsSrc = read('components/now/StatRings.tsx');
 const timelineSrc = read('components/now/NowTimeline.tsx');
 const footerSrc = read('components/now/NowFooter.tsx');
 const greetingSrc = read('components/now/NowGreeting.tsx');
+const nowHeaderSrc = read('components/now/NowHeader.tsx');
 
 function extractStyleValue(src: string, styleName: string, prop: string): number | null {
   const re = new RegExp(`${styleName}:\\s*\\{[^}]*${prop}:\\s*(\\d+)`, 's');
@@ -27,10 +28,12 @@ describe('Now tab spacing pass', () => {
     expect(val).toBe(22);
   });
 
-  it('greeting container has marginBottom: 22', () => {
-    const val = extractStyleValue(greetingSrc, 'container', 'marginBottom')
-      ?? extractStyleValue(greetingSrc, 'subtitle', 'marginBottom');
-    expect(val).toBe(22);
+  it('header container provides bottom rhythm before content', () => {
+    // Option A moved the bottom spacing from the greeting subtitle (was 22)
+    // up to the NowHeader headerRow container, which now declares
+    // paddingBottom per the headerStructureContract test.
+    const val = extractStyleValue(nowHeaderSrc, 'headerRow', 'paddingBottom');
+    expect(val).toBeGreaterThanOrEqual(20);
   });
 
   it('StatRings container has marginBottom: 18', () => {
@@ -43,14 +46,6 @@ describe('Now tab spacing pass', () => {
     expect(val).toBe(16);
   });
 
-  it('End of Shift card has marginTop: 0 (gap from schedule card margin)', () => {
-    const block = footerSrc.match(/endOfShiftCard:\s*\{[^}]*\}/s);
-    expect(block).toBeTruthy();
-    // marginTop should be 0 or absent (defaults to 0)
-    const mt = block![0].match(/marginTop:\s*(\d+)/);
-    if (mt) {
-      expect(Number(mt[1])).toBe(0);
-    }
-    // If marginTop is absent, that's 0 by default — pass
-  });
+  // End of Shift spacing now lives in components/now/EndOfShiftCard.tsx —
+  // covered by __tests__/components/endOfShiftCard.test.tsx.
 });

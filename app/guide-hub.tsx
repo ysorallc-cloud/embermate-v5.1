@@ -309,6 +309,9 @@ export default function GuideHubScreen() {
                     onPress={() => !done && router.push(item.route as any)}
                     activeOpacity={done ? 1 : 0.7}
                     disabled={done}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Quick start: ${item.label}`}
+                    accessibilityState={{ disabled: done, checked: done }}
                   >
                     <View style={[styles.quickStartCheck, done && styles.quickStartCheckDone]}>
                       {done && <Text style={styles.quickStartCheckmark}>{'\u2713'}</Text>}
@@ -324,7 +327,13 @@ export default function GuideHubScreen() {
           )}
 
           {/* Tips Carousel */}
-          <TouchableOpacity style={styles.tipCard} onPress={advanceTip} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.tipCard}
+            onPress={advanceTip}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={`Tip ${tipIndex + 1} of ${TIPS.length}. Tap for next tip.`}
+          >
             <Text style={styles.tipIcon}>{tip.icon}</Text>
             <View style={{ flex: 1 }}>
               <Text style={styles.tipLabel}>TIP {tipIndex + 1}/{TIPS.length}</Text>
@@ -346,6 +355,9 @@ export default function GuideHubScreen() {
               ]}
               onPress={() => setExpandedGuide(expandedGuide === guide.id ? null : guide.id)}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`${guide.title}, tap to ${expandedGuide === guide.id ? 'collapse' : 'expand'}`}
+              accessibilityState={{ expanded: expandedGuide === guide.id }}
             >
               <View style={styles.guideHeader}>
                 <Text style={styles.guideIcon}>{guide.icon}</Text>
@@ -382,7 +394,13 @@ export default function GuideHubScreen() {
           ))}
 
           {/* Reset Hints */}
-          <TouchableOpacity style={styles.resetCard} onPress={handleResetHints} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.resetCard}
+            onPress={handleResetHints}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Reset all hints and prompts"
+          >
             <View style={{ flex: 1 }}>
               <Text style={styles.resetTitle}>Reset all hints & prompts</Text>
               <Text style={styles.resetSubtitle}>Brings back dismissed tips across the app</Text>

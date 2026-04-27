@@ -90,7 +90,7 @@ const createStyles = (c: any) => StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '500',
-    color: c.textWarmMuted,
+    color: c.textSecondary,
     marginBottom: 8,
   },
   row: {

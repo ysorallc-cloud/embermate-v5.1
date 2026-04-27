@@ -11,27 +11,62 @@ const src = fs.readFileSync(supportPath, 'utf-8');
 const layoutPath = path.resolve(__dirname, '../../app/(tabs)/_layout.tsx');
 const layoutContent = fs.readFileSync(layoutPath, 'utf-8');
 
+// Token values are read from the dark theme source (Warm Room is a dark-only
+// surface). Source-file assertions here just confirm support.tsx wires through
+// the right token names; hex values are asserted against the token module
+// itself so that a token recolor is detected at the right layer.
+const themeTokensPath = path.resolve(__dirname, '../../theme/theme-tokens.ts');
+const themeTokensSrc = fs.readFileSync(themeTokensPath, 'utf-8');
+
+function readDarkTokenValue(name: string): string | null {
+  // Match the token within the DarkColors block: `name: '#hex'` or `name: 'rgba(...)'`
+  const re = new RegExp(`\\b${name}:\\s*'([^']+)'`);
+  const m = themeTokensSrc.match(re);
+  return m ? m[1] : null;
+}
+
 describe('You tab — Warm Room', () => {
   it('renders with default export', () => {
     expect(src).toContain('export default function SupportScreen');
   });
 
-  it('warm room header: emotionally intelligent copy', () => {
-    // Tab renamed from "Support" → "You" (self-care framing).
+  it('warm room header: tab title is "You"', () => {
+    // Tab renamed from "Support" → "You" (self-care framing). The
+    // multi-paragraph subtitle was collapsed to a single line in v6.7
+    // (see __tests__/copy/headerSubtitlesUpdated.test.ts).
     expect(src).toContain('>You</Text>');
-    expect(src).toContain('This page is for');
-    expect(src).toContain('not your loved one.');
-    expect(src).toContain('Caregivers who check in on themselves');
   });
 
-  it('warm background: #0c100e, not pure black', () => {
-    expect(src).toContain("'#0c100e'");
+  it('warm background: token-driven (not a hardcoded hex), and not pure black', () => {
+    // support.tsx uses c.background as the root surface — verify the screen
+    // wires through a token (no inline #000000) and that the token resolves
+    // to a near-black warm value, not pure black.
+    expect(src).toContain('backgroundColor: c.background');
+    expect(src).not.toContain("'#000000'");
+    const bg = readDarkTokenValue('background');
+    expect(bg).not.toBeNull();
+    expect(bg).not.toBe('#000');
+    expect(bg).not.toBe('#000000');
+    // Current value: '#0a0c0a' — nearly-black, slight green tint. If this
+    // token is intentionally recolored, update the expectation here.
+    expect(bg).toBe('#0a0c0a');
   });
 
-  it('warm card surface system', () => {
-    expect(src).toContain('warmCard');
-    expect(src).toContain("'#131a16'");  // card bg
-    expect(src).toContain("'#1a2a22'");  // card border
+  it('warm card surface system: green + purple + quiet warm-card tokens are wired', () => {
+    // The Warm Room layers three card tints on top of the root background.
+    // Verify the screen references each warm token, then assert the token
+    // values themselves so a palette change is detected at the token layer.
+    expect(src).toContain('c.warmSurface');
+    expect(src).toContain('c.warmSurfaceGreen');
+    expect(src).toContain('c.warmSurfacePurple');
+    expect(src).toContain('c.warmSurfaceQuiet');
+
+    // Token values (current): asserts the green card surface still uses the
+    // expected hex pair so accessibility contrast doesn't drift unnoticed.
+    // Lifted in v6.7 to clear the L* 6 delta threshold from background —
+    // see __tests__/theme/cardContrast.test.ts for the contrast contract.
+    expect(readDarkTokenValue('warmSurfaceGreen')).toBe('#1a2620');
+    expect(readDarkTokenValue('warmSurfaceGreenBorder')).toBe('#26382e');
   });
 
   it('dual-primary layout: mood + breathing side by side', () => {

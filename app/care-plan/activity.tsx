@@ -114,6 +114,16 @@ export default function ActivityBucketScreen() {
                     key={option.value}
                     style={[
                       styles.priorityOption,
+                      {
+                        // Severity stripe — independent of selection. Required = red,
+                        // Recommended = mint, Optional = gray.
+                        borderLeftWidth: 4,
+                        borderLeftColor:
+                          option.value === 'required' ? colors.error
+                          : option.value === 'recommended' ? colors.accent
+                          : option.value === 'optional' ? colors.textTertiary
+                          : colors.textTertiary,
+                      },
                       priority === option.value && styles.priorityOptionSelected,
                     ]}
                     onPress={() => handleChangePriority(option.value)}
@@ -325,7 +335,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 2,
   },
   priorityLabelSelected: {
-    color: c.accent,
+    fontWeight: '600' as const,
   },
   priorityDescription: {
     fontSize: 13,

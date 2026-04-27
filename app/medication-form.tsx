@@ -638,6 +638,8 @@ export default function MedicationFormScreen() {
                     }
                   }}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add custom medication"
                 >
                   <Text style={[styles.dropdownItemText, { color: colors.accent }]}>+ Custom medication...</Text>
                 </TouchableOpacity>
@@ -826,7 +828,6 @@ export default function MedicationFormScreen() {
               accessibilityState={{ checked: reminderEnabled }}
             >
               <View style={styles.reminderToggleLeft}>
-                <Text style={styles.reminderIcon}>🔔</Text>
                 <View style={styles.reminderToggleInfo}>
                   <Text style={styles.reminderToggleLabel}>Reminders</Text>
                   <Text style={styles.reminderToggleDesc}>

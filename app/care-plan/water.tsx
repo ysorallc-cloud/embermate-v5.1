@@ -140,6 +140,16 @@ export default function WaterBucketScreen() {
                     key={option.value}
                     style={[
                       styles.priorityOption,
+                      {
+                        // Severity stripe — independent of selection. Required = red,
+                        // Recommended = mint, Optional = gray.
+                        borderLeftWidth: 4,
+                        borderLeftColor:
+                          option.value === 'required' ? colors.error
+                          : option.value === 'recommended' ? colors.accent
+                          : option.value === 'optional' ? colors.textTertiary
+                          : colors.textTertiary,
+                      },
                       priority === option.value && styles.priorityOptionSelected,
                     ]}
                     onPress={() => handleChangePriority(option.value)}
@@ -411,7 +421,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 2,
   },
   priorityLabelSelected: {
-    color: c.accent,
+    fontWeight: '600' as const,
   },
   priorityDescription: {
     fontSize: 13,
@@ -471,7 +481,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
   },
   goalOptionLabelSelected: {
-    color: c.accent,
+    color: c.textPrimary,
+    fontWeight: '600' as const,
   },
   goalHint: {
     textAlign: 'center',
@@ -504,7 +515,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 2,
   },
   unitLabelSelected: {
-    color: c.accent,
+    fontWeight: '700' as const,
   },
   unitSubtext: {
     fontSize: 11,
@@ -539,7 +550,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 2,
   },
   reminderLabelSelected: {
-    color: c.accent,
+    fontWeight: '600' as const,
   },
   reminderDescription: {
     fontSize: 13,

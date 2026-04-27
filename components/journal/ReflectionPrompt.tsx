@@ -143,6 +143,9 @@ export function ReflectionPrompt({ date, prompt, savedText, savedAt, onSave, onD
 const styles = StyleSheet.create({
   section: {
     paddingVertical: 14,
+    // Visual separation from the JournalPatterns block above so the prompt
+    // reads as a new section, not a continuation of the pattern analysis.
+    marginTop: 24,
   },
   prompt: {
     fontSize: 13,

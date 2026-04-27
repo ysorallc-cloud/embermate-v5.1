@@ -838,6 +838,7 @@ function VisitPrepView({
             onPress={() => onToggleQuestion(q.id)}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: checkedQuestions.has(q.id) }}
+            accessibilityLabel={q.question}
           >
             <View style={[styles.checkbox, checkedQuestions.has(q.id) && styles.checkboxChecked]}>
               {checkedQuestions.has(q.id) && <Text style={styles.checkmark}>✓</Text>}

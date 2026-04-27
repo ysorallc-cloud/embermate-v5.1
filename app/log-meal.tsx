@@ -570,7 +570,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
   },
   mealLabelSelected: {
-    color: c.green,
+    color: c.textPrimary,
     fontWeight: '600',
   },
   checkBadge: {
@@ -633,7 +633,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
   },
   quickFoodLabelSelected: {
-    color: c.green,
+    color: c.textPrimary,
     fontWeight: '600',
   },
 

@@ -1,11 +1,10 @@
 // ============================================================================
 // EMBERMATE MIDNIGHT CALM THEME TOKENS
-// Deep midnight with soft purple accents
-// Colors are initialized at module load based on system appearance.
+// Deep midnight with soft purple accents.
+// TODO: light mode disabled in v6.7 — light-tokens module is preserved on disk
+// for future re-enablement but is intentionally not imported here.
 // NOTE: Not a route - utility file only
 // ============================================================================
-
-import { LightColors } from './light-tokens';
 
 // Prevent Expo Router warning (this is not a route component)
 export default null;
@@ -17,30 +16,30 @@ export default null;
 const DarkColors = {
   background: '#0a0c0a',
   backgroundAlt: '#050505',
-  glass: '#111111',
+  glass: '#1c2330',
   glassHover: 'rgba(255, 255, 255, 0.06)',
-  glassBorder: 'rgba(255, 255, 255, 0.10)',
+  glassBorder: 'rgba(255, 255, 255, 0.08)',
   glassActive: 'rgba(255, 255, 255, 0.12)',
-  glassDim: 'rgba(255, 255, 255, 0.04)',
+  glassDim: '#181f2c',
   glassFaint: 'rgba(255, 255, 255, 0.03)',
   glassSubtle: 'rgba(255, 255, 255, 0.12)',
   glassStrong: 'rgba(255, 255, 255, 0.18)',
   glassBold: 'rgba(255, 255, 255, 0.25)',
-  surface: '#111111',
-  surfaceElevated: '#1A1A1A',
+  surface: '#1c2330',
+  surfaceElevated: '#222b3a',
   surfaceAlt: 'rgba(255, 255, 255, 0.03)',
   surfaceHighlight: 'rgba(52, 211, 153, 0.08)',
-  // ── Warm surfaces ──
-  warmSurface: '#131820',
-  warmSurfaceBorder: '#1a2230',
-  warmSurfaceAlert: '#1a1510',
-  warmSurfaceAlertBorder: '#2a2018',
-  warmSurfaceQuiet: '#10140f',
-  warmSurfaceQuietBorder: '#1a201a',
-  warmSurfaceGreen: '#131a16',
-  warmSurfaceGreenBorder: '#1a2a22',
-  warmSurfacePurple: '#131720',
-  warmSurfacePurpleBorder: '#1a2030',
+  // ── Warm surfaces (lifted in v6.7 to clear the L* 6 threshold from background) ──
+  warmSurface: '#1d2535',
+  warmSurfaceBorder: '#26314a',
+  warmSurfaceAlert: '#241a13',
+  warmSurfaceAlertBorder: '#382818',
+  warmSurfaceQuiet: '#181c1a',
+  warmSurfaceQuietBorder: '#222822',
+  warmSurfaceGreen: '#1a2620',
+  warmSurfaceGreenBorder: '#26382e',
+  warmSurfacePurple: '#1c2035',
+  warmSurfacePurpleBorder: '#26305a',
   auroraTeal: 'hsla(160, 40%, 12%, 0.4)',
   auroraPurple: 'hsla(160, 50%, 15%, 0.35)',
   auroraBlue: 'hsla(165, 40%, 10%, 0.3)',

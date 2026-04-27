@@ -65,11 +65,12 @@ describe('Journal redesign', () => {
     expect(src).toContain('Not a medical record');
   });
 
-  it('headerPurpose style uses muted color', () => {
-    // sectionContext was removed during decomposition; headerPurpose
-    // serves the same purpose with the same color.
+  it('headerPurpose style uses the textSecondary token (unified in v6.7)', () => {
+    // sectionContext was removed during decomposition; headerPurpose now
+    // matches the unified subtitle color for all four tabs — see
+    // __tests__/screens/headerStructureContract.test.ts.
     expect(src).toContain('headerPurpose');
-    expect(src).toContain("'#4a5a6a'");
+    expect(src).toMatch(/headerPurpose:\s*\{[^}]*color:\s*c\.textSecondary/s);
   });
 
   it('section order: Status → Heads up → Patterns → Reflection', () => {

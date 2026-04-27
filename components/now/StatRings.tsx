@@ -42,9 +42,13 @@ export function StatRings({ stats }: StatRingsProps) {
   const { colors, resolvedTheme } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
 
+  // Track opacity bumped from 0.08 → 0.12 after the v6.7 contrast lift —
+  // 0.08 was tuned for the old #111111 glass; against the lifted #1c2330
+  // surface it blended too close to the card and the unfilled portion of
+  // the ring went invisible.
   const trackColor = resolvedTheme === 'light'
-    ? 'rgba(0, 0, 0, 0.08)'
-    : 'rgba(255, 255, 255, 0.08)';
+    ? 'rgba(0, 0, 0, 0.12)'
+    : 'rgba(255, 255, 255, 0.12)';
 
   return (
     <View style={s.container}>
@@ -76,7 +80,12 @@ export function StatRings({ stats }: StatRingsProps) {
                   stroke={trackColor}
                   strokeWidth={RING_STROKE}
                 />
-                {/* Progress arc — only rendered when total > 0 */}
+                {/* Progress arc — only rendered when total > 0.
+                    Uses transform="rotate(-90, cx, cy)" so the arc starts
+                    at 12 o'clock. The legacy `rotation` + `origin` props
+                    were deprecated in react-native-svg v13 and silently
+                    dropped on v15; using the standard SVG transform here
+                    avoids that breakage. */}
                 {!isEmpty && (
                   <SvgCircle
                     cx={RING_SIZE / 2}
@@ -88,8 +97,7 @@ export function StatRings({ stats }: StatRingsProps) {
                     strokeLinecap="round"
                     strokeDasharray={`${CIRCUMFERENCE}`}
                     strokeDashoffset={offset}
-                    rotation={-90}
-                    origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
+                    transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
                   />
                 )}
               </Svg>
@@ -130,6 +138,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   column: {
     flex: 1,
     alignItems: 'center',
+    // Provides vertical rhythm between ring → label → value so the value
+    // text doesn't overlap the label. Replaces the prior negative
+    // marginTop hack on `value`.
+    gap: 6,
   },
   ringWrap: {
     width: RING_SIZE,
@@ -150,12 +162,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '500',
     letterSpacing: 0.5,
     color: c.textMuted,
-    marginTop: 10,
+    marginTop: 4,
   },
   value: {
     fontSize: 11,
     fontWeight: '400',
     color: c.textPrimary,
-    marginTop: -6,
+    marginTop: 0,
   },
 });

@@ -332,7 +332,9 @@ export default function QuickLogMoreScreen() {
                 style={styles.waterBtn}
                 onPress={handleWaterDecrement}
                 disabled={waterGlasses <= 0}
+                accessibilityRole="button"
                 accessibilityLabel="Remove glass"
+                accessibilityState={{ disabled: waterGlasses <= 0 }}
               >
                 <Text style={[styles.waterBtnText, waterGlasses <= 0 && styles.waterBtnDisabled]}>−</Text>
               </TouchableOpacity>
@@ -343,6 +345,7 @@ export default function QuickLogMoreScreen() {
               <TouchableOpacity
                 style={[styles.waterBtn, styles.waterBtnAdd]}
                 onPress={() => addWater(1)}
+                accessibilityRole="button"
                 accessibilityLabel="Add glass"
               >
                 <Text style={styles.waterBtnAddText}>+</Text>
@@ -363,6 +366,7 @@ export default function QuickLogMoreScreen() {
                   key={n}
                   style={styles.quickAddBtn}
                   onPress={() => addWater(n)}
+                  accessibilityRole="button"
                   accessibilityLabel={`Add ${n} glass${n > 1 ? 'es' : ''}`}
                 >
                   <Text style={styles.quickAddText}>+{n}</Text>
@@ -472,6 +476,9 @@ export default function QuickLogMoreScreen() {
                 style={[styles.saveBtn, (!hasVitalsData || vitalsSaving) && styles.saveBtnDisabled]}
                 onPress={handleSaveVitals}
                 disabled={!hasVitalsData || vitalsSaving}
+                accessibilityRole="button"
+                accessibilityLabel="Save vitals"
+                accessibilityState={{ disabled: !hasVitalsData || vitalsSaving }}
               >
                 <Text style={styles.saveBtnText}>{vitalsSaving ? 'Saving...' : 'Save Vitals'}</Text>
               </TouchableOpacity>
@@ -513,6 +520,7 @@ export default function QuickLogMoreScreen() {
                         <TouchableOpacity
                           style={styles.medTakeBtn}
                           onPress={() => handleMedAction(med.id, 'taken')}
+                          accessibilityRole="button"
                           accessibilityLabel={`Take ${med.itemName}`}
                         >
                           <Text style={styles.medTakeBtnText}>Take</Text>
@@ -520,6 +528,7 @@ export default function QuickLogMoreScreen() {
                         <TouchableOpacity
                           style={styles.medSkipBtn}
                           onPress={() => handleMedAction(med.id, 'skipped')}
+                          accessibilityRole="button"
                           accessibilityLabel={`Skip ${med.itemName}`}
                         >
                           <Text style={styles.medSkipBtnText}>Skip</Text>
@@ -534,6 +543,8 @@ export default function QuickLogMoreScreen() {
               <TouchableOpacity
                 style={styles.detailsLink}
                 onPress={() => navigate('/medication-confirm')}
+                accessibilityRole="button"
+                accessibilityLabel="Medication details for side effects or notes"
               >
                 <Text style={styles.detailsLinkText}>Details → for side effects or notes</Text>
               </TouchableOpacity>
@@ -559,6 +570,9 @@ export default function QuickLogMoreScreen() {
                 style={[styles.saveBtn, (!noteText.trim() || noteSaving) && styles.saveBtnDisabled]}
                 onPress={handleSaveNote}
                 disabled={!noteText.trim() || noteSaving}
+                accessibilityRole="button"
+                accessibilityLabel="Save note"
+                accessibilityState={{ disabled: !noteText.trim() || noteSaving }}
               >
                 <Text style={styles.saveBtnText}>{noteSaving ? 'Saving...' : 'Save Note'}</Text>
               </TouchableOpacity>
@@ -591,6 +605,8 @@ export default function QuickLogMoreScreen() {
                     navigate('/log-evening-wellness');
                   }
                 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Start ${!morningDone ? 'morning' : 'evening'} check-in`}
               >
                 <Text style={styles.startCheckinEmoji}>{!morningDone ? '☀️' : '🌙'}</Text>
                 <Text style={styles.startCheckinText}>
@@ -690,6 +706,8 @@ export default function QuickLogMoreScreen() {
                           style={styles.goButton}
                           onPress={() => navigate(option.screen)}
                           activeOpacity={0.7}
+                          accessibilityRole="button"
+                          accessibilityLabel={done ? `Update ${option.label}` : `Log ${option.label}`}
                         >
                           <Text style={styles.goButtonText}>
                             {done ? `Update ${option.label}` : `Log ${option.label}`}
@@ -720,6 +738,7 @@ export default function QuickLogMoreScreen() {
                     </View>
                     <TouchableOpacity
                       onPress={() => navigate('/care-plan')}
+                      accessibilityRole="button"
                       accessibilityLabel={`Enable ${option.label} in care plan`}
                     >
                       <Text style={styles.enableLink}>Enable →</Text>

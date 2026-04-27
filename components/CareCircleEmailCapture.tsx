@@ -130,6 +130,8 @@ export function CareCircleEmailCapture({ visible, onClose }: CareCircleEmailCapt
               style={styles.doneButton}
               onPress={handleClose}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Done"
             >
               <Text style={styles.doneButtonText}>Done</Text>
             </TouchableOpacity>

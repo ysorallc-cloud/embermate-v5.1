@@ -33,6 +33,14 @@ export function PatientSwitcherModal({ visible, onClose }: PatientSwitcherModalP
   const [newName, setNewName] = useState('');
   const [adding, setAdding] = useState(false);
 
+  // Active patient's display name for the "View [name]'s profile" link. Falls
+  // back to the standard "your loved one" when the context hasn't resolved.
+  const activePatient = patients.find(p => p.id === activePatientId);
+  const activeName =
+    activePatient?.name && activePatient.name !== 'Patient'
+      ? activePatient.name
+      : 'your loved one';
+
   const handleSwitch = async (patientId: string) => {
     if (patientId === activePatientId) {
       onClose();
@@ -75,34 +83,56 @@ export function PatientSwitcherModal({ visible, onClose }: PatientSwitcherModalP
         style={styles.overlay}
         activeOpacity={1}
         onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close patient switcher"
       >
-        <TouchableOpacity activeOpacity={1} style={styles.sheet}>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.sheet}
+          accessibilityRole="none"
+          accessibilityLabel="Switch patient sheet"
+        >
           <View style={styles.handle} />
           <Text style={styles.title}>Switch Patient</Text>
 
           {/* Patient list */}
           {patients.map((patient) => {
             const isActive = patient.id === activePatientId;
+            const isSelf = patient.relationship === 'self';
+            // Display label: "self" reads awkwardly in a list of relationships
+            // ("Mom", "Dad", "self"). Surface it as "You" instead. Other
+            // relationships still pass through unchanged.
+            const relationshipLabel = isSelf
+              ? 'You'
+              : patient.relationship;
             return (
               <TouchableOpacity
                 key={patient.id}
                 style={[styles.patientRow, isActive && styles.patientRowActive]}
                 onPress={() => handleSwitch(patient.id)}
-                accessibilityLabel={`Switch to ${patient.name}`}
+                accessibilityLabel={`Switch to ${patient.name}${isSelf ? ' (you)' : ''}`}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isActive }}
               >
-                <View style={[styles.avatar, isActive && styles.avatarActive]}>
-                  <Text style={styles.avatarText}>
+                <View
+                  style={[
+                    styles.avatar,
+                    // Active (non-self) patients get the filled mint fill.
+                    // Self patients get a distinct outline regardless of
+                    // active state, so the avatar carries a single, unambiguous
+                    // signal \u2014 "this row is you".
+                    isActive && !isSelf && styles.avatarActive,
+                    isSelf && styles.avatarSelf,
+                  ]}
+                >
+                  <Text style={[styles.avatarText, isSelf && styles.avatarTextSelf]}>
                     {patient.name.charAt(0).toUpperCase()}
                   </Text>
                 </View>
                 <View style={styles.patientInfo}>
-                  <Text style={[styles.patientName, isActive && styles.patientNameActive]}>
-                    {patient.name}
-                  </Text>
-                  {patient.relationship && (
-                    <Text style={styles.patientRelation}>{patient.relationship}</Text>
+                  <Text style={styles.patientName}>{patient.name}</Text>
+                  {relationshipLabel && (
+                    <Text style={styles.patientRelation}>{relationshipLabel}</Text>
                   )}
                 </View>
                 {isActive && <Text style={styles.activeCheck}>{'\u2713'}</Text>}
@@ -126,6 +156,8 @@ export function PatientSwitcherModal({ visible, onClose }: PatientSwitcherModalP
                 <TouchableOpacity
                   style={styles.cancelButton}
                   onPress={() => { setShowAdd(false); setNewName(''); }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel adding patient"
                 >
                   <Text style={styles.cancelText}>Cancel</Text>
                 </TouchableOpacity>
@@ -133,6 +165,9 @@ export function PatientSwitcherModal({ visible, onClose }: PatientSwitcherModalP
                   style={[styles.addButton, (!newName.trim() || adding) && styles.addButtonDisabled]}
                   onPress={handleAdd}
                   disabled={!newName.trim() || adding}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add patient"
+                  accessibilityState={{ disabled: !newName.trim() || adding }}
                 >
                   <Text style={styles.addButtonText}>
                     {adding ? 'Adding...' : 'Add'}
@@ -164,11 +199,11 @@ export function PatientSwitcherModal({ visible, onClose }: PatientSwitcherModalP
           <TouchableOpacity
             style={styles.profileRow}
             onPress={() => { onClose(); navigate('/patient'); }}
-            accessibilityLabel="View patient profile"
+            accessibilityLabel={`View ${activeName}'s profile`}
             accessibilityRole="button"
           >
             <Text style={styles.profileIcon}>{'\uD83D\uDC64'}</Text>
-            <Text style={styles.profileLabel}>View Profile</Text>
+            <Text style={styles.profileLabel}>{`View ${activeName}'s profile`}</Text>
             <Text style={styles.profileArrow}>{'\u2192'}</Text>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -230,10 +265,20 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   avatarActive: {
     backgroundColor: c.accent,
   },
+  // Self-patient avatar: outlined accent ring on a transparent fill, distinct
+  // from the solid mint "active" avatar so the two indicators don't collide.
+  avatarSelf: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: c.accent,
+  },
   avatarText: {
     fontSize: 16,
     fontWeight: '600',
     color: c.textPrimary,
+  },
+  avatarTextSelf: {
+    color: c.accent,
   },
   patientInfo: {
     flex: 1,
@@ -243,8 +288,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '500',
     color: c.textPrimary,
   },
+  // Active patient name stays at textPrimary — selection signal lives on the
+  // row's mint border + the right-side check, per the global selection
+  // contrast contract (__tests__/components/selectionListContrast.test.tsx).
   patientNameActive: {
-    color: c.accent,
+    fontWeight: '600',
   },
   patientRelation: {
     fontSize: 12,

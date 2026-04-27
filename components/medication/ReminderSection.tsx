@@ -37,7 +37,6 @@ export function ReminderSection({ state, dispatch }: Props) {
         accessibilityState={{ checked: state.reminderEnabled }}
       >
         <View style={styles.reminderToggleLeft}>
-          <Text style={styles.reminderIcon}>🔔</Text>
           <View style={styles.reminderToggleInfo}>
             <Text style={styles.reminderToggleLabel}>Reminders</Text>
             <Text style={styles.reminderToggleDesc}>

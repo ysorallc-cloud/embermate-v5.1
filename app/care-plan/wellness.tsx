@@ -19,6 +19,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useWellnessSettings } from '../../hooks/useWellnessSettings';
+import { SubScreenHeader } from '../../components/SubScreenHeader';
+import { usePatient } from '../../contexts/PatientContext';
 
 // ============================================================================
 // FIELD METADATA
@@ -30,9 +32,12 @@ const MORNING_CORE_FIELDS = [
   { key: 'energy', label: 'Energy Level' },
 ];
 
-const MORNING_OPTIONAL_FIELDS = [
-  { key: 'orientation', label: 'Orientation', description: 'Alert & oriented, confused, disoriented' },
-  { key: 'decisionMaking', label: 'Decision Making', description: 'Own decisions, needs guidance, unable' },
+// Field descriptions are written as complete sentences (not lists of the
+// option values). They take the patient name so the copy reads naturally;
+// callers compute the list with `getMorningOptionalFields(patientName)`.
+const getMorningOptionalFields = (patient: string) => [
+  { key: 'orientation', label: 'Orientation', description: `Track whether ${patient} is alert, confused, or disoriented.` },
+  { key: 'decisionMaking', label: 'Decision Making', description: `Track ${patient}'s decision-making capacity day-to-day.` },
 ];
 
 const EVENING_CORE_FIELDS = [
@@ -42,12 +47,12 @@ const EVENING_CORE_FIELDS = [
   { key: 'notes', label: 'Highlights & Concerns' },
 ];
 
-const EVENING_OPTIONAL_FIELDS = [
-  { key: 'painLevel', label: 'Pain Level', description: 'None, mild, moderate, severe' },
-  { key: 'alertness', label: 'Alertness', description: 'Alert, confused, drowsy, unresponsive' },
-  { key: 'bowelMovement', label: 'Bowel Movement', description: 'Yes, no, unknown' },
-  { key: 'bathingStatus', label: 'Bathing Status', description: 'Independent, partial/full assist' },
-  { key: 'mobilityStatus', label: 'Mobility Status', description: 'Independent, walker, cane, wheelchair' },
+const getEveningOptionalFields = (patient: string) => [
+  { key: 'painLevel', label: 'Pain Level', description: `Track ${patient}'s pain on a none-to-severe scale.` },
+  { key: 'alertness', label: 'Alertness', description: `Track ${patient}'s alertness from clear-headed to unresponsive.` },
+  { key: 'bowelMovement', label: 'Bowel Movement', description: `Note whether ${patient} had a bowel movement today.` },
+  { key: 'bathingStatus', label: 'Bathing Status', description: `Track how independently ${patient} bathed today.` },
+  { key: 'mobilityStatus', label: 'Mobility Status', description: `Track how ${patient} got around today — independent or with support.` },
 ];
 
 const MORNING_TIME_PRESETS = ['06:00', '07:00', '08:00', '09:00'];
@@ -70,6 +75,19 @@ export default function WellnessConfigScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { settings, updateSettings } = useWellnessSettings();
+  const { activePatient } = usePatient();
+  const patientName =
+    activePatient?.name && activePatient.name !== 'Patient'
+      ? activePatient.name
+      : 'your loved one';
+  const morningOptionalFields = useMemo(
+    () => getMorningOptionalFields(patientName),
+    [patientName],
+  );
+  const eveningOptionalFields = useMemo(
+    () => getEveningOptionalFields(patientName),
+    [patientName],
+  );
 
   const handleTimeChange = useCallback(async (period: 'morning' | 'evening', time: string) => {
     await updateSettings({
@@ -105,31 +123,16 @@ export default function WellnessConfigScreen() {
         style={styles.gradient}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerLabel}>WELLNESS</Text>
-          <View style={{ width: 44 }} />
-        </View>
+        <SubScreenHeader
+          title="Wellness Checks"
+          subtitle="Configure your daily morning and evening check-ins."
+        />
 
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Title */}
-          <View style={styles.titleSection}>
-            <Text style={styles.title}>Wellness Checks</Text>
-            <Text style={styles.subtitle}>
-              Configure your daily morning and evening check-ins.
-            </Text>
-          </View>
 
           {/* ============================================================ */}
           {/* MORNING CHECK */}
@@ -174,7 +177,7 @@ export default function WellnessConfigScreen() {
           ))}
 
           {/* Optional Fields */}
-          {MORNING_OPTIONAL_FIELDS.map((field) => (
+          {morningOptionalFields.map((field) => (
             <View key={field.key} style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>{field.label}</Text>
@@ -254,7 +257,7 @@ export default function WellnessConfigScreen() {
           ))}
 
           {/* Optional Fields */}
-          {EVENING_OPTIONAL_FIELDS.map((field) => (
+          {eveningOptionalFields.map((field) => (
             <View key={field.key} style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>{field.label}</Text>

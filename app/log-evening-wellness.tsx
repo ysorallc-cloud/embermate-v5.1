@@ -813,7 +813,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
   },
   optionLabelSelected: {
-    color: c.accent,
+    color: c.textPrimary,
     fontWeight: '600',
   },
   toggleRow: {
@@ -878,7 +878,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
   },
   ratingLabelSelected: {
-    color: c.accent,
+    color: c.textPrimary,
     fontWeight: '600',
   },
   radio: {

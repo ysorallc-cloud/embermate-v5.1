@@ -94,12 +94,7 @@ export default function SupportScreen() {
           <View style={styles.headerWrap}>
             <Text style={styles.title}>You</Text>
             <Text style={styles.headerMessage}>
-              This page is for{' '}
-              <Text style={styles.headerYou}>you</Text>
-              {' '}{'\u2014'} not your loved one.
-            </Text>
-            <Text style={styles.headerContext}>
-              Caregivers who check in on themselves provide better care. Take a moment.
+              A space for you, not your loved one.
             </Text>
           </View>
 
@@ -239,7 +234,7 @@ export default function SupportScreen() {
 
           {/* ═══ Resources ═══ */}
           <View style={[styles.warmCard, styles.warmCardQuiet]}>
-            <Text style={[styles.sectionLabel, { color: '#6a7a72' }]}>Plan ahead</Text>
+            <Text style={styles.sectionLabel}>Plan ahead</Text>
             <Text style={[styles.sectionContext, { color: '#3a5a4a' }]}>
               When things are calm, these help you prepare.
             </Text>
@@ -275,32 +270,23 @@ function createStyles(c: typeof Colors) {
     },
     headerWrap: {
       paddingTop: 56,
-      paddingBottom: 20,
+      paddingBottom: 24,
       paddingHorizontal: 4,
       borderBottomWidth: 0.5,
-      borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+      borderBottomColor: c.glassHover,
     },
     title: {
       fontSize: 32,
       fontWeight: '300' as const,
-      color: '#d8e8e0',
+      color: c.textPrimary,
       letterSpacing: -0.5,
-      marginBottom: 10,
+      marginBottom: 0,
     },
     headerMessage: {
-      fontSize: 15,
-      color: '#6a8a7a',
-      lineHeight: 22,
-    },
-    headerYou: {
-      color: '#c0d0c8',
-      fontWeight: '500' as const,
-    },
-    headerContext: {
       fontSize: 13,
-      color: '#4a6a5a',
-      lineHeight: 19,
-      marginTop: 6,
+      color: c.textSecondary,
+      lineHeight: 20,
+      marginTop: 8,
     },
     zoneSpacer: {
       height: 8,
@@ -491,7 +477,7 @@ function createStyles(c: typeof Colors) {
     sectionLabel: {
       fontSize: 13,
       fontWeight: '500' as const,
-      color: '#5a9a6e',
+      color: c.textSecondary,
       marginBottom: 4,
     },
     sectionContext: {

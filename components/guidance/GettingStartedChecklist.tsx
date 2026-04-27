@@ -128,6 +128,9 @@ export function GettingStartedChecklist() {
             onPress={() => item.route && navigate(item.route)}
             activeOpacity={item.route ? 0.7 : 1}
             disabled={!item.route || done}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
+            accessibilityState={{ checked: done, disabled: !item.route || done }}
           >
             <Text style={styles.checkmark}>{done ? '\u2705' : '\u2B1C'}</Text>
             <View style={styles.itemText}>
@@ -144,6 +147,8 @@ export function GettingStartedChecklist() {
           setDismissed(true);
           await safeSetItem(DISMISSED_KEY, 'true');
         }}
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss getting started checklist"
       >
         <Text style={styles.dismissText}>Dismiss</Text>
       </TouchableOpacity>

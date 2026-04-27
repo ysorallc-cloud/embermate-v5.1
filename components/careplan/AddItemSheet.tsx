@@ -73,8 +73,18 @@ export function AddItemSheet({ visible, windowLabel, onClose }: AddItemSheetProp
       transparent
       onRequestClose={onClose}
     >
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={() => {}}>
+      <Pressable
+        style={styles.backdrop}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close add to routine sheet"
+      >
+        <Pressable
+          style={styles.sheet}
+          onPress={() => {}}
+          accessibilityRole="none"
+          accessibilityLabel="Add to routine sheet"
+        >
           <View style={styles.handle} />
           <Text style={styles.title}>Add to routine</Text>
           {windowLabel && (

@@ -440,7 +440,6 @@ export default function AppointmentFormScreen() {
                 accessibilityState={{ checked: reminderEnabled }}
               >
                 <View style={styles.reminderToggleLeft}>
-                  <Text style={styles.reminderIcon}>🔔</Text>
                   <View style={styles.reminderToggleInfo}>
                     <Text style={styles.reminderToggleLabel}>Reminder</Text>
                     <Text style={styles.reminderToggleDesc}>
@@ -526,11 +525,19 @@ export default function AppointmentFormScreen() {
             <View style={styles.pickerOverlay}>
               <View style={styles.pickerContainer}>
                 <View style={styles.pickerHeader}>
-                  <TouchableOpacity onPress={cancelDate}>
+                  <TouchableOpacity
+                    onPress={cancelDate}
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancel date selection"
+                  >
                     <Text style={styles.pickerCancel}>Cancel</Text>
                   </TouchableOpacity>
                   <Text style={styles.pickerTitle}>Select Date</Text>
-                  <TouchableOpacity onPress={confirmDate}>
+                  <TouchableOpacity
+                    onPress={confirmDate}
+                    accessibilityRole="button"
+                    accessibilityLabel="Confirm date"
+                  >
                     <Text style={styles.pickerDone}>Done</Text>
                   </TouchableOpacity>
                 </View>
@@ -560,11 +567,19 @@ export default function AppointmentFormScreen() {
             <View style={styles.pickerOverlay}>
               <View style={styles.pickerContainer}>
                 <View style={styles.pickerHeader}>
-                  <TouchableOpacity onPress={cancelTime}>
+                  <TouchableOpacity
+                    onPress={cancelTime}
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancel time selection"
+                  >
                     <Text style={styles.pickerCancel}>Cancel</Text>
                   </TouchableOpacity>
                   <Text style={styles.pickerTitle}>Select Time</Text>
-                  <TouchableOpacity onPress={confirmTime}>
+                  <TouchableOpacity
+                    onPress={confirmTime}
+                    accessibilityRole="button"
+                    accessibilityLabel="Confirm time"
+                  >
                     <Text style={styles.pickerDone}>Done</Text>
                   </TouchableOpacity>
                 </View>

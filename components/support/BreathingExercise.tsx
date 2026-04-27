@@ -11,6 +11,7 @@ import {
   Modal,
   StyleSheet,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../contexts/ThemeContext';
 import { emitWellnessEvent } from '../../utils/eventEmitter';
 import { updateStreak } from '../../utils/streakStorage';
@@ -69,6 +70,12 @@ export function BreathingExercise({ visible, onClose }: BreathingExerciseProps) 
     setPhase(nextPhase);
     setCycle(nextCycle);
     setCount(1);
+
+    // Soft haptic pulse on phase entry — one per transition, not per second.
+    // Selection feedback (lightest pulse) reads as a gentle cue without
+    // pulling the user out of the slow-breath rhythm. Suppressed on
+    // simulator (Haptics gracefully no-ops there).
+    Haptics.selectionAsync().catch(() => {});
 
     // Count 1-4 over 4 seconds
     let c = 1;
@@ -159,11 +166,12 @@ export function BreathingExercise({ visible, onClose }: BreathingExerciseProps) 
           phase === 'hold' && styles.orbExpand,
           phase === 'exhale' && styles.orbContract,
         ]}>
-          <View style={[styles.orbInner, { backgroundColor: colors.accent }]}>
-            {(phase === 'inhale' || phase === 'hold' || phase === 'exhale') && (
-              <Text style={styles.orbCount}>{count}</Text>
-            )}
-          </View>
+          <View style={[styles.orbInner, { backgroundColor: colors.accent }]} />
+          {/* Count digit lives outside orbInner so the disc's 30% opacity
+              doesn't dim it — the digit itself reads at full contrast. */}
+          {(phase === 'inhale' || phase === 'hold' || phase === 'exhale') && (
+            <Text style={styles.orbCount}>{count}</Text>
+          )}
         </View>
 
         {/* Phase label */}
@@ -268,7 +276,11 @@ function createStyles(c: any) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    // Absolutely positioned over the orb so the orbInner's 30% opacity
+    // doesn't multiply down to the digit. The orb container handles the
+    // centering via alignItems/justifyContent.
     orbCount: {
+      position: 'absolute',
       fontSize: 36,
       fontWeight: '200',
       color: '#fff',

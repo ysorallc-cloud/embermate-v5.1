@@ -116,7 +116,10 @@ export default function VisitPrepScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]} style={styles.gradient}>
-        <SubScreenHeader title="Visit Prep" emoji="" />
+        <SubScreenHeader
+          title="Visit Prep"
+          subtitle="Bring this to the next appointment."
+        />
 
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={90}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>

@@ -1,7 +1,16 @@
 // ============================================================================
 // SUB-SCREEN HEADER
-// Standardized header for all non-tab screens (log forms, settings, reports)
-// Uses BackButton with icon variant for consistent navigation
+// Standardized header for all non-tab screens. Shape mirrors the four-tab
+// contract (32pt title / 13pt subtitle / 56pt top padding / 24pt bottom)
+// — see __tests__/screens/headerStructureContract.test.ts.
+//
+// Layout:
+//   ┌─ topRow ────────────────────────────┐  44pt height
+//   │  [BackButton]              [right]  │
+//   ├──────────────────────────────────────┤  marginBottom: 16
+//   │  Title (32pt, weight 300)            │
+//   │  Subtitle (13pt, textSecondary)      │  marginTop: 8
+//   └──────────────────────────────────────┘  paddingBottom: 24
 // ============================================================================
 
 import React, { useMemo } from 'react';
@@ -13,42 +22,47 @@ import { BackButton } from './common/BackButton';
 interface SubScreenHeaderProps {
   title: string;
   subtitle?: string;
+  /** @deprecated emoji is no longer rendered — kept for back-compat with older callers. */
   emoji?: string;
   rightAction?: React.ReactNode;
 }
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
+    paddingHorizontal: 16,
+    paddingTop: 56,
+    paddingBottom: 24,
+    borderBottomWidth: 0.5,
+    borderBottomColor: c.glassHover,
+  },
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 16,
+    justifyContent: 'space-between',
+    minHeight: 44,
+    marginBottom: 16,
   },
-  titleBlock: {
-    flex: 1,
+  rightAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   title: {
-    fontSize: 17,
+    fontSize: 32,
     fontWeight: '300',
     color: c.textPrimary,
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 12,
-    color: c.textTertiary,
-    marginTop: 2,
-  },
-  emoji: {
-    fontSize: 24,
+    fontSize: 13,
+    color: c.textSecondary,
+    lineHeight: 20,
+    marginTop: 8,
   },
 });
 
 export const SubScreenHeader: React.FC<SubScreenHeaderProps> = ({
   title,
   subtitle,
-  emoji,
   rightAction,
 }) => {
   const { colors } = useTheme();
@@ -56,13 +70,12 @@ export const SubScreenHeader: React.FC<SubScreenHeaderProps> = ({
 
   return (
     <View style={styles.container} accessibilityRole="header">
-      <BackButton variant="icon" />
-      <View style={styles.titleBlock}>
-        <Text style={styles.title} numberOfLines={1}>{title}</Text>
-        {subtitle && <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>}
+      <View style={styles.topRow}>
+        <BackButton variant="icon" />
+        {rightAction ? <View style={styles.rightAction}>{rightAction}</View> : null}
       </View>
-      {emoji && !rightAction && <Text style={styles.emoji}>{emoji}</Text>}
-      {rightAction}
+      <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit>{title}</Text>
+      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );
 };

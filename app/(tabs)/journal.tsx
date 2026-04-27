@@ -557,8 +557,8 @@ export default function JournalTab() {
   // ============================================================================
   const activeDiagnoses = (medicalInfo?.diagnoses ?? []).filter(d => d.status === 'active');
   const allergies = medicalInfo?.allergies ?? [];
-  // Patient name is used in the header purpose line ("Mom's care story for
-  // today") — no standalone patient card is rendered.
+  // Patient name is used in the header purpose line — no standalone
+  // patient card is rendered.
 
   // ============================================================================
   // RENDER — MAIN
@@ -578,10 +578,10 @@ export default function JournalTab() {
         >
           {/* ─── HEADER ─── */}
           <View style={s.headerRow}>
-            <View>
+            <View style={s.headerLeft}>
               <Text style={s.headerTitle}>Journal</Text>
               <Text style={s.headerDate}>{dayName}, {dateStr}</Text>
-              <Text style={s.headerPurpose}>{patientName ? `${patientName}'s care story for today` : "Today's care story"}. Share with the next caregiver or bring to a visit.</Text>
+              <Text style={s.headerPurpose}>{patientName || 'Your loved one'}'s day, in your words.</Text>
             </View>
             <View style={s.headerActions}>
               <TouchableOpacity
@@ -614,7 +614,6 @@ export default function JournalTab() {
             </View>
           )}
 
-          {/* Patient name shown inline in header: "Mom's care story for today" */}
 
           {/* ═══ DATE TAB STRIP ═══ */}
           <DateTabStrip
@@ -807,9 +806,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     justifyContent: 'space-between' as const,
     alignItems: 'flex-start' as const,
     paddingTop: 56,
-    paddingBottom: 14,
+    paddingBottom: 24,
     borderBottomWidth: 0.5,
     borderBottomColor: c.glassHover,
+  },
+  headerLeft: {
+    flex: 1,
+    paddingRight: 12,
   },
   headerTitle: {
     fontSize: 32,
@@ -824,9 +827,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   headerPurpose: {
     fontSize: 13,
-    color: '#4a5a6a',
-    marginTop: 4,
-    lineHeight: 18,
+    color: c.textSecondary,
+    marginTop: 8,
+    lineHeight: 20,
   },
   headerActions: {
     flexDirection: 'row' as const,

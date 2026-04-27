@@ -143,11 +143,11 @@ describe('S7: ScreenHeader purpose prop', () => {
     expect(screenHeaderSrc).toContain('{purpose && <Text style={styles.purpose}>{purpose}</Text>}');
   });
 
-  test('purpose style exists with warm hint color', () => {
+  test('purpose style uses textSecondary token (unified subtitle color in v6.7)', () => {
     const purposeMatch = screenHeaderSrc.match(/purpose:\s*\{[^}]+\}/);
     expect(purposeMatch).not.toBeNull();
     expect(purposeMatch![0]).toContain('fontSize: 13');
-    expect(purposeMatch![0]).toContain('#4a5a6a');
+    expect(purposeMatch![0]).toMatch(/c\.textSecondary|colors\.textSecondary/);
   });
 
   test('Now page does not pass purpose prop (v2: removed for clean header)', () => {
@@ -166,13 +166,15 @@ describe('S8: ScreenHeader spacing', () => {
     expect(block).toContain('paddingTop');
   });
 
-  test('marginBottom is >= 12', () => {
+  test('paddingBottom is >= 16 (v6.7 contract: 24)', () => {
+    // Container marginBottom was rolled into the unified paddingBottom in
+    // v6.7 — see __tests__/screens/headerStructureContract.test.ts.
     const containerMatch = screenHeaderSrc.match(/container:\s*\{[^}]+\}/);
     expect(containerMatch).not.toBeNull();
     const block = containerMatch![0];
-    expect(block).toContain('marginBottom');
-    const marginMatch = block.match(/marginBottom:\s*(\d+)/);
-    expect(Number(marginMatch![1])).toBeGreaterThanOrEqual(12);
+    expect(block).toContain('paddingBottom');
+    const padMatch = block.match(/paddingBottom:\s*(\d+)/);
+    expect(Number(padMatch![1])).toBeGreaterThanOrEqual(16);
   });
 
   test('has thin bottom border', () => {

@@ -15,12 +15,8 @@ interface ScreenHeaderProps {
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    // 40pt below the SafeAreaView top inset gives ~56pt total clearance
-    // from the iOS status bar on notched devices (safe-area inset ≈ 16pt).
-    // This is the target spacing for all tab headers across the app.
-    paddingTop: 40,
-    paddingBottom: 16,
-    marginBottom: 12,
+    paddingTop: 56,
+    paddingBottom: 24,
     borderBottomWidth: 0.5,
     borderBottomColor: c.glassHover,
   },
@@ -39,18 +35,17 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 0,
     letterSpacing: -0.5,
   },
-  // Longer greetings like "Good afternoon" overflow the header row next to
-  // the right-action chip; shrink to 28pt so they fit without truncation.
   titleShrink: {
     fontSize: 28,
     letterSpacing: -0.4,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '400',
-    color: c.textMuted,
+    color: c.textSecondary,
     letterSpacing: 0.2,
-    marginTop: 6,
+    marginTop: 8,
+    lineHeight: 20,
   },
   leftAction: {
     marginBottom: 8,
@@ -61,10 +56,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   purpose: {
     fontSize: 13,
-    color: '#4a5a6a',
+    color: c.textSecondary,
     marginTop: 4,
     letterSpacing: 0.1,
-    lineHeight: 18,
+    lineHeight: 20,
   },
 });
 

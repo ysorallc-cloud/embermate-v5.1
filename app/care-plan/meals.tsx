@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
+import { SubScreenHeader } from '../../components/SubScreenHeader';
 import {
   MealsBucketConfig,
   TimeOfDay,
@@ -85,31 +86,16 @@ export default function MealsBucketScreen() {
         style={styles.gradient}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerLabel}>MEALS</Text>
-          <View style={{ width: 44 }} />
-        </View>
+        <SubScreenHeader
+          title="Meals"
+          subtitle="Helps connect nutrition to mood, energy, and symptoms."
+        />
 
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Title */}
-          <View style={styles.titleSection}>
-            <Text style={styles.title}>Meals</Text>
-            <Text style={styles.subtitle}>
-              Helps connect nutrition to mood, energy, and symptoms.
-            </Text>
-          </View>
 
           {/* Enable Toggle */}
           <View style={styles.settingRow}>
@@ -138,6 +124,16 @@ export default function MealsBucketScreen() {
                     key={option.value}
                     style={[
                       styles.priorityOption,
+                      {
+                        // Severity stripe — independent of selection. Required = red,
+                        // Recommended = mint, Optional = gray.
+                        borderLeftWidth: 4,
+                        borderLeftColor:
+                          option.value === 'required' ? colors.error
+                          : option.value === 'recommended' ? colors.accent
+                          : option.value === 'optional' ? colors.textTertiary
+                          : colors.textTertiary,
+                      },
                       priority === option.value && styles.priorityOptionSelected,
                     ]}
                     onPress={() => handleChangePriority(option.value)}
@@ -404,7 +400,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 2,
   },
   priorityLabelSelected: {
-    color: c.accent,
+    fontWeight: '600' as const,
   },
   priorityDescription: {
     fontSize: 13,
@@ -438,7 +434,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textPrimary,
   },
   mealLabelSelected: {
-    color: c.accent,
     fontWeight: '500',
   },
   checkbox: {
@@ -491,7 +486,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 2,
   },
   styleLabelSelected: {
-    color: c.accent,
+    fontWeight: '600' as const,
   },
   styleDescription: {
     fontSize: 13,

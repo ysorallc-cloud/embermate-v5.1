@@ -271,7 +271,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     textTransform: 'uppercase',
   },
   moodLabelSelected: {
-    color: c.accent,
+    color: c.textPrimary,
+    fontWeight: '600' as const,
   },
   confirmationContainer: {
     alignItems: 'center',

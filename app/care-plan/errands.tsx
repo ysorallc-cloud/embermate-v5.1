@@ -141,6 +141,9 @@ export default function ErrandsConfigScreen() {
                     key={opt.value}
                     style={[styles.chip, newFreq === opt.value && { backgroundColor: colors.accent }]}
                     onPress={() => setNewFreq(opt.value)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Frequency: ${opt.label}`}
+                    accessibilityState={{ selected: newFreq === opt.value }}
                   >
                     <Text style={[styles.chipText, newFreq === opt.value && { color: '#fff' }]}>{opt.label}</Text>
                   </TouchableOpacity>
@@ -153,16 +156,28 @@ export default function ErrandsConfigScreen() {
                     key={opt.value}
                     style={[styles.chip, newTime === opt.value && { backgroundColor: colors.accent }]}
                     onPress={() => setNewTime(opt.value)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Time of day: ${opt.label}`}
+                    accessibilityState={{ selected: newTime === opt.value }}
                   >
                     <Text style={[styles.chipText, newTime === opt.value && { color: '#fff' }]}>{opt.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
               <View style={styles.formButtons}>
-                <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.accent }]} onPress={handleAdd}>
+                <TouchableOpacity
+                  style={[styles.saveBtn, { backgroundColor: colors.accent }]}
+                  onPress={handleAdd}
+                  accessibilityRole="button"
+                  accessibilityLabel="Save errand"
+                >
                   <Text style={styles.saveBtnText}>Save</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShowAdd(false)}>
+                <TouchableOpacity
+                  onPress={() => setShowAdd(false)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel adding errand"
+                >
                   <Text style={styles.cancelText}>Cancel</Text>
                 </TouchableOpacity>
               </View>

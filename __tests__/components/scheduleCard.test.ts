@@ -38,10 +38,14 @@ describe('Schedule card — single card with internal dividers', () => {
     expect(rowBlock![0]).not.toMatch(/backgroundColor/);
   });
 
-  it('row vertical padding is 12pt', () => {
+  it('row vertical padding is at least 14pt (breathing room above/below dividers)', () => {
+    // Bumped from 12pt → 14pt+ in v6.7 — see
+    // __tests__/components/scheduleCardSpacing.test.ts for the full contract.
     const rowBlock = cardSrc.match(/windowRow:\s*\{[^}]*\}/s);
     expect(rowBlock).toBeTruthy();
-    expect(rowBlock![0]).toMatch(/paddingVertical:\s*12/);
+    const padMatch = rowBlock![0].match(/paddingVertical:\s*(\d+)/);
+    expect(padMatch).toBeTruthy();
+    expect(Number(padMatch![1])).toBeGreaterThanOrEqual(14);
   });
 
   it('exposes windows + onStart props matching the spec', () => {
@@ -56,6 +60,19 @@ describe('Schedule card — single card with internal dividers', () => {
 
   it('NowTimeline section header still reads "Today\'s Schedule"', () => {
     expect(timelineSrc).toContain("Today's Schedule");
+  });
+
+  it('"Today\'s Schedule" header has no disclosure triangle indicator', () => {
+    // Triangle glyphs that previously implied an expand/collapse affordance —
+    // tap toggles still work, but no visual chevron should remain on the row.
+    const triangleEscapes = ['\\u25B6', '\\u25BC', '\\u25B8', '\\u25B7', '\\u25BD'];
+    for (const esc of triangleEscapes) {
+      expect(timelineSrc).not.toContain(esc);
+    }
+    const triangleGlyphs = ['▶', '▼', '▸', '▷', '▽'];
+    for (const glyph of triangleGlyphs) {
+      expect(timelineSrc).not.toContain(glyph);
+    }
   });
 
   it('"Tap Start when you\'re ready" helper text is not rendered unconditionally', () => {

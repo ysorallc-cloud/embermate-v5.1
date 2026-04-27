@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
+import { usePatient } from '../../contexts/PatientContext';
 import { StorageKeys } from '../../utils/storageKeys';
 import { logError } from '../../utils/devLog';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
@@ -44,6 +45,11 @@ export default function PatientScreen() {
   const [editing, setEditing] = useState(false);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { activePatient } = usePatient();
+  const displayName =
+    activePatient?.name && activePatient.name !== 'Patient'
+      ? activePatient.name
+      : 'your loved one';
 
   // Basic info fields
   const [patientName, setPatientName] = useState('');
@@ -217,12 +223,19 @@ export default function PatientScreen() {
         style={styles.gradient}
       >
         <SubScreenHeader
-          title="Patient"
-          emoji={'\u{1F464}'}
+          title={displayName}
+          subtitle={`${displayName}'s medical history and details.`}
+          rightAction={
+            <View style={styles.avatarChip}>
+              <Text style={styles.avatarChipText}>
+                {(displayName.charAt(0) || '?').toUpperCase()}
+              </Text>
+            </View>
+          }
         />
 
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={100}>
-        <ScrollView style={styles.scroll}>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           {/* Basic Info */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>BASIC INFORMATION</Text>
@@ -240,7 +253,9 @@ export default function PatientScreen() {
                     accessibilityLabel="Patient name"
                   />
                 ) : (
-                  <Text style={styles.infoValue}>{patientName || '\u2014'}</Text>
+                  <Text style={patientName ? styles.infoValue : styles.infoValueEmpty}>
+                    {patientName || 'Not set'}
+                  </Text>
                 )}
               </View>
               <View style={styles.infoRow}>
@@ -256,7 +271,9 @@ export default function PatientScreen() {
                     accessibilityLabel="Relationship to patient"
                   />
                 ) : (
-                  <Text style={styles.infoValue}>{relationship || '\u2014'}</Text>
+                  <Text style={relationship ? styles.infoValue : styles.infoValueEmpty}>
+                    {relationship || 'Not set'}
+                  </Text>
                 )}
               </View>
               <View style={styles.infoRow}>
@@ -274,7 +291,9 @@ export default function PatientScreen() {
                     accessibilityLabel="Patient age"
                   />
                 ) : (
-                  <Text style={styles.infoValue}>{age || '\u2014'}</Text>
+                  <Text style={age ? styles.infoValue : styles.infoValueEmpty}>
+                    {age || 'Not set'}
+                  </Text>
                 )}
               </View>
               <View style={styles.infoRow}>
@@ -290,12 +309,16 @@ export default function PatientScreen() {
                     accessibilityLabel="Gender"
                   />
                 ) : (
-                  <Text style={styles.infoValue}>{gender || '\u2014'}</Text>
+                  <Text style={gender ? styles.infoValue : styles.infoValueEmpty}>
+                    {gender || 'Not set'}
+                  </Text>
                 )}
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Blood Type</Text>
-                <Text style={styles.infoValue}>{info.bloodType || '\u2014'}</Text>
+                <Text style={info.bloodType ? styles.infoValue : styles.infoValueEmpty}>
+                  {info.bloodType || 'Not set'}
+                </Text>
               </View>
               <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
                 <Text style={styles.infoLabel}>Primary Language</Text>
@@ -310,7 +333,9 @@ export default function PatientScreen() {
                     accessibilityLabel="Primary language"
                   />
                 ) : (
-                  <Text style={styles.infoValue}>{primaryLanguage || '\u2014'}</Text>
+                  <Text style={primaryLanguage ? styles.infoValue : styles.infoValueEmpty}>
+                    {primaryLanguage || 'Not set'}
+                  </Text>
                 )}
               </View>
             </View>
@@ -414,7 +439,7 @@ export default function PatientScreen() {
           {/* Allergies */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>ALLERGIES</Text>
-            <View style={[styles.infoCard, styles.allergyCard]}>
+            <View style={[styles.infoCard, info.allergies.length > 0 && styles.allergyCard]}>
               {info.allergies.length === 0 && !editing && (
                 <Text style={styles.emptyText}>No allergies reported</Text>
               )}
@@ -610,6 +635,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
   },
+  scrollContent: {
+    // Bottom padding clears the home indicator and the iPhone SE → Pro Max
+    // safe-area inset so the Edit Medical History button stays fully tappable.
+    paddingBottom: 48,
+  },
 
   // SECTIONS
   section: {
@@ -647,6 +677,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: c.textPrimary,
+  },
+  infoValueEmpty: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: c.textTertiary,
   },
   inlineInput: {
     fontSize: 14,
@@ -821,5 +856,18 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   clinicalCareLinkArrow: {
     fontSize: 22,
     color: c.textMuted,
+  },
+  avatarChip: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: c.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.textPrimary,
   },
 });

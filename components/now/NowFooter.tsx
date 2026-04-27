@@ -8,7 +8,6 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
 import { buildJournalPreview, CareBrief } from '../../utils/careSummaryBuilder';
-import { HandoffPromptCard } from './HandoffPromptCard';
 import { EndOfShiftCard } from './EndOfShiftCard';
 import { CareCircleTeaser } from '../CareCircleTeaser';
 import { CareCircleEmailCapture } from '../CareCircleEmailCapture';
@@ -60,8 +59,6 @@ export function NowFooter({
 
   return (
     <>
-      <HandoffPromptCard completedCount={completedCount} />
-
       {completedCount < 5 ? (
         <View style={s.journalPreviewDimmed}>
           <Text style={s.journalPreviewDimmedText}>

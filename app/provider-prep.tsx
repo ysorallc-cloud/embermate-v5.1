@@ -417,6 +417,7 @@ export default function ProviderPrepScreen() {
                     if (updated) setChecklist({ ...updated });
                   }}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
                   accessibilityLabel={`Remove question: ${item.label}`}
                 >
                   <Text style={{ fontSize: 16, color: colors.textMuted }}>{'\u2715'}</Text>

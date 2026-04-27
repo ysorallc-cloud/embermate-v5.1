@@ -205,6 +205,7 @@ function RootLayout() {
               onPress={handleUnlock}
               disabled={isLockedOut}
               accessibilityRole="button"
+              accessibilityLabel={isLockedOut ? 'Locked out' : 'Unlock app'}
             >
               <Text style={[styles.lockButtonText, isLockedOut && styles.lockButtonTextDisabled]}>
                 {isLockedOut ? 'Locked Out' : 'Unlock'}
@@ -226,7 +227,12 @@ function RootLayout() {
             <Text style={styles.integrityText}>
               {'\u26A0\uFE0F'} This device may be jailbroken or rooted. Your health data could be at risk. Use a secure device for best protection.
             </Text>
-            <TouchableOpacity onPress={() => { setIntegrityWarning(false); safeSetItem('@integrity_banner_dismissed', true); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity
+              onPress={() => { setIntegrityWarning(false); safeSetItem('@integrity_banner_dismissed', true); }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss device integrity warning"
+            >
               <Text style={styles.integrityDismiss}>Dismiss</Text>
             </TouchableOpacity>
           </View>

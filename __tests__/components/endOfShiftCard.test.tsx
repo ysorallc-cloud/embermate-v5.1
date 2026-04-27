@@ -84,6 +84,12 @@ describe('EndOfShiftCard time-gate behavior', () => {
     expect(tree).toBeNull();
   });
 
+  it('returns null at hour=17 (just before evening cutoff)', () => {
+    const EndOfShiftCard = loadCard();
+    const tree = withHour(17, () => EndOfShiftCard({ completedCount: 5 }));
+    expect(tree).toBeNull();
+  });
+
   it('renders at hour=18 (start of evening)', () => {
     const EndOfShiftCard = loadCard();
     const tree = withHour(18, () => EndOfShiftCard({ completedCount: 5 }));

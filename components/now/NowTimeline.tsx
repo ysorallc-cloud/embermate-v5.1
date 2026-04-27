@@ -5,7 +5,6 @@
 
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
 import { BucketType } from '../../types/carePlanConfig';
@@ -86,7 +85,6 @@ function SectionHeaderRow({
           accessibilityState={{ expanded: !collapsed }}
         >
           <Text style={s.sectionHeaderTitle}>{title}</Text>
-          <Text style={{ fontSize: 12, color: Colors.textMuted }}>{collapsed ? '\u25B6' : '\u25BC'}</Text>
         </TouchableOpacity>
       ) : (
         <Text style={s.sectionHeaderTitle}>{title}</Text>

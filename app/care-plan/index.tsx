@@ -30,6 +30,8 @@ import {
   OPTIONAL_BUCKETS,
 } from '../../types/carePlanConfig';
 import { InfoModal, InfoIconButton } from '../../components/common/InfoModal';
+import { SubScreenHeader } from '../../components/SubScreenHeader';
+import { usePatient } from '../../contexts/PatientContext';
 import { CARE_PLAN_TEMPLATES, CarePlanTemplate, TemplateMedSuggestion } from '../../constants/carePlanTemplates';
 import { TemplateMedSeedingModal } from '../../components/careplan/TemplateMedSeedingModal';
 import { AddItemSheet } from '../../components/careplan/AddItemSheet';
@@ -57,7 +59,12 @@ function SectionHeaderRow({ title, action, onAction }: {
     <View style={styles.sectionHeaderRow}>
       <Text style={styles.sectionHeaderTitle}>{title}</Text>
       {action && onAction && (
-        <TouchableOpacity onPress={onAction} activeOpacity={0.7}>
+        <TouchableOpacity
+          onPress={onAction}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={action}
+        >
           <Text style={styles.sectionHeaderAction}>{action} {'\u2192'}</Text>
         </TouchableOpacity>
       )}
@@ -189,6 +196,11 @@ export default function CarePlanHomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { activePatient } = usePatient();
+  const patientName =
+    activePatient?.name && activePatient.name !== 'Patient'
+      ? activePatient.name
+      : 'your loved one';
   const {
     config,
     loading,
@@ -391,15 +403,11 @@ export default function CarePlanHomeScreen() {
         style={styles.gradient}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
-            <Text style={styles.backIcon}>{'\u2190'}</Text>
-          </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerLabel}>CARE PLAN</Text>
-          </View>
-          <InfoIconButton onPress={() => setShowInfoModal(true)} />
-        </View>
+        <SubScreenHeader
+          title="Care Plan"
+          subtitle={`Set up what to track for ${patientName}.`}
+          rightAction={<InfoIconButton onPress={() => setShowInfoModal(true)} />}
+        />
 
         <ScrollView
           ref={scrollViewRef}

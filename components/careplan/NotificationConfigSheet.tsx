@@ -135,7 +135,7 @@ export const NotificationConfigSheet: React.FC<NotificationConfigSheetProps> = (
       onRequestClose={onClose}
     >
       <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel="Close reminder settings" accessibilityRole="button">
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()} accessibilityRole="none">
+        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()} accessibilityRole="none" accessibilityLabel="Reminder settings sheet">
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityLabel="Cancel" accessibilityRole="button">

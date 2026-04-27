@@ -189,7 +189,6 @@ export default function NowScreen() {
 
   // Water stats from direct storage (not care plan instances, since water is counted in glasses not task completions)
   const [waterGlasses, setWaterGlasses] = useState(0);
-  const [patientName, setPatientName] = useState('your loved one');
   const [patientGender, setPatientGender] = useState<string | null>(null);
 
   // Vitals guidance state (Task 4.1)
@@ -212,6 +211,18 @@ export default function NowScreen() {
   const [upcomingPrepAppointment, setUpcomingPrepAppointment] = useState<any>(null);
   const [showPatientSwitcher, setShowPatientSwitcher] = useState(false);
   const { activePatient, patients } = usePatient();
+
+  // Derive patientName inline (matches journal.tsx and understand.tsx). A
+  // prior version stored it in local state seeded with the fallback string
+  // and only overwrote it via loadData on focus — but the focus effect's
+  // deps array omitted activePatient, so a late PatientContext hydration
+  // left the pill stuck on the fallback. Inline derivation re-evaluates
+  // every render and tracks the context cleanly.
+  const patientName =
+    activePatient?.name && activePatient.name !== 'Patient'
+      ? activePatient.name
+      : 'your loved one';
+
   const waterGoal = 8;
 
   const handleWaterUpdate = useCallback(async (newGlasses: number) => {
@@ -509,7 +520,7 @@ export default function NowScreen() {
       checkNotifPrompt();
       recordVisit();
       hasSampleData().then(setIsSampleMode);
-    }, [today, refreshCareTasks, refreshCarePlan])
+    }, [today, refreshCareTasks, refreshCarePlan, activePatient])
   );
 
   // Live sync: reload data when any storage module emits an update
@@ -535,25 +546,18 @@ export default function NowScreen() {
 
   const loadData = async () => {
     try {
-      // Load patient name — prefer PatientContext, fall back to AsyncStorage for migration
-      if (activePatient && activePatient.name !== 'Patient') {
-        setPatientName(activePatient.name);
-      } else {
-        const name = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
-        if (name && name !== 'Patient') {
-          setPatientName(name);
-          // Migration: sync legacy name to patient registry
+      // patientName is derived inline from PatientContext (see above). The
+      // only thing left to do here is migrate any legacy AsyncStorage name
+      // into the patient registry — once. After that, PatientContext is the
+      // single source of truth for the rendered name.
+      if (!activePatient || activePatient.name === 'Patient') {
+        const legacyName = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
+        if (legacyName && legacyName !== 'Patient') {
           try {
-            await updatePatient(activePatient?.id || 'default', { name });
+            await updatePatient(activePatient?.id || 'default', { name: legacyName });
           } catch (err) {
             logError('NowScreen.migratePatientName', err);
           }
-        } else {
-          // activePatient.name is the literal 'Patient' here (the legacy
-          // default that callers above already filter out). Show the
-          // friendlier user-facing fallback instead.
-          const candidate = activePatient?.name;
-          setPatientName(candidate && candidate !== 'Patient' ? candidate : 'your loved one');
         }
       }
 

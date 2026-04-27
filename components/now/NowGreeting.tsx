@@ -1,6 +1,7 @@
 // ============================================================================
-// NOW GREETING — Contextual title + time chip + subtitle
-// Replaces the static "Good morning" + date + purpose header block
+// NOW GREETING — Option A: greeting title on row 1, time as metadata below.
+// Row 1: title (alone — patient pill is rendered alongside by NowHeader)
+// Row 2 (metadata): emoji · time (caregiverAccent) · subtitle (textSecondary)
 // ============================================================================
 
 import React, { useMemo } from 'react';
@@ -10,19 +11,11 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { buildGreeting } from '../../utils/contextualGreeting';
 import type { TodayStats } from '../../utils/nowHelpers';
 
-// ============================================================================
-// PROPS
-// ============================================================================
-
 export interface NowGreetingProps {
   stats: TodayStats;
   patientName: string;
   nextScheduledTime: string | null;
 }
-
-// ============================================================================
-// HELPERS
-// ============================================================================
 
 function getTimeOfDay(hour: number): 'morning' | 'midday' | 'evening' | 'night' {
   if (hour < 6) return 'night';
@@ -43,10 +36,6 @@ function formatCurrentTime(): string {
   return now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-// ============================================================================
-// COMPONENT
-// ============================================================================
-
 export function NowGreeting({ stats, patientName, nextScheduledTime }: NowGreetingProps) {
   const { colors } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
@@ -56,73 +45,70 @@ export function NowGreeting({ stats, patientName, nextScheduledTime }: NowGreeti
   const greeting = buildGreeting(hour, stats, nextScheduledTime, patientName);
   const timeStr = formatCurrentTime();
 
-  // Time chip color follows time-of-day: morning=amber, midday=purple, evening=mint
-  const chipBackground = {
-    morning: colors.amberLight,
-    midday: colors.purpleLight,
-    evening: colors.accentLight,
-    night: colors.accentLight,
-  }[tod];
-
-  const chipText = {
-    morning: colors.amberBright,
-    midday: colors.purple,
-    evening: colors.accent,
-    night: colors.accent,
-  }[tod];
-
   return (
     <View style={s.container}>
-      {/* Title row: greeting + time chip */}
+      {/* Row 1 — greeting title alone (patient pill rendered by NowHeader) */}
       <View style={s.titleRow}>
-        <Text style={s.title}>{greeting.title}</Text>
-        <View style={[s.timeChip, { backgroundColor: chipBackground }]}>
-          <Text style={[s.timeChipText, { color: chipText }]}>
-            {TIME_EMOJI[tod]} {timeStr}
-          </Text>
-        </View>
+        <Text style={s.title} numberOfLines={1} adjustsFontSizeToFit>
+          {greeting.title}
+        </Text>
       </View>
 
-      {/* Subtitle */}
-      <Text style={s.subtitle}>{greeting.subtitle}</Text>
+      {/* Row 2 — metadata: emoji · time · subtitle */}
+      <View style={s.metadataRow}>
+        <Text style={s.metadataEmoji}>{TIME_EMOJI[tod]}</Text>
+        <Text style={s.metadataTime}>{timeStr}</Text>
+        <View style={s.metadataDot} />
+        <Text
+          style={s.metadataSubtitle}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {greeting.subtitle}
+        </Text>
+      </View>
     </View>
   );
 }
-
-// ============================================================================
-// STYLES
-// ============================================================================
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     paddingHorizontal: 4,
   },
   titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flex: 1,
+    paddingRight: 12,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '400',
+    fontSize: 32,
+    fontWeight: '300',
     color: c.textPrimary,
+    letterSpacing: -0.5,
+  },
+  metadataRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  metadataEmoji: {
+    fontSize: 12,
+  },
+  metadataTime: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: c.caregiverAccent,
+  },
+  metadataDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: c.textTertiary,
+  },
+  metadataSubtitle: {
     flex: 1,
-  },
-  timeChip: {
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginLeft: 8,
-  },
-  timeChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  subtitle: {
-    fontSize: 12.5,
+    fontSize: 13,
     color: c.textSecondary,
     lineHeight: 20,
-    marginTop: 8,
-    marginBottom: 22,
   },
 });

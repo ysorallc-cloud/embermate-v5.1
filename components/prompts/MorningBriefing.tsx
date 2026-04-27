@@ -310,6 +310,7 @@ export const MorningBriefing: React.FC<MorningBriefingProps> = ({
                         style={styles.baselineDismissBtn}
                         onPress={onBaselineDismiss}
                         accessibilityRole="button"
+                        accessibilityLabel="Dismiss baseline prompt"
                       >
                         <Text style={styles.baselineDismissText}>Dismiss</Text>
                       </TouchableOpacity>

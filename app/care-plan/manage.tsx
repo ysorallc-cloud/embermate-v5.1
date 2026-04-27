@@ -930,7 +930,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
   },
   typeChipLabelSelected: {
-    color: c.accent,
     fontWeight: '500',
   },
 
@@ -963,7 +962,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
   },
   windowLabelSelected: {
-    color: c.accent,
     fontWeight: '500',
   },
 
@@ -990,7 +988,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textTertiary,
   },
   priorityLabelSelected: {
-    color: c.accent,
     fontWeight: '500',
   },
 

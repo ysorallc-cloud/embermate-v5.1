@@ -266,7 +266,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
   },
   activityLabelSelected: {
-    color: c.accent,
+    color: c.textPrimary,
+    fontWeight: '600' as const,
   },
 
   // Inputs

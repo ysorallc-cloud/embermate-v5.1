@@ -25,8 +25,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../theme/theme-tokens';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
-import { useTheme, ThemeMode } from '../../contexts/ThemeContext';
-import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
 import { generateSampleCorrelationData, clearSampleCorrelationData, hasSampleData } from '../../utils/sampleDataGenerator';
 import { StorageKeys } from '../../utils/storageKeys';
@@ -59,7 +58,7 @@ interface SettingsCategory {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { mode, setMode, highContrast, setHighContrast, colors } = useTheme();
+  const { highContrast, setHighContrast, colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [patientName, setPatientName] = useState('');
   const [hasSample, setHasSample] = useState(false);
@@ -705,51 +704,10 @@ export default function SettingsScreen() {
               )}
             </View>
           ) : (
-            <>
-              {/* ═══ APPEARANCE PICKER ═══ */}
-              <View style={styles.appearanceSection}>
-                <Text style={styles.appearanceSectionLabel}>Appearance</Text>
-                <View style={styles.appearancePillRow}>
-                  {([
-                    { key: 'light' as ThemeMode, label: 'Light', icon: 'sunny-outline' as const },
-                    { key: 'dark' as ThemeMode, label: 'Dark', icon: 'moon-outline' as const },
-                    { key: 'auto' as ThemeMode, label: 'Auto', icon: 'contrast-outline' as const },
-                  ]).map(m => (
-                    <TouchableOpacity
-                      key={m.key}
-                      style={[
-                        styles.appearancePill,
-                        mode === m.key && styles.appearancePillActive,
-                      ]}
-                      onPress={() => setMode(m.key)}
-                      activeOpacity={0.7}
-                      accessibilityLabel={`${m.label} appearance`}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: mode === m.key }}
-                    >
-                      <Ionicons
-                        name={m.icon}
-                        size={18}
-                        color={mode === m.key ? colors.accent : colors.textMuted}
-                      />
-                      <Text style={[
-                        styles.appearancePillLabel,
-                        mode === m.key && styles.appearancePillLabelActive,
-                      ]}>
-                        {m.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                {mode === 'auto' && (
-                  <Text style={styles.appearanceHelper}>
-                    Auto follows your phone's system setting.
-                  </Text>
-                )}
-              </View>
-
-              {categories.map(renderCategory)}
-            </>
+            // Appearance pill row removed — light mode disabled in v6.7.
+            // High Contrast and 24-Hour Time Format remain under the
+            // "Appearance & Experience" category below.
+            <>{categories.map(renderCategory)}</>
           )}
 
           {/* Health Disclaimer */}
@@ -839,49 +797,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Appearance picker
-  appearanceSection: {
-    marginBottom: 16,
-  },
-  appearanceSectionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: c.textMuted,
-    letterSpacing: 0.3,
-    marginBottom: 8,
-  },
-  appearancePillRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  appearancePill: {
-    flex: 1,
-    backgroundColor: c.warmSurface,
-    borderWidth: 1,
-    borderColor: c.warmSurfaceBorder,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    gap: 4,
-  },
-  appearancePillActive: {
-    backgroundColor: c.accentLight,
-    borderWidth: 1.5,
-    borderColor: c.accent,
-  },
-  appearancePillLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: c.textMuted,
-  },
-  appearancePillLabelActive: {
-    color: c.accent,
-  },
-  appearanceHelper: {
-    fontSize: 11,
-    color: c.textWarmHint,
-    marginTop: 8,
-  },
+  // (Appearance picker styles removed — light mode disabled in v6.7.)
 
   // Categories
   categoryContainer: {
