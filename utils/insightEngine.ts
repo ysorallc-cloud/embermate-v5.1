@@ -179,8 +179,8 @@ export async function analyzeMedicationAdherence(lookbackDays: number = 7): Prom
         percentage: Math.round(adherenceRate),
       },
       context: mostMissedDay
-        ? `Doses are missed most often on ${mostMissedDay}. A recurring pattern like this suggests a scheduling conflict. Consider shifting reminder times for that day.`
-        : `Only ${takenDoses} of ${totalExpectedDoses} doses taken this week. Gaps in adherence can reduce medication effectiveness. Try adjusting reminder timing or ask about side effects at the next visit.`,
+        ? `Doses go unlogged most often on ${mostMissedDay}. A recurring pattern like this suggests a scheduling conflict. Consider shifting reminder times for that day.`
+        : `${takenDoses} of ${totalExpectedDoses} doses logged this week. Gaps in adherence can reduce medication effectiveness. Try adjusting reminder timing or ask about side effects at the next visit.`,
       whyItMatters: 'Taking all doses consistently helps manage your health conditions effectively. Missing doses can lead to fluctuations in blood pressure and blood sugar levels.',
       pattern: mostMissedDay ? `Most missed on ${mostMissedDay}` : undefined,
       actions: [

@@ -8,9 +8,10 @@
 // to the same saveReflection / onDirtyChange contracts as before.
 // ============================================================================
 
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { formatTime } from '../../utils/text/primitives';
 
 export interface JournalNotesCardProps {
   date: string;
@@ -20,13 +21,17 @@ export interface JournalNotesCardProps {
   onDirtyChange?: (dirty: boolean) => void;
   /** Past-date view: lock the input, swap the placeholder, hide the Save pill. */
   readOnly?: boolean;
+  /** 24-hour preference for the "last edited" timestamp. Defaults to 12h. */
+  use24Hour?: boolean;
 }
 
 export function JournalNotesCard({
   savedText,
+  savedAt,
   onSave,
   onDirtyChange,
   readOnly = false,
+  use24Hour = false,
 }: JournalNotesCardProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -34,6 +39,7 @@ export function JournalNotesCard({
   const [text, setText] = useState(savedText ?? '');
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const justSavedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync incoming saved text (e.g. when the parent loads a different day).
   useEffect(() => {
@@ -41,7 +47,15 @@ export function JournalNotesCard({
     setJustSaved(false);
   }, [savedText]);
 
+  // Clean up the just-saved timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (justSavedTimer.current) clearTimeout(justSavedTimer.current);
+    };
+  }, []);
+
   const isDirty = text.trim() !== (savedText ?? '').trim() && text.trim().length > 0;
+  const hasSaved = (savedText ?? '').trim().length > 0;
 
   // Notify the parent on dirty-state transitions so the global "unsaved
   // reflection" guard rails (route changes, day switches) keep working.
@@ -56,19 +70,52 @@ export function JournalNotesCard({
     try {
       await onSave(trimmed);
       setJustSaved(true);
-      setTimeout(() => setJustSaved(false), 1500);
+      if (justSavedTimer.current) clearTimeout(justSavedTimer.current);
+      justSavedTimer.current = setTimeout(() => setJustSaved(false), 3000);
     } finally {
       setSaving(false);
     }
   }, [isDirty, saving, text, onSave]);
 
-  const saveLabel = saving ? 'Saving…' : justSaved ? 'Saved' : 'Save';
-  const showDirty = isDirty && !justSaved && !saving;
+  // Four-state save UI:
+  //   fresh      — never saved, input empty/unchanged → outlined "Save", disabled
+  //   dirty      — unsaved edits in the input         → filled mint "Save"
+  //   just-saved — transient ~3s after a save         → filled mint "✓ Saved"
+  //   saved      — saved, no edits                    → outlined "✓ Saved"
+  const saveState: 'fresh' | 'dirty' | 'just-saved' | 'saved' =
+    saving ? 'dirty'
+    : justSaved ? 'just-saved'
+    : isDirty ? 'dirty'
+    : hasSaved ? 'saved'
+    : 'fresh';
+
+  const saveLabel = saving ? 'Saving…'
+    : saveState === 'just-saved' ? '✓ Saved'
+    : saveState === 'dirty' ? 'Save'
+    : saveState === 'saved' ? '✓ Saved'
+    : 'Save';
+  const filled = saveState === 'dirty' || saveState === 'just-saved';
+  const a11ySelected = saveState === 'dirty';
+
+  const lastEditedLabel = useMemo(() => {
+    if (!savedAt) return null;
+    const d = new Date(savedAt);
+    if (isNaN(d.getTime())) return null;
+    return `last edited ${formatTime(d, { format: use24Hour ? '24h' : '12h' })}`;
+  }, [savedAt, use24Hour]);
 
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
         <Text style={styles.eyebrow}>{"TODAY'S NOTES"}</Text>
+        {lastEditedLabel && (
+          <Text
+            style={styles.lastEdited}
+            accessibilityLabel={lastEditedLabel}
+          >
+            {lastEditedLabel}
+          </Text>
+        )}
       </View>
 
       <View style={styles.body}>
@@ -101,18 +148,36 @@ export function JournalNotesCard({
       </Text>
 
       <View style={styles.footer}>
-        <Text style={styles.privacy}>{'🔒 Private · on this device'}</Text>
+        <View style={styles.footerLeft}>
+          <Text style={styles.privacy}>{'🔒 Private · on this device'}</Text>
+          <Text
+            style={styles.destinationHint}
+            accessibilityLabel="Used in handoff and visit prep"
+          >
+            {'→ Used in handoff and visit prep'}
+          </Text>
+        </View>
         {!readOnly && (
           <TouchableOpacity
-            style={[styles.saveButton, showDirty && styles.saveButtonDirty]}
+            style={[
+              styles.saveButton,
+              filled && styles.saveButtonFilled,
+              saveState === 'saved' && styles.saveButtonSaved,
+            ]}
             onPress={handleSave}
             disabled={!isDirty || saving}
             activeOpacity={0.85}
             accessibilityRole="button"
             accessibilityLabel={saveLabel}
-            accessibilityState={{ selected: showDirty, disabled: !isDirty || saving }}
+            accessibilityState={{ selected: a11ySelected, disabled: !isDirty || saving }}
           >
-            <Text style={[styles.saveText, showDirty && styles.saveTextDirty]}>
+            <Text
+              style={[
+                styles.saveText,
+                filled && styles.saveTextFilled,
+                saveState === 'saved' && styles.saveTextSaved,
+              ]}
+            >
               {saveLabel}
             </Text>
           </TouchableOpacity>
@@ -147,6 +212,12 @@ const createStyles = (c: any) =>
       color: c.textTertiary,
       letterSpacing: 0.5,
     },
+    lastEdited: {
+      marginLeft: 'auto',
+      fontSize: 8.5,
+      fontStyle: 'italic',
+      color: c.textTertiary,
+    },
     body: {
       paddingTop: 12,
       paddingHorizontal: 14,
@@ -169,9 +240,18 @@ const createStyles = (c: any) =>
       borderTopWidth: 0.5,
       borderTopColor: c.glassBorder,
     },
+    footerLeft: {
+      flexShrink: 1,
+    },
     privacy: {
       fontSize: 9,
       color: c.textTertiary,
+    },
+    destinationHint: {
+      marginTop: 2,
+      fontSize: 8.5,
+      fontWeight: '400',
+      color: (c as any).caregiverAccent || c.textTertiary,
     },
     liveRegion: {
       // Visually hidden but accessible to VoiceOver via the live region.
@@ -187,19 +267,27 @@ const createStyles = (c: any) =>
       borderColor: c.glassBorder,
       borderRadius: 999,
       paddingHorizontal: 12,
-      paddingVertical: 3,
+      paddingVertical: 4,
     },
-    saveButtonDirty: {
+    saveButtonFilled: {
       backgroundColor: c.accent,
       borderColor: c.accent,
+    },
+    saveButtonSaved: {
+      // Outlined, mint border at ~35% opacity for the settled "saved" look.
+      borderColor: 'rgba(95, 184, 138, 0.35)',
+      backgroundColor: 'transparent',
     },
     saveText: {
       fontSize: 11,
       color: c.textSecondary,
       fontWeight: '500',
     },
-    saveTextDirty: {
+    saveTextFilled: {
       color: c.textPrimary,
+    },
+    saveTextSaved: {
+      color: c.accent,
     },
   });
 

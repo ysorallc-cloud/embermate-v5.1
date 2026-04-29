@@ -48,6 +48,7 @@ import { hasSampleData } from '../../utils/sampleDataManager';
 import { ReportData } from '../../utils/pdfExport';
 import { DateTabStrip } from '../../components/journal/DateTabStrip';
 import { JournalNotesCard } from '../../components/journal/JournalNotesCard';
+import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataSheet';
 import { TodayOutcomes } from '../../components/journal/TodayOutcomes';
 import { JournalPatternLink } from '../../components/journal/JournalPatternLink';
 import { HandoffCard } from '../../components/journal/HandoffCard';
@@ -81,6 +82,7 @@ export default function JournalTab() {
   const [patientAge, setPatientAge] = useState<string | null>(null);
   const [activeMedCount, setActiveMedCount] = useState(0);
   const [isSampleMode, setIsSampleMode] = useState(false);
+  const [manageSampleOpen, setManageSampleOpen] = useState(false);
   const [showDailyPreview, setShowDailyPreview] = useState(false);
   const [showClinicalPreview, setShowClinicalPreview] = useState(false);
   const [dailyReport, setDailyReport] = useState<{ reportData: ReportData; previewLines: string[] } | null>(null);
@@ -537,11 +539,21 @@ export default function JournalTab() {
             </View>
           </View>
 
-          {/* ─── SAMPLE DATA INDICATOR ─── */}
+          {/* ─── SAMPLE DATA INDICATOR — tap to open the manage sheet ─── */}
           {isSampleMode && (
-            <View style={s.sampleIndicator}>
-              <Text style={s.sampleIndicatorText}>{'\u{1F4CA}'} Sample data — not real patient information</Text>
-            </View>
+            <TouchableOpacity
+              style={s.sampleIndicator}
+              onPress={() => setManageSampleOpen(true)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Example data — set up your loved one to get started"
+              accessibilityHint="Opens the example data sheet to set up your real profile or remove the example."
+            >
+              <Text style={s.sampleIndicatorText}>
+                {'\u{1F4CA}'} Example data — set up your loved one to get started
+              </Text>
+              <Text style={s.sampleIndicatorChevron}>{'›'}</Text>
+            </TouchableOpacity>
           )}
 
 
@@ -607,6 +619,12 @@ export default function JournalTab() {
         outcomes={outcomes}
         notes={reflection?.text ?? ''}
         events={[]}
+      />
+
+      <ManageSampleDataSheet
+        visible={manageSampleOpen}
+        onClose={() => setManageSampleOpen(false)}
+        activePatientName={patientName}
       />
     </View>
   );
@@ -708,17 +726,24 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // ─── SAMPLE DATA INDICATOR ───
   sampleIndicator: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     backgroundColor: c.accentLight,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginBottom: 8,
-    alignSelf: 'flex-start',
   },
   sampleIndicatorText: {
     fontSize: 12,
     fontWeight: '500',
     color: c.purpleBright,
+    flex: 1,
+  },
+  sampleIndicatorChevron: {
+    fontSize: 16,
+    color: c.purpleBright,
+    marginLeft: 8,
   },
 
   // ─── HEADER ───
