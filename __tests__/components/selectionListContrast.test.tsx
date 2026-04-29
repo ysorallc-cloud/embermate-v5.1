@@ -47,10 +47,9 @@ const targets: Array<{ file: string; styles: string[] }> = [
     file: 'app/log-meal.tsx',
     styles: ['mealLabelSelected', 'quickFoodLabelSelected'],
   },
-  {
-    file: 'app/(onboarding)/screens/GetStartedScreen.tsx',
-    styles: ['bucketLabelSelected'],
-  },
+  // GetStartedScreen.tsx had a `bucketLabelSelected` style backing the
+  // bucket-grid selection UI. The grid was retired in v6.7 (default care
+  // plan now generated at the orchestrator level), so the style is gone.
   {
     // Time-slot picker inside the medication form. Uses the *Active suffix
     // instead of *Selected, but the contract is the same.

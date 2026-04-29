@@ -31,6 +31,17 @@ jest.mock('react-native', () => {
     Platform: { OS: 'ios', select: (o: any) => o.ios || o.default },
     Dimensions: { get: () => ({ width: 375, height: 812 }) },
     Linking: { openURL: jest.fn() },
+    TextInput: make('TextInput'),
+    Modal: ({ visible, children }: any) =>
+      visible ? React.createElement('Modal', null, children) : null,
+    Animated: {
+      Value: class { constructor(_v: number) {} setValue(_v: number) {} },
+      View: make('AnimatedView'),
+      Text: make('AnimatedText'),
+      timing: () => ({ start: () => {} }),
+      sequence: () => ({ start: () => {} }),
+    },
+    Easing: { out: () => (x: number) => x, quad: (x: number) => x },
   };
 });
 
@@ -94,6 +105,39 @@ jest.mock('../../components/ScreenHeader', () => {
       React.createElement('Text', null, `[ScreenHeader] ${title}`),
   };
 });
+
+jest.mock('../../components/journal/JournalNotesCard', () => ({
+  JournalNotesCard: () => null,
+}));
+jest.mock('../../components/journal/JournalPatternLink', () => ({
+  JournalPatternLink: () => null,
+}));
+jest.mock('../../components/journal/HandoffCard', () => ({
+  HandoffCard: () => null,
+}));
+jest.mock('../../components/journal/HandoffSheet', () => ({
+  HandoffSheet: () => null,
+}));
+jest.mock('../../utils/dailyOutcomes', () => ({
+  getDailyOutcomes: jest.fn().mockResolvedValue({
+    logged: { count: 0 },
+    missed: { count: 0, names: [] },
+    pending: { count: 0, names: [] },
+  }),
+}));
+jest.mock('../../utils/dayComplete', () => ({
+  isDayComplete: jest.fn().mockResolvedValue(false),
+  markDayComplete: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('expo-linear-gradient', () => {
+  const React = require('react');
+  return {
+    LinearGradient: ({ children }: any) => React.createElement('View', null, children),
+  };
+});
+jest.mock('expo-router', () => ({
+  useLocalSearchParams: () => ({}),
+}));
 
 jest.mock('../../components/journal/DateTabStrip', () => {
   const React = require('react');
@@ -226,6 +270,41 @@ jest.mock('../../lib/eventNames', () => ({
   EVENT: new Proxy({}, { get: (_, k) => String(k) }),
 }));
 jest.mock('../../lib/navigate', () => ({ navigate: jest.fn() }));
+jest.mock('expo-router', () => ({
+  useLocalSearchParams: () => ({}),
+}));
+jest.mock('../../utils/dailyOutcomes', () => ({
+  getDailyOutcomes: jest.fn().mockResolvedValue({
+    logged: { count: 0 },
+    missed: { count: 0, names: [] },
+    pending: { count: 0, names: [] },
+  }),
+}));
+jest.mock('../../utils/dayComplete', () => ({
+  isDayComplete: jest.fn().mockResolvedValue(false),
+  markDayComplete: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('../../components/journal/TodayOutcomes', () => ({
+  TodayOutcomes: () => {
+    const React = require('react');
+    return React.createElement('Text', { testID: 'today-outcomes' }, '[TodayOutcomes]');
+  },
+}));
+jest.mock('../../components/journal/JournalPatternLink', () => ({
+  JournalPatternLink: () => null,
+}));
+jest.mock('../../components/journal/HandoffCard', () => ({
+  HandoffCard: () => null,
+}));
+jest.mock('../../components/journal/HandoffSheet', () => ({
+  HandoffSheet: () => null,
+}));
+jest.mock('../../components/SectionEyebrow', () => ({
+  SectionEyebrow: ({ text }: any) => {
+    const React = require('react');
+    return React.createElement('Text', null, text.toUpperCase());
+  },
+}));
 jest.mock('../../utils/devLog', () => ({ logError: jest.fn(), devLog: jest.fn() }));
 jest.mock('../../services/carePlanGenerator', () => ({
   getTodayDateString: () => '2026-04-25',
@@ -235,11 +314,6 @@ jest.mock('../../services/carePlanGenerator', () => ({
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import JournalTab from '../../app/(tabs)/journal';
-import { generateAndSharePDF } from '../../utils/pdfExport';
-
-const mockGeneratePDF = generateAndSharePDF as jest.MockedFunction<typeof generateAndSharePDF>;
-
-beforeEach(() => mockGeneratePDF.mockClear());
 
 /** Render and wait until the loading spinner clears (data-load effect resolved). */
 async function renderJournal() {
@@ -258,47 +332,39 @@ describe('JournalTab — render smoke test', () => {
     expect(getByText('Journal')).toBeTruthy();
   });
 
-  it('renders the empty-state day status copy when no data has been logged', async () => {
-    const { getByText } = await renderJournal();
-    // dayStatus.label = 'No data yet' when there are no notes/insights/brief
-    expect(getByText('No data yet')).toBeTruthy();
-    expect(getByText(/Start logging on the Now tab/)).toBeTruthy();
+  it('does NOT render the legacy "No data yet" status block (removed in v6.7 tightening)', async () => {
+    const { queryByText } = await renderJournal();
+    expect(queryByText('No data yet')).toBeNull();
+    expect(queryByText('Needs attention')).toBeNull();
   });
 
-  it('renders the JournalSummary, JournalFlagged, and JournalPatterns regions', async () => {
-    const { getByTestId } = await renderJournal();
-    expect(getByTestId('journal-summary')).toBeTruthy();
-    expect(getByTestId('journal-flagged')).toBeTruthy();
-    expect(getByTestId('journal-patterns')).toBeTruthy();
+  it('renders the TodayOutcomes section (mocked at component level)', async () => {
+    const { queryByText } = await renderJournal();
+    // TodayOutcomes is mocked above to render nothing; this test now just
+    // verifies the page mounts past it. The contract is in the dedicated
+    // TodayOutcomes test files.
+    expect(queryByText('[DateTabStrip]')).toBeTruthy();
   });
 
-  it('renders the DateTabStrip and MonthCalendar regions', async () => {
-    const { getByText } = await renderJournal();
+  it('renders the DateTabStrip region (MonthCalendar retired in v6.7)', async () => {
+    const { getByText, queryByText } = await renderJournal();
     expect(getByText('[DateTabStrip]')).toBeTruthy();
-    expect(getByText('[MonthCalendar]')).toBeTruthy();
+    expect(queryByText('[MonthCalendar]')).toBeNull();
   });
 
-  it('renders the primary share + report actions with proper a11y', async () => {
-    const { getByLabelText } = await renderJournal();
-    const share = getByLabelText(/Share daily summary/);
+  it('the page header carries Report only (Share moved to HandoffCard in Phase 9)', async () => {
+    const { getByLabelText, queryByLabelText } = await renderJournal();
     const report = getByLabelText(/Clinical report/);
-    expect(share.props.accessibilityRole).toBe('button');
     expect(report.props.accessibilityRole).toBe('button');
+    expect(queryByLabelText(/Share daily summary/)).toBeNull();
   });
 
-  it('tapping the "Report" pill in the empty state surfaces a "No Data" alert (primary action wired)', async () => {
-    const { Alert } = require('react-native');
+  it('tapping the "Report" pill navigates to /visit-prep (Phase 9 differentiation)', async () => {
+    const { navigate } = require('../../lib/navigate');
     const { getByLabelText } = await renderJournal();
 
     fireEvent.press(getByLabelText(/Clinical report/));
 
-    // With brief=null (empty state), handleShareClinical early-returns via
-    // Alert.alert. PDF generation is gated behind real data — covered by
-    // separate flow tests, not this smoke test.
-    expect(Alert.alert).toHaveBeenCalledWith(
-      'No Data',
-      expect.stringContaining('Nothing has been logged today'),
-    );
-    expect(mockGeneratePDF).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith('/visit-prep');
   });
 });

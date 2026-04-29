@@ -22,13 +22,14 @@ jest.mock('react', () => {
     useMemo: (fn: () => any) => fn(),
     useEffect: () => {},
     useCallback: (fn: any) => fn,
+    useRef: (initial: any) => ({ current: initial }),
   };
 });
 
 jest.mock('../../contexts/ThemeContext', () => ({
   useTheme: () => ({
     colors: {
-      caregiverAccent: '#b794f4',
+      caregiverAccent: '#aa8adc',
       caregiverAccentBg: 'rgba(139, 92, 246, 0.06)',
       caregiverAccentBorder: 'rgba(139, 92, 246, 0.25)',
       caregiverAccentText: '#d4baff',
@@ -39,6 +40,12 @@ jest.mock('../../contexts/ThemeContext', () => ({
 }));
 
 jest.mock('../../lib/navigate', () => ({ navigate: jest.fn() }));
+jest.mock('../../utils/dayComplete', () => ({
+  isDayComplete: jest.fn().mockResolvedValue(false),
+}));
+jest.mock('../../lib/events', () => ({
+  useDataListener: jest.fn(),
+}));
 
 import React from 'react';
 import { existsSync, readFileSync } from 'fs';
@@ -119,5 +126,79 @@ describe('EndOfShiftCard caregiver-accent identity', () => {
 
   it('text/title uses caregiverAccentText token', () => {
     expect(src).toMatch(/caregiverAccentText/);
+  });
+});
+
+describe('EndOfShiftCard body text — composer wiring (Phase 3c)', () => {
+  if (!existsSync(cardPath)) return;
+  const src = readFileSync(cardPath, 'utf8');
+
+  it('imports composeEndOfShiftBody from utils/text/composers', () => {
+    expect(src).toMatch(/from\s+['"][^'"]+utils\/text\/composers\/endOfShiftBody['"]/);
+  });
+
+  it('passes structured outcomes through to the composer', () => {
+    expect(src).toMatch(/composeEndOfShiftBody\(outcomes/);
+  });
+
+  it('accepts an optional outcomes prop on the component', () => {
+    expect(src).toMatch(/outcomes\?:\s*DailyOutcomes/);
+  });
+
+  it('falls back to legacy body when outcomes is omitted (back-compat)', () => {
+    expect(src).toMatch(/outcomes\s*\?\s*composeEndOfShiftBody/);
+    expect(src).toMatch(/wrapping up/);
+  });
+});
+
+describe('EndOfShiftCard body text — composer output match', () => {
+  if (!existsSync(cardPath)) return;
+
+  // Imports are deferred so the React Native mock above takes effect.
+  const { composeEndOfShiftBody } = require('../../utils/text/composers/endOfShiftBody');
+
+  function withHourFn<T>(hour: number, fn: () => T): T {
+    const RealDate = Date;
+    class FakeDate extends RealDate {
+      getHours() {
+        return hour;
+      }
+    }
+    (global as any).Date = FakeDate as DateConstructor;
+    try {
+      return fn();
+    } finally {
+      (global as any).Date = RealDate;
+    }
+  }
+
+  function findText(node: any): string[] {
+    if (!node || typeof node !== 'object') return [];
+    const out: string[] = [];
+    if (node.type === 'Text') {
+      const c = node.props?.children;
+      if (typeof c === 'string') out.push(c);
+      else if (Array.isArray(c)) out.push(c.filter(x => typeof x === 'string').join(''));
+    }
+    const kids = node.props?.children;
+    const arr = Array.isArray(kids) ? kids : kids != null ? [kids] : [];
+    for (const k of arr) out.push(...findText(k));
+    return out;
+  }
+
+  it('renders the composer output when outcomes are provided', () => {
+    jest.resetModules();
+    const { EndOfShiftCard } = require('../../components/now/EndOfShiftCard');
+    const outcomes = {
+      logged: { count: 7 },
+      missed: { count: 2, names: ['Acetaminophen', 'Amlodipine'] },
+      pending: { count: 0, names: [] },
+    };
+    const expected = composeEndOfShiftBody(outcomes, []);
+    const tree = withHourFn(20, () =>
+      EndOfShiftCard({ completedCount: 7, outcomes }),
+    );
+    const texts = findText(tree);
+    expect(texts).toContain(expected);
   });
 });

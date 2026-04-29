@@ -94,16 +94,10 @@ const REQUIRED_ITEM_KEYS_DAYSTATE = [
 ];
 
 describe('Record<CarePlanItemType> completeness', () => {
-  describe('UpcomingNotifications.tsx — ITEM_EMOJIS (carePlan.ts vocabulary)', () => {
-    const src = read('components/support/UpcomingNotifications.tsx');
-    const keys = extractRecordKeys(src, 'ITEM_EMOJIS');
-
-    for (const k of REQUIRED_ITEM_KEYS_CAREPLAN) {
-      it(`has entry for "${k}"`, () => {
-        expect(keys).toContain(k);
-      });
-    }
-  });
+  // UpcomingNotifications.tsx (and its ITEM_EMOJIS Record) was retired in
+  // the v6.7 You-tab redesign. The completeness contract for the carePlan.ts
+  // vocabulary now lives wherever a future consumer reintroduces an emoji
+  // map; for now only the dayState.ts routing maps below carry it.
 
   describe('taskAction.ts — ITEM_TYPE_ROUTES (dayState.ts vocabulary)', () => {
     const src = read('utils/careplan/taskAction.ts');

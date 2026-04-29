@@ -54,7 +54,7 @@ describe('ProgressRings (flat inline row)', () => {
   });
 
   it('overdue categories use red color', () => {
-    expect(src).toContain("'#F87171'");
+    expect(src).toContain("'#e6776e'");
     expect(src).toContain('isCategoryOverdue');
   });
 
@@ -74,9 +74,9 @@ describe('ProgressRings (flat inline row)', () => {
   });
 
   it('dot colors match CATEGORY_CONFIG colors', () => {
-    expect(CATEGORY_CONFIG.medication.color).toBe('#34D399');
+    expect(CATEGORY_CONFIG.medication.color).toBe('#5fb88a');
     expect(CATEGORY_CONFIG.vitals.color).toBe('#A78BFA');
-    expect(CATEGORY_CONFIG.wellness.color).toBe('#34D399');
-    expect(CATEGORY_CONFIG.nutrition.color).toBe('#FBBF24');
+    expect(CATEGORY_CONFIG.wellness.color).toBe('#5fb88a');
+    expect(CATEGORY_CONFIG.nutrition.color).toBe('#e5b04a');
   });
 });

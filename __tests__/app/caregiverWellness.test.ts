@@ -18,14 +18,18 @@ describe('Caregiver Wellness sub-page', () => {
     expect(screenContent).toContain('export default function CaregiverWellnessScreen');
   });
 
-  it('shows mood history section', () => {
-    expect(screenContent).toContain('MOOD HISTORY');
+  it('shows the v6.7 timeline section ("How the week felt")', () => {
+    // Replaces the old "MOOD HISTORY" header in the v6.7 reframe.
+    expect(screenContent).toContain('HOW THE WEEK FELT');
     expect(screenContent).toContain('mood_logged');
   });
 
-  it('shows breathing session count', () => {
-    expect(screenContent).toContain('BREATHING SESSIONS');
+  it('breathing session count surfaces inside the rhythm card', () => {
+    // The standalone "BREATHING SESSIONS" card was retired; the count now
+    // shows in the rhythm row alongside time-since-last-check-in.
+    expect(screenContent).toContain('YOUR RHYTHM');
     expect(screenContent).toContain('breathing_exercise');
+    expect(screenContent).toContain('sessions in 30d');
   });
 
   it('has range toggle (7d, 14d, 30d)', () => {

@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   },
   lockAttempts: {
     fontSize: 13,
-    color: Colors.amber ?? '#fbbf24',
+    color: Colors.amber ?? '#e5b04a',
     marginBottom: 12,
   },
   lockButtonDisabled: {

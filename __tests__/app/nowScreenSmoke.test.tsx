@@ -113,6 +113,16 @@ jest.mock('../../components/now/RoutineSheet', () => ({
   RoutineSheet: () => null,
 }));
 
+jest.mock('../../components/sample/SampleModeBanner', () => ({
+  SampleModeBanner: () => null,
+}));
+jest.mock('../../components/sample/ManageSampleDataSheet', () => ({
+  ManageSampleDataSheet: () => null,
+}));
+jest.mock('../../hooks/useSampleMode', () => ({
+  useSampleMode: () => ({ isSampleMode: false, sampleStatus: null, refresh: jest.fn() }),
+}));
+
 jest.mock('../../components/now/PatientSwitcherModal', () => ({
   PatientSwitcherModal: () => null,
 }));

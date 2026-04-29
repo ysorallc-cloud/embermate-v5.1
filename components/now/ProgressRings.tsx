@@ -150,8 +150,8 @@ export function ProgressRings({
         let textOpacity = 1;
 
         if (overdue) {
-          dotColor = '#F87171'; // red
-          textColor = '#F87171';
+          dotColor = '#e6776e'; // red
+          textColor = '#e6776e';
         } else if (isComplete) {
           textOpacity = 0.5;
         } else if (isInProgress) {

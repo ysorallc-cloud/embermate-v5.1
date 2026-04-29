@@ -575,7 +575,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   tipLabel: {
     fontSize: 10,
-    color: '#FBBF24',
+    color: '#e5b04a',
     fontWeight: '600',
     letterSpacing: 1,
     marginBottom: 3,

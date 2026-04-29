@@ -1,0 +1,7 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`composeJournalDraft snapshot — empty day returns "" 1`] = `""`;
+
+exports[`composeJournalDraft snapshot — hard day with elevated BP 1`] = `"Today was rough — 2 not logged (Acetaminophen and Amlodipine), 4 logged. BP at 10:00 AM was 148/92, slightly elevated. Afternoon and evening still ahead."`;
+
+exports[`composeJournalDraft snapshot — morning only with pending afternoon 1`] = `"Mostly on track — 2 still to do (Lunch and Afternoon meds). Afternoon and evening still ahead."`;

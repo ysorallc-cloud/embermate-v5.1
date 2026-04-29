@@ -86,6 +86,9 @@ import { useDataListener, emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
 import { buildCareBrief, CareBrief } from '../../utils/careSummaryBuilder';
 import { hasSampleData } from '../../utils/sampleDataManager';
+import { useSampleMode } from '../../hooks/useSampleMode';
+import { SampleModeBanner } from '../../components/sample/SampleModeBanner';
+import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataSheet';
 
 
 // ============================================================================
@@ -204,8 +207,14 @@ export default function NowScreen() {
   // Handoff / Patterns / Before Bed (mirrored from Journal)
   const [brief, setBrief] = useState<CareBrief | null>(null);
 
-  // Sample data mode
-  const [isSampleMode, setIsSampleMode] = useState(false);
+  // Sample data mode — single source of truth lives in the hook (subscribes
+  // to SAMPLE_DATA_CLEARED + PATIENT events so the banner flips immediately
+  // when ManageSampleDataSheet runs the setup or remove flow).
+  const { isSampleMode, refresh: refreshSampleMode } = useSampleMode();
+  const [manageSampleSheet, setManageSampleSheet] = useState<{
+    open: boolean;
+    focus?: 'setup' | 'remove';
+  }>({ open: false });
 
   // Appointment prep state (Task 4.5)
   const [upcomingPrepAppointment, setUpcomingPrepAppointment] = useState<any>(null);
@@ -340,6 +349,26 @@ export default function NowScreen() {
   const allPending = useMemo(() => {
     return [...todayTimeline.overdue, ...todayTimeline.upcoming];
   }, [todayTimeline.overdue, todayTimeline.upcoming]);
+
+  // Structured outcomes for the End of Shift body composer (Phase 3c of the
+  // template-driven content automation work). Names default to empty arrays
+  // because the timeline doesn't surface display labels here — the composer
+  // copy still works in count-only form ("2 missed doses").
+  const todayOutcomes = useMemo(() => {
+    const completedItems = todayTimeline.completed.filter(i => i.status === 'completed');
+    const missedItems = todayTimeline.completed.filter(i => i.status === 'missed');
+    return {
+      logged: { count: completedItems.length },
+      missed: {
+        count: missedItems.length,
+        names: missedItems.map(i => i.itemName).filter(Boolean) as string[],
+      },
+      pending: {
+        count: allPending.length,
+        names: allPending.map(i => i.itemName).filter(Boolean) as string[],
+      },
+    };
+  }, [todayTimeline.completed, allPending]);
 
   // Earliest pending instance whose scheduledTime is still ahead of `now`,
   // formatted for the contextual greeting subtitle ("Mom's first meds are at
@@ -519,8 +548,8 @@ export default function NowScreen() {
       loadData();
       checkNotifPrompt();
       recordVisit();
-      hasSampleData().then(setIsSampleMode);
-    }, [today, refreshCareTasks, refreshCarePlan, activePatient])
+      refreshSampleMode();
+    }, [today, refreshCareTasks, refreshCarePlan, activePatient, refreshSampleMode])
   );
 
   // Live sync: reload data when any storage module emits an update
@@ -538,9 +567,9 @@ export default function NowScreen() {
         loadData().finally(() => { nowLastLoadDone.current = Date.now(); });
         refreshCareTasks();
       }, 300);
-      if (category === EVENT.SAMPLE_DATA_CLEARED) {
-        setIsSampleMode(false);
-      }
+      // SAMPLE_DATA_CLEARED is observed by useSampleMode directly, so we
+      // don't need to flip a local flag here — refreshSampleMode picks up
+      // the new state on the next render.
     }
   }, [refreshCareTasks]));
 
@@ -686,13 +715,18 @@ export default function NowScreen() {
           isSampleMode={isSampleMode}
           showPatientSwitcher={showPatientSwitcher}
           onShowPatientSwitcher={setShowPatientSwitcher}
-          onSampleCleared={() => { setIsSampleMode(false); loadData(); refreshCareTasks(); }}
           suppressedItems={suppressedItems}
           onRestoreSuppressed={restoreAllSuppressed}
           showOnboarding={showOnboarding}
           onboardingHandlers={handlers}
           stats={todayStats}
           nextScheduledTime={nextScheduledTime}
+          onManageSample={(focus) => setManageSampleSheet({ open: true, focus })}
+        />
+
+        <SampleModeBanner
+          isSampleMode={isSampleMode}
+          onPress={() => setManageSampleSheet({ open: true })}
         />
 
         <View style={styles.content}>
@@ -759,6 +793,7 @@ export default function NowScreen() {
             hasRegimenInstances={!!hasRegimenInstances}
             hasMissed={todayTimeline.completed.some(i => i.status === 'missed')}
             brief={brief}
+            outcomes={todayOutcomes}
           />
 
         </View>
@@ -816,6 +851,16 @@ export default function NowScreen() {
           onBatchComplete={handleBatchWindowComplete}
         />
       )}
+
+      {/* Sample-mode management — opens from the SampleModeBanner pill,
+          from the PatientSwitcherModal bottom action section, and from
+          Settings → "Manage example data". Owns the set-up + remove flows. */}
+      <ManageSampleDataSheet
+        visible={manageSampleSheet.open}
+        focusOn={manageSampleSheet.focus}
+        activePatientName={patientName}
+        onClose={() => setManageSampleSheet({ open: false })}
+      />
     </View>
   );
 }

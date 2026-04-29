@@ -1,305 +1,133 @@
 // ============================================================================
-// HandoffCard — Today's Summary snapshot for the Journal tab
-// Vertical status lines layout — only shows rows with data
+// HANDOFF CARD
+//
+// Bottom-of-Journal CTA: "Share summary" opens HandoffSheet; "Done for
+// today" marks the day complete and dismisses the End of Shift card on Now.
+//
+// Hides automatically on empty days (nothing to hand off) and on days
+// already marked complete. The journal page tracks day-content signals and
+// hands them in as boolean props so this component stays trivial to test.
 // ============================================================================
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { navigate } from '../../lib/navigate';
-import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
+import React, { useMemo, forwardRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { buildTodaySummary, TodaySummary } from '../../utils/careSummaryBuilder';
-import { useDataListener } from '../../lib/events';
-import { logError } from '../../utils/devLog';
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface StatusLine {
-  emoji: string;
-  label: string;
-  value: string;
-  flagged?: boolean;
+export interface HandoffCardProps {
+  hasNotes: boolean;
+  hasMissed: boolean;
+  hasPending: boolean;
+  hasLogged: boolean;
+  dayComplete: boolean;
+  onShare: () => void;
+  onDoneForToday: () => void;
+  /** Optional Animated.Value for the one-time pulse on scrollTo arrival. */
+  pulse?: Animated.Value;
 }
 
-// ============================================================================
-// COMPONENT
-// ============================================================================
-
-export function HandoffCard() {
+export function HandoffCard({
+  hasNotes,
+  hasMissed,
+  hasPending,
+  hasLogged,
+  dayComplete,
+  onShare,
+  onDoneForToday,
+  pulse,
+}: HandoffCardProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const router = useRouter();
-  const [summary, setSummary] = useState<TodaySummary | null>(null);
 
-  const loadSummary = useCallback(async () => {
-    try {
-      const data = await buildTodaySummary();
-      setSummary(data);
-    } catch (error) {
-      logError('HandoffCard.loadSummary', error);
-    }
-  }, []);
+  if (dayComplete) return null;
+  if (!hasNotes && !hasMissed && !hasPending && !hasLogged) return null;
 
-  useEffect(() => {
-    loadSummary();
-  }, [loadSummary]);
-
-  // Refresh when any data changes
-  useDataListener(
-    useCallback(() => {
-      loadSummary();
-    }, [loadSummary])
-  );
-
-  if (!summary) return null;
-
-  const {
-    medsAdherence, vitalsReading, mealsStatus, moodArc,
-    orientation, painLevel, appetite,
-    overdueItems, flaggedItems, nextAppointment,
-  } = summary;
-
-  // Build status lines — only include rows with data
-  const lines: StatusLine[] = [];
-
-  // Meds: always show (even 0/0)
-  const hasMedFlag = medsAdherence.taken < medsAdherence.total;
-  lines.push({
-    emoji: '\u{1F48A}',
-    label: 'Meds',
-    value: `${medsAdherence.taken} of ${medsAdherence.total} taken`,
-    flagged: hasMedFlag,
-  });
-
-  // Vitals
-  if (vitalsReading) {
-    lines.push({ emoji: '\u{1F4CA}', label: 'Vitals', value: vitalsReading });
-  }
-
-  // Meals
-  if (mealsStatus) {
-    let value = `${mealsStatus.logged} of ${mealsStatus.total}`;
-    if (mealsStatus.overdueNames.length > 0) {
-      value += ` (${mealsStatus.overdueNames[0]} overdue)`;
-    }
-    lines.push({
-      emoji: '\u{1F37D}\uFE0F',
-      label: 'Meals',
-      value,
-      flagged: mealsStatus.overdueNames.length > 0,
-    });
-  }
-
-  // Mood arc
-  if (moodArc) {
-    lines.push({ emoji: '\u{1F60A}', label: 'Mood', value: moodArc });
-  }
-
-  // Orientation
-  if (orientation) {
-    const orientationFlagged = orientation !== 'Alert & Oriented';
-    lines.push({ emoji: '\u{1F9E0}', label: 'Orientation', value: orientation, flagged: orientationFlagged });
-  }
-
-  // Pain
-  if (painLevel) {
-    lines.push({ emoji: '\u{1FA7A}', label: 'Pain', value: painLevel, flagged: painLevel === 'Severe' });
-  }
-
-  // Appetite
-  if (appetite) {
-    const appetiteFlagged = appetite === 'Poor' || appetite === 'Refused';
-    lines.push({ emoji: '\u{1F372}', label: 'Appetite', value: appetite, flagged: appetiteFlagged });
-  }
-
-  const formatAppointmentDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
+  const scale = pulse ?? null;
+  const Container = scale ? Animated.View : View;
 
   return (
-    <View style={styles.card}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerLabel}>Today's summary</Text>
+    <Container style={[styles.card, scale ? { transform: [{ scale }] } : null]}>
+      <Text style={styles.title}>{'✦ Ready to hand off?'}</Text>
+      <Text style={styles.subtitle}>
+        {"Share today's notes and what's pending for the next caregiver."}
+      </Text>
+      <View style={styles.actions}>
         <TouchableOpacity
-          onPress={() => navigate('/care-report?scope=full')}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityLabel="Share care summary"
+          style={styles.primaryButton}
+          onPress={onShare}
+          activeOpacity={0.85}
           accessibilityRole="button"
+          accessibilityLabel="Share summary — open the handoff sheet"
         >
-          <Text style={styles.shareText}>Share {'\u2197'}</Text>
+          <Text style={styles.primaryButtonText}>{'Share summary'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={onDoneForToday}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Done for today — mark the day complete"
+        >
+          <Text style={styles.secondaryButtonText}>{'Done for today'}</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Vertical Status Lines */}
-      <View style={styles.statusList}>
-        {lines.map((line) => (
-          <View key={line.label} style={styles.statusRow}>
-            <Text style={styles.statusEmoji}>{line.emoji}</Text>
-            <Text style={styles.statusLabel}>{line.label}:</Text>
-            <Text style={[styles.statusValue, line.flagged && styles.statusValueFlagged]}>
-              {line.value}
-            </Text>
-          </View>
-        ))}
-      </View>
-
-      {/* Next Appointment */}
-      {nextAppointment && (
-        <View style={styles.appointmentRow}>
-          <Text style={styles.appointmentLabel}>NEXT APPT</Text>
-          <Text style={styles.appointmentValue}>
-            {nextAppointment.provider} ({nextAppointment.specialty}) &mdash;{' '}
-            {formatAppointmentDate(nextAppointment.date)}
-          </Text>
-        </View>
-      )}
-
-      {/* Overdue + Flagged Items */}
-      {(overdueItems.length > 0 || flaggedItems.length > 0) && (
-        <View style={styles.flaggedRow}>
-          {overdueItems.map((item, i) => (
-            <View key={`overdue-${i}`} style={styles.flagPill}>
-              <Text style={styles.flagPillText}>{item} overdue</Text>
-            </View>
-          ))}
-          {flaggedItems.map((item, i) => (
-            <View key={`flag-${i}`} style={styles.flagPill}>
-              <Text style={styles.flagPillText}>{item}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Footer Link */}
-      <TouchableOpacity
-        style={styles.footerLink}
-        onPress={() => navigate('/care-report?scope=handoff')}
-        activeOpacity={0.7}
-        accessibilityLabel="View full care brief"
-        accessibilityRole="link"
-      >
-        <Text style={styles.footerLinkText}>View Full Brief &rarr;</Text>
-      </TouchableOpacity>
-    </View>
+    </Container>
   );
 }
 
-// ============================================================================
-// STYLES
-// ============================================================================
-
-const createStyles = (c: typeof Colors) => StyleSheet.create({
+const createStyles = (c: any) => StyleSheet.create({
   card: {
-    backgroundColor: c.glassHover,
-    borderWidth: 1,
-    borderColor: c.border,
-    borderLeftWidth: 4,
-    borderLeftColor: c.accentBorder,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
+    backgroundColor: 'rgba(52, 211, 153, 0.07)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(52, 211, 153, 0.30)',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
   },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  headerLabel: {
+  title: {
     fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    color: c.textMuted,
-  },
-  shareText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: c.sageSoft,
-  },
-
-  // Vertical status lines
-  statusList: {
-    marginBottom: Spacing.md,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  statusEmoji: {
-    fontSize: 15,
-    width: 24,
-  },
-  statusLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.textSecondary,
-    marginRight: 6,
-  },
-  statusValue: {
-    fontSize: 14,
     fontWeight: '500',
     color: c.textPrimary,
-    flex: 1,
+    marginBottom: 4,
   },
-  statusValueFlagged: {
-    color: c.amber,
-  },
-
-  // Appointment row
-  appointmentRow: {
-    paddingVertical: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
-  appointmentLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    color: c.textMuted,
-    marginBottom: 2,
-  },
-  appointmentValue: {
-    fontSize: 14,
-    fontWeight: '500',
+  subtitle: {
+    fontSize: 10,
     color: c.textSecondary,
+    lineHeight: 14,
+    marginBottom: 12,
   },
-
-  // Flagged items
-  flaggedRow: {
+  actions: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.sm,
   },
-  flagPill: {
-    backgroundColor: c.amberLight,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  flagPillText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: c.amber,
-  },
-
-  // Footer link
-  footerLink: {
-    marginTop: Spacing.sm,
+  primaryButton: {
+    flex: 1,
+    backgroundColor: c.accent,
+    borderRadius: 6,
+    paddingVertical: 8,
     alignItems: 'center',
-    paddingVertical: Spacing.xs,
   },
-  footerLinkText: {
-    fontSize: 13,
+  primaryButtonText: {
+    // Spec called for 10pt; the project's a11y guard (interactive-label
+    // minimum) sets the floor at 11pt. Deferred to the a11y rule — visually
+    // indistinguishable.
+    fontSize: 11,
     fontWeight: '500',
-    color: c.sageSoft,
+    color: c.textPrimary,
+  },
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    borderRadius: 6,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: c.textPrimary,
   },
 });
+
+export default HandoffCard;

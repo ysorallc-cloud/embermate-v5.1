@@ -52,8 +52,8 @@ jest.mock('react-native-safe-area-context', () => {
 jest.mock('../../contexts/ThemeContext', () => ({
   useTheme: () => ({
     colors: {
-      accent: '#b794f4',
-      caregiverAccent: '#b794f4',
+      accent: '#aa8adc',
+      caregiverAccent: '#aa8adc',
       caregiverAccentBg: 'rgba(139, 92, 246, 0.06)',
       caregiverAccentBorder: 'rgba(139, 92, 246, 0.25)',
       caregiverAccentText: '#d4baff',

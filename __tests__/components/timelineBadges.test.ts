@@ -8,11 +8,11 @@ import { CATEGORY_CONFIG } from '../../constants/categoryLabels';
 describe('CATEGORY_CONFIG', () => {
   const expectedEntries: [string, string, string, string][] = [
     // [itemType, label, chipLabel, color]
-    ['medication',  'CARE',      'Meds',      '#34D399'],
+    ['medication',  'CARE',      'Meds',      '#5fb88a'],
     ['vitals',      'VITALS',    'Vitals',    '#A78BFA'],
-    ['wellness',    'WELLNESS',  'Check-ins', '#34D399'],
-    ['nutrition',   'MEAL',     'Meals',     '#FBBF24'],
-    ['errand',      'ERRAND',   'Errands',   '#FBBF24'],
+    ['wellness',    'WELLNESS',  'Check-ins', '#5fb88a'],
+    ['nutrition',   'MEAL',     'Meals',     '#e5b04a'],
+    ['errand',      'ERRAND',   'Errands',   '#e5b04a'],
     ['self_care',   'YOU',      'Self-care', '#F472B6'],
     ['shift',       'HANDOFF',  'Handoff',   '#7DD3FC'],
     ['appointment', 'APPT',     'Appts',     '#EF4444'],

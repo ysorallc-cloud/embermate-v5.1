@@ -24,9 +24,12 @@ describe('Header subtitle copy — Journal', () => {
     expect(journalSrc).not.toContain('bring to a visit');
   });
 
-  it("contains the new copy: \"[patient]'s day, in your words.\"", () => {
-    // Patient name interpolates dynamically; assert the static frame.
-    expect(journalSrc).toMatch(/'s day, in your words\./);
+  it('uses the journalSubtitle helper to drive the time-aware subtitle', () => {
+    // v6.7: the static "[patient]'s day, in your words." literal was
+    // replaced with the time-aware helper output. The helper covers
+    // morning / afternoon / evening / past-date variants.
+    expect(journalSrc).toMatch(/journalSubtitle\(/);
+    expect(journalSrc).not.toContain("'s day, in your words.");
   });
 });
 

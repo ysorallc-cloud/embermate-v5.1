@@ -32,6 +32,8 @@ import {
   DEFAULT_PATIENT_ID,
 } from '../storage/carePlanRepo';
 import { saveCarePlanConfig } from '../storage/carePlanConfigRepo';
+import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
 import { createDefaultCarePlanConfig } from '../types/carePlanConfig';
 import { ensureDailyInstances, getTodayDateString } from '../services/carePlanGenerator';
 
@@ -746,6 +748,12 @@ export const initializeSampleData = async (): Promise<boolean> => {
 
     // Mark as initialized
     await safeSetItem(SAMPLE_DATA_INITIALIZED_KEY, 'true');
+
+    // Wake up any subscribers (useSampleMode, Now banner, Settings entry) so
+    // the example-mode affordances appear immediately after onboarding's
+    // "Keep exploring" hand-off — without forcing a manual screen refresh.
+    emitDataUpdate(EVENT.MEDICATION);
+    emitDataUpdate(EVENT.PATIENT);
 
     return true;
   } catch (error) {

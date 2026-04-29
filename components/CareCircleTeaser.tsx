@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1,
-    color: '#b794f4',
+    color: '#aa8adc',
   },
   title: {
     fontSize: 17,
@@ -126,6 +126,6 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#b794f4',
+    color: '#aa8adc',
   },
 });

@@ -4,6 +4,7 @@
 // ============================================================================
 
 import type { TodayStats, StatData } from './nowHelpers';
+import { pluralize } from './text/primitives';
 
 export interface Greeting {
   title: string;
@@ -60,7 +61,7 @@ export function buildGreeting(
   if (hour < 6) {
     return {
       title: 'Late night check-in',
-      subtitle: left > 0 ? `${left} item${left !== 1 ? 's' : ''} still pending.` : "Everything's logged.",
+      subtitle: left > 0 ? `${pluralize(left, 'item')} still pending.` : "Everything's logged.",
     };
   }
 
@@ -74,7 +75,7 @@ export function buildGreeting(
     const subtitle = nextScheduledTime
       ? `Next meds: ${nextScheduledTime}`
       : total > 0
-        ? `${total} item${total !== 1 ? 's' : ''} on today's schedule.`
+        ? `${pluralize(total, 'item')} on today's schedule.`
         : 'Care day is starting.';
 
     return { title: 'Good morning', subtitle };
@@ -92,7 +93,7 @@ export function buildGreeting(
     } else if (done > 0) {
       subtitle = `${done} of ${total} done so far. ${left} remaining.`;
     } else {
-      subtitle = `${total} item${total !== 1 ? 's' : ''} still on the schedule.`;
+      subtitle = `${pluralize(total, 'item')} still on the schedule.`;
     }
 
     return { title, subtitle };

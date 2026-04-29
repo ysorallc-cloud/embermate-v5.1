@@ -12,10 +12,11 @@ import { useTheme } from '../../../contexts/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// Privacy point lands last so it closes the pitch with reassurance.
 const VALUE_POINTS = [
-  { icon: '\u{1F48A}', text: 'Track medications, meals, and vitals in one place' },
-  { icon: '\u{1F4CA}', text: 'Spot patterns a doctor visit might miss' },
-  { icon: '\u{1F512}', text: 'Private — your data never leaves this device' },
+  { icon: '\u{1F48A}', text: 'Track meds, vitals, and mood — a few taps a day' },
+  { icon: '\u{1F4CA}', text: 'See patterns a single visit might miss' },
+  { icon: '\u{1F512}', text: 'Stays on your device. No accounts, no cloud.' },
 ];
 
 export const WelcomeScreen: React.FC = () => {
@@ -36,7 +37,7 @@ export const WelcomeScreen: React.FC = () => {
           Caring for someone{'\n'}is a lot to carry.
         </Animated.Text>
         <Animated.Text entering={FadeInDown.delay(250).duration(300)} style={styles.subtitle}>
-          EmberMate helps you stay organized so you can focus on what matters — being present.
+          A quiet companion to help you keep track — gently — and see the patterns that matter.
         </Animated.Text>
         <View style={styles.pointsContainer}>
           {VALUE_POINTS.map((point, index) => (

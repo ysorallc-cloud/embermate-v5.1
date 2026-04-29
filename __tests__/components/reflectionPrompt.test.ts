@@ -20,7 +20,8 @@ describe('ReflectionPrompt', () => {
     expect(src).toContain("fontStyle: 'italic'");
     expect(src).toContain('TextInput');
     expect(src).toContain('multiline');
-    expect(src).toContain("placeholder=\"Write a few words, or skip...\"");
+    // Handoff redesign — placeholder is now caregiver-facing (Phase 5).
+    expect(src).toContain("placeholder=\"Anything to pass along to the next caregiver?\"");
   });
 
   it('Save link disabled when text is empty', () => {
@@ -63,7 +64,8 @@ describe('ReflectionPrompt', () => {
   });
 
   it('privacy hint is inline with Save link', () => {
-    expect(src).toContain('Private · on this device only');
+    // Handoff redesign tightened the line to "saved on this device".
+    expect(src).toContain('Private · saved on this device');
   });
 
   it('encryption: reflection_ prefix in safeStorage', () => {

@@ -109,9 +109,11 @@ export function ResourcesList() {
     <View style={styles.container}>
       {RESOURCE_CATEGORIES.map((cat, index) => {
         const isExpanded = expandedId === cat.id;
-        const isLast = index === RESOURCE_CATEGORIES.length - 1;
         return (
-          <View key={cat.id} style={[styles.categoryCard, isLast && { borderBottomWidth: 0 }]}>
+          <View
+            key={cat.id}
+            style={[styles.categoryCard, index === 0 && { borderTopWidth: 0 }]}
+          >
             <TouchableOpacity
               style={styles.categoryHeader}
               onPress={() => toggleCategory(cat.id)}
@@ -158,33 +160,34 @@ export function ResourcesList() {
 function createStyles(c: any) {
   return StyleSheet.create({
     container: {
+      // No background — Plan ahead list sits directly on the page surface.
     },
     categoryCard: {
-      borderBottomWidth: 0.5,
-      borderBottomColor: '#1a201a',
+      borderTopWidth: 0.5,
+      borderTopColor: c.glassBorder,
     },
     categoryHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 12,
+      paddingVertical: 11,
       gap: 12,
     },
     categoryInfo: {
       flex: 1,
     },
     categoryTitle: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '500',
-      color: '#8a9a92',
+      color: c.textPrimary,
       marginBottom: 2,
     },
     categoryDesc: {
-      fontSize: 12,
-      color: '#4a6a5a',
+      fontSize: 11,
+      color: c.textTertiary,
     },
     chevron: {
       fontSize: 14,
-      color: '#2a3a2a',
+      color: c.textTertiary,
     },
     linksList: {
       paddingHorizontal: 0,
@@ -197,17 +200,17 @@ function createStyles(c: any) {
     },
     linkRowBorder: {
       borderBottomWidth: 0.5,
-      borderBottomColor: '#1a201a',
+      borderBottomColor: c.glassBorder,
     },
     linkTitle: {
       fontSize: 13,
       fontWeight: '500',
-      color: '#8a9a92',
+      color: c.textPrimary,
       marginBottom: 2,
     },
     linkDesc: {
       fontSize: 11,
-      color: '#4a6a5a',
+      color: c.textTertiary,
     },
   });
 }

@@ -28,6 +28,8 @@ import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { useTheme } from '../../contexts/ThemeContext';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
 import { generateSampleCorrelationData, clearSampleCorrelationData, hasSampleData } from '../../utils/sampleDataGenerator';
+import { useSampleMode } from '../../hooks/useSampleMode';
+import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataSheet';
 import { StorageKeys } from '../../utils/storageKeys';
 import { getMedications } from '../../utils/medicationStorage';
 import { getAppointments, getUpcomingAppointments } from '../../utils/appointmentStorage';
@@ -68,6 +70,11 @@ export default function SettingsScreen() {
   const [appointmentCount, setAppointmentCount] = useState(0);
   const [caregiverCount, setCaregiverCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const { isSampleMode, sampleStatus } = useSampleMode();
+  const [manageSampleSheet, setManageSampleSheet] = useState<{
+    open: boolean;
+    focus?: 'setup' | 'remove';
+  }>({ open: false });
   // All categories collapsed on mount — keeps the settings surface calm.
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({
     profile: true,
@@ -579,7 +586,37 @@ export default function SettingsScreen() {
       title: 'Advanced',
       items: [],
     },
-  ], [patientName, medicationCount, appointmentCount, caregiverCount, use24HourTime, hasSample]);
+    // Example data — only surfaces while the user is exploring with sample
+    // records. Single entry that opens ManageSampleDataSheet (set up / remove
+    // sub-flows) plus a deep link into the data privacy screen for power users.
+    ...(isSampleMode
+      ? [{
+          id: 'exampleData',
+          icon: '✦',
+          title: 'Example data',
+          items: [
+            {
+              id: 'manage-example-data',
+              icon: '✦',
+              title: 'Manage example data',
+              subtitle: sampleStatus
+                ? `${sampleStatus.totalSampleRecords} sample records`
+                : 'Set up your profile or remove the example',
+              color: 'rgba(139, 92, 246, 0.06)',
+              onPress: () => setManageSampleSheet({ open: true }),
+            },
+            {
+              id: 'view-record-breakdown',
+              icon: '🔍',
+              title: 'View record breakdown',
+              subtitle: 'See what example records are stored',
+              color: 'rgba(255, 255, 255, 0.07)',
+              onPress: () => navigate('/data-privacy-settings'),
+            },
+          ],
+        }] as SettingsCategory[]
+      : []),
+  ], [patientName, medicationCount, appointmentCount, caregiverCount, use24HourTime, hasSample, isSampleMode, sampleStatus]);
 
   // Filter settings based on search query
   const filteredCategories = useMemo(() => {
@@ -730,6 +767,13 @@ export default function SettingsScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       </LinearGradient>
+
+      <ManageSampleDataSheet
+        visible={manageSampleSheet.open}
+        focusOn={manageSampleSheet.focus}
+        activePatientName={patientName}
+        onClose={() => setManageSampleSheet({ open: false })}
+      />
     </SafeAreaView>
   );
 }

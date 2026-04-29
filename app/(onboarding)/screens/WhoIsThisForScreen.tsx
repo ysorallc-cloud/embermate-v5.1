@@ -27,7 +27,7 @@ export const WhoIsThisForScreen: React.FC<Props> = ({ onSelectMode }) => {
           Who are you caring for?
         </Animated.Text>
         <Animated.Text entering={FadeInDown.delay(200).duration(300)} style={styles.subtitle}>
-          This helps us adjust the experience for you.
+          We'll set things up to fit your situation.
         </Animated.Text>
 
         <View style={styles.cardsContainer}>

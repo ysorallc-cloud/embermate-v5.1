@@ -68,13 +68,12 @@ describe('DateTabStrip', () => {
     expect(src).toContain('rgba(200,195,180,0.45)'); // unselected text
   });
 
-  it('calendar toggle button renders with correct styles', () => {
-    expect(src).toContain('calendarBtn');
-    expect(src).toContain('calendarBtnOpen');
-    expect(src).toContain('onCalendarToggle');
-    // 36x36 button
-    expect(src).toContain('width: 36');
-    expect(src).toContain('height: 36');
+  it('Jump button replaces the legacy calendar toggle (v6.7)', () => {
+    expect(src).toContain('Jump');
+    expect(src).toContain('jumpBtn');
+    // No calendar-toggle wiring left.
+    expect(src).not.toContain('calendarBtn:');
+    expect(src).not.toContain('onCalendarToggle');
   });
 
   it('horizontal ScrollView with no indicator', () => {

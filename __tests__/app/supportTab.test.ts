@@ -107,10 +107,12 @@ describe('You tab — Warm Room', () => {
     expect(src).toContain('When things are calm');
   });
 
-  it('wellness link in quiet card', () => {
+  it('wellness link routes to caregiver-wellness', () => {
+    // The full quiet-card title was collapsed to a compact row in v6.7 —
+    // see __tests__/screens/youTabWellnessLink.test.ts for the new label
+    // contract ("YOUR WELLNESS OVER TIME"). Keep the navigation invariant.
     expect(src).toContain('wellnessLink');
     expect(src).toContain("navigate('/caregiver-wellness')");
-    expect(src).toContain('Your wellness over time');
   });
 
   it('breathing + resources components render', () => {
@@ -124,11 +126,15 @@ describe('You tab — Warm Room', () => {
     expect(src).toContain('most people never see.');
   });
 
-  it('no uppercase section headers', () => {
+  it('no uppercase section headers in body content', () => {
+    // The body sections (mood / breath / reach-out) were converted to
+    // sentence-case copy in v6.6. The compact wellness-link label
+    // ("YOUR WELLNESS OVER TIME") is the one intentional all-caps, kept
+    // because it reads as a label-style row label rather than a section
+    // header — see Phase 4 in the You-tab redesign.
     expect(src).not.toContain('CHECK IN');
     expect(src).not.toContain('BREATHE');
     expect(src).not.toContain('REACH OUT');
-    expect(src).not.toContain('YOUR WELLNESS');
   });
 
   it('tab bar: You tab is last (after Insights)', () => {

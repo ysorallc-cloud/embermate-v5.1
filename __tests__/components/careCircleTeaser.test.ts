@@ -40,7 +40,7 @@ describe('CareCircleTeaser component', () => {
   });
 
   it('uses purple tokens for dark mode styling', () => {
-    expect(src).toContain('#b794f4');
+    expect(src).toContain('#aa8adc');
     expect(src).toContain('rgba(159, 122, 234,');
   });
 });

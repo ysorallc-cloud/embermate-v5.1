@@ -96,14 +96,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: 40,
     backgroundColor: 'rgba(139, 168, 136, 0.1)',
     borderWidth: 3,
-    borderColor: '#34d399',
+    borderColor: '#5fb88a',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
   },
   checkmark: {
     fontSize: 36,
-    color: '#34d399',
+    color: '#5fb88a',
   },
   title: {
     fontFamily: 'Georgia',

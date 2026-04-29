@@ -73,7 +73,7 @@ export function ReflectionPrompt({ date, prompt, savedText, savedAt, onSave, onD
                 color: colors.textWarmPrimary,
               },
             ]}
-            placeholder="Write a few words, or skip..."
+            placeholder="Anything to pass along to the next caregiver?"
             placeholderTextColor={colors.textWarmDim}
             value={text}
             onChangeText={handleTextChange}
@@ -82,7 +82,7 @@ export function ReflectionPrompt({ date, prompt, savedText, savedAt, onSave, onD
           />
           <View style={styles.actions}>
             <Text style={[styles.privacy, { color: colors.textWarmDim }]}>
-              Private · on this device only
+              Private · saved on this device
             </Text>
             <TouchableOpacity
               onPress={handleSave}

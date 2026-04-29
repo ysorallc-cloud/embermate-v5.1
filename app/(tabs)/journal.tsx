@@ -4,6 +4,7 @@
 // ============================================================================
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import {
   View,
@@ -14,6 +15,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Animated,
+  Easing,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { AuroraBackground } from '../../components/aurora/AuroraBackground';
@@ -40,21 +43,19 @@ import { safeGetItem } from '../../utils/safeStorage';
 import { usePatient } from '../../contexts/PatientContext';
 import { StorageKeys } from '../../utils/storageKeys';
 import { getMedications } from '../../utils/medicationStorage';
+import { journalSubtitle } from '../../utils/journalSubtitle';
 import { hasSampleData } from '../../utils/sampleDataManager';
-import { ReportPreviewModal } from '../../components/shared/ReportPreviewModal';
-import { buildDailySummaryReport, buildClinicalReportData } from '../../utils/reportBuilders';
-import { generateAndSharePDF, ReportData } from '../../utils/pdfExport';
+import { ReportData } from '../../utils/pdfExport';
 import { DateTabStrip } from '../../components/journal/DateTabStrip';
-import { MonthCalendar } from '../../components/journal/MonthCalendar';
-// DetailedEventLog removed — Now tab timeline serves this purpose
-import { ReflectionPrompt } from '../../components/journal/ReflectionPrompt';
-import { JournalSummary } from '../../components/journal/JournalSummary';
-import { JournalFlagged, buildHandoffNotes } from '../../components/journal/JournalFlagged';
-import { JournalPatterns } from '../../components/journal/JournalPatterns';
-// useJournalEvents removed — DetailedEventLog no longer rendered
-import { useCalendarStatuses } from '../../hooks/useCalendarStatuses';
-import { getDailyPrompt } from '../../utils/reflectionPrompts';
+import { JournalNotesCard } from '../../components/journal/JournalNotesCard';
+import { TodayOutcomes } from '../../components/journal/TodayOutcomes';
+import { JournalPatternLink } from '../../components/journal/JournalPatternLink';
+import { HandoffCard } from '../../components/journal/HandoffCard';
+import { HandoffSheet } from '../../components/journal/HandoffSheet';
 import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
+import { getDailyOutcomes } from '../../utils/dailyOutcomes';
+import type { DailyOutcomes } from '../../utils/text/types';
+import { isDayComplete, markDayComplete } from '../../utils/dayComplete';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -86,12 +87,23 @@ export default function JournalTab() {
   const [clinicalReport, setClinicalReport] = useState<{ reportData: ReportData; previewLines: string[] } | null>(null);
   const [exporting, setExporting] = useState(false);
 
+  // ── Handoff redesign state (Phases 3, 6, 7, 10, 12) ──
+  const [outcomes, setOutcomes] = useState<DailyOutcomes>({
+    logged: { count: 0 },
+    missed: { count: 0, names: [] },
+    pending: { count: 0, names: [] },
+  });
+  const [dayCompleteFlag, setDayCompleteFlag] = useState(false);
+  const [handoffSheetVisible, setHandoffSheetVisible] = useState(false);
+  const handoffPulse = useRef(new Animated.Value(1)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
+  const handoffCardLayoutY = useRef<number | null>(null);
+  const params = useLocalSearchParams<{ scrollTo?: string }>();
+
   // ── Phase 7 state ──
   const [selectedDate, setSelectedDate] = useState(getTodayDateString());
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const now = new Date();
-  const [calendarMonth, setCalendarMonth] = useState({ year: now.getFullYear(), month: now.getMonth() });
-  const { statuses: calendarStatuses } = useCalendarStatuses(calendarMonth.year, calendarMonth.month);
+  // Legacy MonthCalendar mode + calendar-icon toggle were retired in v6.7.
+  // The Jump button on DateTabStrip handles non-recent date access now.
   // journalEvents removed — DetailedEventLog no longer rendered
   const [reflection, setReflection] = useState<StoredReflection | null>(null);
   const [reflectionDirty, setReflectionDirty] = useState(false);
@@ -101,23 +113,30 @@ export default function JournalTab() {
     getReflection(selectedDate).then(setReflection);
   }, [selectedDate]);
 
-  const handleDateSelect = useCallback((date: string) => {
-    if (reflectionDirty) {
-      Alert.alert(
-        'Unsaved reflection',
-        'You have an unsaved reflection. Save it before switching days?',
-        [
-          { text: 'Discard', style: 'destructive', onPress: () => { setReflectionDirty(false); setSelectedDate(date); setCalendarOpen(false); } },
-          { text: 'Go back', style: 'cancel' },
-        ]
-      );
-      return;
-    }
-    setSelectedDate(date);
-    setCalendarOpen(false);
-  }, [reflectionDirty]);
+  // Load outcomes + day-complete flag for the selected date.
+  useEffect(() => {
+    getDailyOutcomes(selectedDate).then(setOutcomes).catch(() => {});
+    isDayComplete(selectedDate).then(setDayCompleteFlag).catch(() => {});
+  }, [selectedDate]);
 
-  const handleCalendarDateSelect = useCallback((date: string) => {
+  // scrollTo='handoff' from End of Shift card → scroll + one-time pulse.
+  useEffect(() => {
+    if (params?.scrollTo !== 'handoff') return;
+    const t = setTimeout(() => {
+      const y = handoffCardLayoutY.current;
+      if (y != null) {
+        scrollViewRef.current?.scrollTo({ y: Math.max(0, y - 80), animated: true });
+      }
+      handoffPulse.setValue(1);
+      Animated.sequence([
+        Animated.timing(handoffPulse, { toValue: 1.02, duration: 200, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.timing(handoffPulse, { toValue: 1.0, duration: 400, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      ]).start();
+    }, 200);
+    return () => clearTimeout(t);
+  }, [params?.scrollTo]);
+
+  const handleDateSelect = useCallback((date: string) => {
     if (reflectionDirty) {
       Alert.alert(
         'Unsaved reflection',
@@ -133,8 +152,8 @@ export default function JournalTab() {
   }, [reflectionDirty]);
 
   const handleSaveReflection = useCallback(async (text: string) => {
-    const prompt = getDailyPrompt(selectedDate);
-    const saved = await saveReflection(selectedDate, text, prompt);
+    // Notes are now handoff-oriented; no rotated prompt is associated.
+    const saved = await saveReflection(selectedDate, text, '');
     setReflection(saved);
   }, [selectedDate]);
 
@@ -145,6 +164,33 @@ export default function JournalTab() {
       ? 'Today'
       : d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   }, [selectedDate]);
+
+  // Time-aware "[Name]'s day…" copy. On today the journalSubtitle helper
+  // produces the live form; for past dates it switches to the static
+  // "[Name]'s day · Tue, Apr 8" recap. `isViewingPast` is the inverse and
+  // also gates the HandoffCard + JournalNotesCard read-only mode below.
+  const isViewingToday = selectedDate === getTodayDateString();
+  const isViewingPast = !isViewingToday;
+  const pastDateObj = useMemo(
+    () => (isViewingPast ? new Date(`${selectedDate}T12:00:00`) : undefined),
+    [isViewingPast, selectedDate],
+  );
+  const lastEventAt = useMemo(() => {
+    if (!isViewingToday || todayNotes.length === 0) return undefined;
+    let max = 0;
+    for (const n of todayNotes) {
+      const t = new Date(n.timestamp).getTime();
+      if (!isNaN(t) && t > max) max = t;
+    }
+    return max > 0 ? new Date(max) : undefined;
+  }, [isViewingToday, todayNotes]);
+  const headerSubtitle = useMemo(() => {
+    return journalSubtitle({
+      name: patientName,
+      lastEventAt: isViewingToday ? lastEventAt : undefined,
+      pastDate: pastDateObj,
+    });
+  }, [isViewingToday, patientName, lastEventAt, pastDateObj]);
 
   const loadReport = useCallback(async () => {
     try {
@@ -421,136 +467,26 @@ export default function JournalTab() {
   // ============================================================================
   // SHARE / REPORT HANDLERS
   // ============================================================================
+  // Phase 9: Share opens HandoffSheet (today, next-caregiver audience).
   function handleShareDaily() {
     if (loading) {
       Alert.alert('Loading', 'Please wait while the journal loads.');
       return;
     }
-    if (!brief) {
-      Alert.alert(
-        'No Data',
-        'Nothing has been logged today. Start tracking on the Now tab.',
-      );
-      return;
-    }
-    const result = buildDailySummaryReport(
-      brief,
-      dateStr,
-      dayName,
-      glanceStats,
-      buildHandoffNotes(brief),
-      reflection?.text,
-    );
-    setDailyReport(result);
-    setShowDailyPreview(true);
+    setHandoffSheetVisible(true);
   }
 
+  // Phase 9: Report navigates to Visit Prep (week/month, clinician audience).
   function handleShareClinical() {
-    if (loading) {
-      Alert.alert('Loading', 'Please wait while the journal loads.');
-      return;
-    }
-    if (!brief) {
-      Alert.alert(
-        'No Data',
-        'Nothing has been logged today. Start tracking on the Now tab.',
-      );
-      return;
-    }
-    const result = buildClinicalReportData(brief);
-    setClinicalReport(result);
-    setShowClinicalPreview(true);
+    navigate('/visit-prep');
   }
 
-  function handleDailyExport() {
-    if (!dailyReport) return;
-    Alert.alert(
-      'Share Daily Summary',
-      'This PDF contains health information. Only share with trusted caregivers or healthcare providers.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Share PDF',
-          onPress: async () => {
-            setExporting(true);
-            try {
-              await generateAndSharePDF(dailyReport.reportData, {
-                name: patientName || undefined,
-                age: patientAge || undefined,
-              });
-              setShowDailyPreview(false);
-            } catch (err: any) {
-              if (err?.message !== 'User cancelled') {
-                logError('JournalTab.handleDailyExport', err);
-              }
-            }
-            setExporting(false);
-          },
-        },
-      ],
-    );
+  function handleDoneForToday() {
+    markDayComplete(selectedDate).then(() => {
+      setDayCompleteFlag(true);
+    });
   }
 
-  function handleClinicalExport() {
-    if (!clinicalReport) return;
-    Alert.alert(
-      'Share Clinical Report',
-      'This PDF contains full medical history, medications, and vitals. Only share with healthcare providers.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Share PDF',
-          style: 'destructive',
-          onPress: async () => {
-            setExporting(true);
-            try {
-              await generateAndSharePDF(clinicalReport.reportData, {
-                name: patientName || undefined,
-                age: patientAge || undefined,
-              });
-              setShowClinicalPreview(false);
-            } catch (err: any) {
-              if (err?.message !== 'User cancelled') {
-                logError('JournalTab.handleClinicalExport', err);
-              }
-            }
-            setExporting(false);
-          },
-        },
-      ],
-    );
-  }
-
-
-  // ============================================================================
-  // BUILD DATA
-  // ============================================================================
-  const handoffNotes = buildHandoffNotes(brief);
-
-  // Glance stats for the share/report flow — no longer rendered on screen
-  // (the flat stats strip replaced the visual tiles) but still needed by
-  // buildDailySummaryReport. Inline derivation replaces the deleted helper
-  // functions.
-  const glanceStats = (() => {
-    const sem = (cond: boolean, total: number, missed: number) =>
-      total === 0 ? colors.textTertiary : missed > 0 ? colors.redBright : cond ? colors.green : colors.amberBright;
-    const bpVal = hasVitals
-      ? (brief?.vitals?.readings?.systolic != null && brief?.vitals?.readings?.diastolic != null
-          ? `${brief.vitals.readings.systolic}/${brief.vitals.readings.diastolic}` : 'Logged')
-      : '\u2014';
-    const sleepVal = !brief?.sleep.logged ? '\u2014' : (brief.sleep.hours != null ? `${brief.sleep.hours}h` : 'Logged');
-    const all = [
-      { bucket: 'meds',     label: 'Meds',     value: `${medsDone}/${medsTotal}`,    color: sem(allMedsDone, medsTotal, medsMissed) },
-      { bucket: 'meals',    label: 'Meals',     value: `${mealsDone}/${mealsTotal}`,  color: sem(mealsDone >= mealsTotal && mealsTotal > 0, mealsTotal, mealsMissed) },
-      { bucket: 'water',    label: 'Water',     value: `${waterGlasses}/8`,           color: waterGlasses >= 8 ? colors.green : waterGlasses === 0 ? colors.textTertiary : colors.amberBright },
-      { bucket: 'wellness', label: 'Wellness',  value: `${wellnessDone}/${wellnessTotal}`, color: sem(wellnessDone >= wellnessTotal, wellnessTotal, 0) },
-      { bucket: 'sleep',    label: 'Sleep',     value: sleepVal,                      color: brief?.sleep.logged ? colors.green : colors.textTertiary },
-      { bucket: 'vitals',   label: 'BP',        value: bpVal,                         color: hasVitals ? colors.green : colors.textTertiary },
-    ];
-    return enabledBuckets.length > 0
-      ? all.filter(t => enabledBuckets.includes(t.bucket as any))
-      : all;
-  })();
 
   // ============================================================================
   // PATIENT CONTEXT
@@ -569,6 +505,7 @@ export default function JournalTab() {
 
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
+          ref={scrollViewRef}
           style={s.scrollView}
           contentContainerStyle={[s.scrollContent, { paddingBottom: insets.bottom + 70 }]}
           showsVerticalScrollIndicator={false}
@@ -581,19 +518,12 @@ export default function JournalTab() {
             <View style={s.headerLeft}>
               <Text style={s.headerTitle}>Journal</Text>
               <Text style={s.headerDate}>{dayName}, {dateStr}</Text>
-              <Text style={s.headerPurpose}>{patientName || 'Your loved one'}'s day, in your words.</Text>
+              <Text style={s.headerPurpose}>{headerSubtitle}</Text>
             </View>
             <View style={s.headerActions}>
-              <TouchableOpacity
-                style={[s.headerPill, loading && { opacity: 0.4 }]}
-                onPress={handleShareDaily}
-                activeOpacity={0.7}
-                accessibilityLabel={loading ? 'Share daily summary, loading' : 'Share daily summary'}
-                accessibilityRole="button"
-                accessibilityState={{ busy: loading }}
-              >
-                <Text style={s.headerPillText}>Share</Text>
-              </TouchableOpacity>
+              {/* Share moved to the HandoffCard at the bottom of the page —
+                  the page header now carries only the clinician-facing
+                  Report action (Phase 9). */}
               <TouchableOpacity
                 style={[s.headerPillReport, loading && { opacity: 0.4 }]}
                 onPress={handleShareClinical}
@@ -615,53 +545,53 @@ export default function JournalTab() {
           )}
 
 
-          {/* ═══ DATE TAB STRIP ═══ */}
+          {/* ═══ DATE TAB STRIP (left fade + Jump popover replace MonthCalendar) ═══ */}
           <DateTabStrip
             selectedDate={selectedDate}
             onDateSelect={handleDateSelect}
-            onCalendarToggle={() => setCalendarOpen(prev => !prev)}
-            calendarOpen={calendarOpen}
           />
 
-          {/* ═══ MONTH CALENDAR ═══ */}
-          <MonthCalendar
-            visible={calendarOpen}
-            selectedDate={selectedDate}
-            onDateSelect={handleCalendarDateSelect}
-            dayStatuses={calendarStatuses}
-          />
+          {/* ═══ TODAY'S OUTCOMES (internal eyebrow header in v6.7 redesign) ═══ */}
+          <TodayOutcomes outcomes={outcomes} asOf={new Date()} />
 
-          {/* ═══ DAY STATUS (Phase 1B) ═══ */}
-          <View style={s.statusBlock}>
-            <View style={[s.statusDot, { backgroundColor: dayStatus.color }]} />
-            <View>
-              <Text style={s.statusLabel}>{dayStatus.label}</Text>
-              <Text style={s.statusDetail}>{dayStatus.detail}</Text>
-            </View>
+          {/* ═══ TODAY'S NOTES (single-card layout, internal eyebrow + footer) ═══ */}
+          <View style={{ marginTop: 12 }}>
+            <JournalNotesCard
+              date={selectedDate}
+              savedText={reflection?.text}
+              savedAt={reflection?.savedAt}
+              onSave={handleSaveReflection}
+              onDirtyChange={setReflectionDirty}
+              readOnly={isViewingPast}
+            />
           </View>
 
-          {/* ═══ TODAY'S RECORD ═══ */}
-          <JournalSummary
-            brief={brief}
-            selectedDate={selectedDate}
-            enabledBuckets={enabledBuckets}
+          {/* ═══ PATTERNS (Phase 4) — demoted to a one-line link card ═══ */}
+          <JournalPatternLink
+            topPattern={insights.length > 0 ? {
+              id: insights[0].id,
+              title: insights[0].title,
+              context: insights[0].context,
+            } : null}
           />
 
-          {/* ═══ HEADS UP — Phase 4 ═══ */}
-          <JournalFlagged items={handoffNotes} />
-
-          {/* ═══ PATTERNS — Phase 5 ═══ */}
-          <JournalPatterns insights={insights} />
-
-          {/* ═══ REFLECTION — Phase 6 (compact) ═══ */}
-          <ReflectionPrompt
-            date={selectedDate}
-            prompt={getDailyPrompt(selectedDate)}
-            savedText={reflection?.text}
-            savedAt={reflection?.savedAt}
-            onSave={handleSaveReflection}
-            onDirtyChange={setReflectionDirty}
-          />
+          {/* ═══ HANDOFF CARD (Phase 6) — hidden on past dates ═══ */}
+          {!isViewingPast && (
+          <View
+            onLayout={(e) => { handoffCardLayoutY.current = e.nativeEvent.layout.y; }}
+          >
+            <HandoffCard
+              hasNotes={!!reflection?.text?.trim()}
+              hasMissed={outcomes.missed.count > 0}
+              hasPending={outcomes.pending.count > 0}
+              hasLogged={outcomes.logged.count > 0}
+              dayComplete={dayCompleteFlag}
+              onShare={() => setHandoffSheetVisible(true)}
+              onDoneForToday={handleDoneForToday}
+              pulse={handoffPulse}
+            />
+          </View>
+          )}
 
           {/* ─── FOOTER ─── */}
           <Text style={s.timestamp}>Not a medical record</Text>
@@ -669,23 +599,14 @@ export default function JournalTab() {
         </ScrollView>
       </SafeAreaView>
 
-      <ReportPreviewModal
-        visible={showDailyPreview}
-        title="Daily Summary"
-        infoText="Preview of your daily journal. Tap 'Share PDF' to export."
-        previewLines={dailyReport?.previewLines ?? []}
-        onExport={handleDailyExport}
-        onClose={() => setShowDailyPreview(false)}
-        exporting={exporting}
-      />
-      <ReportPreviewModal
-        visible={showClinicalPreview}
-        title="Clinical Report"
-        infoText="30-day clinical summary for healthcare providers."
-        previewLines={clinicalReport?.previewLines ?? []}
-        onExport={handleClinicalExport}
-        onClose={() => setShowClinicalPreview(false)}
-        exporting={exporting}
+      <HandoffSheet
+        visible={handoffSheetVisible}
+        onClose={() => setHandoffSheetVisible(false)}
+        patientName={patientName}
+        date={new Date()}
+        outcomes={outcomes}
+        notes={reflection?.text ?? ''}
+        events={[]}
       />
     </View>
   );

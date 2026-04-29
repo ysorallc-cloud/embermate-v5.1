@@ -8,7 +8,6 @@ import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { NowGreeting } from './NowGreeting';
 import { PatientSwitcherModal } from './PatientSwitcherModal';
-import { SampleDataBanner } from '../common/SampleDataBanner';
 import { OnboardingPrompt } from '../prompts';
 import type { TodayStats } from '../../utils/nowHelpers';
 
@@ -22,7 +21,6 @@ export interface NowHeaderProps {
   isSampleMode: boolean;
   showPatientSwitcher: boolean;
   onShowPatientSwitcher: (show: boolean) => void;
-  onSampleCleared: () => void;
   suppressedItems: any[];
   onRestoreSuppressed: () => Promise<void>;
   showOnboarding: boolean;
@@ -32,6 +30,7 @@ export interface NowHeaderProps {
   };
   stats: TodayStats;
   nextScheduledTime?: string | null;
+  onManageSample?: (focus: 'setup' | 'remove') => void;
 }
 
 // getGreeting removed — replaced by NowGreeting + buildGreeting()
@@ -46,13 +45,13 @@ export function NowHeader({
   isSampleMode,
   showPatientSwitcher,
   onShowPatientSwitcher,
-  onSampleCleared,
   suppressedItems,
   onRestoreSuppressed,
   showOnboarding,
   onboardingHandlers,
   stats,
   nextScheduledTime = null,
+  onManageSample,
 }: NowHeaderProps) {
   const { colors } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
@@ -91,13 +90,12 @@ export function NowHeader({
       <PatientSwitcherModal
         visible={showPatientSwitcher}
         onClose={() => onShowPatientSwitcher(false)}
+        onManageSample={onManageSample}
       />
 
-      {isSampleMode && (
-        <View style={s.sampleBannerWrap}>
-          <SampleDataBanner onCleared={onSampleCleared} />
-        </View>
-      )}
+      {/* SampleModeBanner now renders at the now.tsx level (between header
+          and StatRings). The legacy SampleDataBanner has been retired in
+          favour of that lighter pill + the ManageSampleDataSheet. */}
 
       {suppressedItems.length > 0 && (
         <View
@@ -194,10 +192,6 @@ const createStyles = (c: any) => StyleSheet.create({
     borderRadius: 3,
     overflow: 'hidden',
     letterSpacing: 0.5,
-  },
-  sampleBannerWrap: {
-    paddingHorizontal: 20,
-    marginTop: 4,
   },
   hiddenBanner: {
     flexDirection: 'row',

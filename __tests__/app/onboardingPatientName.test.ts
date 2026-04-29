@@ -20,9 +20,12 @@ describe('Onboarding patient name persistence', () => {
   const getStarted = read('app/(onboarding)/screens/GetStartedScreen.tsx');
 
   it('GetStartedScreen prompts for the patient name', () => {
+    // v6.7: the labeled "Their name" / "Your name" header above the input
+    // was retired. The TextInput lives inside the primary card's expanded
+    // panel with a per-mode placeholder that drives the prompt.
     expect(getStarted).toContain('TextInput');
     expect(getStarted).toMatch(/setPatientName|onChangeText=\{setPatientName\}/);
-    expect(getStarted).toMatch(/Their name|Your name/);
+    expect(getStarted).toMatch(/Mom, Dad, Linda|Your first name/);
   });
 
   it('skip fallback writes the friendly placeholder, not the legacy "Patient" literal', () => {

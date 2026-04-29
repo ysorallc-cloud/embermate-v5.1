@@ -9,6 +9,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
 import { buildJournalPreview, CareBrief } from '../../utils/careSummaryBuilder';
 import { EndOfShiftCard } from './EndOfShiftCard';
+import type { DailyOutcomes } from '../../utils/text/types';
 import { CareCircleTeaser } from '../CareCircleTeaser';
 import { CareCircleEmailCapture } from '../CareCircleEmailCapture';
 import { shouldShowTeaser } from '../../utils/careCircleTeaser';
@@ -24,6 +25,8 @@ export interface NowFooterProps {
   hasRegimenInstances: boolean;
   hasMissed: boolean;
   brief: CareBrief | null;
+  /** Structured outcomes for the End of Shift body composer. */
+  outcomes?: DailyOutcomes;
 }
 
 // ============================================================================
@@ -36,6 +39,7 @@ export function NowFooter({
   hasRegimenInstances,
   hasMissed,
   brief,
+  outcomes,
 }: NowFooterProps) {
   const { colors } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
@@ -97,7 +101,7 @@ export function NowFooter({
         </View>
       )}
 
-      <EndOfShiftCard completedCount={completedCount} />
+      <EndOfShiftCard completedCount={completedCount} outcomes={outcomes} />
 
       {/* Care Circle teaser — only for invested users (14+ days) */}
       {showTeaser && (

@@ -65,10 +65,10 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({ onDisclaimerAccepted 
           ))}
         </View>
 
-        {/* Medical disclaimer */}
+        {/* Medical disclaimer \u2014 softened in v6.7. Notice, not alarm. */}
         <Animated.View entering={FadeInDown.delay(650).duration(300)} style={styles.disclaimerCard}>
           <Text style={styles.disclaimerText}>
-            <Text style={styles.disclaimerBold}>Not a medical device.</Text> EmberMate is a personal tracking tool {'\u2014'} not a substitute for professional medical advice.
+            EmberMate is a personal tracking tool to help you stay organized {'\u2014'} not a substitute for your doctor's advice.
           </Text>
         </Animated.View>
 
@@ -161,10 +161,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     lineHeight: 18,
   },
   disclaimerCard: {
+    // Soft amber notice — opacity reduced from 0.10/0.25 to 0.06/0.18 so
+    // this reads as a gentle prompt, not an alarm.
     width: '100%',
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    backgroundColor: 'rgba(245, 158, 11, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.25)',
+    borderColor: 'rgba(245, 158, 11, 0.18)',
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.xxl,
@@ -173,10 +175,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 13,
     color: c.textSecondary,
     lineHeight: 20,
-  },
-  disclaimerBold: {
-    fontWeight: '700',
-    color: c.amber,
   },
   checkboxContainer: {
     width: '100%',

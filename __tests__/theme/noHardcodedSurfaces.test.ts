@@ -8,7 +8,7 @@
  * asserts none remain.
  *
  * Decorative tints (low-alpha accent colors like `rgba(52, 211, 153, 0.08)`,
- * solid accent indicators like `'#34D399'` for slider fills, and modal
+ * solid accent indicators like `'#5fb88a'` for slider fills, and modal
  * overlay backdrops like `rgba(0, 0, 0, 0.5)`) are intentionally allowed —
  * they read correctly in both modes.
  */

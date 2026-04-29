@@ -1,0 +1,7 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`composeOutcomesSummary snapshot — clean day 1`] = `"Today went smoothly — 5 meds, 2 vitals, 2 meals."`;
+
+exports[`composeOutcomesSummary snapshot — empty 1`] = `"Nothing logged yet today."`;
+
+exports[`composeOutcomesSummary snapshot — hard day 1`] = `"Today was rough — 2 not logged (Acetaminophen and Amlodipine), 4 logged."`;

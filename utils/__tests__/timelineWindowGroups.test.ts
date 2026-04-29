@@ -1,44 +1,49 @@
 /**
  * Tests for TimelineSection window group changes:
- * 1. Window banner headers with icon, title, count
- * 2. Default collapse based on completion status (not time-of-day)
+ * 1. Period header — extracted into SchedulePeriodHeader (with chevron + hint).
+ * 2. Default collapse based on completion status (not time-of-day).
  */
 import * as fs from 'fs';
 import * as path from 'path';
 
 const src = fs.readFileSync(
-  path.resolve(__dirname, '../../components/now/TimelineSection.tsx'), 'utf-8'
+  path.resolve(__dirname, '../../components/now/TimelineSection.tsx'),
+  'utf-8',
+);
+const headerSrc = fs.readFileSync(
+  path.resolve(__dirname, '../../components/now/SchedulePeriodHeader.tsx'),
+  'utf-8',
 );
 
 // ============================================================================
-// Change 1: Window banner headers
+// Change 1: Period header — moved into SchedulePeriodHeader
 // ============================================================================
-describe('Window banner headers', () => {
-  test('windowBanner style exists with background and padding', () => {
-    const bannerMatch = src.match(/windowBanner:\s*\{[^}]+\}/);
-    expect(bannerMatch).not.toBeNull();
-    const block = bannerMatch![0];
-    expect(block).toContain('backgroundColor');
-    expect(block).toContain('borderRadius');
-    expect(block).toContain('paddingHorizontal');
+describe('Period header — SchedulePeriodHeader extraction', () => {
+  test('TimelineSection delegates to SchedulePeriodHeader', () => {
+    expect(src).toContain('<SchedulePeriodHeader');
+    expect(src).toContain("import { SchedulePeriodHeader } from './SchedulePeriodHeader'");
   });
 
-  test('windowBannerTitle and windowBannerCount styles exist', () => {
-    expect(src).toContain('windowBannerTitle:');
-    expect(src).toContain('windowBannerCount:');
+  test('header pill style declares background, padding, and rounded corners', () => {
+    expect(headerSrc).toMatch(/row:\s*\{[\s\S]{0,400}?backgroundColor:/);
+    expect(headerSrc).toMatch(/row:\s*\{[\s\S]{0,400}?paddingHorizontal:/);
+    expect(headerSrc).toMatch(/row:\s*\{[\s\S]{0,400}?borderRadius:/);
   });
 
-  test('window header renders banner with icon, title, and count', () => {
-    // The header should render windowBanner, windowIcon, windowBannerTitle, windowBannerCount
-    expect(src).toContain('styles.windowBanner');
-    expect(src).toContain('styles.windowIcon');
-    expect(src).toContain('styles.windowBannerTitle');
-    expect(src).toContain('styles.windowBannerCount');
+  test('header renders icon, title, and count text nodes', () => {
+    expect(headerSrc).toMatch(/styles\.icon\b/);
+    expect(headerSrc).toMatch(/styles\.title\b/);
+    expect(headerSrc).toMatch(/styles\.count\b/);
   });
 
-  test('banner count shows remaining or Complete check', () => {
-    expect(src).toContain('remaining');
-    expect(src).toMatch(/Complete.*\\u2713|Complete.*✓/);
+  test('count uses caregiver-warm metadata vocabulary', () => {
+    // v6.7 tone pass: "remaining" / "Complete ✓" copy was retired in
+    // favour of getPeriodStatus labels — "to go" / "caught up" /
+    // "complete" / "not logged" / "coming up". The header file should
+    // surface those phrases (in the legacy fallback) and not re-introduce
+    // the older copy.
+    expect(headerSrc).toMatch(/to go|caught up/);
+    expect(headerSrc).not.toMatch(/Complete\s+✓|Complete\s+\\u2713/);
   });
 });
 
@@ -47,24 +52,19 @@ describe('Window banner headers', () => {
 // ============================================================================
 describe('Window default collapse based on completion', () => {
   test('initial collapsedWindows state does NOT use getCurrentTimeWindow', () => {
-    // The useState initializer for collapsedWindows should not call getCurrentTimeWindow
     const stateInit = src.match(
-      /const \[collapsedWindows, setCollapsedWindows\] = useState[\s\S]*?\)\);/
+      /const \[collapsedWindows, setCollapsedWindows\] = useState[\s\S]*?\)\);/,
     );
     expect(stateInit).not.toBeNull();
-    const initBlock = stateInit![0];
-    expect(initBlock).not.toContain('getCurrentTimeWindow');
+    expect(stateInit![0]).not.toContain('getCurrentTimeWindow');
   });
 
   test('collapsed state is computed from item completion status', () => {
-    // The initializer should check if all items in a window are completed/skipped
     const stateInit = src.match(
-      /const \[collapsedWindows, setCollapsedWindows\] = useState[\s\S]*?\)\);/
+      /const \[collapsedWindows, setCollapsedWindows\] = useState[\s\S]*?\)\);/,
     );
     expect(stateInit).not.toBeNull();
-    const initBlock = stateInit![0];
-    // Should reference status checks for completed/skipped or allDone
-    expect(initBlock).toMatch(/completed|skipped|allDone|every/);
+    expect(stateInit![0]).toMatch(/completed|skipped|allDone|every/);
   });
 
   test('pending and done item names use identical font size', () => {
@@ -72,7 +72,6 @@ describe('Window default collapse based on completion', () => {
     const doneMatch = src.match(/timelineNameDone:\s*\{[^}]+\}/);
     expect(pendingMatch).not.toBeNull();
     expect(doneMatch).not.toBeNull();
-    // Extract fontSize from both
     const pendingSize = pendingMatch![0].match(/fontSize:\s*(\d+)/);
     const doneSize = doneMatch![0].match(/fontSize:\s*(\d+)/);
     expect(pendingSize).not.toBeNull();
@@ -80,8 +79,8 @@ describe('Window default collapse based on completion', () => {
     expect(pendingSize![1]).toBe(doneSize![1]);
   });
 
-  test('tap-to-toggle still works via TouchableOpacity', () => {
+  test('tap-to-toggle still works via the SchedulePeriodHeader onToggle', () => {
     expect(src).toContain('toggleWindow(window)');
-    expect(src).toContain('TouchableOpacity');
+    expect(src).toContain('onToggle={() => toggleWindow(window)}');
   });
 });

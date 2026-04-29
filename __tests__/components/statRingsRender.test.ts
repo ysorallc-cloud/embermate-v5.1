@@ -40,7 +40,7 @@ describe('StatRings render-time properties', () => {
 
   it('background track color has at least 0.10 opacity (readable against lifted glass)', () => {
     // The track color was 0.08 against the old #111111 glass — readable.
-    // After the v6.7 lift to #1c2330 the same opacity blends too close to
+    // After the v6.7 lift to #2a2c25 the same opacity blends too close to
     // the surface; require ≥ 0.10 so the unfilled portion of the ring is
     // still visible.
     const trackMatch = src.match(/trackColor[\s\S]*?rgba\(255,\s*255,\s*255,\s*([\d.]+)\)/);

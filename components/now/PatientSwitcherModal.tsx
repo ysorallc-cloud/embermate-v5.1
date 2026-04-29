@@ -18,17 +18,20 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { usePatient } from '../../contexts/PatientContext';
 import { checkFeatureAccess } from '../../utils/featureGate';
 import { navigate } from '../../lib/navigate';
+import { useSampleMode } from '../../hooks/useSampleMode';
 
 interface PatientSwitcherModalProps {
   visible: boolean;
   onClose: () => void;
+  onManageSample?: (focus: 'setup' | 'remove') => void;
 }
 
-export function PatientSwitcherModal({ visible, onClose }: PatientSwitcherModalProps) {
+export function PatientSwitcherModal({ visible, onClose, onManageSample }: PatientSwitcherModalProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const { activePatientId, patients, switchPatient, addPatient, loading } = usePatient();
+  const { isSampleMode } = useSampleMode();
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
   const [adding, setAdding] = useState(false);
@@ -130,7 +133,14 @@ export function PatientSwitcherModal({ visible, onClose }: PatientSwitcherModalP
                   </Text>
                 </View>
                 <View style={styles.patientInfo}>
-                  <Text style={styles.patientName}>{patient.name}</Text>
+                  <View style={styles.patientNameRow}>
+                    <Text style={styles.patientName}>{patient.name}</Text>
+                    {isSampleMode && isActive && (
+                      <View style={styles.exampleBadge} accessibilityLabel="Example data">
+                        <Text style={styles.exampleBadgeText}>{'EXAMPLE'}</Text>
+                      </View>
+                    )}
+                  </View>
                   {relationshipLabel && (
                     <Text style={styles.patientRelation}>{relationshipLabel}</Text>
                   )}
@@ -206,6 +216,34 @@ export function PatientSwitcherModal({ visible, onClose }: PatientSwitcherModalP
             <Text style={styles.profileLabel}>{`View ${activeName}'s profile`}</Text>
             <Text style={styles.profileArrow}>{'\u2192'}</Text>
           </TouchableOpacity>
+
+          {/* Sample-mode action section — only visible while exploring
+              with example data. Lets the user transition out (set up real
+              profile) or remove the example entirely without leaving the
+              switcher. Both routes hand off to ManageSampleDataSheet so the
+              actual persistence / destructive work lives in one place. */}
+          {isSampleMode && (
+            <View style={styles.sampleSection}>
+              <View style={styles.sampleDivider} />
+              <Text style={styles.sampleSectionTitle}>{'Example data'}</Text>
+              <TouchableOpacity
+                style={styles.setupSampleButton}
+                onPress={() => { onClose(); onManageSample?.('setup'); }}
+                accessibilityRole="button"
+                accessibilityLabel="Set up my loved one. Replace example data with a real profile."
+              >
+                <Text style={styles.setupSampleButtonText}>{'Set up my loved one'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.removeSampleButton}
+                onPress={() => { onClose(); onManageSample?.('remove'); }}
+                accessibilityRole="button"
+                accessibilityLabel="Remove example data"
+              >
+                <Text style={styles.removeSampleButtonText}>{'Remove example data'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
@@ -383,5 +421,66 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   profileArrow: {
     fontSize: 13,
     color: c.accent,
+  },
+  patientNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  exampleBadge: {
+    backgroundColor: c.caregiverAccentBg,
+    borderWidth: 0.5,
+    borderColor: c.caregiverAccentBorder,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  exampleBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: c.caregiverAccentText,
+    letterSpacing: 0.5,
+  },
+  sampleSection: {
+    marginTop: 4,
+  },
+  sampleDivider: {
+    borderTopWidth: 1,
+    borderTopColor: c.border,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  sampleSectionTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: c.textTertiary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+  },
+  setupSampleButton: {
+    backgroundColor: c.accent,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  setupSampleButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.textPrimary,
+  },
+  removeSampleButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: c.error,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  removeSampleButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: c.error,
   },
 });

@@ -29,18 +29,21 @@ function num(block: string, prop: string): number | null {
 }
 
 describe('You tab — "Plan ahead" header contrast', () => {
-  it('Plan ahead label uses the textSecondary token (no hardcoded #6a7a72 override)', () => {
-    const planAheadJsx = supportSrc.match(/<Text[^>]*>Plan ahead<\/Text>/);
-    expect(planAheadJsx).toBeTruthy();
-    // The hex literal #6a7a72 was the low-contrast override that triggered
-    // the regression. It must not appear next to "Plan ahead".
-    expect(planAheadJsx![0]).not.toContain('#6a7a72');
+  it('Plan ahead surface does not re-introduce the low-contrast #6a7a72 override', () => {
+    // v6.7: Plan ahead is now a card with an internal "PLAN AHEAD" eyebrow.
+    // The card markup must not contain the deprecated low-contrast hex.
+    const cardMatch = supportSrc.match(/planAheadCard[\s\S]{0,1200}?planAheadBody/);
+    expect(cardMatch).toBeTruthy();
+    expect(cardMatch![0]).not.toContain('#6a7a72');
   });
 
-  it('sectionLabel base style references textSecondary (token, not hex)', () => {
-    const block = styleBlock(supportSrc, 'sectionLabel');
+  it('Plan ahead eyebrow uses a theme token (no hardcoded hex)', () => {
+    // v6.7 reframed Plan ahead as a contained card with an internal eyebrow
+    // header (planAheadEyebrow) instead of the old sectionLabel/Context pair.
+    const block = styleBlock(supportSrc, 'planAheadEyebrow');
     expect(block).not.toBe('');
-    expect(block).toMatch(/color:\s*c\.textSecondary|color:\s*colors\.textSecondary/);
+    expect(block).toMatch(/color:\s*c\.text(?:Primary|Secondary|Tertiary)|color:\s*colors\.text(?:Primary|Secondary|Tertiary)/);
+    expect(block).not.toMatch(/color:\s*['"]#[0-9a-fA-F]/);
   });
 });
 

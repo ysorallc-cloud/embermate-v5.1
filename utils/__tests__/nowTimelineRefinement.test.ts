@@ -7,6 +7,13 @@ import { join } from 'path';
 
 const src = readFileSync(join(__dirname, '../../components/now/TimelineSection.tsx'), 'utf8');
 const render = src.slice(src.indexOf('function TimelineModeBContent'));
+// Period header was extracted into SchedulePeriodHeader.tsx; some
+// pre-existing assertions still scan a combined-source view.
+const headerSrc = readFileSync(
+  join(__dirname, '../../components/now/SchedulePeriodHeader.tsx'),
+  'utf8',
+);
+const combined = src + '\n' + headerSrc;
 
 // ============================================================================
 // TL-1: Time gutter layout
@@ -82,11 +89,15 @@ describe('TL-4: Overdue inline label', () => {
 // ============================================================================
 describe('TL-5: Window count text', () => {
   test('shows "remaining" for pending windows', () => {
-    expect(render).toContain('remaining');
+    expect(combined).toContain('remaining');
   });
 
-  test('shows "Complete" with checkmark for finished windows', () => {
-    expect(render).toMatch(/Complete.*✓|Complete.*\\u2713/);
+  test('finished-window state uses warm caregiver vocabulary (v6.7 tone pass)', () => {
+    // The legacy "Complete ✓" copy was replaced with caught-up / complete
+    // labels driven by getPeriodStatus. This guard fails if the older copy
+    // sneaks back into the header surface.
+    expect(combined).toMatch(/caught up|past-complete|kind:\s*['"]past-complete['"]/);
+    expect(combined).not.toMatch(/Complete\s+✓|Complete\s+\\u2713/);
   });
 });
 

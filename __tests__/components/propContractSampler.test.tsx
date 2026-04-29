@@ -29,7 +29,7 @@ jest.mock('react-native', () => {
 jest.mock('../../contexts/ThemeContext', () => ({
   useTheme: () => ({
     colors: {
-      accent: '#b794f4',
+      accent: '#aa8adc',
       background: '#000',
       backgroundSecondary: '#111',
       surface: '#222',
@@ -41,9 +41,9 @@ jest.mock('../../contexts/ThemeContext', () => ({
       border: '#333',
       separator: '#222',
       error: '#ff5555',
-      success: '#34D399',
-      warning: '#fbbf24',
-      caregiverAccent: '#b794f4',
+      success: '#5fb88a',
+      warning: '#e5b04a',
+      caregiverAccent: '#aa8adc',
       caregiverAccentBg: 'rgba(139,92,246,0.06)',
       caregiverAccentBorder: 'rgba(139,92,246,0.25)',
       caregiverAccentText: '#d4baff',

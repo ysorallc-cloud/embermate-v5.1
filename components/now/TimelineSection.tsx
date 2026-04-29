@@ -4,13 +4,16 @@
 // B) Flat "Coming Up Today" chronological list (default, no ring selected)
 // ============================================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CATEGORY_CONFIG } from '../../constants/categoryLabels';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { MedsBatchPanel } from './MedsBatchPanel';
 import { WindowReceipt } from './WindowReceipt';
+import { SchedulePeriodHeader } from './SchedulePeriodHeader';
+import { getPeriodStatus } from '../../utils/scheduleStatus';
 import {
   isOverdue,
   groupByTimeWindow,
@@ -75,7 +78,7 @@ const ITEM_TYPE_TO_DOT_COLOR: Record<string, string> = {
   activity: '#F97316',
   wellness: '#EC4899',
   custom: '#A78BFA',
-  errand: '#FBBF24',
+  errand: '#e5b04a',
   self_care: '#F472B6',
   shift: '#7DD3FC',
   appointment: Colors.accent,
@@ -528,7 +531,23 @@ function TimelineModeBContent({
     }));
   });
 
+  // First-launch chevron hint orchestration. The hint plays exactly once,
+  // on the active window's chevron, only if the user hasn't already toggled
+  // any window before the 1.2s delay. The persistence flag lives in
+  // SchedulePeriodHeader (single source of truth — see HINT_STORAGE_KEY).
+  const [hintEnabled, setHintEnabled] = useState(false);
+  const interactedRef = useRef(false);
+  useEffect(() => {
+    AsyncStorage.getItem('nowTabChevronHintShown')
+      .then((v) => {
+        if (v !== 'true' && !interactedRef.current) setHintEnabled(true);
+      })
+      .catch(() => {});
+  }, []);
+
   const toggleWindow = (window: TimeWindow) => {
+    interactedRef.current = true;
+    if (hintEnabled) setHintEnabled(false);
     setCollapsedWindows(prev => {
       const next = new Set(prev);
       if (next.has(window)) next.delete(window);
@@ -552,34 +571,29 @@ function TimelineModeBContent({
         ).length;
         const remainingCount = items.length - completedCount;
 
+        // Caregiver-warm metadata + Start gating come from the helper. The
+        // 'night' bucket falls outside the spec'd morning/afternoon/evening
+        // domain — we leave its header on the legacy fallback (no status
+        // prop) so the existing copy still renders.
+        const status = window === 'night'
+          ? undefined
+          : getPeriodStatus(window as any, items, new Date());
+
         return (
           <View key={window} style={styles.timeGroup}>
-            {/* ── Period banner bar ── */}
-            <TouchableOpacity
-              style={styles.windowBanner}
-              onPress={() => toggleWindow(window)}
-              activeOpacity={0.7}
-              accessibilityLabel={`${TIME_WINDOW_LABELS[window]}, ${remainingCount} remaining, ${completedCount} done. ${isCollapsed ? 'Expand' : 'Collapse'}`}
-              accessibilityRole="button"
-              accessibilityState={{ expanded: !isCollapsed }}
-            >
-              <Text style={styles.windowIcon}>{TIME_WINDOW_ICONS[window]}</Text>
-              <Text style={styles.windowBannerTitle}>{TIME_WINDOW_LABELS[window]}</Text>
-              <Text style={styles.windowBannerCount}>
-                {remainingCount > 0 ? `${remainingCount} remaining` : `Complete \u2713`}
-              </Text>
-              {isCollapsed && remainingCount > 0 && (
-                <TouchableOpacity
-                  onPress={() => toggleWindow(window)}
-                  style={styles.startRoutineButton}
-                  activeOpacity={0.7}
-                  accessibilityLabel={`Start ${TIME_WINDOW_LABELS[window]} items`}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.startRoutineText}>Start</Text>
-                </TouchableOpacity>
-              )}
-            </TouchableOpacity>
+            {/* ── Period banner bar (with disclosure chevron) ── */}
+            <SchedulePeriodHeader
+              label={TIME_WINDOW_LABELS[window]}
+              icon={TIME_WINDOW_ICONS[window]}
+              remainingCount={remainingCount}
+              completedCount={completedCount}
+              isCollapsed={isCollapsed}
+              isActiveWindow={currentWindow === window}
+              hintEnabled={hintEnabled && currentWindow === window}
+              onToggle={() => toggleWindow(window)}
+              onStart={onStartRoutine ? () => onStartRoutine(window) : undefined}
+              status={status}
+            />
 
             {/* ── Expanded items with time gutter ── */}
             {!isCollapsed && (

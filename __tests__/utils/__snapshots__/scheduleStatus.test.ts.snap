@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`label snapshots — lock the exact copy current-active label snapshot 1`] = `"2 to go"`;
+
+exports[`label snapshots — lock the exact copy current-caughtup label snapshot 1`] = `"caught up"`;
+
+exports[`label snapshots — lock the exact copy future label snapshot 1`] = `"1 coming up"`;
+
+exports[`label snapshots — lock the exact copy past-complete label snapshot 1`] = `"complete"`;
+
+exports[`label snapshots — lock the exact copy past-incomplete label snapshot 1`] = `"2 not logged"`;

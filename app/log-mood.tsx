@@ -259,7 +259,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   moodEmojiSelected: {
     backgroundColor: 'rgba(52, 211, 153, 0.15)',
     borderColor: 'rgba(52, 211, 153, 0.35)',
-    shadowColor: '#34D399',
+    shadowColor: '#5fb88a',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.25,
     shadowRadius: 10,

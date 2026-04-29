@@ -97,7 +97,7 @@ export async function analyzeMedicationAdherence(lookbackDays: number = 7): Prom
             unit: 'doses',
             percentage: Math.round(adherenceRate),
           },
-          context: `Only ${takenDoses} of ${totalExpectedDoses} scheduled doses taken in the last ${lookbackDays} days. Missed doses at this rate can cause BP and blood-sugar swings. Worth checking whether reminder timing or side effects are the blocker.`,
+          context: `${takenDoses} of ${totalExpectedDoses} scheduled doses logged in the last ${lookbackDays} days. At this rate, BP and blood-sugar variability are more likely. Worth checking whether reminder timing or side effects are blocking adherence.`,
           whyItMatters: 'Taking all doses consistently helps manage your health conditions effectively. Missing doses can lead to fluctuations in blood pressure and blood sugar levels.',
           actions: [
             {
