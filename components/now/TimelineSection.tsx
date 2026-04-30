@@ -13,6 +13,8 @@ import { navigate } from '../../lib/navigate';
 import { MedsBatchPanel } from './MedsBatchPanel';
 import { WindowReceipt } from './WindowReceipt';
 import { SchedulePeriodHeader } from './SchedulePeriodHeader';
+import { InlineCheckbox, type InlineCheckboxState } from './InlineCheckbox';
+import { SkipReasonSheet } from './SkipReasonSheet';
 import { getPeriodStatus } from '../../utils/scheduleStatus';
 import {
   isOverdue,
@@ -216,6 +218,14 @@ interface TimelineSectionProps {
    * Called by the per-row "Confirm" button added in Phase 1.
    */
   onQuickConfirm?: (instance: any) => Promise<void>;
+  /** v6.7 — trailing-edge inline-checkbox tap. Instant-log + 5s toast. */
+  onQuickLog?: (instance: any) => void;
+  /** v6.7 — long-press skip-menu choice. Caller persists the skipReason. */
+  onQuickSkip?: (instance: any, reason: 'refused' | 'too-soon' | 'other') => void;
+  /** v6.7 — hydration `+` button. Adds one cup via hydrationRepo. */
+  onAddCup?: (instance: any) => void;
+  /** v6.7 — wellness checkbox routes to silent-vitals capture. */
+  onWellnessTap?: (instance: any) => void;
   todayStats: TodayStats;
   enabledBuckets: BucketType[];
   waterGlasses?: number;
@@ -237,6 +247,10 @@ export function TimelineSection({
   onItemPress,
   onBatchMedConfirm,
   onQuickConfirm,
+  onQuickLog,
+  onQuickSkip,
+  onAddCup,
+  onWellnessTap,
   todayStats,
   enabledBuckets,
   waterGlasses = 0,
@@ -492,6 +506,10 @@ export function TimelineSection({
       completed={completed}
       onItemPress={onItemPress}
       onStartRoutine={onStartRoutine}
+      onQuickLog={onQuickLog}
+      onQuickSkip={onQuickSkip}
+      onAddCup={onAddCup}
+      onWellnessTap={onWellnessTap}
     />
   );
 }
@@ -505,16 +523,78 @@ function TimelineModeBContent({
   completed,
   onItemPress,
   onStartRoutine,
+  onQuickLog,
+  onQuickSkip,
+  onAddCup,
+  onWellnessTap,
 }: {
   allPending: any[];
   completed: any[];
   onItemPress: (instance: any) => void;
   onStartRoutine?: (window: TimeWindow) => void;
+  onQuickLog?: (instance: any) => void;
+  onQuickSkip?: (instance: any, reason: 'refused' | 'too-soon' | 'other') => void;
+  onAddCup?: (instance: any) => void;
+  onWellnessTap?: (instance: any) => void;
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const [skipMenuFor, setSkipMenuFor] = useState<any | null>(null);
   const allItems = [...allPending, ...completed];
   const grouped = groupByTimeWindow(allItems);
+
+  const renderTrailingAction = (instance: any) => {
+    const id = instance.id;
+    const status = instance.status;
+    const isCompleted = status === 'completed';
+    const isSkipped = status === 'skipped';
+
+    if (instance.itemType === 'hydration') {
+      return (
+        <TouchableOpacity
+          testID={`inline-add-cup-${id}`}
+          onPress={() => onAddCup?.(instance)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Add one cup of water"
+          style={styles.inlineActionPlus}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.inlineActionPlusText}>{'+'}</Text>
+        </TouchableOpacity>
+      );
+    }
+
+    const checkboxState: InlineCheckboxState = isCompleted
+      ? 'logged'
+      : isSkipped
+        ? 'skipped'
+        : 'pending';
+
+    const handlePress = () => {
+      if (instance.itemType === 'wellness') {
+        onWellnessTap?.(instance);
+        return;
+      }
+      if (checkboxState === 'pending') {
+        onQuickLog?.(instance);
+      }
+    };
+
+    const handleLongPress = checkboxState === 'pending'
+      ? () => setSkipMenuFor(instance)
+      : undefined;
+
+    return (
+      <InlineCheckbox
+        testID={`inline-checkbox-${id}`}
+        state={checkboxState}
+        label={instance.itemName || ''}
+        onPress={handlePress}
+        onLongPress={handleLongPress}
+      />
+    );
+  };
 
   // Change 2: Default collapse based on completion status, not time-of-day
   const [collapsedWindows, setCollapsedWindows] = useState<Set<TimeWindow>>(() => {
@@ -659,7 +739,6 @@ function TimelineModeBContent({
                           )}
                           <View style={styles.gutterItemRow}>
                             <Text style={styles.timelineNameMissed} numberOfLines={1}>{instance.itemName}</Text>
-                            <Text style={styles.logLateText}>Log</Text>
                           </View>
                         </TouchableOpacity>
                       );
@@ -682,9 +761,6 @@ function TimelineModeBContent({
                           )}
                           <View style={styles.gutterItemRow}>
                             <Text style={styles.timelineName} numberOfLines={1}>{instance.itemName}</Text>
-                            <View style={styles.timelineLogButton}>
-                              <Text style={styles.timelineLogButtonText}>Log</Text>
-                            </View>
                           </View>
                           {subtitle ? <Text style={styles.timelineSub} numberOfLines={1}>{subtitle}</Text> : null}
                           {(() => {
@@ -704,14 +780,22 @@ function TimelineModeBContent({
                       );
                     }
 
+                    const dimmed = isCompleted || isSkipped;
                     return (
                       <View key={instance.id} style={styles.gutterRow}>
-                        <View style={styles.timeGutter}>
+                        <View style={[styles.timeGutter, dimmed && styles.dimmed]}>
                           {shortTime && <Text style={styles.gutterTime}>{shortTime}</Text>}
                         </View>
                         <View style={styles.gutterDivider} />
                         <View style={[styles.gutterContentWrap, index < items.length - 1 && styles.gutterContentBorder]}>
-                          {itemContent}
+                          <View style={styles.gutterRowInner}>
+                            <View style={[styles.gutterRowBody, dimmed && styles.dimmed]}>
+                              {itemContent}
+                            </View>
+                            <View style={styles.gutterRowTrailing}>
+                              {renderTrailingAction(instance)}
+                            </View>
+                          </View>
                         </View>
                       </View>
                     );
@@ -722,6 +806,20 @@ function TimelineModeBContent({
           </View>
         );
       })}
+
+      <SkipReasonSheet
+        visible={skipMenuFor !== null}
+        itemName={skipMenuFor?.itemName ?? ''}
+        onSelectReason={(reason) => {
+          if (skipMenuFor) onQuickSkip?.(skipMenuFor, reason);
+          setSkipMenuFor(null);
+        }}
+        onAddDetails={() => {
+          if (skipMenuFor) onItemPress(skipMenuFor);
+          setSkipMenuFor(null);
+        }}
+        onClose={() => setSkipMenuFor(null)}
+      />
     </>
   );
 }
@@ -993,6 +1091,37 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     paddingLeft: 14,
     paddingVertical: 8,
+  },
+  gutterRowInner: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+  },
+  gutterRowBody: {
+    flex: 1,
+  },
+  gutterRowTrailing: {
+    paddingRight: 12,
+    paddingLeft: 8,
+  },
+  // Logged / skipped time + body opacity per v6.7 spec — strikethrough is
+  // applied separately on the name only (timelineNameDone above).
+  dimmed: {
+    opacity: 0.5,
+  },
+  inlineActionPlus: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: c.accent,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  inlineActionPlusText: {
+    fontSize: 16,
+    fontWeight: '500' as const,
+    color: c.accent,
+    lineHeight: 18,
   },
   gutterItemRow: {
     flexDirection: 'row' as const,

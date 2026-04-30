@@ -41,6 +41,14 @@ export interface NowTimelineProps {
   onItemPress: (instance: any) => void;
   onBatchMedConfirm: (ids: string[]) => Promise<void>;
   onQuickConfirm: (instance: any) => Promise<void>;
+  /** v6.7 — trailing-edge inline-checkbox tap. Instant log + 5s LogToast. */
+  onQuickLog?: (instance: any) => void;
+  /** v6.7 — long-press skip menu choice. Persists skipReason on the log. */
+  onQuickSkip?: (instance: any, reason: 'refused' | 'too-soon' | 'other') => void;
+  /** v6.7 — hydration `+` button. Adds one cup via hydrationRepo. */
+  onAddCup?: (instance: any) => void;
+  /** v6.7 — wellness checkbox routes to silent-vitals capture. */
+  onWellnessTap?: (instance: any) => void;
   onStartRoutine: (window: TimeWindow) => void;
   todayStats: TodayStats;
   enabledBuckets: BucketType[];
@@ -129,6 +137,10 @@ export function NowTimeline({
   onItemPress,
   onBatchMedConfirm,
   onQuickConfirm,
+  onQuickLog,
+  onQuickSkip,
+  onAddCup,
+  onWellnessTap,
   onStartRoutine,
   todayStats,
   enabledBuckets,
@@ -182,6 +194,10 @@ export function NowTimeline({
             onItemPress={onItemPress}
             onBatchMedConfirm={onBatchMedConfirm}
             onQuickConfirm={onQuickConfirm}
+            onQuickLog={onQuickLog}
+            onQuickSkip={onQuickSkip}
+            onAddCup={onAddCup}
+            onWellnessTap={onWellnessTap}
             todayStats={todayStats}
             enabledBuckets={enabledBuckets}
             waterGlasses={waterGlasses}

@@ -143,6 +143,15 @@ export interface CarePlanItem {
 
 export type DailyInstanceStatus = 'pending' | 'completed' | 'skipped' | 'missed' | 'partial';
 
+/**
+ * Reason a caregiver chose to skip an instance instead of logging it. Surfaced
+ * by the long-press skip menu on the Now timeline; persisted alongside the
+ * 'skipped' status on both DailyCareInstance and LogEntry. Optional — entries
+ * predating the v6.7 skip-reason work are valid without a value, and display
+ * surfaces fall through to "other" when undefined.
+ */
+export type SkipReason = 'refused' | 'too-soon' | 'other';
+
 export interface DailyCareInstance {
   id: string;
   carePlanId: string;
@@ -153,6 +162,8 @@ export interface DailyCareInstance {
   windowLabel: TimeWindowLabel;
   windowId: string;               // Reference to TimeWindow.id
   status: DailyInstanceStatus;
+  /** Why this instance was skipped — set only when status === 'skipped'. */
+  skipReason?: 'refused' | 'too-soon' | 'other';
   logId?: string;                 // Reference to LogEntry.id when logged
   generatedFromVersion?: number;  // CarePlan version when generated
 
@@ -187,6 +198,8 @@ export interface LogEntry {
   date: string;                   // YYYY-MM-DD
 
   outcome: LogOutcome;
+  /** Why this entry was skipped — set only when outcome === 'skipped'. */
+  skipReason?: 'refused' | 'too-soon' | 'other';
   notes?: string;
 
   // Type-specific data payload

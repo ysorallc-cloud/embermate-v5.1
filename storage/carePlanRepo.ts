@@ -286,7 +286,8 @@ export async function updateDailyInstanceStatus(
   date: string,
   instanceId: string,
   status: DailyCareInstance['status'],
-  logId?: string
+  logId?: string,
+  skipReason?: DailyCareInstance['skipReason'],
 ): Promise<DailyCareInstance | null> {
   const lockKey = KEYS.DAILY_INSTANCES(patientId, date);
   return withKeyLock(lockKey, async () => {
@@ -296,12 +297,20 @@ export async function updateDailyInstanceStatus(
     if (index === -1) return null;
 
     const now = new Date().toISOString();
-    instances[index] = {
+    const next: DailyCareInstance = {
       ...instances[index],
       status,
       logId,
       updatedAt: now,
     };
+    // Only carry skipReason when the new status is 'skipped'; clear otherwise
+    // so an undo or re-log doesn't leave stale reason metadata behind.
+    if (status === 'skipped' && skipReason) {
+      next.skipReason = skipReason;
+    } else {
+      delete next.skipReason;
+    }
+    instances[index] = next;
 
     const ok = await safeSetItem(KEYS.DAILY_INSTANCES(patientId, date), instances);
     if (ok) emitDataUpdate(EVENT.DAILY_INSTANCES);
@@ -493,10 +502,14 @@ export async function logInstanceCompletion(
     notes?: string;
     source?: LogSource;
     caregiverName?: string;
+    /** Only honoured when outcome === 'skipped' (Now-tab inline skip menu). */
+    skipReason?: 'refused' | 'too-soon' | 'other';
   } = {}
 ): Promise<{ instance: DailyCareInstance; log: LogEntry } | null> {
   const instance = await getDailyInstance(patientId, date, instanceId);
   if (!instance) return null;
+
+  const skipReason = outcome === 'skipped' ? options.skipReason : undefined;
 
   // Create the log entry
   const log = await createLogEntry({
@@ -507,6 +520,7 @@ export async function logInstanceCompletion(
     timestamp: new Date().toISOString(),
     date,
     outcome,
+    skipReason,
     notes: options.notes,
     data,
     source: options.source || 'record',
@@ -527,12 +541,69 @@ export async function logInstanceCompletion(
     date,
     instanceId,
     statusMap[outcome],
-    log.id
+    log.id,
+    skipReason,
   );
 
   if (!updatedInstance) return null;
 
   return { instance: updatedInstance, log };
+}
+
+/**
+ * Revert an instance back to 'pending' and remove the corresponding log entry.
+ * Used by the Now-tab tap-to-log flow when the caregiver hits Undo within the
+ * 5-second toast window. Safe to call when no log exists — the instance is
+ * still cleared.
+ */
+export async function undoInstanceCompletion(
+  patientId: string,
+  date: string,
+  instanceId: string,
+): Promise<DailyCareInstance | null> {
+  const instance = await getDailyInstance(patientId, date, instanceId);
+  if (!instance) return null;
+
+  const logId = instance.logId;
+  if (logId) {
+    await deleteLogEntry(patientId, date, logId);
+  }
+
+  const reverted = await updateDailyInstanceStatus(
+    patientId,
+    date,
+    instanceId,
+    'pending',
+    undefined,
+    undefined,
+  );
+
+  return reverted;
+}
+
+/**
+ * Remove a log entry from both the daily bucket and the all-logs append-only
+ * store. Internal helper for undoInstanceCompletion — log entries are
+ * otherwise immutable.
+ */
+async function deleteLogEntry(
+  patientId: string,
+  date: string,
+  logId: string,
+): Promise<void> {
+  const dailyLogs = await listLogsByDate(patientId, date);
+  const filteredDaily = dailyLogs.filter((l) => l.id !== logId);
+  if (filteredDaily.length !== dailyLogs.length) {
+    await safeSetItem(KEYS.LOGS(patientId, date), filteredDaily);
+  }
+
+  const allLogs = await safeGetItem<LogEntry[]>(KEYS.ALL_LOGS(patientId), []);
+  const filteredAll = allLogs.filter((l) => l.id !== logId);
+  if (filteredAll.length !== allLogs.length) {
+    await safeSetItem(KEYS.ALL_LOGS(patientId), filteredAll);
+  }
+
+  emitDataUpdate(EVENT.LOGS);
 }
 
 /**

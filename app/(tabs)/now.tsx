@@ -81,7 +81,10 @@ import { StatRings } from '../../components/now/StatRings';
 // Banners (removed: NoMedicationsBanner, NoCarePlanBanner, DataIntegrityBanner)
 import { logError } from '../../utils/devLog';
 import { hapticSuccess } from '../../utils/hapticFeedback';
-import { updateDailyInstanceStatus, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
+import { updateDailyInstanceStatus, undoInstanceCompletion, logInstanceCompletion, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
+import { addCup, getDayTotal as getHydrationDayTotal } from '../../storage/hydrationRepo';
+import { getYesterdayVitals } from '../../utils/getYesterdayVitals';
+import { LogToast } from '../../components/now/LogToast';
 import { useDataListener, emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
 import { buildCareBrief, CareBrief } from '../../utils/careSummaryBuilder';
@@ -174,6 +177,14 @@ export default function NowScreen() {
   const [activeRoutineWindow, setActiveRoutineWindow] = useState<TimeWindow | null>(null);
   // Phase 1C/D — undo toast for inline quick-confirm actions
   const [undoItem, setUndoItem] = useState<{ id: string; name: string } | null>(null);
+  // v6.7 — LogToast (Add / Undo) state for the trailing-edge inline checkbox.
+  const [logToast, setLogToast] = useState<{
+    instanceId: string;
+    message: string;
+    onAdd: () => void;
+    onUndo: () => Promise<void>;
+  } | null>(null);
+  const logToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleRingPress = useCallback((bucket: BucketType) => {
     setSelectedCategory(prev => prev === bucket ? null : bucket);
@@ -534,6 +545,155 @@ export default function NowScreen() {
   }, [completeInstance]);
 
   // ============================================================================
+  // v6.7 — Inline trailing-edge checkbox handlers (Now timeline).
+  // These power the new InlineCheckbox + LogToast pattern: tap to log, tap
+  // checkbox again (during the toast window) to undo, long-press for the
+  // skip-reason menu. Hydration uses a separate `+` button via handleAddCup.
+  // ============================================================================
+
+  const dismissLogToast = useCallback(() => {
+    if (logToastTimerRef.current) {
+      clearTimeout(logToastTimerRef.current);
+      logToastTimerRef.current = null;
+    }
+    setLogToast(null);
+  }, []);
+
+  const handleQuickLog = useCallback(async (instance: any) => {
+    try {
+      // Pre-fill vitals with yesterday's values so the row commits without an
+      // empty payload (the row is meant to be a one-tap shortcut). Other
+      // types log without payload and can be edited via the Add button.
+      let data: any = undefined;
+      if (instance.itemType === 'vitals') {
+        const yest = await getYesterdayVitals(instance.itemName?.toLowerCase());
+        if (yest) {
+          // Map a single VitalReading onto the vitals log payload — the
+          // engine keys results by vital type, so we drop yest.type into
+          // the matching field. Falls back to .value when type is unknown.
+          const numeric = yest.value;
+          const payload: Record<string, any> = { type: 'vitals' };
+          if (yest.type) payload[yest.type] = numeric;
+          data = payload;
+        }
+      }
+
+      const outcome: 'taken' | 'completed' = instance.itemType === 'medication' ? 'taken' : 'completed';
+      await logInstanceCompletion(
+        DEFAULT_PATIENT_ID,
+        today,
+        instance.id,
+        outcome,
+        data,
+        { source: 'now' },
+      );
+      emitDataUpdate(EVENT.DAILY_INSTANCES);
+      void hapticSuccess();
+
+      setLogToast({
+        instanceId: instance.id,
+        message: `${instance.itemName} logged`,
+        onAdd: () => {
+          dismissLogToast();
+          handleTimelineItemPress(instance);
+        },
+        onUndo: async () => {
+          try {
+            await undoInstanceCompletion(DEFAULT_PATIENT_ID, today, instance.id);
+            emitDataUpdate(EVENT.DAILY_INSTANCES);
+          } catch (err) {
+            logError('handleQuickLog.undo', err);
+          } finally {
+            dismissLogToast();
+          }
+        },
+      });
+      if (logToastTimerRef.current) clearTimeout(logToastTimerRef.current);
+      logToastTimerRef.current = setTimeout(() => setLogToast(null), 5000);
+    } catch (err) {
+      logError('handleQuickLog', err);
+      Alert.alert('Error', 'Could not log. Try again.');
+    }
+  }, [today, dismissLogToast]);
+
+  const handleQuickSkip = useCallback(async (instance: any, reason: 'refused' | 'too-soon' | 'other') => {
+    try {
+      await logInstanceCompletion(
+        DEFAULT_PATIENT_ID,
+        today,
+        instance.id,
+        'skipped',
+        undefined,
+        { source: 'now', skipReason: reason },
+      );
+      emitDataUpdate(EVENT.DAILY_INSTANCES);
+
+      setLogToast({
+        instanceId: instance.id,
+        message: `${instance.itemName} skipped`,
+        onAdd: () => {
+          dismissLogToast();
+          handleTimelineItemPress(instance);
+        },
+        onUndo: async () => {
+          try {
+            await undoInstanceCompletion(DEFAULT_PATIENT_ID, today, instance.id);
+            emitDataUpdate(EVENT.DAILY_INSTANCES);
+          } catch (err) {
+            logError('handleQuickSkip.undo', err);
+          } finally {
+            dismissLogToast();
+          }
+        },
+      });
+      if (logToastTimerRef.current) clearTimeout(logToastTimerRef.current);
+      logToastTimerRef.current = setTimeout(() => setLogToast(null), 5000);
+    } catch (err) {
+      logError('handleQuickSkip', err);
+    }
+  }, [today, dismissLogToast]);
+
+  const handleAddCup = useCallback(async (_instance: any) => {
+    try {
+      await addCup(activePatient?.id || DEFAULT_PATIENT_ID, 1);
+      emitDataUpdate(EVENT.WATER);
+      void hapticSuccess();
+      const total = await getHydrationDayTotal(
+        activePatient?.id || DEFAULT_PATIENT_ID,
+        today,
+      );
+      setLogToast({
+        instanceId: 'hydration',
+        message: `${total} cup${total === 1 ? '' : 's'} logged today`,
+        onAdd: () => {
+          dismissLogToast();
+          navigate('/quick-log-more');
+        },
+        onUndo: async () => {
+          // Hydration undo is event-stream-aware: the addCup helper appends
+          // an immutable event, so true undo lives in the dedicated water
+          // counter (Mode A). Toast undo just dismisses — no double-write.
+          dismissLogToast();
+        },
+      });
+      if (logToastTimerRef.current) clearTimeout(logToastTimerRef.current);
+      logToastTimerRef.current = setTimeout(() => setLogToast(null), 5000);
+    } catch (err) {
+      logError('handleAddCup', err);
+    }
+  }, [activePatient, today, dismissLogToast]);
+
+  const handleWellnessTap = useCallback((instance: any) => {
+    navigate({
+      pathname: '/silent-vitals',
+      params: {
+        instanceId: instance?.id ?? '',
+        itemName: instance?.itemName ?? '',
+      },
+    });
+  }, []);
+
+  // ============================================================================
   // DATA LOADING
   // ============================================================================
   useFocusEffect(
@@ -749,6 +909,10 @@ export default function NowScreen() {
             onItemPress={handleTimelineItemPress}
             onBatchMedConfirm={handleBatchMedConfirm}
             onQuickConfirm={handleQuickConfirm}
+            onQuickLog={handleQuickLog}
+            onQuickSkip={handleQuickSkip}
+            onAddCup={handleAddCup}
+            onWellnessTap={handleWellnessTap}
             onStartRoutine={setActiveRoutineWindow}
             todayStats={todayStats}
             enabledBuckets={enabledBuckets}
@@ -802,6 +966,19 @@ export default function NowScreen() {
         <View style={{ height: 83 }} />
       </ScrollView>
       </SafeAreaView>
+
+      {/* v6.7 — LogToast for the trailing-edge inline checkbox + add-cup. */}
+      {logToast && (
+        <View style={styles.logToastWrap} pointerEvents="box-none">
+          <LogToast
+            visible
+            message={logToast.message}
+            onAdd={logToast.onAdd}
+            onUndo={() => { void logToast.onUndo(); }}
+            onDismiss={dismissLogToast}
+          />
+        </View>
+      )}
 
       {/* Phase 1D — undo toast for inline quick-confirm */}
       {undoItem && (
@@ -879,6 +1056,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   undoToastText: { fontSize: 13, color: c.textAlertPrimary },
   undoToastAction: { fontSize: 13, fontWeight: '600', color: c.textAlertLabel },
+
+  // v6.7 LogToast wrapper — same float anchor as the legacy undo toast.
+  logToastWrap: {
+    position: 'absolute', bottom: 100, left: 0, right: 0,
+  },
 
   // Section header (used by Upcoming This Week)
   sectionHeaderRow: {
