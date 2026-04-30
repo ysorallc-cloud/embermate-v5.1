@@ -157,19 +157,19 @@ describe('Settings — Delete My Data flow requires two-step confirmation', () =
     expect(src).toContain("import { deleteAllUserData } from '../../utils/privacyUtils'");
   });
 
-  it('handleDeleteMyData fires the destructive Alert', () => {
-    expect(src).toMatch(/handleDeleteMyData/);
-    expect(src).toMatch(/Alert\.alert\(\s*['"]Delete My Data['"]/);
+  it('handleDeleteAllData fires the destructive Alert', () => {
+    // v6.7: handler renamed in the consolidated settings; copy is now
+    // sentence-case ("Delete all data") to match the row label.
+    expect(src).toMatch(/handleDeleteAllData/);
+    expect(src).toMatch(/Alert\.alert\(\s*['"]Delete all data['"]/);
   });
 
-  it('shows an explicit "Final Confirmation" second alert before invoking deleteAllUserData', () => {
-    // The flow MUST be two-step — single-tap delete is too easy to
-    // misfire on a destructive action. First alert is "Delete My Data",
-    // second alert is "Final Confirmation".
-    expect(src).toContain("'Final Confirmation'");
-    // The second alert's destructive button onPress is the one that
-    // actually calls deleteAllUserData.
-    expect(src).toMatch(/Final Confirmation[\s\S]*?deleteAllUserData\(\)/);
+  it('shows an explicit second-step confirmation before invoking deleteAllUserData', () => {
+    // Two-step flow — single-tap delete is too easy to misfire on a
+    // destructive action. Second alert title is "Final confirmation"
+    // (sentence case in v6.7).
+    expect(src).toContain("'Final confirmation'");
+    expect(src).toMatch(/Final confirmation[\s\S]*?deleteAllUserData\(\)/);
   });
 
   it('navigates back to onboarding after successful deletion', () => {
@@ -177,8 +177,8 @@ describe('Settings — Delete My Data flow requires two-step confirmation', () =
   });
 
   it('first alert uses destructive style on the proceed button', () => {
-    // Look for the first Alert.alert and verify it has a `style: 'destructive'` button.
-    const firstAlert = src.indexOf("Alert.alert(\n      'Delete My Data'");
+    // v6.7: copy is sentence-case ("Delete all data").
+    const firstAlert = src.indexOf("'Delete all data'");
     expect(firstAlert).toBeGreaterThan(-1);
     const block = src.slice(firstAlert, firstAlert + 800);
     expect(block).toMatch(/style:\s*['"]destructive['"]/);
