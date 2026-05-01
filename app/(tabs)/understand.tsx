@@ -747,8 +747,14 @@ export default function UnderstandScreen() {
             </View>
           )}
 
-          {/* ═══ SECTION 3: DATA GAPS ═══ */}
-          {dataGaps.length > 0 && (
+          {/* ═══ SECTION 3: DATA GAPS ═══
+              v6.7 May 1 sizing pass — Phase 5: suppressed for under-7-day
+              windows. The InsightsEmptyStatePreview card above already
+              explains the data state — surfacing "Missing data" alongside
+              it is redundant and reads as scolding. Re-enabled at 7+ days
+              when the section adds value (the user has data, this surfaces
+              what they DON'T have to lift their visibility). */}
+          {pageData && pageData.daysOfData >= 7 && dataGaps.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>Missing data</Text>
               <Text style={styles.sectionContext}>
