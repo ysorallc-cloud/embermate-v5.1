@@ -1,0 +1,240 @@
+// ============================================================================
+// INSIGHTS EMPTY-STATE PREVIEW
+//
+// Shown on the Insights tab when the patient has fewer than 14 days of
+// tracked data. Two cards:
+//   1. "Patterns coming" — countdown to 14 days, sage-tinted card.
+//   2. "What we'll be watching for" — four pattern previews + reassuring
+//      footer that nothing requires waiting.
+//
+// Returns null when daysOfData >= 14 so the screen falls through to the
+// real Insights content.
+// ============================================================================
+
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
+
+export interface InsightsEmptyStatePreviewProps {
+  daysOfData: number;
+  patientName?: string;
+}
+
+interface PatternPreview {
+  icon: string;
+  description: string;
+  when: string;
+}
+
+const PATTERN_PREVIEWS: PatternPreview[] = [
+  {
+    icon: '📊',
+    description: 'Whether sleep quality affects her BP readings the next morning.',
+    when: '~2 wks',
+  },
+  {
+    icon: '💊',
+    description: 'If skipped doses cluster on certain days or after poor sleep.',
+    when: '~2 wks',
+  },
+  {
+    icon: '💧',
+    description: 'Whether hydration affects her energy and pain levels.',
+    when: '~3 wks',
+  },
+  {
+    icon: '🌅',
+    description: 'Mood patterns through the week — when calm and rough days tend to fall.',
+    when: '~4 wks',
+  },
+];
+
+const PATIENT_FALLBACK_NAMES = new Set(['Patient', 'patient', 'your loved one']);
+
+export function InsightsEmptyStatePreview({
+  daysOfData,
+  patientName,
+}: InsightsEmptyStatePreviewProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  // Fall through to the real Insights content once 2 weeks have accumulated.
+  if (daysOfData >= 14) return null;
+
+  const remaining = Math.max(1, 14 - daysOfData);
+  const remainingLabel = `${remaining} more day${remaining === 1 ? '' : 's'}`;
+
+  // If the patient name didn't resolve cleanly, use the generic framing
+  // rather than literally rendering "Patient".
+  const usePatientName =
+    typeof patientName === 'string' &&
+    patientName.length > 0 &&
+    !PATIENT_FALLBACK_NAMES.has(patientName);
+  const watchingSubtitle = usePatientName
+    ? `Once ${patientName}'s data is steady.`
+    : 'Once data is steady.';
+
+  return (
+    <View>
+      {/* ── Patterns coming card ── */}
+      <View
+        testID="insights-patterns-coming-card"
+        style={styles.patternsCard}
+        accessibilityLabel={`${remainingLabel}, then we'll show you trends.`}
+      >
+        <Text style={styles.patternsEyebrow}>{'PATTERNS COMING'}</Text>
+        <Text style={styles.patternsHeadline}>
+          {`${remainingLabel}, then we'll show you trends.`}
+        </Text>
+        <Text style={styles.patternsSubtitle}>
+          {'It takes about 2 weeks of tracking before patterns emerge.'}
+        </Text>
+      </View>
+
+      {/* ── What we'll be watching for card ── */}
+      <View testID="insights-watching-card" style={styles.watchingCard}>
+        <View style={styles.watchingHeader}>
+          <Text style={styles.watchingEyebrow}>{"WHAT WE'LL BE WATCHING FOR"}</Text>
+          <Text style={styles.watchingHeaderSubtitle}>{watchingSubtitle}</Text>
+        </View>
+
+        <View style={styles.watchingBody}>
+          {PATTERN_PREVIEWS.map((p, i) => {
+            const isLast = i === PATTERN_PREVIEWS.length - 1;
+            return (
+              <View
+                key={p.description}
+                style={[styles.watchingRow, !isLast && styles.watchingRowDivider]}
+              >
+                <Text style={styles.watchingIcon}>{p.icon}</Text>
+                <Text style={styles.watchingDescription}>{p.description}</Text>
+                <Text testID={`insights-watching-when-${i}`} style={styles.watchingWhen}>
+                  {p.when}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+
+        <View style={styles.watchingFooter}>
+          <Text style={styles.watchingFooterText}>
+            {'These appear as you go. No need to wait for them.'}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const createStyles = (c: any) => StyleSheet.create({
+  // ── Patterns coming card ──
+  patternsCard: {
+    backgroundColor: 'rgba(95, 184, 138, 0.05)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(95, 184, 138, 0.22)',
+    borderRadius: 11,
+    paddingHorizontal: 13,
+    paddingVertical: 16,
+    marginBottom: 14,
+  },
+  patternsEyebrow: {
+    fontSize: 8.5,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    color: c.accent,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  patternsHeadline: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: c.textPrimary,
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+  patternsSubtitle: {
+    fontSize: 10.5,
+    color: c.textSecondary,
+    lineHeight: 15.75,
+  },
+
+  // ── What we'll be watching card ──
+  watchingCard: {
+    backgroundColor: c.glass,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
+    borderRadius: 11,
+    overflow: 'hidden',
+    marginBottom: 14,
+  },
+  watchingHeader: {
+    paddingTop: 11,
+    paddingBottom: 10,
+    paddingHorizontal: 13,
+    backgroundColor: 'rgba(255, 235, 205, 0.025)',
+    borderBottomWidth: 0.5,
+    borderBottomColor: c.glassBorder,
+  },
+  watchingEyebrow: {
+    fontSize: 8.5,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    color: c.textTertiary,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  watchingHeaderSubtitle: {
+    fontFamily: 'Georgia',
+    fontStyle: 'italic',
+    fontSize: 11,
+    lineHeight: 15.4,
+    color: c.textSecondary,
+  },
+  watchingBody: {
+    paddingHorizontal: 13,
+    paddingVertical: 4,
+  },
+  watchingRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 11,
+    gap: 10,
+  },
+  watchingRowDivider: {
+    borderBottomWidth: 0.5,
+    borderBottomColor: c.glassBorder,
+  },
+  watchingIcon: {
+    fontSize: 12,
+    opacity: 0.7,
+    paddingTop: 1,
+    width: 18,
+  },
+  watchingDescription: {
+    flex: 1,
+    fontSize: 10.5,
+    color: c.textSecondary,
+    lineHeight: 14.7,
+  },
+  watchingWhen: {
+    fontSize: 8.5,
+    fontWeight: '500',
+    color: c.accent,
+    flexShrink: 0,
+    paddingTop: 2,
+  },
+  watchingFooter: {
+    paddingVertical: 11,
+    paddingHorizontal: 13,
+    borderTopWidth: 0.5,
+    borderTopColor: c.glassBorder,
+  },
+  watchingFooterText: {
+    fontSize: 10,
+    color: c.textTertiary,
+    fontStyle: 'italic',
+    lineHeight: 14,
+  },
+});
+
+export default InsightsEmptyStatePreview;

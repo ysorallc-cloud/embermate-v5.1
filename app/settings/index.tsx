@@ -291,6 +291,13 @@ export default function SettingsScreen() {
           subtitle: 'How we handle your data and the usage terms',
           onPress: () => navigate('/legal/privacy-and-terms' as any),
         },
+        {
+          id: 'whats-next',
+          icon: '✨',
+          title: "What's next",
+          subtitle: 'Features in development',
+          onPress: () => navigate('/settings/whats-next' as any),
+        },
       ],
     },
   ], [profileTitle, router, handleDeleteAllData, activeConditions, watchForStale]);

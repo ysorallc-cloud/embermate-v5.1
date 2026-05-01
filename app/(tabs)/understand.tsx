@@ -44,6 +44,7 @@ import { useDataListener } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
 import { buildProviderPrep, ProviderPrepData } from '../../utils/providerPrepBuilder';
 import { ShareToast } from '../../components/shared/ShareToast';
+import { InsightsEmptyStatePreview } from '../../components/understand/InsightsEmptyStatePreview';
 import { getVitalsInRange, VitalReading } from '../../utils/vitalsStorage';
 import { listDailyInstancesRange, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 import { getTodayDateString, toLocalDateString } from '../../services/carePlanGenerator';
@@ -625,6 +626,16 @@ export default function UnderstandScreen() {
               </View>
             }
           />
+
+          {/* v6.7 Prompt 7 — v7 preview cards for under-14-day windows.
+              Sits above the legacy banners; the legacy banners stay for
+              their tighter day-by-day messaging at 0–7 days. */}
+          {pageData && !pageData.isSampleData && pageData.daysOfData < 14 && (
+            <InsightsEmptyStatePreview
+              daysOfData={pageData.daysOfData}
+              patientName={patientName}
+            />
+          )}
 
           {/* Empty State for brand-new users */}
           {pageData && !pageData.isSampleData && pageData.daysOfData === 0 && (

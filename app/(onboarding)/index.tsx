@@ -15,6 +15,7 @@ import { WhoIsThisForScreen } from './screens/WhoIsThisForScreen';
 import { PrivacyDisclaimerScreen } from './screens/PrivacyDisclaimerScreen';
 import { MeetSampleScreen } from './screens/MeetSampleScreen';
 import { GetStartedScreen } from './screens/GetStartedScreen';
+import { AsYouUseScreen } from './screens/AsYouUseScreen';
 
 import { PaginationDots } from './components/PaginationDots';
 import { seedSampleData } from '../../utils/sampleData';
@@ -30,7 +31,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
-// 5-screen flow: Welcome → Who Is This For → Privacy → Meet → Get Started
+// 6-screen flow: Welcome → Who Is This For → Privacy → Meet → As You Use → Get Started
 //
 // v6.7 limitation: the "What to watch for" screen
 // (app/(onboarding)/screens/WatchForScreen.tsx) is reachable from
@@ -45,7 +46,8 @@ const ONBOARDING_SCREENS = [
   { id: '2', title: 'Who Is This For' },
   { id: '3', title: 'Privacy' },
   { id: '4', title: 'Meet' },
-  { id: '5', title: 'Get Started' },
+  { id: '5', title: 'As You Use' },
+  { id: '6', title: 'Get Started' },
 ];
 
 export default function OnboardingFlow() {
@@ -133,6 +135,13 @@ export default function OnboardingFlow() {
     itemVisiblePercentThreshold: 50,
   }).current;
 
+  const advanceToNext = () => {
+    flatListRef.current?.scrollToIndex({
+      index: currentIndex + 1,
+      animated: true,
+    });
+  };
+
   const renderItem = ({ item, index }: any) => {
     if (index === 0) {
       return <WelcomeScreen />;
@@ -147,15 +156,18 @@ export default function OnboardingFlow() {
       return <MeetSampleScreen careMode={careMode} />;
     }
     if (index === 4) {
+      return <AsYouUseScreen onContinue={advanceToNext} />;
+    }
+    if (index === 5) {
       return <GetStartedScreen onComplete={handleAcceptDisclaimer} careMode={careMode} />;
     }
     return null;
   };
 
-  // Hide footer on screen 1 (WhoIsThisFor — card tap advances) and screen 4
-  // (GetStarted — its own two-card layout owns the next action). Meet uses
-  // the standard footer Next button.
-  const showFooter = currentIndex !== 1 && currentIndex !== 4;
+  // Hide footer on screen 1 (WhoIsThisFor — card tap advances), screen 4
+  // (AsYouUse — own Got it button), and screen 5 (GetStarted — its own
+  // two-card layout owns the next action).
+  const showFooter = currentIndex !== 1 && currentIndex !== 4 && currentIndex !== 5;
   const isNextDisabled = currentIndex === 2 && !disclaimerAccepted;
 
   return (
