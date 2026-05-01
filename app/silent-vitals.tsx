@@ -1,33 +1,105 @@
 // ============================================================================
-// SILENT VITALS — placeholder destination for the wellness checkbox on the
-// Now timeline. Real silent-capture flow ships in Prompt 3; this screen
-// keeps the navigation contract honest in the meantime so taps don't crash.
+// SILENT VITALS — single-screen capture for the patient's silent vital signs
+// (sleep / mood / energy). Replaces the legacy 5-page wellness wizard. Hosts
+// the SilentVitalsCapture card on a dedicated screen so it's reachable from
+// the Now-tab wellness checkbox, the wellness checklist, and any deep link.
 // ============================================================================
 
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
 import { SubScreenHeader } from '../components/SubScreenHeader';
+import {
+  SilentVitalsCapture,
+  type SilentVitalsValues,
+} from '../components/now/SilentVitalsCapture';
+import { TodaySilentVitals } from '../components/now/TodaySilentVitals';
+import {
+  upsertDailyReflection,
+  getDailyReflection,
+  type DailyReflection,
+} from '../storage/dailyReflectionRepo';
+import { usePatient } from '../contexts/PatientContext';
+import { getTodayDateString } from '../services/carePlanGenerator';
+import { navigateBack } from '../lib/navigate';
+import { hapticSuccess } from '../utils/hapticFeedback';
+import { logError } from '../utils/devLog';
+import { DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 
 export default function SilentVitalsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { activePatient } = usePatient();
+  const params = useLocalSearchParams<{ instanceId?: string; itemName?: string }>();
+
+  const patientId = activePatient?.id || DEFAULT_PATIENT_ID;
+  const patientName = activePatient?.name || 'they';
+  const today = useMemo(() => getTodayDateString(), []);
+
+  const [initial, setInitial] = useState<DailyReflection | null | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const existing = await getDailyReflection(patientId, today);
+      if (!cancelled) setInitial(existing);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [patientId, today]);
+
+  const handleSave = useCallback(async (values: SilentVitalsValues) => {
+    try {
+      await upsertDailyReflection(patientId, today, {
+        ...values,
+        source: 'silent-vitals',
+      });
+      void hapticSuccess();
+      navigateBack();
+    } catch (err) {
+      logError('silent-vitals.save', err);
+      Alert.alert('Could not save', 'Please try again.');
+    }
+  }, [patientId, today]);
+
+  const handleCancel = useCallback(() => {
+    navigateBack();
+  }, []);
+
+  // initial is undefined until the load finishes; render the capture card
+  // with no preset until then so the screen never blocks the user.
+  const presetValues: SilentVitalsValues | undefined = initial
+    ? {
+        sleepQuality: initial.sleepQuality,
+        mood: initial.mood,
+        energyLevel: initial.energyLevel,
+        reflection: initial.reflection,
+      }
+    : undefined;
 
   return (
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <SubScreenHeader title="Wellness check-in" subtitle="A quieter way to log how things are going" />
-        <View style={styles.body}>
-          <Text style={styles.eyebrow}>{'COMING NEXT'}</Text>
-          <Text style={styles.headline}>Silent vitals capture is on its way.</Text>
-          <Text style={styles.copy}>
-            We're building a low-friction flow that lets you log how the day is going without a
-            full vitals reading — mood, pain, energy, and a quick note. For now, taps from the
-            Now timeline land here so the path is set up for the next release.
-          </Text>
-        </View>
+        <SubScreenHeader
+          title="Silent vital signs"
+          subtitle={`How is ${patientName} today?`}
+        />
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          <TodaySilentVitals values={presetValues} />
+          <SilentVitalsCapture
+            initial={presetValues}
+            patientName={patientName}
+            onSave={handleSave}
+            onCancel={handleCancel}
+          />
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -35,23 +107,5 @@ export default function SilentVitalsScreen() {
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   root: { flex: 1, backgroundColor: c.background },
-  body: { flex: 1, padding: 24, gap: 12 },
-  eyebrow: {
-    fontSize: 10,
-    fontWeight: '500' as const,
-    letterSpacing: 0.6,
-    color: c.textTertiary,
-    marginBottom: 4,
-  },
-  headline: {
-    fontSize: 22,
-    fontWeight: '500' as const,
-    color: c.textPrimary,
-    lineHeight: 28,
-  },
-  copy: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: c.textSecondary,
-  },
+  content: { padding: 20, paddingBottom: 60 },
 });

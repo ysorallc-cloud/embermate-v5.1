@@ -60,7 +60,7 @@ const QUICK_START_ITEMS: QuickStartItem[] = [
     key: 'first_log',
     label: 'Log your first care task',
     icon: '\u2705',
-    route: '/log-morning-wellness',
+    route: '/silent-vitals',
     check: async () => {
       const keys = await AsyncStorage.getAllKeys();
       const instanceKeys = keys.filter(k => k.startsWith(StorageKeyPrefixes.DAILY_INSTANCES));

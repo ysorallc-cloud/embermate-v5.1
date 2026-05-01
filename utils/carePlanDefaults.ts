@@ -156,7 +156,7 @@ function generateMorningRoutine(): CarePlanRoutine {
         emoji: '🌅',
         target: 1,
         completionRule: 'derived',
-        link: '/log-morning-wellness',
+        link: '/silent-vitals',
       },
     ],
   };
@@ -638,7 +638,7 @@ export const ITEM_TYPE_OPTIONS: ItemTypeOption[] = [
     emoji: '🌅',
     defaultTarget: 1,
     targetType: 'done',
-    link: '/log-morning-wellness',
+    link: '/silent-vitals',
     description: 'Morning or evening wellness check-in',
   },
   {

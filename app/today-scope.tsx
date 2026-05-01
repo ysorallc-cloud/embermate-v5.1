@@ -148,7 +148,7 @@ export default function TodayScopeScreen() {
     water: { route: '/care-plan/water', label: 'Adjust water goal' },
     sleep: { route: '/care-plan/sleep', label: 'Configure sleep' },
     activity: { route: '/care-plan/activity', label: 'Configure activity' },
-    wellness: { route: '/log-morning-wellness', label: 'Wellness check-in' },
+    wellness: { route: '/silent-vitals', label: 'Wellness check-in' },
     appointments: { route: '/appointments', label: 'Manage appointments' },
     errands: { route: '/care-plan/errands', label: 'Manage errands' },
     shifts: { route: '/care-plan/shifts', label: 'Manage shifts' },

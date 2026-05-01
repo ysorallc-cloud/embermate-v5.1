@@ -83,6 +83,11 @@ import { logError } from '../../utils/devLog';
 import { hapticSuccess } from '../../utils/hapticFeedback';
 import { updateDailyInstanceStatus, undoInstanceCompletion, logInstanceCompletion, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 import { addCup, getDayTotal as getHydrationDayTotal } from '../../storage/hydrationRepo';
+import {
+  upsertDailyReflection,
+  deleteDailyReflection,
+  getYesterdayReflection,
+} from '../../storage/dailyReflectionRepo';
 import { getYesterdayVitals } from '../../utils/getYesterdayVitals';
 import { LogToast } from '../../components/now/LogToast';
 import { useDataListener, emitDataUpdate } from '../../lib/events';
@@ -455,11 +460,13 @@ export default function NowScreen() {
       });
       return;
     }
-    // Wellness: route to morning or evening screen based on instance windowLabel
+    // Wellness: morning + midday land on the silent-vitals capture (the
+    // v6.7 reframe — single-screen sleep/mood/energy). Evening keeps its
+    // dedicated wizard for now since it captures a broader set of fields.
     if (instance.itemType === 'wellness') {
       const wellnessRoute = instance.windowLabel === 'evening'
         ? '/log-evening-wellness'
-        : '/log-morning-wellness'; // morning and midday both use morning wellness screen
+        : '/silent-vitals';
       navigate({
         pathname: wellnessRoute,
         params: {
@@ -683,15 +690,61 @@ export default function NowScreen() {
     }
   }, [activePatient, today, dismissLogToast]);
 
-  const handleWellnessTap = useCallback((instance: any) => {
-    navigate({
-      pathname: '/silent-vitals',
-      params: {
-        instanceId: instance?.id ?? '',
-        itemName: instance?.itemName ?? '',
-      },
-    });
-  }, []);
+  const handleWellnessTap = useCallback(async (instance: any) => {
+    const patientId = activePatient?.id || DEFAULT_PATIENT_ID;
+    const goToCapture = () => {
+      navigate({
+        pathname: '/silent-vitals',
+        params: {
+          instanceId: instance?.id ?? '',
+          itemName: instance?.itemName ?? '',
+        },
+      });
+    };
+    try {
+      // First-time path: no prior reflection ever → open capture directly so
+      // the caregiver doesn't get a stale auto-fill that doesn't reflect
+      // them. The screen back-fills from yesterday on its own when present.
+      const yest = await getYesterdayReflection(patientId);
+      if (!yest) {
+        goToCapture();
+        return;
+      }
+      // Default-log path — auto-fill today with yesterday's values, then
+      // surface the Edit/Undo toast so the caregiver can adjust if needed.
+      await upsertDailyReflection(patientId, today, {
+        sleepQuality: yest.sleepQuality,
+        mood: yest.mood,
+        energyLevel: yest.energyLevel,
+        source: 'auto-fill',
+      });
+      void hapticSuccess();
+      setLogToast({
+        instanceId: instance.id,
+        message: `Silent vitals saved (same as yesterday)`,
+        onAdd: () => {
+          dismissLogToast();
+          goToCapture();
+        },
+        onUndo: async () => {
+          // Roll today's auto-fill back to whatever existed before the tap —
+          // for the first auto-fill of the day, that's "no entry."
+          try {
+            await deleteDailyReflection(patientId, today);
+          } catch (err) {
+            logError('handleWellnessTap.undo', err);
+          } finally {
+            dismissLogToast();
+          }
+        },
+      });
+      if (logToastTimerRef.current) clearTimeout(logToastTimerRef.current);
+      logToastTimerRef.current = setTimeout(() => setLogToast(null), 5000);
+    } catch (err) {
+      logError('handleWellnessTap', err);
+      goToCapture();
+    }
+  }, [activePatient, today, dismissLogToast]);
 
   // ============================================================================
   // DATA LOADING

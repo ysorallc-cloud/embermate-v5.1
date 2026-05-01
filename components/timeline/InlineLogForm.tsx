@@ -55,7 +55,7 @@ export function InlineLogForm({ task, onComplete, onSkip, onClose }: InlineLogFo
       return <InlineMoodForm task={task} onComplete={onComplete} onClose={onClose} />;
     case 'wellness':
       return <NavigateButton
-        route={task.windowLabel === 'evening' ? '/log-evening-wellness' : '/log-morning-wellness'}
+        route={task.windowLabel === 'evening' ? '/log-evening-wellness' : '/silent-vitals'}
         label="Start check-in"
         onClose={onClose}
       />;

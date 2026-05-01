@@ -117,7 +117,7 @@ export const Timeline: React.FC<TimelineProps> = ({ items, tomorrowCount = 0, on
         }
         break;
       case 'wellness-morning':
-        navigate('/log-morning-wellness');
+        navigate('/silent-vitals');
         break;
       case 'wellness-evening':
         navigate('/log-evening-wellness');

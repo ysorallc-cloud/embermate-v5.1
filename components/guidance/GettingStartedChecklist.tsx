@@ -46,7 +46,7 @@ const items: ChecklistItem[] = [
     id: 'first_log',
     label: 'Log your first care task',
     description: 'Track a medication, meal, or wellness check',
-    route: '/log-morning-wellness',
+    route: '/silent-vitals',
     check: async () => {
       // Check if any daily care instance has been completed
       const keys = await AsyncStorage.getAllKeys();

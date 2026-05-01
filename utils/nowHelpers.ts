@@ -171,7 +171,7 @@ export function getRouteForInstanceType(itemType: string): string {
     case 'sleep': return '/log-sleep';
     case 'hydration': return '/log-water';
     case 'activity': return '/log-activity';
-    case 'wellness': return '/log-morning-wellness'; // Default — caller should pass windowLabel param
+    case 'wellness': return '/silent-vitals'; // v6.7 — single-screen capture replaces the 5-page wizard. Evening still routes via Now's windowLabel branch.
     case 'appointment': return '/appointments';
     case 'custom':
     default:

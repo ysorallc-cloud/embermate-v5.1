@@ -46,7 +46,7 @@ export const TimelineItem: React.FC<Props> = ({ item, isLast }) => {
         navigate('/appointments');
         break;
       case 'wellness-morning':
-        navigate('/log-morning-wellness');
+        navigate('/silent-vitals');
         break;
       case 'wellness-evening':
         navigate('/log-evening-wellness');
