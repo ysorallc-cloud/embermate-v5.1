@@ -46,7 +46,11 @@ export function ScheduleCard({ windows, onStart, onRowPress }: ScheduleCardProps
         return (
           <TouchableOpacity
             key={w.window}
-            style={[s.windowRow, idx > 0 && s.windowRowDivider, w.isActive && s.windowRowActive]}
+            // v6.7 May 1 sizing pass — Phase 3b: no card-in-card fill on
+            // the active row. Active state is conveyed by the sage label
+            // colour + sage status + sage Start › text-link, all on the
+            // same row geometry as the inactive rows.
+            style={[s.windowRow, idx > 0 && s.windowRowDivider]}
             onPress={onRowPress}
             activeOpacity={0.7}
             accessibilityLabel={`${w.name}, ${w.status === 'complete' ? 'complete' : `${w.remaining} remaining`}. Tap to expand schedule.`}
@@ -57,18 +61,25 @@ export function ScheduleCard({ windows, onStart, onRowPress }: ScheduleCardProps
             <Text style={[s.windowLabel, w.isActive && s.windowLabelActive]}>
               {w.name}
             </Text>
-            <Text style={s.windowStatus}>{statusText}</Text>
-            {w.isActive && (
+            <Text style={[s.windowStatus, w.isActive && s.windowStatusActive]}>
+              {statusText}
+            </Text>
+            {w.isActive ? (
               <TouchableOpacity
-                style={s.windowStartBtn}
+                style={s.windowStartLink}
                 onPress={() => onStart(w.window)}
                 activeOpacity={0.7}
                 accessibilityLabel={`Start ${w.name} routine`}
                 accessibilityRole="button"
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                // hitSlop bumped to clear the 44pt HIG min tap target —
+                // visual height is small (font 13 + paddingVertical 2*2 =
+                // 17), so vertical hitSlop pushes total tappable to ≥45pt.
+                hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
               >
-                <Text style={s.windowStartText}>Start</Text>
+                <Text style={s.windowStartLinkText}>{'Start ›'}</Text>
               </TouchableOpacity>
+            ) : (
+              <Text style={s.windowChevron}>{'▾'}</Text>
             )}
           </TouchableOpacity>
         );
@@ -87,19 +98,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 16,
     overflow: 'hidden',
   },
+  // v6.7 May 1 sizing pass — Phase 3b: active and inactive rows share the
+  // same paddingVertical (6) so the card height stays uniform. Active
+  // state is colour-only.
   windowRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 14,
+    paddingVertical: 6,
     paddingHorizontal: 14,
   },
   windowRowDivider: {
     borderTopWidth: 0.5,
     borderTopColor: c.hairlineInset,
-  },
-  windowRowActive: {
-    backgroundColor: c.accentFaint,
   },
   windowEmoji: {
     fontSize: 16,
@@ -116,17 +127,27 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   windowStatus: {
     flex: 1,
     fontSize: 13,
-    color: c.textHalf,
+    color: c.textTertiary,
   },
-  windowStartBtn: {
-    backgroundColor: c.accent,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  windowStatusActive: {
+    color: c.accent,
   },
-  windowStartText: {
+  // Text-link Start affordance — no fill, just sage text. Replaces the
+  // prior filled mint pill; reads as a tap target without visually
+  // out-weighing the row label next to it.
+  windowStartLink: {
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  windowStartLinkText: {
     fontSize: 13,
     fontWeight: '600',
-    color: c.textPrimary,
+    color: c.accent,
+  },
+  // Inactive rows show a chevron ▾ to indicate "tap to expand".
+  windowChevron: {
+    fontSize: 14,
+    color: c.textTertiary,
+    paddingHorizontal: 4,
   },
 });

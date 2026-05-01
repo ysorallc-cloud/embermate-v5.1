@@ -23,40 +23,38 @@ function num(block: string, prop: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-describe('ScheduleCard — row breathing room', () => {
-  it('windowRow paddingVertical is at least 14pt', () => {
+describe('ScheduleCard — equal row geometry (May 1 sizing pass — Phase 3b)', () => {
+  it('windowRow paddingVertical is 6pt (matches active and inactive rows)', () => {
     const block = styleBlock('windowRow');
     expect(block).not.toBe('');
     const pv = num(block, 'paddingVertical');
-    expect(pv).not.toBeNull();
-    expect(pv as number).toBeGreaterThanOrEqual(14);
+    expect(pv).toBe(6);
   });
 
-  it('row dividers stay 0.5px (lift comes from padding, not heavier lines)', () => {
+  it('row dividers stay 0.5px (lift comes from typography, not heavier lines)', () => {
     const block = styleBlock('windowRowDivider');
     expect(num(block, 'borderTopWidth')).toBe(0.5);
   });
 });
 
-describe('ScheduleCard — Start button tap target', () => {
-  it('Start button paddingVertical or hitSlop produces a >= 44pt tap target', () => {
-    const btn = styleBlock('windowStartBtn');
+describe('ScheduleCard — Start text-link tap target', () => {
+  it('Start text-link uses hitSlop to clear the 44pt minimum tap target', () => {
+    // Phase 3b replaced the filled windowStartBtn with a text-link
+    // (windowStartLink). The link's tappable area comes from hitSlop +
+    // visual font height. Apple HIG / Material Design require >= 44pt.
+    const btn = styleBlock('windowStartLink');
     expect(btn).not.toBe('');
     const padV = num(btn, 'paddingVertical') ?? 0;
-    const fontMatch = src.match(/windowStartText:\s*\{[^}]*fontSize:\s*(\d+)/s);
+    const fontMatch = src.match(/windowStartLinkText:\s*\{[^}]*fontSize:\s*(\d+)/s);
     const font = fontMatch ? Number(fontMatch[1]) : 13;
     const visualHeight = font + padV * 2;
 
-    // Either the button is visually tall enough, or it declares a hitSlop
-    // on its TouchableOpacity that extends the tap target to >= 44pt.
     if (visualHeight >= 44) return;
 
-    // Look for hitSlop on the Start TouchableOpacity. Slice the source from
-    // `style={s.windowStartBtn}` to the closing JSX `<Text>` of the button —
-    // captures the entire opening tag without getting tripped up by the
-    // `=>` arrow in onPress.
-    const styleAnchor = src.indexOf('style={s.windowStartBtn}');
-    const textCloser = src.indexOf('<Text style={s.windowStartText}', styleAnchor);
+    // The Start TouchableOpacity declares hitSlop. Walk the JSX from the
+    // style anchor to the closing Text to capture the full opening tag.
+    const styleAnchor = src.indexOf('style={s.windowStartLink}');
+    const textCloser = src.indexOf('<Text style={s.windowStartLinkText}', styleAnchor);
     expect(styleAnchor).toBeGreaterThan(-1);
     expect(textCloser).toBeGreaterThan(styleAnchor);
     const startBtnOpen = src.slice(styleAnchor, textCloser);

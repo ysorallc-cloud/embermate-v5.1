@@ -33,11 +33,17 @@ const CATEGORIES: CategoryDef[] = [
 
 // 35% opacity rings per category — distinct enough to read on the warm
 // page bg, soft enough to not compete with the schedule below.
+// v6.7 May 1 sizing pass — Phase 3a flipped per-category accents to a
+// single neutral warm-cream ring. The emoji inside carries category
+// meaning; the ring is just a hairline indicator. Same color across all
+// four tiles keeps the row reading as a unified group rather than four
+// competing accents.
+const NEUTRAL_RING = 'rgba(255, 240, 215, 0.18)';
 const RING_COLOR: Record<CategoryKey, string> = {
-  meds: 'rgba(95, 184, 138, 0.35)',
-  vitals: 'rgba(170, 138, 220, 0.35)',
-  wellness: 'rgba(229, 176, 74, 0.35)',
-  meals: 'rgba(232, 154, 122, 0.35)',
+  meds: NEUTRAL_RING,
+  vitals: NEUTRAL_RING,
+  wellness: NEUTRAL_RING,
+  meals: NEUTRAL_RING,
 };
 
 export interface StatRingsProps {

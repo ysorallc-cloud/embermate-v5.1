@@ -103,9 +103,10 @@ describe('StatRings — flattened (no outer glass card)', () => {
   });
 });
 
-describe('StatRings — per-category ring color', () => {
-  // Each tile must carry a borderColor derived from the category accent
-  // at 35% opacity. We expose a per-tile testID so we can probe the style.
+describe('StatRings — neutral ring (May 1 sizing pass — Phase 3a)', () => {
+  // Per-category accents were intentionally flipped to a single neutral
+  // warm-cream ring. The emoji inside the tile carries category meaning;
+  // the ring is just an indicator that doesn't compete with the schedule.
   const colorProbe = (testID: string) => {
     const tree = (StatRings as any)({ stats });
     const tile = findAll(tree, (n) => n.props?.testID === testID)[0];
@@ -116,30 +117,27 @@ describe('StatRings — per-category ring color', () => {
     return merged;
   };
 
-  it('meds tile uses sage (accent) at 35% opacity', () => {
-    const s = colorProbe('stat-tile-meds');
-    expect(s.borderColor).toBe('rgba(95, 184, 138, 0.35)');
+  const NEUTRAL = 'rgba(255, 240, 215, 0.18)';
+
+  it('meds tile uses the neutral warm-cream ring', () => {
+    expect(colorProbe('stat-tile-meds').borderColor).toBe(NEUTRAL);
   });
 
-  it('vitals tile uses lavender (caregiverAccent) at 35% opacity', () => {
-    const s = colorProbe('stat-tile-vitals');
-    expect(s.borderColor).toBe('rgba(170, 138, 220, 0.35)');
+  it('vitals tile uses the neutral warm-cream ring', () => {
+    expect(colorProbe('stat-tile-vitals').borderColor).toBe(NEUTRAL);
   });
 
-  it('wellness tile uses warning amber at 35% opacity', () => {
-    const s = colorProbe('stat-tile-wellness');
-    expect(s.borderColor).toBe('rgba(229, 176, 74, 0.35)');
+  it('wellness tile uses the neutral warm-cream ring', () => {
+    expect(colorProbe('stat-tile-wellness').borderColor).toBe(NEUTRAL);
   });
 
-  it('meals tile uses coral at 35% opacity', () => {
-    const s = colorProbe('stat-tile-meals');
-    expect(s.borderColor).toBe('rgba(232, 154, 122, 0.35)');
+  it('meals tile uses the neutral warm-cream ring', () => {
+    expect(colorProbe('stat-tile-meals').borderColor).toBe(NEUTRAL);
   });
 
   it('every tile sets a 0.5px border', () => {
     for (const id of ['stat-tile-meds', 'stat-tile-vitals', 'stat-tile-wellness', 'stat-tile-meals']) {
-      const s = colorProbe(id);
-      expect(s.borderWidth).toBe(0.5);
+      expect(colorProbe(id).borderWidth).toBe(0.5);
     }
   });
 });

@@ -29,23 +29,29 @@ describe('Schedule card — single card with internal dividers', () => {
     expect(cardSrc).toMatch(/rgba\(255,\s*255,\s*255,\s*0\.04\)|warmSurfaceBorder|glassDim|glassBorder/);
   });
 
-  it('active row has accent-tinted background; dim rows have no background', () => {
-    // Active style applies an accent-tinted bg (accentFaint or rgba accent)
-    expect(cardSrc).toMatch(/accentFaint|rgba\(\s*52,\s*211,\s*153,\s*0\.0[6-9]/i);
-    // Default (non-active) windowRow style should NOT declare a background
+  it('active row has NO card-in-card fill (May 1 sizing pass — Phase 3b)', () => {
+    // Active state is conveyed by sage label / status / Start › text-link
+    // colour, not a tinted background. The default windowRow style and
+    // any windowRowActive style both declare zero backgroundColor.
     const rowBlock = cardSrc.match(/windowRow:\s*\{[^}]*\}/s);
     expect(rowBlock).toBeTruthy();
     expect(rowBlock![0]).not.toMatch(/backgroundColor/);
+    const activeBlock = cardSrc.match(/windowRowActive:\s*\{[^}]*\}/s);
+    if (activeBlock) {
+      expect(activeBlock[0]).not.toMatch(/backgroundColor/);
+    }
   });
 
-  it('row vertical padding is at least 14pt (breathing room above/below dividers)', () => {
-    // Bumped from 12pt → 14pt+ in v6.7 — see
-    // __tests__/components/scheduleCardSpacing.test.ts for the full contract.
+  it('row vertical padding equalizes active + inactive at 6pt (May 1 sizing pass — Phase 3b)', () => {
+    // The prior pass bumped to 14pt for breathing room; Phase 3b of the
+    // May 1 pass reverts to 6 so active and inactive rows share row
+    // geometry. Active state is colour-only, so taller padding made the
+    // active row visually heavier than its dim siblings.
     const rowBlock = cardSrc.match(/windowRow:\s*\{[^}]*\}/s);
     expect(rowBlock).toBeTruthy();
     const padMatch = rowBlock![0].match(/paddingVertical:\s*(\d+)/);
     expect(padMatch).toBeTruthy();
-    expect(Number(padMatch![1])).toBeGreaterThanOrEqual(14);
+    expect(Number(padMatch![1])).toBe(6);
   });
 
   it('exposes windows + onStart props matching the spec', () => {

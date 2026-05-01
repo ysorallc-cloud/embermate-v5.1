@@ -128,20 +128,20 @@ export function NowFooter({
 // ============================================================================
 
 const createStyles = (c: any) => StyleSheet.create({
+  // v6.7 May 1 sizing pass — Phase 3c: was a dashed-border card with no
+  // parent grouping, which floated awkwardly on the page. Now an inline
+  // serif italic line — atmosphere from typography, not a card.
   journalPreviewDimmed: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderStyle: 'dashed' as any,
-    borderColor: c.glassBorder,
-    opacity: 0.5,
+    marginTop: 16,
+    paddingHorizontal: 14,
     alignItems: 'center' as const,
   },
   journalPreviewDimmedText: {
-    fontSize: 13,
-    color: c.textMuted,
+    fontFamily: 'Georgia',
+    fontStyle: 'italic' as const,
+    fontSize: 12,
+    lineHeight: 18,
+    color: c.textSecondary,
     textAlign: 'center' as const,
   },
   journalPreviewCard: {
