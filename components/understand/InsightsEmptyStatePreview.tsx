@@ -76,23 +76,31 @@ export function InsightsEmptyStatePreview({
 
   return (
     <View>
-      {/* ── Patterns coming card ── */}
+      {/* ── Consolidated empty-state card ──
+          Patterns Coming countdown + What we'll be watching for, separated
+          by a hairline. Phase 4 visual-consistency: collapses what used to
+          be three stacked empty-state cards (with overlapping copy) into
+          one. */}
       <View
-        testID="insights-patterns-coming-card"
-        style={styles.patternsCard}
+        testID="insights-consolidated-card"
+        style={styles.watchingCard}
         accessibilityLabel={`${remainingLabel}, then we'll show you trends.`}
       >
-        <Text style={styles.patternsEyebrow}>{'PATTERNS COMING'}</Text>
-        <Text style={styles.patternsHeadline}>
-          {`${remainingLabel}, then we'll show you trends.`}
-        </Text>
-        <Text style={styles.patternsSubtitle}>
-          {'It takes about 2 weeks of tracking before patterns emerge.'}
-        </Text>
-      </View>
+        {/* Top half — patterns coming countdown */}
+        <View style={styles.consolidatedTop}>
+          <Text style={styles.patternsEyebrow}>{'PATTERNS COMING'}</Text>
+          <Text style={styles.patternsHeadline}>
+            {`${remainingLabel}, then trends appear.`}
+          </Text>
+          <Text style={styles.patternsSubtitle}>
+            {'~2 weeks of tracking before patterns emerge.'}
+          </Text>
+        </View>
 
-      {/* ── What we'll be watching for card ── */}
-      <View testID="insights-watching-card" style={styles.watchingCard}>
+        {/* Hairline divider between halves */}
+        <View style={styles.hairlineDivider} />
+
+        {/* Bottom half — what we'll be watching for */}
         <View style={styles.watchingHeader}>
           <Text style={styles.watchingEyebrow}>{"WHAT WE'LL BE WATCHING FOR"}</Text>
           <Text style={styles.watchingHeaderSubtitle}>{watchingSubtitle}</Text>
@@ -118,8 +126,21 @@ export function InsightsEmptyStatePreview({
 
         <View style={styles.watchingFooter}>
           <Text style={styles.watchingFooterText}>
-            {'These appear as you go. No need to wait for them.'}
+            {'These appear as you go. No need to wait.'}
           </Text>
+        </View>
+      </View>
+
+      {/* ── Tip card (border-only, redirect not placeholder) ── */}
+      <View testID="insights-tip-card" style={styles.tipCard}>
+        <View style={styles.tipRow}>
+          <Text style={styles.tipIcon}>{'💡'}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.tipHeadline}>Start logging from Now</Text>
+            <Text style={styles.tipSubtitle}>
+              Meds, vitals, or mood — all anchor patterns.
+            </Text>
+          </View>
         </View>
       </View>
     </View>
@@ -158,7 +179,24 @@ const createStyles = (c: any) => StyleSheet.create({
     lineHeight: 15.75,
   },
 
+  // ── Consolidated card halves ──
+  // Top half — patterns coming countdown. Sage-tinted background like the
+  // legacy patternsCard so the countdown still reads as a sage block,
+  // even sitting inside the unified card.
+  consolidatedTop: {
+    backgroundColor: 'rgba(95, 184, 138, 0.05)',
+    paddingHorizontal: 13,
+    paddingVertical: 16,
+  },
+  // Hairline divider between the halves of the consolidated card.
+  hairlineDivider: {
+    height: 0.5,
+    backgroundColor: c.hairlineInset,
+  },
+
   // ── What we'll be watching card ──
+  // Used as the consolidated container in Phase 4. Outer border + radius
+  // wraps both halves; the patterns top inherits this card surface.
   watchingCard: {
     backgroundColor: c.glass,
     borderWidth: 0.5,
@@ -234,6 +272,36 @@ const createStyles = (c: any) => StyleSheet.create({
     color: c.textTertiary,
     fontStyle: 'italic',
     lineHeight: 14,
+  },
+
+  // ── Tip card — border-only, no fill (redirect not placeholder) ──
+  tipCard: {
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 13,
+    marginBottom: 14,
+  },
+  tipRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  tipIcon: {
+    fontSize: 16,
+    paddingTop: 1,
+  },
+  tipHeadline: {
+    fontSize: 12.5,
+    fontWeight: '500',
+    color: c.textPrimary,
+    marginBottom: 2,
+  },
+  tipSubtitle: {
+    fontSize: 10.5,
+    color: c.textSecondary,
+    lineHeight: 14.7,
   },
 });
 

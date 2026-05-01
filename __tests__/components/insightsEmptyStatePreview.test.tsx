@@ -76,12 +76,15 @@ describe('InsightsEmptyStatePreview — visibility gating', () => {
     expect(tree).toBeNull();
   });
 
-  it('renders both cards when fewer than 14 days exist', () => {
+  it('renders the consolidated card + tip card when fewer than 14 days exist', () => {
     const tree = (InsightsEmptyStatePreview as any)({ daysOfData: 4, patientName: 'Mom' });
-    const patternsCard = findAll(tree, (n) => n.props?.testID === 'insights-patterns-coming-card')[0];
-    const watchingCard = findAll(tree, (n) => n.props?.testID === 'insights-watching-card')[0];
-    expect(patternsCard).toBeDefined();
-    expect(watchingCard).toBeDefined();
+    // Phase 4 consolidation: single consolidated card replaces the prior
+    // split. The legacy split testIDs (insights-patterns-coming-card +
+    // insights-watching-card) are now the single insights-consolidated-card.
+    const consolidated = findAll(tree, (n) => n.props?.testID === 'insights-consolidated-card')[0];
+    const tip = findAll(tree, (n) => n.props?.testID === 'insights-tip-card')[0];
+    expect(consolidated).toBeDefined();
+    expect(tip).toBeDefined();
   });
 });
 
@@ -109,9 +112,10 @@ describe('InsightsEmptyStatePreview — Patterns coming card', () => {
     expect(flattenText(tree)).toContain('PATTERNS COMING');
   });
 
-  it('subtitle explains 2 weeks of tracking before patterns emerge', () => {
+  it('subtitle explains ~2 weeks of tracking before patterns emerge', () => {
     const tree = (InsightsEmptyStatePreview as any)({ daysOfData: 4, patientName: 'Mom' });
-    expect(flattenText(tree)).toContain('about 2 weeks of tracking');
+    // Phase 4 tightened the subtitle copy from "about 2 weeks" to "~2 weeks".
+    expect(flattenText(tree)).toMatch(/[~about] ?2 weeks of tracking/);
   });
 });
 
@@ -153,8 +157,10 @@ describe('InsightsEmptyStatePreview — What we\'ll be watching card', () => {
 
   it('footer reassures that patterns appear as the user goes', () => {
     const tree = (InsightsEmptyStatePreview as any)({ daysOfData: 4, patientName: 'Mom' });
+    // Phase 4 tightened the footer copy from "No need to wait for them."
+    // to the punchier "No need to wait."
     expect(flattenText(tree)).toContain('These appear as you go.');
-    expect(flattenText(tree)).toContain('No need to wait for them.');
+    expect(flattenText(tree)).toContain('No need to wait');
   });
 });
 

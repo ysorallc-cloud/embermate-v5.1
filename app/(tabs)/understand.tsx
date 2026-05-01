@@ -627,46 +627,16 @@ export default function UnderstandScreen() {
             }
           />
 
-          {/* v6.7 Prompt 7 — v7 preview cards for under-14-day windows.
-              Sits above the legacy banners; the legacy banners stay for
-              their tighter day-by-day messaging at 0–7 days. */}
+          {/* v6.7 Phase 4 — consolidated empty state for under-14-day
+              windows. Replaces the prior Patterns Coming + What we'll be
+              watching split AND the legacy "No data yet" / "Building
+              your picture" banners; one consolidated card + a redirect
+              tip card carry the full under-14-days messaging. */}
           {pageData && !pageData.isSampleData && pageData.daysOfData < 14 && (
             <InsightsEmptyStatePreview
               daysOfData={pageData.daysOfData}
               patientName={patientName}
             />
-          )}
-
-          {/* Empty State for brand-new users */}
-          {pageData && !pageData.isSampleData && pageData.daysOfData === 0 && (
-            <View style={styles.dataBuildingBanner}>
-              <Text style={styles.dataBuildingEmoji}>{'\uD83D\uDCCA'}</Text>
-              <Text style={styles.dataBuildingTitle}>No data yet</Text>
-              <Text style={styles.dataBuildingSubtitle}>
-                Start logging medications, vitals, or mood from the Now tab.{'\n'}
-                Insights and patterns will appear here after a few days of tracking.
-              </Text>
-              <Text style={[styles.dataBuildingSubtitle, { marginTop: 8, fontSize: 11 }]}>
-                At 7 days: weekly mood and sleep trends.{'\n'}
-                At 14 days: medication adherence patterns and visit prep.
-              </Text>
-            </View>
-          )}
-
-          {/* Data Building Banner */}
-          {pageData && !pageData.isSampleData && pageData.daysOfData > 0 && pageData.daysOfData < 7 && (
-            <View style={styles.dataBuildingBanner}>
-              <Text style={styles.dataBuildingEmoji}>{'\uD83D\uDCCA'}</Text>
-              <Text style={styles.dataBuildingTitle}>Building your picture</Text>
-              <Text style={styles.dataBuildingSubtitle}>
-                Keep tracking — patterns emerge after a few days.{'\n'}
-                You've logged <Text style={{ color: colors.accent, fontWeight: '600' }}>{pageData.daysOfData} day{pageData.daysOfData !== 1 ? 's' : ''}</Text> so far.
-              </Text>
-              <Text style={[styles.dataBuildingSubtitle, { marginTop: 8, fontSize: 11 }]}>
-                At 7 days: weekly mood and sleep trends.{'\n'}
-                At 14 days: medication adherence patterns and visit prep.
-              </Text>
-            </View>
           )}
 
           {/* ═══ SECTION 1: THIS WEEK'S PULSE (AI SUMMARY) ═══ */}

@@ -204,16 +204,22 @@ describe('UnderstandScreen — render smoke test', () => {
     expect(getByText('Insights')).toBeTruthy();
   });
 
-  it('renders the empty-state copy when daysOfData is 0', async () => {
+  it('renders the empty-state preview when daysOfData is 0', async () => {
+    // Phase 4 of v6.7 visual-consistency replaced the "No data yet" /
+    // "Building your picture" banners with the InsightsEmptyStatePreview
+    // consolidated card. The card surfaces the v7-tease copy ("PATTERNS
+    // COMING") + the redirect tip ("Start logging from Now").
     const { getByText } = await renderUnderstand();
-    expect(getByText('No data yet')).toBeTruthy();
-    expect(getByText(/Start logging medications, vitals, or mood/)).toBeTruthy();
+    expect(getByText('PATTERNS COMING')).toBeTruthy();
+    expect(getByText(/Start logging from Now/)).toBeTruthy();
   });
 
-  it('hints at the data-unlock thresholds (7 / 14 days) in the empty state', async () => {
+  it('teases what\'s coming via the consolidated card', async () => {
+    // The "Patterns coming" headline anchors the empty state. The 4-row
+    // "What we'll be watching for" preview lives inside the same card.
     const { getByText } = await renderUnderstand();
-    expect(getByText(/At 7 days: weekly mood and sleep trends/)).toBeTruthy();
-    expect(getByText(/At 14 days: medication adherence patterns/)).toBeTruthy();
+    expect(getByText(/more day[s]?, then trends appear/)).toBeTruthy();
+    expect(getByText("WHAT WE'LL BE WATCHING FOR")).toBeTruthy();
   });
 
   it('renders the Settings primary action with proper a11y', async () => {

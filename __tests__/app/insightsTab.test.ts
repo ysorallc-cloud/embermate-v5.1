@@ -28,9 +28,14 @@ describe('Insights tab', () => {
     expect(insightsContent).toContain('pageData.daysOfData >= 7');
   });
 
-  it('"Building your picture" card still renders when < 7 days', () => {
-    // The onboarding/building card should still exist
-    expect(insightsContent).toContain('Building your picture');
+  it('the consolidated empty-state preview renders for under-14-day windows', () => {
+    // Phase 4 of v6.7 visual-consistency replaced the legacy "Building
+    // your picture" banner with the InsightsEmptyStatePreview consolidated
+    // card. The under-14-days gate is the new equivalent of the prior
+    // "< 7 days" branch (broader window, single card).
+    expect(insightsContent).toMatch(
+      /pageData\.daysOfData\s*<\s*14[\s\S]{0,200}<InsightsEmptyStatePreview/,
+    );
   });
 
   it('disclaimer text is present', () => {
