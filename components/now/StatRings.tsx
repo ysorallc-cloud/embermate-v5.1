@@ -43,9 +43,9 @@ export function StatRings({ stats }: StatRingsProps) {
   const s = useMemo(() => createStyles(colors), [colors]);
 
   // Track opacity bumped from 0.08 → 0.12 after the v6.7 contrast lift —
-  // 0.08 was tuned for the old #111111 glass; against the lifted #1c2330
-  // surface it blended too close to the card and the unfilled portion of
-  // the ring went invisible.
+  // 0.08 was tuned for the old #111111 glass; against the warm Sage
+  // surface (#2a2c25) it blended too close to the card and the unfilled
+  // portion of the ring went invisible.
   const trackColor = resolvedTheme === 'light'
     ? 'rgba(0, 0, 0, 0.12)'
     : 'rgba(255, 255, 255, 0.12)';

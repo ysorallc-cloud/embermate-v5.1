@@ -19,90 +19,99 @@ interface Props {
   variant?: AuroraVariant;
 }
 
+// v6.7 Sage warm-dark palette anchors (kept inline so the gradient stops
+// stay self-documenting):
+//   Sage mint     — accent          → rgb(95, 184, 138)
+//   Lavender      — caregiverAccent → rgb(170, 138, 220)
+//   Sage amber    — warning         → rgb(229, 176, 74)
+//
+// All dark-mode stops are capped at alpha ≤ 0.20 so the warm #141612
+// background reads through. Higher alphas would paint the screen cool
+// blue-teal even with the right token underneath.
 const AURORA_CONFIGS: Record<AuroraVariant, {
   colors: [string, string, string];
 }> = {
   today: {
     colors: [
-      'rgba(20, 140, 110, 0.55)',  // Teal — stronger wash
-      'rgba(40, 80, 100, 0.25)',   // Blue-teal
+      'rgba(95, 184, 138, 0.18)',   // Sage mint
+      'rgba(95, 184, 138, 0.06)',
       'transparent',
     ],
   },
   now: {
     colors: [
-      'rgba(20, 140, 110, 0.55)',  // Teal — stronger wash
-      'rgba(40, 80, 100, 0.25)',
+      'rgba(95, 184, 138, 0.18)',   // Sage mint
+      'rgba(95, 184, 138, 0.06)',
       'transparent',
     ],
   },
   journal: {
     colors: [
-      'rgba(80, 60, 140, 0.45)',   // Purple
-      'rgba(40, 80, 120, 0.2)',    // Blue
+      'rgba(170, 138, 220, 0.16)',  // Lavender
+      'rgba(170, 138, 220, 0.05)',
       'transparent',
     ],
   },
   hub: {
     colors: [
-      'rgba(60, 60, 140, 0.45)',   // Purple-blue
-      'rgba(40, 80, 100, 0.2)',    // Teal-blue
+      'rgba(170, 138, 220, 0.14)',  // Lavender → sage blend
+      'rgba(95, 184, 138, 0.05)',
       'transparent',
     ],
   },
   log: {
     colors: [
-      'rgba(100, 80, 30, 0.4)',    // Amber/orange
-      'rgba(40, 80, 60, 0.2)',     // Green-teal
+      'rgba(229, 176, 74, 0.14)',   // Sage amber
+      'rgba(95, 184, 138, 0.04)',
       'transparent',
     ],
   },
   care: {
     colors: [
-      'rgba(100, 60, 100, 0.4)',   // Rose/purple
-      'rgba(60, 60, 100, 0.25)',   // Purple
+      'rgba(170, 138, 220, 0.14)',  // Lavender
+      'rgba(170, 138, 220, 0.05)',
       'transparent',
     ],
   },
   reports: {
     colors: [
-      'rgba(80, 60, 140, 0.45)',   // Purple
-      'rgba(40, 80, 120, 0.2)',    // Blue
+      'rgba(170, 138, 220, 0.16)',  // Lavender
+      'rgba(170, 138, 220, 0.05)',
       'transparent',
     ],
   },
   settings: {
     colors: [
-      'rgba(50, 60, 80, 0.3)',     // Blue-gray
-      'rgba(40, 50, 70, 0.15)',    // Darker blue-gray
+      'rgba(170, 160, 140, 0.12)',  // Warm neutral
+      'rgba(140, 130, 110, 0.04)',
       'transparent',
     ],
   },
   family: {
     colors: [
-      'rgba(100, 60, 100, 0.4)',   // Rose/purple (same as care)
-      'rgba(60, 60, 100, 0.25)',   // Purple
+      'rgba(170, 138, 220, 0.14)',  // Lavender (same as care)
+      'rgba(170, 138, 220, 0.05)',
       'transparent',
     ],
   },
   insights: {
     colors: [
-      'rgba(80, 60, 140, 0.45)',   // Purple (same as reports)
-      'rgba(40, 80, 120, 0.2)',    // Blue
+      'rgba(170, 138, 220, 0.16)',  // Lavender (same as reports)
+      'rgba(170, 138, 220, 0.05)',
       'transparent',
     ],
   },
   connect: {
     colors: [
-      'rgba(100, 60, 100, 0.4)',   // Rose/purple
-      'rgba(60, 60, 100, 0.25)',   // Purple
+      'rgba(170, 138, 220, 0.14)',  // Lavender
+      'rgba(170, 138, 220, 0.05)',
       'transparent',
     ],
   },
   support: {
     colors: [
-      'rgba(20, 100, 70, 0.45)',   // Warm sage-teal
-      'rgba(15, 60, 45, 0.30)',    // Deep warm green
+      'rgba(95, 184, 138, 0.18)',   // Sage mint (warm complement to the
+      'rgba(95, 184, 138, 0.06)',   // affirmation framing on the You tab)
       'transparent',
     ],
   },

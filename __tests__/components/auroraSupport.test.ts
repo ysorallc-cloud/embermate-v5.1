@@ -21,9 +21,12 @@ describe('Aurora support variant', () => {
     expect(auroraSrc).toMatch(/support:\s*\{\s*colors:/);
   });
 
-  it('support config uses warm sage tones', () => {
+  it('support config uses warm sage tones (sage-mint per the v6.7 palette)', () => {
     const supportMatch = auroraSrc.match(/support:\s*\{\s*colors:\s*\[\s*'([^']+)'/);
     expect(supportMatch).not.toBeNull();
-    expect(supportMatch![1]).toContain('100, 70'); // warm sage-teal component
+    // Sage mint = colors.accent = #5fb88a = rgb(95, 184, 138). After the
+    // v6.7 propagation fix, the support gradient is anchored on this token
+    // rather than the prior cool sage-teal magic number.
+    expect(supportMatch![1]).toMatch(/95,\s*184,\s*138/);
   });
 });
