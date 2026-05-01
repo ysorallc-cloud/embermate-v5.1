@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { navigateBack } from '../lib/navigate';
+import { navigate, navigateBack } from '../lib/navigate';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePatient } from '../contexts/PatientContext';
@@ -171,19 +171,32 @@ export default function VisitPrepScreen() {
             ))}
           </View>
 
-          {/* Questions */}
+          {/* Questions for the doctor — running list managed via the
+              dedicated entry surface (patient-questions). The free-text box
+              below is kept for last-minute additions specific to this visit. */}
           {includeQuestions && (
             <>
-              <Text style={styles.sectionLabel}>Questions for the visit</Text>
+              <Text style={styles.sectionLabel}>Questions for the doctor</Text>
+              <TouchableOpacity
+                style={styles.questionsLink}
+                onPress={() => navigate('/patient-questions')}
+                accessibilityRole="button"
+                accessibilityLabel="Manage running list of questions for the doctor"
+              >
+                <Text style={styles.questionsLinkText}>
+                  {'Open running list →'}
+                </Text>
+              </TouchableOpacity>
+              <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Anything else for this visit?</Text>
               <TextInput
                 style={styles.questionsInput}
-                placeholder="What should we ask about? One question per line..."
+                placeholder="One question per line..."
                 placeholderTextColor={colors.textWarmDim}
                 multiline
                 value={questions}
                 onChangeText={handleQuestionsChange}
                 textAlignVertical="top"
-                accessibilityLabel="Questions for the doctor"
+                accessibilityLabel="Additional questions for this visit"
               />
             </>
           )}
@@ -296,6 +309,20 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 13,
     color: c.textWarmPrimary,
     marginBottom: 8,
+  },
+  questionsLink: {
+    backgroundColor: c.warmSurface,
+    borderWidth: 1,
+    borderColor: c.warmSurfaceBorder,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 4,
+  },
+  questionsLinkText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: c.accent,
   },
   generateButton: {
     backgroundColor: c.accent,

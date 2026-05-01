@@ -9,6 +9,7 @@ import { generateUniqueId } from './idGenerator';
 import { logError } from './devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { StorageKeys, scopedKey } from './storageKeys';
+import { recordMedicationChange } from '../services/medicationChangeTracking';
 
 const DEFAULT_PATIENT_ID = 'default';
 
@@ -148,6 +149,15 @@ export async function createMedication(
       throw new Error('Failed to save medication to storage');
     }
 
+    // v6.7 — record the add to the medication change log so the Visit Prep
+    // PDF's "What changed after medication updates" section can surface it.
+    void recordMedicationChange(patientId, {
+      kind: 'added',
+      medicationId: newMedication.id,
+      medicationName: newMedication.name,
+      newDosage: newMedication.dosage,
+    });
+
     return newMedication;
   } catch (error) {
     logError('medicationStorage.createMedication', error);
@@ -172,6 +182,7 @@ export async function updateMedication(
       return null;
     }
 
+    const previous = medications[index];
     medications[index] = { ...medications[index], ...updates };
 
     const success = await safeSetItem(scopedKey(MEDICATIONS_KEY, patientId), medications);
@@ -179,6 +190,30 @@ export async function updateMedication(
     if (!success) {
       logError('medicationStorage.updateMedication', 'Failed to save updated medication');
       return null;
+    }
+
+    // v6.7 — record meaningful changes so the Visit Prep PDF can show them.
+    // Soft-delete (active: false) maps to "removed"; dose change to
+    // "dose_changed". Other field edits (notes, time) don't surface in the
+    // PDF, so they aren't logged.
+    const next = medications[index];
+    if (previous.active !== false && next.active === false) {
+      void recordMedicationChange(patientId, {
+        kind: 'removed',
+        medicationId: next.id,
+        medicationName: next.name,
+      });
+    } else if (
+      typeof updates.dosage === 'string' &&
+      previous.dosage !== updates.dosage
+    ) {
+      void recordMedicationChange(patientId, {
+        kind: 'dose_changed',
+        medicationId: next.id,
+        medicationName: next.name,
+        previousDosage: previous.dosage,
+        newDosage: next.dosage,
+      });
     }
 
     return medications[index];

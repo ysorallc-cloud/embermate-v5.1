@@ -15,10 +15,26 @@ jest.mock('../../utils/vitalsStorage', () => ({
 }));
 jest.mock('../../storage/carePlanRepo', () => ({
   listDailyInstancesRange: jest.fn(),
+  listLogsInRange: jest.fn(() => Promise.resolve([])),
   DEFAULT_PATIENT_ID: 'default',
 }));
 jest.mock('../../storage/reflectionStorage', () => ({
   getReflection: jest.fn(),
+}));
+// v6.7 — new sections feed off services mocked here so the existing test
+// only exercises the legacy (header/adherence/vitals/wellness) path.
+jest.mock('../../services/symptomChangeDetection', () => ({
+  detectSymptomChanges: jest.fn(() => Promise.resolve([])),
+}));
+jest.mock('../../services/functionalIssueExtraction', () => ({
+  extractFunctionalIssues: jest.fn(() => Promise.resolve([])),
+}));
+jest.mock('../../services/patientQuestionsRepo', () => ({
+  listQuestions: jest.fn(() => Promise.resolve([])),
+  clearQuestions: jest.fn(),
+}));
+jest.mock('../../services/medicationChangeTracking', () => ({
+  listMedicationChanges: jest.fn(() => Promise.resolve([])),
 }));
 
 import { assembleVisitPrepData, VisitPrepConfig } from '../../services/visitPrepPdf';
@@ -106,9 +122,10 @@ describe('assembleVisitPrepData — shape & required sections', () => {
     expect(data.header.generatedAt).toBeDefined();
   });
 
-  it('footer contains the disclaimer', async () => {
+  it('footer contains the caregiver disclaimer (v6.7 — Prompt 5)', async () => {
     const data = await assembleVisitPrepData(BASE_CONFIG);
-    expect(data.footer).toContain('Not a medical record');
+    expect(data.footer.toLowerCase()).toContain('logged at home');
+    expect(data.footer.toLowerCase()).toContain('not replace clinical judgment');
   });
 
   it('questions section includes the free-text input', async () => {

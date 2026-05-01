@@ -281,6 +281,8 @@ function RootLayout() {
           <Stack.Screen name="log-bathroom" />
           <Stack.Screen name="guide-hub" />
           <Stack.Screen name="hub" />
+          <Stack.Screen name="silent-vitals" />
+          <Stack.Screen name="patient-questions" />
         </Stack>
         </PatientProvider>
       </WebContainer>
