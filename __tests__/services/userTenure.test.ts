@@ -43,6 +43,14 @@ import {
   getUserTenure,
   markInstalledIfMissing,
   USER_INSTALLED_AT_KEY,
+  setTenureOverride,
+  getTenureOverride,
+  clearTenureOverride,
+  setDevModeEnabled,
+  isDevModeEnabled,
+  resetDevMode,
+  DEV_MODE_ENABLED_KEY,
+  DEV_TENURE_OVERRIDE_KEY,
 } from '../../services/userTenure';
 
 beforeEach(async () => {
@@ -168,5 +176,94 @@ describe('getUserTenure — defaults when install date is missing', () => {
     const tenure = await getUserTenure(new Date('2026-04-30T12:00:00'));
     // Future dates are nonsensical; treat as missing rather than negative tenure.
     expect(tenure.phase).toBe('experienced');
+  });
+});
+
+describe('Developer mode flag', () => {
+  it('isDevModeEnabled defaults to false', async () => {
+    expect(await isDevModeEnabled()).toBe(false);
+  });
+
+  it('setDevModeEnabled(true) flips the flag', async () => {
+    await setDevModeEnabled(true);
+    expect(await isDevModeEnabled()).toBe(true);
+  });
+
+  it('setDevModeEnabled(false) clears the flag', async () => {
+    await setDevModeEnabled(true);
+    await setDevModeEnabled(false);
+    expect(await isDevModeEnabled()).toBe(false);
+  });
+
+  it('resetDevMode clears both the flag and any tenure override', async () => {
+    await setDevModeEnabled(true);
+    await setTenureOverride('seasoned');
+    await resetDevMode();
+    expect(await isDevModeEnabled()).toBe(false);
+    expect(await getTenureOverride()).toBeNull();
+  });
+});
+
+describe('Tenure override CRUD', () => {
+  it('getTenureOverride returns null when nothing is set', async () => {
+    expect(await getTenureOverride()).toBeNull();
+  });
+
+  it('setTenureOverride persists the chosen phase', async () => {
+    await setTenureOverride('seasoned');
+    expect(await getTenureOverride()).toBe('seasoned');
+  });
+
+  it('clearTenureOverride drops the value', async () => {
+    await setTenureOverride('new');
+    await clearTenureOverride();
+    expect(await getTenureOverride()).toBeNull();
+  });
+
+  it('rejects unknown phase strings', async () => {
+    await setTenureOverride('seasoned');
+    await setTenureOverride('garbage' as any);
+    // Bad input is ignored — previous value remains.
+    expect(await getTenureOverride()).toBe('seasoned');
+  });
+});
+
+describe('getUserTenure — override wins over real install date', () => {
+  const realInstalled = new Date(Date.UTC(2025, 9, 1, 0, 0, 0)); // 2025-10-01
+  const now = new Date(Date.UTC(2026, 3, 30, 12, 0, 0));         // 2026-04-30
+
+  beforeEach(async () => {
+    await AsyncStorage.setItem(USER_INSTALLED_AT_KEY, JSON.stringify(realInstalled.toISOString()));
+  });
+
+  it('override "new" reports phase=new with synthetic days=15', async () => {
+    await setTenureOverride('new');
+    const tenure = await getUserTenure(now);
+    expect(tenure.phase).toBe('new');
+    expect(tenure.days).toBe(15);
+  });
+
+  it('override "experienced" reports phase=experienced with synthetic days=60', async () => {
+    await setTenureOverride('experienced');
+    const tenure = await getUserTenure(now);
+    expect(tenure.phase).toBe('experienced');
+    expect(tenure.days).toBe(60);
+  });
+
+  it('override "seasoned" reports phase=seasoned with synthetic days=120', async () => {
+    await setTenureOverride('seasoned');
+    const tenure = await getUserTenure(now);
+    expect(tenure.phase).toBe('seasoned');
+    expect(tenure.days).toBe(120);
+  });
+
+  it('clearing the override returns real computed tenure', async () => {
+    await setTenureOverride('seasoned');
+    await clearTenureOverride();
+    const tenure = await getUserTenure(now);
+    // 2025-10-01 → 2026-04-30 is well beyond 90 days, but real-not-overridden.
+    expect(tenure.phase).toBe('seasoned');
+    expect(tenure.days).toBeGreaterThan(91);
+    expect(tenure.days).not.toBe(120); // not the synthetic midpoint
   });
 });

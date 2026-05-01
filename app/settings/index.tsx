@@ -37,6 +37,11 @@ import { StorageKeys } from '../../utils/storageKeys';
 import { deleteAllUserData } from '../../utils/privacyUtils';
 import { logError } from '../../utils/devLog';
 import { getMedicalInfo } from '../../utils/medicalInfo';
+import {
+  isDevModeEnabled,
+  setDevModeEnabled,
+  resetDevMode,
+} from '../../services/userTenure';
 
 // ============================================================================
 // TYPES
@@ -72,6 +77,9 @@ export default function SettingsScreen() {
   // hasn't visited the screen in 7+ days. Stored timestamp lives in
   // app/settings/what-to-watch-for.tsx.
   const [watchForStale, setWatchForStale] = useState(false);
+  // Dev-mode flag — long-press the version line to flip on. Surfaces the
+  // Developer category at the bottom of the page (only in __DEV__ builds).
+  const [devMode, setDevMode] = useState(false);
   const { isSampleMode, sampleStatus } = useSampleMode();
   const [manageSampleSheet, setManageSampleSheet] = useState<{
     open: boolean;
@@ -94,6 +102,11 @@ export default function SettingsScreen() {
       })
       .catch((e) => logError('SettingsScreen.loadDiagnoses', e));
 
+    // Hydrate devMode flag — only relevant in __DEV__ builds.
+    isDevModeEnabled()
+      .then((enabled) => setDevMode(enabled))
+      .catch((e) => logError('SettingsScreen.loadDevMode', e));
+
     // Light unread indicator if the watchlist screen hasn't been opened in
     // 7+ days. The screen itself stamps the timestamp on each visit.
     AsyncStorage.getItem('@embermate_watch_for_last_shown')
@@ -114,6 +127,38 @@ export default function SettingsScreen() {
   }, []);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
+  const handleVersionLongPress = useCallback(() => {
+    if (!__DEV__) return; // Defense in depth — never activates in prod.
+    setDevModeEnabled(true)
+      .then(() => {
+        setDevMode(true);
+        Alert.alert('Developer mode activated.');
+      })
+      .catch((e) => logError('SettingsScreen.activateDevMode', e));
+  }, []);
+
+  const handleResetDevMode = useCallback(() => {
+    Alert.alert(
+      'Reset developer mode',
+      'This clears the developer flag and any tenure override.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await resetDevMode();
+              setDevMode(false);
+            } catch (err) {
+              logError('SettingsScreen.resetDevMode', err);
+            }
+          },
+        },
+      ],
+    );
+  }, []);
+
   const handleResetOnboarding = useCallback(() => {
     Alert.alert(
       'See onboarding again',
@@ -300,7 +345,31 @@ export default function SettingsScreen() {
         },
       ],
     },
-  ], [profileTitle, router, handleDeleteAllData, activeConditions, watchForStale]);
+    // Developer section — only renders when (a) __DEV__ is true (defense in
+    // depth: production builds never compile this category in) and (b) the
+    // dev-mode flag has been activated via long-press on the version line.
+    ...(__DEV__ && devMode ? [{
+      id: 'developer',
+      icon: '🛠️',
+      title: 'Developer',
+      items: [
+        {
+          id: 'tenure-override',
+          icon: '🕐',
+          title: 'Tenure override',
+          subtitle: 'Flip the time-decay scaffolding for QA',
+          onPress: () => navigate('/dev/tenure-override' as any),
+        },
+        {
+          id: 'reset-dev-mode',
+          icon: '↩️',
+          title: 'Reset developer mode',
+          subtitle: 'Clear the flag and any tenure override',
+          onPress: handleResetDevMode,
+        },
+      ],
+    } as SettingsCategory] : []),
+  ], [profileTitle, router, handleDeleteAllData, activeConditions, watchForStale, devMode, handleResetDevMode]);
 
   const versionLabel = Constants.expoConfig?.version ?? '6.7.0';
 
@@ -389,17 +458,26 @@ export default function SettingsScreen() {
           <Text style={styles.disclaimer}>
             EmberMate is a personal tracking tool — not a substitute for medical advice.
           </Text>
-          <Text style={styles.versionLine}>
-            {`Version ${versionLabel} · `}
-            <Text
-              style={styles.versionLink}
-              onPress={handleResetOnboarding}
-              accessibilityRole="link"
-              accessibilityLabel="See onboarding again"
-            >
-              See onboarding again
+          <TouchableOpacity
+            onLongPress={handleVersionLongPress}
+            delayLongPress={600}
+            activeOpacity={1}
+            accessibilityRole="text"
+            accessibilityLabel={`Version ${versionLabel}`}
+            accessibilityHint={__DEV__ ? 'Long press to enable developer mode.' : undefined}
+          >
+            <Text style={styles.versionLine}>
+              {`Version ${versionLabel} · `}
+              <Text
+                style={styles.versionLink}
+                onPress={handleResetOnboarding}
+                accessibilityRole="link"
+                accessibilityLabel="See onboarding again"
+              >
+                See onboarding again
+              </Text>
             </Text>
-          </Text>
+          </TouchableOpacity>
 
           <View style={{ height: 40 }} />
         </ScrollView>

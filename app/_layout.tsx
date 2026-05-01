@@ -283,6 +283,7 @@ function RootLayout() {
           <Stack.Screen name="hub" />
           <Stack.Screen name="silent-vitals" />
           <Stack.Screen name="patient-questions" />
+          <Stack.Screen name="dev/tenure-override" />
         </Stack>
         </PatientProvider>
       </WebContainer>
