@@ -321,7 +321,10 @@ const createStyles = (c: any) =>
       opacity: 0.5,
     },
     dayLabelSelected: {
-      color: '#141612',
+      // Dark text fg on the sage-filled selected pill. Flipped in lockstep
+      // with the Phase 0 page-bg lift (#141612 → #1f201c) so the
+      // foreground/background pair retains its tonal relationship.
+      color: '#1f201c',
       fontWeight: '600',
     },
     dot: {

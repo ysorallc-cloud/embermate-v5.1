@@ -15,9 +15,9 @@
 import React from 'react';
 
 const themeColors = {
-  background: '#141612',
-  glass: '#2a2c25',
-  glassDim: '#1f2019',
+  background: '#1f201c',
+  glass: '#363830',
+  glassDim: '#2a2c25',
   glassHover: 'rgba(255, 245, 220, 0.06)',
   glassBorder: 'rgba(255, 240, 215, 0.08)',
   hairlineInset: 'rgba(255, 240, 215, 0.06)',
@@ -31,7 +31,7 @@ const themeColors = {
   textSecondary: '#c4c1b3',
   textTertiary: '#8a8a82',
   textMuted: '#9aa0a6',
-  youCardSurface: '#2c2a23',
+  youCardSurface: '#383528',
   youCardBorder: 'rgba(255, 240, 215, 0.10)',
   youAffirmationText: '#d4d1c3',
   youResetPillSurface: '#252420',
@@ -107,13 +107,15 @@ const styleOf = (node: any) => {
 };
 
 describe('ReflectionCard — locked warm capture surface', () => {
-  it('card uses youCardSurface (#2c2a23), not glass', () => {
+  it('card uses youCardSurface (#383528), not glass', () => {
+    // Phase 0 lockstep lift: youCardSurface lifted from #2c2a23 → #383528
+    // and glass lifted from #2a2c25 → #363830. The contract — that the
+    // You-tab capture surface differs from the default glass — is preserved.
     const tree = (ReflectionCard as any)({});
-    // The root is the card itself.
     const root = tree;
     const merged = styleOf(root);
-    expect(merged.backgroundColor).toBe('#2c2a23');
-    expect(merged.backgroundColor).not.toBe('#2a2c25');
+    expect(merged.backgroundColor).toBe('#383528');
+    expect(merged.backgroundColor).not.toBe('#363830');
   });
 
   it('Save button is the filled-sage primary', () => {

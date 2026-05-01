@@ -25,9 +25,9 @@ interface Props {
 //   Lavender      — caregiverAccent → rgb(170, 138, 220)
 //   Sage amber    — warning         → rgb(229, 176, 74)
 //
-// All dark-mode stops are capped at alpha ≤ 0.20 so the warm #141612
-// background reads through. Higher alphas would paint the screen cool
-// blue-teal even with the right token underneath.
+// All dark-mode stops are capped at alpha ≤ 0.20 so the warm page bg
+// (Phase 0: #1f201c, was #141612) reads through. Higher alphas would
+// paint the screen cool blue-teal even with the right token underneath.
 const AURORA_CONFIGS: Record<AuroraVariant, {
   colors: [string, string, string];
 }> = {

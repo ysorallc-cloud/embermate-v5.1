@@ -15,8 +15,8 @@ jest.mock('../../contexts/ThemeContext', () => ({
   useTheme: () => ({
     resolvedTheme: 'dark',
     colors: {
-      background: '#141612',
-      glass: '#2a2c25',
+      background: '#1f201c',
+      glass: '#363830',
       glassBorder: 'rgba(255, 240, 215, 0.08)',
       hairlineInset: 'rgba(255, 240, 215, 0.06)',
       accent: '#5fb88a',
@@ -84,7 +84,9 @@ describe('StatRings — flattened (no outer glass card)', () => {
       const styleProp = n.props?.style;
       const styles = Array.isArray(styleProp) ? styleProp : [styleProp];
       for (const s of styles) {
-        if (s && typeof s === 'object' && s.backgroundColor === '#2a2c25') {
+        // Phase 0 lockstep lift moved glass from #2a2c25 → #363830;
+        // the contract pins absence of the *current* glass token.
+        if (s && typeof s === 'object' && s.backgroundColor === '#363830') {
           return true;
         }
       }

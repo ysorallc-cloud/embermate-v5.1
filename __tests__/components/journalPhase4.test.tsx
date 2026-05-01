@@ -10,8 +10,8 @@
 import React from 'react';
 
 const themeColors = {
-  background: '#141612',
-  glass: '#2a2c25',
+  background: '#1f201c',
+  glass: '#363830',
   glassBorder: 'rgba(255, 240, 215, 0.08)',
   hairlineInset: 'rgba(255, 240, 215, 0.06)',
   accent: '#5fb88a',

@@ -38,7 +38,7 @@ jest.mock('../../contexts/ThemeContext', () => ({
   useTheme: () => ({
     colors: {
       background: '#0a0c0a',
-      glass: '#2a2c25',
+      glass: '#363830',
       glassBorder: 'rgba(255,255,255,0.08)',
       accent: '#5fb88a',
       warning: '#e5b04a',

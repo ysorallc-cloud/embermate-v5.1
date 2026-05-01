@@ -17,37 +17,49 @@ const DarkColors = {
   // ── Sage warm-dark surfaces (v6.7 hue shift) ─────────────────────────────
   // Lightness values match the previous palette so the L* delta tests still
   // pass; only the hue rotates from cool blue-black to warm sage-cream.
-  background: '#141612',
+  // Phase 0 of the v6.7 May 1 sizing pass lifted the page bg from the prior
+  // very-dark #141612 to #1f201c — calibrated half-step toward charcoal that
+  // holds the warm cast without reading washed-out on device. Fallback if
+  // device check fails: drop to #1c1d1a.
+  background: '#1f201c',
   backgroundAlt: '#050505',
-  glass: '#2a2c25',
+  // Phase 0 lockstep lift — when bg moved from #141612 (L* 6.92) to #1f201c
+  // (L* 12.01), the prior glass #2a2c25 (L* 17.59) only lifted L* 5.57 above
+  // the new bg, breaking the L* ≥ 8 dim-room legibility contract. Glass and
+  // its siblings are lifted in lockstep so cards keep the "object on a
+  // surface" affordance. New deltas: glass→bg L* 11.08, surfaceElevated→bg
+  // L* 12.54, youCardSurface→bg L* 10.08. See cardContrast.test.ts.
+  glass: '#363830',
   glassHover: 'rgba(255, 245, 220, 0.06)',
   glassBorder: 'rgba(255, 240, 215, 0.08)',
   // v6.7 — inset row hairline (12pt inset inside cards). Quieter than
   // glassBorder (0.08) so it reads as a separator, not an edge.
   hairlineInset: 'rgba(255, 240, 215, 0.06)',
   glassActive: 'rgba(255, 245, 220, 0.12)',
-  glassDim: '#1f2019',
+  // glassDim now occupies the slot the previous glass held (#2a2c25),
+  // preserving the dim-vs-glass tonal relationship after the lockstep lift.
+  glassDim: '#2a2c25',
   glassFaint: 'rgba(255, 245, 220, 0.03)',
   glassSubtle: 'rgba(255, 245, 220, 0.12)',
   glassStrong: 'rgba(255, 245, 220, 0.18)',
   glassBold: 'rgba(255, 245, 220, 0.25)',
-  surface: '#2a2c25',
-  surfaceElevated: '#322f27',
+  surface: '#363830',
+  surfaceElevated: '#3e3a31',
   surfaceAlt: 'rgba(255, 255, 255, 0.03)',
   surfaceHighlight: 'rgba(95, 184, 138, 0.08)',
   // ── Warm surfaces — re-tuned in v6.7 to lift L* ≥ 6 above the warmer
-  //    sage-cream background (#141612). Hues now share the warm-dark family
-  //    rather than the previous cool blue tint. ─────────────────────────────
-  warmSurface: '#2c2f25',
-  warmSurfaceBorder: '#383a30',
-  warmSurfaceAlert: '#2f2620',
-  warmSurfaceAlertBorder: '#403328',
-  warmSurfaceQuiet: '#262824',
-  warmSurfaceQuietBorder: '#2e3030',
-  warmSurfaceGreen: '#2a322a',
-  warmSurfaceGreenBorder: '#384238',
-  warmSurfacePurple: '#2c2935',
-  warmSurfacePurpleBorder: '#3a364a',
+  //    sage-cream background (Phase 0: #1f201c, was #141612). Hues now share
+  //    the warm-dark family rather than the previous cool blue tint. ────────
+  warmSurface: '#32352b',
+  warmSurfaceBorder: '#3e4036',
+  warmSurfaceAlert: '#352c26',
+  warmSurfaceAlertBorder: '#46392e',
+  warmSurfaceQuiet: '#2c2e2a',
+  warmSurfaceQuietBorder: '#343636',
+  warmSurfaceGreen: '#303830',
+  warmSurfaceGreenBorder: '#3e483e',
+  warmSurfacePurple: '#322f3b',
+  warmSurfacePurpleBorder: '#403c50',
   auroraTeal: 'hsla(160, 40%, 12%, 0.4)',
   auroraPurple: 'hsla(160, 50%, 15%, 0.35)',
   auroraBlue: 'hsla(165, 40%, 10%, 0.3)',
@@ -172,7 +184,7 @@ const DarkColors = {
   // v6.7 visual-consistency lock: text colors moved from rgba-on-white to
   // solid hex so the apparent color stays constant across page-bg / glass
   // / youCardSurface and contrast is deterministic. textSecondary doubles
-  // as the eyebrow color (>= 4.5:1 on both #141612 and #2a2c25).
+  // as the eyebrow color (>= 4.5:1 on both #1f201c and #2a2c25).
   textSecondary: '#c4c1b3',
   textTertiary: '#8a8a82',
   textSoft: 'rgba(255, 255, 255, 0.42)',
@@ -186,10 +198,15 @@ const DarkColors = {
   caregiverAccentBg: 'rgba(170, 138, 220, 0.06)',
   caregiverAccentBorder: 'rgba(170, 138, 220, 0.25)',
   // ── You tab — slightly warmer card surface for content warmth (Prompt 2) ──
-  youCardSurface: '#2c2a23',
+  // Lifted in lockstep with bg (Phase 0): L* 22.09 vs bg L* 12.01 = delta
+  // 10.08, restoring "warm card sitting on a surface" affordance.
+  youCardSurface: '#383528',
   youCardBorder: 'rgba(255, 240, 215, 0.10)',
   youAffirmationText: '#d4d1c3',
-  youResetPillSurface: '#252420',
+  // Reset pills sit slightly darker than the You card surface so they read
+  // as recessed buttons within the card (their old #252420 was lower L*
+  // than glassDim; now lifted to keep the same relative depth).
+  youResetPillSurface: '#2f2d24',
   youResetPillBorder: 'rgba(255, 235, 205, 0.10)',
   // ── Warm text ──
   textWarmPrimary: '#e0e8f0',
@@ -209,7 +226,9 @@ const DarkColors = {
   borderLight: 'rgba(255, 255, 255, 0.05)',
   borderMedium: 'rgba(95, 184, 138, 0.22)',
   borderStrong: 'rgba(95, 184, 138, 0.35)',
-  tabBarBackground: '#141612',
+  // Mirrors the page background (Phase 0 lifted both in lockstep so the
+  // tab strip stays seamless with the surface above it).
+  tabBarBackground: '#1f201c',
   tabBarBorder: 'rgba(95, 184, 138, 0.15)',
   tabBarActive: '#5fb88a',
   tabBarInactive: 'rgba(255, 255, 255, 0.40)',

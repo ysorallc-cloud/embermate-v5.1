@@ -1,5 +1,5 @@
 // ============================================================================
-// Page background contract — flat #141612 on every tab.
+// Page background contract — flat #1f201c on every tab (Phase 0 lift).
 //
 // May 1 screenshots showed 4 visibly different page backgrounds because each
 // tab was applying its own AuroraBackground variant (gradient stops in
@@ -29,7 +29,7 @@ const TAB_LAYOUT = 'app/(tabs)/_layout.tsx';
 const ROOT = join(__dirname, '..');
 const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 
-describe('Page background — flat #141612 on every tab', () => {
+describe('Page background — flat #1f201c on every tab', () => {
   for (const file of TABS) {
     describe(file, () => {
       const src = read(file);

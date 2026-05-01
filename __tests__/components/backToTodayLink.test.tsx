@@ -19,7 +19,7 @@ jest.mock('react', () => {
 jest.mock('../../contexts/ThemeContext', () => ({
   useTheme: () => ({
     colors: {
-      background: '#141612',
+      background: '#1f201c',
       accent: '#5fb88a',
       caregiverAccent: '#aa8adc',
       textPrimary: '#fff',

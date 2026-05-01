@@ -18,7 +18,7 @@ jest.mock('../../contexts/ThemeContext', () => ({
       caregiverAccentBg: 'rgba(139, 92, 246, 0.06)',
       textPrimary: '#fff',
       textSecondary: '#9aa0a6',
-      glass: '#2a2c25',
+      glass: '#363830',
     },
   }),
 }));

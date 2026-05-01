@@ -3,9 +3,9 @@
 //
 // The Now/Today aurora is the most-visible surface in the app — when its
 // gradient stops use heavy cool-blue/teal washes, they paint over the warm
-// #141612 background and make the screen read as cool blue-black instead of
-// Sage warm-dark. This test pins the dark-mode contract: alpha caps + Sage
-// palette inputs.
+// page bg (Phase 0: #1f201c, was #141612) and make the screen read as cool
+// blue-black instead of Sage warm-dark. This test pins the dark-mode
+// contract: alpha caps + Sage palette inputs.
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -62,7 +62,7 @@ describe('AuroraBackground — dark mode warm-palette contract', () => {
     }
     if (violations.length > 0) {
       throw new Error(
-        `Dark aurora stops at high alpha override the warm #141612 background:\n  ${violations.join('\n  ')}`,
+        `Dark aurora stops at high alpha override the warm #1f201c background:\n  ${violations.join('\n  ')}`,
       );
     }
     expect(violations.length).toBe(0);

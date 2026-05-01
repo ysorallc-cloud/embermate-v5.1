@@ -14,15 +14,22 @@ const dark = getDarkColors() as unknown as Record<string, string>;
 
 describe('Theme tokens — locked dark surfaces', () => {
   it('background (page) is the warm Sage near-black', () => {
-    expect(dark.background).toBe('#141612');
+    // Phase 0 of the v6.7 May 1 sizing pass lifted the page bg from
+    // #141612 to #1f201c — calibrated half-step toward charcoal that
+    // holds the warm cast without reading washed-out on device.
+    expect(dark.background).toBe('#1f201c');
   });
 
   it('glass (default card surface) is the warm Sage card', () => {
-    expect(dark.glass).toBe('#2a2c25');
+    // Phase 0 lockstep lift: glass moved from #2a2c25 → #363830 to
+    // restore the L* 8 dim-room legibility delta against the lifted bg.
+    expect(dark.glass).toBe('#363830');
   });
 
   it('youCardSurface (You-tab capture only) is its own warmer card', () => {
-    expect(dark.youCardSurface).toBe('#2c2a23');
+    // Phase 0 lockstep lift: youCardSurface moved from #2c2a23 → #383528
+    // to keep its warm tonal relationship vs the new bg.
+    expect(dark.youCardSurface).toBe('#383528');
   });
 
   it('youCardSurface differs from glass — the You tab has a unique surface', () => {

@@ -26,8 +26,8 @@ jest.mock('../../contexts/ThemeContext', () => ({
   useTheme: () => ({
     resolvedTheme: 'dark',
     colors: {
-      background: '#141612',
-      glass: '#2a2c25',
+      background: '#1f201c',
+      glass: '#363830',
       caregiverAccent: '#aa8adc',
       caregiverAccentText: '#d4baff',
       caregiverAccentBg: 'rgba(170, 138, 220, 0.06)',
