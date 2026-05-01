@@ -1,18 +1,16 @@
 // ============================================================================
-// StatRings — four SVG progress rings (meds / vitals / wellness / meals)
-// Behavioral test: renders the component and inspects the returned React tree.
+// StatRings — behavioural test for the flat 4-up grid.
+//
+// v6.7 visual-consistency Phase 2 replaced the SVG progress rings with flat
+// 28pt category indicator circles. Per-tile border-color + ring-color
+// assertions live in statRingsFlattened.test.tsx; this file pins the
+// surface-level behaviour (4 cells, label set, value format).
 // ============================================================================
 
 jest.mock('react-native', () => ({
   View: 'View',
   Text: 'Text',
   StyleSheet: { create: (styles: any) => styles },
-}));
-
-jest.mock('react-native-svg', () => ({
-  __esModule: true,
-  default: 'Svg',
-  Circle: 'Circle',
 }));
 
 jest.mock('react', () => {
@@ -26,9 +24,12 @@ jest.mock('react', () => {
 jest.mock('../../contexts/ThemeContext', () => ({
   useTheme: () => ({
     colors: {
-      glass: '#111111',
+      glass: '#2a2c25',
       accent: '#5fb88a',
-      textMuted: 'rgba(255, 255, 255, 0.48)',
+      caregiverAccent: '#aa8adc',
+      warning: '#e5b04a',
+      coral: '#e89a7a',
+      textSecondary: '#c4c1b3',
       textPrimary: '#FFFFFF',
     },
     resolvedTheme: 'dark',
@@ -39,32 +40,12 @@ import React from 'react';
 import { StatRings } from '../../components/now/StatRings';
 import type { TodayStats } from '../../utils/nowHelpers';
 
-const RING_RADIUS = 22;
-const CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
-
 const stats: TodayStats = {
   meds: { completed: 1, total: 2 },
   vitals: { completed: 1, total: 1 },
   wellness: { completed: 3, total: 3 },
   meals: { completed: 3, total: 3 },
 } as TodayStats;
-
-// Walk a React element subtree and collect every element whose `type` matches.
-// Works on the lazy/raw element tree returned when we invoke the component as
-// a plain function (no renderer needed).
-function findAll(node: any, predicate: (el: any) => boolean, out: any[] = []): any[] {
-  if (node == null || node === false) return out;
-  if (Array.isArray(node)) {
-    for (const child of node) findAll(child, predicate, out);
-    return out;
-  }
-  if (typeof node !== 'object') return out;
-  if (node.type !== undefined && predicate(node)) out.push(node);
-  if (node.props && node.props.children !== undefined) {
-    findAll(node.props.children, predicate, out);
-  }
-  return out;
-}
 
 function flattenText(children: any): string {
   if (children == null || children === false) return '';
@@ -82,39 +63,9 @@ describe('StatRings', () => {
     expect(tree.type).toBe('View');
   });
 
-  it('renders four ring cells (one per category)', () => {
+  it('renders four cells (one per category)', () => {
     const columns = React.Children.toArray(tree.props.children);
     expect(columns).toHaveLength(4);
-  });
-
-  it('each cell renders an SVG containing Circle children', () => {
-    const svgs = findAll(tree, (el) => el.type === 'Svg');
-    expect(svgs).toHaveLength(4);
-    for (const svg of svgs) {
-      const circles = findAll(svg, (el) => el.type === 'Circle');
-      // Each ring renders at least the background track (1 circle); rings with
-      // total > 0 add a progress arc (2 circles total).
-      expect(circles.length).toBeGreaterThanOrEqual(1);
-    }
-  });
-
-  it('meds ring (1/2) has strokeDashoffset ≈ CIRCUMFERENCE / 2', () => {
-    // Per-cell SVG → progress Circle is the one carrying strokeDashoffset.
-    const svgs = findAll(tree, (el) => el.type === 'Svg');
-    const medsCircles = findAll(svgs[0], (el) => el.type === 'Circle');
-    const progress = medsCircles.find((c) => c.props.strokeDashoffset !== undefined);
-    expect(progress).toBeTruthy();
-    expect(Math.abs(progress.props.strokeDashoffset - CIRCUMFERENCE / 2)).toBeLessThan(0.01);
-  });
-
-  it('vitals / wellness / meals rings (fully complete) have strokeDashoffset 0', () => {
-    const svgs = findAll(tree, (el) => el.type === 'Svg');
-    for (const idx of [1, 2, 3]) {
-      const circles = findAll(svgs[idx], (el) => el.type === 'Circle');
-      const progress = circles.find((c) => c.props.strokeDashoffset !== undefined);
-      expect(progress).toBeTruthy();
-      expect(progress.props.strokeDashoffset).toBe(0);
-    }
   });
 
   it('renders labels MEDS, VITALS, WELLNESS, MEALS', () => {
@@ -130,5 +81,14 @@ describe('StatRings', () => {
     expect(text).toContain('1 of 2'); // meds
     expect(text).toContain('1 of 1'); // vitals
     expect(text).toContain('3 of 3'); // wellness + meals
+  });
+
+  it('shows "—" for an empty category (total === 0)', () => {
+    const emptyStats = {
+      ...stats,
+      vitals: { completed: 0, total: 0 },
+    } as TodayStats;
+    const t: any = (StatRings as any)({ stats: emptyStats });
+    expect(flattenText(t)).toContain('—');
   });
 });

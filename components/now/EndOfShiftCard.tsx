@@ -110,12 +110,17 @@ const createStyles = (c: any) => StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '600',
-    color: c.caregiverAccentText,
+    // v6.7 visual-consistency: canonical lavender token, not the brighter
+    // caregiverAccentText. The card is a soft suggestion, not an alert.
+    color: c.caregiverAccent,
     marginBottom: 4,
   },
   body: {
     fontSize: 13,
-    color: c.textWarmSecondary || c.textSecondary,
+    // v6.7 visual-consistency: locked secondary copy color (#c4c1b3),
+    // not textWarmSecondary which read at lower contrast on the
+    // lavender-tinted card.
+    color: c.textSecondary,
     lineHeight: 19,
     marginBottom: 12,
   },
