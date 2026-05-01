@@ -37,7 +37,8 @@ export function QuickResetPills({ onBreathe, onHelpline, onCommunity }: QuickRes
         accessibilityHint="Opens the guided breathing exercise"
       >
         <Text style={[styles.icon, { color: colors.accent }]}>▶</Text>
-        <Text style={styles.label}>Breathe</Text>
+        <Text testID="quick-reset-label-breathe" style={[styles.label, { color: colors.accent }]}>Breathe</Text>
+        <Text testID="quick-reset-subtitle-breathe" style={styles.subtitle}>60 sec</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -48,8 +49,9 @@ export function QuickResetPills({ onBreathe, onHelpline, onCommunity }: QuickRes
         accessibilityLabel="Helpline"
         accessibilityHint="Calls the caregiver helpline — free and confidential"
       >
-        <Text style={[styles.icon, { color: colors.error }]}>☎</Text>
-        <Text style={styles.label}>Helpline</Text>
+        <Text style={[styles.icon, { color: (colors as any).coral || colors.error }]}>☎</Text>
+        <Text testID="quick-reset-label-helpline" style={[styles.label, { color: (colors as any).coral || colors.error }]}>Helpline</Text>
+        <Text testID="quick-reset-subtitle-helpline" style={styles.subtitle}>24/7</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -61,7 +63,8 @@ export function QuickResetPills({ onBreathe, onHelpline, onCommunity }: QuickRes
         accessibilityHint="Opens the caregiver community"
       >
         <Text style={[styles.icon, { color: colors.caregiverAccent }]}>♡</Text>
-        <Text style={styles.label}>Community</Text>
+        <Text testID="quick-reset-label-community" style={[styles.label, { color: colors.caregiverAccent }]}>Community</Text>
+        <Text testID="quick-reset-subtitle-community" style={styles.subtitle}>Read</Text>
       </TouchableOpacity>
     </View>
   );
@@ -88,11 +91,18 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     gap: 3,
   },
   icon: {
-    fontSize: 14,
-    opacity: 0.92,
+    fontSize: 18,
+    opacity: 0.95,
   },
   label: {
-    fontSize: 10,
+    fontSize: 11,
+    fontWeight: '500',
+    // Per-pill colour is set inline via the category accent — see pill markup.
     color: (c as any).youAffirmationText || c.textSecondary,
+  },
+  subtitle: {
+    fontSize: 9,
+    color: c.textTertiary,
+    marginTop: 1,
   },
 });

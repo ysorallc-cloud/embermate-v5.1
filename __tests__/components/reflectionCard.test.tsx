@@ -149,14 +149,18 @@ describe('ReflectionCard — Section 5: footer (privacy note + Save pill)', () =
     expect(block).toMatch(/color:\s*c\.textTertiary|color:\s*colors\.textTertiary/);
   });
 
-  it('Save pill: mint background, padding 8/16, border-radius 16, text 11pt', () => {
+  it('Save pill: filled-sage primary, padding 6/16, border-radius 16, text 11.5pt dark', () => {
+    // v6.7 visual-consistency Phase 5 locked the Save pill: dark text on
+    // sage so it reads as a real button, with tighter vertical padding.
     const button = styleBlock('saveButton');
-    expect(button).toMatch(/backgroundColor:\s*c\.accent|backgroundColor:\s*colors\.accent/);
-    expect(num(button, 'paddingVertical')).toBe(8);
+    expect(button).toMatch(/backgroundColor:\s*['"]#5fb88a['"]/);
+    expect(num(button, 'paddingVertical')).toBe(6);
     expect(num(button, 'paddingHorizontal')).toBe(16);
     expect(num(button, 'borderRadius')).toBe(16);
     const buttonText = styleBlock('saveButtonText');
-    expect(num(buttonText, 'fontSize')).toBe(11);
+    // fontSize 11.5 is a fractional float — match the literal text.
+    expect(buttonText).toMatch(/fontSize:\s*11\.5/);
+    expect(buttonText).toMatch(/color:\s*['"]#0a1510['"]/);
   });
 
   it('footer row has marginTop 12', () => {

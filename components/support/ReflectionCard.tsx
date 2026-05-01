@@ -255,18 +255,21 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  // v6.7 Phase 5 — locked filled-sage primary. The button reads as a
+  // real button (vs the prior low-contrast teal pill), with dark text on
+  // sage so the affordance is unambiguous.
   saveButton: {
-    backgroundColor: c.accent,
+    backgroundColor: '#5fb88a',
     borderRadius: 16,
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 16,
   },
   saveButtonDisabled: {
     opacity: 0.4,
   },
   saveButtonText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '600',
-    color: c.textPrimary,
+    color: '#0a1510',
   },
 });

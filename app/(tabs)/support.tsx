@@ -101,16 +101,17 @@ export default function SupportScreen() {
             <Text style={styles.wellnessChevron}>{'›'}</Text>
           </TouchableOpacity>
 
-          {/* ═══ Plan ahead — single card with an internal eyebrow header.
-                The reframing is editorial: was "Plan ahead" + a list of
-                admin tasks; now framed as kindness to future-self. ═══ */}
+          {/* ═══ Plan ahead — Phase 5 visual-consistency: eyebrow +
+                serif italic subtitle live ABOVE the card, not inside.
+                The card itself is a single grouped surface with row
+                hairlines (rendered by ResourcesList). ═══ */}
+          <View style={styles.planAheadHeader}>
+            <Text style={styles.planAheadEyebrow}>{'PLAN AHEAD'}</Text>
+            <Text style={styles.planAheadSubtitle}>
+              When things are calm, future you will be glad.
+            </Text>
+          </View>
           <View style={styles.planAheadCard}>
-            <View style={styles.planAheadHeader}>
-              <Text style={styles.planAheadEyebrow}>{'PLAN AHEAD'}</Text>
-              <Text style={styles.planAheadSubtitle}>
-                When things are calm, future you will be glad.
-              </Text>
-            </View>
             <View style={styles.planAheadBody}>
               <ResourcesList />
             </View>
@@ -195,21 +196,21 @@ function createStyles(c: typeof Colors) {
     // ── Plan ahead — contained card with an internal eyebrow header
     //    ("future you will be glad"). Surface tinted slightly warmer than
     //    the global glass via the youCardSurface token. ──
+    // v6.7 Phase 5 — single grouped card; no internal header (the eyebrow
+    // sits above via planAheadHeader). marginTop folded into planAheadHeader.
     planAheadCard: {
-      marginTop: 16,
       backgroundColor: (c as any).youCardSurface || c.glass,
       borderWidth: 0.5,
       borderColor: (c as any).youCardBorder || c.glassBorder,
       borderRadius: 10,
       overflow: 'hidden' as const,
     },
+    // v6.7 Phase 5 — eyebrow + subtitle now live ABOVE the card. No
+    // background tint, no border — it's a free-standing label group.
     planAheadHeader: {
-      paddingTop: 11,
-      paddingBottom: 10,
-      paddingHorizontal: 14,
-      backgroundColor: 'rgba(255, 235, 205, 0.025)',
-      borderBottomWidth: 0.5,
-      borderBottomColor: (c as any).youCardBorder || c.glassBorder,
+      marginTop: 16,
+      paddingHorizontal: 4,
+      paddingBottom: 8,
     },
     planAheadEyebrow: {
       fontSize: 9,
