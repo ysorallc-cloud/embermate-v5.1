@@ -76,6 +76,7 @@ import { NowHeader } from '../../components/now/NowHeader';
 import { NowTimeline } from '../../components/now/NowTimeline';
 import { NowFooter } from '../../components/now/NowFooter';
 import { StatRings } from '../../components/now/StatRings';
+import { HydrationTodayRow } from '../../components/now/HydrationTodayRow';
 
 
 // Banners (removed: NoMedicationsBanner, NoCarePlanBanner, DataIntegrityBanner)
@@ -160,7 +161,7 @@ export default function NowScreen() {
   const { todayAppointments, complete: completeAppointment } = useAppointments();
 
   // Bucket-based Care Plan Config hook
-  const { hasCarePlan: hasBucketCarePlan, loading: carePlanConfigLoading, enabledBuckets } = useCarePlanConfig();
+  const { hasCarePlan: hasBucketCarePlan, loading: carePlanConfigLoading, enabledBuckets, config: carePlanConfig } = useCarePlanConfig();
 
   // Today Scope - track hidden items count
   const { suppressedItems, resetToDefaults: restoreAllSuppressed } = useTodayScope(today);
@@ -248,7 +249,10 @@ export default function NowScreen() {
       ? activePatient.name
       : 'your loved one';
 
-  const waterGoal = 8;
+  // v6.7 — water goal pulled from CarePlanConfig.water.dailyGoalGlasses
+  // when the bucket is configured; falls back to the legacy default of 8.
+  const waterGoal = (carePlanConfig as any)?.buckets?.water?.dailyGoalGlasses ?? 8;
+  const isWaterBucketEnabled = (carePlanConfig as any)?.buckets?.water?.enabled === true;
 
   const handleWaterUpdate = useCallback(async (newGlasses: number) => {
     try {
@@ -660,6 +664,28 @@ export default function NowScreen() {
     }
   }, [today, dismissLogToast]);
 
+  // v6.7 Phase 7 — standalone HYDRATION TODAY row at the top of the Now tab.
+  // Single tap adds one cup; long-press picks +1 / +2 / +4. Dual-writes to
+  // hydrationRepo (event store) and updateTodayWaterLog (legacy single-day
+  // log) so StatRings + the water Mode A panel stay in sync without any
+  // additional refactor.
+  const handleHydrationRowAdd = useCallback(async (amount: number) => {
+    try {
+      const next = waterGlasses + amount;
+      setWaterGlasses(next);
+      await addCup(activePatient?.id || DEFAULT_PATIENT_ID, amount);
+      await updateTodayWaterLog(next);
+      emitDataUpdate(EVENT.WATER);
+      void hapticSuccess();
+    } catch (err) {
+      logError('handleHydrationRowAdd', err);
+    }
+  }, [activePatient, waterGlasses]);
+
+  const handleHydrationRowPress = useCallback(() => {
+    navigate('/log-water');
+  }, []);
+
   const handleAddCup = useCallback(async (_instance: any) => {
     try {
       await addCup(activePatient?.id || DEFAULT_PATIENT_ID, 1);
@@ -946,6 +972,19 @@ export default function NowScreen() {
 
           {/* ═══ PROGRESS RINGS ═══ */}
           <StatRings stats={todayStats} />
+
+          {/* ═══ HYDRATION TODAY (Prompt 2 Phase 7) ═══
+              Stays visible whenever water tracking is on or any cup has
+              already been logged today — keeps the affordance reachable
+              even before the bucket is configured. */}
+          {(isWaterBucketEnabled || waterGlasses > 0) && (
+            <HydrationTodayRow
+              cupsToday={waterGlasses}
+              goal={isWaterBucketEnabled ? waterGoal : undefined}
+              onAddCup={handleHydrationRowAdd}
+              onRowPress={handleHydrationRowPress}
+            />
+          )}
 
           {/* ═══ ZONE 2: TODAY'S SCHEDULE ═══ */}
           <NowTimeline

@@ -31,6 +31,15 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
 // 5-screen flow: Welcome → Who Is This For → Privacy → Meet → Get Started
+//
+// v6.7 limitation: the "What to watch for" screen
+// (app/(onboarding)/screens/WatchForScreen.tsx) is reachable from
+// Settings → "What to watch for" but NOT from this flow. The flow doesn't
+// capture the patient's diagnoses yet, so there's nothing for the screen
+// to render here. Inserting it cleanly requires a conditions-capture step
+// (free-text + library-aware picker) that warrants its own UX pass; that
+// design lands with v7. Until then, the WatchForScreen contract is ready
+// to slot in once a Diagnosis[] is captured on this side of onboarding.
 const ONBOARDING_SCREENS = [
   { id: '1', title: 'Welcome' },
   { id: '2', title: 'Who Is This For' },
