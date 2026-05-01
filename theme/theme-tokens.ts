@@ -245,6 +245,7 @@ export function getDarkColors(): typeof DarkColors {
   return DarkColors;
 }
 export const Spacing = {
+  // ── Legacy t-shirt scale (kept for back-compat with existing callers) ──
   xs: 4,
   sm: 8,
   md: 12,
@@ -253,6 +254,27 @@ export const Spacing = {
   xxl: 24,
   xxxl: 32,
   huge: 48,
+  // ── v6.7 semantic spacing tokens (May 1 sizing pass) ──
+  // Use these for new code; legacy keys above are preserved for back-compat.
+  cardPadding: 12,        // internal card padding
+  cardPaddingTight: 10,   // when card holds rows w/ own padding
+  cardGap: 10,            // between sibling cards
+  sectionGap: 16,         // between named sections
+  rowGap: 8,              // within a row of items
+  inlineGap: 6,           // tight inline elements
+};
+
+// v6.7 sizing tokens (May 1 sizing pass) — locked numeric heights / radii /
+// stat-tile ring + icon dimensions referenced across the app.
+export const Sizing = {
+  buttonHeight: 36,        // standard touch target — clears Apple HIG min
+  buttonHeightCompact: 28, // secondary inline buttons
+  textareaMinHeight: 36,   // empty placeholder height
+  cardRadius: 13,
+  pillRadius: 10,
+  buttonRadius: 10,
+  ringSize: 30,            // stat tile ring diameter
+  iconSize: 18,            // standard inline icon
 };
 
 export const BorderRadius = {
