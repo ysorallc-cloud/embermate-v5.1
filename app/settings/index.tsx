@@ -36,6 +36,7 @@ import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataS
 import { StorageKeys } from '../../utils/storageKeys';
 import { deleteAllUserData } from '../../utils/privacyUtils';
 import { logError } from '../../utils/devLog';
+import { getMedicalInfo } from '../../utils/medicalInfo';
 
 // ============================================================================
 // TYPES
@@ -66,6 +67,7 @@ export default function SettingsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [patientName, setPatientName] = useState('');
+  const [activeConditions, setActiveConditions] = useState<string[]>([]);
   const { isSampleMode, sampleStatus } = useSampleMode();
   const [manageSampleSheet, setManageSampleSheet] = useState<{
     open: boolean;
@@ -76,6 +78,17 @@ export default function SettingsScreen() {
     AsyncStorage.getItem(StorageKeys.PATIENT_NAME)
       .then((name) => name && setPatientName(name))
       .catch((e) => logError('SettingsScreen.loadPatientName', e));
+
+    // Pull active diagnoses to drive the "What to watch for" row subtitle.
+    getMedicalInfo()
+      .then((info) => {
+        if (!info) return;
+        const active = info.diagnoses
+          .filter((d) => d.status === 'active')
+          .map((d) => d.condition);
+        setActiveConditions(active);
+      })
+      .catch((e) => logError('SettingsScreen.loadDiagnoses', e));
   }, []);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -152,6 +165,15 @@ export default function SettingsScreen() {
           title: 'Medical history',
           subtitle: 'Conditions, allergies, surgeries',
           onPress: () => router.push('/patient'),
+        },
+        {
+          id: 'watch-for',
+          icon: '👀',
+          title: 'What to watch for',
+          subtitle: activeConditions.length > 0
+            ? `For ${activeConditions.join(', ')}`
+            : 'Add conditions to see what to watch for',
+          onPress: () => navigate('/settings/what-to-watch-for' as any),
         },
         {
           id: 'emergency',
@@ -247,7 +269,7 @@ export default function SettingsScreen() {
         },
       ],
     },
-  ], [profileTitle, router, handleDeleteAllData]);
+  ], [profileTitle, router, handleDeleteAllData, activeConditions]);
 
   const versionLabel = Constants.expoConfig?.version ?? '6.7.0';
 
