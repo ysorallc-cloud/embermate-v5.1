@@ -49,8 +49,13 @@ export function QuickResetPills({ onBreathe, onHelpline, onCommunity }: QuickRes
         accessibilityLabel="Helpline"
         accessibilityHint="Calls the caregiver helpline — free and confidential"
       >
-        <Text style={[styles.icon, { color: (colors as any).coral || colors.error }]}>☎</Text>
-        <Text testID="quick-reset-label-helpline" style={[styles.label, { color: (colors as any).coral || colors.error }]}>Helpline</Text>
+        {/* v6.7 May 1 sizing pass — Phase 6: previously coral, which read
+            as a soft "alert" affordance and over-pulled the eye. Coral is
+            now reserved (Phase 7) for genuine emergency cues. The Helpline
+            CTA reverts to textPrimary so the three-pill row reads as
+            peers; semantic weight comes from the icon + 24/7 subtitle. */}
+        <Text style={[styles.icon, { color: colors.textPrimary }]}>☎</Text>
+        <Text testID="quick-reset-label-helpline" style={[styles.label, { color: colors.textPrimary }]}>Helpline</Text>
         <Text testID="quick-reset-subtitle-helpline" style={styles.subtitle}>24/7</Text>
       </TouchableOpacity>
 

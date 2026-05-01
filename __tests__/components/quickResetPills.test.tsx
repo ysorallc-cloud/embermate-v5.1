@@ -94,12 +94,18 @@ describe('QuickResetPills — three pills render with the right labels and icons
     expect(styleVal).toMatch(/#5fb88a|accent/i);
   });
 
-  it('Helpline pill icon is a phone glyph in red', () => {
+  it('Helpline pill icon paints in textPrimary (May 1 sizing pass — Phase 6)', () => {
+    // v6.7 May 1 sizing pass — Phase 6 supersedes the prior coral/red spec.
+    // Coral is reserved for genuine emergency cues (Phase 7); the helpline
+    // CTA neutralizes to textPrimary so it doesn't out-pull the row.
     const allText = findAll(tree, (el) => el.type === 'Text');
     const phoneNode = allText.find((t) => /[☎📞]/u.test(flattenText(t)));
     expect(phoneNode).toBeTruthy();
     const styleVal = JSON.stringify(phoneNode.props.style);
-    expect(styleVal).toMatch(/#e6776e|error|red/i);
+    // textPrimary in dark theme = #fff (Sage warm-dark palette).
+    expect(styleVal).toMatch(/#fff|textPrimary/i);
+    // Negative assertion — must NOT carry the coral/error/red tint.
+    expect(styleVal).not.toMatch(/#e6776e|#e89a7a|coral|"red"/i);
   });
 
   it('Community pill icon is a heart glyph in caregiverAccent purple', () => {

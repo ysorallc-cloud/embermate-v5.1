@@ -21,7 +21,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Sizing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   saveReflection,
@@ -238,7 +238,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: c.glassBorder,
     borderRadius: 10,
     padding: 12,
-    minHeight: 60,
+    // v6.7 May 1 sizing pass — Phase 6: previously 60pt, which felt
+    // disproportionately tall when empty. Drops to the shared sizing
+    // token; multiline still expands naturally up to maxHeight.
+    minHeight: Sizing.textareaMinHeight,
     maxHeight: 200,
     fontSize: 13,
     color: c.textPrimary,

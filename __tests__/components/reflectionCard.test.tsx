@@ -128,9 +128,18 @@ describe('ReflectionCard — Section 4: text input', () => {
     expect(num(block, 'fontSize')).toBe(13);
   });
 
-  it('input min-height 60, max-height 200', () => {
+  it('input min-height token-aligned (≤ 40), max-height 200', () => {
+    // v6.7 May 1 sizing pass — Phase 6 dropped the literal 60pt floor
+    // (felt disproportionately tall when the field was empty) and routed
+    // through the Sizing.textareaMinHeight token instead. Accept either a
+    // literal ≤ 40 or the token reference; both pin the new contract.
     const block = styleBlock('input');
-    expect(num(block, 'minHeight')).toBe(60);
+    const lit = num(block, 'minHeight');
+    if (lit !== null) {
+      expect(lit).toBeLessThanOrEqual(40);
+    } else {
+      expect(block).toMatch(/minHeight:\s*Sizing\.textareaMinHeight/);
+    }
     expect(num(block, 'maxHeight')).toBe(200);
   });
 

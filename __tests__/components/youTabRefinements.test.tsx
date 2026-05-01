@@ -172,11 +172,16 @@ describe('QuickResetPills — equal flex with category colors', () => {
     expect(styleOf(label).color).toBe('#5fb88a');
   });
 
-  it('Helpline label uses coral (#e89a7a, NOT criticalAlert #e6776e)', () => {
+  it('Helpline label paints in textPrimary (May 1 sizing pass — Phase 6)', () => {
+    // v6.7 May 1 sizing pass — Phase 6 supersedes the prior coral spec.
+    // Coral is reserved for genuine emergency cues (Phase 7); the helpline
+    // CTA reverts to neutral textPrimary so the three-pill row reads as
+    // peers rather than one alert + two neutrals.
     const tree = (QuickResetPills as any)(baseProps());
     const label = findAll(tree, (n) => n.props?.testID === 'quick-reset-label-helpline')[0];
     expect(label).toBeDefined();
-    expect(styleOf(label).color).toBe('#e89a7a');
+    // textPrimary in dark theme = #fff (Sage warm-dark palette).
+    expect(styleOf(label).color).toBe('#fff');
   });
 
   it('Community label uses lavender (caregiverAccent)', () => {
