@@ -12,6 +12,7 @@
 import React, { useMemo, forwardRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Sizing } from '../../theme/theme-tokens';
 
 export interface HandoffCardProps {
   hasNotes: boolean;
@@ -103,8 +104,11 @@ const createStyles = (c: any) => StyleSheet.create({
     flex: 1,
     backgroundColor: c.accent,
     borderRadius: 6,
-    paddingVertical: 8,
+    // v6.7 May 1 sizing pass — explicit height token (was ~52pt in pre-
+    // sizing-pass screenshots; now locked at the standard touch target).
+    height: Sizing.buttonHeight,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButtonText: {
     // Spec called for 10pt; the project's a11y guard (interactive-label
@@ -120,8 +124,10 @@ const createStyles = (c: any) => StyleSheet.create({
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.10)',
     borderRadius: 6,
-    paddingVertical: 8,
+    // Same sizing token as the primary so they read as a paired row.
+    height: Sizing.buttonHeight,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   secondaryButtonText: {
     fontSize: 11,
