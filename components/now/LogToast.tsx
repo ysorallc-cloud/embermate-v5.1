@@ -2,16 +2,25 @@
 // LOG TOAST
 //
 // Persists for 5 seconds after an instant log on the Now timeline. Surfaces
-// two callbacks: Add (open the detail sheet to add notes / dose / etc.)
+// up to two callbacks: Add (open the detail sheet to add notes / dose / etc.)
 // and Undo (revert the log + return the row to pending).
 //
-// The toast only owns its visual + dismiss timer; the parent owns the
-// "what was just logged" memory and decides what Add / Undo do.
+// Tenure-driven scaffolding (Prompt 6 Phase 2):
+//   • new        — secondary line "Anything to note? (side effect, refused,
+//                  mood)" + Add link primary
+//   • experienced — short "Anything to note?" + Add link secondary
+//   • seasoned   — Undo only; Add hidden by default at this tier
+//
+// Anomaly override: when `anomalyPrompt` is set, the toast surfaces it as
+// the secondary line at every tier and re-shows the Add link so the
+// caregiver can pivot into details. Anomaly prompts win over the generic
+// scaffolding regardless of tenure.
 // ============================================================================
 
 import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import type { TenurePhase } from '../../services/userTenure';
 
 export const TOAST_DURATION_MS = 5000;
 
@@ -21,7 +30,15 @@ export interface LogToastProps {
   onAdd: () => void;
   onUndo: () => void;
   onDismiss: () => void;
+  /** Defaults to 'new' so callers that haven't loaded tenure yet still
+      render the helpful scaffolding (safe default). */
+  tenure?: TenurePhase;
+  /** Anomaly-driven copy that overrides the tenure default. */
+  anomalyPrompt?: string;
 }
+
+const NEW_PROMPT = 'Anything to note? (side effect, refused, mood)';
+const EXPERIENCED_PROMPT = 'Anything to note?';
 
 export function LogToast({
   visible,
@@ -29,6 +46,8 @@ export function LogToast({
   onAdd,
   onUndo,
   onDismiss,
+  tenure = 'new',
+  anomalyPrompt,
 }: LogToastProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -45,24 +64,50 @@ export function LogToast({
 
   if (!visible) return null;
 
+  // Resolve prompt + Add visibility from tenure + anomaly state.
+  let promptLine: string | null = null;
+  let showAdd = true;
+  let addStyle = styles.actionText;
+  if (anomalyPrompt) {
+    promptLine = anomalyPrompt;
+  } else if (tenure === 'new') {
+    promptLine = NEW_PROMPT;
+  } else if (tenure === 'experienced') {
+    promptLine = EXPERIENCED_PROMPT;
+    addStyle = styles.actionTextSecondary;
+  } else {
+    // seasoned + no anomaly — quiet by default
+    promptLine = null;
+    showAdd = false;
+  }
+
   return (
     <View
       style={styles.wrap}
       accessibilityLiveRegion="polite"
       accessibilityRole="alert"
     >
-      <Text style={styles.message} numberOfLines={2}>{message}</Text>
+      <View style={styles.messageColumn}>
+        <Text style={styles.message} numberOfLines={2}>{message}</Text>
+        {promptLine ? (
+          <Text style={styles.prompt} numberOfLines={2}>{promptLine}</Text>
+        ) : null}
+      </View>
       <View style={styles.actions}>
+        {showAdd && (
+          <TouchableOpacity
+            testID="log-toast-add"
+            style={styles.actionButton}
+            onPress={onAdd}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Add details to this log"
+          >
+            <Text style={addStyle}>{'Add'}</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
-          style={styles.actionButton}
-          onPress={onAdd}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel="Add details to this log"
-        >
-          <Text style={styles.actionText}>{'Add'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+          testID="log-toast-undo"
           style={styles.actionButton}
           onPress={onUndo}
           activeOpacity={0.85}
@@ -95,10 +140,17 @@ const createStyles = (c: any) => StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
-  message: {
+  messageColumn: {
     flex: 1,
+  },
+  message: {
     fontSize: 13,
     color: c.textPrimary,
+  },
+  prompt: {
+    fontSize: 11,
+    color: c.textSecondary,
+    marginTop: 2,
   },
   actions: {
     flexDirection: 'row',
@@ -112,6 +164,12 @@ const createStyles = (c: any) => StyleSheet.create({
   },
   actionText: {
     fontSize: 13,
+    fontWeight: '500',
+    color: c.accent,
+  },
+  // Secondary-styled Add link for the experienced tier (smaller emphasis).
+  actionTextSecondary: {
+    fontSize: 12,
     fontWeight: '500',
     color: c.accent,
   },

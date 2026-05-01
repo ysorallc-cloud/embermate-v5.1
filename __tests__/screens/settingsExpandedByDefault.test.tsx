@@ -30,7 +30,11 @@ describe('Settings categories render expanded', () => {
   it('all items are rendered at the top level of the categoryCard (no conditional gate)', () => {
     // The map renders unconditionally — no `collapsed && null` short-circuit.
     expect(src).toMatch(/cat\.items\.map\(/);
-    const renderBlock = src.match(/categoryCard[\s\S]{0,1200}?<\/View>/);
+    // Bumped from 1200 to 2200 chars after Prompt 6 added the unread-dot
+    // wrapper (`<View style={styles.itemTitleRow}>...</View>`) to the row.
+    // The intent is unchanged — verify the items render inline, with no
+    // collapsed-state gate inside the categoryCard block.
+    const renderBlock = src.match(/categoryCard[\s\S]{0,2200}?<\/View>/);
     expect(renderBlock).not.toBeNull();
     expect(renderBlock![0]).not.toMatch(/collapsed/);
   });

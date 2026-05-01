@@ -91,6 +91,8 @@ import {
 } from '../../storage/dailyReflectionRepo';
 import { getYesterdayVitals } from '../../utils/getYesterdayVitals';
 import { LogToast } from '../../components/now/LogToast';
+import { getUserTenure, type TenurePhase } from '../../services/userTenure';
+import { detectAnomalies } from '../../services/anomalyDetector';
 import { useDataListener, emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
 import { buildCareBrief, CareBrief } from '../../utils/careSummaryBuilder';
@@ -187,10 +189,17 @@ export default function NowScreen() {
   const [logToast, setLogToast] = useState<{
     instanceId: string;
     message: string;
+    anomalyPrompt?: string;
     onAdd: () => void;
     onUndo: () => Promise<void>;
   } | null>(null);
   const logToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // v6.7 — tenure phase drives the toast scaffolding (new / experienced /
+  // seasoned). Load once on mount; it's stable across the screen lifetime.
+  const [tenurePhase, setTenurePhase] = useState<TenurePhase>('new');
+  useEffect(() => {
+    getUserTenure().then((t) => setTenurePhase(t.phase)).catch(() => {});
+  }, []);
 
   const handleRingPress = useCallback((bucket: BucketType) => {
     setSelectedCategory(prev => prev === bucket ? null : bucket);
@@ -601,9 +610,33 @@ export default function NowScreen() {
       emitDataUpdate(EVENT.DAILY_INSTANCES);
       void hapticSuccess();
 
+      // v6.7 — anomaly detection feeds the toast prompt so caregiver-actionable
+      // signals (vital outliers, missed-med streaks) override the generic
+      // tenure scaffolding.
+      let anomalyPrompt: string | undefined;
+      try {
+        const trigger =
+          instance.itemType === 'vitals' && data?.[Object.keys(data).find((k) => k !== 'type') || '']
+            ? {
+                kind: 'vital_recorded' as const,
+                vitalType: Object.keys(data).find((k) => k !== 'type') || '',
+                vitalValue: data[Object.keys(data).find((k) => k !== 'type') || ''],
+              }
+            : instance.itemType === 'medication'
+              ? { kind: 'medication_taken' as const }
+              : null;
+        if (trigger) {
+          const anomalies = await detectAnomalies(DEFAULT_PATIENT_ID, trigger);
+          if (anomalies.length > 0) anomalyPrompt = anomalies[0].suggestedQuestion;
+        }
+      } catch (err) {
+        logError('handleQuickLog.anomaly', err);
+      }
+
       setLogToast({
         instanceId: instance.id,
         message: `${instance.itemName} logged`,
+        anomalyPrompt,
         onAdd: () => {
           dismissLogToast();
           handleTimelineItemPress(instance);
@@ -1065,6 +1098,8 @@ export default function NowScreen() {
           <LogToast
             visible
             message={logToast.message}
+            tenure={tenurePhase}
+            anomalyPrompt={logToast.anomalyPrompt}
             onAdd={logToast.onAdd}
             onUndo={() => { void logToast.onUndo(); }}
             onDismiss={dismissLogToast}

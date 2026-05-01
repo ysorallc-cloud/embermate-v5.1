@@ -19,6 +19,7 @@ import { checkForUpdates } from '../utils/updateChecker';
 import { shouldShowIntegrityWarning } from '../utils/deviceIntegrity';
 import { getTodayDateString, cleanupDuplicateCarePlanItems } from './carePlanGenerator';
 import { StorageKeys, StorageKeyPrefixes } from '../utils/storageKeys';
+import { markInstalledIfMissing } from './userTenure';
 
 interface StartupResult {
   success: boolean;
@@ -47,6 +48,10 @@ export async function runStartupSequence(): Promise<StartupResult> {
 
   // Phase 1: OTA update check (non-blocking, fire-and-forget)
   checkForUpdates();
+
+  // Phase 1b: Stamp install timestamp on first launch (Prompt 6 — drives
+  // the time-decaying scaffolding via getUserTenure). Idempotent.
+  markInstalledIfMissing();
 
   // Phase 2: Data migrations (must run before any data reads)
   await runPhase(

@@ -68,6 +68,10 @@ export default function SettingsScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [patientName, setPatientName] = useState('');
   const [activeConditions, setActiveConditions] = useState<string[]>([]);
+  // v6.7 Phase 5 — light unread dot on the watchlist row when the caregiver
+  // hasn't visited the screen in 7+ days. Stored timestamp lives in
+  // app/settings/what-to-watch-for.tsx.
+  const [watchForStale, setWatchForStale] = useState(false);
   const { isSampleMode, sampleStatus } = useSampleMode();
   const [manageSampleSheet, setManageSampleSheet] = useState<{
     open: boolean;
@@ -89,6 +93,24 @@ export default function SettingsScreen() {
         setActiveConditions(active);
       })
       .catch((e) => logError('SettingsScreen.loadDiagnoses', e));
+
+    // Light unread indicator if the watchlist screen hasn't been opened in
+    // 7+ days. The screen itself stamps the timestamp on each visit.
+    AsyncStorage.getItem('@embermate_watch_for_last_shown')
+      .then((iso) => {
+        if (!iso) {
+          setWatchForStale(true);
+          return;
+        }
+        const last = new Date(iso).getTime();
+        if (isNaN(last)) {
+          setWatchForStale(true);
+          return;
+        }
+        const days = (Date.now() - last) / (1000 * 60 * 60 * 24);
+        setWatchForStale(days >= 7);
+      })
+      .catch((e) => logError('SettingsScreen.loadWatchForStale', e));
   }, []);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -173,8 +195,10 @@ export default function SettingsScreen() {
           subtitle: activeConditions.length > 0
             ? `For ${activeConditions.join(', ')}`
             : 'Add conditions to see what to watch for',
+          // v6.7 Phase 5 — surface a light unread dot when stale.
+          unread: watchForStale && activeConditions.length > 0,
           onPress: () => navigate('/settings/what-to-watch-for' as any),
-        },
+        } as any,
         {
           id: 'emergency',
           icon: '🚨',
@@ -269,7 +293,7 @@ export default function SettingsScreen() {
         },
       ],
     },
-  ], [profileTitle, router, handleDeleteAllData, activeConditions]);
+  ], [profileTitle, router, handleDeleteAllData, activeConditions, watchForStale]);
 
   const versionLabel = Constants.expoConfig?.version ?? '6.7.0';
 
@@ -330,9 +354,18 @@ export default function SettingsScreen() {
                     >
                       <Text style={styles.itemIcon}>{item.icon}</Text>
                       <View style={styles.itemBody}>
-                        <Text style={[styles.itemTitle, item.danger && styles.itemTitleDanger]}>
-                          {item.title}
-                        </Text>
+                        <View style={styles.itemTitleRow}>
+                          <Text style={[styles.itemTitle, item.danger && styles.itemTitleDanger]}>
+                            {item.title}
+                          </Text>
+                          {(item as any).unread && (
+                            <View
+                              testID={`settings-item-${item.id}-unread`}
+                              style={styles.itemUnreadDot}
+                              accessibilityLabel="Unread"
+                            />
+                          )}
+                        </View>
                         {item.subtitle && (
                           <Text style={styles.itemSubtitle}>{item.subtitle}</Text>
                         )}
@@ -448,10 +481,21 @@ function createStyles(c: typeof Colors) {
     },
     itemIcon: { fontSize: 16 },
     itemBody: { flex: 1 },
+    itemTitleRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 8,
+    },
     itemTitle: {
       fontSize: 14,
       fontWeight: '500' as const,
       color: c.textPrimary,
+    },
+    itemUnreadDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 3.5,
+      backgroundColor: c.accent,
     },
     itemTitleDanger: {
       color: (c as any).criticalAlert || c.error,
