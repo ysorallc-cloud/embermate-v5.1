@@ -118,12 +118,17 @@ export function JournalNotesCard({
         )}
       </View>
 
-      <View style={styles.body}>
+      <View testID="notes-body" style={styles.body}>
+        {!readOnly && (
+          <Text testID="notes-prompt" style={styles.prompt}>
+            Anything to pass along?
+          </Text>
+        )}
         <TextInput
           style={styles.input}
           value={text}
           onChangeText={setText}
-          placeholder={readOnly ? 'Notes from this day' : 'Anything to pass along to the next caregiver?'}
+          placeholder={readOnly ? 'Notes from this day' : '…'}
           placeholderTextColor={colors.textTertiary}
           multiline
           textAlignVertical="top"
@@ -223,11 +228,23 @@ const createStyles = (c: any) =>
       paddingHorizontal: 14,
       paddingBottom: 10,
     },
+    // v6.7 Phase 3 — visible serif italic prompt, replaces the rotating
+    // placeholder text. Sits above the textarea so the prompt stays read
+    // even when the input has user-typed content.
+    prompt: {
+      fontFamily: 'Georgia',
+      fontStyle: 'italic',
+      fontSize: 12,
+      color: c.textSecondary,
+      marginBottom: 4,
+    },
     input: {
       fontSize: 14,
       color: c.textPrimary,
       lineHeight: 20,
-      minHeight: 64,
+      // v6.7 Phase 3 — compact card. Outcomes is the more important block;
+      // Notes shrinks so the visual weight matches importance.
+      minHeight: 36,
       // Deliberately no backgroundColor / borderWidth — the card surface IS
       // the input surface (per the v6.7 internal-header spec).
     },
@@ -261,30 +278,37 @@ const createStyles = (c: any) =>
       overflow: 'hidden',
       opacity: 0,
     },
+    // v6.7 Phase 3 — outlined-sage Save in every state. The Share-summary
+    // button on this screen carries the filled-sage primary; never both
+    // filled at the same priority. The dirty / just-saved states bump the
+    // border to 1px (was 0.5) so the affordance still reads as "act on it"
+    // without flipping to a solid fill.
     saveButton: {
       marginLeft: 'auto',
       borderWidth: 0.5,
-      borderColor: c.glassBorder,
+      borderColor: 'rgba(95, 184, 138, 0.5)',
       borderRadius: 999,
       paddingHorizontal: 12,
       paddingVertical: 4,
     },
     saveButtonFilled: {
-      backgroundColor: c.accent,
-      borderColor: c.accent,
+      // Stays outlined; bumps border weight to read as "act on it now".
+      borderWidth: 1,
+      borderColor: 'rgba(95, 184, 138, 0.7)',
     },
     saveButtonSaved: {
-      // Outlined, mint border at ~35% opacity for the settled "saved" look.
-      borderColor: 'rgba(95, 184, 138, 0.35)',
+      // Settled state — same outlined sage as fresh.
+      borderColor: 'rgba(95, 184, 138, 0.5)',
       backgroundColor: 'transparent',
     },
     saveText: {
       fontSize: 11,
-      color: c.textSecondary,
+      color: c.accent,
       fontWeight: '500',
     },
     saveTextFilled: {
-      color: c.textPrimary,
+      color: c.accent,
+      fontWeight: '600',
     },
     saveTextSaved: {
       color: c.accent,

@@ -58,6 +58,16 @@ export function TodayOutcomes({ outcomes, asOf, use24Hour, onRowPress }: TodayOu
     );
   }
 
+  // v6.7 visual-consistency Phase 3 — Sage-palette tint pairs (bg + border)
+  // tied to the canonical accent tokens. Replaces the prior electric-red /
+  // electric-amber / electric-mint rgba literals (which were the deprecated
+  // #f87171 / #fbbf24 / #34d399 in rgba form).
+  const TINT = {
+    missed:  { bg: 'rgba(230, 119, 110, 0.14)', border: 'rgba(230, 119, 110, 0.4)' }, // criticalAlert
+    pending: { bg: 'rgba(229, 176, 74, 0.14)',  border: 'rgba(229, 176, 74, 0.4)'  }, // warning
+    logged:  { bg: 'rgba(95, 184, 138, 0.14)',  border: 'rgba(95, 184, 138, 0.4)'  }, // accent
+  } as const;
+
   const rows: RowSpec[] = [];
   if (outcomes.missed.count > 0) {
     rows.push({
@@ -68,9 +78,9 @@ export function TodayOutcomes({ outcomes, asOf, use24Hour, onRowPress }: TodayOu
         ? formatOutcomeDetail(outcomes.missed.items.map((i) => ({ ...i, status: 'missed' })))
         : outcomes.missed.names.join(', '),
       glyph: '⚠',
-      iconBg: (colors as any).errorTint || 'rgba(248, 113, 113, 0.15)',
-      iconFg: colors.error,
-      countColor: colors.error,
+      iconBg: TINT.missed.bg,
+      iconFg: (colors as any).criticalAlert || colors.error,
+      countColor: (colors as any).criticalAlert || colors.error,
     });
   }
   if (outcomes.pending.count > 0) {
@@ -82,7 +92,7 @@ export function TodayOutcomes({ outcomes, asOf, use24Hour, onRowPress }: TodayOu
         ? formatOutcomeDetail(outcomes.pending.items.map((i) => ({ ...i, status: 'pending' })))
         : outcomes.pending.names.join(', '),
       glyph: '⏳',
-      iconBg: (colors as any).warningLight || 'rgba(251, 191, 36, 0.10)',
+      iconBg: TINT.pending.bg,
       iconFg: colors.warning,
       countColor: colors.textPrimary,
     });
@@ -94,7 +104,7 @@ export function TodayOutcomes({ outcomes, asOf, use24Hour, onRowPress }: TodayOu
       count: outcomes.logged.count,
       detail: outcomes.logged.summary ?? '',
       glyph: '✓',
-      iconBg: (colors as any).accentTint || 'rgba(52, 211, 153, 0.15)',
+      iconBg: TINT.logged.bg,
       iconFg: colors.accent,
       countColor: colors.textPrimary,
     });
@@ -108,10 +118,17 @@ export function TodayOutcomes({ outcomes, asOf, use24Hour, onRowPress }: TodayOu
           {`as of ${formatTime(asOf ?? new Date(), { format: use24Hour ? '24h' : '12h' })}`}
         </Text>
       </View>
-      <View style={styles.body}>
+      <View testID="outcomes-body" style={styles.body}>
         {rows.map((r, i) => {
           const isLast = i === rows.length - 1;
-          const RowWrapper: any = onRowPress ? Text : View;
+          // The "not logged" row promotes its icon to 34pt with a coloured
+          // border to anchor the row as the most-important block on the
+          // screen (Phase 3 hierarchy fix). Other variants stay compact.
+          const isPromoted = r.variant === 'missed';
+          const iconBorderColor =
+            r.variant === 'missed' ? 'rgba(230, 119, 110, 0.4)'
+            : r.variant === 'pending' ? 'rgba(229, 176, 74, 0.4)'
+            : 'rgba(95, 184, 138, 0.4)';
           return (
             <View
               key={r.variant}
@@ -120,8 +137,21 @@ export function TodayOutcomes({ outcomes, asOf, use24Hour, onRowPress }: TodayOu
               accessibilityRole={onRowPress ? 'button' : 'text'}
               onTouchEnd={onRowPress ? () => onRowPress(r.variant) : undefined}
             >
-              <View style={[styles.iconCircle, { backgroundColor: r.iconBg }]}>
-                <Text style={[styles.iconGlyph, { color: r.iconFg }]}>{r.glyph}</Text>
+              <View
+                testID={`outcome-icon-${r.variant}`}
+                style={[
+                  isPromoted ? styles.iconCirclePromoted : styles.iconCircle,
+                  { backgroundColor: r.iconBg, borderColor: iconBorderColor },
+                ]}
+              >
+                <Text
+                  style={[
+                    isPromoted ? styles.iconGlyphPromoted : styles.iconGlyph,
+                    { color: r.iconFg },
+                  ]}
+                >
+                  {r.glyph}
+                </Text>
               </View>
               <Text style={[styles.count, { color: r.countColor }]}>{r.count}</Text>
               <View style={styles.rowText}>
@@ -190,6 +220,19 @@ const createStyles = (c: any) =>
       width: 22,
       height: 22,
       borderRadius: 11,
+      borderWidth: 0.5,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 1,
+    },
+    // v6.7 Phase 3 — promoted variant for the "not logged" row. 34pt circle
+    // with a coloured border, anchoring the most-important row as the
+    // largest non-title typography on the screen.
+    iconCirclePromoted: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      borderWidth: 0.5,
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: 1,
@@ -198,10 +241,14 @@ const createStyles = (c: any) =>
       fontSize: 10,
       fontWeight: '600',
     },
-    count: {
+    iconGlyphPromoted: {
       fontSize: 16,
+      fontWeight: '600',
+    },
+    count: {
+      fontSize: 18,
       fontWeight: '500',
-      minWidth: 18,
+      minWidth: 22,
       textAlign: 'right',
       marginTop: -2,
     },
