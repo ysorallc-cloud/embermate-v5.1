@@ -1085,7 +1085,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   gutterContentBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+    borderBottomColor: c.hairlineInset,
   },
   gutterContent: {
     flex: 1,

@@ -21,7 +21,10 @@ const DarkColors = {
   backgroundAlt: '#050505',
   glass: '#2a2c25',
   glassHover: 'rgba(255, 245, 220, 0.06)',
-  glassBorder: 'rgba(255, 245, 220, 0.07)',
+  glassBorder: 'rgba(255, 240, 215, 0.08)',
+  // v6.7 — inset row hairline (12pt inset inside cards). Quieter than
+  // glassBorder (0.08) so it reads as a separator, not an edge.
+  hairlineInset: 'rgba(255, 240, 215, 0.06)',
   glassActive: 'rgba(255, 245, 220, 0.12)',
   glassDim: '#1f2019',
   glassFaint: 'rgba(255, 245, 220, 0.03)',
@@ -153,9 +156,18 @@ const DarkColors = {
   // so existing call sites continue working while new code can prefer the
   // semantic name.
   criticalAlert: '#e6776e',
+  // Coral — v6.7 visual-consistency: distinct from the redder criticalAlert.
+  // Used for the Meals tile ring on Now and the Helpline pill on You.
+  coral: '#e89a7a',
+  coralLight: 'rgba(232, 154, 122, 0.10)',
+  coralBorder: 'rgba(232, 154, 122, 0.25)',
   textPrimary: '#FFFFFF',
-  textSecondary: 'rgba(255, 255, 255, 0.72)',
-  textTertiary: 'rgba(255, 255, 255, 0.50)',
+  // v6.7 visual-consistency lock: text colors moved from rgba-on-white to
+  // solid hex so the apparent color stays constant across page-bg / glass
+  // / youCardSurface and contrast is deterministic. textSecondary doubles
+  // as the eyebrow color (>= 4.5:1 on both #141612 and #2a2c25).
+  textSecondary: '#c4c1b3',
+  textTertiary: '#8a8a82',
   textSoft: 'rgba(255, 255, 255, 0.42)',
   textMuted: 'rgba(255, 255, 255, 0.48)',
   textDisabled: 'rgba(255, 255, 255, 0.28)',

@@ -345,15 +345,15 @@ const styles = StyleSheet.create({
   },
   lockAttempts: {
     fontSize: 13,
-    color: Colors.amber ?? '#e5b04a',
+    color: Colors.amber,
     marginBottom: 12,
   },
   lockButtonDisabled: {
-    backgroundColor: Colors.border ?? '#333',
+    backgroundColor: Colors.border,
     opacity: 0.6,
   },
   lockButtonTextDisabled: {
-    color: Colors.textMuted ?? '#888',
+    color: Colors.textMuted,
   },
   integrityBanner: {
     backgroundColor: '#422006',

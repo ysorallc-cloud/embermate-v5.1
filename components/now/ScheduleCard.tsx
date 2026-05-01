@@ -96,7 +96,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   windowRowDivider: {
     borderTopWidth: 0.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.04)',
+    borderTopColor: c.hairlineInset,
   },
   windowRowActive: {
     backgroundColor: c.accentFaint,

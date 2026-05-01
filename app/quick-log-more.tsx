@@ -886,7 +886,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   medsSection: {},
   medsEmpty: { fontSize: 12, color: c.textMuted, textAlign: 'center', paddingVertical: 8 },
   medRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
-  medRowBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
+  medRowBorder: { borderBottomWidth: 1, borderBottomColor: c.hairlineInset },
   medInfo: { flex: 1 },
   medName: { fontSize: 12, fontWeight: '500', color: c.textPrimary },
   medNameDone: { color: '#10B981' },

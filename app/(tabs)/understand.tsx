@@ -1174,7 +1174,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingHorizontal: 14,
     paddingBottom: 14,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.04)',
+    borderTopColor: c.hairlineInset,
   },
   evidenceLabel: {
     fontSize: 10,
