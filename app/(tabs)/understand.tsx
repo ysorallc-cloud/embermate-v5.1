@@ -29,7 +29,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Polyline, Circle as SvgCircle } from 'react-native-svg';
 import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
-import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { usePatient } from '../../contexts/PatientContext';
 import {
@@ -565,7 +564,6 @@ export default function UnderstandScreen() {
   if (loading && !pageData) {
     return (
       <View style={styles.container}>
-        <AuroraBackground variant="hub" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.accent} />
           <Text style={styles.loadingText}>Analyzing patterns...</Text>
@@ -585,7 +583,6 @@ export default function UnderstandScreen() {
 
   return (
     <View style={styles.container}>
-      <AuroraBackground variant="hub" />
       <ShareToast visible={shareToastVisible} onDismiss={() => setShareToastVisible(false)} />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>

@@ -35,7 +35,6 @@ import { getVitalsByType } from '../../utils/vitalsStorage';
 import { recordVisit } from '../../utils/lastVisitTracker';
 
 // Aurora Components
-import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePatient } from '../../contexts/PatientContext';
 // CarePlan System
@@ -965,8 +964,9 @@ export default function NowScreen() {
   // ============================================================================
   return (
     <View style={styles.container}>
-      <AuroraBackground variant="now" />
-
+      {/* v6.7 May 1 sizing pass — per-tab gradient removed. The page
+          background is the flat warm Sage near-black (c.background);
+          atmosphere comes from typography. */}
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <ScrollView
         ref={scrollViewRef}

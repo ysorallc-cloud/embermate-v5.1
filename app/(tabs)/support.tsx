@@ -22,7 +22,6 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
 import { AffirmationHeader } from '../../components/support/AffirmationHeader';
@@ -52,7 +51,6 @@ export default function SupportScreen() {
 
   return (
     <View style={styles.root}>
-      <AuroraBackground variant="support" />
 
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView

@@ -19,7 +19,6 @@ import {
   Easing,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { AuroraBackground } from '../../components/aurora/AuroraBackground';
 import { Colors, BorderRadius } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
@@ -332,7 +331,6 @@ export default function JournalTab() {
   if (authRequired) {
     return (
       <View style={s.container}>
-        <AuroraBackground variant="journal" />
         <View style={s.authGateContainer}>
           <Text style={s.authGateIcon}>{'\uD83D\uDD12'}</Text>
           <Text style={s.authGateTitle}>Care Brief Protected</Text>
@@ -393,7 +391,6 @@ export default function JournalTab() {
   if (loading && !brief) {
     return (
       <View style={s.container}>
-        <AuroraBackground variant="journal" />
         <View style={s.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.accent} />
           <Text style={s.loadingText}>Loading...</Text>
@@ -405,7 +402,6 @@ export default function JournalTab() {
   if (error && !brief) {
     return (
       <View style={s.container}>
-        <AuroraBackground variant="journal" />
         <SafeAreaView style={{ flex: 1 }} edges={['top']}>
           <ScrollView
             style={s.scrollView}
@@ -503,7 +499,6 @@ export default function JournalTab() {
   // ============================================================================
   return (
     <View style={s.container}>
-      <AuroraBackground variant="journal" />
 
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
