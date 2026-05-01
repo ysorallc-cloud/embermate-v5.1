@@ -156,8 +156,15 @@ const DarkColors = {
   // so existing call sites continue working while new code can prefer the
   // semantic name.
   criticalAlert: '#e6776e',
-  // Coral — v6.7 visual-consistency: distinct from the redder criticalAlert.
-  // Used for the Meals tile ring on Now and the Helpline pill on You.
+  // Coral — v7-reserved.
+  // Phase 7 of the v6.7 May 1 sizing pass enforces a strict 3-accent
+  // budget (sage / lavender / criticalAlert). Coral was the 4th accent,
+  // formerly carrying the Meals tile ring (Phase 3a neutralized) and the
+  // Helpline pill (Phase 6 neutralized). The token stays declared so a
+  // future v7 design pass can re-introduce it deliberately without
+  // re-establishing the hex value, but it is NOT in the current budget
+  // and must not be referenced from app/ or components/. See
+  // __tests__/colorBudgetPhase7.test.ts for the source-level guard.
   coral: '#e89a7a',
   coralLight: 'rgba(232, 154, 122, 0.10)',
   coralBorder: 'rgba(232, 154, 122, 0.25)',
