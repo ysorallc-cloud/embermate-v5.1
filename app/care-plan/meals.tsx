@@ -122,18 +122,14 @@ export default function MealsBucketScreen() {
                 {PRIORITY_OPTIONS.map(option => (
                   <TouchableOpacity
                     key={option.value}
+                    // Phase 2.6.3 — severity stripe retired. Required's coral
+                    // left-bar doubled as the criticalAlert affordance, which
+                    // is reserved for genuine emergency cues; using it for a
+                    // setup-screen category indicator was a color-budget
+                    // violation. Differentiation now comes from typography
+                    // weight and the selected-state ring (sage on accent).
                     style={[
                       styles.priorityOption,
-                      {
-                        // Severity stripe — independent of selection. Required = red,
-                        // Recommended = mint, Optional = gray.
-                        borderLeftWidth: 4,
-                        borderLeftColor:
-                          option.value === 'required' ? colors.error
-                          : option.value === 'recommended' ? colors.accent
-                          : option.value === 'optional' ? colors.textTertiary
-                          : colors.textTertiary,
-                      },
                       priority === option.value && styles.priorityOptionSelected,
                     ]}
                     onPress={() => handleChangePriority(option.value)}

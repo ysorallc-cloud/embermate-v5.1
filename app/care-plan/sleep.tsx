@@ -112,18 +112,9 @@ export default function SleepBucketScreen() {
                 {PRIORITY_OPTIONS.map(option => (
                   <TouchableOpacity
                     key={option.value}
+                    // Phase 2.6.3 — severity stripe retired (color-budget).
                     style={[
                       styles.priorityOption,
-                      {
-                        // Severity stripe — independent of selection. Required = red,
-                        // Recommended = mint, Optional = gray.
-                        borderLeftWidth: 4,
-                        borderLeftColor:
-                          option.value === 'required' ? colors.error
-                          : option.value === 'recommended' ? colors.accent
-                          : option.value === 'optional' ? colors.textTertiary
-                          : colors.textTertiary,
-                      },
                       priority === option.value && styles.priorityOptionSelected,
                     ]}
                     onPress={() => handleChangePriority(option.value)}
