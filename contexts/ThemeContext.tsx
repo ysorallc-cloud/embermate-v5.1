@@ -74,8 +74,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       if (modeValue === 'dark' || modeValue === 'light' || modeValue === 'auto') {
         setThemeModeState(modeValue);
       }
+      // v6.7: HC toggle retired; storage may have stale 'true' from prior
+      // versions. Force-clear on read so the override never reaches the
+      // render path. Migration is one-shot per device — once written false,
+      // future reads short-circuit harmlessly. The HC code path itself
+      // stays in place so a future accessibility-driven HC mode can wire
+      // it back in without re-plumbing the merge logic.
       if (hcValue === 'true') {
-        setHighContrastState(true);
+        safeSetItem(HC_STORAGE_KEY, 'false');
       }
     });
   }, []);
