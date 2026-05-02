@@ -11,9 +11,23 @@ export interface Greeting {
   subtitle: string;
 }
 
+// Categories surfaced in the Now tab StatRings. Header counts must match
+// what's visible in the tile row — counting hidden categories (water,
+// sleep, activity) creates trust-eroding mismatches like "17 pending"
+// when the user can only see 9 across the tiles. Keep this in sync with
+// components/now/StatRings.tsx CATEGORIES; the structural test at
+// __tests__/utils/contextualGreeting.headerCountConsistency.test.ts
+// pins both surfaces in lockstep.
+export const HEADER_COUNT_CATEGORIES = [
+  'meds',
+  'vitals',
+  'wellness',
+  'meals',
+] as const;
+
 function remaining(stats: TodayStats): number {
   let left = 0;
-  for (const key of ['meds', 'vitals', 'meals', 'water', 'sleep', 'activity', 'wellness'] as const) {
+  for (const key of HEADER_COUNT_CATEGORIES) {
     const s: StatData | undefined = stats[key as keyof TodayStats];
     if (s) left += Math.max(0, s.total - s.completed);
   }
@@ -22,7 +36,7 @@ function remaining(stats: TodayStats): number {
 
 function totalDone(stats: TodayStats): number {
   let done = 0;
-  for (const key of ['meds', 'vitals', 'meals', 'water', 'sleep', 'activity', 'wellness'] as const) {
+  for (const key of HEADER_COUNT_CATEGORIES) {
     const s: StatData | undefined = stats[key as keyof TodayStats];
     if (s) done += s.completed;
   }
@@ -31,7 +45,7 @@ function totalDone(stats: TodayStats): number {
 
 function totalItems(stats: TodayStats): number {
   let total = 0;
-  for (const key of ['meds', 'vitals', 'meals', 'water', 'sleep', 'activity', 'wellness'] as const) {
+  for (const key of HEADER_COUNT_CATEGORIES) {
     const s: StatData | undefined = stats[key as keyof TodayStats];
     if (s) total += s.total;
   }
