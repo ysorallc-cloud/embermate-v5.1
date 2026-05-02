@@ -210,6 +210,8 @@ const createStyles = (c: any) => StyleSheet.create({
     borderColor: c.glassBorder,
     borderRadius: 12,
     overflow: 'hidden',
+    // Card holds rows with their own padding; symmetric per Phase 2 contract.
+    padding: 0,
   },
   header: {
     paddingTop: 12,

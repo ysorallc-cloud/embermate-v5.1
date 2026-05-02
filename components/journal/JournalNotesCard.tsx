@@ -200,6 +200,8 @@ const createStyles = (c: any) =>
       borderColor: c.glassBorder,
       borderRadius: 10,
       overflow: 'hidden',
+      // Card holds rows with their own padding; symmetric per Phase 2 contract.
+      padding: 0,
     },
     headerRow: {
       flexDirection: 'row',

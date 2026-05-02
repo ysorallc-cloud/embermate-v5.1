@@ -204,6 +204,8 @@ const createStyles = (c: any) => StyleSheet.create({
     borderRadius: 11,
     overflow: 'hidden',
     marginBottom: 14,
+    // Card holds rows with their own padding; symmetric per Phase 2 contract.
+    padding: 0,
   },
   watchingHeader: {
     paddingTop: 11,

@@ -275,6 +275,7 @@ const createStyles = (c: any) => StyleSheet.create({
     marginTop: 8,
     gap: 8,
   },
+  // allow: tap-target shape for sheet action button — not a card surface.
   actionButton: {
     backgroundColor: c.glass,
     borderWidth: 0.5,

@@ -1179,7 +1179,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   undoToast: {
     position: 'absolute', bottom: 100, left: 16, right: 16,
     backgroundColor: c.warmSurfaceAlert, borderWidth: 1, borderColor: c.warmSurfaceAlertBorder,
-    borderRadius: 10, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    borderRadius: 10, padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   undoToastText: { fontSize: 13, color: c.textAlertPrimary },
   undoToastAction: { fontSize: 13, fontWeight: '600', color: c.textAlertLabel },
@@ -1201,7 +1201,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Section card (used by Upcoming This Week)
   sectionCard: {
     backgroundColor: c.glass, borderWidth: 1, borderColor: c.glassBorder,
-    borderRadius: 16, padding: 16, marginBottom: 12,
+    borderRadius: 16, padding: 12, marginBottom: 12,
   },
 
   // Appointment prep

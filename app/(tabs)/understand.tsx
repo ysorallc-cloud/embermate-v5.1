@@ -1248,7 +1248,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.glassBorder,
     borderRadius: 14,
-    padding: 14,
+    padding: 12,
     marginBottom: 8,
     gap: 12,
   },
@@ -1383,6 +1383,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
 
   // Settings gear
+  // allow: 32×32 fixed-dimension icon button — not a card surface.
   settingsGear: {
     width: 32,
     height: 32,

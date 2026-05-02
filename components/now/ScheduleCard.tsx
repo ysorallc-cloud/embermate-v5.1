@@ -94,7 +94,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.glassBorder,
     borderRadius: 14,
-    padding: 14,
+    padding: 12,
     marginBottom: 16,
     overflow: 'hidden',
   },

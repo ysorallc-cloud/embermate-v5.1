@@ -256,8 +256,7 @@ const createStyles = (c: any) =>
       borderWidth: 0.5,
       borderColor: c.glassBorder,
       borderRadius: 12,
-      paddingVertical: 14,
-      paddingHorizontal: 12,
+      padding: 12,
     },
     headerRow: {
       flexDirection: 'row',

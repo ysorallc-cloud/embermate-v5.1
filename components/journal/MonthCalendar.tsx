@@ -197,7 +197,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.warmSurfaceBorder,
     borderRadius: 14,
-    padding: 16,
+    padding: 12,
     marginBottom: 24,
   },
   monthHeader: {

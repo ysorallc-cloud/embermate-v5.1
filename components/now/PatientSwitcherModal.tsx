@@ -280,7 +280,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   patientRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
+    padding: 12,
     borderRadius: 12,
     marginBottom: 8,
     backgroundColor: c.glass,

@@ -147,7 +147,7 @@ const createStyles = (c: any) => StyleSheet.create({
   journalPreviewCard: {
     marginHorizontal: 16,
     marginTop: 12,
-    padding: 16,
+    padding: 12,
     borderRadius: 14,
     backgroundColor: c.glass,
     borderWidth: 1,

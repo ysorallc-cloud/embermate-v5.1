@@ -156,8 +156,7 @@ const createStyles = (c: any) => StyleSheet.create({
     borderWidth: 0.5,
     borderColor: c.glassBorder,
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    padding: 12,
     marginBottom: 12,
   },
   body: {

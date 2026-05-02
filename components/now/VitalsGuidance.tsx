@@ -339,6 +339,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.accent,
     fontVariant: ['tabular-nums'],
   },
+  // allow: tap-target shape for inline step button — not a card surface.
   stepButton: {
     backgroundColor: c.glass,
     borderRadius: 8,

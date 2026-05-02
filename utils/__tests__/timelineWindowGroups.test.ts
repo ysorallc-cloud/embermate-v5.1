@@ -26,7 +26,9 @@ describe('Period header — SchedulePeriodHeader extraction', () => {
 
   test('header pill style declares background, padding, and rounded corners', () => {
     expect(headerSrc).toMatch(/row:\s*\{[\s\S]{0,400}?backgroundColor:/);
-    expect(headerSrc).toMatch(/row:\s*\{[\s\S]{0,400}?paddingHorizontal:/);
+    // May 1 spacing-rhythm Phase 2: card padding moved from
+    // paddingVertical/paddingHorizontal axis pair to symmetric `padding: 12`.
+    expect(headerSrc).toMatch(/row:\s*\{[\s\S]{0,400}?\bpadding:/);
     expect(headerSrc).toMatch(/row:\s*\{[\s\S]{0,400}?borderRadius:/);
   });
 

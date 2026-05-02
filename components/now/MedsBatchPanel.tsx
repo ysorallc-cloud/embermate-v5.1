@@ -235,9 +235,10 @@ export function MedsBatchPanel({
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     borderRadius: 14,
-    padding: 14,
+    padding: 12,
     marginBottom: 12,
   },
+  // allow: padding inherited from `container` (composed at apply site).
   containerDefault: {
     backgroundColor: c.glass,
     borderWidth: 1,
@@ -316,6 +317,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   medMetaOverdue: {
     color: c.red,
   },
+  // allow: tap-target shape for inline button (10pt × 6pt) — not a card surface.
   detailsButton: {
     paddingHorizontal: 10,
     paddingVertical: 6,
