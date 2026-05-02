@@ -252,7 +252,14 @@ const DarkColors = {
   cardBackground: '#111111',
   backgroundDark: '#000000',
   backgroundDeep: '#050505',
-  backgroundElevated: '#1A1A1A',
+  // Phase 2.6.2 — lifted to the Phase 0 glass-tier value (#363830). Pre-lift
+  // was '#1A1A1A', which sat L* 2.7 BELOW the new warm-charcoal bg — making
+  // buttons read darker than the page they sat on. Same root cause as the
+  // gradient tokens (Phase 2.6.1): pre-warmth-lift legacy that escaped
+  // Phase 0's audit because it's consumed mainly by sub-screens (Care Plan,
+  // log forms, medication form), not the four main tabs. If on device this
+  // reads too prominent for back-button purposes, drop one step to #2e2f29.
+  backgroundElevated: '#363830',
   inputBackground: '#111111',
   switchThumbOn: '#FFFFFF',
   switchThumbOff: '#F4F3F4',
