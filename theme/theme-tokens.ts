@@ -270,24 +270,29 @@ export function _syncColors(newColors: Partial<typeof Colors>) {
 export function getDarkColors(): typeof DarkColors {
   return DarkColors;
 }
+// Canonical 4pt spacing scale (May 1 spacing-rhythm pass — Phase 1).
+// All values are multiples of 4. The legacy block (xs=4, sm=8, md=12,
+// lg=16, xl=20, xxl=24, xxxl=32, huge=48) was migrated key-by-key with a
+// codemod across ~700 call sites, preserving each site's pixel value.
+// One deliberate lift: previously-xl values at 20pt step up to lg=24pt
+// per the user's "prefer breathing room over tight" guidance.
+//
+// Rename map:
+//   xs (4)   → xxs (4)    same value
+//   sm (8)   → xs (8)     same value
+//   md (12)  → sm (12)    same value
+//   lg (16)  → md (16)    same value
+//   xl (20)  → lg (24)    +4 lift (deliberate)
+//   xxl (24) → lg (24)    same value
+//   xxxl(32) → xl (32)    same value
+//   huge(48) → removed    was unused
 export const Spacing = {
-  // ── Legacy t-shirt scale (kept for back-compat with existing callers) ──
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
-  xxxl: 32,
-  huge: 48,
-  // ── v6.7 semantic spacing tokens (May 1 sizing pass) ──
-  // Use these for new code; legacy keys above are preserved for back-compat.
-  cardPadding: 12,        // internal card padding
-  cardPaddingTight: 10,   // when card holds rows w/ own padding
-  cardGap: 10,            // between sibling cards
-  sectionGap: 16,         // between named sections
-  rowGap: 8,              // within a row of items
-  inlineGap: 6,           // tight inline elements
+  xxs: 4,
+  xs: 8,
+  sm: 12,
+  md: 16,
+  lg: 24,
+  xl: 32,
 };
 
 // v6.7 sizing tokens (May 1 sizing pass) — locked numeric heights / radii /
@@ -301,6 +306,11 @@ export const Sizing = {
   buttonRadius: 10,
   ringSize: 30,            // stat tile ring diameter
   iconSize: 18,            // standard inline icon
+  // ── Spacing-rhythm pass extensions (May 1 — Phase 1) ──
+  pageHorizontalPadding: 14, // every tab ScrollView's left/right padding
+  cardInternalPadding: 12,   // every card's symmetric inner padding
+  hairlineInset: 12,         // inset for inline row hairlines (matches card padding)
+  quickActionMinHeight: 64,  // You-tab quick-action card minHeight
 };
 
 export const BorderRadius = {

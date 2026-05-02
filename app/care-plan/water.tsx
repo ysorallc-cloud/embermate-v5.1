@@ -312,9 +312,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingTop: Platform.OS === 'android' ? 20 : 0,
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
   backButton: {
     width: 44,
@@ -342,19 +342,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingBottom: 40,
   },
 
   // Title
   titleSection: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   title: {
     fontSize: 28,
     fontWeight: '300',
     color: c.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: 15,
@@ -368,8 +368,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '600',
     color: c.textHalf,
     letterSpacing: 1,
-    marginBottom: Spacing.md,
-    marginTop: Spacing.xl,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.lg,
   },
 
   // Setting Row
@@ -381,12 +381,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   settingInfo: {
     flex: 1,
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   settingLabel: {
     fontSize: 16,
@@ -401,14 +401,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Priority
   priorityContainer: {
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   priorityOption: {
     backgroundColor: c.glassFaint,
     borderWidth: 1,
     borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.sm,
   },
   priorityOptionSelected: {
     borderColor: c.accent,
@@ -434,14 +434,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    padding: Spacing.md,
   },
   goalDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.lg,
-    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+    gap: Spacing.xs,
   },
   goalEmoji: {
     fontSize: 32,
@@ -459,12 +459,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   goalOptions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   goalOption: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     marginHorizontal: 4,
     backgroundColor: c.glassFaint,
     borderWidth: 1,
@@ -493,7 +493,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Units
   unitsContainer: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   unitOption: {
     flex: 1,
@@ -501,7 +501,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     alignItems: 'center',
   },
   unitOptionSelected: {
@@ -526,18 +526,18 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   sectionDescription: {
     fontSize: 13,
     color: c.textSecondary,
-    marginBottom: Spacing.md,
-    marginTop: -Spacing.sm,
+    marginBottom: Spacing.sm,
+    marginTop: -Spacing.xs,
   },
   reminderContainer: {
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   reminderOption: {
     backgroundColor: c.glassFaint,
     borderWidth: 1,
     borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.sm,
   },
   reminderOptionSelected: {
     borderColor: c.accent,

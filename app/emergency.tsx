@@ -302,8 +302,8 @@ export default function EmergencyScreen() {
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   gradient: { flex: 1 },
-  scrollView: { flex: 1, paddingHorizontal: Spacing.xl },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: Platform.OS === 'android' ? 20 : 0, paddingBottom: Spacing.md },
+  scrollView: { flex: 1, paddingHorizontal: Spacing.lg },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: Platform.OS === 'android' ? 20 : 0, paddingBottom: Spacing.sm },
   backButton: {
     width: 44,
     height: 44,
@@ -320,20 +320,20 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   headerLabel: { fontSize: 11, color: c.textMuted, letterSpacing: 1, fontWeight: '600' },
   placeholder: { width: 40 },
-  title: { fontSize: 28, fontWeight: '300', color: c.textPrimary, marginBottom: Spacing.lg },
+  title: { fontSize: 28, fontWeight: '300', color: c.textPrimary, marginBottom: Spacing.md },
 
   // Emergency Mode Toggle
   emergencyModeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     backgroundColor: c.redMuted,
     borderWidth: 2,
     borderColor: c.error,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.lg,
+    padding: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   emergencyModeIcon: {
     fontSize: 18,
@@ -348,8 +348,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 2,
     borderColor: c.error,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.lg,
+    padding: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   emergencyModeActiveHeader: {
     flexDirection: 'row',
@@ -382,11 +382,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   emergencyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.lg,
+    gap: Spacing.md,
     backgroundColor: c.error,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.xl,
-    marginBottom: Spacing.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   emergencyButtonActive: {
     shadowColor: c.error,
@@ -413,8 +413,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Quick Actions
   quickActionsRow: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
   quickActionButton: {
     flex: 1,
@@ -422,7 +422,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     alignItems: 'center',
   },
   quickActionIcon: {
@@ -435,8 +435,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
 
   // Sections
-  section: { marginBottom: Spacing.xl },
-  sectionLabel: { fontSize: 11, color: c.textMuted, letterSpacing: 0.8, fontWeight: '600', marginBottom: Spacing.md },
+  section: { marginBottom: Spacing.lg },
+  sectionLabel: { fontSize: 11, color: c.textMuted, letterSpacing: 0.8, fontWeight: '600', marginBottom: Spacing.sm },
 
   // Contact Cards
   contactCard: {
@@ -446,8 +446,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
-    marginBottom: Spacing.sm,
+    padding: Spacing.md,
+    marginBottom: Spacing.xs,
     position: 'relative',
   },
   contactCardEmergency: {
@@ -465,7 +465,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   contactIconSecondary: { backgroundColor: c.surfaceAlt },
   contactInitials: { fontSize: 16, fontWeight: '600', color: c.accent },

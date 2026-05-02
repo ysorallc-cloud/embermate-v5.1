@@ -195,14 +195,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: Spacing.xl,
+    padding: Spacing.lg,
   },
 
   // Intro
   introCard: {
     backgroundColor: `${c.purple}08`,
     borderColor: `${c.purple}20`,
-    marginBottom: Spacing.xxl,
+    marginBottom: Spacing.lg,
   },
   introText: {
     ...Typography.bodySmall,
@@ -212,20 +212,20 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Sections
   section: {
-    marginBottom: Spacing.xxl,
+    marginBottom: Spacing.lg,
   },
   categoryDescription: {
     ...Typography.bodySmall,
     color: c.textMuted,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
 
   // Report Rows
   reportRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.lg,
-    gap: Spacing.lg,
+    padding: Spacing.md,
+    gap: Spacing.md,
   },
   reportRowBorder: {
     borderBottomWidth: 1,
@@ -251,7 +251,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   badge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: 2,
     borderRadius: 6,
     borderWidth: 1,
@@ -267,7 +267,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Export All
   exportAllButton: {
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
   },
   exportAllCard: {
     backgroundColor: `${c.accent}10`,
@@ -276,7 +276,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   exportAllContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
   exportAllIcon: {
     fontSize: 32,

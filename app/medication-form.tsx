@@ -1140,7 +1140,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
   },
   bottomSaveButton: {
     backgroundColor: c.accent,
@@ -1159,7 +1159,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Form
   formGroup: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     position: 'relative',
     zIndex: 1,
   },
@@ -1167,7 +1167,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: c.textSecondary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -1176,7 +1176,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     fontSize: 16,
     color: c.textPrimary,
   },
@@ -1187,7 +1187,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   helpText: {
     fontSize: 12,
     color: c.textMuted,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
   },
 
   // Time Slots
@@ -1241,7 +1241,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -1287,7 +1287,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     shadowRadius: 12,
   },
   dropdownItem: {
-    padding: Spacing.md,
+    padding: Spacing.sm,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -1348,7 +1348,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
     overflow: 'hidden',
   },
   reminderContainerActive: {
@@ -1359,12 +1359,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.lg,
+    padding: Spacing.md,
   },
   reminderToggleLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
     flex: 1,
   },
   reminderIcon: {
@@ -1384,8 +1384,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textMuted,
   },
   reminderOptionsContainer: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.md,
     borderTopWidth: 1,
     borderTopColor: c.amberMuted,
   },
@@ -1393,8 +1393,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: c.amberBright,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
@@ -1427,7 +1427,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   customMinutesInput: {
     width: 60,
@@ -1446,8 +1446,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
   },
   followUpContainer: {
-    marginTop: Spacing.lg,
-    paddingTop: Spacing.md,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: c.amberHint,
   },
@@ -1469,12 +1469,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textMuted,
   },
   followUpIntervalRow: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
   },
   followUpIntervalLabel: {
     fontSize: 11,
     color: c.textMuted,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   followUpIntervalOptions: {
     flexDirection: 'row',
@@ -1509,14 +1509,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.xl,
-    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    padding: Spacing.md,
   },
   scheduleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   scheduleIcon: {
     fontSize: 20,
@@ -1538,7 +1538,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   frequencyOption: {
     paddingVertical: 10,
@@ -1561,8 +1561,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '600',
   },
   dayPickerContainer: {
-    marginBottom: Spacing.lg,
-    paddingTop: Spacing.md,
+    marginBottom: Spacing.md,
+    paddingTop: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: c.border,
   },
@@ -1570,7 +1570,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: c.textMuted,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
@@ -1603,7 +1603,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.accent,
   },
   endConditionContainer: {
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: c.border,
   },
@@ -1611,7 +1611,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: c.textMuted,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
@@ -1648,7 +1648,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 14,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   advancedLinkText: {
     fontSize: 14,
@@ -1661,7 +1661,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   backToBasicsLink: {
     paddingVertical: 8,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   backToBasicsText: {
     fontSize: 14,
@@ -1673,7 +1673,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: BorderRadius.md,
     paddingVertical: 16,
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   primarySaveButtonText: {
     fontSize: 16,

@@ -97,10 +97,10 @@ export default function InteractionWarnings({ interactions }: InteractionWarning
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
   section: {
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   sectionTitle: {
     fontSize: 13,
@@ -108,19 +108,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textPrimary,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.xxs,
   },
   interactionCard: {
     backgroundColor: c.surface,
     borderRadius: 12,
     borderLeftWidth: 4,
-    padding: Spacing.md,
-    gap: Spacing.sm,
+    padding: Spacing.sm,
+    gap: Spacing.xs,
   },
   interactionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   severityIcon: {
     fontSize: 20,
@@ -139,8 +139,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   recommendationBox: {
     backgroundColor: c.surfaceAlt,
     borderRadius: 8,
-    padding: Spacing.sm,
-    marginTop: Spacing.xs,
+    padding: Spacing.xs,
+    marginTop: Spacing.xxs,
   },
   recommendationLabel: {
     fontSize: 12,

@@ -328,14 +328,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: Spacing.xl,
+    padding: Spacing.lg,
   },
 
   // Loading
   loadingContainer: {
     alignItems: 'center',
-    paddingVertical: Spacing.xxxl,
-    gap: Spacing.lg,
+    paddingVertical: Spacing.xl,
+    gap: Spacing.md,
   },
   loadingText: {
     ...Typography.bodySmall,
@@ -345,7 +345,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Empty
   emptyCard: {
     alignItems: 'center',
-    padding: Spacing.xxl,
+    padding: Spacing.lg,
   },
   emptyText: {
     ...Typography.body,
@@ -357,13 +357,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Overview
   overviewRow: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.xxl,
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
   statCard: {
     flex: 1,
     alignItems: 'center',
-    padding: Spacing.xl,
+    padding: Spacing.lg,
   },
   statValue: {
     ...Typography.displayMedium,
@@ -379,12 +379,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   sectionTitle: {
     ...Typography.caption,
     color: c.textMuted,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
 
   // Medication Rows
   medRow: {
-    padding: Spacing.lg,
+    padding: Spacing.md,
   },
   medRowBorder: {
     borderBottomWidth: 1,
@@ -397,7 +397,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   medInfo: {
     flex: 1,
@@ -423,7 +423,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.glass,
     borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   progressFill: {
     height: '100%',
@@ -433,7 +433,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Details
   medDetails: {
     flexDirection: 'row',
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
   medDetail: {
     ...Typography.captionSmall,
@@ -442,7 +442,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Patterns
   patternCard: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   patternWarning: {
     backgroundColor: `${c.amber}10`,
@@ -450,7 +450,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   patternContent: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   patternIcon: {
     fontSize: 20,
@@ -464,7 +464,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Side Effects
   effectRow: {
-    padding: Spacing.lg,
+    padding: Spacing.md,
   },
   effectRowBorder: {
     borderBottomWidth: 1,

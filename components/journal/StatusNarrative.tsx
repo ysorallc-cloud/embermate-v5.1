@@ -31,7 +31,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderLeftColor: c.accent,
     backgroundColor: c.glassFaint,
     borderRadius: BorderRadius.sm,
-    padding: Spacing.md,
+    padding: Spacing.sm,
   },
   narrative: {
     fontSize: 14,

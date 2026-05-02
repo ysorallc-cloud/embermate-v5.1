@@ -232,15 +232,15 @@ export default function CorrelationReportScreen() {
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   gradient: { flex: 1 },
-  scrollView: { flex: 1, paddingHorizontal: Spacing.xl },
+  scrollView: { flex: 1, paddingHorizontal: Spacing.lg },
 
   // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: Platform.OS === 'android' ? 20 : 0,
-    paddingBottom: Spacing.lg,
-    gap: Spacing.md,
+    paddingBottom: Spacing.md,
+    gap: Spacing.sm,
   },
     backButton: {
     width: 44,
@@ -272,7 +272,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Content
   content: {
-    paddingBottom: Spacing.xxl,
+    paddingBottom: Spacing.lg,
   },
 
   // Sample Banner
@@ -282,7 +282,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: c.purpleStrong,
     borderRadius: 14,
     padding: 14,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   sampleBannerContent: {
     flexDirection: 'row',
@@ -315,9 +315,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.blueTint,
     borderLeftWidth: 4,
     borderLeftColor: c.blue,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     borderRadius: BorderRadius.md,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   disclaimerText: {
     flex: 1,
@@ -332,7 +332,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingVertical: 60,
   },
   loadingText: {
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
     fontSize: 14,
     color: c.textMuted,
   },
@@ -341,20 +341,20 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   insufficientData: {
     alignItems: 'center',
     paddingVertical: 60,
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
   },
   insufficientTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: c.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   insufficientText: {
     fontSize: 14,
     color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   insufficientEncouragement: {
     fontSize: 13,
@@ -364,7 +364,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Section
   section: {
-    marginBottom: Spacing.xxl,
+    marginBottom: Spacing.lg,
   },
   sectionTitle: {
     fontSize: 14,
@@ -372,12 +372,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
     color: c.textPrimary,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.xxs,
   },
   sectionSubtitle: {
     fontSize: 13,
     color: c.textMuted,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
 
   // Pattern Card
@@ -388,14 +388,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: c.accent,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   patternHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   patternName: {
     fontSize: 16,
@@ -417,15 +417,15 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 14,
     color: c.textSecondary,
     lineHeight: 22,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   patternAction: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: c.glassDim,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     borderRadius: BorderRadius.sm,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   patternActionText: {
     flex: 1,
@@ -436,7 +436,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   strengthIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   strengthLabel: {
     fontSize: 11,
@@ -464,13 +464,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   noPatterns: {
     alignItems: 'center',
     paddingVertical: 60,
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
   },
   noPatternsTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: c.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   noPatternsText: {
     fontSize: 14,
@@ -485,7 +485,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(212, 165, 116, 0.2)',
     borderRadius: BorderRadius.lg,
-    padding: Spacing.xxl,
+    padding: Spacing.lg,
     alignItems: 'center',
     minHeight: 250,
     justifyContent: 'center',

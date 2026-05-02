@@ -534,7 +534,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   saveButton: {
     backgroundColor: c.accent,
     borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.md,
     alignItems: 'center',
   },
   saveButtonDisabled: {
@@ -552,7 +552,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.md,
     alignItems: 'center',
   },
   resetAllButtonText: {
@@ -565,7 +565,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     lineHeight: 16,
     textAlign: 'center',
     fontStyle: 'italic',
-    marginTop: Spacing.lg,
-    paddingHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.sm,
   },
 });

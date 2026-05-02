@@ -13,7 +13,7 @@ interface PhotoGalleryProps {
 }
 
 const { width } = Dimensions.get('window');
-const PHOTO_SIZE = (width - (Spacing.lg * 2) - (Spacing.md * 2)) / 3;
+const PHOTO_SIZE = (width - (Spacing.md * 2) - (Spacing.sm * 2)) / 3;
 
 export default function PhotoGallery({ photos, onPhotoPress, emptyMessage }: PhotoGalleryProps) {
   const { colors } = useTheme();
@@ -60,11 +60,11 @@ export default function PhotoGallery({ photos, onPhotoPress, emptyMessage }: Pho
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   row: {
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   photoContainer: {
     position: 'relative',
@@ -90,9 +90,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 12,
   },
   emptyState: {
-    padding: Spacing.xl,
+    padding: Spacing.lg,
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   emptyIcon: {
     fontSize: 48,

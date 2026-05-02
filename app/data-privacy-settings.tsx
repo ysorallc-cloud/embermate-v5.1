@@ -571,7 +571,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: Spacing.xl,
+    padding: Spacing.lg,
     paddingTop: 0,
   },
   loadingContainer: {
@@ -594,8 +594,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.sageWash,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.xl,
+    padding: Spacing.sm,
+    marginBottom: Spacing.lg,
     gap: 12,
   },
   privacyIcon: {
@@ -650,7 +650,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   settingInfo: {
     flex: 1,
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   settingTitleRow: {
     flexDirection: 'row',
@@ -812,7 +812,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   retentionWarning: {
     fontSize: 12,
     color: c.amber,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
     lineHeight: 16,
   },
 

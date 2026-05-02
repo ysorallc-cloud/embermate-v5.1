@@ -59,20 +59,20 @@ export const GlassInput: React.FC<Props> = ({
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   label: {
     ...Typography.labelSmall,
     color: c.textSecondary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   input: {
     backgroundColor: c.glass,
     borderWidth: 1,
     borderColor: c.glassBorder,
     borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     ...Typography.body,
     color: c.textPrimary,
   },

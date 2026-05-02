@@ -192,12 +192,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     position: 'absolute',
     top: 60,
-    left: Spacing.lg,
-    right: Spacing.lg,
+    left: Spacing.md,
+    right: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     shadowColor: '#000',
@@ -213,7 +213,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.sm,
+    marginRight: Spacing.xs,
   },
   icon: {
     fontSize: 14,
@@ -229,19 +229,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: Spacing.sm,
+    marginLeft: Spacing.xs,
   },
   actionButton: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xxs,
   },
   actionText: {
     fontSize: 14,
     fontWeight: '600',
   },
   dismissButton: {
-    padding: Spacing.xs,
-    marginLeft: Spacing.xs,
+    padding: Spacing.xxs,
+    marginLeft: Spacing.xxs,
   },
   dismissIcon: {
     fontSize: 20,

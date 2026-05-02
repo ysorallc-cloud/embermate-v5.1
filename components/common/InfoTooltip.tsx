@@ -202,7 +202,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.xxl,
+    padding: Spacing.lg,
   },
   tooltipContainer: {
     maxWidth: 320,
@@ -211,7 +211,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   tooltip: {
     backgroundColor: c.menuSurface,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.xl,
+    padding: Spacing.lg,
     borderWidth: 1,
     borderColor: c.glassBorder,
   },
@@ -219,7 +219,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: c.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   content: {
     fontSize: 14,
@@ -227,10 +227,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
   },
   dismissButton: {
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
     alignSelf: 'flex-end',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
     backgroundColor: c.accentLight,
     borderRadius: BorderRadius.sm,
   },

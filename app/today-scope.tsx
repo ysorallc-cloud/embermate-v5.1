@@ -399,15 +399,15 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingBottom: 40,
   },
 
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
   },
 
   // First-Time Helper Banner
@@ -418,14 +418,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.purpleStrong,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   firstTimeBannerContent: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   firstTimeBannerIcon: {
     fontSize: 16,
@@ -438,7 +438,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   firstTimeBannerDismiss: {
     padding: 4,
-    marginLeft: Spacing.sm,
+    marginLeft: Spacing.xs,
   },
   firstTimeBannerDismissText: {
     fontSize: 18,
@@ -455,13 +455,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     backgroundColor: c.blueFaint,
     borderWidth: 1,
     borderColor: c.blueWash,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.xl,
+    padding: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
   infoIcon: {
     fontSize: 16,
@@ -475,30 +475,30 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Quick Add Section
   quickAddSection: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   quickAddLabel: {
     fontSize: 11,
     fontWeight: '600',
     color: c.textHalf,
     letterSpacing: 1,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   quickAddGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   quickAddButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: Spacing.xxs,
     backgroundColor: c.sageFaint,
     borderWidth: 1,
     borderColor: c.sageWash,
     borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
   },
   quickAddEmoji: {
     fontSize: 14,
@@ -511,14 +511,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Routine Section
   routineSection: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   routineLabel: {
     fontSize: 11,
     fontWeight: '600',
     color: c.textHalf,
     letterSpacing: 1,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   routineCard: {
     backgroundColor: c.glassFaint,
@@ -533,7 +533,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.lg,
+    padding: Spacing.md,
   },
   itemRowSuppressed: {
     opacity: 0.5,
@@ -541,7 +541,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   itemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
     flex: 1,
   },
   itemEmoji: {
@@ -597,17 +597,17 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Empty State
   emptyState: {
     alignItems: 'center',
-    paddingVertical: Spacing.xxl,
+    paddingVertical: Spacing.lg,
   },
   emptyEmoji: {
     fontSize: 48,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: c.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   emptySubtitle: {
     fontSize: 14,
@@ -618,8 +618,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Reset Button
   resetButton: {
     alignItems: 'center',
-    paddingVertical: Spacing.lg,
-    marginTop: Spacing.lg,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.md,
     borderWidth: 1,
     borderColor: 'rgba(251, 191, 36, 0.3)',
     borderRadius: BorderRadius.md,

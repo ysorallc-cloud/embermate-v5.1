@@ -311,9 +311,9 @@ const createQuickAddStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(20, 184, 166, 0.4)',
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     marginTop: 4,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   header: {
     flexDirection: 'row',
@@ -604,9 +604,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingTop: Platform.OS === 'android' ? 20 : 0,
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
   backButton: {
     width: 44,
@@ -634,7 +634,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingBottom: 40,
   },
 
@@ -644,8 +644,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '600',
     color: c.textHalf,
     letterSpacing: 1,
-    marginBottom: Spacing.md,
-    marginTop: Spacing.xl,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.lg,
   },
 
   addButtonText: {
@@ -660,7 +660,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
     overflow: 'hidden',
   },
   medItemInactive: {
@@ -695,14 +695,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   medItemMain: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    padding: Spacing.lg,
-    gap: Spacing.md,
+    padding: Spacing.md,
+    gap: Spacing.sm,
   },
   medItemLeft: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   medEmoji: {
     fontSize: 24,
@@ -757,7 +757,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   medActionButton: {
     flex: 1,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     alignItems: 'center',
   },
   medActionDivider: {
@@ -776,29 +776,29 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Empty State
   emptyState: {
     alignItems: 'center',
-    paddingVertical: Spacing.xxl,
-    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
   },
   emptyEmoji: {
     fontSize: 48,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: c.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   emptySubtitle: {
     fontSize: 14,
     color: c.textSecondary,
     textAlign: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     lineHeight: 20,
   },
   addButtonOutline: {
     alignItems: 'center',
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.md,
     borderWidth: 1,
     borderColor: c.sageGlow,
     borderRadius: BorderRadius.md,

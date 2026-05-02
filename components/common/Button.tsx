@@ -97,7 +97,7 @@ export const Button: React.FC<ButtonProps> = ({
       ) : (
         <View style={styles.content}>
           {icon && iconPosition === 'left' && (
-            <Text style={[styles.icon, sizeStyles.icon, { marginRight: Spacing.xs }]}>
+            <Text style={[styles.icon, sizeStyles.icon, { marginRight: Spacing.xxs }]}>
               {icon}
             </Text>
           )}
@@ -113,7 +113,7 @@ export const Button: React.FC<ButtonProps> = ({
             {title}
           </Text>
           {icon && iconPosition === 'right' && (
-            <Text style={[styles.icon, sizeStyles.icon, { marginLeft: Spacing.xs }]}>
+            <Text style={[styles.icon, sizeStyles.icon, { marginLeft: Spacing.xxs }]}>
               {icon}
             </Text>
           )}
@@ -234,8 +234,8 @@ const getSizeStyles = (size: ButtonSize) => {
   switch (size) {
     case 'small':
       styles.container = {
-        paddingVertical: Spacing.sm,
-        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.xs,
+        paddingHorizontal: Spacing.sm,
         borderRadius: BorderRadius.sm,
       };
       styles.text = {
@@ -248,8 +248,8 @@ const getSizeStyles = (size: ButtonSize) => {
 
     case 'medium':
       styles.container = {
-        paddingVertical: Spacing.md,
-        paddingHorizontal: Spacing.lg,
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.md,
         borderRadius: BorderRadius.md,
       };
       styles.text = {
@@ -262,8 +262,8 @@ const getSizeStyles = (size: ButtonSize) => {
 
     case 'large':
       styles.container = {
-        paddingVertical: Spacing.lg,
-        paddingHorizontal: Spacing.xl,
+        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.lg,
         borderRadius: 14,
       };
       styles.text = {

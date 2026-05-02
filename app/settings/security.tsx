@@ -486,9 +486,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingTop: Platform.OS === 'android' ? 20 : 0,
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
   headerLabel: {
     fontSize: 11,
@@ -498,13 +498,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
   },
   title: {
     fontSize: 28,
     fontWeight: '300',
     color: c.textPrimary,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
 
   // Status Card
@@ -513,14 +513,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.xl,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   statusInfo: {
     flex: 1,
@@ -538,12 +538,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   lastActivity: {
     fontSize: 13,
     color: c.textMuted,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
   },
 
   // Section
   section: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
 
   // Setting Items
@@ -555,13 +555,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
-    marginBottom: Spacing.sm,
+    padding: Spacing.md,
+    marginBottom: Spacing.xs,
   },
   settingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
     flex: 1,
   },
   settingContent: {
@@ -584,14 +584,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.accentBorder,
     borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   statRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   statLabel: {
     fontSize: 14,
@@ -607,8 +607,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing.md,
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
@@ -651,13 +651,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Tips
   tipCard: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.sm,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    padding: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   tipText: {
     flex: 1,
@@ -670,18 +670,18 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 14,
     color: c.textMuted,
     textAlign: 'center',
-    paddingVertical: Spacing.xl,
+    paddingVertical: Spacing.lg,
   },
   lockoutBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     backgroundColor: 'rgba(234, 179, 8, 0.08)',
     borderWidth: 1,
     borderColor: 'rgba(234, 179, 8, 0.25)',
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    padding: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   lockoutText: {
     flex: 1,

@@ -261,26 +261,26 @@ export default function UpgradeScreen() {
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   gradient: { flex: 1 },
-  scrollView: { flex: 1, paddingHorizontal: Spacing.xl },
+  scrollView: { flex: 1, paddingHorizontal: Spacing.lg },
 
   // Hero
   hero: {
     alignItems: 'center',
-    paddingVertical: Spacing.xxl,
+    paddingVertical: Spacing.lg,
   },
-  heroIcon: { fontSize: 48, marginBottom: Spacing.md },
+  heroIcon: { fontSize: 48, marginBottom: Spacing.sm },
   heroTitle: {
     fontSize: 28,
     fontWeight: '700',
     color: c.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   heroSubtitle: {
     fontSize: 15,
     color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
   },
 
   // Feature Table
@@ -290,13 +290,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   tableHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: c.border,
     backgroundColor: c.surfaceAlt,
@@ -312,7 +312,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
@@ -337,7 +337,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: BorderRadius.lg,
     paddingVertical: 16,
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   subscribeButtonText: {
     fontSize: 17,
@@ -348,7 +348,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Secondary Actions
   secondaryAction: {
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   secondaryActionText: {
     fontSize: 14,
@@ -359,9 +359,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Promo
   promoSection: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.md,
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   promoInput: {
     flex: 1,
@@ -369,7 +369,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: 12,
     fontSize: 16,
     color: c.textPrimary,
@@ -379,7 +379,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   promoButton: {
     backgroundColor: c.accent,
     borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     justifyContent: 'center',
   },
   promoButtonDisabled: {
@@ -394,10 +394,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Privacy Note
   privacyNote: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     alignItems: 'flex-start',
-    marginTop: Spacing.lg,
-    paddingHorizontal: Spacing.sm,
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.xs,
   },
   privacyNoteText: {
     flex: 1,
@@ -411,14 +411,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.xxl,
+    paddingHorizontal: Spacing.lg,
   },
-  premiumActiveIcon: { fontSize: 64, marginBottom: Spacing.lg },
+  premiumActiveIcon: { fontSize: 64, marginBottom: Spacing.md },
   premiumActiveTitle: {
     fontSize: 24,
     fontWeight: '600',
     color: c.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   premiumActiveText: {
     fontSize: 15,

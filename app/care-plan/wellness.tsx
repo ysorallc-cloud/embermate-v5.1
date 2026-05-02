@@ -333,9 +333,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingTop: Platform.OS === 'android' ? 20 : 0,
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
   backButton: {
     width: 44,
@@ -363,19 +363,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingBottom: 40,
   },
 
   // Title
   titleSection: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   title: {
     fontSize: 28,
     fontWeight: '300',
     color: c.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: 15,
@@ -389,19 +389,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '600',
     color: c.textHalf,
     letterSpacing: 1,
-    marginBottom: Spacing.md,
-    marginTop: Spacing.xl,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.lg,
   },
 
   // Time row
   timeRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   timeChip: {
     flex: 1,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
     backgroundColor: c.glassFaint,
     borderWidth: 1,
     borderColor: c.glassActive,
@@ -430,8 +430,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.glassHover,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.sm,
+    padding: Spacing.md,
+    marginBottom: Spacing.xs,
   },
   coreBadge: {
     backgroundColor: c.border,
@@ -455,12 +455,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   settingInfo: {
     flex: 1,
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   settingLabel: {
     fontSize: 16,
@@ -480,9 +480,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.purpleStrong,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginTop: Spacing.xl,
-    gap: Spacing.md,
+    padding: Spacing.md,
+    marginTop: Spacing.lg,
+    gap: Spacing.sm,
   },
   infoEmoji: {
     fontSize: 24,

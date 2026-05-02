@@ -427,7 +427,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: Spacing.xl,
+    padding: Spacing.lg,
     paddingTop: 0,
   },
   loadingContainer: {
@@ -445,13 +445,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   explanationCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     backgroundColor: c.blueFaint,
     borderWidth: 1,
     borderColor: c.blueWash,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.lg,
+    padding: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   explanationIcon: {
     fontSize: 16,
@@ -467,11 +467,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   warningCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
     backgroundColor: c.amberBrightTint,
     borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
     borderWidth: 1,
     borderColor: 'rgba(251, 191, 36, 0.2)',
   },
@@ -491,8 +491,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   permissionButton: {
     backgroundColor: c.accent,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.sm,
   },
   permissionButtonText: {
@@ -505,8 +505,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   permissionGranted: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
   },
   permissionGrantedText: {
     fontSize: 13,
@@ -548,7 +548,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   settingInfo: {
     flex: 1,
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   settingLabel: {
     fontSize: 15,

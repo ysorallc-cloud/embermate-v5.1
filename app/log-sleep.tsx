@@ -237,21 +237,21 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Section
   section: {
-    padding: Spacing.xl,
-    marginBottom: Spacing.md,
+    padding: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
     color: c.accent,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
 
   // Hours Input
   hoursInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   hoursInput: {
     flex: 1,
@@ -259,7 +259,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.accentHint,
     borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     color: c.textPrimary,
     fontSize: 24,
     fontWeight: '600',
@@ -273,14 +273,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   hint: {
     fontSize: 13,
     color: c.textMuted,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
   },
 
   // Quality Buttons
   qualityContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   qualityButton: {
     flex: 1,
@@ -309,15 +309,15 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   qualityLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: Spacing.sm,
-    paddingHorizontal: Spacing.xs,
+    marginTop: Spacing.xs,
+    paddingHorizontal: Spacing.xxs,
   },
   qualityLabelText: {
     fontSize: 12,
     color: c.textMuted,
   },
   selectedQuality: {
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
     alignItems: 'center',
   },
   selectedQualityText: {
@@ -328,15 +328,15 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Footer
   footer: {
-    padding: Spacing.xl,
-    paddingBottom: Spacing.xxl,
+    padding: Spacing.lg,
+    paddingBottom: Spacing.lg,
     borderTopWidth: 1,
     borderTopColor: c.accentHint,
     backgroundColor: c.background,
   },
   saveButton: {
     backgroundColor: c.purple,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
   },

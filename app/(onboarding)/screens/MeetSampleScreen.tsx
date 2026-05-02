@@ -136,7 +136,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Spacing.xxl,
+    paddingHorizontal: Spacing.lg,
     paddingBottom: 100,
   },
   title: {
@@ -144,7 +144,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '300',
     color: c.textPrimary,
     textAlign: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   avatar: {
     width: 64,

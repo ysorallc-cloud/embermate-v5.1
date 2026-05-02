@@ -29,7 +29,7 @@ export const GlassCard: React.FC<Props> = ({
 }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const cardPadding = noPadding ? 0 : (padding ?? Spacing.xl);
+  const cardPadding = noPadding ? 0 : (padding ?? Spacing.lg);
 
   return (
     <View

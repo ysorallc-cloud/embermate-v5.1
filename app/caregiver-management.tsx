@@ -341,7 +341,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
   },
   loadingText: {
     fontSize: 16,
@@ -350,19 +350,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginTop: 100,
   },
   section: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
     color: c.textSecondary,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.xxs,
   },
   sectionSubtitle: {
     fontSize: 13,
     color: c.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   profileCard: {
     flexDirection: 'row',
@@ -370,8 +370,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginTop: Spacing.md,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
   },
   avatar: {
     width: 64,
@@ -379,7 +379,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   avatarText: {
     fontSize: 28,
@@ -399,7 +399,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   profileRole: {
     fontSize: 14,
     color: c.accent,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.xxs,
   },
   profileDetail: {
     fontSize: 13,
@@ -409,7 +409,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   profileJoined: {
     fontSize: 12,
     color: c.textTertiary,
-    marginTop: Spacing.xs,
+    marginTop: Spacing.xxs,
   },
   permissionsCard: {
     backgroundColor: c.surface,
@@ -422,7 +422,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.md,
+    padding: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
@@ -430,11 +430,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   permissionIcon: {
     fontSize: 24,
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   permissionText: {
     flex: 1,
@@ -452,7 +452,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   permissionLocked: {
     backgroundColor: c.accentLight,
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: 6,
     borderRadius: 6,
   },
@@ -466,12 +466,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    padding: Spacing.sm,
   },
   activityRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   activityLabel: {
     fontSize: 14,
@@ -483,7 +483,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textPrimary,
   },
   viewActivityButton: {
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   viewActivityText: {
     fontSize: 14,
@@ -495,9 +495,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(200, 90, 84, 0.3)',
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   removeButtonText: {
     fontSize: 16,

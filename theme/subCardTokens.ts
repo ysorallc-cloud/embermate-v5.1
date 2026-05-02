@@ -12,13 +12,13 @@ import { ComponentRole } from '../types/componentRoles';
 export const SubCardTokens = {
   // Layout
   padding: {
-    horizontal: Spacing.lg, // 16px
+    horizontal: Spacing.md, // 16px
     vertical: 14,
   },
   borderRadius: BorderRadius.md + 2, // 14px
   leadingSize: 44,
   leadingBorderRadius: BorderRadius.md, // 12px
-  gap: Spacing.md, // 12px
+  gap: Spacing.sm, // 12px
 
   // Variants
   variants: {

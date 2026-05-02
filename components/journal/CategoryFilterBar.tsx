@@ -79,7 +79,7 @@ export function CategoryFilterBar({ selectedFilter, onFilterChange }: Props) {
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   scrollView: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   container: {
     gap: 8,

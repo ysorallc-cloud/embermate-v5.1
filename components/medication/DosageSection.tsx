@@ -203,7 +203,7 @@ export function DosageSection({ state, dispatch, handleCustomTimeChange }: Props
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   formGroup: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     position: 'relative',
     zIndex: 1,
   },
@@ -211,7 +211,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: c.textSecondary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -220,14 +220,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     fontSize: 16,
     color: c.textPrimary,
   },
   helpText: {
     fontSize: 12,
     color: c.textMuted,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   timeSlotRow: {
     flexDirection: 'row',
@@ -278,7 +278,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     shadowRadius: 8,
   },
   suggestionItem: {
-    padding: Spacing.md,
+    padding: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },

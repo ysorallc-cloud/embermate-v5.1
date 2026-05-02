@@ -617,7 +617,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
   },
   bottomSaveButton: {
     backgroundColor: c.accent,

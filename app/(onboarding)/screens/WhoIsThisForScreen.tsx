@@ -78,7 +78,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Spacing.xxl,
+    paddingHorizontal: Spacing.lg,
     paddingBottom: 100,
   },
   title: {
@@ -86,13 +86,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '300',
     color: c.textPrimary,
     textAlign: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   subtitle: {
     fontSize: 15,
     color: c.textSecondary,
     textAlign: 'center',
-    marginBottom: Spacing.xxxl,
+    marginBottom: Spacing.xl,
   },
   cardsContainer: {
     width: '100%',
@@ -104,12 +104,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.xl,
+    padding: Spacing.lg,
     alignItems: 'center',
   },
   cardEmoji: {
     fontSize: 36,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   cardTitle: {
     fontSize: 17,
@@ -125,7 +125,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 13,
     color: c.textTertiary,
     textAlign: 'center',
-    marginTop: Spacing.xxl,
+    marginTop: Spacing.lg,
   },
 });
 

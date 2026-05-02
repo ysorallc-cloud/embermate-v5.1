@@ -632,8 +632,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   scroll: {
     flex: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
   },
   scrollContent: {
     // Bottom padding clears the home indicator and the iPhone SE → Pro Max
@@ -643,14 +643,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // SECTIONS
   section: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
     color: c.textTertiary,
     letterSpacing: 1.2,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
 
   // INFO CARDS
@@ -659,13 +659,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: 12,
-    padding: Spacing.md,
+    padding: Spacing.sm,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
@@ -701,8 +701,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   listItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
@@ -719,7 +719,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: c.textMuted,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
 
   // Resolved
@@ -761,9 +761,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   addRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-    paddingTop: Spacing.sm,
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
+    paddingTop: Spacing.xs,
   },
   addInput: {
     flex: 1,
@@ -810,10 +810,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   editButton: {
     backgroundColor: c.accent,
     borderRadius: 12,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     alignItems: 'center',
-    marginTop: Spacing.md,
-    marginBottom: Spacing.xxl,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
   editButtonDone: {
     backgroundColor: c.green,
@@ -830,8 +830,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: 12,
-    padding: Spacing.md,
-    marginTop: Spacing.xl,
+    padding: Spacing.sm,
+    marginTop: Spacing.lg,
   },
   clinicalCareLinkContent: {
     flexDirection: 'row',
@@ -840,7 +840,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   clinicalCareLinkText: {
     flex: 1,
-    marginRight: Spacing.sm,
+    marginRight: Spacing.xs,
   },
   clinicalCareLinkTitle: {
     fontSize: 15,

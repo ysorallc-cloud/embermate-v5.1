@@ -249,7 +249,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   iconLoading: {
     backgroundColor: c.glassActive,

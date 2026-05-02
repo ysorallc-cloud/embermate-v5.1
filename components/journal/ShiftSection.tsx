@@ -28,7 +28,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.3,
     color: c.textMuted,
-    marginBottom: Spacing.md,
-    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.md,
   },
 });

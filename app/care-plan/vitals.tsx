@@ -301,9 +301,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingTop: Platform.OS === 'android' ? 20 : 0,
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
   backButton: {
     width: 44,
@@ -331,19 +331,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingBottom: 40,
   },
 
   // Title
   titleSection: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   title: {
     fontSize: 28,
     fontWeight: '300',
     color: c.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: 15,
@@ -353,16 +353,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Section Labels
   sectionHeader: {
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.sm,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.xs,
   },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
     color: c.textHalf,
     letterSpacing: 1,
-    marginBottom: Spacing.md,
-    marginTop: Spacing.xl,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.lg,
   },
 
   // Setting Row
@@ -374,12 +374,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.glassActive,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   settingInfo: {
     flex: 1,
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   settingLabel: {
     fontSize: 16,
@@ -394,14 +394,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Priority
   priorityContainer: {
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   priorityOption: {
     backgroundColor: c.glassFaint,
     borderWidth: 1,
     borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.sm,
   },
   priorityOptionSelected: {
     borderColor: c.accent,
@@ -423,7 +423,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Vitals Grid
   vitalsGrid: {
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   vitalItem: {
     flexDirection: 'row',
@@ -432,8 +432,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    gap: Spacing.md,
+    padding: Spacing.sm,
+    gap: Spacing.sm,
   },
   vitalItemSelected: {
     borderColor: c.accent,
@@ -471,14 +471,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Frequency
   frequencyContainer: {
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   frequencyOption: {
     backgroundColor: c.glassFaint,
     borderWidth: 1,
     borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.sm,
   },
   frequencyOptionSelected: {
     borderColor: c.accent,
@@ -504,13 +504,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: c.glassBorder,
-    padding: Spacing.md,
+    padding: Spacing.sm,
   },
   autoImportDesc: {
     fontSize: 13,
     color: c.textSecondary,
     lineHeight: 18,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   autoImportRow: {
     flexDirection: 'row' as const,

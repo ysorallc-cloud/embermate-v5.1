@@ -175,7 +175,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: Spacing.xxl,
+    paddingHorizontal: Spacing.lg,
     paddingTop: 60,
     paddingBottom: 40,
   },
@@ -184,16 +184,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '300',
     color: c.textPrimary,
     textAlign: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   // ── Primary card (mint accent) ────────────────────────────────────────────
   primaryCard: {
     width: '100%',
     backgroundColor: c.accent,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   primaryCardTitle: {
     fontSize: 16,
@@ -209,15 +209,15 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   expandedPanel: {
     width: '100%',
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+    gap: Spacing.xs,
   },
   input: {
     backgroundColor: c.glass,
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     fontSize: 16,
     color: c.textPrimary,
     textAlign: 'center',
@@ -225,7 +225,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   doneButton: {
     backgroundColor: c.accent,
     borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     alignItems: 'center',
   },
   doneButtonText: {
@@ -240,9 +240,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   secondaryCardTitle: {
     fontSize: 16,
@@ -266,10 +266,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 16,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   loadingSpinner: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   loadingText: {
     fontSize: 16,
@@ -281,7 +281,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 17,
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
     fontStyle: 'italic',
   },
 });

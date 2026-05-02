@@ -141,14 +141,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
   },
 
   cardHeader: {
     flexDirection: 'row',
-    gap: Spacing.lg,
-    marginBottom: Spacing.lg,
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
   },
 
   cardInfo: {
@@ -158,21 +158,21 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: c.border,
   },
 
   appointmentHeader: {
     flexDirection: 'row',
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
 
   listItemSkeleton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing.md,
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
@@ -186,6 +186,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: c.background,
-    padding: Spacing.xl,
+    padding: Spacing.lg,
   },
 });

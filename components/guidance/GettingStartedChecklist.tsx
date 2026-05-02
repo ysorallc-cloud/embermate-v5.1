@@ -160,14 +160,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     backgroundColor: c.cardBackground,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   title: {
     fontSize: 16,
@@ -206,7 +206,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginTop: 2,
   },
   dismiss: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
     alignItems: 'center',
   },
   dismissText: {

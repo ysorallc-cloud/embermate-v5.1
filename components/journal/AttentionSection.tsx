@@ -40,8 +40,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.greenHint,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   allClearText: {
     fontSize: 14,
@@ -55,12 +55,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: c.amber,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   itemRow: {},
   itemRowSpaced: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   itemText: {
     fontSize: 14,

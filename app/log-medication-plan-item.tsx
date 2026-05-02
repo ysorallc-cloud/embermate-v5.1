@@ -532,8 +532,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: c.accentHint,
   },
@@ -562,7 +562,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.xl,
+    padding: Spacing.lg,
   },
 
   // Medication Card
@@ -571,13 +571,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.sageGlow,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.xl,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   medicationHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   medicationEmoji: {
     fontSize: 32,
@@ -611,8 +611,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   scheduleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: Spacing.md,
-    paddingTop: Spacing.md,
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: c.glassActive,
   },
@@ -627,7 +627,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '500',
   },
   instructionsRow: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   instructionsLabel: {
     fontSize: 12,
@@ -646,7 +646,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.glassFaint,
     borderRadius: BorderRadius.md,
     padding: 4,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   modeButton: {
     flex: 1,
@@ -678,15 +678,15 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '600',
     color: c.textHalf,
     letterSpacing: 1,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
 
   // Side Effects Grid
   sideEffectsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginBottom: Spacing.xl,
+    gap: Spacing.xs,
+    marginBottom: Spacing.lg,
   },
   sideEffectOption: {
     flexDirection: 'row',
@@ -731,7 +731,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     gap: 6,
   },
   selectedSummaryLabel: {
@@ -747,15 +747,15 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Skip Reasons
   skipReasonsContainer: {
-    gap: Spacing.sm,
-    marginBottom: Spacing.xl,
+    gap: Spacing.xs,
+    marginBottom: Spacing.lg,
   },
   skipReasonOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
     paddingVertical: 14,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
     backgroundColor: c.glassFaint,
     borderWidth: 1,
     borderColor: c.glassActive,
@@ -798,11 +798,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.glassActive,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     fontSize: 14,
     color: c.textPrimary,
     minHeight: 80,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
 
   // Snooze Button
@@ -827,7 +827,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Footer
   footer: {
-    padding: Spacing.xl,
+    padding: Spacing.lg,
     paddingBottom: 24,
     borderTopWidth: 1,
     borderTopColor: c.accentHint,

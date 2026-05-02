@@ -87,13 +87,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     marginBottom: 4,
   },
   name: {
@@ -108,13 +108,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   infoLine: {
     fontSize: 13,
     color: c.textSecondary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   conditionTag: {
     backgroundColor: c.accentLight,
@@ -135,8 +135,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     gap: 6,
     backgroundColor: 'rgba(248, 113, 113, 0.08)',
     borderRadius: BorderRadius.sm,
-    padding: Spacing.sm,
-    marginBottom: Spacing.sm,
+    padding: Spacing.xs,
+    marginBottom: Spacing.xs,
   },
   allergyLabel: {
     fontSize: 12,

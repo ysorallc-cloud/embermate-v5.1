@@ -111,26 +111,26 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Spacing.xxl,
+    paddingHorizontal: Spacing.lg,
   },
   emoji: {
     fontSize: 56,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   title: {
     fontSize: 24,
     fontWeight: '300',
     color: c.textPrimary,
     textAlign: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   subtitle: {
     fontSize: 15,
     color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: Spacing.xxxl,
-    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.sm,
   },
   pointsSection: {
     width: '100%',
@@ -140,7 +140,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '600',
     color: c.textTertiary,
     letterSpacing: 1.5,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   pointRow: {
     flexDirection: 'row',
@@ -159,8 +159,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     lineHeight: 20,
   },
   footer: {
-    paddingHorizontal: Spacing.xxl,
-    paddingBottom: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
     gap: 10,
   },
   primaryButton: {
@@ -191,10 +191,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   loadingEmoji: {
     fontSize: 56,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   loadingSpinner: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   loadingText: {
     fontSize: 16,

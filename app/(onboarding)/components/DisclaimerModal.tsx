@@ -88,7 +88,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.xxl,
+    padding: Spacing.lg,
   },
   modalContainer: {
     width: '100%',
@@ -104,16 +104,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   title: {
     ...Typography.h2,
     color: c.textPrimary,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     textAlign: 'center',
   },
   section: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   sectionTitle: {
     ...Typography.h3,
     color: c.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   sectionText: {
     ...Typography.body,
@@ -125,8 +125,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 200, 100, 0.3)',
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.xl,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   warningText: {
     ...Typography.body,
@@ -137,9 +137,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   closeButton: {
     backgroundColor: c.accent,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     alignItems: 'center',
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
   },
   closeButtonText: {
     ...Typography.label,

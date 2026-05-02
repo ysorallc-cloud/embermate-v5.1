@@ -1,38 +1,15 @@
 // ============================================================================
-// theme spacing + sizing — locked v6.7 sizing contract.
+// theme spacing + sizing — locked sizing contract.
 //
-// Every subsequent phase of the May 1 color discipline + sizing pass
-// references these tokens; the test pins each value and the HIG-minimum
-// touch target invariant.
+// Spacing-rhythm pass (May 1) replaced the prior provisional Spacing
+// block — including the semantic tokens cardPadding / cardGap /
+// sectionGap / rowGap / inlineGap (none of which had any actual call
+// sites) — with a strict canonical 4pt scale. Those expectations are
+// now in __tests__/theme-spacing-scale.test.ts. This file pins the
+// Sizing token contract that survived the rename.
 // ============================================================================
 
-import { Spacing, Sizing } from '../theme/theme-tokens';
-
-describe('Theme spacing tokens', () => {
-  it('cardPadding is 12', () => {
-    expect(Spacing.cardPadding).toBe(12);
-  });
-
-  it('cardPaddingTight is 10 (used when card holds rows w/ own padding)', () => {
-    expect(Spacing.cardPaddingTight).toBe(10);
-  });
-
-  it('cardGap is 10 (between sibling cards)', () => {
-    expect(Spacing.cardGap).toBe(10);
-  });
-
-  it('sectionGap is 16 (between named sections)', () => {
-    expect(Spacing.sectionGap).toBe(16);
-  });
-
-  it('rowGap is 8 (within a row of items)', () => {
-    expect(Spacing.rowGap).toBe(8);
-  });
-
-  it('inlineGap is 6 (tight inline elements)', () => {
-    expect(Spacing.inlineGap).toBe(6);
-  });
-});
+import { Sizing } from '../theme/theme-tokens';
 
 describe('Theme sizing tokens', () => {
   it('buttonHeight is 36 (standard touch target)', () => {

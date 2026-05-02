@@ -942,7 +942,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   loadingText: {
     fontSize: 14,

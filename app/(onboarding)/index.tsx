@@ -228,9 +228,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xxl,
-    paddingBottom: Spacing.xxl,
-    paddingTop: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.lg,
+    paddingTop: Spacing.md,
     backgroundColor: 'rgba(10, 10, 15, 0.6)',
   },
   spacer: {
@@ -238,8 +238,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   nextButton: {
     backgroundColor: c.accent,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.lg,
     minWidth: 80,
     alignItems: 'center',

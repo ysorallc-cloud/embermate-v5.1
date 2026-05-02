@@ -471,8 +471,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.xl,
-    paddingTop: Spacing.lg,
+    padding: Spacing.lg,
+    paddingTop: Spacing.md,
   },
   backButton: {
     width: 44,
@@ -501,8 +501,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: 'rgba(74, 222, 128, 0.15)',
     borderRadius: 10,
     padding: 10,
-    marginHorizontal: Spacing.xl,
-    marginBottom: Spacing.md,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   carePlanBanner: {
     backgroundColor: c.purpleFaint,
@@ -524,19 +524,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Section
   section: {
-    padding: Spacing.xl,
-    marginBottom: Spacing.md,
+    padding: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
     color: c.accent,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   hint: {
     fontSize: 13,
     color: c.textMuted,
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
     textAlign: 'center',
   },
 
@@ -544,7 +544,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   mealGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   mealCard: {
     width: '47%',
@@ -552,7 +552,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.accentHint,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     alignItems: 'center',
     position: 'relative',
   },
@@ -562,7 +562,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   mealIcon: {
     fontSize: 32,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   mealLabel: {
     fontSize: 15,
@@ -575,8 +575,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   checkBadge: {
     position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
+    top: Spacing.xs,
+    right: Spacing.xs,
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -596,7 +596,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.accentHint,
     borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     color: c.textPrimary,
     fontSize: 15,
     minHeight: 120,
@@ -607,7 +607,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   quickFoodChip: {
     flexDirection: 'row',
@@ -639,15 +639,15 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Footer
   footer: {
-    padding: Spacing.xl,
-    paddingBottom: Spacing.xxl,
+    padding: Spacing.lg,
+    paddingBottom: Spacing.lg,
     borderTopWidth: 1,
     borderTopColor: c.accentHint,
     backgroundColor: c.background,
   },
   saveButton: {
     backgroundColor: c.orange,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
   },
@@ -662,7 +662,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Phase 3B — quick "She ate" save + collapsible details
   quickSaveButton: {
     backgroundColor: c.accent,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
     marginBottom: 10,

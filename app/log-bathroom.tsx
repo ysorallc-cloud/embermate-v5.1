@@ -183,7 +183,7 @@ export default function LogBathroomScreen() {
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   content: { flex: 1 },
-  contentInner: { padding: Spacing.md, paddingBottom: 40 },
+  contentInner: { padding: Spacing.sm, paddingBottom: 40 },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',

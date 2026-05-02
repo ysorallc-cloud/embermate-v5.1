@@ -186,7 +186,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
   },
   emptyState: {
     alignItems: 'center',
@@ -194,23 +194,23 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 64,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
     opacity: 0.3,
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '500',
     color: c.textPrimary,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.xxs,
   },
   emptySubtext: {
     fontSize: 14,
     color: c.textSecondary,
     textAlign: 'center',
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
   },
   dateGroup: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   dateLabel: {
     fontSize: 12,
@@ -218,8 +218,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     color: c.textSecondary,
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+    marginTop: Spacing.sm,
   },
   activityCard: {
     flexDirection: 'row',
@@ -227,8 +227,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.xs,
+    padding: Spacing.sm,
+    marginBottom: Spacing.xxs,
   },
   activityIconContainer: {
     width: 40,
@@ -237,7 +237,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   activityIcon: {
     fontSize: 20,
@@ -256,7 +256,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
   },
   footer: {
-    paddingVertical: Spacing.xl,
+    paddingVertical: Spacing.lg,
     alignItems: 'center',
   },
   footerText: {

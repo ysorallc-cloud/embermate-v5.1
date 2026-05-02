@@ -270,16 +270,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
   },
   explainer: {
     backgroundColor: c.accentLight,
     borderWidth: 1,
     borderColor: c.accentBorder,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.xl,
+    padding: Spacing.sm,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   explainerText: {
     fontSize: 13,
@@ -292,9 +292,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.3)',
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.xl,
-    gap: Spacing.sm,
+    padding: Spacing.sm,
+    marginBottom: Spacing.lg,
+    gap: Spacing.xs,
   },
   betaIcon: {
     fontSize: 20,
@@ -314,29 +314,29 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
   },
   section: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
     color: c.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: Spacing.xxl,
+    paddingVertical: Spacing.lg,
   },
   emptyIcon: {
     fontSize: 48,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
     opacity: 0.3,
   },
   emptyText: {
     fontSize: 15,
     fontWeight: '500',
     color: c.textPrimary,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.xxs,
   },
   emptySubtext: {
     fontSize: 13,
@@ -349,8 +349,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    padding: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   caregiverAvatar: {
     width: 48,
@@ -358,7 +358,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   caregiverInitial: {
     fontSize: 20,
@@ -377,11 +377,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   caregiverRole: {
     fontSize: 12,
     color: c.textSecondary,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.xxs,
   },
   permissionTags: {
     flexDirection: 'row',
-    gap: Spacing.xs,
+    gap: Spacing.xxs,
   },
   permissionTag: {
     backgroundColor: c.accentLight,
@@ -417,8 +417,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.borderMedium,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    padding: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   inviteLeft: {
     flex: 1,
@@ -436,8 +436,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   copyButton: {
     backgroundColor: c.accentLight,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.md,
   },
   copyButtonText: {
@@ -448,9 +448,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   primaryButton: {
     backgroundColor: c.accent,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   primaryButtonText: {
     fontSize: 16,
@@ -462,7 +462,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     alignItems: 'center',
   },
   secondaryButtonText: {
@@ -475,14 +475,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.xxl,
+    padding: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
   infoTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: c.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   infoText: {
     fontSize: 13,

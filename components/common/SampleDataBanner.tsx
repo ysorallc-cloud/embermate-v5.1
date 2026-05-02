@@ -159,8 +159,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.purpleBorder,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   content: {
     flexDirection: 'row',
@@ -228,7 +228,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   compactContent: {
     flex: 1,

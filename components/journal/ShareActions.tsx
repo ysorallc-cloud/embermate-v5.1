@@ -92,8 +92,8 @@ export function ShareActions({ onShare, onExport }: Props) {
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    marginTop: Spacing.lg,
-    gap: Spacing.sm,
+    marginTop: Spacing.md,
+    gap: Spacing.xs,
   },
   primaryButton: {
     backgroundColor: c.sageBorder,

@@ -94,15 +94,15 @@ export default function PhotoCapture({ type, onPhotoSaved, medicationId }: Photo
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   button: {
     flex: 1,
     backgroundColor: c.surface,
     borderRadius: 12,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: Spacing.xxs,
     borderWidth: 1,
     borderColor: c.border,
   },

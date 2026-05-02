@@ -51,7 +51,7 @@ export const QuickActionGrid: React.FC<Props> = ({ actions }) => {
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   button: {
     flex: 1,

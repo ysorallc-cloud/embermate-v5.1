@@ -232,16 +232,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   scroll: {
     flex: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
   },
   explainer: {
     backgroundColor: c.glassHover,
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.xl,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   explainerText: {
     fontSize: 14,
@@ -253,16 +253,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '700',
     color: c.textTertiary,
     letterSpacing: 1.2,
-    marginBottom: Spacing.md,
-    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.md,
   },
   toggleCard: {
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: 12,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -271,7 +271,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   toggleInfo: {
     flex: 1,
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   toggleLabel: {
     fontSize: 15,
@@ -289,14 +289,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: 12,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   fieldLabel: {
     fontSize: 13,
     fontWeight: '600',
     color: c.textSecondary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   fieldInput: {
     fontSize: 14,

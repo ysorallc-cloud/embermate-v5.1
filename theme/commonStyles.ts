@@ -48,8 +48,8 @@ export const createCommonStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.accentBorder,
     borderRadius: 12,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -63,8 +63,8 @@ export const createCommonStyles = (c: typeof Colors) => StyleSheet.create({
   primaryButton: {
     backgroundColor: c.accent,
     borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -80,8 +80,8 @@ export const createCommonStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -98,8 +98,8 @@ export const createCommonStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     fontSize: 16,
     color: c.textPrimary,
   },
@@ -108,7 +108,7 @@ export const createCommonStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: c.textSecondary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
 
   inputError: {
@@ -118,7 +118,7 @@ export const createCommonStyles = (c: typeof Colors) => StyleSheet.create({
   inputHelpText: {
     fontSize: 12,
     color: c.textMuted,
-    marginTop: Spacing.xs,
+    marginTop: Spacing.xxs,
   },
 
   // SECTION HEADERS
@@ -128,7 +128,7 @@ export const createCommonStyles = (c: typeof Colors) => StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: c.textMuted,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
 
   // CARDS
@@ -137,19 +137,19 @@ export const createCommonStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    padding: Spacing.md,
   },
 
   // EMPTY STATES
   emptyState: {
     alignItems: 'center',
     paddingVertical: 64,
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
   },
 
   emptyIcon: {
     fontSize: 64,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     opacity: 0.3,
   },
 
@@ -157,7 +157,7 @@ export const createCommonStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 18,
     fontWeight: '500',
     color: c.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
 
   emptyText: {
@@ -178,20 +178,20 @@ export const createCommonStyles = (c: typeof Colors) => StyleSheet.create({
   loadingText: {
     fontSize: 14,
     color: c.textSecondary,
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
   },
 
   // DIVIDERS
   divider: {
     height: 1,
     backgroundColor: c.border,
-    marginVertical: Spacing.md,
+    marginVertical: Spacing.sm,
   },
 
   dividerThick: {
     height: 2,
     backgroundColor: c.borderMedium,
-    marginVertical: Spacing.lg,
+    marginVertical: Spacing.md,
   },
 });
 
@@ -207,14 +207,14 @@ export const createLayoutStyles = (c: typeof Colors) => StyleSheet.create({
 
   scrollView: {
     flex: 1,
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
   },
 
   centeredContent: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.xl,
+    padding: Spacing.lg,
   },
 });
 

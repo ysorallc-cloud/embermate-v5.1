@@ -979,8 +979,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.xs,
   },
 
   // Export button
@@ -1001,8 +1001,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Scope Selector
   scopeSelector: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
     gap: 8,
   },
   scopeButton: {
@@ -1334,7 +1334,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.accentBorder,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     alignItems: 'center',
     marginTop: 4,
   },

@@ -38,7 +38,7 @@ export function BriefTimestamp({ generatedAt }: BriefTimestampProps) {
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   text: {
     fontSize: 11,

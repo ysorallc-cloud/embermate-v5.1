@@ -121,8 +121,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '500' as const,
   },
   expandedContent: {
-    marginTop: Spacing.sm,
-    paddingTop: Spacing.sm,
+    marginTop: Spacing.xs,
+    paddingTop: Spacing.xs,
     borderTopWidth: 1,
     borderTopColor: c.glassBorder,
   },

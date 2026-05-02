@@ -236,7 +236,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     borderWidth: 1,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     marginBottom: 12,
   },
   header: {
