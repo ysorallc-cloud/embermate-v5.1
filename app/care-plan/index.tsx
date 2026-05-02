@@ -595,10 +595,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderTopColor: c.hairlineInset,
     marginTop: 8,
   },
+  // Phase 2.6.6 — outlined pill, not filled. The CORE section header is
+  // informational (not a CTA), so the ALWAYS ON badge gets the lower-
+  // visual-weight outline treatment. Filled `accentDim` (10% sage) over
+  // the warm-charcoal bg made sage-on-sage text fight for contrast;
+  // transparent + 50% sage outline + full-sage text gives 6.9:1 against
+  // the page (vs ~5.2:1 before) and reads "label" rather than "button."
   alwaysOnBadge: {
-    backgroundColor: c.accentDim,
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: c.accentBorder,
+    borderColor: c.accentMuted,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 2,
