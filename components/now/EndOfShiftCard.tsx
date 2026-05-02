@@ -77,6 +77,9 @@ export function EndOfShiftCard({
         style={s.cta}
         onPress={() => navigate('/(tabs)/journal?scrollTo=handoff')}
         activeOpacity={0.7}
+        // Phase 2.6.7 — visual padding dropped to make the CTA a ghost
+        // text link; tap area carried by hitSlop to clear HIG 44pt min.
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         accessibilityLabel="View today's journal"
         accessibilityRole="button"
       >
@@ -124,16 +127,19 @@ const createStyles = (c: any) => StyleSheet.create({
     lineHeight: 19,
     marginBottom: 12,
   },
+  // Phase 2.6.7 — ghost text link. The card itself is dimmed (Phase 2),
+  // and a filled lavender pill drew the eye to "View journal →" as a
+  // primary action — fighting the card's reduced-emphasis treatment.
+  // No bg, no border, no visual padding; tap area handled by hitSlop on
+  // the TouchableOpacity. The link peers with the card's title visually.
   cta: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
-    borderRadius: 20,
-    paddingVertical: 7,
-    paddingHorizontal: 16,
   },
   ctaText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: c.caregiverAccentText,
+    fontWeight: '500',
+    // Canonical lavender (vs the brighter caregiverAccentText) so the
+    // link reads as a peer of the title, not a separate emphasis level.
+    color: c.caregiverAccent,
   },
 });
