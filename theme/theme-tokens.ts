@@ -238,8 +238,17 @@ const DarkColors = {
   gradientAuroraToday: ['rgba(95, 184, 138, 0.10)', 'transparent'],
   gradientAuroraHub: ['rgba(95, 184, 138, 0.06)', 'transparent'],
   gradientAuroraFamily: ['rgba(95, 184, 138, 0.08)', 'transparent'],
-  backgroundGradientStart: '#000000',
-  backgroundGradientEnd: '#050505',
+  // Phase 2.6.1 — flat-lifted to the page-bg charcoal. Pre-lift these
+  // were '#000000' / '#050505', and every sub-screen (Care Plan flow,
+  // log forms, settings, etc.) wraps its SafeAreaView in a
+  // <LinearGradient> reading from these tokens — so the near-black
+  // gradient covered the lifted #1f201c page bg before reaching the
+  // device. Flat lift to the same value as `background` so the gradient
+  // overlay produces no visible color delta vs the SafeAreaView
+  // underneath. The gradient JSX surface itself is preserved (40+
+  // screens) for a future deliberate design call that wants depth back.
+  backgroundGradientStart: '#1f201c',
+  backgroundGradientEnd: '#1f201c',
   cardBackground: '#111111',
   backgroundDark: '#000000',
   backgroundDeep: '#050505',
