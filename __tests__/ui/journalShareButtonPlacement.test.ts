@@ -52,7 +52,11 @@ describe('Journal header — Share button placement (no clipping at right edge)'
       (scrollPad ? Number(scrollPad[1]) : 0) +
       (rowPad ? Number(rowPad[1] ?? rowPad[2] ?? 0) : 0) +
       (actionsMargin ? Number(actionsMargin[1]) : 0);
-    expect(ancestorPad).toBeGreaterThanOrEqual(16);
+    // May 1 spacing-rhythm Phase 3 dropped scrollContent.paddingHorizontal
+    // from 16 to 14 (canonical page-edge contract). The Share pill's
+    // right-edge breathing room still adds via headerActions / headerRow
+    // ancestor padding; threshold lowered in lockstep with the contract.
+    expect(ancestorPad).toBeGreaterThanOrEqual(14);
   });
 
   it('"Share" pill text sits in a container sized to fit the word (no clipping)', () => {

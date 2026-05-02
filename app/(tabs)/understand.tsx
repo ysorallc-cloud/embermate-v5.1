@@ -935,8 +935,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  // Phase 3 page rhythm — every tab's outermost ScrollView lands at
+  // paddingTop: 24 / paddingHorizontal: 14. Bottom padding kept modest
+  // so the last card doesn't read disconnected from the footer area.
   scrollContent: {
-    padding: 16,
+    paddingTop: 24,
+    paddingHorizontal: 14,
+    paddingBottom: 16,
   },
   loadingContainer: {
     flex: 1,

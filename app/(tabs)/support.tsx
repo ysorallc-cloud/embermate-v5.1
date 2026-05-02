@@ -145,8 +145,14 @@ function createStyles(c: typeof Colors) {
     scroll: {
       flex: 1,
     },
+    // Phase 3 page rhythm — every tab's outermost ScrollView lands at
+    // paddingTop: 24 / paddingHorizontal: 14. The hero `headerWrap` below
+    // carries its own paddingTop: 56 to clear the safe-area; scrollContent's
+    // 24 stacks above that as the canonical page-edge offset before the
+    // header begins.
     scrollContent: {
-      paddingHorizontal: 20,
+      paddingTop: 24,
+      paddingHorizontal: 14,
       paddingBottom: 24,
     },
     headerWrap: {

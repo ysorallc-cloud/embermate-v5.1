@@ -1172,8 +1172,12 @@ export default function NowScreen() {
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   scrollView: { flex: 1 },
-  scrollContent: { paddingTop: 16 },
-  content: { paddingHorizontal: 22, paddingTop: 0 },
+  // Phase 3 page rhythm — every tab's outermost ScrollView gets the
+  // canonical paddingTop: 24 / paddingHorizontal: 14. Below the hero
+  // header, the inner `content` view adds zero horizontal padding so
+  // cards align flush with the scrollContent edge.
+  scrollContent: { paddingTop: 24, paddingHorizontal: 14 },
+  content: { paddingHorizontal: 0, paddingTop: 0 },
 
   // Undo toast (floats above tab bar)
   undoToast: {

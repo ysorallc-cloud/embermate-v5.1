@@ -99,9 +99,12 @@ describe('You tab — QuickResetPills handlers wired', () => {
 });
 
 describe('You tab — page padding + scroll behavior', () => {
-  it('scrollContent has paddingHorizontal: 20 and paddingBottom >= 24', () => {
+  it('scrollContent has paddingHorizontal: 14 and paddingBottom >= 24', () => {
+    // May 1 spacing-rhythm Phase 3 dropped scrollContent.paddingHorizontal
+    // from 20 to the canonical 14pt page-edge contract. paddingBottom
+    // floor unchanged.
     const block = styleBlock('scrollContent');
-    expect(num(block, 'paddingHorizontal')).toBe(20);
+    expect(num(block, 'paddingHorizontal')).toBe(14);
     const pb = num(block, 'paddingBottom');
     expect(pb).not.toBeNull();
     expect(pb as number).toBeGreaterThanOrEqual(24);

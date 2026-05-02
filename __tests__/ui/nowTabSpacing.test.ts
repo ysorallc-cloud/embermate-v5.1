@@ -21,11 +21,13 @@ function extractStyleValue(src: string, styleName: string, prop: string): number
 }
 
 describe('Now tab spacing pass', () => {
-  it('root content container has paddingHorizontal: 22', () => {
-    // The content/scrollContent style in now.tsx
-    const val = extractStyleValue(nowSrc, 'content', 'paddingHorizontal')
-      ?? extractStyleValue(nowSrc, 'scrollContent', 'paddingHorizontal');
-    expect(val).toBe(22);
+  it('root content container has paddingHorizontal: 14 (Phase 3 page-rhythm)', () => {
+    // May 1 spacing-rhythm Phase 3 dropped the content/scrollContent
+    // paddingHorizontal from 22 to the canonical 14pt page-edge contract.
+    // The inner `content` view's padding folded into 0; the scrollContent
+    // carries the 14pt itself.
+    const val = extractStyleValue(nowSrc, 'scrollContent', 'paddingHorizontal');
+    expect(val).toBe(14);
   });
 
   it('header container provides bottom rhythm before content', () => {
