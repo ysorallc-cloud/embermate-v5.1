@@ -45,7 +45,9 @@ interface MedicationItemProps {
   onRemove: () => void;
 }
 
-const REMOVE_ACTION_WIDTH = 96;
+// Phase 2.6.4 — tightened from 96 → 80pt to match the spec's tap-target
+// width and let slightly less of the row reveal on swipe.
+const REMOVE_ACTION_WIDTH = 80;
 
 function MedicationItem({ medication, onEdit, onToggleActive, onRemove }: MedicationItemProps) {
   const { colors } = useTheme();
@@ -667,19 +669,29 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     opacity: 0.6,
   },
   // Container that translates left/right when the user swipes the row.
+  // Phase 2.6.4 — was c.glassFaint (~3% white, nearly transparent), which
+  // let the absolutely-positioned remove action behind it bleed through
+  // and read as a bright red row before any swipe gesture. Bumped to the
+  // opaque c.glass card surface so the row covers the action in the
+  // closed state.
   medItemSwipeable: {
-    backgroundColor: c.glassFaint,
+    backgroundColor: c.glass,
   },
-  // Action revealed beneath the row when swiped left.
+  // Action revealed beneath the row when swiped left. Width matches
+  // REMOVE_ACTION_WIDTH (80) so the swipe distance and the action zone
+  // stay in lockstep.
   removeAction: {
     position: 'absolute',
     top: 0,
     bottom: 0,
     right: 0,
-    width: 96,
+    width: 80,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: c.red,
+    // Phase 2.6.4 — c.red (alias for #e6776e) → c.criticalAlert (canonical
+    // name). Same hex; the semantic name reads cleanly under the Phase 7
+    // 3-accent budget audit.
+    backgroundColor: c.criticalAlert,
   },
   removeActionButton: {
     flex: 1,
