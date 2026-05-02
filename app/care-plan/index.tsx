@@ -700,11 +700,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     width: 16,
   },
 
-  // AI Insight Card
+  // AI Insight Card — "Stay on track" prompt.
+  // Phase 2.6.5: switched from the legacy `purple*` tokens (electric
+  // #a78bfa) to the warm `caregiverAccent*` family (#aa8adc) that
+  // matches the Phase 7 3-accent budget. Bg 8% → 6%, border stays
+  // 25%, hue shifts cool→warm so the card sits cleanly against the
+  // warm-charcoal page bg instead of fighting it.
   aiInsightCard: {
-    backgroundColor: c.purpleMuted,
+    backgroundColor: c.caregiverAccentBg,
     borderWidth: 1,
-    borderColor: c.purpleStrong,
+    borderColor: c.caregiverAccentBorder,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.lg,
@@ -722,7 +727,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: c.purpleBright,
+    // Lavender stays on the heading + bell only (per spec). Token routed
+    // through caregiverAccentText (#d4baff) to match the warm palette.
+    color: c.caregiverAccentText,
   },
   aiInsightDismiss: {
     width: 24,
