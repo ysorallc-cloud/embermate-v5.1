@@ -90,7 +90,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 18,
+    // Phase 4a — page-rhythm. 16pt above (separates the row from the
+    // hero header), 16pt below (separates from the schedule card),
+    // 14pt horizontal so the four tiles' outer gutters match the
+    // page-edge contract from Phase 3.
+    marginTop: 16,
+    marginBottom: 16,
+    paddingHorizontal: 14,
   },
   column: {
     flex: 1,

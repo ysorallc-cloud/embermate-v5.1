@@ -98,14 +98,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 16,
     overflow: 'hidden',
   },
-  // v6.7 May 1 sizing pass — Phase 3b: active and inactive rows share the
-  // same paddingVertical (6) so the card height stays uniform. Active
-  // state is colour-only.
+  // v6.7 May 1 sizing pass — Phase 3b set paddingVertical: 6 so active and
+  // inactive rows share row geometry. Phase 4 lifts that to 8 to match
+  // the canonical row-height rhythm and give every row a slightly
+  // taller tap target without changing the active / inactive height
+  // parity (still colour-only differentiation).
   windowRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 6,
+    paddingVertical: 8,
     paddingHorizontal: 14,
   },
   windowRowDivider: {

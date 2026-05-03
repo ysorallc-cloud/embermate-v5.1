@@ -38,9 +38,11 @@ describe('Now tab spacing pass', () => {
     expect(val).toBeGreaterThanOrEqual(20);
   });
 
-  it('StatRings container has marginBottom: 18', () => {
+  it('StatRings container has marginBottom: 16 (Phase 4 page-rhythm lockstep)', () => {
+    // May 2 spacing-pass Phase 4 dropped StatRings container marginBottom
+    // from 18 → 16 to align with the canonical 4pt scale's md step.
     const val = extractStyleValue(statRingsSrc, 'container', 'marginBottom');
-    expect(val).toBe(18);
+    expect(val).toBe(16);
   });
 
   it('schedule card has marginBottom: 16', () => {

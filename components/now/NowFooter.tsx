@@ -162,12 +162,16 @@ const createStyles = (c: any) => StyleSheet.create({
   journalPreviewText: {
     fontSize: 13,
     color: c.textSecondary,
-    marginBottom: 8,
   },
   journalPreviewLink: {
     fontSize: 13,
     fontWeight: '600' as const,
     color: c.accent,
+    // Phase 4c — 8pt gap moved from the text-above's marginBottom onto
+    // the link's marginTop so the child (link) carries the gap. Cleaner
+    // rhythm; the text above can stack flush when the link isn't
+    // present.
+    marginTop: 8,
   },
   allDoneMessage: {
     backgroundColor: c.greenTint,

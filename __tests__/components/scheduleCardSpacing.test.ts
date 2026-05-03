@@ -23,12 +23,15 @@ function num(block: string, prop: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-describe('ScheduleCard — equal row geometry (May 1 sizing pass — Phase 3b)', () => {
-  it('windowRow paddingVertical is 6pt (matches active and inactive rows)', () => {
+describe('ScheduleCard — equal row geometry', () => {
+  it('windowRow paddingVertical is 8pt (matches active and inactive rows)', () => {
+    // May 2 spacing-pass Phase 4 lifted paddingVertical 6 → 8 to give
+    // each row a slightly taller tap target while keeping active/inactive
+    // height parity (still colour-only differentiation).
     const block = styleBlock('windowRow');
     expect(block).not.toBe('');
     const pv = num(block, 'paddingVertical');
-    expect(pv).toBe(6);
+    expect(pv).toBe(8);
   });
 
   it('row dividers stay 0.5px (lift comes from typography, not heavier lines)', () => {
