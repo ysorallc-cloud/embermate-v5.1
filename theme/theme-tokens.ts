@@ -31,7 +31,11 @@ const DarkColors = {
   // L* 12.54, youCardSurface→bg L* 10.08. See cardContrast.test.ts.
   glass: '#363830',
   glassHover: 'rgba(255, 245, 220, 0.06)',
-  glassBorder: 'rgba(255, 240, 215, 0.08)',
+  // Phase 3.5 — bumped opacity 0.08 → 0.10 so card edges read more
+  // visibly against the warm-charcoal page bg. Border still reads as a
+  // separator, not an edge; the lift just keeps cards from blending into
+  // the surface at a glance.
+  glassBorder: 'rgba(255, 240, 215, 0.10)',
   // v6.7 — inset row hairline (12pt inset inside cards). Quieter than
   // glassBorder (0.08) so it reads as a separator, not an edge.
   hairlineInset: 'rgba(255, 240, 215, 0.06)',
@@ -306,9 +310,13 @@ export const Spacing = {
   xxs: 4,
   xs: 8,
   sm: 12,
-  md: 16,
-  lg: 24,
-  xl: 32,
+  // Phase 3.5 — bumped md/lg/xl by 4pt each. Device review of Phase 3
+  // showed cards at 16pt sibling gaps reading cramped on iOS, sections
+  // at 24pt reading too tight for a clear break. The new 20/28/36
+  // baseline gives breath without stretching content off-screen.
+  md: 20,  // was 16 — sibling-card gaps
+  lg: 28,  // was 24 — section breaks (eyebrow above card)
+  xl: 36,  // was 32 — major section separations
 };
 
 // v6.7 sizing tokens (May 1 sizing pass) — locked numeric heights / radii /

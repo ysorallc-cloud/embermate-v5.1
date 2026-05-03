@@ -38,16 +38,15 @@ describe('Now tab spacing pass', () => {
     expect(val).toBeGreaterThanOrEqual(20);
   });
 
-  it('StatRings container has marginBottom: 16 (Phase 4 page-rhythm lockstep)', () => {
-    // May 2 spacing-pass Phase 4 dropped StatRings container marginBottom
-    // from 18 → 16 to align with the canonical 4pt scale's md step.
-    const val = extractStyleValue(statRingsSrc, 'container', 'marginBottom');
-    expect(val).toBe(16);
+  it('StatRings container has marginBottom on Spacing.md (Phase 3.5 token-routed)', () => {
+    // History: Phase 4 set literal 16 → Phase 3.5 migrated to Spacing.md
+    // (now 20pt) so the recalibrated scale cascades. Source-level
+    // assertion via regex since the value lives behind a token.
+    expect(statRingsSrc).toMatch(/container:\s*\{[\s\S]*?marginBottom:\s*Spacing\.md\b/);
   });
 
-  it('schedule card has marginBottom: 16', () => {
-    const val = extractStyleValue(timelineSrc, 'sectionCard', 'marginBottom');
-    expect(val).toBe(16);
+  it('schedule card has marginBottom on Spacing.md (Phase 3.5 token-routed)', () => {
+    expect(timelineSrc).toMatch(/sectionCard:\s*\{[\s\S]*?marginBottom:\s*Spacing\.md\b/);
   });
 
   // End of Shift spacing now lives in components/now/EndOfShiftCard.tsx —

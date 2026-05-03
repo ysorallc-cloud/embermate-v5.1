@@ -29,7 +29,7 @@ import { ReflectionCard } from '../../components/support/ReflectionCard';
 import { QuickResetPills } from '../../components/support/QuickResetPills';
 import { BreathingExercise } from '../../components/support/BreathingExercise';
 import { ResourcesList } from '../../components/support/ResourcesList';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 
 
 // ============================================================================
@@ -212,7 +212,11 @@ function createStyles(c: typeof Colors) {
     // v6.7 Phase 5 — eyebrow + subtitle now live ABOVE the card. No
     // background tint, no border — it's a free-standing label group.
     planAheadHeader: {
-      marginTop: 16,
+      // Phase 3.5 — section break above eyebrow uses Spacing.lg (28pt,
+      // a stronger separation than card-to-card 20pt). The literal 16
+      // here predated the token bump and read as "yet another card gap"
+      // rather than the section-level break the spec calls for.
+      marginTop: Spacing.lg,
       paddingHorizontal: 4,
       paddingBottom: 8,
     },

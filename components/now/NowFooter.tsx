@@ -6,6 +6,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Spacing } from '../../theme/theme-tokens';
 import { navigate } from '../../lib/navigate';
 import { buildJournalPreview, CareBrief } from '../../utils/careSummaryBuilder';
 import { EndOfShiftCard } from './EndOfShiftCard';
@@ -132,7 +133,9 @@ const createStyles = (c: any) => StyleSheet.create({
   // parent grouping, which floated awkwardly on the page. Now an inline
   // serif italic line — atmosphere from typography, not a card.
   journalPreviewDimmed: {
-    marginTop: 16,
+    // Phase 3.5 — token-routed so the cascade reaches this dimmed
+    // italic-line alternative to the journal preview card.
+    marginTop: Spacing.md,
     paddingHorizontal: 14,
     alignItems: 'center' as const,
   },

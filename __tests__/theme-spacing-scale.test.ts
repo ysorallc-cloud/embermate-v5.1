@@ -26,26 +26,31 @@ describe('Spacing pass Phase 1 — canonical 4pt scale', () => {
     expect(Object.keys(S).sort()).toEqual(['lg', 'md', 'sm', 'xl', 'xs', 'xxs']);
   });
 
-  it('Spacing values match the canonical 4pt scale', () => {
+  it('Spacing values match the recalibrated scale (Phase 3.5)', () => {
+    // Phase 3.5 (May 3 spacing recalibration) lifted md/lg/xl by 4pt
+    // each. Device review of Phase 3 showed cards at 16pt sibling gaps
+    // reading cramped on iOS, sections at 24pt reading too tight for a
+    // clear break. xxs/xs/sm unchanged.
     expect((S as any).xxs).toBe(4);
     expect((S as any).xs).toBe(8);
     expect((S as any).sm).toBe(12);
-    expect((S as any).md).toBe(16);
-    expect((S as any).lg).toBe(24);
-    expect((S as any).xl).toBe(32);
+    expect((S as any).md).toBe(20);  // was 16
+    expect((S as any).lg).toBe(28);  // was 24
+    expect((S as any).xl).toBe(36);  // was 32
   });
 
-  it('every Spacing value is a multiple of 4 (no 6/10/14/18/20 sneaking in)', () => {
+  it('every Spacing value is a multiple of 4 (no 6/10/14/18 sneaking in)', () => {
     for (const [, v] of Object.entries(S)) {
       expect(typeof v).toBe('number');
       expect((v as number) % 4).toBe(0);
     }
   });
 
-  it('the legacy 20pt and 48pt steps are gone from Spacing', () => {
-    // 20 (was xl) collapses up to lg=24; 48 (was huge) was unused.
+  it('the 48pt step is gone from Spacing (was the unused `huge` token)', () => {
+    // Pre-Phase-1, the legacy block carried `huge: 48`. The codemod
+    // dropped it because nothing referenced it. Phase 3.5 keeps the
+    // shape unchanged on that front; only md/lg/xl values shifted.
     const values = Object.values(S) as number[];
-    expect(values).not.toContain(20);
     expect(values).not.toContain(48);
   });
 });

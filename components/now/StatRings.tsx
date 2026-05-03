@@ -10,7 +10,7 @@
 
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { StatData, TodayStats } from '../../utils/nowHelpers';
 
@@ -90,12 +90,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     gap: 8,
-    // Phase 4a — page-rhythm. 16pt above (separates the row from the
-    // hero header), 16pt below (separates from the schedule card),
-    // 14pt horizontal so the four tiles' outer gutters match the
-    // page-edge contract from Phase 3.
-    marginTop: 16,
-    marginBottom: 16,
+    // Phase 4a + 3.5 — page-rhythm. Spacing.md above (separates the row
+    // from the hero header), Spacing.md below (separates from the
+    // schedule card), 14pt horizontal so the four tiles' outer gutters
+    // match the page-edge contract from Phase 3. Phase 3.5 lifted
+    // Spacing.md from 16 → 20 so these gaps now breathe.
+    marginTop: Spacing.md,
+    marginBottom: Spacing.md,
     paddingHorizontal: 14,
   },
   column: {

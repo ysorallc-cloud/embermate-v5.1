@@ -36,8 +36,10 @@ describe('Theme tokens — locked dark surfaces', () => {
     expect(dark.youCardSurface).not.toBe(dark.glass);
   });
 
-  it('glassBorder is the v6.7 warm hairline rgba(255,240,215,0.08)', () => {
-    expect(dark.glassBorder.replace(/\s+/g, '')).toBe('rgba(255,240,215,0.08)');
+  it('glassBorder is the warm hairline at Phase 3.5 lifted opacity 0.10', () => {
+    // Phase 3.5 (May 3) lifted opacity 0.08 → 0.10 so card edges read
+    // more visibly against the lifted warm-charcoal page bg.
+    expect(dark.glassBorder.replace(/\s+/g, '')).toBe('rgba(255,240,215,0.10)');
   });
 });
 

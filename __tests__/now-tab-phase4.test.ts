@@ -54,12 +54,14 @@ describe('Phase 4a — StatRings container rhythm', () => {
   const container = extractStyleBody(src, 'container');
   const column = extractStyleBody(src, 'column');
 
-  it('container has marginTop: 16 (below the hero header)', () => {
-    expect(num(container, 'marginTop')).toBe(16);
+  it('container has marginTop: Spacing.md (below the hero header)', () => {
+    // Phase 3.5 migrated this from literal 16 → Spacing.md so the
+    // recalibrated scale (md = 20) cascades to the cascade.
+    expect(container).toMatch(/marginTop:\s*Spacing\.md\b/);
   });
 
-  it('container has marginBottom: 16 (above the schedule card)', () => {
-    expect(num(container, 'marginBottom')).toBe(16);
+  it('container has marginBottom: Spacing.md (above the schedule card)', () => {
+    expect(container).toMatch(/marginBottom:\s*Spacing\.md\b/);
   });
 
   it('container has paddingHorizontal: 14 (page-edge gutter parity)', () => {

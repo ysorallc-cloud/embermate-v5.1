@@ -6,6 +6,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Spacing } from '../../theme/theme-tokens';
 import { navigate } from '../../lib/navigate';
 import { BucketType } from '../../types/carePlanConfig';
 import { type TodayStats, type TimeWindow } from '../../utils/nowHelpers';
@@ -278,7 +279,8 @@ const createStyles = (c: any) => StyleSheet.create({
     borderColor: c.glassBorder,
     borderRadius: 14,
     padding: 12,
-    marginBottom: 16,
+    // Phase 3.5 — sibling-card gap on Spacing.md (20pt, was literal 16).
+    marginBottom: Spacing.md,
     overflow: 'hidden',
   },
   emptyTimeline: {
