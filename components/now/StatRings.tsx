@@ -14,7 +14,12 @@ import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { StatData, TodayStats } from '../../utils/nowHelpers';
 
-const TILE_SIZE = 28;
+// Phase 3.7.2 — bumped 28 → 36. At 28pt with a 1px border, the ring
+// occupied ~3.6% of the tile diameter, below the perceptual threshold
+// for "definite shape." 36pt with a recessed glassDim well + 1px solid
+// edge gives the ring three visual cues (shape + depth + edge) and
+// still fits four tiles inside the smallest target iPhone width.
+const TILE_SIZE = 36;
 
 type CategoryKey = 'meds' | 'vitals' | 'wellness' | 'meals';
 
@@ -111,6 +116,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     // Phase 3.6.1 — bumped 0.5 → 1 for crisp definition that reads as
     // deliberate UI rather than a rendering artifact.
     borderWidth: 1,
+    // Phase 3.7.2 — recessed-well effect. glassDim sits ~5 L* above the
+    // page bg; the emoji reads as sitting INSIDE the well rather than
+    // floating on the surface. Third visual cue beyond shape + edge.
+    backgroundColor: c.glassDim,
     alignItems: 'center',
     justifyContent: 'center',
   },
