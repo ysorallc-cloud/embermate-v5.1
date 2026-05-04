@@ -8,10 +8,11 @@
 // in prose form (no top alert paragraph, no Guidance section).
 // ============================================================================
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   Modal,
   ScrollView,
@@ -23,6 +24,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { SectionEyebrow } from '../SectionEyebrow';
 import { generateAndShareHandoff } from '../../services/handoffPdf';
 import { formatTime } from '../../utils/text/primitives';
+import { getHandoffTone, saveHandoffTone } from '../../storage/handoffToneRepo';
 import type { DailyOutcomes } from '../../utils/text/types';
 
 import { Spacing } from '../../theme/theme-tokens';
@@ -38,6 +40,8 @@ export interface HandoffSheetProps {
   onClose: () => void;
   patientName: string;
   date: Date;
+  /** YYYY-MM-DD — keys the tone repo. Phase 5.8.a. */
+  dateKey: string;
   outcomes: DailyOutcomes;
   notes: string;
   events: HandoffEvent[];
@@ -88,13 +92,32 @@ function buildPreviewText(props: HandoffSheetProps): string {
 }
 
 export function HandoffSheet(props: HandoffSheetProps) {
-  const { visible, onClose, patientName, date, outcomes, notes, events } = props;
+  const { visible, onClose, patientName, date, dateKey, outcomes, notes, events } = props;
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const name = resolveName(patientName);
   const outcomesLines = useMemo(() => buildOutcomesLines(outcomes), [outcomes]);
   const trimmedNotes = notes.trim();
+
+  // ── TONE state (Phase 5.8.a) ─────────────────────────────────────────────
+  // Pre-populates from handoff_tone_{dateKey}; autosaves on blur.
+  const [tone, setTone] = useState<string>('');
+  useEffect(() => {
+    let cancelled = false;
+    if (visible && dateKey) {
+      getHandoffTone(dateKey).then((saved) => {
+        if (!cancelled) setTone(saved ?? '');
+      });
+    }
+    return () => { cancelled = true; };
+  }, [visible, dateKey]);
+
+  const handleToneBlur = useCallback(() => {
+    if (dateKey) {
+      void saveHandoffTone(dateKey, tone);
+    }
+  }, [dateKey, tone]);
 
   const handleCopy = useCallback(async () => {
     await Clipboard.setStringAsync(buildPreviewText(props));
@@ -143,6 +166,20 @@ export function HandoffSheet(props: HandoffSheetProps) {
             <Text style={styles.headerLine}>
               {`${name} · ${dateLabel(date)} · ${formatTime(date)}`}
             </Text>
+
+            <View style={styles.section}>
+              <SectionEyebrow text="TONE" />
+              <TextInput
+                style={styles.toneInput}
+                value={tone}
+                onChangeText={setTone}
+                onBlur={handleToneBlur}
+                placeholder="How would you sum up today?"
+                placeholderTextColor={colors.textTertiary}
+                accessibilityLabel="Tone — sum up today in one line"
+                returnKeyType="done"
+              />
+            </View>
 
             <View style={styles.section}>
               <SectionEyebrow text="Today's outcomes" />
@@ -252,6 +289,18 @@ const createStyles = (c: any) => StyleSheet.create({
   },
   section: {
     marginBottom: Spacing.md,
+  },
+  // Phase 5.8.a — single-line TONE input. Serif-italic placeholder via the
+  // placeholder prop (system-rendered italics on iOS); the input itself
+  // uses the sheet's standard text style so what the caregiver typed
+  // looks like the rest of the preview content.
+  toneInput: {
+    fontSize: 14,
+    color: c.textPrimary,
+    paddingVertical: 6,
+    fontFamily: 'Georgia',
+    fontStyle: 'italic',
+    marginTop: 6,
   },
   outcomeLine: {
     fontSize: 13,

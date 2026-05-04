@@ -56,6 +56,7 @@ jest.mock('react-native', () => {
   return {
     View: PT('View'),
     Text: PT('Text'),
+    TextInput: PT('TextInput'),
     TouchableOpacity: PT('TouchableOpacity'),
     Modal: PT('Modal'),
     ScrollView: PT('ScrollView'),
@@ -63,6 +64,11 @@ jest.mock('react-native', () => {
     Linking: { openURL: (...args: any[]) => mockOpenURL(...args) },
   };
 });
+
+jest.mock('../../storage/handoffToneRepo', () => ({
+  getHandoffTone: jest.fn().mockResolvedValue(null),
+  saveHandoffTone: jest.fn().mockResolvedValue(undefined),
+}));
 
 import { HandoffSheet } from '../../components/journal/HandoffSheet';
 import type { DailyOutcomes } from '../../utils/text/types';
@@ -110,6 +116,7 @@ const baseProps = {
   onClose: jest.fn(),
   patientName: 'Mom',
   date: new Date('2026-04-26T22:30:00'),
+  dateKey: '2026-04-26',
   outcomes: richOutcomes,
   notes: '',
   events: [] as Array<{ time: Date; label: string }>,

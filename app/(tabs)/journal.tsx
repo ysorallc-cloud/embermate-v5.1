@@ -616,6 +616,7 @@ export default function JournalTab() {
         onClose={() => setHandoffSheetVisible(false)}
         patientName={patientName}
         date={new Date()}
+        dateKey={selectedDate}
         outcomes={outcomes}
         notes={reflection?.text ?? ''}
         events={[]}
