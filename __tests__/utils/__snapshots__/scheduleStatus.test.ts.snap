@@ -8,4 +8,4 @@ exports[`label snapshots — lock the exact copy future label snapshot 1`] = `"1
 
 exports[`label snapshots — lock the exact copy past-complete label snapshot 1`] = `"complete"`;
 
-exports[`label snapshots — lock the exact copy past-incomplete label snapshot 1`] = `"2 not logged"`;
+exports[`label snapshots — lock the exact copy past-incomplete label snapshot 1`] = `"2 to go"`;

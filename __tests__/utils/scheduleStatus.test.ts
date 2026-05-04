@@ -39,12 +39,15 @@ describe('getPeriodStatus — past-complete', () => {
   });
 });
 
+// Phase 3.8.2 reframed past-incomplete copy from "N not logged" to
+// "N to go" — forward-looking, consistent with current-active. Same
+// `kind: 'past-incomplete'` discriminator; only the label string changed.
 describe('getPeriodStatus — past-incomplete', () => {
-  it('past period with one not logged → kind="past-incomplete"', () => {
+  it('past period with one not logged → kind="past-incomplete" + "N to go"', () => {
     const events = [evt(7, 'completed'), evt(9, 'pending'), evt(11, 'pending')];
     const result = getPeriodStatus('morning', events, at(13, 0));
     expect(result.kind).toBe('past-incomplete');
-    expect(result.label).toBe('2 not logged');
+    expect(result.label).toBe('2 to go');
     if (result.kind === 'past-incomplete') {
       expect(result.loggedCount).toBe(1);
       expect(result.notLoggedCount).toBe(2);
@@ -54,14 +57,14 @@ describe('getPeriodStatus — past-incomplete', () => {
   it('singular pluralization', () => {
     const events = [evt(7, 'completed'), evt(9, 'pending')];
     const result = getPeriodStatus('morning', events, at(13, 0));
-    expect(result.label).toBe('1 not logged');
+    expect(result.label).toBe('1 to go');
   });
 
-  it('a pending status that already missed its time still counts as not-logged', () => {
+  it('a pending status that already missed its time still counts as to-go', () => {
     const events = [evt(7, 'missed'), evt(9, 'pending')];
     const result = getPeriodStatus('morning', events, at(13, 0));
     expect(result.kind).toBe('past-incomplete');
-    expect(result.label).toBe('2 not logged');
+    expect(result.label).toBe('2 to go');
   });
 });
 

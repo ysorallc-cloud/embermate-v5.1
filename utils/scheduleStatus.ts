@@ -52,7 +52,10 @@ export function getPeriodStatus(
     if (notLoggedCount === 0) {
       return { kind: 'past-complete', loggedCount, label: 'complete' };
     }
-    const noun = notLoggedCount === 1 ? '1 not logged' : `${notLoggedCount} not logged`;
+    // Phase 3.8.2 — "N not logged" → "N to go". The deficit-framed
+    // copy was inconsistent with the warm tone elsewhere; "to go" is
+    // forward-looking and matches the existing current-active label.
+    const noun = notLoggedCount === 1 ? '1 to go' : `${notLoggedCount} to go`;
     return { kind: 'past-incomplete', loggedCount, notLoggedCount, label: noun };
   }
 

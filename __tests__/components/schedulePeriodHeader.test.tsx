@@ -244,31 +244,39 @@ describe('SchedulePeriodHeader — caregiver-warm status metadata', () => {
     return Object.assign({}, ...(Array.isArray(node.props.style) ? node.props.style : [node.props.style]));
   }
 
-  it('past-complete renders "complete" in textTertiary', () => {
+  // Phase 3.8.2 retired colors.warning from the period header. New mapping:
+  //   • past-complete → sage (positive completion, no longer textTertiary)
+  //   • past-incomplete → textSecondary (warm cream, "to go" copy)
+  //   • current-active → sage (draws the eye to the active period)
+  //   • current-caughtup → sage (positive completion in active window)
+  //   • future → textTertiary (unchanged)
+  it('past-complete renders "complete" in sage', () => {
     const tree = SchedulePeriodHeader({
       ...baseProps,
       status: { kind: 'past-complete', loggedCount: 3, label: 'complete' } as any,
     });
     expect(metaText(tree)).toBe('complete');
-    expect(metaStyle(tree).color).toBe('#6b7280');
+    expect(metaStyle(tree).color).toBe('#5fb88a');
   });
 
-  it('past-incomplete renders "[N] not logged" in warning amber', () => {
+  it('past-incomplete renders "[N] to go" in textSecondary (no amber)', () => {
     const tree = SchedulePeriodHeader({
       ...baseProps,
-      status: { kind: 'past-incomplete', loggedCount: 1, notLoggedCount: 2, label: '2 not logged' } as any,
+      status: { kind: 'past-incomplete', loggedCount: 1, notLoggedCount: 2, label: '2 to go' } as any,
     });
-    expect(metaText(tree)).toBe('2 not logged');
-    expect(metaStyle(tree).color).toBe('#e5b04a');
+    expect(metaText(tree)).toBe('2 to go');
+    // textSecondary value comes from this file's theme mock at the top —
+    // changing the runtime token doesn't reach the mock object.
+    expect(metaStyle(tree).color).toBe('#9aa0a6');
   });
 
-  it('current-active renders "[N] to go" in warning amber', () => {
+  it('current-active renders "[N] to go" in sage (the active-period accent)', () => {
     const tree = SchedulePeriodHeader({
       ...baseProps,
       status: { kind: 'current-active', toGoCount: 5, label: '5 to go' } as any,
     });
     expect(metaText(tree)).toBe('5 to go');
-    expect(metaStyle(tree).color).toBe('#e5b04a');
+    expect(metaStyle(tree).color).toBe('#5fb88a');
   });
 
   it('current-caughtup renders "caught up" in accent mint', () => {
@@ -292,7 +300,7 @@ describe('SchedulePeriodHeader — caregiver-warm status metadata', () => {
   it('the legacy "missed" copy is never rendered, regardless of status', () => {
     const cases = [
       { kind: 'past-complete', loggedCount: 3, label: 'complete' },
-      { kind: 'past-incomplete', loggedCount: 1, notLoggedCount: 2, label: '2 not logged' },
+      { kind: 'past-incomplete', loggedCount: 1, notLoggedCount: 2, label: '2 to go' },
       { kind: 'current-active', toGoCount: 5, label: '5 to go' },
       { kind: 'current-caughtup', label: 'caught up' },
       { kind: 'future', comingUpCount: 3, label: '3 coming up' },
@@ -323,7 +331,7 @@ describe('SchedulePeriodHeader — Start button only on current-active', () => {
   it('hides Start in every other status, even when collapsed with pending counts', () => {
     const cases = [
       { kind: 'past-complete', loggedCount: 3, label: 'complete' },
-      { kind: 'past-incomplete', loggedCount: 1, notLoggedCount: 2, label: '2 not logged' },
+      { kind: 'past-incomplete', loggedCount: 1, notLoggedCount: 2, label: '2 to go' },
       { kind: 'current-caughtup', label: 'caught up' },
       { kind: 'future', comingUpCount: 3, label: '3 coming up' },
     ];

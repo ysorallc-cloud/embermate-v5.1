@@ -115,15 +115,26 @@ export function SchedulePeriodHeader({
   if (status) {
     metaLabel = status.label;
     showStart = status.kind === 'current-active';
+    // Phase 3.8.2 — palette mapping:
+    //   • current-active → sage (draws the eye to the period the user
+    //     should focus on right now)
+    //   • current-caughtup → sage (positive completion in the active window)
+    //   • past-complete → sage (positive completion overall)
+    //   • past-incomplete → textSecondary (warm cream, NOT amber —
+    //     "N to go" reads as gentle nudge, not alarm)
+    //   • future → textTertiary (quiet "not yet")
+    // colors.warning retired from this file; the 3-accent budget
+    // (sage / lavender / criticalAlert) is enforced from Phase 7
+    // forward.
     switch (status.kind) {
-      case 'past-incomplete':
       case 'current-active':
-        statusMetaColor = colors.warning;
-        break;
       case 'current-caughtup':
+      case 'past-complete':
         statusMetaColor = colors.accent;
         break;
-      case 'past-complete':
+      case 'past-incomplete':
+        statusMetaColor = colors.textSecondary;
+        break;
       case 'future':
       default:
         statusMetaColor = colors.textTertiary;

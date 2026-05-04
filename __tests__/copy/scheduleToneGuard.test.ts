@@ -45,7 +45,7 @@ describe('SchedulePeriodHeader source — no harsh metadata vocabulary', () => {
       throw new Error(
         `Found harsh word "${word}" in a string literal: ${match[0]}\n` +
           `Caregiver-facing schedule headers should use warm vocabulary ` +
-          `("not logged", "to go", "caught up", "coming up"). The clinical ` +
+          `("to go", "caught up", "coming up", "complete"). The clinical ` +
           `vocabulary stays in services/visitPrepPdf.ts.`,
       );
     }
@@ -100,11 +100,14 @@ describe('getPeriodStatus — labels never include harsh vocabulary', () => {
   });
 
   it('the warm vocabulary IS present across the helper output', () => {
+    // Phase 3.8.2 retired "not logged" from the warm vocabulary —
+    // past-incomplete now reads "N to go" (same forward-looking copy
+    // as current-active). The remaining warm phrases stay required.
     const labels = fixtures.map(({ period, events, now }) =>
       getPeriodStatus(period, events, now).label.toLowerCase(),
     );
     const joined = labels.join(' | ');
-    for (const expected of ['caught up', 'coming up', 'to go', 'not logged', 'complete']) {
+    for (const expected of ['caught up', 'coming up', 'to go', 'complete']) {
       expect(joined).toContain(expected);
     }
   });
