@@ -227,6 +227,14 @@ export default function SettingsScreen() {
       title: profileTitle,
       items: [
         {
+          // Phase 5.8.c — patient + caregiver name capture for reports.
+          id: 'profile',
+          icon: '🪪',
+          title: 'Profile',
+          subtitle: 'Names that appear on reports',
+          onPress: () => navigate('/settings/profile' as any),
+        },
+        {
           id: 'medical-history',
           icon: '📋',
           title: 'Medical history',

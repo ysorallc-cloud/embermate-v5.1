@@ -28,6 +28,11 @@ import { getTodayDateString } from '../services/carePlanGenerator';
 import { logError } from '../utils/devLog';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
+import {
+  requireProfileFields,
+  type ProfileField,
+} from '../utils/requireProfileFields';
+import { ProfilePromptSheet } from '../components/ProfilePromptSheet';
 
 // ============================================================================
 // CONSTANTS
@@ -65,6 +70,20 @@ export default function VisitPrepScreen() {
   const [questions, setQuestions] = useState('');
   const [generating, setGenerating] = useState(false);
 
+  // Phase 5.8.c — profile-prompt gate.
+  const [profileMissing, setProfileMissing] = useState<ProfileField[]>([]);
+  const [profilePromptVisible, setProfilePromptVisible] = useState(false);
+  const [resolvedCaregiverName, setResolvedCaregiverName] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    requireProfileFields().then((res) => {
+      if (cancelled) return;
+      setResolvedCaregiverName(res.caregiverName);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   // Load persisted questions on mount
   React.useEffect(() => {
     safeGetItem<string>(QUESTIONS_STORAGE_KEY, '').then(saved => {
@@ -80,6 +99,16 @@ export default function VisitPrepScreen() {
 
   const handleGenerate = useCallback(async () => {
     if (generating) return;
+
+    // Phase 5.8.c — gate generation on profile completeness.
+    const profileCheck = await requireProfileFields();
+    if (profileCheck.missing.length > 0) {
+      setProfileMissing(profileCheck.missing);
+      setProfilePromptVisible(true);
+      return;
+    }
+    const caregiverName = profileCheck.caregiverName ?? '';
+
     setGenerating(true);
     try {
       const today = getTodayDateString();
@@ -97,6 +126,7 @@ export default function VisitPrepScreen() {
         includeQuestions,
         questions,
         patientName,
+        caregiverName,
       };
 
       const success = await generateAndShareVisitPrep(config);
@@ -112,6 +142,17 @@ export default function VisitPrepScreen() {
       setGenerating(false);
     }
   }, [generating, range, includeMeds, includeVitals, includeWellness, includeJournal, includeQuestions, questions, patientName]);
+
+  const handleProfileSaved = useCallback(async () => {
+    const res = await requireProfileFields();
+    setResolvedCaregiverName(res.caregiverName);
+    setProfileMissing(res.missing);
+    if (res.missing.length === 0) {
+      setProfilePromptVisible(false);
+      // Profile newly complete — proceed with the deferred generation.
+      void handleGenerate();
+    }
+  }, [handleGenerate]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -225,6 +266,13 @@ export default function VisitPrepScreen() {
         </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
+
+      <ProfilePromptSheet
+        visible={profilePromptVisible}
+        onClose={() => setProfilePromptVisible(false)}
+        onSaved={handleProfileSaved}
+        missing={profileMissing}
+      />
     </SafeAreaView>
   );
 }

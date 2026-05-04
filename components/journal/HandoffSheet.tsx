@@ -25,6 +25,8 @@ import { SectionEyebrow } from '../SectionEyebrow';
 import { generateAndShareHandoff } from '../../services/handoffPdf';
 import { formatTime } from '../../utils/text/primitives';
 import { getHandoffTone, saveHandoffTone } from '../../storage/handoffToneRepo';
+import { requireProfileFields, type ProfileField } from '../../utils/requireProfileFields';
+import { ProfilePromptSheet } from '../ProfilePromptSheet';
 import type { DailyOutcomes } from '../../utils/text/types';
 
 import { Spacing } from '../../theme/theme-tokens';
@@ -119,6 +121,31 @@ export function HandoffSheet(props: HandoffSheetProps) {
     }
   }, [dateKey, tone]);
 
+  // ── Profile-prompt gate (Phase 5.8.c) ────────────────────────────────────
+  // Check on open; if missing, surface ProfilePromptSheet inline. The sheet
+  // re-checks after save, dismissing automatically when complete.
+  const [profileMissing, setProfileMissing] = useState<ProfileField[]>([]);
+  const [profilePromptVisible, setProfilePromptVisible] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    if (!visible) {
+      setProfilePromptVisible(false);
+      return;
+    }
+    requireProfileFields().then((res) => {
+      if (cancelled) return;
+      setProfileMissing(res.missing);
+      setProfilePromptVisible(res.missing.length > 0);
+    });
+    return () => { cancelled = true; };
+  }, [visible]);
+
+  const handleProfileSaved = useCallback(async () => {
+    const res = await requireProfileFields();
+    setProfileMissing(res.missing);
+    setProfilePromptVisible(res.missing.length > 0);
+  }, []);
+
   const handleCopy = useCallback(async () => {
     await Clipboard.setStringAsync(buildPreviewText(props));
   }, [props]);
@@ -140,7 +167,14 @@ export function HandoffSheet(props: HandoffSheetProps) {
   }, [props]);
 
   return (
-    <Modal
+    <>
+      <ProfilePromptSheet
+        visible={visible && profilePromptVisible}
+        onClose={() => setProfilePromptVisible(false)}
+        onSaved={handleProfileSaved}
+        missing={profileMissing}
+      />
+      <Modal
       visible={visible}
       animationType="slide"
       transparent
@@ -244,6 +278,7 @@ export function HandoffSheet(props: HandoffSheetProps) {
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
+    </>
   );
 }
 
