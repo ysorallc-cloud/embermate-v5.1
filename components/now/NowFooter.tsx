@@ -6,7 +6,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Spacing } from '../../theme/theme-tokens';
+import { Spacing, Sizing } from '../../theme/theme-tokens';
 import { navigate } from '../../lib/navigate';
 import { buildJournalPreview, CareBrief } from '../../utils/careSummaryBuilder';
 import { EndOfShiftCard } from './EndOfShiftCard';
@@ -147,13 +147,25 @@ const createStyles = (c: any) => StyleSheet.create({
     color: c.textSecondary,
     textAlign: 'center' as const,
   },
+  // Phase 4.6 — overlap fix + margin discipline.
+  //   • marginHorizontal removed: the page-edge contract from Phase 3
+  //     (paddingHorizontal: 14 on the screen ScrollView) handles
+  //     horizontal extent; the prior 16pt local override was
+  //     double-padding the card vs sibling End of Shift.
+  //   • marginBottom: Spacing.xs added to give the End of Shift card
+  //     below 8pt of breathing room (sibling marginTop is 0; this
+  //     side carries the gap).
+  //   • marginTop / padding / borderRadius migrated to tokens so the
+  //     Phase 3.7.1 audit guard catches future literal regressions.
+  //   • borderWidth dropped to 0.5 to match the card-edge contract
+  //     elsewhere on the page.
   journalPreviewCard: {
-    marginHorizontal: 16, // allow: off-scale gap (intentional)
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 14,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+    padding: Sizing.cardInternalPadding,
+    borderRadius: Sizing.cardRadius,
     backgroundColor: c.glass,
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: c.glassBorder,
   },
   journalPreviewTitle: {

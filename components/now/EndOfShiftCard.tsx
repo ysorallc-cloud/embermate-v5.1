@@ -6,6 +6,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Spacing, Sizing } from '../../theme/theme-tokens';
 import { navigate } from '../../lib/navigate';
 import { composeEndOfShiftBody } from '../../utils/text/composers/endOfShiftBody';
 import type { DailyOutcomes, Alert } from '../../utils/text/types';
@@ -90,14 +91,19 @@ export function EndOfShiftCard({
 }
 
 const createStyles = (c: any) => StyleSheet.create({
+  // Phase 4.6 — margin discipline + card-edge weight normalization.
+  // marginTop stays 0 because the sibling card above (NowFooter's
+  // journalPreviewCard) now carries marginBottom: Spacing.xs as the
+  // inter-card gap. borderWidth drops 1 → 0.5 to match the card-edge
+  // contract elsewhere on the page; padding/radius migrate to tokens.
   card: {
     backgroundColor: c.caregiverAccentBg,
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: c.caregiverAccentBorder,
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: Sizing.cardRadius,
+    padding: Sizing.cardInternalPadding,
     marginTop: 0,
-    marginBottom: 8,
+    marginBottom: Spacing.xs,
   },
   dismiss: {
     position: 'absolute',

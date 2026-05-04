@@ -11,13 +11,19 @@ describe('Footer / FAB overlap fix', () => {
   );
 
   test('footer has sufficient spacing via marginTop on journal preview cards', () => {
-    // Footer was restructured — footerSection replaced by journal preview +
-    // allDone cards. Verify the top card has marginTop >= 12 for clearance.
+    // Phase 4.6 migrated journalPreviewCard's literal margins to tokens
+    // (Spacing.md = 20pt). Accept either a literal ≥ 12 or a Spacing
+    // token reference; both pin the same "card has clearance" contract.
     const match = content.match(/journalPreviewCard:\s*\{([^}]+)\}/);
     expect(match).toBeTruthy();
     const style = match![1];
-    const marginMatch = style.match(/marginTop:\s*(\d+)/);
-    expect(marginMatch).toBeTruthy();
-    expect(parseInt(marginMatch![1])).toBeGreaterThanOrEqual(12);
+    const literalMatch = style.match(/marginTop:\s*(\d+)/);
+    if (literalMatch) {
+      expect(parseInt(literalMatch[1])).toBeGreaterThanOrEqual(12);
+    } else {
+      // Token-routed: Spacing.md (20), Spacing.lg (28), or Spacing.xl (36)
+      // all clear the 12pt floor.
+      expect(style).toMatch(/marginTop:\s*Spacing\.(md|lg|xl)\b/);
+    }
   });
 });

@@ -111,12 +111,27 @@ describe('Phase 4c — Journal preview card link', () => {
   const text = extractStyleBody(src, 'journalPreviewText');
   const link = extractStyleBody(src, 'journalPreviewLink');
 
-  it('card retains the Phase 2 `padding: 12` contract', () => {
-    expect(num(card, 'padding')).toBe(12);
+  it('card retains the 12pt symmetric-padding contract (literal or Sizing.cardInternalPadding)', () => {
+    // Phase 4.6 migrated literal `padding: 12` → `Sizing.cardInternalPadding`
+    // (still 12pt). Accept either the literal or the token reference; both
+    // pin the same Phase 2 symmetric-padding contract.
+    const lit = num(card, 'padding');
+    if (lit !== null) {
+      expect(lit).toBe(12);
+    } else {
+      expect(card).toMatch(/padding:\s*Sizing\.cardInternalPadding\b/);
+    }
   });
 
   it('"View journal →" link has marginTop: 8 from the line above', () => {
-    expect(num(link, 'marginTop')).toBe(8);
+    // Accept either literal 8 or Spacing.xs (8pt token) — Phase 4.6
+    // could have migrated this in the future.
+    const lit = num(link, 'marginTop');
+    if (lit !== null) {
+      expect(lit).toBe(8);
+    } else {
+      expect(link).toMatch(/marginTop:\s*Spacing\.xs\b/);
+    }
   });
 
   it('the text line above the link does NOT carry a tail marginBottom (gap moved onto the link)', () => {
