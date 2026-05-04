@@ -1,18 +1,11 @@
 // ============================================================================
-// Phase 5.9 — Finding 1.4 reproduction: in-app PDF preview not shipped.
+// Phase 5.9 — Finding 1.4 inverted: in-app PDF preview is now SHIPPED.
 //
-// Device evidence: 7 taps + typing required to see the PDF after Generate.
-// Tapping Generate fires Print.printToFileAsync immediately and hands the
-// PDF to the iOS share sheet — there is no in-app preview step where the
-// user can review content before the file leaves the device.
-//
-// This test verifies the absence as a not-shipped state — confirming the
-// app/visit-prep.tsx generate handler still calls
-// generateAndShareVisitPrep directly with no preview detour.
-//
-// EXPECTED STATE: this test PASSES today (confirming 5.7.d hasn't shipped).
-// After 5.7.d lands, the test should be inverted to assert the preview
-// route exists.
+// Stage 1's original assertions pinned the absence of the preview as a
+// not-shipped state. After Phase 5.9.d landed the screen, those
+// assertions are inverted to confirm the preview route exists, the
+// Generate button no longer fires Print directly, and the config
+// screen's primary button label changed to "Preview".
 // ============================================================================
 
 import { readFileSync, existsSync } from 'fs';
@@ -21,34 +14,22 @@ import { join } from 'path';
 const ROOT = join(__dirname, '../..');
 const screenSrc = readFileSync(join(ROOT, 'app/visit-prep.tsx'), 'utf8');
 
-describe('Phase 5.9 finding 1.4 — Visit Prep preview status', () => {
-  it('no app/visit-prep-preview.tsx route exists yet', () => {
-    // 5.7.d's spec puts the preview at app/visit-prep-preview.tsx (or
-    // similar). Confirm it has not shipped.
-    const candidatePaths = [
-      'app/visit-prep-preview.tsx',
-      'app/visit-prep/preview.tsx',
-      'app/(tabs)/visit-prep-preview.tsx',
-    ];
-    for (const p of candidatePaths) {
-      expect(existsSync(join(ROOT, p))).toBe(false);
-    }
+describe('Phase 5.9.d — Visit Prep preview status (post-ship)', () => {
+  it('app/visit-prep-preview.tsx exists', () => {
+    expect(existsSync(join(ROOT, 'app/visit-prep-preview.tsx'))).toBe(true);
   });
 
-  it('the Generate handler still calls generateAndShareVisitPrep directly', () => {
-    // No preview-screen detour. The Generate button → assemble + share
-    // is a one-shot today.
+  it('the config screen Generate handler navigates to /visit-prep-preview', () => {
     const start = screenSrc.indexOf('handleGenerate');
     const tail = screenSrc.slice(start);
     const body = tail.slice(0, tail.indexOf('}, [') + 1);
-    expect(body).toMatch(/generateAndShareVisitPrep\s*\(/);
-    // Should NOT route through a preview screen first.
-    expect(body).not.toMatch(/navigate\s*\(\s*['"]\/visit-prep-preview['"]/);
+    expect(body).toMatch(/navigate\s*\(\s*['"]\/visit-prep-preview['"]\s*\)/);
+    // Should NOT call generateAndShareVisitPrep directly anymore.
+    expect(body).not.toMatch(/generateAndShareVisitPrep\s*\(/);
   });
 
-  it('the Generate button label still says "Generate PDF" (not "Preview")', () => {
-    // 5.7.d's spec renames "Generate PDF" → "Preview". Confirm the
-    // current label is unchanged.
-    expect(screenSrc).toMatch(/Generate PDF/);
+  it('the primary button label is now "Preview" (not "Generate PDF")', () => {
+    expect(screenSrc).not.toMatch(/Generate PDF/);
+    expect(screenSrc).toMatch(/>Preview</);
   });
 });

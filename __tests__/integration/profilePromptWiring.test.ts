@@ -40,17 +40,19 @@ describe('Phase 5.8.c — Visit Prep wiring', () => {
     expect(src).toMatch(/<ProfilePromptSheet\b/);
   });
 
-  it('Generate handler routes through profile check before assembling the PDF', () => {
-    // The handler must call requireProfileFields() before
-    // generateAndShareVisitPrep(). Locate handleGenerate body and assert
-    // the order of those identifiers.
+  it('Generate handler routes through profile check before navigating to preview', () => {
+    // Phase 5.9.d lifted PDF generation to the preview screen. The
+    // config screen's handler now calls requireProfileFields(), then
+    // navigate('/visit-prep-preview') — never generateAndShareVisitPrep
+    // directly. The profile gate must still come BEFORE navigation
+    // so an incomplete profile surfaces the prompt sheet here.
     const start = src.indexOf('handleGenerate');
     const tail = src.slice(start);
     const requireIdx = tail.indexOf('requireProfileFields');
-    const generateIdx = tail.indexOf('generateAndShareVisitPrep');
+    const navIdx = tail.indexOf("navigate('/visit-prep-preview')");
     expect(requireIdx).toBeGreaterThan(0);
-    expect(generateIdx).toBeGreaterThan(0);
-    expect(requireIdx).toBeLessThan(generateIdx);
+    expect(navIdx).toBeGreaterThan(0);
+    expect(requireIdx).toBeLessThan(navIdx);
   });
 
   it('threads caregiverName from the profile into VisitPrepConfig', () => {

@@ -23,7 +23,7 @@ import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePatient } from '../contexts/PatientContext';
 import { SubScreenHeader } from '../components/SubScreenHeader';
-import { generateAndShareVisitPrep, VisitPrepConfig } from '../services/visitPrepPdf';
+import type { VisitPrepConfig } from '../services/visitPrepPdf';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { logError } from '../utils/devLog';
 import { hapticSuccess } from '../utils/hapticFeedback';
@@ -97,10 +97,14 @@ export default function VisitPrepScreen() {
     safeSetItem(QUESTIONS_STORAGE_KEY, text);
   }, []);
 
+  // Phase 5.9.d — primary button now navigates to /visit-prep-preview
+  // instead of generating directly. The preview screen owns the only
+  // call to generateAndShareVisitPrep.
+  const PENDING_CONFIG_KEY = 'pending_visit_prep_config';
   const handleGenerate = useCallback(async () => {
     if (generating) return;
 
-    // Phase 5.8.c — gate generation on profile completeness.
+    // Phase 5.8.c — gate on profile completeness.
     const profileCheck = await requireProfileFields();
     if (profileCheck.missing.length > 0) {
       setProfileMissing(profileCheck.missing);
@@ -129,12 +133,11 @@ export default function VisitPrepScreen() {
         caregiverName,
       };
 
-      const success = await generateAndShareVisitPrep(config);
-      if (success) {
-        void hapticSuccess();
-      } else {
-        Alert.alert('Error', 'Could not generate the PDF. Please try again.');
-      }
+      // Stash the assembled config so the preview screen can pick it up
+      // on mount. AsyncStorage is the ergonomic fit — the config has 10+
+      // fields plus arbitrary-length questions text.
+      await safeSetItem(PENDING_CONFIG_KEY, config);
+      navigate('/visit-prep-preview');
     } catch (err) {
       logError('VisitPrepScreen.handleGenerate', err);
       Alert.alert('Error', 'Something went wrong. Please try again.');
@@ -149,7 +152,7 @@ export default function VisitPrepScreen() {
     setProfileMissing(res.missing);
     if (res.missing.length === 0) {
       setProfilePromptVisible(false);
-      // Profile newly complete — proceed with the deferred generation.
+      // Profile newly complete — proceed with the deferred preview navigation.
       void handleGenerate();
     }
   }, [handleGenerate]);
@@ -242,19 +245,20 @@ export default function VisitPrepScreen() {
             </>
           )}
 
-          {/* Generate button */}
+          {/* Phase 5.9.d — "Preview" navigates to the in-app preview screen.
+              The PDF is generated only from there. */}
           <TouchableOpacity
             style={[styles.generateButton, generating && styles.generateButtonDisabled]}
             onPress={handleGenerate}
             disabled={generating}
             activeOpacity={0.7}
-            accessibilityLabel={generating ? 'Generating PDF' : 'Generate Visit Prep PDF'}
+            accessibilityLabel={generating ? 'Opening preview' : 'Preview Visit Prep'}
             accessibilityRole="button"
           >
             {generating ? (
               <ActivityIndicator size="small" color="#0a0c0a" />
             ) : (
-              <Text style={styles.generateButtonText}>Generate PDF</Text>
+              <Text style={styles.generateButtonText}>Preview</Text>
             )}
           </TouchableOpacity>
 
