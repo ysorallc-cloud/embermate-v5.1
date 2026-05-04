@@ -525,11 +525,11 @@ export default function JournalTab() {
                 style={[s.headerPillReport, loading && { opacity: 0.4 }]}
                 onPress={handleShareClinical}
                 activeOpacity={0.7}
-                accessibilityLabel={loading ? 'Clinical report, loading' : 'Clinical report'}
+                accessibilityLabel={loading ? 'Share, loading' : 'Share'}
                 accessibilityRole="button"
                 accessibilityState={{ busy: loading }}
               >
-                <Text style={s.headerPillReportText}>Report</Text>
+                <Text style={s.headerPillReportText}>Share</Text>
               </TouchableOpacity>
             </View>
           </View>

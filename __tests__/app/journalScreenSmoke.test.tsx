@@ -352,18 +352,22 @@ describe('JournalTab — render smoke test', () => {
     expect(queryByText('[MonthCalendar]')).toBeNull();
   });
 
-  it('the page header carries Report only (Share moved to HandoffCard in Phase 9)', async () => {
+  it('the page header carries the lavender Share pill (Phase 5.7.a rename)', async () => {
     const { getByLabelText, queryByLabelText } = await renderJournal();
-    const report = getByLabelText(/Clinical report/);
-    expect(report.props.accessibilityRole).toBe('button');
+    const share = getByLabelText(/^Share$/);
+    expect(share.props.accessibilityRole).toBe('button');
+    // Pre-rename labels are gone.
+    expect(queryByLabelText(/Clinical report/)).toBeNull();
     expect(queryByLabelText(/Share daily summary/)).toBeNull();
   });
 
-  it('tapping the "Report" pill navigates to /visit-prep (Phase 9 differentiation)', async () => {
+  it('tapping the "Share" pill currently navigates to /visit-prep (chooser wired in 5.7.b)', async () => {
+    // 5.7.a is a copy-only rename; the handler still routes to /visit-prep
+    // until 5.7.b lands the chooser sheet.
     const { navigate } = require('../../lib/navigate');
     const { getByLabelText } = await renderJournal();
 
-    fireEvent.press(getByLabelText(/Clinical report/));
+    fireEvent.press(getByLabelText(/^Share$/));
 
     expect(navigate).toHaveBeenCalledWith('/visit-prep');
   });
