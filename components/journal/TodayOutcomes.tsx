@@ -214,9 +214,17 @@ const createStyles = (c: any) =>
       paddingVertical: 8,
       gap: 10,
     },
+    // Phase 5a — edge-to-edge hairline. Negative marginHorizontal pulls
+    // the divider back through the body's paddingHorizontal: 12 so the
+    // 0.5px line runs card-edge to card-edge. Rare edge-hairline case
+    // justified by separating two semantically distinct rows (missed
+    // vs pending), not arbitrary list items. If body padding ever
+    // changes, this -12 must follow in lockstep — pinned by the
+    // matching test.
     rowDivider: {
       borderBottomWidth: 0.5,
       borderBottomColor: c.glassBorder,
+      marginHorizontal: -12,
     },
     iconCircle: {
       width: 22,
