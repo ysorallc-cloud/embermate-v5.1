@@ -9,6 +9,7 @@ import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
+import { Sizing } from '../../theme/theme-tokens';
 
 export interface PatternHeadline {
   id: string;
@@ -55,15 +56,21 @@ export function JournalPatternLink({ topPattern }: JournalPatternLinkProps) {
 }
 
 const createStyles = (c: any) => StyleSheet.create({
+  // Phase 5d cleanup:
+  //   • Symmetric padding via Sizing.cardInternalPadding (12pt) — Phase 2
+  //     contract; the prior 10/12 axis split was a pre-spec asymmetry.
+  //   • Lavender bg + border routed through caregiverAccent token family
+  //     (matches EndOfShiftCard / aiInsightCard). The hardcoded
+  //     `rgb(183, 148, 244)` electric-purple was outside the Phase 7
+  //     3-accent budget; canonical lavender is `rgb(170, 138, 220)`.
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(183, 148, 244, 0.05)',
+    backgroundColor: c.caregiverAccentBg,
     borderWidth: 0.5,
-    borderColor: 'rgba(183, 148, 244, 0.18)',
+    borderColor: c.caregiverAccentBorder,
     borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    padding: Sizing.cardInternalPadding,
     gap: 10,
   },
   glyph: {
