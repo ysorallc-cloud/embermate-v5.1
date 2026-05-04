@@ -27,6 +27,11 @@ export interface ClassifyInput {
 /** Singular-noun labels keyed by the canonical itemType. Plural is "+s". */
 const TYPE_SINGULAR: Record<string, string> = {
   medication: 'med',
+  // The data layer's CarePlanItemType is 'nutrition' (per types/carePlan.ts);
+  // the user-facing label across the rest of the app is meal / meals.
+  // The legacy 'meal' entry below was dead code — itemType never lands as
+  // 'meal' — but is left in place to absorb any historic data that might.
+  nutrition: 'meal',
   meal: 'meal',
   vitals: 'vitals',
   wellness: 'check-in',
@@ -38,6 +43,7 @@ const TYPE_SINGULAR: Record<string, string> = {
 /** Plural override for irregular nouns (otherwise singular + "s"). */
 const TYPE_PLURAL: Record<string, string> = {
   medication: 'meds',
+  nutrition: 'meals',  // pre-empt "nutritions"
   vitals: 'vitals',  // already plural
   activity: 'activities',
   water: 'water',
