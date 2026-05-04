@@ -31,14 +31,14 @@ const CATEGORIES: CategoryDef[] = [
   { key: 'meals', emoji: '🍽️', label: 'MEALS' },
 ];
 
-// 35% opacity rings per category — distinct enough to read on the warm
-// page bg, soft enough to not compete with the schedule below.
-// v6.7 May 1 sizing pass — Phase 3a flipped per-category accents to a
-// single neutral warm-cream ring. The emoji inside carries category
-// meaning; the ring is just a hairline indicator. Same color across all
-// four tiles keeps the row reading as a unified group rather than four
-// competing accents.
-const NEUTRAL_RING = 'rgba(255, 240, 215, 0.18)';
+// Phase 3.6.1 — solid ring at #3a3b35 (~L* 3 above page bg). The prior
+// rgba(255,240,215,0.18) read too faint on the lifted warm-charcoal
+// page; an alpha overlay at 18% lacked enough contrast to register as
+// a deliberate UI element. Solid color + crisp 1px edge fixes that
+// without making the rings shout. Same neutral across all four
+// categories so the row stays unified (the emoji inside carries the
+// per-category meaning).
+const NEUTRAL_RING = '#3a3b35';
 const RING_COLOR: Record<CategoryKey, string> = {
   meds: NEUTRAL_RING,
   vitals: NEUTRAL_RING,
@@ -108,7 +108,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     width: TILE_SIZE,
     height: TILE_SIZE,
     borderRadius: TILE_SIZE / 2,
-    borderWidth: 0.5,
+    // Phase 3.6.1 — bumped 0.5 → 1 for crisp definition that reads as
+    // deliberate UI rather than a rendering artifact.
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -162,11 +162,13 @@ function createStyles(c: typeof Colors) {
       borderBottomWidth: 0.5,
       borderBottomColor: c.glassHover,
     },
+    // Phase 3.6.3 — H1 fontSize 32 → 22 with weight 500 + letterSpacing
+    // -0.3 to match Now's compressed greeting (Phase 3.6.2).
     title: {
-      fontSize: 32,
-      fontWeight: '300' as const,
+      fontSize: 22,
+      fontWeight: '500' as const,
       color: c.textPrimary,
-      letterSpacing: -0.5,
+      letterSpacing: -0.3,
       marginBottom: 0,
     },
     headerMessage: {

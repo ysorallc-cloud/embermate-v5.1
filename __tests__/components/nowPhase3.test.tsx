@@ -122,11 +122,14 @@ describe('StatRings — neutral rings (no per-category accent)', () => {
     }
   });
 
-  it('the neutral ring uses warm-cream rgba — not white-on-white', () => {
+  it('the neutral ring is the solid #3a3b35 (Phase 3.6.1 — was warm-cream rgba)', () => {
+    // Phase 3.6.1 replaced the 18% rgba alpha with a solid color so
+    // the rings read as deliberate UI on the lifted page bg.
     const tree = (StatRings as any)({ stats });
     const tile = findAll(tree, (n) => n.props?.testID === 'stat-tile-meds')[0];
     const bg = styleOf(tile).borderColor;
-    expect(bg).toMatch(/rgba\(255,\s*240,\s*215,/);
+    expect(bg).toBe('#3a3b35');
+    expect(bg).not.toMatch(/rgba/i);
   });
 });
 

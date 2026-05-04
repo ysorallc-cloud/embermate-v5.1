@@ -1,7 +1,15 @@
 // ============================================================================
-// NowGreeting — Option A header (time as metadata, not a chip)
-// Asserts the new layout: greeting title + smaller patient pill on row 1,
-// metadata line (emoji • time • subtitle) below the title.
+// NowGreeting — compressed header (Phase 3.6.2 contract).
+//
+// Pre-3.6.2 layout had a 32pt title on row 1 and a metadata row below
+// with emoji + current device-clock time + separator dot + subtitle.
+// Phase 3.6.2 collapsed to a tighter ~60pt header zone:
+//   • Title at fontSize 22, weight 500, letterSpacing -0.3
+//   • Single inline subtitle: "{tod-emoji} {greeting.subtitle}"
+//   • No metadataRow / metadataTime / metadataDot — current device-clock
+//     time is dropped (the iOS status bar already shows it).
+//
+// The patient chip on NowHeader is independent and still asserted here.
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -27,51 +35,46 @@ function readNumberProp(block: string, prop: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-describe('NowGreeting — Option A layout', () => {
+describe('NowGreeting — compressed header (Phase 3.6.2)', () => {
   it('does NOT render a filled time chip with rgba purple background', () => {
-    // The previous design used a filled chip behind the time. Option A drops
-    // the chip — time is plain text on a metadata line.
     expect(greetingSrc).not.toMatch(/rgba\(180,\s*148,\s*244,\s*0\.15\)/);
     expect(greetingSrc).not.toMatch(/timeChip:\s*\{[^}]*backgroundColor/);
   });
 
-  it('renders a metadata line below the title (not adjacent to it)', () => {
-    // The metadata line should be a flexDirection:'row' container with
-    // marginTop > 0 — clearly below the title.
-    const metadataBlock = styleBlock(greetingSrc, 'metadataRow')
-      || styleBlock(greetingSrc, 'metadata')
-      || styleBlock(greetingSrc, 'subtitleRow');
-    expect(metadataBlock).not.toBe('');
-    expect(metadataBlock).toMatch(/flexDirection:\s*['"]row['"]/);
-    const mt = readNumberProp(metadataBlock, 'marginTop');
-    expect(mt).not.toBeNull();
-    expect(mt as number).toBeGreaterThanOrEqual(4);
+  it('title is 22pt with weight 500 (compressed H1 contract)', () => {
+    const titleBlock = styleBlock(greetingSrc, 'title');
+    expect(titleBlock).not.toBe('');
+    expect(readNumberProp(titleBlock, 'fontSize')).toBe(22);
+    expect(titleBlock).toMatch(/fontWeight:\s*['"]500['"]/);
   });
 
-  it('time text uses caregiverAccent color (not a filled chip)', () => {
-    // Time should be styled text in the caregiver purple accent, not on a
-    // filled chip background.
-    expect(greetingSrc).toMatch(/caregiverAccent\b/);
+  it('renders a single inline subtitle (not a multi-element metadata row)', () => {
+    // No metadataRow / metadataTime / metadataDot styles remain after 3.6.2.
+    expect(greetingSrc).not.toMatch(/\bmetadataRow:\s*\{/);
+    expect(greetingSrc).not.toMatch(/\bmetadataTime:\s*\{/);
+    expect(greetingSrc).not.toMatch(/\bmetadataDot:\s*\{/);
+    // A `subtitle` style block is the only inline secondary line.
+    const subtitleBlock = styleBlock(greetingSrc, 'subtitle');
+    expect(subtitleBlock).not.toBe('');
   });
 
-  it('subtitle text uses textSecondary on the metadata line', () => {
-    expect(greetingSrc).toMatch(/textSecondary/);
+  it('subtitle uses textSecondary at fontSize 12 with marginTop 4', () => {
+    const block = styleBlock(greetingSrc, 'subtitle');
+    expect(block).toMatch(/textSecondary/);
+    expect(readNumberProp(block, 'fontSize')).toBe(12);
+    expect(readNumberProp(block, 'marginTop')).toBe(4);
   });
 
-  it('time, separator dot, and subtitle all sit on the same metadata row', () => {
-    // The metadata row JSX should contain emoji + time + dot + subtitle —
-    // i.e. multiple text/view children inside one flex row.
-    const block = greetingSrc.match(/<View[^>]*style=\{(?:s|styles)\.metadataRow\}[\s\S]*?<\/View>/);
-    expect(block).toBeTruthy();
-    // Three child texts: time, separator-dot, subtitle (emoji is fine inline)
-    const textChildren = (block![0].match(/<Text\b/g) || []).length;
-    expect(textChildren).toBeGreaterThanOrEqual(2);
+  it('does NOT call formatCurrentTime — device-clock display retired', () => {
+    // The iOS status bar already shows current time; rendering "5:58 PM"
+    // in the greeting was a tautology Phase 3.6.2 removed.
+    expect(greetingSrc).not.toMatch(/formatCurrentTime\s*\(\s*\)/);
   });
 });
 
 describe('NowGreeting — patient pill (smaller variant)', () => {
-  // The patient pill lives in NowHeader, not NowGreeting. Assert the
-  // smaller variant per Option A spec (height ~22pt, font 10pt).
+  // The patient pill lives in NowHeader, not NowGreeting. Assertions
+  // unchanged by Phase 3.6 — the chip was already compact.
   it('patientChip has reduced font size (10pt)', () => {
     const nameBlock = styleBlock(headerSrc, 'patientChipName');
     const fs = readNumberProp(nameBlock, 'fontSize');
@@ -97,21 +100,5 @@ describe('NowGreeting — patient pill (smaller variant)', () => {
     const chipBlock = styleBlock(headerSrc, 'patientChip');
     const bw = readNumberProp(chipBlock, 'borderWidth');
     expect(bw).toBe(0.5);
-  });
-});
-
-describe('NowGreeting — title row gives the title room', () => {
-  it('title sits on a row that gives it flex: 1 + paddingRight to avoid clipping', () => {
-    // The titleRow or its title child should reserve flex room and pad
-    // the right side so the patient pill doesn't crowd the greeting.
-    const titleRowBlock = styleBlock(greetingSrc, 'titleRow');
-    const titleBlock = styleBlock(greetingSrc, 'title');
-    const reservesFlex = /flex:\s*1/.test(titleBlock) || /flex:\s*1/.test(titleRowBlock);
-    expect(reservesFlex).toBe(true);
-    const padR = readNumberProp(titleBlock, 'paddingRight')
-      ?? readNumberProp(titleRowBlock, 'paddingRight');
-    if (padR !== null) {
-      expect(padR).toBeGreaterThanOrEqual(8);
-    }
   });
 });

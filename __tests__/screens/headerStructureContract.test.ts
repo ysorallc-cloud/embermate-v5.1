@@ -60,28 +60,32 @@ describe('Header structure contract — title metrics', () => {
     return styleBlock(src, 'title') || styleBlock(src, 'headerTitle');
   }
 
-  it('Now greeting title: 32pt, weight 300', () => {
+  // Phase 3.6.2 + 3.6.3 (May 3) compressed all four tab H1s from
+  // fontSize 32 / weight 300 / letterSpacing -0.5 down to 22 / 500 / -0.3.
+  // Device review of Phase 3.5 showed the prior larger title eating
+  // too much vertical space for what it communicated.
+  it('Now greeting title: 22pt, weight 500', () => {
     const block = titleBlock(read('components/now/NowGreeting.tsx'));
-    expect(num(block, 'fontSize')).toBe(32);
-    expect(block).toMatch(/fontWeight:\s*['"]300['"]/);
+    expect(num(block, 'fontSize')).toBe(22);
+    expect(block).toMatch(/fontWeight:\s*['"]500['"]/);
   });
 
-  it('Journal title: 32pt, weight 300', () => {
+  it('Journal title: 22pt, weight 500', () => {
     const block = titleBlock(read('app/(tabs)/journal.tsx'));
-    expect(num(block, 'fontSize')).toBe(32);
-    expect(block).toMatch(/fontWeight:\s*['"]300['"]/);
+    expect(num(block, 'fontSize')).toBe(22);
+    expect(block).toMatch(/fontWeight:\s*['"]500['"]/);
   });
 
-  it('ScreenHeader title (Understand): 32pt, weight 300', () => {
+  it('ScreenHeader title (Understand): 22pt, weight 500', () => {
     const block = titleBlock(read('components/ScreenHeader.tsx'));
-    expect(num(block, 'fontSize')).toBe(32);
-    expect(block).toMatch(/fontWeight:\s*['"]300['"]/);
+    expect(num(block, 'fontSize')).toBe(22);
+    expect(block).toMatch(/fontWeight:\s*['"]500['"]/);
   });
 
-  it('Support title: 32pt, weight 300', () => {
+  it('Support title: 22pt, weight 500', () => {
     const block = titleBlock(read('app/(tabs)/support.tsx'));
-    expect(num(block, 'fontSize')).toBe(32);
-    expect(block).toMatch(/fontWeight:\s*['"]300['"]/);
+    expect(num(block, 'fontSize')).toBe(22);
+    expect(block).toMatch(/fontWeight:\s*['"]500['"]/);
   });
 });
 
@@ -102,10 +106,12 @@ describe('Header structure contract — subtitle metrics', () => {
     };
   }
 
-  it('Now greeting metadataSubtitle: 13pt / lineHeight 20 / textSecondary', () => {
-    const m = metricsOf(read('components/now/NowGreeting.tsx'), 'metadataSubtitle');
-    expect(m.fontSize).toBe(13);
-    expect(m.lineHeight).toBe(20);
+  it('Now greeting subtitle: 12pt / lineHeight 18 / textSecondary (Phase 3.6.2)', () => {
+    // 3.6.2 collapsed metadataSubtitle into a tighter inline `subtitle`
+    // style at 12pt / 18 lineHeight to match the compressed title.
+    const m = metricsOf(read('components/now/NowGreeting.tsx'), 'subtitle');
+    expect(m.fontSize).toBe(12);
+    expect(m.lineHeight).toBe(18);
     expect(m.color).toBe('textSecondary');
   });
 
@@ -132,9 +138,12 @@ describe('Header structure contract — subtitle metrics', () => {
 });
 
 describe('Header structure contract — subtitle marginTop 8', () => {
-  it('Now metadata row sits 8pt below the title', () => {
-    const block = styleBlock(read('components/now/NowGreeting.tsx'), 'metadataRow');
-    expect(num(block, 'marginTop')).toBe(8);
+  it('Now subtitle sits 4pt below the title (Phase 3.6.2 — tighter than metadata row)', () => {
+    // 3.6.2 dropped the metadata row's 8pt gap to a 4pt subtitle margin
+    // since there's no longer a multi-element row to separate from the
+    // title — just a single inline subtitle.
+    const block = styleBlock(read('components/now/NowGreeting.tsx'), 'subtitle');
+    expect(num(block, 'marginTop')).toBe(4);
   });
 
   it('ScreenHeader subtitle: marginTop 8', () => {

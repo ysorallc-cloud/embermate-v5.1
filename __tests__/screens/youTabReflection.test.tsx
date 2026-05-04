@@ -134,10 +134,12 @@ describe('You tab — header structure contract still applies', () => {
     expect(num(styleBlock('headerWrap'), 'paddingBottom')).toBe(24);
   });
 
-  it('title: 32pt, fontWeight 300', () => {
+  it('title: 22pt, fontWeight 500 (Phase 3.6.3 unified H1 sizing)', () => {
+    // May 3 compressed all four tab H1s from 32pt/300 to 22pt/500 for
+    // visual consistency across tabs and to free vertical space.
     const block = styleBlock('title');
-    expect(num(block, 'fontSize')).toBe(32);
-    expect(block).toMatch(/fontWeight:\s*['"]300['"]/);
+    expect(num(block, 'fontSize')).toBe(22);
+    expect(block).toMatch(/fontWeight:\s*['"]500['"]/);
   });
 
   it('headerMessage: 13pt, color textSecondary, lineHeight 20, marginTop 8', () => {

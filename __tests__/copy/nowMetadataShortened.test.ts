@@ -94,12 +94,15 @@ describe('buildGreeting — shortened metadata variants', () => {
   });
 });
 
-describe('NowGreeting metadata <Text> — single-line safety net', () => {
+describe('NowGreeting subtitle <Text> — single-line safety net', () => {
+  // Phase 3.6.2 collapsed the prior metadataRow (emoji + time + dot +
+  // subtitle) into a single inline subtitle. The style key renamed from
+  // `metadataSubtitle` to `subtitle`; the truncation guards stay intact.
   it('subtitle text declares numberOfLines={1} (truncation guard)', () => {
-    expect(greetingComponentSrc).toMatch(/<Text[^>]*style=\{s\.metadataSubtitle\}[\s\S]*?numberOfLines=\{1\}/);
+    expect(greetingComponentSrc).toMatch(/<Text[^>]*style=\{s\.subtitle\}[\s\S]*?numberOfLines=\{1\}/);
   });
 
   it('subtitle text declares ellipsizeMode="tail"', () => {
-    expect(greetingComponentSrc).toMatch(/<Text[^>]*style=\{s\.metadataSubtitle\}[\s\S]*?ellipsizeMode=['"]tail['"]/);
+    expect(greetingComponentSrc).toMatch(/<Text[^>]*style=\{s\.subtitle\}[\s\S]*?ellipsizeMode=['"]tail['"]/);
   });
 });

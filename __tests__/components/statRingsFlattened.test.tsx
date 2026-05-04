@@ -119,7 +119,9 @@ describe('StatRings — neutral ring (May 1 sizing pass — Phase 3a)', () => {
     return merged;
   };
 
-  const NEUTRAL = 'rgba(255, 240, 215, 0.18)';
+  // Phase 3.6.1 — replaced the 18% rgba alpha with a solid #3a3b35 so
+  // the rings register as deliberate UI on the lifted warm-charcoal page.
+  const NEUTRAL = '#3a3b35';
 
   it('meds tile uses the neutral warm-cream ring', () => {
     expect(colorProbe('stat-tile-meds').borderColor).toBe(NEUTRAL);
@@ -137,9 +139,11 @@ describe('StatRings — neutral ring (May 1 sizing pass — Phase 3a)', () => {
     expect(colorProbe('stat-tile-meals').borderColor).toBe(NEUTRAL);
   });
 
-  it('every tile sets a 0.5px border', () => {
+  it('every tile sets a 1px border (Phase 3.6.1 — crisp definition)', () => {
+    // Phase 3.6.1 lifted borderWidth 0.5 → 1 to give the ring crisper
+    // edges that read as deliberate UI rather than a rendering artifact.
     for (const id of ['stat-tile-meds', 'stat-tile-vitals', 'stat-tile-wellness', 'stat-tile-meals']) {
-      expect(colorProbe(id).borderWidth).toBe(0.5);
+      expect(colorProbe(id).borderWidth).toBe(1);
     }
   });
 });

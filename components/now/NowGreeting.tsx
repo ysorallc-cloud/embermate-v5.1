@@ -1,7 +1,18 @@
 // ============================================================================
-// NOW GREETING — Option A: greeting title on row 1, time as metadata below.
-// Row 1: title (alone — patient pill is rendered alongside by NowHeader)
-// Row 2 (metadata): emoji · time (caregiverAccent) · subtitle (textSecondary)
+// NOW GREETING — compressed header (Phase 3.6.2).
+//
+// Pre-3.6.2: row 1 carried a 32pt title; row 2 carried a metadata strip
+// with the time-of-day emoji, the current device-clock time ("5:58 PM"),
+// a separator dot, and the next-meds subtitle. ~110pt total header zone
+// once the patient chip + page top padding stacked above.
+//
+// The current-time display was redundant — the iOS status bar device
+// clock already shows it — and the metadata strip occupied ~30pt for an
+// emoji + time + subtitle that read better inlined under a smaller
+// title. 3.6.2 collapses to a tighter ~60pt header zone:
+//
+//   Row 1: title (22pt, weight 500, letterSpacing -0.3)
+//   Row 2: subtitle ("{tod-emoji} {greeting.subtitle}", 12pt, textSecondary)
 // ============================================================================
 
 import React, { useMemo } from 'react';
@@ -31,11 +42,6 @@ const TIME_EMOJI: Record<string, string> = {
   night: '☾',
 };
 
-function formatCurrentTime(): string {
-  const now = new Date();
-  return now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-}
-
 export function NowGreeting({ stats, patientName, nextScheduledTime }: NowGreetingProps) {
   const { colors } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
@@ -43,30 +49,19 @@ export function NowGreeting({ stats, patientName, nextScheduledTime }: NowGreeti
   const hour = new Date().getHours();
   const tod = getTimeOfDay(hour);
   const greeting = buildGreeting(hour, stats, nextScheduledTime, patientName);
-  const timeStr = formatCurrentTime();
 
   return (
     <View style={s.container}>
-      {/* Row 1 — greeting title alone (patient pill rendered by NowHeader) */}
-      <View style={s.titleRow}>
-        <Text style={s.title} numberOfLines={1} adjustsFontSizeToFit>
-          {greeting.title}
-        </Text>
-      </View>
-
-      {/* Row 2 — metadata: emoji · time · subtitle */}
-      <View style={s.metadataRow}>
-        <Text style={s.metadataEmoji}>{TIME_EMOJI[tod]}</Text>
-        <Text style={s.metadataTime}>{timeStr}</Text>
-        <View style={s.metadataDot} />
-        <Text
-          style={s.metadataSubtitle}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          {greeting.subtitle}
-        </Text>
-      </View>
+      <Text style={s.title} numberOfLines={1} adjustsFontSizeToFit>
+        {greeting.title}
+      </Text>
+      <Text
+        style={s.subtitle}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
+        {`${TIME_EMOJI[tod]} ${greeting.subtitle}`}
+      </Text>
     </View>
   );
 }
@@ -75,40 +70,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     paddingHorizontal: 4,
   },
-  titleRow: {
-    flex: 1,
-    paddingRight: 12,
-  },
   title: {
-    fontSize: 32,
-    fontWeight: '300',
-    color: c.textPrimary,
-    letterSpacing: -0.5,
-  },
-  metadataRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    gap: 8,
-  },
-  metadataEmoji: {
-    fontSize: 12,
-  },
-  metadataTime: {
-    fontSize: 12,
+    fontSize: 22,
     fontWeight: '500',
-    color: c.caregiverAccent,
+    color: c.textPrimary,
+    letterSpacing: -0.3,
   },
-  metadataDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: c.textTertiary,
-  },
-  metadataSubtitle: {
-    flex: 1,
-    fontSize: 13,
+  subtitle: {
+    fontSize: 12,
     color: c.textSecondary,
-    lineHeight: 20,
+    marginTop: 4,
+    lineHeight: 18,
   },
 });

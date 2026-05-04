@@ -28,12 +28,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   titleContainer: {
     flex: 1,
   },
+  // Phase 3.6.3 — H1 fontSize 32 → 22 with weight 500 + letterSpacing
+  // -0.3 to match Now's compressed greeting. ScreenHeader is consumed
+  // by Insights (the 4th tab) plus ~20 sub-screens (log forms, care
+  // report, patient questions). The same compression benefits the
+  // sub-screens — they generally don't need a hero-sized title — so
+  // this single change also propagates the new H1 contract beyond the
+  // four-tab scope.
   title: {
-    fontSize: 32,
-    fontWeight: '300',
+    fontSize: 22,
+    fontWeight: '500',
     color: c.textPrimary,
     marginBottom: 0,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   titleShrink: {
     fontSize: 28,
