@@ -10,7 +10,7 @@
 
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Spacing } from '../../theme/theme-tokens';
+import { Colors, Spacing, Sizing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { StatData, TodayStats } from '../../utils/nowHelpers';
 
@@ -95,14 +95,27 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     gap: 8,
+    // Phase 3.8.1 — hairline grouping. Top + bottom 0.5px rules contain
+    // the four orbs as a "today at a glance" section without adding
+    // another card to the Now stack (schedule card + end-of-shift card
+    // already occupy the page). Side borders intentionally absent —
+    // the page-edge contract from Phase 3 (paddingHorizontal: 14 on
+    // the screen ScrollView) handles horizontal containment, so the
+    // hairlines extend full page-width naturally. Phase 2 originally
+    // removed the wrapper to avoid card-in-card weight against the
+    // pre-Phase-0 near-black bg; the lift restored that risk, so we
+    // add grouping back in lighter form.
+    borderTopWidth: 0.5,
+    borderTopColor: c.glassBorder,
+    borderBottomWidth: 0.5,
+    borderBottomColor: c.glassBorder,
+    paddingVertical: Sizing.cardInternalPadding,
     // Phase 4a + 3.5 — page-rhythm. Spacing.md above (separates the row
     // from the hero header), Spacing.md below (separates from the
-    // schedule card), 14pt horizontal so the four tiles' outer gutters
-    // match the page-edge contract from Phase 3. Phase 3.5 lifted
-    // Spacing.md from 16 → 20 so these gaps now breathe.
+    // schedule card). Horizontal padding intentionally absent (see
+    // hairline rationale above).
     marginTop: Spacing.md,
     marginBottom: Spacing.md,
-    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   column: {
     flex: 1,
