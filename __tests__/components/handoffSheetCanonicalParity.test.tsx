@@ -27,8 +27,10 @@ describe('Phase 5.8.d — HandoffSheet uses the canonical builder', () => {
 
   it('rebuilds the canonical text when the sheet opens', () => {
     // useEffect that calls buildHandoffReport when visible flips to true.
+    // Window bumped after Phase 5.9.b grew the effect body with the
+    // canonicalState machine.
     expect(sheetSrc).toMatch(/buildHandoffReport\s*\(/);
-    expect(sheetSrc).toMatch(/useEffect[\s\S]{0,400}?buildHandoffReport/);
+    expect(sheetSrc).toMatch(/useEffect[\s\S]{0,800}?buildHandoffReport/);
   });
 
   it('Copy uses the canonical text, not buildPreviewText', () => {

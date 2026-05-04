@@ -109,24 +109,45 @@ export function HandoffSheet(props: HandoffSheetProps) {
   // Single source of truth for the preview surface AND the Copy / SMS / PDF
   // actions. Rebuilds when the sheet opens and after a TONE save (rebumped
   // via `rebuildSignal`).
+  //
+  // Phase 5.9.b — explicit loading + error states. Without these, an
+  // in-flight build, a profile-prompt gate, or a thrown non-profile error
+  // all collapsed onto the same blank preview. The user couldn't tell
+  // "still loading" from "broken" from "I closed the prompt by accident."
   const [canonicalText, setCanonicalText] = useState<string>('');
+  const [canonicalState, setCanonicalState] =
+    useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [rebuildSignal, setRebuildSignal] = useState(0);
   useEffect(() => {
     let cancelled = false;
-    if (!visible) return;
-    if (profilePromptVisible) return; // wait until profile is complete
+    if (!visible) {
+      setCanonicalState('idle');
+      return;
+    }
+    if (profilePromptVisible) {
+      // Profile prompt owns the recovery path; preview stays idle until
+      // the prompt dismisses with complete fields.
+      setCanonicalState('idle');
+      return;
+    }
+    setCanonicalState('loading');
     (async () => {
       try {
         const out = await buildHandoffReport({ now: date });
-        if (!cancelled) setCanonicalText(out);
+        if (cancelled) return;
+        setCanonicalText(out);
+        setCanonicalState('ready');
       } catch (err) {
+        if (cancelled) return;
         if (err instanceof ProfileMissingError) {
-          // The prompt sheet is responsible for the recovery path; the
-          // preview stays empty until profile is filled in.
-          if (!cancelled) setCanonicalText('');
+          // ProfilePromptSheet will (or already has) surfaced — leave
+          // the preview idle so it doesn't flash an error first.
+          setCanonicalText('');
+          setCanonicalState('idle');
           return;
         }
-        if (!cancelled) setCanonicalText('');
+        setCanonicalText('');
+        setCanonicalState('error');
       }
     })();
     return () => { cancelled = true; };
@@ -202,8 +223,23 @@ export function HandoffSheet(props: HandoffSheetProps) {
             </View>
 
             {/* Phase 5.8.d — single canonical body. What's previewed here is
-                exactly what the Copy / SMS / PDF actions send. */}
-            <Text style={styles.canonicalBody}>{canonicalText}</Text>
+                exactly what the Copy / SMS / PDF actions send.
+                Phase 5.9.b — explicit loading / error states so an
+                in-flight build never looks like a broken sheet. */}
+            {canonicalState === 'loading' && (
+              <Text style={styles.canonicalStatus}>{'Building summary…'}</Text>
+            )}
+            {canonicalState === 'error' && (
+              <Text
+                style={styles.canonicalError}
+                accessibilityLiveRegion="polite"
+              >
+                {"Couldn't build today's summary. Pull down to retry, or close and reopen this sheet."}
+              </Text>
+            )}
+            {canonicalState === 'ready' && (
+              <Text style={styles.canonicalBody}>{canonicalText}</Text>
+            )}
           </ScrollView>
 
           <View style={styles.actions}>
@@ -304,6 +340,18 @@ const createStyles = (c: any) => StyleSheet.create({
     lineHeight: 19,
     color: c.textPrimary,
     fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
+  },
+  // Phase 5.9.b — explicit loading + error states.
+  canonicalStatus: {
+    fontSize: 13,
+    color: c.textSecondary,
+    fontStyle: 'italic',
+    paddingVertical: Spacing.sm,
+  },
+  canonicalError: {
+    fontSize: 13,
+    color: c.textPrimary,
+    paddingVertical: Spacing.sm,
   },
   actions: {
     marginTop: 8,

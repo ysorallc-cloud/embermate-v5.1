@@ -26,50 +26,27 @@ const sheetSrc = readFileSync(
 );
 
 describe('Phase 5.9 finding 1.2 — HandoffSheet preview empty/loading state', () => {
-  it('the component surfaces a loading or empty placeholder when canonicalText is empty', () => {
-    // Currently the JSX renders {canonicalText} unconditionally. When the
-    // string is empty, the user sees nothing — no spinner, no "Loading…",
-    // no error pointing at the underlying fetch failure. We want a
-    // conditional render that surfaces SOMETHING when canonicalText is
-    // empty AND the profile is complete.
-    //
-    // Two acceptable shapes for a fix:
-    //   {canonicalText ? (<Text…>{canonicalText}</Text>) : (<Text…>Loading…</Text>)}
-    //   OR
-    //   {!canonicalText && <ActivityIndicator/>}
-    //   <Text>{canonicalText}</Text>
-    //
-    // The match below tolerates both.
-    const hasLoadingFallback =
-      /canonicalText\s*\?\s*<|!\s*canonicalText\s*&&\s*<|ActivityIndicator/.test(
-        sheetSrc,
-      ) ||
-      /Loading…|Loading\.\.\.|building|Preparing/.test(sheetSrc);
-    expect(hasLoadingFallback).toBe(true);
+  it('a "loading" branch is rendered when the canonical fetch is in flight', () => {
+    // The JSX must conditionally render a status message tied to the
+    // canonical-load state. The literal copy "Building summary…" is
+    // pinned as the canonical placeholder.
+    expect(sheetSrc).toMatch(/Building summary/);
+    expect(sheetSrc).toMatch(/canonicalState\s*===\s*['"]loading['"]/);
   });
 
-  it('errors thrown by buildHandoffReport are surfaced to the user (not silently swallowed)', () => {
-    // The current catch block silently sets canonicalText to '' for any
-    // non-ProfileMissingError. After 5.9.b, the user should see SOMETHING
-    // when the build fails — an error banner, a "Couldn't build summary —
-    // pull down to retry" message, etc.
-    //
-    // This test pins that the error path leads somewhere visible. We
-    // accept either an error-state state variable or a user-facing
-    // string in the error catch arm.
-    const errCatchBlock = sheetSrc.match(
-      /catch\s*\(\s*err[\s\S]{0,500}?\}\s*$/m,
+  it('an "error" branch is rendered when buildHandoffReport throws a non-ProfileMissingError', () => {
+    // Tightened over the original lenient match — now requires a literal
+    // user-facing error string AND an error state guard. The previous
+    // assertion accidentally passed on `setCanonicalText('')`.
+    expect(sheetSrc).toMatch(/canonicalState\s*===\s*['"]error['"]/);
+    expect(sheetSrc).toMatch(/Couldn't build today's summary/);
+  });
+
+  it('the canonical state machine has the four expected states', () => {
+    // idle | loading | ready | error. Pinning the union keeps the
+    // states grounded; future drift gets caught here.
+    expect(sheetSrc).toMatch(
+      /'idle'\s*\|\s*'loading'\s*\|\s*'ready'\s*\|\s*'error'/,
     );
-    expect(errCatchBlock).toBeTruthy();
-    if (errCatchBlock) {
-      const block = errCatchBlock[0];
-      // Either state-based error reporting (setError-style) or surfaced
-      // error string. Today's block does NEITHER.
-      const surfacesError =
-        /setError|setBuildError|setCanonicalError|setCanonicalText\s*\(\s*['"`]/.test(
-          block,
-        );
-      expect(surfacesError).toBe(true);
-    }
   });
 });
