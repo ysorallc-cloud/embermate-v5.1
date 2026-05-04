@@ -46,10 +46,14 @@ describe('Phase 5.9 finding 1.1 — Visit Prep HTML renders the whatChanged lede
     );
   });
 
-  it('the deferred-data fallback message reaches the template too', () => {
-    // When insufficientData is true, the section should render the
-    // "Two weeks of tracking suggested before patterns appear here." line —
-    // not silently drop the section.
-    expect(pdfSrc).toMatch(/insufficientData/);
+  it('the deferred-data fallback path is wired inside buildHtml', () => {
+    // Tighten over the original lenient match — scope the lookup to the
+    // buildHtml body so we can't accidentally pass on the unrelated
+    // `symptomDataInsufficient` field anywhere else in the file.
+    const buildHtmlIdx = pdfSrc.indexOf('function buildHtml');
+    const bodyStart = pdfSrc.indexOf('{', buildHtmlIdx);
+    const nextFnIdx = pdfSrc.indexOf('\nexport ', bodyStart);
+    const buildHtmlBody = pdfSrc.slice(bodyStart, nextFnIdx);
+    expect(buildHtmlBody).toMatch(/whatChanged\.insufficientData/);
   });
 });

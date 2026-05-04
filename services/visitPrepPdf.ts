@@ -564,6 +564,14 @@ function buildHtml(data: VisitPrepData): string {
     ? data.journalHighlights.map(h => `<li>${h}</li>`).join('')
     : '<li style="color: #999;">No flagged entries in this period.</li>';
 
+  // Phase 5.9.a — "What changed" lede. Renders 1-3 plain-language
+  // observations from data.whatChanged.observations. When the period
+  // was too short or no patterns surfaced, the deferred message takes
+  // the same slot — never a silent omission.
+  const whatChangedItems = data.whatChanged.insufficientData
+    ? `<li style="color: #999;">${data.whatChanged.observations[0] ?? 'Two weeks of tracking suggested before patterns appear here.'}</li>`
+    : data.whatChanged.observations.map(o => `<li>${o}</li>`).join('');
+
   // Legacy free-text path. Kept for back-compat callers that still pass
   // `config.questions`; new flows route through patientQuestionsRepo.
   const questionsHtml = data.questions
@@ -597,6 +605,9 @@ function buildHtml(data: VisitPrepData): string {
   <div class="subtitle">
     ${data.header.dateRange}${data.header.caregiverName ? ' · Prepared by ' + data.header.caregiverName : ''} · ${data.header.generatedAt}
   </div>
+
+  <h2>What changed</h2>
+  <ul>${whatChangedItems}</ul>
 
   ${data.adherence.length > 0 ? `
   <h2>Medication Adherence</h2>
