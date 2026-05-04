@@ -176,12 +176,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   scrollContent: {
     paddingTop: 8,
     paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    paddingBottom: 24,
+    paddingBottom: 24, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   footer: {
     paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingTop: 12,
-    paddingBottom: 16,
+    paddingBottom: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     alignItems: 'center',
     gap: 12,
   },

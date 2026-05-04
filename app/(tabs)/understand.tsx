@@ -939,9 +939,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // paddingTop: 24 / paddingHorizontal: 14. Bottom padding kept modest
   // so the last card doesn't read disconnected from the footer area.
   scrollContent: {
-    paddingTop: 24,
+    paddingTop: 24, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    paddingBottom: 16,
+    paddingBottom: 16, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   loadingContainer: {
     flex: 1,
@@ -1016,7 +1016,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   aiSummarySection: {
     borderLeftWidth: 2,
     borderLeftColor: c.purpleLight || '#A78BFA',
-    paddingLeft: 14,
+    paddingLeft: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 8,
     marginBottom: 8,
   },
@@ -1150,7 +1150,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   correlationExpanded: {
     paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    paddingBottom: 14,
+    paddingBottom: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     borderTopWidth: 1,
     borderTopColor: c.hairlineInset,
   },

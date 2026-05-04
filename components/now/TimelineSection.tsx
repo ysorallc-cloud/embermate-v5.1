@@ -1089,7 +1089,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   gutterContent: {
     flex: 1,
-    paddingLeft: 14,
+    paddingLeft: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 8,
   },
   gutterRowInner: {

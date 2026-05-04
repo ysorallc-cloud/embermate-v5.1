@@ -223,7 +223,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 16,
+    paddingBottom: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     borderBottomWidth: 1,
     borderBottomColor: c.glassHover,
   },

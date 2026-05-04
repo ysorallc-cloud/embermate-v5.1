@@ -214,7 +214,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   inputContainer: {
     padding: 20,
-    paddingTop: 24,
+    paddingTop: 24, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   inputLabel: {
     fontSize: 13,

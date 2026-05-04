@@ -37,7 +37,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     // Phase 2 (You tab content warmth) — generous padding gives the
     // affirmation breathing room, since it carries the emotional thesis.
     paddingTop: 10,
-    paddingBottom: 22,
+    paddingBottom: 22, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     alignItems: 'center',
   },

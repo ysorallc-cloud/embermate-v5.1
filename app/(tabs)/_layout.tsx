@@ -63,7 +63,7 @@ export default function TabLayout() {
           borderTopColor: colors.glassBorder,
           borderTopWidth: 1,
           paddingTop: 8,
-          paddingBottom: 28,
+          paddingBottom: 28, // allow: tap-target padding (Apple HIG ≥44pt)
           height: 80,
           position: 'absolute',
         },

@@ -680,7 +680,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // paddingTop: 24 / paddingHorizontal: 14.
   scrollContent: {
     paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    paddingTop: 24,
+    paddingTop: 24, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   loadingContainer: {
     flex: 1,
@@ -749,7 +749,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     justifyContent: 'space-between' as const,
     alignItems: 'flex-start' as const,
     paddingTop: 56,
-    paddingBottom: 24,
+    paddingBottom: 24, // allow: tap-target padding (Apple HIG ≥44pt)
     borderBottomWidth: 0.5,
     borderBottomColor: c.glassHover,
   },

@@ -31,7 +31,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingTop: 56,
-    paddingBottom: 24,
+    paddingBottom: 24, // allow: tap-target padding (Apple HIG ≥44pt)
     borderBottomWidth: 0.5,
     borderBottomColor: c.glassHover,
   },

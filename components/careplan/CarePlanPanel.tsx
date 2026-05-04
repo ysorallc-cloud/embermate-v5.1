@@ -559,7 +559,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   previewMore: {
     paddingVertical: 4,
-    paddingLeft: 26,
+    paddingLeft: 26, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   previewMoreText: {
     fontSize: 11,

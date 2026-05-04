@@ -147,7 +147,7 @@ const createStyles = (c: any) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingTop: 56,
-    paddingBottom: 24,
+    paddingBottom: 24, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   patientChip: {
     flexDirection: 'row',

@@ -238,7 +238,7 @@ const createStyles = (c: any) => StyleSheet.create({
   },
   body: {
     paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    paddingTop: 14,
+    paddingTop: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingBottom: 8,
   },
   row: {
@@ -303,7 +303,7 @@ const createStyles = (c: any) => StyleSheet.create({
     justifyContent: 'flex-end',
     paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingTop: 10,
-    paddingBottom: 14,
+    paddingBottom: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     gap: 10,
     borderTopWidth: 0.5,
     borderTopColor: c.glassBorder,

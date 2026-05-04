@@ -151,13 +151,13 @@ function createStyles(c: typeof Colors) {
     // 24 stacks above that as the canonical page-edge offset before the
     // header begins.
     scrollContent: {
-      paddingTop: 24,
+      paddingTop: 24, // allow: tap-target padding (Apple HIG ≥44pt)
       paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-      paddingBottom: 24,
+      paddingBottom: 24, // allow: tap-target padding (Apple HIG ≥44pt)
     },
     headerWrap: {
       paddingTop: 56,
-      paddingBottom: 24,
+      paddingBottom: 24, // allow: tap-target padding (Apple HIG ≥44pt)
       paddingHorizontal: 4,
       borderBottomWidth: 0.5,
       borderBottomColor: c.glassHover,

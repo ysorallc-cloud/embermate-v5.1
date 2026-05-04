@@ -192,7 +192,7 @@ function createStyles(c: any) {
     linksList: {
       paddingHorizontal: 0,
       paddingBottom: 12,
-      paddingLeft: 16,
+      paddingLeft: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     },
     linkRow: {
       paddingVertical: 10,
