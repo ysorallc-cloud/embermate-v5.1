@@ -13,9 +13,15 @@ export interface HandoffPdfData {
   patientName: string;
   dateLabel: string;        // e.g. "Sunday, Apr 26"
   timeLabel: string;        // e.g. "10:30 PM"
-  outcomesLines: string[];  // pre-formatted ("2 missed: …", "4 logged: …")
-  notes: string | null;
-  eventLines: string[];     // chronological "[time] — [item]"
+  /** Phase 5.8.d — canonical assembled body. When present, the PDF
+   *  renders this directly (preserving line breaks). Wins over the
+   *  legacy outcomesLines/notes/eventLines triple. */
+  bodyText?: string;
+  /** Legacy pre-formatted lines. Kept for back-compat callers; new
+   *  callers should pass bodyText only. */
+  outcomesLines?: string[];
+  notes?: string | null;
+  eventLines?: string[];
 }
 
 function escape(s: string): string {
@@ -28,8 +34,25 @@ function escape(s: string): string {
 }
 
 function buildHtml(data: HandoffPdfData): string {
-  const outcomes = data.outcomesLines.map((l) => `<li>${escape(l)}</li>`).join('');
-  const events = data.eventLines.map((l) => `<li>${escape(l)}</li>`).join('');
+  // Phase 5.8.d — when bodyText is supplied, render the canonical
+  // assembled handoff verbatim. Whitespace preserved via white-space:
+  // pre-wrap so the section structure carries over from text → PDF.
+  if (typeof data.bodyText === 'string' && data.bodyText.trim().length > 0) {
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; padding: 36px; color: #111; }
+      h1 { font-size: 18pt; margin-bottom: 4pt; }
+      .meta { font-size: 11pt; color: #555; margin-bottom: 18pt; }
+      .body { font-size: 11pt; line-height: 1.55; white-space: pre-wrap; }
+    </style></head><body>
+      <h1>${escape(data.patientName)} — Handoff</h1>
+      <div class="meta">${escape(data.dateLabel)} · ${escape(data.timeLabel)}</div>
+      <div class="body">${escape(data.bodyText)}</div>
+    </body></html>`;
+  }
+
+  // Legacy structured render — pre-Phase 5.8.d callers.
+  const outcomes = (data.outcomesLines ?? []).map((l) => `<li>${escape(l)}</li>`).join('');
+  const events = (data.eventLines ?? []).map((l) => `<li>${escape(l)}</li>`).join('');
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; padding: 36px; color: #111; }
     h1 { font-size: 18pt; margin-bottom: 4pt; }
@@ -46,7 +69,7 @@ function buildHtml(data: HandoffPdfData): string {
     <div class="eyebrow">Today's outcomes</div>
     <ul>${outcomes}</ul>
     ${data.notes ? `<div class="eyebrow">Handoff notes</div><div class="notes">${escape(data.notes)}</div>` : ''}
-    ${data.eventLines.length > 0 ? `<div class="eyebrow">Today's events</div><ul>${events}</ul>` : ''}
+    ${(data.eventLines?.length ?? 0) > 0 ? `<div class="eyebrow">Today's events</div><ul>${events}</ul>` : ''}
     <div class="footer">EmberMate · Not a medical record</div>
   </body></html>`;
 }

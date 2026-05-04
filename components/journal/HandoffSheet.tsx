@@ -18,6 +18,7 @@ import {
   ScrollView,
   StyleSheet,
   Linking,
+  Platform,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -26,6 +27,7 @@ import { generateAndShareHandoff } from '../../services/handoffPdf';
 import { formatTime } from '../../utils/text/primitives';
 import { getHandoffTone, saveHandoffTone } from '../../storage/handoffToneRepo';
 import { requireProfileFields, type ProfileField } from '../../utils/requireProfileFields';
+import { buildHandoffReport, ProfileMissingError } from '../../utils/handoffReportBuilder';
 import { ProfilePromptSheet } from '../ProfilePromptSheet';
 import type { DailyOutcomes } from '../../utils/text/types';
 
@@ -115,9 +117,12 @@ export function HandoffSheet(props: HandoffSheetProps) {
     return () => { cancelled = true; };
   }, [visible, dateKey]);
 
-  const handleToneBlur = useCallback(() => {
+  const handleToneBlur = useCallback(async () => {
     if (dateKey) {
-      void saveHandoffTone(dateKey, tone);
+      await saveHandoffTone(dateKey, tone);
+      // Trigger canonical rebuild so the TONE block appears in the preview
+      // immediately without re-opening the sheet.
+      setRebuildSignal((n) => n + 1);
     }
   }, [dateKey, tone]);
 
@@ -146,25 +151,53 @@ export function HandoffSheet(props: HandoffSheetProps) {
     setProfilePromptVisible(res.missing.length > 0);
   }, []);
 
+  // ── Canonical handoff text (Phase 5.8.d) ─────────────────────────────────
+  // Single source of truth for the preview surface AND the Copy / SMS / PDF
+  // actions. Rebuilds when the sheet opens and after a TONE save (rebumped
+  // via `rebuildSignal`).
+  const [canonicalText, setCanonicalText] = useState<string>('');
+  const [rebuildSignal, setRebuildSignal] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    if (!visible) return;
+    if (profilePromptVisible) return; // wait until profile is complete
+    (async () => {
+      try {
+        const out = await buildHandoffReport({ now: date });
+        if (!cancelled) setCanonicalText(out);
+      } catch (err) {
+        if (err instanceof ProfileMissingError) {
+          // The prompt sheet is responsible for the recovery path; the
+          // preview stays empty until profile is filled in.
+          if (!cancelled) setCanonicalText('');
+          return;
+        }
+        if (!cancelled) setCanonicalText('');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [visible, date, profilePromptVisible, rebuildSignal]);
+
   const handleCopy = useCallback(async () => {
-    await Clipboard.setStringAsync(buildPreviewText(props));
-  }, [props]);
+    if (!canonicalText) return;
+    await Clipboard.setStringAsync(canonicalText);
+  }, [canonicalText]);
 
   const handleSharePdf = useCallback(async () => {
+    if (!canonicalText) return;
     await generateAndShareHandoff({
       patientName: name,
       dateLabel: dateLabel(date),
       timeLabel: formatTime(date),
-      outcomesLines,
-      notes: trimmedNotes.length > 0 ? trimmedNotes : null,
-      eventLines: events.map((e) => `${formatTime(e.time)} — ${e.label}`),
+      bodyText: canonicalText,
     });
-  }, [name, date, outcomesLines, trimmedNotes, events]);
+  }, [name, date, canonicalText]);
 
   const handleSms = useCallback(async () => {
-    const body = encodeURIComponent(buildPreviewText(props));
+    if (!canonicalText) return;
+    const body = encodeURIComponent(canonicalText);
     await Linking.openURL(`sms:&body=${body}`);
-  }, [props]);
+  }, [canonicalText]);
 
   return (
     <>
@@ -197,10 +230,9 @@ export function HandoffSheet(props: HandoffSheetProps) {
           <Text style={styles.title}>{'Hand off to next caregiver'}</Text>
 
           <ScrollView style={styles.preview} contentContainerStyle={styles.previewContent}>
-            <Text style={styles.headerLine}>
-              {`${name} · ${dateLabel(date)} · ${formatTime(date)}`}
-            </Text>
-
+            {/* Phase 5.8.d — TONE input stays editable above the canonical
+                preview body. The canonical builder reads handoff_tone_{date}
+                so the TONE section appears in the body once the user blurs. */}
             <View style={styles.section}>
               <SectionEyebrow text="TONE" />
               <TextInput
@@ -215,30 +247,9 @@ export function HandoffSheet(props: HandoffSheetProps) {
               />
             </View>
 
-            <View style={styles.section}>
-              <SectionEyebrow text="Today's outcomes" />
-              {outcomesLines.map((line) => (
-                <Text key={line} style={styles.outcomeLine}>{line}</Text>
-              ))}
-            </View>
-
-            {trimmedNotes.length > 0 && (
-              <View style={styles.section}>
-                <SectionEyebrow text="Handoff notes" />
-                <Text style={styles.notesBody}>{trimmedNotes}</Text>
-              </View>
-            )}
-
-            {events.length > 0 && (
-              <View style={styles.section}>
-                <SectionEyebrow text="Today's events" />
-                {events.map((e, i) => (
-                  <Text key={`${i}-${e.label}`} style={styles.eventLine}>
-                    {formatTime(e.time)} — {e.label}
-                  </Text>
-                ))}
-              </View>
-            )}
+            {/* Phase 5.8.d — single canonical body. What's previewed here is
+                exactly what the Copy / SMS / PDF actions send. */}
+            <Text style={styles.canonicalBody}>{canonicalText}</Text>
           </ScrollView>
 
           <View style={styles.actions}>
@@ -336,6 +347,15 @@ const createStyles = (c: any) => StyleSheet.create({
     fontFamily: 'Georgia',
     fontStyle: 'italic',
     marginTop: 6,
+  },
+  // Phase 5.8.d — single block that renders the canonical handoff text.
+  // Mono-feel font signals "this is the assembled message" and matches
+  // how the recipient will see it in SMS/email.
+  canonicalBody: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: c.textPrimary,
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
   },
   outcomeLine: {
     fontSize: 13,

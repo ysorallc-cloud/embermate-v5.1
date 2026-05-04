@@ -41,13 +41,14 @@ describe('Phase 5.8.a — TONE input source contract', () => {
     expect(sheetSrc).toMatch(/<SectionEyebrow\s+text=["']TONE["']/);
   });
 
-  it('TONE input renders before the outcomes section in the JSX', () => {
-    // Locate the input and the outcomes eyebrow; the input must come first.
+  it('TONE input renders before the canonical body in the JSX', () => {
+    // Phase 5.8.d collapsed the per-section JSX into a single canonical
+    // body. The TONE input must still render above it.
     const toneIdx = sheetSrc.indexOf('toneInput');
-    const outcomesIdx = sheetSrc.indexOf("Today's outcomes");
+    const bodyIdx = sheetSrc.indexOf('canonicalBody');
     expect(toneIdx).toBeGreaterThan(0);
-    expect(outcomesIdx).toBeGreaterThan(0);
-    expect(toneIdx).toBeLessThan(outcomesIdx);
+    expect(bodyIdx).toBeGreaterThan(0);
+    expect(toneIdx).toBeLessThan(bodyIdx);
   });
 
   it('TONE input is single-line (multiline NOT set / falsy)', () => {
