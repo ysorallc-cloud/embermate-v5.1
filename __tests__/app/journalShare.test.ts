@@ -28,7 +28,7 @@ describe('Journal report pill — page header carries Report only (v6.7 Phase 9)
   });
 });
 
-describe('Journal share/report — handlers route to the new surfaces (Phase 9)', () => {
+describe('Journal share — handlers route to the new surfaces (Phase 9 + 5.7.b)', () => {
   it('handleShareDaily opens the HandoffSheet (no preview modal)', () => {
     const start = src.indexOf('function handleShareDaily');
     const end = src.indexOf('function handleShareClinical');
@@ -38,11 +38,14 @@ describe('Journal share/report — handlers route to the new surfaces (Phase 9)'
     expect(body).not.toContain('buildDailySummaryReport');
   });
 
-  it('handleShareClinical navigates to /visit-prep (no preview modal)', () => {
+  it('handleShareClinical opens the ExportChooserSheet (no direct navigation, no preview modal)', () => {
+    // Phase 5.7.b: the header pill is the chooser entry point. Routing
+    // happens inside the chooser's option callbacks, not in this handler.
     const start = src.indexOf('function handleShareClinical');
     const tail = src.slice(start);
-    const body = tail.slice(0, tail.indexOf('}') + 1);
-    expect(body).toMatch(/navigate\s*\(\s*['"]\/visit-prep['"]\s*\)/);
+    const body = tail.slice(0, tail.indexOf('\n  }') + 4);
+    expect(body).toMatch(/setExportChooserVisible\(\s*true\s*\)/);
+    expect(body).not.toMatch(/navigate\s*\(/);
     expect(body).not.toContain('setShowClinicalPreview');
     expect(body).not.toContain('buildClinicalReportData');
   });

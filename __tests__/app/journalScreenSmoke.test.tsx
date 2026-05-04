@@ -118,6 +118,9 @@ jest.mock('../../components/journal/HandoffCard', () => ({
 jest.mock('../../components/journal/HandoffSheet', () => ({
   HandoffSheet: () => null,
 }));
+jest.mock('../../components/journal/ExportChooserSheet', () => ({
+  ExportChooserSheet: () => null,
+}));
 jest.mock('../../utils/dailyOutcomes', () => ({
   getDailyOutcomes: jest.fn().mockResolvedValue({
     logged: { count: 0 },
@@ -299,6 +302,9 @@ jest.mock('../../components/journal/HandoffCard', () => ({
 jest.mock('../../components/journal/HandoffSheet', () => ({
   HandoffSheet: () => null,
 }));
+jest.mock('../../components/journal/ExportChooserSheet', () => ({
+  ExportChooserSheet: () => null,
+}));
 jest.mock('../../components/SectionEyebrow', () => ({
   SectionEyebrow: ({ text }: any) => {
     const React = require('react');
@@ -361,14 +367,16 @@ describe('JournalTab — render smoke test', () => {
     expect(queryByLabelText(/Share daily summary/)).toBeNull();
   });
 
-  it('tapping the "Share" pill currently navigates to /visit-prep (chooser wired in 5.7.b)', async () => {
-    // 5.7.a is a copy-only rename; the handler still routes to /visit-prep
-    // until 5.7.b lands the chooser sheet.
+  it('tapping the "Share" pill opens the export chooser (no direct navigation)', async () => {
+    // After 5.7.b the header pill is the chooser entry point; it must NOT
+    // call navigate() directly. Routing happens after the user picks a
+    // destination inside ExportChooserSheet.
     const { navigate } = require('../../lib/navigate');
+    navigate.mockClear?.();
     const { getByLabelText } = await renderJournal();
 
     fireEvent.press(getByLabelText(/^Share$/));
 
-    expect(navigate).toHaveBeenCalledWith('/visit-prep');
+    expect(navigate).not.toHaveBeenCalledWith('/visit-prep');
   });
 });

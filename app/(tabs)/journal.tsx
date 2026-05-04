@@ -52,6 +52,7 @@ import { TodayOutcomes } from '../../components/journal/TodayOutcomes';
 import { JournalPatternLink } from '../../components/journal/JournalPatternLink';
 import { HandoffCard } from '../../components/journal/HandoffCard';
 import { HandoffSheet } from '../../components/journal/HandoffSheet';
+import { ExportChooserSheet } from '../../components/journal/ExportChooserSheet';
 import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
 import { getDailyOutcomes } from '../../utils/dailyOutcomes';
 import type { DailyOutcomes } from '../../utils/text/types';
@@ -96,6 +97,7 @@ export default function JournalTab() {
   });
   const [dayCompleteFlag, setDayCompleteFlag] = useState(false);
   const [handoffSheetVisible, setHandoffSheetVisible] = useState(false);
+  const [exportChooserVisible, setExportChooserVisible] = useState(false);
   const handoffPulse = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const handoffCardLayoutY = useRef<number | null>(null);
@@ -466,6 +468,7 @@ export default function JournalTab() {
   // SHARE / REPORT HANDLERS
   // ============================================================================
   // Phase 9: Share opens HandoffSheet (today, next-caregiver audience).
+  // Bottom HandoffCard's "Share summary" button keeps using this fast-path.
   function handleShareDaily() {
     if (loading) {
       Alert.alert('Loading', 'Please wait while the journal loads.');
@@ -474,9 +477,11 @@ export default function JournalTab() {
     setHandoffSheetVisible(true);
   }
 
-  // Phase 9: Report navigates to Visit Prep (week/month, clinician audience).
+  // Phase 5.7.b: header Share pill opens the chooser sheet so the user
+  // picks today's-handoff vs visit-prep instead of defaulting either way.
   function handleShareClinical() {
-    navigate('/visit-prep');
+    if (loading) return;
+    setExportChooserVisible(true);
   }
 
   function handleDoneForToday() {
@@ -614,6 +619,19 @@ export default function JournalTab() {
         outcomes={outcomes}
         notes={reflection?.text ?? ''}
         events={[]}
+      />
+
+      <ExportChooserSheet
+        visible={exportChooserVisible}
+        onClose={() => setExportChooserVisible(false)}
+        onChooseHandoff={() => {
+          setExportChooserVisible(false);
+          setHandoffSheetVisible(true);
+        }}
+        onChooseVisitPrep={() => {
+          setExportChooserVisible(false);
+          navigate('/visit-prep');
+        }}
       />
 
       <ManageSampleDataSheet

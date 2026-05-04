@@ -1,9 +1,11 @@
 // ============================================================================
-// Phase 9 — Share vs Report differentiation.
+// Phase 5.7.b — header Share pill → ExportChooserSheet → routes.
 //
 // Source-pattern integration test: locks the wiring without booting the
-// full Journal tree. The Share button opens the HandoffSheet (sheet, no
-// navigation push). The Report button navigates to /visit-prep.
+// full Journal tree. The bottom HandoffCard's Share button opens the
+// HandoffSheet (sheet, no navigation push). The header Share pill opens
+// the ExportChooserSheet, which routes the user to either HandoffSheet
+// or /visit-prep based on the option they tap.
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -12,12 +14,12 @@ import { join } from 'path';
 const ROOT = join(__dirname, '../..');
 const journalSrc = readFileSync(join(ROOT, 'app/(tabs)/journal.tsx'), 'utf8');
 
-describe('Share button → opens HandoffSheet (sheet, no navigation push)', () => {
-  it('Share handler sets handoffSheetVisible to true', () => {
+describe('Bottom HandoffCard fast-path → opens HandoffSheet (sheet, no navigation push)', () => {
+  it('handleShareDaily sets handoffSheetVisible to true', () => {
     expect(journalSrc).toMatch(/function\s+handleShareDaily[\s\S]{0,400}?setHandoffSheetVisible\(\s*true\s*\)/);
   });
 
-  it('Share handler does NOT navigate to a route', () => {
+  it('handleShareDaily does NOT navigate to a route', () => {
     // Slice the source between handleShareDaily and the next function declaration
     // so we only inspect that one body — the file's other handlers may navigate.
     const start = journalSrc.indexOf('function handleShareDaily');
@@ -26,18 +28,41 @@ describe('Share button → opens HandoffSheet (sheet, no navigation push)', () =
     expect(body).not.toMatch(/navigate\s*\(/);
   });
 
-  it('Share handler does NOT open the deprecated Daily Summary preview modal', () => {
+  it('handleShareDaily does NOT open the deprecated Daily Summary preview modal', () => {
     expect(journalSrc).not.toMatch(/setShowDailyPreview\s*\(\s*true\s*\)/);
   });
 });
 
-describe('Report button → navigates to /visit-prep (no Daily Summary modal)', () => {
-  it('Report handler calls navigate("/visit-prep")', () => {
-    expect(journalSrc).toMatch(/function\s+handleShareClinical[\s\S]{0,400}?navigate\s*\(\s*['"]\/visit-prep['"]\s*\)/);
+describe('Header Share pill → opens ExportChooserSheet (no direct navigation)', () => {
+  it('handleShareClinical opens the chooser via setExportChooserVisible(true)', () => {
+    expect(journalSrc).toMatch(
+      /function\s+handleShareClinical[\s\S]{0,400}?setExportChooserVisible\(\s*true\s*\)/,
+    );
   });
 
-  it('Report handler does NOT open the deprecated Clinical Report preview modal', () => {
+  it('handleShareClinical body does NOT call navigate() directly anymore', () => {
+    const start = journalSrc.indexOf('function handleShareClinical');
+    const tail = journalSrc.slice(start);
+    const body = tail.slice(0, tail.indexOf('\n  }') + 4);
+    expect(body).not.toMatch(/navigate\s*\(/);
+  });
+
+  it('handleShareClinical does NOT open the deprecated Clinical Report preview modal', () => {
     expect(journalSrc).not.toMatch(/setShowClinicalPreview\s*\(\s*true\s*\)/);
+  });
+});
+
+describe('ExportChooserSheet wiring forwards to existing surfaces', () => {
+  it('onChooseHandoff opens the existing HandoffSheet (not a new screen)', () => {
+    expect(journalSrc).toMatch(
+      /onChooseHandoff=\{[\s\S]{0,200}?setHandoffSheetVisible\(\s*true\s*\)/,
+    );
+  });
+
+  it('onChooseVisitPrep navigates to /visit-prep', () => {
+    expect(journalSrc).toMatch(
+      /onChooseVisitPrep=\{[\s\S]{0,200}?navigate\s*\(\s*['"]\/visit-prep['"]\s*\)/,
+    );
   });
 });
 
