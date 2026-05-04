@@ -24,9 +24,17 @@ const previewSrc = readFileSync(
 
 describe('Insights zero-day empty state teasers (Phase 4)', () => {
   it('understand.tsx renders InsightsEmptyStatePreview for under-14-day windows', () => {
-    expect(understandSrc).toMatch(
-      /pageData\.daysOfData\s*<\s*14[\s\S]{0,200}<InsightsEmptyStatePreview/,
+    // Phase 3.7.3 wrapped the literal `daysOfData < 14` gate in the
+    // classifyInsightsState helper. Accept either wiring — both pin the
+    // same threshold (POPULATED_DAYS_THRESHOLD = 14).
+    const usesGating =
+      /gating\.showPatternsComing[\s\S]{0,300}<InsightsEmptyStatePreview/.test(
+        understandSrc,
+      );
+    const usesLiteral = /pageData\.daysOfData\s*<\s*14[\s\S]{0,200}<InsightsEmptyStatePreview/.test(
+      understandSrc,
     );
+    expect(usesGating || usesLiteral).toBe(true);
   });
 
   it('understand.tsx no longer carries the legacy teaser strings', () => {

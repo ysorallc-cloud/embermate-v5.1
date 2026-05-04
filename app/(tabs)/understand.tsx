@@ -44,6 +44,7 @@ import { EVENT } from '../../lib/eventNames';
 import { buildProviderPrep, ProviderPrepData } from '../../utils/providerPrepBuilder';
 import { ShareToast } from '../../components/shared/ShareToast';
 import { InsightsEmptyStatePreview } from '../../components/understand/InsightsEmptyStatePreview';
+import { classifyInsightsState, gatingForState } from '../../utils/insightsState';
 import { getVitalsInRange, VitalReading } from '../../utils/vitalsStorage';
 import { listDailyInstancesRange, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 import { getTodayDateString, toLocalDateString } from '../../services/carePlanGenerator';
@@ -628,13 +629,26 @@ export default function UnderstandScreen() {
               windows. Replaces the prior Patterns Coming + What we'll be
               watching split AND the legacy "No data yet" / "Building
               your picture" banners; one consolidated card + a redirect
-              tip card carry the full under-14-days messaging. */}
-          {pageData && !pageData.isSampleData && pageData.daysOfData < 14 && (
-            <InsightsEmptyStatePreview
-              daysOfData={pageData.daysOfData}
-              patientName={patientName}
-            />
-          )}
+              tip card carry the full under-14-days messaging.
+
+              Phase 3.7.3 — the tip card ("Start logging from Now") only
+              renders in the empty state. Once the user has logged at
+              least one event ('building'), they're already on the
+              right track and the tip becomes redundant. */}
+          {pageData && !pageData.isSampleData && (() => {
+            const days = pageData.daysOfData;
+            const events = days > 0 ? 1 : 0;
+            const state = classifyInsightsState(days, events);
+            const gating = gatingForState(state, days);
+            if (!gating.showPatternsComing) return null;
+            return (
+              <InsightsEmptyStatePreview
+                daysOfData={days}
+                patientName={patientName}
+                showTipCard={gating.showTipCard}
+              />
+            );
+          })()}
 
           {/* ═══ SECTION 1: THIS WEEK'S PULSE (AI SUMMARY) ═══ */}
           {pageData && pageData.daysOfData >= 7 && (() => {
@@ -778,7 +792,20 @@ export default function UnderstandScreen() {
             </View>
           )}
 
-          {/* ═══ REPORTS ═══ */}
+          {/* ═══ REPORTS ═══
+              Phase 3.7.3 — gated to populated state only (≥ 14 days of
+              data with events). Visit prep, Care report, and Medication
+              report all read sparse and judgment-y at fresh-install
+              state; hiding them until there's enough data prevents
+              first-impression damage. Default per spec — Visit prep
+              follows the same gate as the other reports. */}
+          {pageData && (() => {
+            const days = pageData.daysOfData;
+            const events = days > 0 ? 1 : 0;
+            const state = classifyInsightsState(days, events);
+            const gating = gatingForState(state, days);
+            if (!gating.showReports) return null;
+            return (
           <View style={styles.section}>
             <View style={{ marginTop: Spacing.md }} />
             {[
@@ -812,6 +839,8 @@ export default function UnderstandScreen() {
               </View>
             ))}
           </View>
+            );
+          })()}
 
           {/* ═══ SECTION 4: VITALS DASHBOARD ═══ */}
           {vitalTiles.length > 0 && (
@@ -848,8 +877,19 @@ export default function UnderstandScreen() {
             </View>
           )}
 
-          {/* ═══ SECTION 5: MEDICATION ADHERENCE ═══ */}
-          {adherence && adherence.total > 0 && (
+          {/* ═══ SECTION 5: MEDICATION ADHERENCE ═══
+              Phase 3.7.3 — adherence chart NEVER renders below
+              POPULATED_DAYS_THRESHOLD (14 days). A 9% reading with sparse
+              data reads as judgment to a caregiver and damages trust on
+              first impression. Hard-floor gate enforced via
+              gatingForState's adherence rule. */}
+          {adherence && adherence.total > 0 && pageData && (() => {
+            const days = pageData.daysOfData;
+            const events = days > 0 ? 1 : 0;
+            const state = classifyInsightsState(days, events);
+            const gating = gatingForState(state, days);
+            return gating.showAdherenceChart;
+          })() && (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>Medication adherence</Text>
               <Text style={styles.sectionContext}>

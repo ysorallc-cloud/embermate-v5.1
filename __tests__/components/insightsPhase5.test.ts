@@ -33,11 +33,17 @@ describe('Insights Missing Data — gated on 7+ days', () => {
   });
 
   it('the consolidated InsightsEmptyStatePreview gate stays at < 14 days', () => {
-    // The Phase 4 consolidated card lives at the < 14 days gate; this
-    // test pins both gates so a future refactor that combines them or
-    // accidentally widens Missing Data into the empty state fails here.
-    expect(understandSrc).toMatch(
-      /pageData\.daysOfData\s*<\s*14[\s\S]{0,200}<InsightsEmptyStatePreview/,
+    // The Phase 4 consolidated card lives at the < 14 days gate.
+    // Phase 3.7.3 wraps it in the classifyInsightsState helper, which
+    // encodes the same threshold via POPULATED_DAYS_THRESHOLD = 14.
+    // Accept either wiring so the contract holds across refactors.
+    const usesGating =
+      /gating\.showPatternsComing[\s\S]{0,300}<InsightsEmptyStatePreview/.test(
+        understandSrc,
+      );
+    const usesLiteral = /pageData\.daysOfData\s*<\s*14[\s\S]{0,200}<InsightsEmptyStatePreview/.test(
+      understandSrc,
     );
+    expect(usesGating || usesLiteral).toBe(true);
   });
 });

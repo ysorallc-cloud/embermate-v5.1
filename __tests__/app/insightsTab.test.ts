@@ -29,13 +29,20 @@ describe('Insights tab', () => {
   });
 
   it('the consolidated empty-state preview renders for under-14-day windows', () => {
-    // Phase 4 of v6.7 visual-consistency replaced the legacy "Building
-    // your picture" banner with the InsightsEmptyStatePreview consolidated
-    // card. The under-14-days gate is the new equivalent of the prior
-    // "< 7 days" branch (broader window, single card).
-    expect(insightsContent).toMatch(
-      /pageData\.daysOfData\s*<\s*14[\s\S]{0,200}<InsightsEmptyStatePreview/,
+    // Phase 4 of v6.7 visual-consistency introduced the InsightsEmptyStatePreview.
+    // Phase 3.7.3 replaced the literal `< 14` gate with the
+    // classifyInsightsState helper (which encodes the same threshold via
+    // POPULATED_DAYS_THRESHOLD = 14). Two acceptable wirings:
+    //   1. `gating.showPatternsComing` — the canonical Phase 3.7.3 gate
+    //   2. legacy `pageData.daysOfData < 14` literal (pre-3.7.3 fallback)
+    const usesGating =
+      /gating\.showPatternsComing[\s\S]{0,300}<InsightsEmptyStatePreview/.test(
+        insightsContent,
+      );
+    const usesLiteral = /pageData\.daysOfData\s*<\s*14[\s\S]{0,200}<InsightsEmptyStatePreview/.test(
+      insightsContent,
     );
+    expect(usesGating || usesLiteral).toBe(true);
   });
 
   it('disclaimer text is present', () => {

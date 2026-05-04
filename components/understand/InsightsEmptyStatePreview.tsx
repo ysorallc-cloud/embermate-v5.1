@@ -18,6 +18,14 @@ import { useTheme } from '../../contexts/ThemeContext';
 export interface InsightsEmptyStatePreviewProps {
   daysOfData: number;
   patientName?: string;
+  /**
+   * Phase 3.7.3 — gate the tip card by Insights state.
+   *   • empty:    show (the user has nothing logged yet — actionable hint).
+   *   • building: hide (they're already logging — the tip is redundant).
+   *   • populated: caller doesn't render this component at all.
+   * Defaults true for back-compat with pre-3.7.3 callers.
+   */
+  showTipCard?: boolean;
 }
 
 interface PatternPreview {
@@ -54,6 +62,7 @@ const PATIENT_FALLBACK_NAMES = new Set(['Patient', 'patient', 'your loved one'])
 export function InsightsEmptyStatePreview({
   daysOfData,
   patientName,
+  showTipCard = true,
 }: InsightsEmptyStatePreviewProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -132,17 +141,19 @@ export function InsightsEmptyStatePreview({
       </View>
 
       {/* ── Tip card (border-only, redirect not placeholder) ── */}
-      <View testID="insights-tip-card" style={styles.tipCard}>
-        <View style={styles.tipRow}>
-          <Text style={styles.tipIcon}>{'💡'}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.tipHeadline}>Start logging from Now</Text>
-            <Text style={styles.tipSubtitle}>
-              Meds, vitals, or mood — all anchor patterns.
-            </Text>
+      {showTipCard && (
+        <View testID="insights-tip-card" style={styles.tipCard}>
+          <View style={styles.tipRow}>
+            <Text style={styles.tipIcon}>{'💡'}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.tipHeadline}>Start logging from Now</Text>
+              <Text style={styles.tipSubtitle}>
+                Meds, vitals, or mood — all anchor patterns.
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
+      )}
     </View>
   );
 }
