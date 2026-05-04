@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   button: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 8,
     borderRadius: 8,
   },

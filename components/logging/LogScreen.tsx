@@ -152,7 +152,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingTop: 12,
     paddingBottom: 12,
     gap: 12,
@@ -175,11 +175,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   scrollContent: {
     paddingTop: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingBottom: 24,
   },
   footer: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingTop: 12,
     paddingBottom: 16,
     alignItems: 'center',

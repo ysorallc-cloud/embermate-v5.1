@@ -124,8 +124,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

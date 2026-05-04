@@ -14,7 +14,7 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export interface ReportPreviewModalProps {
@@ -116,7 +116,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: c.glassBorder,
@@ -136,7 +136,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   previewExportButton: {
     backgroundColor: c.accent,
     borderRadius: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 8,
   },
   previewExportText: {
@@ -156,7 +156,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: c.glassBorder,
     borderRadius: 10,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   previewHTMLNote: {
     fontSize: 13,

@@ -5,7 +5,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, LayoutAnimation } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 
 // ============================================================================
 // TYPES
@@ -198,7 +198,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: c.warmSurfaceBorder,
     borderRadius: 14,
     padding: 12,
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   monthHeader: {
     flexDirection: 'row',

@@ -202,7 +202,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: c.purpleGlow,
     borderRadius: 8,
     paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     alignItems: 'center',
   },
   primaryButtonText: {
@@ -212,7 +212,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   secondaryButton: {
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     alignItems: 'center',
   },
   secondaryButtonText: {

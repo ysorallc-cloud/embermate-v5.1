@@ -23,7 +23,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
 
-import { Colors } from '../theme/theme-tokens';
+import { Colors, Spacing } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
 
 const AFFIRMATIONS = [
@@ -336,7 +336,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   timer: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.3)',
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
 
   // Affirmation
@@ -356,7 +356,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     bottom: 50,
     fontSize: 12,
     color: 'rgba(255,255,255,0.45)',
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,

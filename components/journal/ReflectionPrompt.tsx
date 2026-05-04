@@ -8,6 +8,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-nativ
 import { useTheme } from '../../contexts/ThemeContext';
 import { InlineSaveToast } from '../shared/InlineSaveToast';
 
+import { Spacing } from '../../theme/theme-tokens';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -142,10 +143,10 @@ export function ReflectionPrompt({ date, prompt, savedText, savedAt, onSave, onD
 
 const styles = StyleSheet.create({
   section: {
-    paddingVertical: 14,
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     // Visual separation from the JournalPatterns block above so the prompt
     // reads as a new section, not a continuation of the pattern analysis.
-    marginTop: 24,
+    marginTop: Spacing.lg,
   },
   prompt: {
     fontSize: 13,

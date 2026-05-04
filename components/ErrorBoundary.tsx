@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { Colors } from '../theme/theme-tokens';
+import { Colors, Spacing } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
 import { reportError } from '../utils/errorReporting';
 
@@ -142,7 +142,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   emoji: {
     fontSize: 64,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   title: {
     fontSize: 24,
@@ -156,14 +156,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   button: {
     backgroundColor: c.accent,
     paddingHorizontal: 32,
-    paddingVertical: 14,
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     borderRadius: 12,
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   buttonText: {
     color: c.background,
@@ -176,7 +176,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.surfaceElevated,
     borderRadius: 8,
     padding: 12,
-    marginTop: 16,
+    marginTop: Spacing.md,
   },
   debugTitle: {
     fontSize: 12,

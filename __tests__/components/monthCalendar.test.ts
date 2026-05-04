@@ -104,7 +104,9 @@ describe('MonthCalendar', () => {
     expect(src).toContain('borderRadius: 14');
     // May 1 spacing-rhythm Phase 2: card padding lifted to canonical 12pt.
     expect(src).toContain('padding: 12');
-    expect(src).toContain('marginBottom: 24');
+    // Phase 3.7.1 migrated literal `marginBottom: 24` → `Spacing.lg` so
+    // the Phase 3.5 cascade (lg = 28) reaches this card.
+    expect(src).toMatch(/marginBottom:\s*Spacing\.lg\b/);
     // Component must consume the active palette via useTheme + factory.
     expect(src).toContain("import { useTheme }");
     expect(src).toContain('createStyles(colors)');

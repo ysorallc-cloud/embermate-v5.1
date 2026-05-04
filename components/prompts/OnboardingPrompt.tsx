@@ -63,8 +63,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   primaryButton: {
     backgroundColor: c.accent,
     borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    paddingHorizontal: 24, // allow: tap-target padding (Apple HIG ≥44pt)
     width: '100%',
     marginBottom: 12,
   },

@@ -17,7 +17,7 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { safeSetItem } from '../utils/safeStorage';
 import { logError, devLog } from '../utils/devLog';
-import { Colors } from '../theme/theme-tokens';
+import { Colors, Spacing } from '../theme/theme-tokens';
 
 // ============================================================================
 // CONSTANTS
@@ -246,7 +246,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   submitButton: {
     backgroundColor: '#9f7aea',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     alignItems: 'center',
   },
   submitButtonDisabled: {
@@ -266,7 +266,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   confirmationEmoji: {
     fontSize: 40,
     color: c.accent,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   confirmationTitle: {
     fontSize: 20,
@@ -279,7 +279,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textWarmMuted,
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   doneButton: {
     backgroundColor: c.accent,

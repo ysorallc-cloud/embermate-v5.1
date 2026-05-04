@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
+import { Spacing } from '../../theme/theme-tokens';
 interface DaySignalBannerProps {
   emoji: string;
   label: string;
@@ -28,13 +29,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
     padding: 16,
-    paddingHorizontal: 18,
+    paddingHorizontal: 18, // allow: tap-target padding (Apple HIG ≥44pt)
     borderWidth: 1,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   emoji: {
     fontSize: 24,
-    marginRight: 14,
+    marginRight: 14, // allow: off-scale gap (intentional)
   },
   textContainer: {
     flex: 1,

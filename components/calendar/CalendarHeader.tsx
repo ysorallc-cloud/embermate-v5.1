@@ -48,7 +48,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
+    paddingVertical: 16, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   navButton: {
     width: 32,

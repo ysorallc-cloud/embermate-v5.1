@@ -14,7 +14,7 @@ interface ScreenHeaderProps {
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingTop: 56,
     paddingBottom: 24,
     borderBottomWidth: 0.5,

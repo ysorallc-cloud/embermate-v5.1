@@ -7,7 +7,7 @@
 // Layout:
 //   ┌─ topRow ────────────────────────────┐  44pt height
 //   │  [BackButton]              [right]  │
-//   ├──────────────────────────────────────┤  marginBottom: 16
+//   ├──────────────────────────────────────┤  marginBottom: Spacing.md
 //   │  Title (32pt, weight 300)            │
 //   │  Subtitle (13pt, textSecondary)      │  marginTop: 8
 //   └──────────────────────────────────────┘  paddingBottom: 24
@@ -16,7 +16,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
-import { Colors } from '../theme/theme-tokens';
+import { Colors, Spacing } from '../theme/theme-tokens';
 import { BackButton } from './common/BackButton';
 
 interface SubScreenHeaderProps {
@@ -29,7 +29,7 @@ interface SubScreenHeaderProps {
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingTop: 56,
     paddingBottom: 24,
     borderBottomWidth: 0.5,
@@ -40,7 +40,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     minHeight: 44,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   rightAction: {
     flexDirection: 'row',

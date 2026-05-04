@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import { useDailyCareInstances } from '../../hooks/useDailyCareInstances';
@@ -570,7 +570,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 14,
     color: c.textHalf,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   setupButton: {
     backgroundColor: c.accent,
@@ -731,7 +731,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: c.border,

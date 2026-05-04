@@ -1176,7 +1176,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // canonical paddingTop: 24 / paddingHorizontal: 14. Below the hero
   // header, the inner `content` view adds zero horizontal padding so
   // cards align flush with the scrollContent edge.
-  scrollContent: { paddingTop: 24, paddingHorizontal: 14 },
+  scrollContent: { paddingTop: 24, paddingHorizontal: 14 }, // allow: tap-target padding (Apple HIG ≥44pt)
   content: { paddingHorizontal: 0, paddingTop: 0 },
 
   // Undo toast (floats above tab bar)

@@ -986,7 +986,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   logButton: {
     backgroundColor: c.glassActive,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 7,
     borderRadius: 12,
   },
@@ -996,7 +996,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.accent,
     borderRadius: 8,
     paddingVertical: 6,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   confirmButtonText: {
     fontSize: 12,
@@ -1025,7 +1025,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     gap: 10,
     backgroundColor: 'rgba(46, 125, 80, 0.12)',
     borderRadius: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 10,
     marginBottom: 2,
     marginTop: 8,
@@ -1313,7 +1313,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 24,
-    paddingVertical: 16,
+    paddingVertical: 16, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   waterButton: {
     width: 44,

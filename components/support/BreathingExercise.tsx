@@ -17,6 +17,7 @@ import { emitWellnessEvent } from '../../utils/eventEmitter';
 import { updateStreak } from '../../utils/streakStorage';
 import { logError } from '../../utils/devLog';
 
+import { Spacing } from '../../theme/theme-tokens';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -290,12 +291,12 @@ function createStyles(c: any) {
       fontSize: 22,
       fontWeight: '300',
       color: '#fff',
-      marginBottom: 24,
+      marginBottom: Spacing.lg,
       textAlign: 'center',
     },
     beginButton: {
       paddingHorizontal: 40,
-      paddingVertical: 14,
+      paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
       borderRadius: 12,
     },
     beginButtonText: {

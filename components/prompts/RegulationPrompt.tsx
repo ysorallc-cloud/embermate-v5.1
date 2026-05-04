@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface RegulationPromptProps {
@@ -35,7 +35,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.purpleMuted,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   message: {
     fontSize: 14,

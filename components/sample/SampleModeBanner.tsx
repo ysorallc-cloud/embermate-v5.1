@@ -48,8 +48,8 @@ const createStyles = (c: any) => StyleSheet.create({
     borderColor: c.caregiverAccentBorder,
     borderRadius: 999,
     paddingVertical: 8,
-    paddingHorizontal: 14,
-    marginHorizontal: 16,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    marginHorizontal: 16, // allow: off-scale gap (intentional)
     marginBottom: 12,
   },
   content: {

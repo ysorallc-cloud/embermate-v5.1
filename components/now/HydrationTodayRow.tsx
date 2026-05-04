@@ -209,8 +209,8 @@ const createStyles = (c: any) => StyleSheet.create({
     paddingVertical: 4,
   },
   pickerRow: {
-    paddingVertical: 14,
-    paddingHorizontal: 18,
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    paddingHorizontal: 18, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   pickerText: {
     fontSize: 14,

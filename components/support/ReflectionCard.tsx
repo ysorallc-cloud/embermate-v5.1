@@ -21,7 +21,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { Colors, Sizing } from '../../theme/theme-tokens';
+import { Colors, Sizing, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   saveReflection,
@@ -229,7 +229,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: c.textPrimary,
-    marginTop: 16,
+    marginTop: Spacing.md,
     marginBottom: 10,
   },
   input: {
@@ -265,7 +265,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: '#5fb88a',
     borderRadius: 16,
     paddingVertical: 6,
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   saveButtonDisabled: {
     opacity: 0.4,

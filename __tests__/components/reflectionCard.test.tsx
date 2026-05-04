@@ -102,12 +102,14 @@ describe('ReflectionCard — Section 3: prompt copy', () => {
     expect(src).toContain('What was today like for you?');
   });
 
-  it('prompt style: 13pt textPrimary, weight 500, marginTop 16, marginBottom 10', () => {
+  it('prompt style: 13pt textPrimary, weight 500, marginTop Spacing.md, marginBottom 10', () => {
+    // Phase 3.7.1 migrated literal `marginTop: 16` to `Spacing.md` so the
+    // recalibrated 4pt scale (md = 20 from Phase 3.5) cascades.
     const block = styleBlock('prompt');
     expect(num(block, 'fontSize')).toBe(13);
     expect(block).toMatch(/color:\s*c\.textPrimary|color:\s*colors\.textPrimary/);
     expect(block).toMatch(/fontWeight:\s*['"]500['"]/);
-    expect(num(block, 'marginTop')).toBe(16);
+    expect(block).toMatch(/marginTop:\s*Spacing\.md\b/);
     expect(num(block, 'marginBottom')).toBe(10);
   });
 });

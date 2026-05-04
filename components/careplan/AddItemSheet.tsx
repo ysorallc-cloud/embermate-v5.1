@@ -139,7 +139,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: 2,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignSelf: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   title: {
     fontSize: 18,
@@ -159,7 +159,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     gap: 14,
     borderBottomWidth: 1,
     borderBottomColor: c.hairlineInset,

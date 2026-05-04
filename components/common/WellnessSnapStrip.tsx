@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface WellnessSnapItem {
@@ -44,9 +44,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.glassActive,
     borderRadius: 16,
-    paddingVertical: 14,
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingHorizontal: 10,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   item: {
     alignItems: 'center',

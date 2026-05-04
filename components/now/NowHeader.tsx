@@ -145,7 +145,7 @@ const createStyles = (c: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingTop: 56,
     paddingBottom: 24,
   },

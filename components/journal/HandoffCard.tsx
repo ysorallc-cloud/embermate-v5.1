@@ -81,7 +81,7 @@ const createStyles = (c: any) => StyleSheet.create({
     borderWidth: 0.5,
     borderColor: 'rgba(52, 211, 153, 0.30)',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingHorizontal: 12,
   },
   title: {

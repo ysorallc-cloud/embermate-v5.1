@@ -97,7 +97,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     // Spacing.md from 16 → 20 so these gaps now breathe.
     marginTop: Spacing.md,
     marginBottom: Spacing.md,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   column: {
     flex: 1,

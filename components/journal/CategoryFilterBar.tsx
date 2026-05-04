@@ -92,7 +92,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: BorderRadius.full,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 7,
     gap: 5,
   },

@@ -351,7 +351,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '500',
   },
   confirmButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 10,
     backgroundColor: c.accent,
     borderRadius: 10,

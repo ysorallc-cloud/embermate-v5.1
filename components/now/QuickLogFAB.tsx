@@ -36,8 +36,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     zIndex: 100,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+    paddingHorizontal: 18, // allow: tap-target padding (Apple HIG ≥44pt)
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   fabContent: {
     flexDirection: 'row',

@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
 import { RecentEntry, LABEL_MAP } from '../../hooks/useRecentEntries';
 import { RecentEntryCard } from './RecentEntryCard';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LogEventType } from '../../utils/logEvents';
 
@@ -90,7 +90,7 @@ export function RecentEntriesFeed({ entries, loading, activeFilter }: Props) {
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   loadingContainer: {
     paddingVertical: 40,

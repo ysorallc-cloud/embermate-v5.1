@@ -14,7 +14,7 @@ import {
   TouchableWithoutFeedback,
   Pressable,
 } from 'react-native';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface InfoModalProps {
@@ -146,7 +146,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.sageLight,
     borderRadius: 8,
     padding: 10,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   hint: {
     fontSize: 13,

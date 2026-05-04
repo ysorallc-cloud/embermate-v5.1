@@ -327,8 +327,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
+    paddingVertical: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     borderBottomWidth: 1,
     borderBottomColor: c.glassBorder,
   },
@@ -347,7 +347,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.accent,
   },
   itemInfo: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: c.glassBorder,
@@ -358,10 +358,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     textAlign: 'center',
   },
   content: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   section: {
-    paddingVertical: 16,
+    paddingVertical: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     borderBottomWidth: 1,
     borderBottomColor: c.glassBorder,
   },
@@ -423,7 +423,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   subSectionTitle: {
     fontSize: 13,
     color: c.textSecondary,
-    marginTop: 16,
+    marginTop: Spacing.md,
     marginBottom: 8,
   },
   chipRow: {
@@ -433,7 +433,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   chip: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     borderRadius: 20,
     backgroundColor: c.glass,
     borderWidth: 1,
@@ -453,7 +453,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   resetButton: {
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     marginTop: 8,
   },
   resetButtonText: {

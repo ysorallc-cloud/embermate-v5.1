@@ -300,7 +300,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: c.sageGlow,
     borderRadius: 8,
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   actionButtonWarning: {
     backgroundColor: 'rgba(251, 191, 36, 0.15)',
@@ -324,7 +324,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   secondaryButton: {
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   secondaryButtonText: {
     fontSize: 13,

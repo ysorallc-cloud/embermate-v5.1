@@ -9,6 +9,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { CareBrief } from '../../utils/careSummaryBuilder';
 import { getTodayDateString } from '../../services/carePlanGenerator';
 
+import { Spacing } from '../../theme/theme-tokens';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -247,7 +248,7 @@ const createStyles = (c: any) => StyleSheet.create({
     backgroundColor: c.warmSurfaceBorder,
   },
   timelineSection: {
-    paddingVertical: 14,
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     borderBottomWidth: 0.5,
     borderBottomColor: c.warmSurfaceBorder,
   },
@@ -281,7 +282,7 @@ const createStyles = (c: any) => StyleSheet.create({
     borderColor: 'rgba(255, 140, 148, 0.2)',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   firstUseTitle: {
     fontSize: 14,
@@ -295,7 +296,7 @@ const createStyles = (c: any) => StyleSheet.create({
     lineHeight: 19,
   },
   pastDateEmpty: {
-    paddingVertical: 24,
+    paddingVertical: 24, // allow: tap-target padding (Apple HIG ≥44pt)
     alignItems: 'center' as const,
   },
   pastDateEmptyText: {

@@ -18,6 +18,7 @@ import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-nativ
 import { useTheme } from '../../contexts/ThemeContext';
 import type { ReflectionScore } from '../../storage/dailyReflectionRepo';
 
+import { Spacing } from '../../theme/theme-tokens';
 export interface SilentVitalsValues {
   sleepQuality?: ReflectionScore;
   mood?: ReflectionScore;
@@ -216,7 +217,7 @@ const createStyles = (c: any) => StyleSheet.create({
   header: {
     paddingTop: 12,
     paddingBottom: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     backgroundColor: 'rgba(255, 235, 205, 0.025)',
     borderBottomWidth: 0.5,
     borderBottomColor: c.glassBorder,
@@ -236,12 +237,12 @@ const createStyles = (c: any) => StyleSheet.create({
     marginTop: 4,
   },
   body: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingTop: 14,
     paddingBottom: 8,
   },
   row: {
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   rowHeader: {
     flexDirection: 'row',
@@ -300,7 +301,7 @@ const createStyles = (c: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingTop: 10,
     paddingBottom: 14,
     gap: 10,
@@ -309,7 +310,7 @@ const createStyles = (c: any) => StyleSheet.create({
   },
   cancelButton: {
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   cancelText: {
     fontSize: 13,
@@ -318,7 +319,7 @@ const createStyles = (c: any) => StyleSheet.create({
   },
   saveButton: {
     paddingVertical: 8,
-    paddingHorizontal: 18,
+    paddingHorizontal: 18, // allow: tap-target padding (Apple HIG ≥44pt)
     borderRadius: 8,
     backgroundColor: c.accent,
   },

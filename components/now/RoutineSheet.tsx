@@ -14,7 +14,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { parseTimeForDisplay, type TimeWindow } from '../../utils/nowHelpers';
 
@@ -246,7 +246,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginTop: 2,
   },
   closeButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 8,
     borderRadius: 8,
     backgroundColor: c.glassActive,
@@ -269,7 +269,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textMuted,
     letterSpacing: 1.4,
     textTransform: 'uppercase',
-    marginTop: 16,
+    marginTop: Spacing.md,
     marginBottom: 8,
   },
   // Phase 2A — batch "Complete all" button
@@ -348,7 +348,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   logButton: {
     backgroundColor: c.glassActive,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 7,
     borderRadius: 12,
   },

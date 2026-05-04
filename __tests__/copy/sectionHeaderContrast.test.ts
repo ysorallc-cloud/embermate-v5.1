@@ -70,14 +70,16 @@ describe('Journal Patterns — section header normalization', () => {
 });
 
 describe('Reflection prompt — visual separation from Patterns', () => {
-  it('ReflectionPrompt section has marginTop >= 16 OR a top divider', () => {
-    // Either approach satisfies the contract: extra margin pushes the
-    // prompt clearly below Patterns, or a top border draws the same
-    // separation explicitly.
+  it('ReflectionPrompt section has marginTop on a token (Spacing.md+) OR a top divider', () => {
+    // Phase 3.7.1 migrated literal margins to Spacing tokens so the
+    // recalibrated scale (md=20, lg=28) cascades. Either approach
+    // satisfies the contract: a token-routed marginTop pushes the prompt
+    // clearly below Patterns, or a top border draws the same separation.
     const block = styleBlock(reflectionSrc, 'section');
     expect(block).not.toBe('');
     const mt = num(block, 'marginTop') ?? 0;
+    const tokenMt = /marginTop:\s*Spacing\.(md|lg|xl)\b/.test(block);
     const hasTopBorder = /borderTopWidth:\s*(0\.5|1)/.test(block);
-    expect(mt >= 16 || hasTopBorder).toBe(true);
+    expect(mt >= 16 || tokenMt || hasTopBorder).toBe(true);
   });
 });

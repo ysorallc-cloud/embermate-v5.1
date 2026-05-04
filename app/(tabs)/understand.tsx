@@ -780,7 +780,7 @@ export default function UnderstandScreen() {
 
           {/* ═══ REPORTS ═══ */}
           <View style={styles.section}>
-            <View style={{ marginTop: 16 }} />
+            <View style={{ marginTop: Spacing.md }} />
             {[
               { key: 'provider', title: 'Visit prep', subtitle: `Generate a summary to bring to ${patientName}'s next appointment.`, icon: '🩺' },
               { key: 'care', title: 'Care report', subtitle: 'Full PDF with trends and patterns', icon: '📋' },
@@ -940,7 +940,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // so the last card doesn't read disconnected from the footer area.
   scrollContent: {
     paddingTop: 24,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingBottom: 16,
   },
   loadingContainer: {
@@ -983,7 +983,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.04)',
-    marginVertical: 16,
+    marginVertical: Spacing.md,
     marginHorizontal: -16,
   },
 
@@ -1002,7 +1002,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   sectionSublabel: {
     fontSize: 12,
     color: c.textTertiary,
-    marginBottom: 14,
+    marginBottom: 14, // allow: off-scale gap (intentional)
   },
   sectionContext: {
     fontSize: 11,
@@ -1149,7 +1149,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginTop: 6,
   },
   correlationExpanded: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingBottom: 14,
     borderTopWidth: 1,
     borderTopColor: c.hairlineInset,
@@ -1275,7 +1275,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   reportShareBtn: {
     backgroundColor: c.accent,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 8,
     borderRadius: 8,
   },

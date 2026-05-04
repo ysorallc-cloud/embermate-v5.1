@@ -240,7 +240,7 @@ const createStyles = (c: any) => StyleSheet.create({
     borderColor: 'rgba(74,107,93,0.12)',
     borderRadius: 10,
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     marginRight: 8,
   },
   chipSelected: {

@@ -6,6 +6,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
+import { Spacing } from '../theme/theme-tokens';
 // ============================================================================
 // PROPS
 // ============================================================================
@@ -74,7 +75,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(159, 122, 234, 0.25)',
     borderRadius: 14,
     padding: 16,
-    marginTop: 16,
+    marginTop: Spacing.md,
     marginBottom: 8,
   },
   dismissButton: {
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     color: 'rgba(183, 148, 244, 0.7)',
-    marginBottom: 14,
+    marginBottom: 14, // allow: off-scale gap (intentional)
   },
   cta: {
     alignSelf: 'flex-start',
@@ -121,7 +122,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(159, 122, 234, 0.3)',
     borderRadius: 20,
     paddingVertical: 8,
-    paddingHorizontal: 18,
+    paddingHorizontal: 18, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   ctaText: {
     fontSize: 13,

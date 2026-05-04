@@ -13,7 +13,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { usePatient } from '../../contexts/PatientContext';
 import { checkFeatureAccess } from '../../utils/featureGate';
@@ -269,13 +269,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: 2,
     backgroundColor: c.glassBorder,
     alignSelf: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
     color: c.textPrimary,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   patientRow: {
     flexDirection: 'row',
@@ -385,7 +385,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textMuted,
   },
   addButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 10,
     backgroundColor: c.accent,
     borderRadius: 8,
@@ -407,7 +407,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     gap: 6,
   },
   profileIcon: {

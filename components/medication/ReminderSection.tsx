@@ -262,7 +262,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   followUpIntervalOptions: { flexDirection: 'row', gap: 8 },
   followUpIntervalOption: {
     paddingVertical: 6,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     borderRadius: 6,
     borderWidth: 1,
     borderColor: c.warningBorder,

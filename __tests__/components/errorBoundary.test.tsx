@@ -52,8 +52,12 @@ jest.mock('../../contexts/ThemeContext', () => ({
   }),
 }));
 
-// theme-tokens is imported only for its `Colors` type; provide a minimal stub.
-jest.mock('../../theme/theme-tokens', () => ({ Colors: {} as any }));
+// theme-tokens — Colors stub + Spacing constants needed by ErrorBoundary's
+// fallback styles (Phase 3.7.1 routed its margins through Spacing.md/lg).
+jest.mock('../../theme/theme-tokens', () => ({
+  Colors: {} as any,
+  Spacing: { xxs: 4, xs: 8, sm: 12, md: 20, lg: 28, xl: 36 },
+}));
 
 import React from 'react';
 import { Text, View } from 'react-native';

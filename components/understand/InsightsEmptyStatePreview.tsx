@@ -155,8 +155,8 @@ const createStyles = (c: any) => StyleSheet.create({
     borderColor: 'rgba(95, 184, 138, 0.22)',
     borderRadius: 11,
     paddingHorizontal: 13,
-    paddingVertical: 16,
-    marginBottom: 14,
+    paddingVertical: 16, // allow: tap-target padding (Apple HIG ≥44pt)
+    marginBottom: 14, // allow: off-scale gap (intentional)
   },
   patternsEyebrow: {
     fontSize: 8.5,
@@ -186,7 +186,7 @@ const createStyles = (c: any) => StyleSheet.create({
   consolidatedTop: {
     backgroundColor: 'rgba(95, 184, 138, 0.05)',
     paddingHorizontal: 13,
-    paddingVertical: 16,
+    paddingVertical: 16, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   // Hairline divider between the halves of the consolidated card.
   hairlineDivider: {
@@ -203,7 +203,7 @@ const createStyles = (c: any) => StyleSheet.create({
     borderColor: c.glassBorder,
     borderRadius: 11,
     overflow: 'hidden',
-    marginBottom: 14,
+    marginBottom: 14, // allow: off-scale gap (intentional)
     // Card holds rows with their own padding; symmetric per Phase 2 contract.
     padding: 0,
   },
@@ -283,7 +283,7 @@ const createStyles = (c: any) => StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 13,
-    marginBottom: 14,
+    marginBottom: 14, // allow: off-scale gap (intentional)
   },
   tipRow: {
     flexDirection: 'row',

@@ -31,6 +31,7 @@ import { EVENT } from '../../lib/eventNames';
 import { StorageKeys } from '../../utils/storageKeys';
 import { logError } from '../../utils/devLog';
 
+import { Spacing } from '../../theme/theme-tokens';
 export type ManageSampleFocus = 'setup' | 'remove';
 
 export interface ManageSampleDataSheetProps {
@@ -290,7 +291,7 @@ const createStyles = (c: any) => StyleSheet.create({
     borderRadius: 2,
     backgroundColor: c.glassBorder,
     alignSelf: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   glyph: {
     fontSize: 28,
@@ -339,7 +340,7 @@ const createStyles = (c: any) => StyleSheet.create({
     borderColor: c.error,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   secondaryCardTitle: {
     fontSize: 15,
@@ -374,7 +375,7 @@ const createStyles = (c: any) => StyleSheet.create({
   primaryButton: {
     backgroundColor: c.accent,
     borderRadius: 10,
-    paddingVertical: 14,
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     alignItems: 'center',
     marginBottom: 4,
   },
@@ -389,7 +390,7 @@ const createStyles = (c: any) => StyleSheet.create({
   dangerButton: {
     backgroundColor: c.error,
     borderRadius: 10,
-    paddingVertical: 14,
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     alignItems: 'center',
     marginBottom: 4,
   },

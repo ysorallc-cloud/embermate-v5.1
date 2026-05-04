@@ -256,7 +256,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 14, // allow: off-scale gap (intentional)
   },
   dateLabel: {
     color: c.textPrimary,

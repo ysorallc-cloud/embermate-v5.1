@@ -48,7 +48,7 @@ export const StreakBadge: React.FC<Props> = ({ type, count, label, size = 'mediu
       label: { fontSize: 11 },
     },
     large: {
-      container: { paddingVertical: 12, paddingHorizontal: 16 },
+      container: { paddingVertical: 12, paddingHorizontal: 16 }, // allow: tap-target padding (Apple HIG ≥44pt)
       emoji: { fontSize: 24 },
       count: { fontSize: 28 },
       label: { fontSize: 12 },

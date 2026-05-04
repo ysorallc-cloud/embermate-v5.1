@@ -136,7 +136,7 @@ const createStyles = (c: any) => StyleSheet.create({
     // Phase 3.5 — token-routed so the cascade reaches this dimmed
     // italic-line alternative to the journal preview card.
     marginTop: Spacing.md,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     alignItems: 'center' as const,
   },
   journalPreviewDimmedText: {
@@ -148,7 +148,7 @@ const createStyles = (c: any) => StyleSheet.create({
     textAlign: 'center' as const,
   },
   journalPreviewCard: {
-    marginHorizontal: 16,
+    marginHorizontal: 16, // allow: off-scale gap (intentional)
     marginTop: 12,
     padding: 12,
     borderRadius: 14,

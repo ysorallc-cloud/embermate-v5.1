@@ -138,7 +138,7 @@ const createStyles = (c: any) => StyleSheet.create({
     borderRadius: 2,
     backgroundColor: c.glassBorder,
     alignSelf: 'center',
-    marginBottom: 14,
+    marginBottom: 14, // allow: off-scale gap (intentional)
   },
   title: {
     fontSize: 18,
@@ -152,7 +152,7 @@ const createStyles = (c: any) => StyleSheet.create({
     marginBottom: 12,
   },
   reasonRow: {
-    paddingVertical: 14,
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingHorizontal: 4,
   },
   reasonDivider: {

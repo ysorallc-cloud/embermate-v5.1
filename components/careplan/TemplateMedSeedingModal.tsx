@@ -12,7 +12,7 @@ import {
   Modal,
   Alert,
 } from 'react-native';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { TemplateMedSuggestion } from '../../constants/carePlanTemplates';
 import { addMedicationToPlan } from '../../storage/carePlanConfigRepo';
@@ -183,7 +183,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: 2,
     backgroundColor: c.glassBorder,
     alignSelf: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   title: {
     fontSize: 18,
@@ -194,7 +194,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   subtitle: {
     fontSize: 13,
     color: c.textMuted,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   medRow: {
     flexDirection: 'row',
@@ -247,10 +247,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     gap: 12,
-    marginTop: 16,
+    marginTop: Spacing.md,
   },
   skipButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 10,
   },
   skipText: {

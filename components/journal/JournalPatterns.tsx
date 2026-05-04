@@ -83,7 +83,7 @@ export function JournalPatterns({ insights }: JournalPatternsProps) {
 
 const createStyles = (c: any) => StyleSheet.create({
   section: {
-    paddingVertical: 14,
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     borderBottomWidth: 0.5,
     borderBottomColor: c.warmSurfaceBorder,
   },

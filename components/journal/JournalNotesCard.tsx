@@ -208,7 +208,7 @@ const createStyles = (c: any) =>
       alignItems: 'baseline',
       paddingTop: 11,
       paddingBottom: 8,
-      paddingHorizontal: 14,
+      paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
       backgroundColor: 'rgba(255,255,255,0.025)',
       borderBottomWidth: 0.5,
       borderBottomColor: c.glassBorder,
@@ -227,7 +227,7 @@ const createStyles = (c: any) =>
     },
     body: {
       paddingTop: 12,
-      paddingHorizontal: 14,
+      paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
       paddingBottom: 10,
     },
     // v6.7 Phase 3 — visible serif italic prompt, replaces the rotating
@@ -255,7 +255,7 @@ const createStyles = (c: any) =>
       alignItems: 'center',
       paddingTop: 8,
       paddingBottom: 11,
-      paddingHorizontal: 14,
+      paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
       borderTopWidth: 0.5,
       borderTopColor: c.glassBorder,
     },

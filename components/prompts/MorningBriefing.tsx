@@ -412,7 +412,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.sageBorder,
     borderRadius: 6,
     paddingVertical: 6,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   baselineYesText: {
     fontSize: 13,
@@ -423,7 +423,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.glassHover,
     borderRadius: 6,
     paddingVertical: 6,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   baselineNoText: {
     fontSize: 13,
@@ -491,7 +491,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.sageBorder,
     borderRadius: 6,
     paddingVertical: 6,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   selfCheckSaveText: {
     fontSize: 13,

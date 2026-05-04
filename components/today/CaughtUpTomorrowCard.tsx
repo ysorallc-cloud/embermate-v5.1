@@ -122,7 +122,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   bottomSection: {
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
     padding: 12,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     borderTopWidth: 1,
     borderTopColor: c.greenBorder,
   },

@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { DayState, DayStateRoutine, DayStateItem } from '../../types/dayState';
 
@@ -404,7 +404,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 14,
     color: c.textHalf,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   setupButton: {
     backgroundColor: c.accent,

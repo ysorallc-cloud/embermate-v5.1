@@ -5,7 +5,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export const EmptyCard: React.FC = () => {
@@ -68,7 +68,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textMuted,
     textAlign: 'center',
     marginTop: 4,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   button: {
     backgroundColor: c.accentLight,

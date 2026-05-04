@@ -38,7 +38,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     // affirmation breathing room, since it carries the emotional thesis.
     paddingTop: 10,
     paddingBottom: 22,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     alignItems: 'center',
   },
   text: {

@@ -6,7 +6,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { parseTimeForDisplay, getTimeWindow } from '../../utils/nowHelpers';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 
 // Map itemType back to display label for hint text
@@ -148,8 +148,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: c.redBorder,
     borderRadius: 12,
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
+    marginBottom: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -194,7 +194,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: c.border,
     borderRadius: 12,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -219,7 +219,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: c.border,
     borderRadius: 12,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
   },

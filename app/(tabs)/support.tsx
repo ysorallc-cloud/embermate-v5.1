@@ -152,7 +152,7 @@ function createStyles(c: typeof Colors) {
     // header begins.
     scrollContent: {
       paddingTop: 24,
-      paddingHorizontal: 14,
+      paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
       paddingBottom: 24,
     },
     headerWrap: {
@@ -187,7 +187,7 @@ function createStyles(c: typeof Colors) {
       borderColor: c.glassBorder,
       borderRadius: 8,
       paddingVertical: 10,
-      paddingHorizontal: 14,
+      paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     },
     wellnessLabel: {
       fontSize: 10,

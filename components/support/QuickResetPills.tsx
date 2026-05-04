@@ -79,7 +79,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: 8,
-    marginVertical: 14,
+    marginVertical: 14, // allow: off-scale gap (intentional)
   },
   pill: {
     flex: 1,

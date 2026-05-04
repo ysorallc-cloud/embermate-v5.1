@@ -19,7 +19,7 @@ import {
   Easing,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Colors, BorderRadius } from '../../theme/theme-tokens';
+import { Colors, BorderRadius, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   buildCareBrief,
@@ -679,7 +679,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Phase 3 page rhythm — every tab's outermost ScrollView lands at
   // paddingTop: 24 / paddingHorizontal: 14.
   scrollContent: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingTop: 24,
   },
   loadingContainer: {
@@ -715,10 +715,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 40,
   },
-  authGateIcon: { fontSize: 48, marginBottom: 16 },
+  authGateIcon: { fontSize: 48, marginBottom: Spacing.md },
   authGateTitle: { fontSize: 20, fontWeight: '600', color: c.textPrimary, marginBottom: 8 },
-  authGateSubtitle: { fontSize: 14, color: c.textSecondary, textAlign: 'center', marginBottom: 24, lineHeight: 20 },
-  authGateButton: { backgroundColor: c.accent, paddingHorizontal: 32, paddingVertical: 14, borderRadius: BorderRadius.lg },
+  authGateSubtitle: { fontSize: 14, color: c.textSecondary, textAlign: 'center', marginBottom: Spacing.lg, lineHeight: 20 },
+  authGateButton: { backgroundColor: c.accent, paddingHorizontal: 32, paddingVertical: 14, borderRadius: BorderRadius.lg }, // allow: tap-target padding (Apple HIG ≥44pt)
   authGateButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
 
   // ─── SAMPLE DATA INDICATOR ───
@@ -836,7 +836,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 10,
     color: c.textTertiary,
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: Spacing.md,
     lineHeight: 16,
     fontStyle: 'italic',
   },

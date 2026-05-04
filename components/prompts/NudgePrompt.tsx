@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { navigate } from '../../lib/navigate';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface NudgePromptProps {
@@ -39,7 +39,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.sageLight,
     borderRadius: 10,
     padding: 14,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

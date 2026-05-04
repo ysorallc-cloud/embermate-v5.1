@@ -25,6 +25,7 @@ import { generateAndShareHandoff } from '../../services/handoffPdf';
 import { formatTime } from '../../utils/text/primitives';
 import type { DailyOutcomes } from '../../utils/text/types';
 
+import { Spacing } from '../../theme/theme-tokens';
 const NAME_FALLBACK = 'Your loved one';
 
 export interface HandoffEvent {
@@ -229,13 +230,13 @@ const createStyles = (c: any) => StyleSheet.create({
     borderRadius: 2,
     backgroundColor: c.glassBorder,
     alignSelf: 'center',
-    marginBottom: 14,
+    marginBottom: 14, // allow: off-scale gap (intentional)
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
     color: c.textPrimary,
-    marginBottom: 14,
+    marginBottom: 14, // allow: off-scale gap (intentional)
   },
   preview: {
     flexGrow: 0,
@@ -247,10 +248,10 @@ const createStyles = (c: any) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: c.textPrimary,
-    marginBottom: 14,
+    marginBottom: 14, // allow: off-scale gap (intentional)
   },
   section: {
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   outcomeLine: {
     fontSize: 13,

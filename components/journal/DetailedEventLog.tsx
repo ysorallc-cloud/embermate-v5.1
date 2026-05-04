@@ -7,6 +7,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 
+import { Spacing } from '../../theme/theme-tokens';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(74,107,93,0.1)',
     borderRadius: 14,
     padding: 14,
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   eventRow: {
     flexDirection: 'row',

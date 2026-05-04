@@ -109,7 +109,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   windowRowDivider: {
     borderTopWidth: 0.5,

@@ -344,7 +344,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.glass,
     borderRadius: 8,
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     alignSelf: 'flex-start',
     marginTop: 8,
     borderWidth: 1,

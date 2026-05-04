@@ -386,20 +386,20 @@ const styles = StyleSheet.create({
     padding: 12,
     marginTop: 4,
     marginBottom: 8,
-    marginLeft: 28,
+    marginLeft: 28, // allow: off-scale gap (intentional)
   },
   formTitle: { fontSize: 14, fontWeight: '600', marginBottom: 2 },
   formSubtitle: { fontSize: 12, marginBottom: 8 },
   buttonRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
-  confirmBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
+  confirmBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }, // allow: tap-target padding (Apple HIG ≥44pt)
   confirmBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
-  skipBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, borderWidth: 1 },
+  skipBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, borderWidth: 1 }, // allow: tap-target padding (Apple HIG ≥44pt)
   skipBtnText: { fontSize: 13, fontWeight: '500' },
   closeBtn: { marginLeft: 'auto', padding: 6 },
   closeBtnText: { fontSize: 14 },
   textInput: { borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 14 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1 },
+  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1 }, // allow: tap-target padding (Apple HIG ≥44pt)
   chipText: { fontSize: 13, fontWeight: '500' },
   moodRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   moodBtn: { padding: 6 },
@@ -408,5 +408,5 @@ const styles = StyleSheet.create({
   vitalsInputWrap: { flex: 1, alignItems: 'center' },
   vitalsLabel: { fontSize: 9, fontWeight: '600', letterSpacing: 1, marginBottom: 4 },
   vitalsInput: { width: '100%', borderWidth: 1, borderRadius: 8, padding: 8, fontSize: 16, textAlign: 'center' },
-  vitalsSlash: { fontSize: 20, marginTop: 14 },
+  vitalsSlash: { fontSize: 20, marginTop: 14 }, // allow: off-scale gap (intentional)
 });

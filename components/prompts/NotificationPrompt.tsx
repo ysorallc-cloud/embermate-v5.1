@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface NotificationPromptProps {
@@ -49,7 +49,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.amberBrightTint,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
     alignItems: 'center',
   },
   icon: {
@@ -66,7 +66,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 13,
     color: c.textSecondary,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   buttons: {
     flexDirection: 'row',
@@ -85,7 +85,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   notNowButton: {
     paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   notNowText: {
     fontSize: 14,

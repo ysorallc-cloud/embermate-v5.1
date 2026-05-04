@@ -10,7 +10,7 @@ import { SwipeableTimelineItem } from './SwipeableTimelineItem';
 import { TomorrowRow } from './TomorrowRow';
 import { UndoToast } from '../common/UndoToast';
 import { TimelineItem } from '../../types/timeline';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { markMedicationTaken } from '../../utils/medicationStorage';
 import { saveMorningWellness, saveEveningWellness } from '../../utils/wellnessCheckStorage';
@@ -187,7 +187,7 @@ export const Timeline: React.FC<TimelineProps> = ({ items, tomorrowCount = 0, on
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   label: {
     fontSize: 11,

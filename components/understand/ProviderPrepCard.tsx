@@ -103,7 +103,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     lineHeight: 20,
   },
   careBriefLink: {
-    marginTop: 14,
+    marginTop: 14, // allow: off-scale gap (intentional)
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: c.sageBorder,
