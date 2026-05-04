@@ -188,9 +188,19 @@ describe('v6.7 tone audit — clinical surfaces keep precise vocabulary', () => 
     expect(src).toContain('Medication Adherence');
   });
 
-  it('Visit Prep PDF disclaimer mentions "clinical judgment" (not softened)', () => {
+  it('Visit Prep PDF disclaimer keeps clinical-precision vocabulary', () => {
+    // Phase 5.8.b updated the footer copy to attribute caregiver work and
+    // ask for cross-reference with medical history; the precision marker
+    // moved from "clinical judgment" to "clinical record" + the
+    // cross-reference instruction. Either marker is sufficient — both
+    // pin the surface to medical-record vocabulary.
     const src = readFileSync(join(ROOT, 'services/visitPrepPdf.ts'), 'utf8');
-    expect(src.toLowerCase()).toContain('clinical judgment');
+    const lower = src.toLowerCase();
+    expect(
+      lower.includes('clinical judgment') ||
+        lower.includes('clinical record'),
+    ).toBe(true);
+    expect(lower).toContain('cross-reference');
   });
 });
 

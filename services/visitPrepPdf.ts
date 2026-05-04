@@ -31,6 +31,23 @@ import {
   listMedicationChanges,
   type MedicationChange,
 } from './medicationChangeTracking';
+import { buildWhatChanged, type WhatChangedVitalSnapshot } from './whatChanged';
+import {
+  selectNotesForVisitPrep,
+  type SelectedNote,
+} from '../utils/visitPrepNoteCuration';
+import { getVisitPrepDraft } from '../storage/visitPrepDraftRepo';
+
+// ============================================================================
+// PROFILE-MISSING SENTINEL
+// ============================================================================
+
+export class ProfileMissingError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ProfileMissingError';
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -71,14 +88,28 @@ export interface SkippedDoseSummary {
   total: number;
 }
 
+export interface VisitPrepWhatChanged {
+  observations: string[];
+  /** True when the auto-draft fell back to the deferred message because
+   *  the period is under 7 days OR no detectable changes existed. */
+  insufficientData: boolean;
+  /** True when the user has saved an edited draft via visitPrepDraftRepo. */
+  userEdited: boolean;
+}
+
 export interface VisitPrepData {
   header: {
     patientName: string;
+    /** Caregiver name for footer attribution and back-compat. */
     caregiverName?: string;
+    /** Phase 5.8.b — header attribution line ("Prepared by Sarah"). */
+    preparedBy: string;
     dateRange: string;
     generatedAt: string;
     periodDays: number;
   };
+  /** Phase 5.8.b — "What changed" lede. Editable in 5.7.d preview screen. */
+  whatChanged: VisitPrepWhatChanged;
   adherence: AdherenceEntry[];
   /** Skip reasons aggregated from LogEntry.skipReason — surfaced under adherence. */
   skippedDoses: SkippedDoseSummary[];
@@ -97,6 +128,10 @@ export interface VisitPrepData {
     sleepNote: string;
     patterns: string[];
   };
+  /** Phase 5.8.b — curated notes (3 max, full text, dated, flagged-first). */
+  selectedNotes: SelectedNote[];
+  /** Legacy: prior thin "Apr 25: <truncated>…" lines. Kept for back-compat
+   *  with anything still rendering this slot; new HTML uses selectedNotes. */
   journalHighlights: string[];
   /** Legacy free-text questions (pre-Prompt 5 path). Kept for back-compat. */
   questions: string;
@@ -121,16 +156,17 @@ function periodDays(start: string, end: string): number {
 
 function buildCaregiverDisclaimer(
   days: number,
-  caregiverName: string | undefined,
+  caregiverName: string,
 ): string {
-  // v6.7 — anchored copy verified by the tone audit. Don't edit without
-  // updating __tests__/services/visitPrepPdfStructure.test.ts.
-  const who = caregiverName?.trim() || 'the caregiver';
+  // Phase 5.8.b — new footer copy. Pinned by visitPrepPdfStructure.test.ts
+  // and visitPrepContentParity.test.ts. The caregiver name is required at
+  // the call site (assembleVisitPrepData throws ProfileMissingError when
+  // missing); this helper trusts its input.
+  const dayWord = days === 1 ? 'day' : 'days';
   return (
-    `This data was logged at home over ${days} day${days === 1 ? '' : 's'} ` +
-    `by ${who}. It's meant to support conversations with healthcare providers, ` +
-    `not replace clinical judgment. Tracking gaps and inconsistencies are noted ` +
-    `where present.`
+    `Generated from observations and logs kept by ${caregiverName} over ` +
+    `${days} ${dayWord}. This is not a clinical record — please ` +
+    `cross-reference with medical history. EmberMate.`
   );
 }
 
@@ -173,10 +209,21 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
   const { dateRange, patientName, caregiverName } = config;
   const days = periodDays(dateRange.start, dateRange.end);
 
+  // Phase 5.8.b — caregiver name is required for header attribution and
+  // footer copy. Empty/missing → ProfileMissingError; the visit-prep entry
+  // screen catches this in 5.8.c and surfaces a profile prompt.
+  const caregiverTrimmed = (caregiverName ?? '').trim();
+  if (caregiverTrimmed.length === 0) {
+    throw new ProfileMissingError(
+      'Caregiver profile is missing a name. Add it in Settings → Profile before generating Visit Prep.',
+    );
+  }
+
   // Header
   const header = {
     patientName,
-    caregiverName,
+    caregiverName: caregiverTrimmed,
+    preparedBy: caregiverTrimmed,
     dateRange: formatDateRange(dateRange.start, dateRange.end),
     generatedAt: new Date().toLocaleString('en-US', {
       month: 'short', day: 'numeric', year: 'numeric',
@@ -277,25 +324,31 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
     }
   }
 
-  // Journal highlights
-  let journalHighlights: string[] = [];
+  // Phase 5.8.b — curate notes. Pull all reflections in the window (no
+  // truncation), then run the keyword-flag-priority selector. Output is
+  // up to 3 notes, full text, dated, oldest-first when displayed.
+  let selectedNotes: SelectedNote[] = [];
+  let journalHighlights: string[] = []; // legacy back-compat slot
   if (config.includeJournal) {
     try {
-      // Collect reflections from the date range (max 3)
       const start = new Date(`${dateRange.start}T12:00:00`);
       const end = new Date(`${dateRange.end}T12:00:00`);
-      const highlights: string[] = [];
-      for (let d = new Date(start); d <= end && highlights.length < 3; d.setDate(d.getDate() + 1)) {
+      const allNotes: { date: string; text: string }[] = [];
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         const dateStr = d.toISOString().split('T')[0];
         const reflection = await getReflection(dateStr);
-        if (reflection?.text) {
-          const preview = reflection.text.length > 100
-            ? reflection.text.slice(0, 100) + '...'
-            : reflection.text;
-          highlights.push(`${new Date(`${dateStr}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${preview}`);
+        if (reflection?.text && reflection.text.trim().length > 0) {
+          allNotes.push({ date: dateStr, text: reflection.text });
         }
       }
-      journalHighlights = highlights;
+      selectedNotes = selectNotesForVisitPrep(allNotes, 3);
+      // Populate the legacy slot too — short dated lines for any consumer
+      // that still reads journalHighlights[]. New HTML uses selectedNotes.
+      journalHighlights = selectedNotes.map((n) => {
+        const label = new Date(`${n.date}T12:00:00`)
+          .toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return `${label}: ${n.text}`;
+      });
     } catch (err) {
       logError('visitPrepPdf.journal', err);
     }
@@ -383,11 +436,36 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
     logError('visitPrepPdf.medicationChanges', err);
   }
 
-  // Footer — v6.7 caregiver disclaimer (replaces the legacy one-liner).
-  const footer = buildCaregiverDisclaimer(days, caregiverName);
+  // Phase 5.8.b — "What changed" lede. Auto-draft from detector outputs;
+  // if a saved user-edit exists in visitPrepDraftRepo, use that instead.
+  const auto = buildWhatChanged({
+    symptomChanges,
+    vitals: vitals.map<WhatChangedVitalSnapshot>((v) => ({
+      type: v.type,
+      label: v.label,
+      trend: v.trend,
+      outOfRange: v.outOfRange,
+    })),
+    functionalIssues,
+    periodDays: days,
+  });
+  let userDraft: string | null = null;
+  try {
+    userDraft = await getVisitPrepDraft(dateRange.end);
+  } catch (err) {
+    logError('visitPrepPdf.draft', err);
+  }
+  const whatChanged: VisitPrepWhatChanged = userDraft
+    ? { observations: [userDraft], insufficientData: false, userEdited: true }
+    : { ...auto, userEdited: false };
+
+  // Footer — Phase 5.8.b copy. caregiverTrimmed is non-empty here (we'd
+  // have thrown ProfileMissingError otherwise).
+  const footer = buildCaregiverDisclaimer(days, caregiverTrimmed);
 
   return {
     header,
+    whatChanged,
     adherence,
     skippedDoses,
     vitals,
@@ -398,6 +476,7 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
     questionsEmptyHint,
     medicationChanges,
     wellness,
+    selectedNotes,
     journalHighlights,
     questions,
     footer,

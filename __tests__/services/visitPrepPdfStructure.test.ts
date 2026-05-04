@@ -147,11 +147,13 @@ describe('assembleVisitPrepData — new sections', () => {
   });
 });
 
-describe('assembleVisitPrepData — caregiver disclaimer footer', () => {
-  it('includes the v6.7 caregiver-disclaimer copy in the footer', async () => {
+describe('assembleVisitPrepData — caregiver disclaimer footer (Phase 5.8.b)', () => {
+  it('includes the new attribution + clinical-record copy', async () => {
     const data = await assembleVisitPrepData(baseConfig());
-    expect(data.footer.toLowerCase()).toContain('logged at home');
-    expect(data.footer.toLowerCase()).toContain('not replace clinical judgment');
+    expect(data.footer.toLowerCase()).toContain('kept by');
+    expect(data.footer.toLowerCase()).toContain('not a clinical record');
+    expect(data.footer.toLowerCase()).toContain('cross-reference with medical history');
+    expect(data.footer).toContain('EmberMate');
   });
 
   it('substitutes the period length (in days) into the disclaimer', async () => {
@@ -159,10 +161,12 @@ describe('assembleVisitPrepData — caregiver disclaimer footer', () => {
     expect(data.footer).toContain('14');
   });
 
-  it('falls back to "the caregiver" when no caregiverName is provided', async () => {
+  it('throws ProfileMissingError when caregiverName is missing (5.8.b gating)', async () => {
+    // Phase 5.8.b — caregiver name is now required for the visit-prep
+    // header attribution. The visit-prep entry screen catches this and
+    // surfaces the profile prompt; the assembly itself fast-fails.
     const config = { ...baseConfig(), caregiverName: undefined };
-    const data = await assembleVisitPrepData(config);
-    expect(data.footer.toLowerCase()).toContain('caregiver');
+    await expect(assembleVisitPrepData(config)).rejects.toThrow(/caregiver|profile/i);
   });
 });
 

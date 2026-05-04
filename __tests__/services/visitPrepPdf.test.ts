@@ -122,10 +122,12 @@ describe('assembleVisitPrepData — shape & required sections', () => {
     expect(data.header.generatedAt).toBeDefined();
   });
 
-  it('footer contains the caregiver disclaimer (v6.7 — Prompt 5)', async () => {
+  it('footer contains the Phase 5.8.b caregiver-attribution disclaimer', async () => {
     const data = await assembleVisitPrepData(BASE_CONFIG);
-    expect(data.footer.toLowerCase()).toContain('logged at home');
-    expect(data.footer.toLowerCase()).toContain('not replace clinical judgment');
+    expect(data.footer.toLowerCase()).toContain('kept by');
+    expect(data.footer.toLowerCase()).toContain('not a clinical record');
+    expect(data.footer.toLowerCase()).toContain('cross-reference with medical history');
+    expect(data.footer).toContain('EmberMate');
   });
 
   it('questions section includes the free-text input', async () => {
@@ -330,7 +332,10 @@ describe('assembleVisitPrepData — journal highlights', () => {
     expect(data.journalHighlights.length).toBeLessThanOrEqual(3);
   });
 
-  it('truncates long reflections with "..."', async () => {
+  it('preserves full reflection text — Phase 5.8.b drops the slice-100 truncation', async () => {
+    // Pre-5.8.b sliced to 100 chars + "...". The new curation renders the
+    // full note, dated. selectedNotes carries the structured form;
+    // journalHighlights keeps the legacy "Apr 10: <full text>" shape.
     const longText = 'a'.repeat(150);
     mockGetReflection.mockResolvedValueOnce({
       date: '2026-04-10',
@@ -339,7 +344,8 @@ describe('assembleVisitPrepData — journal highlights', () => {
       savedAt: '2026-04-10T20:00:00Z',
     });
     const data = await assembleVisitPrepData(BASE_CONFIG);
-    expect(data.journalHighlights[0]).toContain('...');
+    expect(data.selectedNotes[0].text).toBe(longText);
+    expect(data.selectedNotes[0].text).not.toContain('...');
   });
 
   it('returns empty array when includeJournal is false', async () => {
