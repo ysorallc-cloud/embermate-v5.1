@@ -67,11 +67,14 @@ describe('ExportChooserSheet wiring forwards to existing surfaces', () => {
 });
 
 describe('Different content: HandoffSheet today-only vs Visit Prep multi-day', () => {
-  it('HandoffSheet receives today\'s outcomes only', () => {
-    expect(journalSrc).toMatch(/<HandoffSheet[\s\S]{0,400}?outcomes=\{outcomes\}/);
+  it('HandoffSheet receives a date prop pinned to today (not a multi-day range)', () => {
+    // Phase 5.8.e dropped the prop-driven outcomes/notes/events triple —
+    // HandoffSheet now fetches its own data via the canonical builder.
+    // The remaining today-only signal is the date prop.
+    expect(journalSrc).toMatch(/<HandoffSheet[\s\S]{0,400}?date=\{new Date\(\)\}/);
   });
 
-  it('HandoffSheet receives the ISO/Date for "today" (not a multi-day range)', () => {
-    expect(journalSrc).toMatch(/<HandoffSheet[\s\S]{0,400}?date=\{new Date\(\)\}/);
+  it('HandoffSheet is keyed to selectedDate for tone/canonical fetch', () => {
+    expect(journalSrc).toMatch(/<HandoffSheet[\s\S]{0,400}?dateKey=\{selectedDate\}/);
   });
 });

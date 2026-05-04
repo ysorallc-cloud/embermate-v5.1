@@ -29,15 +29,9 @@ import { getHandoffTone, saveHandoffTone } from '../../storage/handoffToneRepo';
 import { requireProfileFields, type ProfileField } from '../../utils/requireProfileFields';
 import { buildHandoffReport, ProfileMissingError } from '../../utils/handoffReportBuilder';
 import { ProfilePromptSheet } from '../ProfilePromptSheet';
-import type { DailyOutcomes } from '../../utils/text/types';
 
 import { Spacing } from '../../theme/theme-tokens';
 const NAME_FALLBACK = 'Your loved one';
-
-export interface HandoffEvent {
-  time: Date;
-  label: string;
-}
 
 export interface HandoffSheetProps {
   visible: boolean;
@@ -46,9 +40,6 @@ export interface HandoffSheetProps {
   date: Date;
   /** YYYY-MM-DD — keys the tone repo. Phase 5.8.a. */
   dateKey: string;
-  outcomes: DailyOutcomes;
-  notes: string;
-  events: HandoffEvent[];
 }
 
 function resolveName(name: string): string {
@@ -60,49 +51,12 @@ function dateLabel(d: Date): string {
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 }
 
-function buildOutcomesLines(outcomes: DailyOutcomes): string[] {
-  const lines: string[] = [];
-  if (outcomes.missed.count > 0) {
-    lines.push(`${outcomes.missed.count} not logged today: ${outcomes.missed.names.join(', ')}`);
-  }
-  if (outcomes.pending.count > 0) {
-    lines.push(`${outcomes.pending.count} still to check: ${outcomes.pending.names.join(', ')}`);
-  }
-  if (outcomes.logged.count > 0) {
-    const tail = outcomes.logged.summary ?? '';
-    lines.push(tail.length > 0 ? `${outcomes.logged.count} logged: ${tail}` : `${outcomes.logged.count} logged`);
-  }
-  return lines;
-}
-
-function buildPreviewText(props: HandoffSheetProps): string {
-  const name = resolveName(props.patientName);
-  const lines: string[] = [
-    `${name} · ${dateLabel(props.date)} · ${formatTime(props.date)}`,
-    '',
-    "TODAY'S OUTCOMES",
-    ...buildOutcomesLines(props.outcomes),
-  ];
-  if (props.notes.trim().length > 0) {
-    lines.push('', 'HANDOFF NOTES', props.notes.trim());
-  }
-  if (props.events.length > 0) {
-    lines.push('', "TODAY'S EVENTS");
-    for (const e of props.events) {
-      lines.push(`${formatTime(e.time)} — ${e.label}`);
-    }
-  }
-  return lines.join('\n');
-}
-
 export function HandoffSheet(props: HandoffSheetProps) {
-  const { visible, onClose, patientName, date, dateKey, outcomes, notes, events } = props;
+  const { visible, onClose, patientName, date, dateKey } = props;
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const name = resolveName(patientName);
-  const outcomesLines = useMemo(() => buildOutcomesLines(outcomes), [outcomes]);
-  const trimmedNotes = notes.trim();
 
   // ── TONE state (Phase 5.8.a) ─────────────────────────────────────────────
   // Pre-populates from handoff_tone_{dateKey}; autosaves on blur.
@@ -327,12 +281,6 @@ const createStyles = (c: any) => StyleSheet.create({
   previewContent: {
     paddingBottom: 12,
   },
-  headerLine: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: c.textPrimary,
-    marginBottom: 14, // allow: off-scale gap (intentional)
-  },
   section: {
     marginBottom: Spacing.md,
   },
@@ -356,25 +304,6 @@ const createStyles = (c: any) => StyleSheet.create({
     lineHeight: 19,
     color: c.textPrimary,
     fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
-  },
-  outcomeLine: {
-    fontSize: 13,
-    color: c.textPrimary,
-    lineHeight: 18,
-    marginTop: 6,
-  },
-  notesBody: {
-    fontSize: 13,
-    color: c.textSecondary,
-    lineHeight: 18,
-    marginTop: 6,
-    fontStyle: 'italic',
-  },
-  eventLine: {
-    fontSize: 12,
-    color: c.textSecondary,
-    lineHeight: 18,
-    marginTop: 4,
   },
   actions: {
     marginTop: 8,

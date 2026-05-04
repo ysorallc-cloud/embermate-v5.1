@@ -617,9 +617,6 @@ export default function JournalTab() {
         patientName={patientName}
         date={new Date()}
         dateKey={selectedDate}
-        outcomes={outcomes}
-        notes={reflection?.text ?? ''}
-        events={[]}
       />
 
       <ExportChooserSheet
