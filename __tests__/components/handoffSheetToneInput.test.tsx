@@ -86,7 +86,9 @@ describe('Phase 5.8.a — TONE input source contract', () => {
 describe('Phase 5.8.a — journal.tsx passes dateKey to HandoffSheet', () => {
   const journalSrc = readFileSync(join(ROOT, 'app/(tabs)/journal.tsx'), 'utf8');
 
-  it('HandoffSheet receives dateKey={selectedDate}', () => {
-    expect(journalSrc).toMatch(/<HandoffSheet[\s\S]{0,400}?dateKey=\{selectedDate\}/);
+  it('HandoffSheet receives dateKey={getTodayDateString()} (Phase 5.9.e fix)', () => {
+    // Phase 5.9.e — sheet must always key to today even when journal
+    // is viewing a past date. Tone repo + canonical builder agree.
+    expect(journalSrc).toMatch(/<HandoffSheet[\s\S]{0,400}?dateKey=\{getTodayDateString\(\)\}/);
   });
 });

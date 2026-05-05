@@ -602,7 +602,7 @@ export default function JournalTab() {
         onClose={() => setHandoffSheetVisible(false)}
         patientName={patientName}
         date={new Date()}
-        dateKey={selectedDate}
+        dateKey={getTodayDateString()}
       />
 
       <ExportChooserSheet

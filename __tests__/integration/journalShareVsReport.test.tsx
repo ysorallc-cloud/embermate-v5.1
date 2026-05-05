@@ -74,7 +74,7 @@ describe('Different content: HandoffSheet today-only vs Visit Prep multi-day', (
     expect(journalSrc).toMatch(/<HandoffSheet[\s\S]{0,400}?date=\{new Date\(\)\}/);
   });
 
-  it('HandoffSheet is keyed to selectedDate for tone/canonical fetch', () => {
-    expect(journalSrc).toMatch(/<HandoffSheet[\s\S]{0,400}?dateKey=\{selectedDate\}/);
+  it('HandoffSheet is keyed to getTodayDateString() so tone repo + canonical builder agree on the date (Phase 5.9.e)', () => {
+    expect(journalSrc).toMatch(/<HandoffSheet[\s\S]{0,400}?dateKey=\{getTodayDateString\(\)\}/);
   });
 });
