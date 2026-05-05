@@ -11,10 +11,11 @@ describe('Phase 5.7.c — includeNotes option in BuildHandoffOptions', () => {
     expect(builderSrc).toMatch(/includeNotes\??\s*:\s*boolean/);
   });
 
-  it('NOTES TODAY section is gated by includeNotes', () => {
-    // The builder must check opts.includeNotes before appending NOTES TODAY.
-    // Default behavior (undefined/true) includes notes; false omits them.
+  it('NOTES section is gated by includeNotes', () => {
+    // The builder must check opts.includeNotes before appending the NOTES
+    // section. Default behavior (undefined/true) includes notes; false omits.
+    // Phase 5.UX-restructure renamed NOTES TODAY → NOTES.
     expect(builderSrc).toMatch(/includeNotes/);
-    expect(builderSrc).toMatch(/NOTES TODAY/);
+    expect(builderSrc).toMatch(/'NOTES'/);
   });
 });

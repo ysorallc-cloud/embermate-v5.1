@@ -1,23 +1,19 @@
 // ============================================================================
-// Phase 5.8.a — Canonical handoff builder.
+// Canonical handoff builder — UX restructure (Commit 3 of UX bundle).
 //
-// Rewrites utils/handoffReportBuilder.ts in place to produce the reference
-// output. Six conditional sections (TONE, NOTES TODAY, DONE TODAY, STILL
-// TO DO, WORTH KNOWING, COMING UP) gated by data presence; header line
-// pins patient name + date + time; footer is fixed.
+// The builder produces a structured caregiver-facing handoff:
 //
-// The builder fetches its own data from the existing repos:
-//   • patient name → getPatientRegistry()
-//   • tone         → getHandoffTone(date)
-//   • notes        → getReflection(date)
-//   • events       → getEventsByDate(date, patientId) (value-rich; metadata
-//                    carries med name, vitals values, meal quality, etc.)
-//   • pending +    → buildTodaySummary() (overdue/flagged/nextAppointment)
-//   • flagged +
-//   • appointment
+//   Header line
+//   TONE        — bare line, no label, when the user wrote one
+//   STILL TO DO — pending items
+//   HEADS UP    — flagged items
+//   COMING UP   — appointment within 7 days (caregiver lookahead)
+//   NOTES       — gated by includeNotes
+//   DONE        — one-line count summary
+//   Footer
 //
-// Tests below cover both an all-sections-populated reference day and the
-// per-section omission contract (empty TONE → no TONE block, etc.).
+// The per-event chronological timeline (DONE TODAY → 8:15 AM — Lisinopril 20mg)
+// retired from this builder; that detail belongs in visit prep.
 // ============================================================================
 
 import { buildHandoffReport } from '../../utils/handoffReportBuilder';
@@ -30,9 +26,6 @@ jest.mock('../../storage/handoffToneRepo', () => ({
 jest.mock('../../storage/reflectionStorage', () => ({
   getReflection: jest.fn(),
   saveReflection: jest.fn(),
-}));
-jest.mock('../../storage/eventRepo', () => ({
-  getEventsByDate: jest.fn(),
 }));
 jest.mock('../../storage/patientRegistry', () => ({
   getPatientRegistry: jest.fn(),
@@ -48,7 +41,6 @@ jest.mock('../../services/carePlanGenerator', () => ({
 
 const { getHandoffTone } = require('../../storage/handoffToneRepo');
 const { getReflection } = require('../../storage/reflectionStorage');
-const { getEventsByDate } = require('../../storage/eventRepo');
 const { getPatientRegistry } = require('../../storage/patientRegistry');
 const { buildTodaySummary } = require('../../utils/careSummaryBuilder');
 
@@ -71,31 +63,18 @@ function richFixture() {
     prompt: '',
     savedAt: REFERENCE_DATE.toISOString(),
   });
-  getEventsByDate.mockResolvedValue([
-    {
-      id: 'e1', patientId: 'p1', type: 'vitals_recorded',
-      timestamp: new Date(2026, 4, 3, 9, 14).toISOString(),
-      metadata: { systolic: 138, diastolic: 85, heartRate: 72, type: 'bp' },
-      createdAt: '',
-    },
-    {
-      id: 'e2', patientId: 'p1', type: 'meal_logged',
-      timestamp: new Date(2026, 4, 3, 12, 30).toISOString(),
-      metadata: { mealType: 'lunch', quality: 'most' },
-      createdAt: '',
-    },
-    {
-      id: 'e3', patientId: 'p1', type: 'medication_taken',
-      timestamp: new Date(2026, 4, 3, 19, 45).toISOString(),
-      metadata: { medicationName: 'Acetaminophen', dosage: '325mg' },
-      createdAt: '',
-    },
-  ]);
   buildTodaySummary.mockResolvedValue({
-    medsAdherence: { taken: 1, total: 2 },
-    moodArc: null, orientation: null, painLevel: null, alertness: null,
-    appetite: null, bowelMovement: null, bathingStatus: null,
-    mobilityStatus: null, vitalsReading: null, mealsStatus: null,
+    medsAdherence: { taken: 3, total: 5 },
+    moodArc: null,
+    orientation: 'alert-oriented',
+    painLevel: null,
+    alertness: null,
+    appetite: null,
+    bowelMovement: null,
+    bathingStatus: null,
+    mobilityStatus: null,
+    vitalsReading: 'BP 138/85, HR 72',
+    mealsStatus: { logged: 2, total: 3, overdueNames: ['Dinner'] },
     overdueItems: [
       'Amlodipine 2.5mg (8:00 PM)',
       'Dinner',
@@ -112,7 +91,7 @@ function richFixture() {
 
 // ──────────────────────────────────────────────────────────────────────────
 
-describe('Phase 5.8.a — canonical handoff: reference output (all sections populated)', () => {
+describe('Structured handoff — reference output (all sections populated)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     richFixture();
@@ -128,25 +107,11 @@ describe('Phase 5.8.a — canonical handoff: reference output (all sections popu
     expect(firstLine).toBe('Mom · Sunday, May 3 · 11:52 PM');
   });
 
-  it('TONE section appears with the user-written one-liner', async () => {
+  it('TONE renders as a bare line with no label', async () => {
     const out = await build();
-    expect(out).toMatch(/\nTONE\nSlow start, calmer evening\n/);
-  });
-
-  it('NOTES TODAY section appears with the full reflection text', async () => {
-    const out = await build();
-    expect(out).toMatch(
-      /\nNOTES TODAY\nMom seemed restless after lunch\. Settled with music\.\n/,
-    );
-  });
-
-  it('DONE TODAY contains time-anchored event lines with values', async () => {
-    const out = await build();
-    expect(out).toContain('9:14 AM — BP 138/85, HR 72');
-    expect(out).toContain('12:30 PM — Lunch, ate most');
-    expect(out).toContain('7:45 PM — Acetaminophen 325mg');
-    // Section header present.
-    expect(out).toMatch(/\nDONE TODAY\n/);
+    // The tone text appears below the header without a "TONE" eyebrow.
+    expect(out).toContain('Slow start, calmer evening');
+    expect(out).not.toMatch(/\nTONE\n/);
   });
 
   it('STILL TO DO lists pending items in scheduled order', async () => {
@@ -156,10 +121,10 @@ describe('Phase 5.8.a — canonical handoff: reference output (all sections popu
     expect(out).toContain('Evening wellness check');
   });
 
-  it('WORTH KNOWING renders flagged items as plain sentences', async () => {
+  it('HEADS UP renders flagged items as plain sentences', async () => {
     const out = await build();
     expect(out).toMatch(
-      /\nWORTH KNOWING\nBP slightly above her usual range — second high reading this week\.\n/,
+      /\nHEADS UP\nBP slightly above her usual range — second high reading this week\.\n/,
     );
   });
 
@@ -170,6 +135,28 @@ describe('Phase 5.8.a — canonical handoff: reference output (all sections popu
     );
   });
 
+  it('NOTES section appears with the full reflection text', async () => {
+    const out = await build();
+    expect(out).toMatch(
+      /\nNOTES\nMom seemed restless after lunch\. Settled with music\.\n/,
+    );
+  });
+
+  it('DONE renders a one-line count summary, not per-event lines', async () => {
+    const out = await build();
+    // medsAdherence 3 of 5 + vitals + 2 meals + wellness signal (orientation).
+    expect(out).toMatch(/\nDONE\n3 of 5 meds[^\n]*vitals check[^\n]*2 meals/);
+    // The DONE section is exactly one body line — no per-event timestamps.
+    const doneMatch = out.match(/\nDONE\n([^\n]+)(?:\n([^\n]+))?/);
+    expect(doneMatch).toBeTruthy();
+    const doneFirstLine = doneMatch![1];
+    expect(doneFirstLine).not.toMatch(/\d:\d{2}\s*(AM|PM)/);
+    // The line after DONE's content should be blank (footer separator)
+    // or the footer itself — never another timeline-style line.
+    const doneSecondLine = doneMatch![2] ?? '';
+    expect(doneSecondLine).toMatch(/^(From EmberMate|)/);
+  });
+
   it('footer line is the canonical privacy line', async () => {
     const out = await build();
     expect(out).toMatch(
@@ -177,48 +164,46 @@ describe('Phase 5.8.a — canonical handoff: reference output (all sections popu
     );
   });
 
-  it('section order matches the reference spec', async () => {
+  it('section order matches the structured spec', async () => {
     const out = await build();
-    const idxTone = out.indexOf('\nTONE\n');
-    const idxNotes = out.indexOf('\nNOTES TODAY\n');
-    const idxDone = out.indexOf('\nDONE TODAY\n');
     const idxStill = out.indexOf('\nSTILL TO DO\n');
-    const idxWorth = out.indexOf('\nWORTH KNOWING\n');
+    const idxHeads = out.indexOf('\nHEADS UP\n');
     const idxComing = out.indexOf('\nCOMING UP\n');
-    expect(idxTone).toBeGreaterThan(0);
-    expect(idxNotes).toBeGreaterThan(idxTone);
+    const idxNotes = out.indexOf('\nNOTES\n');
+    const idxDone = out.indexOf('\nDONE\n');
+    expect(idxStill).toBeGreaterThan(0);
+    expect(idxHeads).toBeGreaterThan(idxStill);
+    expect(idxComing).toBeGreaterThan(idxHeads);
+    expect(idxNotes).toBeGreaterThan(idxComing);
     expect(idxDone).toBeGreaterThan(idxNotes);
-    expect(idxStill).toBeGreaterThan(idxDone);
-    expect(idxWorth).toBeGreaterThan(idxStill);
-    expect(idxComing).toBeGreaterThan(idxWorth);
   });
 });
 
-describe('Phase 5.8.a — section gating (omit when data absent)', () => {
+describe('Structured handoff — section gating (omit when data absent)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     richFixture();
   });
 
-  it('empty TONE → no TONE section block', async () => {
+  it('empty TONE → tone line is absent', async () => {
     getHandoffTone.mockResolvedValue(null);
     const out = await buildHandoffReport({ now: REFERENCE_DATE });
-    expect(out).not.toMatch(/\nTONE\n/);
+    expect(out).not.toContain('Slow start');
   });
 
   it('whitespace-only TONE → still treated as empty', async () => {
     getHandoffTone.mockResolvedValue('   ');
     const out = await buildHandoffReport({ now: REFERENCE_DATE });
-    expect(out).not.toMatch(/\nTONE\n/);
+    expect(out).not.toContain('Slow start');
   });
 
-  it('empty NOTES → no NOTES TODAY section', async () => {
+  it('empty NOTES → no NOTES section', async () => {
     getReflection.mockResolvedValue(null);
     const out = await buildHandoffReport({ now: REFERENCE_DATE });
-    expect(out).not.toMatch(/\nNOTES TODAY\n/);
+    expect(out).not.toMatch(/\nNOTES\n/);
   });
 
-  it('no flagged items → no WORTH KNOWING section', async () => {
+  it('no flagged items → no HEADS UP section', async () => {
     buildTodaySummary.mockResolvedValue({
       medsAdherence: { taken: 0, total: 0 },
       moodArc: null, orientation: null, painLevel: null, alertness: null,
@@ -227,7 +212,7 @@ describe('Phase 5.8.a — section gating (omit when data absent)', () => {
       overdueItems: [], flaggedItems: [], nextAppointment: null,
     });
     const out = await buildHandoffReport({ now: REFERENCE_DATE });
-    expect(out).not.toMatch(/\nWORTH KNOWING\n/);
+    expect(out).not.toMatch(/\nHEADS UP\n/);
   });
 
   it('no upcoming appointment → no COMING UP section', async () => {
@@ -242,13 +227,23 @@ describe('Phase 5.8.a — section gating (omit when data absent)', () => {
     expect(out).not.toMatch(/\nCOMING UP\n/);
   });
 
-  it('no logged events → DONE TODAY section omitted (not rendered as empty)', async () => {
-    getEventsByDate.mockResolvedValue([]);
+  it('appointment >7 days away → no COMING UP (caregiver lookahead is 7)', async () => {
+    buildTodaySummary.mockResolvedValue({
+      medsAdherence: { taken: 0, total: 0 },
+      moodArc: null, orientation: null, painLevel: null, alertness: null,
+      appetite: null, bowelMovement: null, bathingStatus: null,
+      mobilityStatus: null, vitalsReading: null, mealsStatus: null,
+      overdueItems: [], flaggedItems: [],
+      nextAppointment: {
+        provider: 'Dr. Chen', specialty: 'Cardiology',
+        date: '2026-05-13',  // 10 days out
+      },
+    });
     const out = await buildHandoffReport({ now: REFERENCE_DATE });
-    expect(out).not.toMatch(/\nDONE TODAY\n/);
+    expect(out).not.toMatch(/\nCOMING UP\n/);
   });
 
-  it('no pending items → STILL TO DO section omitted', async () => {
+  it('no pending items → no STILL TO DO section', async () => {
     buildTodaySummary.mockResolvedValue({
       medsAdherence: { taken: 0, total: 0 },
       moodArc: null, orientation: null, painLevel: null, alertness: null,
@@ -259,9 +254,21 @@ describe('Phase 5.8.a — section gating (omit when data absent)', () => {
     const out = await buildHandoffReport({ now: REFERENCE_DATE });
     expect(out).not.toMatch(/\nSTILL TO DO\n/);
   });
+
+  it('quiet day with no logged items → DONE renders the no-items sentinel', async () => {
+    buildTodaySummary.mockResolvedValue({
+      medsAdherence: { taken: 0, total: 0 },
+      moodArc: null, orientation: null, painLevel: null, alertness: null,
+      appetite: null, bowelMovement: null, bathingStatus: null,
+      mobilityStatus: null, vitalsReading: null, mealsStatus: null,
+      overdueItems: [], flaggedItems: [], nextAppointment: null,
+    });
+    const out = await buildHandoffReport({ now: REFERENCE_DATE });
+    expect(out).toMatch(/\nDONE\nNo items logged today\./);
+  });
 });
 
-describe('Phase 5.8.a — patient name resolution', () => {
+describe('Structured handoff — patient name resolution', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     richFixture();
@@ -293,81 +300,5 @@ describe('Phase 5.8.a — patient name resolution', () => {
     await expect(buildHandoffReport({ now: REFERENCE_DATE })).rejects.toThrow(
       /profile|patient/i,
     );
-  });
-});
-
-describe('Phase 5.8.a — event-line value formatting (Option A: read metadata directly)', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    richFixture();
-  });
-
-  it('vitals_recorded → "<time> — BP <sys>/<dia>, HR <hr>"', async () => {
-    getEventsByDate.mockResolvedValue([
-      {
-        id: 'e1', patientId: 'p1', type: 'vitals_recorded',
-        timestamp: new Date(2026, 4, 3, 9, 14).toISOString(),
-        metadata: { systolic: 138, diastolic: 85, heartRate: 72, type: 'bp' },
-        createdAt: '',
-      },
-    ]);
-    const out = await buildHandoffReport({ now: REFERENCE_DATE });
-    expect(out).toContain('9:14 AM — BP 138/85, HR 72');
-  });
-
-  it('medication_taken → "<time> — <medName> <dosage>"', async () => {
-    getEventsByDate.mockResolvedValue([
-      {
-        id: 'e1', patientId: 'p1', type: 'medication_taken',
-        timestamp: new Date(2026, 4, 3, 19, 45).toISOString(),
-        metadata: { medicationName: 'Acetaminophen', dosage: '325mg' },
-        createdAt: '',
-      },
-    ]);
-    const out = await buildHandoffReport({ now: REFERENCE_DATE });
-    expect(out).toContain('7:45 PM — Acetaminophen 325mg');
-  });
-
-  it('meal_logged → "<time> — <Meal>, ate <quality>"', async () => {
-    getEventsByDate.mockResolvedValue([
-      {
-        id: 'e1', patientId: 'p1', type: 'meal_logged',
-        timestamp: new Date(2026, 4, 3, 12, 30).toISOString(),
-        metadata: { mealType: 'lunch', quality: 'most' },
-        createdAt: '',
-      },
-    ]);
-    const out = await buildHandoffReport({ now: REFERENCE_DATE });
-    expect(out).toContain('12:30 PM — Lunch, ate most');
-  });
-
-  it('events sort chronologically regardless of repo return order', async () => {
-    getEventsByDate.mockResolvedValue([
-      {
-        id: 'e3', patientId: 'p1', type: 'medication_taken',
-        timestamp: new Date(2026, 4, 3, 19, 45).toISOString(),
-        metadata: { medicationName: 'Acetaminophen', dosage: '325mg' },
-        createdAt: '',
-      },
-      {
-        id: 'e1', patientId: 'p1', type: 'vitals_recorded',
-        timestamp: new Date(2026, 4, 3, 9, 14).toISOString(),
-        metadata: { systolic: 138, diastolic: 85, heartRate: 72, type: 'bp' },
-        createdAt: '',
-      },
-      {
-        id: 'e2', patientId: 'p1', type: 'meal_logged',
-        timestamp: new Date(2026, 4, 3, 12, 30).toISOString(),
-        metadata: { mealType: 'lunch', quality: 'most' },
-        createdAt: '',
-      },
-    ]);
-    const out = await buildHandoffReport({ now: REFERENCE_DATE });
-    const idxBp = out.indexOf('9:14 AM');
-    const idxLunch = out.indexOf('12:30 PM');
-    const idxAceta = out.indexOf('7:45 PM');
-    expect(idxBp).toBeGreaterThan(0);
-    expect(idxLunch).toBeGreaterThan(idxBp);
-    expect(idxAceta).toBeGreaterThan(idxLunch);
   });
 });

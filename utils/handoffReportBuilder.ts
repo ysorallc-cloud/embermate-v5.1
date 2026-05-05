@@ -1,36 +1,37 @@
 // ============================================================================
-// CANONICAL HANDOFF BUILDER — Phase 5.8.a
+// CANONICAL HANDOFF BUILDER — UX restructure (Commit 3)
 //
-// Single producer of today's handoff text. Eight sections, six gated by
-// data presence:
+// Single producer of today's handoff text. Structured for a sibling /
+// next caregiver — NOT a doctor. The per-event chronological timeline
+// retired here; that level of detail belongs in visit prep.
 //
-//   Header line  — always
-//   TONE         — gated on user-written one-liner (handoff_tone_{date})
-//   NOTES TODAY  — gated on getReflection()
-//   DONE TODAY   — gated on logged events for the day
-//   STILL TO DO  — gated on overdueItems
-//   WORTH KNOWING — gated on flaggedItems
-//   COMING UP    — gated on nextAppointment within 14 days
-//   Footer       — always
+// Sections, in order:
+//
+//   Header line  — always (name · weekday, month day · time)
+//   TONE         — bare line, no label, when handoff_tone_{date} is set
+//   STILL TO DO  — pending items with specific names (overdueItems)
+//   HEADS UP     — flagged items as natural sentences (flaggedItems)
+//   COMING UP    — next appointment within 7 days (caregiver lookahead)
+//   NOTES        — gated by includeNotes (default true)
+//   DONE         — one-line count summary ("3 of 5 meds · 1 vitals · 1 meal")
+//   Footer       — privacy line, always
 //
 // Data sources:
 //   patient name → getPatientRegistry() (active patient)
 //   tone         → getHandoffTone(date)
 //   notes        → getReflection(date)
-//   events       → getEventsByDate(date, patientId), value-rich (metadata
-//                  carries med name, vitals values, meal quality, etc.)
 //   pending      → buildTodaySummary().overdueItems
 //   flagged      → buildTodaySummary().flaggedItems
 //   appointment  → buildTodaySummary().nextAppointment
+//   counts       → buildTodaySummary().medsAdherence + .mealsStatus +
+//                  .vitalsReading
 // ============================================================================
 
-import { buildTodaySummary } from './careSummaryBuilder';
+import { buildTodaySummary, type TodaySummary } from './careSummaryBuilder';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { getHandoffTone } from '../storage/handoffToneRepo';
 import { getReflection } from '../storage/reflectionStorage';
-import { getEventsByDate } from '../storage/eventRepo';
 import { getPatientRegistry } from '../storage/patientRegistry';
-import type { CareEvent } from '../types/event';
 import { logError } from './devLog';
 
 // ============================================================================
@@ -40,7 +41,7 @@ import { logError } from './devLog';
 export interface BuildHandoffOptions {
   /** Override "now" — used by tests and by future scheduled-share flows. */
   now?: Date;
-  /** Phase 5.7.c — toggle the NOTES TODAY section. Defaults to true.
+  /** Phase 5.7.c — toggle the NOTES section. Defaults to true.
    *  When false, the section is omitted regardless of whether a saved
    *  reflection exists. */
   includeNotes?: boolean;
@@ -59,7 +60,10 @@ export class ProfileMissingError extends Error {
 // user-chosen names and treating them as missing would block real
 // caregivers.
 const PATIENT_PLACEHOLDER_NAMES = new Set(['patient']);
-const APPOINTMENT_LOOKAHEAD_DAYS = 14;
+
+// Caregiver-handoff lookahead is shorter than visit-prep's 14 days —
+// caregivers care about what's next this week.
+const APPOINTMENT_LOOKAHEAD_DAYS = 7;
 
 // ============================================================================
 // HEADER LINE
@@ -93,99 +97,6 @@ function formatHeader(name: string, now: Date): string {
 }
 
 // ============================================================================
-// EVENT-LINE FORMATTER (Option A — read CareEvent.metadata directly)
-// ============================================================================
-
-function formatEventTime(iso: string): string {
-  const d = new Date(iso);
-  const h24 = d.getHours();
-  const m = d.getMinutes();
-  const meridiem = h24 >= 12 ? 'PM' : 'AM';
-  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
-  const mm = m < 10 ? `0${m}` : String(m);
-  return `${h12}:${mm} ${meridiem}`;
-}
-
-function capitalize(s: string): string {
-  return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
-}
-
-function formatEventLine(e: CareEvent): string | null {
-  const time = formatEventTime(e.timestamp);
-  const meta = (e.metadata ?? {}) as Record<string, unknown>;
-  switch (e.type) {
-    case 'vitals_recorded': {
-      const sys = meta.systolic;
-      const dia = meta.diastolic;
-      const hr = meta.heartRate;
-      if (typeof sys === 'number' && typeof dia === 'number') {
-        const tail = typeof hr === 'number' ? `, HR ${hr}` : '';
-        return `${time} — BP ${sys}/${dia}${tail}`;
-      }
-      return `${time} — Vitals recorded`;
-    }
-    case 'medication_taken': {
-      const name = meta.medicationName;
-      const dose = meta.dosage;
-      if (typeof name === 'string') {
-        return typeof dose === 'string' && dose.length > 0
-          ? `${time} — ${name} ${dose}`
-          : `${time} — ${name}`;
-      }
-      return `${time} — Medication taken`;
-    }
-    case 'medication_skipped': {
-      const name = meta.medicationName;
-      return typeof name === 'string'
-        ? `${time} — ${name} skipped`
-        : `${time} — Medication skipped`;
-    }
-    case 'meal_logged': {
-      const mealType = meta.mealType;
-      const quality = meta.quality;
-      const label = typeof mealType === 'string' ? capitalize(mealType) : 'Meal';
-      return typeof quality === 'string' && quality.length > 0
-        ? `${time} — ${label}, ate ${quality}`
-        : `${time} — ${label}`;
-    }
-    case 'mood_logged': {
-      const mood = meta.label ?? meta.score;
-      return typeof mood === 'string' || typeof mood === 'number'
-        ? `${time} — Mood: ${mood}`
-        : `${time} — Mood logged`;
-    }
-    case 'wellness_check': {
-      const checkType = meta.checkType;
-      return typeof checkType === 'string'
-        ? `${time} — ${capitalize(checkType)} wellness check`
-        : `${time} — Wellness check`;
-    }
-    case 'hydration_logged': {
-      const glasses = meta.glasses ?? e.value;
-      return typeof glasses === 'number'
-        ? `${time} — Hydration: ${glasses} glasses`
-        : `${time} — Hydration logged`;
-    }
-    case 'sleep_logged': {
-      const hours = meta.hours;
-      return typeof hours === 'number'
-        ? `${time} — Sleep: ${hours}h`
-        : `${time} — Sleep logged`;
-    }
-    case 'symptom_reported': {
-      const sym = meta.symptomName;
-      return typeof sym === 'string'
-        ? `${time} — Symptom: ${sym}`
-        : `${time} — Symptom reported`;
-    }
-    case 'note_added':
-      return null; // notes show in NOTES TODAY, not as a timeline entry
-    default:
-      return null;
-  }
-}
-
-// ============================================================================
 // COMING UP — appointment formatter
 // ============================================================================
 
@@ -212,6 +123,47 @@ function isWithinLookahead(isoDate: string, now: Date): boolean {
   const nowMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const days = Math.floor((apptMs - nowMs) / (1000 * 60 * 60 * 24));
   return days >= 0 && days <= APPOINTMENT_LOOKAHEAD_DAYS;
+}
+
+// ============================================================================
+// DONE — one-line count summary
+// ============================================================================
+
+/** Reads from buildTodaySummary() to produce "3 of 5 meds · 1 vitals · 2 meals".
+ *  Returns "No items logged today." when nothing has been logged. */
+function buildDoneSummaryLine(summary: TodaySummary): string {
+  const parts: string[] = [];
+
+  const med = summary.medsAdherence;
+  if (med && med.total > 0) {
+    parts.push(`${med.taken} of ${med.total} meds`);
+  } else if (med && med.taken > 0) {
+    parts.push(`${med.taken} meds`);
+  }
+
+  if (summary.vitalsReading && summary.vitalsReading.trim().length > 0) {
+    parts.push('vitals check');
+  }
+
+  const meals = summary.mealsStatus;
+  if (meals && meals.logged > 0) {
+    parts.push(`${meals.logged} meal${meals.logged === 1 ? '' : 's'}`);
+  }
+
+  // Wellness check-ins surface through orientation/painLevel/etc. on
+  // TodaySummary but no explicit count field exists. Future-friendly:
+  // if any wellness signal is recorded, mark it as one check-in.
+  const wellnessSignals = [
+    summary.orientation, summary.painLevel, summary.alertness,
+    summary.appetite, summary.bowelMovement, summary.bathingStatus,
+    summary.mobilityStatus,
+  ];
+  const hasWellness = wellnessSignals.some(
+    (s) => typeof s === 'string' && s.trim().length > 0,
+  );
+  if (hasWellness) parts.push('wellness check');
+
+  return parts.length > 0 ? parts.join(' · ') : 'No items logged today.';
 }
 
 // ============================================================================
@@ -242,57 +194,56 @@ export async function buildHandoffReport(opts: BuildHandoffOptions = {}): Promis
     const now = opts.now ?? new Date();
     const dateStr = getTodayDateString();
 
-    const [patientName, tone, reflection, summary, eventsForDay] = await Promise.all([
+    const [patientName, tone, reflection, summary] = await Promise.all([
       getActivePatientName(),
       getHandoffTone(dateStr),
       getReflection(dateStr),
       buildTodaySummary(),
-      (async () => {
-        const reg = await getPatientRegistry();
-        return getEventsByDate(dateStr, reg.activePatientId);
-      })(),
     ]);
 
     const lines: string[] = [];
+
+    // Header
     lines.push(formatHeader(patientName, now));
 
-    // TONE
+    // TONE — bare line, no label. Sets the day's emotional frame.
     if (tone && tone.trim().length > 0) {
-      lines.push('', 'TONE', tone.trim());
+      lines.push('', tone.trim());
     }
 
-    // NOTES TODAY — Phase 5.7.c toggle gate. Default true.
+    // STILL TO DO — pending items with specific names
+    if (summary.overdueItems.length > 0) {
+      lines.push('', 'STILL TO DO');
+      for (const item of summary.overdueItems) {
+        lines.push(item);
+      }
+    }
+
+    // HEADS UP — flagged items as natural sentences
+    if (summary.flaggedItems.length > 0) {
+      lines.push('', 'HEADS UP');
+      for (const item of summary.flaggedItems) {
+        lines.push(item);
+      }
+    }
+
+    // COMING UP — appointment within 7 days
+    if (summary.nextAppointment && isWithinLookahead(summary.nextAppointment.date, now)) {
+      lines.push('', 'COMING UP');
+      lines.push(formatAppointmentLine(summary.nextAppointment));
+    }
+
+    // NOTES — gated by includeNotes (default true)
     const shouldIncludeNotes = opts.includeNotes !== false;
     const notes = (reflection?.text ?? '').trim();
     if (shouldIncludeNotes && notes.length > 0) {
-      lines.push('', 'NOTES TODAY', notes);
+      lines.push('', 'NOTES', notes);
     }
 
-    // DONE TODAY — chronological, value-rich event lines
-    const sorted = [...eventsForDay].sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-    );
-    const eventLines = sorted
-      .map((e) => formatEventLine(e))
-      .filter((l): l is string => l !== null);
-    if (eventLines.length > 0) {
-      lines.push('', 'DONE TODAY', ...eventLines);
-    }
-
-    // STILL TO DO
-    if (summary.overdueItems.length > 0) {
-      lines.push('', 'STILL TO DO', ...summary.overdueItems);
-    }
-
-    // WORTH KNOWING
-    if (summary.flaggedItems.length > 0) {
-      lines.push('', 'WORTH KNOWING', ...summary.flaggedItems);
-    }
-
-    // COMING UP
-    if (summary.nextAppointment && isWithinLookahead(summary.nextAppointment.date, now)) {
-      lines.push('', 'COMING UP', formatAppointmentLine(summary.nextAppointment));
-    }
+    // DONE — one-line count summary. Always rendered so the recipient
+    // sees what was tracked even on quiet days ("No items logged today.").
+    lines.push('', 'DONE');
+    lines.push(buildDoneSummaryLine(summary));
 
     // Footer
     lines.push('', FOOTER_LINE);
