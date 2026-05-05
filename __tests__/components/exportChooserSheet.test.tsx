@@ -43,17 +43,22 @@ describe('Phase 5.7.b — source-level visual + copy contract', () => {
     expect(src).toMatch(/Pick what kind of summary you need/);
   });
 
-  it("renders Today's handoff option with its description and metadata", () => {
+  it("renders Today's handoff option with its audience-explicit copy and metadata", () => {
+    // Phase 5.10.c — copy was reworked to "For someone who knows {Patient}."
+    // and "What state {Patient} is in right now…". The "5-second read"
+    // metadata pill remains.
     expect(src).toMatch(/Today's handoff/);
-    expect(src).toMatch(/sibling|next caregiver/);
+    expect(src).toMatch(/For someone who knows/);
     expect(src).toMatch(/5-second read/);
   });
 
-  it('renders Visit prep option with its description and metadata', () => {
+  it('renders Visit prep option with its audience-explicit copy and metadata', () => {
+    // Phase 5.10.c — replaced "PDF for a doctor's appointment. 7/14/30
+    // days of trends." with audience-first subtitle + a description that
+    // doesn't leak menu options.
     expect(src).toMatch(/Visit prep/);
     expect(src).toMatch(/doctor/);
     expect(src).toMatch(/PDF/);
-    expect(src).toMatch(/7\/14\/30 days/);
   });
 
   it("Today's handoff card uses sage token family (accentFaint + accentBorder)", () => {

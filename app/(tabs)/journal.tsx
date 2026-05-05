@@ -622,6 +622,7 @@ export default function JournalTab() {
       <ExportChooserSheet
         visible={exportChooserVisible}
         onClose={() => setExportChooserVisible(false)}
+        patientName={patientName}
         onChooseHandoff={() => {
           setExportChooserVisible(false);
           setHandoffSheetVisible(true);

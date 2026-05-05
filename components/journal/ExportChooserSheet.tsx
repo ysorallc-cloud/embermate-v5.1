@@ -27,6 +27,9 @@ export interface ExportChooserSheetProps {
   onClose: () => void;
   onChooseHandoff: () => void;
   onChooseVisitPrep: () => void;
+  /** Patient name interpolated into the Today's handoff audience subtitle.
+   *  Phase 5.10.c — falls back to "your loved one" when missing/empty. */
+  patientName?: string;
 }
 
 export function ExportChooserSheet({
@@ -34,9 +37,13 @@ export function ExportChooserSheet({
   onClose,
   onChooseHandoff,
   onChooseVisitPrep,
+  patientName,
 }: ExportChooserSheetProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const trimmedName = (patientName ?? '').trim();
+  const audienceName = trimmedName.length > 0 ? trimmedName : 'your loved one';
 
   return (
     <Modal
@@ -70,15 +77,19 @@ export function ExportChooserSheet({
             activeOpacity={0.85}
             accessibilityRole="button"
             accessibilityLabel="Today's handoff"
-            accessibilityHint="Plain text for a sibling or next caregiver"
+            accessibilityHint={`For someone who knows ${audienceName}`}
           >
             <Text style={styles.handoffGlyph}>{'✨'}</Text>
             <View style={styles.cardBody}>
               <Text style={styles.cardTitle}>{"Today's handoff"}</Text>
-              <Text style={styles.cardDesc}>
-                {'Plain text for a sibling or next caregiver. What happened today.'}
+              {/* Phase 5.10.c — audience-explicit subtitle. */}
+              <Text style={styles.handoffAudience}>
+                {`For someone who knows ${audienceName}.`}
               </Text>
-              <Text style={styles.handoffMeta}>{'~5-second read'}</Text>
+              <Text style={styles.cardDesc}>
+                {`What state ${audienceName} is in right now. What's done, what's pending, what to watch.`}
+              </Text>
+              <Text style={styles.handoffMeta}>{'~5-second read · plain text'}</Text>
             </View>
           </TouchableOpacity>
 
@@ -88,13 +99,17 @@ export function ExportChooserSheet({
             activeOpacity={0.85}
             accessibilityRole="button"
             accessibilityLabel="Visit prep"
-            accessibilityHint="PDF for a doctor's appointment"
+            accessibilityHint="For the doctor's office"
           >
             <Text style={styles.visitPrepGlyph}>{'📋'}</Text>
             <View style={styles.cardBody}>
               <Text style={styles.cardTitle}>{'Visit prep'}</Text>
+              {/* Phase 5.10.c — audience-explicit subtitle. */}
+              <Text style={styles.visitPrepAudience}>
+                {"For the doctor's office."}
+              </Text>
               <Text style={styles.cardDesc}>
-                {"PDF for a doctor's appointment. 7/14/30 days of trends."}
+                {'Trends over a window you choose. Adherence, vitals, patterns, red flags.'}
               </Text>
               <Text style={styles.visitPrepMeta}>{'PDF · 1-2 pages'}</Text>
             </View>
@@ -188,6 +203,22 @@ const createStyles = (c: any) => StyleSheet.create({
     fontWeight: '600' as const,
     color: c.textPrimary,
     marginBottom: 2,
+  },
+  // Phase 5.10.c — audience-explicit subtitle, slightly muted, family
+  // color (sage / lavender) for at-a-glance audience differentiation.
+  handoffAudience: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: c.accent,
+    opacity: 0.75,
+    marginBottom: 4,
+  },
+  visitPrepAudience: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: c.caregiverAccent,
+    opacity: 0.75,
+    marginBottom: 4,
   },
   cardDesc: {
     fontSize: 12,
