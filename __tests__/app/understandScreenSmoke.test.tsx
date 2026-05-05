@@ -130,6 +130,10 @@ jest.mock('../../components/shared/ShareToast', () => ({
   ShareToast: () => null,
 }));
 
+jest.mock('../../components/insights/UpcomingVisitInsightsCard', () => ({
+  UpcomingVisitInsightsCard: () => null,
+}));
+
 // ── Insights data layer: returns the empty-data shape ─────────────────────
 jest.mock('../../utils/understandInsights', () => ({
   loadUnderstandPageData: jest.fn().mockResolvedValue({

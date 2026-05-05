@@ -109,6 +109,10 @@ jest.mock('../../components/now/NowFooter', () => {
   return { NowFooter: () => React.createElement('Text', null, '[NowFooter]') };
 });
 
+jest.mock('../../components/now/UpcomingAppointmentCard', () => ({
+  UpcomingAppointmentCard: () => null,
+}));
+
 jest.mock('../../components/now/RoutineSheet', () => ({
   RoutineSheet: () => null,
 }));

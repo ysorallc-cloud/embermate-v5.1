@@ -30,6 +30,7 @@ import Svg, { Polyline, Circle as SvgCircle } from 'react-native-svg';
 import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { UpcomingVisitInsightsCard } from '../../components/insights/UpcomingVisitInsightsCard';
 import { usePatient } from '../../contexts/PatientContext';
 import {
   loadUnderstandPageData,
@@ -799,6 +800,12 @@ export default function UnderstandScreen() {
               state; hiding them until there's enough data prevents
               first-impression damage. Default per spec — Visit prep
               follows the same gate as the other reports. */}
+
+          {/* Phase 5.10.b — UPCOMING VISIT card. Renders OUTSIDE the
+              data-state gating so a 5-day-out appointment surfaces even
+              in empty/building states. */}
+          <UpcomingVisitInsightsCard />
+
           {pageData && (() => {
             const days = pageData.daysOfData;
             const events = days > 0 ? 1 : 0;

@@ -74,6 +74,7 @@ import { RoutineSheet } from '../../components/now/RoutineSheet';
 import { NowHeader } from '../../components/now/NowHeader';
 import { NowTimeline } from '../../components/now/NowTimeline';
 import { NowFooter } from '../../components/now/NowFooter';
+import { UpcomingAppointmentCard } from '../../components/now/UpcomingAppointmentCard';
 import { StatRings } from '../../components/now/StatRings';
 import { HydrationTodayRow } from '../../components/now/HydrationTodayRow';
 
@@ -1074,6 +1075,10 @@ export default function NowScreen() {
               </View>
             </>
           )}
+
+          {/* Phase 5.10.b — Upcoming appointment within 7 days. Renders
+              null when no appointment is in window. */}
+          <UpcomingAppointmentCard />
 
           {/* ═══ FOOTER ═══ */}
           <NowFooter

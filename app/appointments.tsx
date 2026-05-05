@@ -125,6 +125,26 @@ export default function AppointmentsScreen() {
                       {appt.provider} • {formatTime(appt.time)}
                     </Text>
                     <Text style={styles.location}>{appt.location}</Text>
+                    {/* Phase 5.10.b — contextual entry point. Tapping the
+                        link opens Visit Prep with the appointment context
+                        pre-set; tapping anywhere else still opens the
+                        edit form. */}
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        navigate(
+                          `/visit-prep?context=appointment&apptId=${appt.id}&days=14`,
+                        );
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Prepare visit prep for this appointment"
+                      style={styles.prepareLink}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <Text style={styles.prepareLinkText}>
+                        {'Prepare for this visit →'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
 
                   <Text style={styles.chevron}>›</Text>
@@ -247,6 +267,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   location: {
     fontSize: 12,
     color: c.textMuted,
+  },
+  // Phase 5.10.b — contextual entry point. Lavender ghost link below
+  // location; tapping it doesn't navigate to the edit form.
+  prepareLink: {
+    marginTop: 6,
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    paddingRight: 4,
+  },
+  prepareLinkText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: c.caregiverAccent,
   },
   chevron: {
     fontSize: 18,

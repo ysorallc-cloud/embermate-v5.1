@@ -18,7 +18,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams } from 'expo-router';
 import { navigate, navigateBack } from '../lib/navigate';
+import { getAppointment } from '../utils/appointmentStorage';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePatient } from '../contexts/PatientContext';
@@ -60,6 +62,14 @@ export default function VisitPrepScreen() {
     ? activePatient.name
     : 'your loved one';
 
+  // Phase 5.10.b — appointment / now / insights context query params
+  // surface a "Preparing for {Provider} on {Date}" line at the top of
+  // the config screen.
+  const params = useLocalSearchParams<{
+    context?: string; apptId?: string; days?: string;
+  }>();
+  const [contextLine, setContextLine] = useState<string | null>(null);
+
   // State
   const [range, setRange] = useState<RangeOption>('14');
   const [includeMeds, setIncludeMeds] = useState(true);
@@ -69,6 +79,25 @@ export default function VisitPrepScreen() {
   const [includeQuestions, setIncludeQuestions] = useState(true);
   const [questions, setQuestions] = useState('');
   const [generating, setGenerating] = useState(false);
+
+  // Resolve the apptId param into the contextual line.
+  React.useEffect(() => {
+    let cancelled = false;
+    if (params.apptId) {
+      getAppointment(params.apptId).then((appt) => {
+        if (cancelled || !appt) return;
+        const d = new Date(appt.date);
+        const label = d.toLocaleDateString('en-US', {
+          weekday: 'short', month: 'short', day: 'numeric',
+        });
+        setContextLine(`Preparing for ${appt.provider} on ${label}`);
+      });
+    }
+    if (params.days === '7' || params.days === '14' || params.days === '30') {
+      setRange(params.days as RangeOption);
+    }
+    return () => { cancelled = true; };
+  }, [params.apptId, params.days]);
 
   // Phase 5.8.c — profile-prompt gate.
   const [profileMissing, setProfileMissing] = useState<ProfileField[]>([]);
@@ -169,6 +198,12 @@ export default function VisitPrepScreen() {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
           {/* Context */}
+          {contextLine && (
+            <Text style={styles.contextHighlight} accessibilityLabel={contextLine}>
+              {contextLine}
+            </Text>
+          )}
+
           <Text style={styles.context}>
             Generate a care summary to bring to {patientName}'s next appointment.
           </Text>
@@ -290,6 +325,18 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   gradient: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: { padding: 20 },
+  contextHighlight: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: c.caregiverAccent,
+    backgroundColor: c.caregiverAccentBg,
+    borderLeftWidth: 3,
+    borderLeftColor: c.caregiverAccentBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginBottom: 12,
+  },
   context: {
     fontSize: 13,
     color: c.textWarmMuted,
