@@ -323,29 +323,32 @@ export function HandoffSheet(props: HandoffSheetProps) {
           </ScrollView>
 
           <View style={styles.actions}>
+            {/* Phase 5.7.c-visual — "Send via Messages" promoted to
+                primary CTA (most common caregiver action). Copy + PDF
+                drop to secondary; Cancel stays as a ghost link. */}
             <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleCopy}
-              accessibilityRole="button"
-              accessibilityLabel="Copy as text"
-            >
-              <Text style={styles.actionText}>{'Copy as text'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleSharePdf}
-              accessibilityRole="button"
-              accessibilityLabel="Share as PDF"
-            >
-              <Text style={styles.actionText}>{'Share as PDF'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionButton}
+              style={styles.primaryAction}
               onPress={handleSms}
               accessibilityRole="button"
               accessibilityLabel="Send via Messages"
             >
-              <Text style={styles.actionText}>{'Send via Messages'}</Text>
+              <Text style={styles.primaryActionText}>{'Send via Messages'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.secondaryAction}
+              onPress={handleCopy}
+              accessibilityRole="button"
+              accessibilityLabel="Copy as text"
+            >
+              <Text style={styles.secondaryActionText}>{'Copy as text'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.secondaryAction}
+              onPress={handleSharePdf}
+              accessibilityRole="button"
+              accessibilityLabel="Share as PDF"
+            >
+              <Text style={styles.secondaryActionText}>{'Share as PDF'}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.cancelButton}
@@ -385,9 +388,10 @@ const createStyles = (c: any) => StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 14, // allow: off-scale gap (intentional)
   },
+  // Phase 5.7.c-visual — title bumped to 20/700 for at-a-glance hierarchy.
   title: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700' as const,
     color: c.textPrimary,
     marginBottom: 14, // allow: off-scale gap (intentional)
   },
@@ -413,13 +417,13 @@ const createStyles = (c: any) => StyleSheet.create({
     marginTop: 6,
   },
   // Phase 5.8.d — single block that renders the canonical handoff text.
-  // Mono-feel font signals "this is the assembled message" and matches
-  // how the recipient will see it in SMS/email.
+  // Phase 5.7.c-visual — system font (no monospace). The "assembled
+  // message" aesthetic gave way to the app's warm tone per polish
+  // review; recipients see plain text in SMS/email regardless.
   canonicalBody: {
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 20,
     color: c.textPrimary,
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
   },
   // Phase 5.7.c — include-notes toggle row.
   toggleRow: {
@@ -476,18 +480,33 @@ const createStyles = (c: any) => StyleSheet.create({
     marginTop: 8,
     gap: 8,
   },
+  // Phase 5.7.c-visual — primary CTA. Sage-filled, dark text. The most
+  // common caregiver share path (SMS to a sibling / next caregiver).
+  primaryAction: {
+    backgroundColor: c.accent,
+    borderRadius: 12,
+    paddingVertical: 14, // allow: primary CTA tap-target height (Apple HIG)
+    alignItems: 'center',
+  },
+  primaryActionText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#1a1f1a',
+  },
+  // Phase 5.7.c-visual — secondary actions (Copy / Share as PDF).
+  // Glass surface with hairline border; reads as supporting affordances.
   // allow: tap-target shape for sheet action button — not a card surface.
-  actionButton: {
+  secondaryAction: {
     backgroundColor: c.glass,
-    borderWidth: 0.5,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: c.border,
-    borderRadius: 10,
+    borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
   },
-  actionText: {
-    fontSize: 13,
-    fontWeight: '500',
+  secondaryActionText: {
+    fontSize: 14,
+    fontWeight: '500' as const,
     color: c.textPrimary,
   },
   cancelButton: {
