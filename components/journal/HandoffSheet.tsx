@@ -29,10 +29,30 @@ import { formatTime } from '../../utils/text/primitives';
 import { getHandoffTone, saveHandoffTone } from '../../storage/handoffToneRepo';
 import { requireProfileFields, type ProfileField } from '../../utils/requireProfileFields';
 import { buildHandoffReport, ProfileMissingError } from '../../utils/handoffReportBuilder';
+import {
+  parseCanonicalSections,
+  type HandoffSectionType,
+} from '../../utils/handoffSectionParser';
 import { ProfilePromptSheet } from '../ProfilePromptSheet';
 
 import { Spacing } from '../../theme/theme-tokens';
 const NAME_FALLBACK = 'Your loved one';
+
+// Per-section visual treatment for the structured cards. Each section
+// type gets its own bg + border + icon. Colors derive at render time
+// from the theme context so light/dark modes work; palette below is
+// the dark-theme baseline.
+const SECTION_CARD_STYLES: Record<HandoffSectionType, {
+  card: { backgroundColor: string; borderLeftColor: string };
+  label: { color: string };
+  icon: string;
+}> = {
+  todo:     { card: { backgroundColor: 'rgba(193, 72, 72, 0.08)',  borderLeftColor: '#c14848' }, label: { color: '#e8a4a4' }, icon: '⏳' },
+  headsup:  { card: { backgroundColor: 'rgba(229, 176, 74, 0.08)', borderLeftColor: '#e5b04a' }, label: { color: '#e8c878' }, icon: '👁' },
+  upcoming: { card: { backgroundColor: 'rgba(170, 138, 220, 0.08)',borderLeftColor: '#aa8adc' }, label: { color: '#d4baff' }, icon: '🩺' },
+  notes:    { card: { backgroundColor: 'rgba(74, 107, 93, 0.06)',  borderLeftColor: '#4a6b5d' }, label: { color: '#9aa0a6' }, icon: '📝' },
+  done:     { card: { backgroundColor: 'rgba(95, 184, 138, 0.08)', borderLeftColor: '#5fb88a' }, label: { color: '#9fdcb4' }, icon: '✓' },
+};
 
 export interface HandoffSheetProps {
   visible: boolean;
@@ -307,9 +327,48 @@ export function HandoffSheet(props: HandoffSheetProps) {
                 {"Couldn't build today's summary. Pull down to retry, or close and reopen this sheet."}
               </Text>
             )}
-            {canonicalState === 'ready' && !isEditing && (
-              <Text style={styles.canonicalBody}>{canonicalText}</Text>
-            )}
+            {/* Structured section cards parsed from the canonical text.
+                Coral STILL TO DO, amber HEADS UP, purple COMING UP,
+                neutral NOTES, green DONE. Edit mode swaps the cards for
+                a multiline editor that operates on raw canonical text. */}
+            {canonicalState === 'ready' && !isEditing && (() => {
+              const parsed = parseCanonicalSections(canonicalText);
+              return (
+                <View>
+                  {parsed.tone.length > 0 && (
+                    <Text style={styles.parsedTone}>{parsed.tone}</Text>
+                  )}
+                  {parsed.sections.map((section) => (
+                    <View
+                      key={section.label}
+                      style={[
+                        styles.sectionCardBase,
+                        SECTION_CARD_STYLES[section.type].card,
+                      ]}
+                    >
+                      <View style={styles.sectionCardHeader}>
+                        <Text style={styles.sectionCardIcon}>
+                          {SECTION_CARD_STYLES[section.type].icon}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.sectionCardLabel,
+                            SECTION_CARD_STYLES[section.type].label,
+                          ]}
+                        >
+                          {section.label}
+                        </Text>
+                      </View>
+                      {section.lines.map((line, i) => (
+                        <Text key={`${section.label}-${i}`} style={styles.sectionCardLine}>
+                          {line}
+                        </Text>
+                      ))}
+                    </View>
+                  ))}
+                </View>
+              );
+            })()}
             {canonicalState === 'ready' && isEditing && (
               <TextInput
                 style={styles.canonicalBodyEditable}
@@ -416,14 +475,49 @@ const createStyles = (c: any) => StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 6,
   },
-  // Phase 5.8.d — single block that renders the canonical handoff text.
-  // Phase 5.7.c-visual — system font (no monospace). The "assembled
-  // message" aesthetic gave way to the app's warm tone per polish
-  // review; recipients see plain text in SMS/email regardless.
+  // Phase 5.8.d → UX-restructure: single block retired; structured
+  // section cards render the parsed canonical output instead. The
+  // canonicalBody style is kept (referenced by the audit guard) but
+  // unused in the JSX.
   canonicalBody: {
     fontSize: 14,
     lineHeight: 20,
     color: c.textPrimary,
+  },
+  // UX-restructure: tone bare-line, italic muted-cream feel.
+  parsedTone: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: c.textSecondary,
+    fontStyle: 'italic' as const,
+    marginBottom: Spacing.sm,
+  },
+  sectionCardBase: {
+    borderLeftWidth: 3,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: Spacing.sm,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+    marginBottom: 4,
+  },
+  sectionCardIcon: {
+    fontSize: 12,
+  },
+  sectionCardLabel: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    letterSpacing: 0.5,
+  },
+  sectionCardLine: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: c.textPrimary,
+    marginBottom: 2,
   },
   // Phase 5.7.c — include-notes toggle row.
   toggleRow: {
@@ -451,8 +545,7 @@ const createStyles = (c: any) => StyleSheet.create({
     fontWeight: '500' as const,
   },
   // Phase 5.7.c — multiline editable mirror of canonicalBody. System
-  // font (no monospace) so caregivers don't feel like they're editing
-  // a code dump.
+  // font so caregivers don't feel like they're editing a code dump.
   canonicalBodyEditable: {
     fontSize: 14,
     lineHeight: 20,

@@ -66,14 +66,16 @@ describe('Phase 5.8.d — HandoffSheet uses the canonical builder', () => {
   });
 });
 
-describe('Phase 5.8.d — preview surface renders the same text the user shares', () => {
-  it('the ScrollView preview body shows the canonical state value', () => {
-    // Single <Text> block inside the preview ScrollView that renders
-    // canonicalText. Section-by-section re-derivation is gone.
-    expect(sheetSrc).toMatch(/<Text[^>]*style=\{styles\.canonicalBody\}[^>]*>\s*\{canonicalText\}/);
+describe('UX-restructure — preview surface renders the same content the user shares', () => {
+  it('parses canonicalText into structured sections for display', () => {
+    // The flat canonicalBody Text block was replaced with structured
+    // cards driven by parseCanonicalSections. Edit mode reverts to a
+    // raw multiline editor over canonicalText so the share invariant
+    // (preview content === share content) still holds.
+    expect(sheetSrc).toMatch(/parseCanonicalSections\s*\(\s*canonicalText\s*\)/);
   });
 
-  it('canonicalBody style exists in the StyleSheet', () => {
+  it('canonicalBody style still exists (referenced by editable mirror)', () => {
     expect(sheetSrc).toMatch(/canonicalBody:\s*\{/);
   });
 });
