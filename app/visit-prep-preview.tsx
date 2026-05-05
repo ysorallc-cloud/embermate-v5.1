@@ -218,6 +218,21 @@ export default function VisitPrepPreviewScreen() {
                 {data.header.preparedBy ? ` · Prepared by ${data.header.preparedBy}` : ''}
               </Text>
 
+              {/* Phase 5.10.a — Red Flags & Alerts callout (top of page). */}
+              {data.redFlags.length > 0 && (
+                <View style={styles.redFlagCallout}>
+                  <Text style={styles.redFlagHeader}>{'RED FLAGS & ALERTS'}</Text>
+                  {data.redFlags.map((f, i) => (
+                    <Text key={`rf-${i}`} style={styles.redFlagLine}>
+                      <Text style={styles.redFlagTag}>
+                        {f.severity === 'critical' ? 'CRITICAL: ' : 'ATTENTION: '}
+                      </Text>
+                      {f.text}
+                    </Text>
+                  ))}
+                </View>
+              )}
+
               {/* What changed — editable */}
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.sectionHeader}>What changed</Text>
@@ -302,6 +317,82 @@ export default function VisitPrepPreviewScreen() {
                         {`• ${v.label}: ${v.latestValue}${v.outOfRange > 0 ? ` (${v.outOfRange} out of range)` : ''}`}
                       </Text>
                     ))}
+                  </View>
+                </>
+              )}
+
+              {/* Phase 5.10.a — Hydration & Nutrition callout. */}
+              {data.hydrationNutrition && (
+                <View style={styles.hydrationCallout}>
+                  <Text style={styles.calloutHeader}>{'HYDRATION & NUTRITION'}</Text>
+                  {data.hydrationNutrition.hydration && (
+                    <Text style={styles.calloutBody}>
+                      {`Hydration: ${data.hydrationNutrition.hydration.avgCupsPerDay.toFixed(1)} cups/day average (target ${data.hydrationNutrition.hydration.target}). ${data.hydrationNutrition.hydration.lowDays.length} low days.`}
+                    </Text>
+                  )}
+                  {data.hydrationNutrition.meals && (
+                    <Text style={styles.calloutBody}>
+                      {`Meals: ${data.hydrationNutrition.meals.fullMealDays} full days, ${data.hydrationNutrition.meals.partialMealDays} partial. ${data.hydrationNutrition.meals.refusedMeals.length} refused.`}
+                    </Text>
+                  )}
+                  {data.hydrationNutrition.appetiteSummary && (
+                    <Text style={styles.calloutBody}>{data.hydrationNutrition.appetiteSummary}</Text>
+                  )}
+                </View>
+              )}
+
+              {/* Phase 5.10.a — Sleep, Energy & Mood Patterns callout. */}
+              {(data.wellnessPatterns.sleep || data.wellnessPatterns.energy || data.wellnessPatterns.mood) && (
+                <View style={styles.wellnessCallout}>
+                  <Text style={styles.calloutHeader}>{'SLEEP, ENERGY & MOOD PATTERNS'}</Text>
+                  {data.wellnessPatterns.sleep && (
+                    <Text style={styles.calloutBody}>
+                      <Text style={styles.calloutLabel}>{'Sleep: '}</Text>
+                      {`${data.wellnessPatterns.sleep.avgQuality.toFixed(1)}/5 average`}
+                      {data.wellnessPatterns.sleep.priorAvg !== null
+                        ? ` (vs ${data.wellnessPatterns.sleep.priorAvg.toFixed(1)} prior period)`
+                        : ''}
+                      {data.wellnessPatterns.sleep.poorNights.length > 0
+                        ? `. ${data.wellnessPatterns.sleep.poorNights.length} poor night${data.wellnessPatterns.sleep.poorNights.length === 1 ? '' : 's'}`
+                        : ''}
+                      {data.wellnessPatterns.sleep.earlierWaking ? ' · concentrating recently' : ''}.
+                    </Text>
+                  )}
+                  {data.wellnessPatterns.energy && (
+                    <Text style={styles.calloutBody}>
+                      <Text style={styles.calloutLabel}>{'Energy: '}</Text>
+                      {`${data.wellnessPatterns.energy.afternoonDipDays} low-energy day${data.wellnessPatterns.energy.afternoonDipDays === 1 ? '' : 's'}`}
+                      {data.wellnessPatterns.energy.correlatesWithPoorSleep && data.wellnessPatterns.energy.correlatesWithPoorSleep > 0
+                        ? ` (correlates with poor sleep on ${data.wellnessPatterns.energy.correlatesWithPoorSleep} of those)`
+                        : ''}
+                      .
+                    </Text>
+                  )}
+                  {data.wellnessPatterns.mood && (
+                    <Text style={styles.calloutBody}>
+                      <Text style={styles.calloutLabel}>{'Mood: '}</Text>
+                      {`${data.wellnessPatterns.mood.difficultMornings.length} difficult morning${data.wellnessPatterns.mood.difficultMornings.length === 1 ? '' : 's'}.`}
+                    </Text>
+                  )}
+                </View>
+              )}
+
+              {/* Phase 5.10.a — Symptom progression (renamed from "Symptoms that changed"). */}
+              {data.symptomChanges.length > 0 && (
+                <>
+                  <Text style={styles.sectionHeader}>Symptom progression</Text>
+                  <View style={styles.sectionBody}>
+                    {data.symptomChanges.map((s, i) => {
+                      const tag = s.change === 'new' ? 'New' :
+                        s.change === 'worse' ? 'Worse' :
+                        s.change === 'better' ? 'Improving' : 'Resolved';
+                      return (
+                        <Text key={`sym-${i}`} style={styles.bulletLine}>
+                          <Text style={styles.calloutLabel}>{`${tag}: `}</Text>
+                          {s.briefDescription}
+                        </Text>
+                      );
+                    })}
                   </View>
                 </>
               )}
@@ -447,6 +538,69 @@ const createStyles = (c: any) => StyleSheet.create({
   bulletLineMuted: {
     color: c.textSecondary,
     fontStyle: 'italic',
+  },
+  // Phase 5.10.a — callout blocks. Light tinted bg + left border by family
+  // (red for flags, sage for hydration/wellness). Header in muted-uppercase.
+  redFlagCallout: {
+    backgroundColor: 'rgba(193, 72, 72, 0.08)',
+    borderLeftWidth: 3,
+    borderLeftColor: '#c14848',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginVertical: Spacing.sm,
+    borderRadius: 6,
+  },
+  redFlagHeader: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    letterSpacing: 0.5,
+    color: '#8b3030',
+    marginBottom: 6,
+  },
+  redFlagLine: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: c.textPrimary,
+    marginBottom: 4,
+  },
+  redFlagTag: {
+    fontWeight: '700' as const,
+    color: '#c14848',
+  },
+  hydrationCallout: {
+    backgroundColor: 'rgba(74, 107, 93, 0.06)',
+    borderLeftWidth: 3,
+    borderLeftColor: '#4a6b5d',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginVertical: Spacing.sm,
+    borderRadius: 6,
+  },
+  wellnessCallout: {
+    backgroundColor: 'rgba(74, 107, 93, 0.06)',
+    borderLeftWidth: 3,
+    borderLeftColor: '#4a6b5d',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginVertical: Spacing.sm,
+    borderRadius: 6,
+  },
+  calloutHeader: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    letterSpacing: 0.5,
+    color: c.textSecondary,
+    marginBottom: 6,
+  },
+  calloutBody: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: c.textPrimary,
+    marginBottom: 4,
+  },
+  calloutLabel: {
+    fontWeight: '600' as const,
+    color: c.textPrimary,
   },
   editLink: {
     paddingHorizontal: 8,

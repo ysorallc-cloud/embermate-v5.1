@@ -37,6 +37,15 @@ import {
   type SelectedNote,
 } from '../utils/visitPrepNoteCuration';
 import { getVisitPrepDraft } from '../storage/visitPrepDraftRepo';
+import { buildRedFlags, type RedFlag } from './redFlags';
+import {
+  buildHydrationNutrition,
+  type HydrationNutritionSummary,
+} from './hydrationNutrition';
+import {
+  buildWellnessPatterns,
+  type WellnessPatternsSummary,
+} from './wellnessPatterns';
 
 // ============================================================================
 // PROFILE-MISSING SENTINEL
@@ -108,13 +117,21 @@ export interface VisitPrepData {
     generatedAt: string;
     periodDays: number;
   };
+  /** Phase 5.10.a — top-of-page critical/attention callout. Empty array
+   *  → caller omits the section entirely. */
+  redFlags: RedFlag[];
   /** Phase 5.8.b — "What changed" lede. Editable in 5.7.d preview screen. */
   whatChanged: VisitPrepWhatChanged;
   adherence: AdherenceEntry[];
   /** Skip reasons aggregated from LogEntry.skipReason — surfaced under adherence. */
   skippedDoses: SkippedDoseSummary[];
   vitals: VitalEntry[];
-  /** New nurse-format sections (Prompt 5). */
+  /** Phase 5.10.a — between Vitals and Sleep/Energy/Mood. null → omit. */
+  hydrationNutrition: HydrationNutritionSummary | null;
+  /** Phase 5.10.a — replaces legacy `wellness` field. Variance + same-day
+   *  correlation across the window vs prior window. */
+  wellnessPatterns: WellnessPatternsSummary;
+  /** Symptom Progression — was "Symptoms that changed". */
   symptomChanges: SymptomChange[];
   /** True when the period is < 14 days — drives the "more data needed" hint. */
   symptomDataInsufficient: boolean;
@@ -123,11 +140,6 @@ export interface VisitPrepData {
   patientQuestions: string[];
   questionsEmptyHint: string;
   medicationChanges: MedicationChange[];
-  wellness: {
-    avgMood: string;
-    sleepNote: string;
-    patterns: string[];
-  };
   /** Phase 5.8.b — curated notes (3 max, full text, dated, flagged-first). */
   selectedNotes: SelectedNote[];
   /** Legacy: prior thin "Apr 25: <truncated>…" lines. Kept for back-compat
@@ -303,25 +315,34 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
     }
   }
 
-  // Wellness
-  const wellness = { avgMood: '–', sleepNote: '–', patterns: [] as string[] };
+  // Phase 5.10.a — Sleep, Energy & Mood Patterns. Replaces the legacy
+  // count-only wellness section. Variance + same-day correlation across
+  // current vs equal-length prior window.
+  let wellnessPatterns: WellnessPatternsSummary = {
+    sleep: null, energy: null, mood: null,
+  };
   if (config.includeWellness) {
-    // Wellness data is best-effort — assembled from what's available
     try {
-      const instances = await listDailyInstancesRange(
-        DEFAULT_PATIENT_ID, dateRange.start, dateRange.end,
-      );
-      const wellnessInstances = instances.filter(i => i.itemType === 'wellness');
-      const total = wellnessInstances.length;
-      const done = wellnessInstances.filter(
-        i => i.status === 'completed',
-      ).length;
-      if (total > 0) {
-        wellness.avgMood = `${done} of ${total} check-ins completed`;
-      }
+      wellnessPatterns = await buildWellnessPatterns({
+        patientId: DEFAULT_PATIENT_ID,
+        dateRange,
+      });
     } catch (err) {
-      logError('visitPrepPdf.wellness', err);
+      logError('visitPrepPdf.wellnessPatterns', err);
     }
+  }
+
+  // Phase 5.10.a — Hydration & Nutrition. Cup totals + meal full/partial/
+  // refused counts + appetite summary. Returns null when both arms are
+  // empty; the HTML/preview renderer omits the section in that case.
+  let hydrationNutrition: HydrationNutritionSummary | null = null;
+  try {
+    hydrationNutrition = await buildHydrationNutrition({
+      patientId: DEFAULT_PATIENT_ID,
+      dateRange,
+    });
+  } catch (err) {
+    logError('visitPrepPdf.hydrationNutrition', err);
   }
 
   // Phase 5.8.b — curate notes. Pull all reflections in the window (no
@@ -459,23 +480,41 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
     ? { observations: [userDraft], insufficientData: false, userEdited: true }
     : { ...auto, userEdited: false };
 
+  // Phase 5.10.a — Red Flags & Alerts. Surfaces critical/attention items
+  // from already-assembled data so the doctor sees them at the top.
+  const refusedByMed: Record<string, number> = {};
+  for (const s of skippedDoses) {
+    if (s.refused > 0) refusedByMed[s.medicationName] = s.refused;
+  }
+  const sleepDelta =
+    wellnessPatterns.sleep && wellnessPatterns.sleep.priorAvg !== null
+      ? wellnessPatterns.sleep.avgQuality - wellnessPatterns.sleep.priorAvg
+      : 0;
+  const notesForFlags = selectedNotes.map((n) => ({ date: n.date, text: n.text }));
+  const redFlags = buildRedFlags({
+    adherence, vitals, notesInRange: notesForFlags,
+    symptomChanges, sleepDelta, refusedByMed,
+  });
+
   // Footer — Phase 5.8.b copy. caregiverTrimmed is non-empty here (we'd
   // have thrown ProfileMissingError otherwise).
   const footer = buildCaregiverDisclaimer(days, caregiverTrimmed);
 
   return {
     header,
+    redFlags,
     whatChanged,
     adherence,
     skippedDoses,
     vitals,
+    hydrationNutrition,
+    wellnessPatterns,
     symptomChanges,
     symptomDataInsufficient,
     functionalIssues,
     patientQuestions,
     questionsEmptyHint,
     medicationChanges,
-    wellness,
     selectedNotes,
     journalHighlights,
     questions,
@@ -572,6 +611,55 @@ function buildHtml(data: VisitPrepData): string {
     ? `<li style="color: #999;">${data.whatChanged.observations[0] ?? 'Two weeks of tracking suggested before patterns appear here.'}</li>`
     : data.whatChanged.observations.map(o => `<li>${o}</li>`).join('');
 
+  // Phase 5.10.a — Red Flags & Alerts callout. Top-of-page priority
+  // signal for the doctor. Empty list → no callout block at all.
+  const redFlagItems = data.redFlags.map((f) => {
+    const tag = f.severity === 'critical' ? 'CRITICAL' : 'ATTENTION';
+    return `<li><strong style="color:#c14848;">${tag}:</strong> ${f.text}</li>`;
+  }).join('');
+
+  // Phase 5.10.a — Hydration & Nutrition body lines.
+  const hn = data.hydrationNutrition;
+  const hydrationLine = hn?.hydration
+    ? `Hydration: ${hn.hydration.avgCupsPerDay.toFixed(1)} cups/day average ` +
+      `(target ${hn.hydration.target}). ` +
+      (hn.hydration.lowDays.length > 0
+        ? `${hn.hydration.lowDays.length} low day${hn.hydration.lowDays.length === 1 ? '' : 's'}.`
+        : 'No low days.')
+    : '';
+  const mealsLine = hn?.meals
+    ? `Meals: ${hn.meals.fullMealDays} full day${hn.meals.fullMealDays === 1 ? '' : 's'}, ` +
+      `${hn.meals.partialMealDays} partial. ` +
+      (hn.meals.refusedMeals.length > 0
+        ? `${hn.meals.refusedMeals.length} refused meal${hn.meals.refusedMeals.length === 1 ? '' : 's'}.`
+        : '')
+    : '';
+  const appetiteLine = hn?.appetiteSummary ?? '';
+
+  // Phase 5.10.a — Sleep, Energy & Mood Patterns body lines.
+  const wp = data.wellnessPatterns;
+  const sleepLine = wp.sleep
+    ? `<strong>Sleep:</strong> ${wp.sleep.avgQuality.toFixed(1)}/5 average` +
+      (wp.sleep.priorAvg !== null
+        ? ` (vs ${wp.sleep.priorAvg.toFixed(1)} prior period)`
+        : '') +
+      (wp.sleep.poorNights.length > 0
+        ? `. ${wp.sleep.poorNights.length} poor night${wp.sleep.poorNights.length === 1 ? '' : 's'}`
+        : '') +
+      (wp.sleep.earlierWaking ? ' · concentrating in recent days' : '') +
+      '.'
+    : '';
+  const energyLine = wp.energy
+    ? `<strong>Energy:</strong> ${wp.energy.afternoonDipDays} low-energy day${wp.energy.afternoonDipDays === 1 ? '' : 's'}` +
+      (wp.energy.correlatesWithPoorSleep && wp.energy.correlatesWithPoorSleep > 0
+        ? ` (correlates with poor sleep on ${wp.energy.correlatesWithPoorSleep} of those)`
+        : '') +
+      '.'
+    : '';
+  const moodLine = wp.mood
+    ? `<strong>Mood:</strong> ${wp.mood.difficultMornings.length} difficult morning${wp.mood.difficultMornings.length === 1 ? '' : 's'}.`
+    : '';
+
   // Legacy free-text path. Kept for back-compat callers that still pass
   // `config.questions`; new flows route through patientQuestionsRepo.
   const questionsHtml = data.questions
@@ -594,10 +682,13 @@ function buildHtml(data: VisitPrepData): string {
     ul { padding-left: 16px; margin-bottom: 12px; }
     li { margin-bottom: 4px; }
     .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e2e4e8; font-size: 9px; color: #9a9aa8; text-align: center; }
-    .wellness-row { display: flex; gap: 24px; margin-bottom: 8px; }
-    .wellness-item { }
-    .wellness-label { font-size: 10px; color: #7a7a8a; }
-    .wellness-value { font-size: 12px; font-weight: 500; }
+    .callout { padding: 10px 14px; margin: 12px 0; border-left: 3px solid #4a6b5d; }
+    .callout-redflag { background: #fef3f0; border-left-color: #c14848; }
+    .callout-hydration { background: #f5f0e8; border-left-color: #4a6b5d; }
+    .callout-wellness { background: #f0f3f0; border-left-color: #4a6b5d; }
+    .callout h2 { border-bottom: none; padding-bottom: 0; margin: 0 0 6px; color: #1a1a2e; }
+    .callout-redflag h2 { color: #8b3030; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+    .callout p { margin: 4px 0; line-height: 1.5; }
   </style>
 </head>
 <body>
@@ -606,11 +697,18 @@ function buildHtml(data: VisitPrepData): string {
     ${data.header.dateRange}${data.header.caregiverName ? ' · Prepared by ' + data.header.caregiverName : ''} · ${data.header.generatedAt}
   </div>
 
+  ${data.redFlags.length > 0 ? `
+  <div class="callout callout-redflag">
+    <h2>Red Flags &amp; Alerts</h2>
+    <ul>${redFlagItems}</ul>
+  </div>
+  ` : ''}
+
   <h2>What changed</h2>
   <ul>${whatChangedItems}</ul>
 
   ${data.adherence.length > 0 ? `
-  <h2>Medication Adherence</h2>
+  <h2>Medication adherence</h2>
   <table>
     <tr><th>Medication</th><th>Dose</th><th>Adherence</th><th>Missed</th></tr>
     ${medsRows}
@@ -632,30 +730,40 @@ function buildHtml(data: VisitPrepData): string {
   </table>
   ` : ''}
 
-  <h2>Symptoms that changed</h2>
+  ${data.hydrationNutrition ? `
+  <div class="callout callout-hydration">
+    <h2>Hydration &amp; Nutrition</h2>
+    ${hydrationLine ? `<p>${hydrationLine}</p>` : ''}
+    ${mealsLine ? `<p>${mealsLine}</p>` : ''}
+    ${appetiteLine ? `<p>${appetiteLine}</p>` : ''}
+  </div>
+  ` : ''}
+
+  ${(data.wellnessPatterns.sleep || data.wellnessPatterns.energy || data.wellnessPatterns.mood) ? `
+  <div class="callout callout-wellness">
+    <h2>Sleep, Energy &amp; Mood Patterns</h2>
+    ${sleepLine ? `<p>${sleepLine}</p>` : ''}
+    ${energyLine ? `<p>${energyLine}</p>` : ''}
+    ${moodLine ? `<p>${moodLine}</p>` : ''}
+  </div>
+  ` : ''}
+
+  <h2>Symptom progression</h2>
   <ul>${symptomItems}</ul>
 
-  <h2>Functional issues</h2>
+  <h2>Functional observations</h2>
   <ul>${functionalItems}</ul>
 
-  <h2>Questions and concerns</h2>
+  <h2>Caregiver notes</h2>
+  <ul>${highlights}</ul>
+
+  <h2>Questions for this visit</h2>
   <ul>${patientQuestionItems}</ul>
 
   ${data.medicationChanges.length > 0 ? `
   <h2>What changed after medication updates</h2>
   <ul>${medChangeItems}</ul>
   ` : ''}
-
-  <h2>Wellness</h2>
-  <div class="wellness-row">
-    <div class="wellness-item">
-      <div class="wellness-label">Check-ins</div>
-      <div class="wellness-value">${data.wellness.avgMood}</div>
-    </div>
-  </div>
-
-  <h2>Caregiver notes</h2>
-  <ul>${highlights}</ul>
 
   ${questionsHtml ? `
   <h2 style="font-size:11px; color:#7a7a8a;">Additional questions (this visit)</h2>

@@ -142,10 +142,12 @@ describe('Phase 5.9.d — preview/share content parity', () => {
     const cfg = { ...baseConfig(), includeWellness: false };
     const a = await assembleVisitPrepData(cfg);
     const b = await assembleVisitPrepData(cfg);
-    expect(a.wellness.avgMood).toBe(b.wellness.avgMood);
-    // Both calls produced the same wellness shape — divergence would
-    // mean the preview rendered one thing and the PDF rendered another.
-    expect(a.wellness).toEqual(b.wellness);
+    // Phase 5.10.a — `wellness` flat field replaced by `wellnessPatterns`.
+    // With includeWellness false, both paths produce the same null shape.
+    expect(a.wellnessPatterns).toEqual(b.wellnessPatterns);
+    expect(a.wellnessPatterns.sleep).toBeNull();
+    expect(a.wellnessPatterns.energy).toBeNull();
+    expect(a.wellnessPatterns.mood).toBeNull();
   });
 
   it('the same selectedNotes selection lands in both paths', async () => {

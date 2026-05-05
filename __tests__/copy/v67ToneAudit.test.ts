@@ -183,9 +183,12 @@ describe('v6.7 tone audit — required vocabulary anchors', () => {
 
 // ── Clinical surfaces — verify they retain precise medical language ─────────
 describe('v6.7 tone audit — clinical surfaces keep precise vocabulary', () => {
-  it('Visit Prep PDF still references "Adherence" and "Medication"', () => {
+  it('Visit Prep PDF still references "adherence" and "Medication"', () => {
+    // Phase 5.10.a switched section headings to sentence case so config-
+    // screen toggle labels align with PDF section names. The clinical
+    // vocabulary words remain — only the casing changed.
     const src = readFileSync(join(ROOT, 'services/visitPrepPdf.ts'), 'utf8');
-    expect(src).toContain('Medication Adherence');
+    expect(src.toLowerCase()).toContain('medication adherence');
   });
 
   it('Visit Prep PDF disclaimer keeps clinical-precision vocabulary', () => {

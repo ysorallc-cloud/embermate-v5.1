@@ -21,8 +21,11 @@ describe('Visit Prep PDF — clinical vocabulary preserved', () => {
     expect(src).toMatch(/<th>\s*Missed\s*<\/th>/);
   });
 
-  it('still uses "Medication Adherence" as the section header', () => {
-    expect(src).toContain('Medication Adherence');
+  it('still uses "Medication adherence" as the section header (Phase 5.10.a sentence case)', () => {
+    // Phase 5.10.a aligns PDF section headings with config-screen toggle
+    // labels for the toggle-section linkage contract; the words that
+    // signal clinical precision (Medication, adherence, Missed) remain.
+    expect(src.toLowerCase()).toContain('medication adherence');
   });
 
   it('still uses the word "missed" inside data field names (missedDays)', () => {

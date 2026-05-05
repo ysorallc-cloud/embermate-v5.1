@@ -103,15 +103,24 @@ beforeEach(() => {
 });
 
 describe('assembleVisitPrepData — shape & required sections', () => {
-  it('returns all expected top-level sections', async () => {
+  it('returns all expected top-level sections (Phase 5.10.a shape)', async () => {
     const data = await assembleVisitPrepData(BASE_CONFIG);
     expect(data).toHaveProperty('header');
+    expect(data).toHaveProperty('redFlags');
+    expect(data).toHaveProperty('whatChanged');
     expect(data).toHaveProperty('adherence');
     expect(data).toHaveProperty('vitals');
-    expect(data).toHaveProperty('wellness');
+    expect(data).toHaveProperty('hydrationNutrition');
+    expect(data).toHaveProperty('wellnessPatterns');
+    expect(data).toHaveProperty('symptomChanges');
+    expect(data).toHaveProperty('functionalIssues');
+    expect(data).toHaveProperty('selectedNotes');
     expect(data).toHaveProperty('journalHighlights');
-    expect(data).toHaveProperty('questions');
+    expect(data).toHaveProperty('patientQuestions');
     expect(data).toHaveProperty('footer');
+    // Legacy `wellness` flat field replaced by `wellnessPatterns` —
+    // confirm it's gone so future drift doesn't reintroduce it.
+    expect(data).not.toHaveProperty('wellness');
   });
 
   it('header contains patient name, date range, and generated timestamp', async () => {

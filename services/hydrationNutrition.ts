@@ -1,0 +1,181 @@
+// ============================================================================
+// HYDRATION & NUTRITION — Phase 5.10.a
+//
+// Aggregates hydration cup totals (from hydrationRepo) and nutrition
+// instance status (from listDailyInstancesRange filtered by itemType
+// 'nutrition') across the visit-prep window. Meal quality detail comes
+// from meal_logged events for the appetite summary line.
+//
+// Returns null when both arms have no data — caller omits the section
+// entirely. Hydration target hardcoded to 8 cups/day for now; the
+// Patient type will gain a hydrationTarget field in a Phase 8 audit
+// follow-up.
+// ============================================================================
+
+import { getHistory as getHydrationHistory } from '../storage/hydrationRepo';
+import { listDailyInstancesRange } from '../storage/carePlanRepo';
+import { getEventsByDateRange } from '../storage/eventRepo';
+import type { CareEvent } from '../types/event';
+import { logError } from '../utils/devLog';
+
+// TODO Phase 8: lift to Patient.hydrationTarget. 8 cups/day is the broad
+// adult default; nurse-approved minimum guidance.
+const DEFAULT_HYDRATION_TARGET_CUPS = 8;
+const LOW_HYDRATION_THRESHOLD_RATIO = 0.5;
+
+export interface HydrationSummary {
+  avgCupsPerDay: number;
+  target: number;
+  lowDays: { date: string; cups: number }[];
+}
+
+export interface MealsSummary {
+  fullMealDays: number;
+  partialMealDays: number;
+  refusedMeals: { date: string; meal: string }[];
+}
+
+export interface HydrationNutritionSummary {
+  hydration: HydrationSummary | null;
+  meals: MealsSummary | null;
+  appetiteSummary: string | null;
+}
+
+export interface BuildHydrationNutritionInput {
+  patientId: string;
+  dateRange: { start: string; end: string };
+}
+
+function average(nums: number[]): number {
+  if (nums.length === 0) return 0;
+  return nums.reduce((s, v) => s + v, 0) / nums.length;
+}
+
+async function buildHydration(
+  patientId: string,
+  start: string,
+  end: string,
+): Promise<HydrationSummary | null> {
+  try {
+    const history = await getHydrationHistory(patientId, start, end);
+    const days = Object.entries(history);
+    if (days.length === 0) return null;
+    const totals = days.map(([, cups]) => cups);
+    const recorded = totals.some((v) => v > 0);
+    if (!recorded) return null; // hydration never tracked in this window
+    const target = DEFAULT_HYDRATION_TARGET_CUPS;
+    const avg = average(totals);
+    const lowDays = days
+      .filter(([, cups]) => cups < target * LOW_HYDRATION_THRESHOLD_RATIO)
+      .map(([date, cups]) => ({ date, cups }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    return {
+      avgCupsPerDay: avg,
+      target,
+      lowDays,
+    };
+  } catch (err) {
+    logError('hydrationNutrition.buildHydration', err);
+    return null;
+  }
+}
+
+async function buildMeals(
+  patientId: string,
+  start: string,
+  end: string,
+): Promise<MealsSummary | null> {
+  try {
+    const instances = await listDailyInstancesRange(patientId, start, end);
+    const nutrition = instances.filter(
+      (i: any) => i.itemType === 'nutrition',
+    );
+    if (nutrition.length === 0) return null;
+
+    // Group by date and count completion status.
+    const byDate = new Map<string, { logged: number; total: number }>();
+    for (const inst of nutrition) {
+      const date = (inst as any).dueDate ?? (inst as any).date ?? '';
+      if (!date) continue;
+      const bucket = byDate.get(date) ?? { logged: 0, total: 0 };
+      bucket.total += 1;
+      if (inst.status === 'completed' || inst.status === 'skipped') {
+        bucket.logged += 1;
+      }
+      byDate.set(date, bucket);
+    }
+
+    let fullMealDays = 0;
+    let partialMealDays = 0;
+    for (const { logged, total } of byDate.values()) {
+      if (total === 0) continue;
+      if (logged === total) fullMealDays += 1;
+      else if (logged > 0) partialMealDays += 1;
+    }
+
+    const refusedMeals = nutrition
+      .filter((i: any) => i.status === 'skipped' && i.skipReason === 'refused')
+      .map((i: any) => ({
+        date: i.dueDate ?? i.date ?? '',
+        meal: i.itemName ?? 'Meal',
+      }))
+      .filter((m: any) => m.date.length > 0)
+      .sort((a: any, b: any) => a.date.localeCompare(b.date));
+
+    return { fullMealDays, partialMealDays, refusedMeals };
+  } catch (err) {
+    logError('hydrationNutrition.buildMeals', err);
+    return null;
+  }
+}
+
+async function buildAppetiteSummary(
+  patientId: string,
+  start: string,
+  end: string,
+): Promise<string | null> {
+  try {
+    const events = await getEventsByDateRange(start, end, patientId);
+    const meals = events.filter((e: CareEvent) => e.type === 'meal_logged');
+    if (meals.length === 0) return null;
+    const buckets = { good: 0, most: 0, some: 0, refused: 0, other: 0 };
+    for (const e of meals) {
+      const q = (e.metadata as any)?.quality;
+      if (q === 'good' || q === 'most' || q === 'some' || q === 'refused') {
+        buckets[q] += 1;
+      } else {
+        buckets.other += 1;
+      }
+    }
+    const total = meals.length;
+    const goodLike = buckets.good + buckets.most;
+    if (goodLike >= Math.ceil(total * 0.7)) {
+      return `Appetite consistent — ate well on ${goodLike} of ${total} logged meals.`;
+    }
+    if (buckets.refused >= 2) {
+      return `Appetite waning — ${buckets.refused} refused meals across the window.`;
+    }
+    if (buckets.some + buckets.refused >= Math.ceil(total * 0.4)) {
+      return `Mixed appetite — ${goodLike} of ${total} meals eaten well.`;
+    }
+    return `Mixed appetite — ${goodLike} of ${total} meals eaten well.`;
+  } catch (err) {
+    logError('hydrationNutrition.buildAppetiteSummary', err);
+    return null;
+  }
+}
+
+export async function buildHydrationNutrition(
+  input: BuildHydrationNutritionInput,
+): Promise<HydrationNutritionSummary | null> {
+  const { patientId, dateRange } = input;
+  const [hydration, meals, appetiteSummary] = await Promise.all([
+    buildHydration(patientId, dateRange.start, dateRange.end),
+    buildMeals(patientId, dateRange.start, dateRange.end),
+    buildAppetiteSummary(patientId, dateRange.start, dateRange.end),
+  ]);
+  if (hydration === null && meals === null && appetiteSummary === null) {
+    return null;
+  }
+  return { hydration, meals, appetiteSummary };
+}
