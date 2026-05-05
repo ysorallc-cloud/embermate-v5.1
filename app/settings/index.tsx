@@ -316,6 +316,16 @@ export default function SettingsScreen() {
           onPress: () => router.push('/settings/backup'),
         },
         {
+          // Wires the existing data-privacy-settings screen (reload +
+          // clear sample data) into the Settings nav. Without this row
+          // the screen was registered but unreachable.
+          id: 'sample-data',
+          icon: '🧪',
+          title: 'Sample data',
+          subtitle: 'Load demo data to try the app',
+          onPress: () => navigate('/data-privacy-settings' as any),
+        },
+        {
           id: 'delete-all',
           icon: '🗑️',
           title: 'Delete all data',
