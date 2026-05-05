@@ -117,9 +117,7 @@ jest.mock('../../components/journal/HandoffCard', () => ({
 jest.mock('../../components/journal/HandoffSheet', () => ({
   HandoffSheet: () => null,
 }));
-jest.mock('../../components/journal/ExportChooserSheet', () => ({
-  ExportChooserSheet: () => null,
-}));
+// ExportChooserSheet was removed in the chooser-removal commit.
 jest.mock('../../utils/dailyOutcomes', () => ({
   getDailyOutcomes: jest.fn().mockResolvedValue({
     logged: { count: 0 },
@@ -300,9 +298,7 @@ jest.mock('../../components/journal/HandoffCard', () => ({
 jest.mock('../../components/journal/HandoffSheet', () => ({
   HandoffSheet: () => null,
 }));
-jest.mock('../../components/journal/ExportChooserSheet', () => ({
-  ExportChooserSheet: () => null,
-}));
+// ExportChooserSheet was removed in the chooser-removal commit.
 jest.mock('../../components/SectionEyebrow', () => ({
   SectionEyebrow: ({ text }: any) => {
     const React = require('react');
@@ -356,25 +352,12 @@ describe('JournalTab — render smoke test', () => {
     expect(queryByText('[MonthCalendar]')).toBeNull();
   });
 
-  it('the page header carries the lavender Share pill (Phase 5.7.a rename)', async () => {
-    const { getByLabelText, queryByLabelText } = await renderJournal();
-    const share = getByLabelText(/^Share$/);
-    expect(share.props.accessibilityRole).toBe('button');
-    // Pre-rename labels are gone.
+  it('the page header no longer renders any Share/Report pill (chooser removal)', async () => {
+    // The header Share pill was removed alongside ExportChooserSheet.
+    // The bottom HandoffCard owns the only share affordance now.
+    const { queryByLabelText } = await renderJournal();
+    expect(queryByLabelText(/^Share$/)).toBeNull();
     expect(queryByLabelText(/Clinical report/)).toBeNull();
     expect(queryByLabelText(/Share daily summary/)).toBeNull();
-  });
-
-  it('tapping the "Share" pill opens the export chooser (no direct navigation)', async () => {
-    // After 5.7.b the header pill is the chooser entry point; it must NOT
-    // call navigate() directly. Routing happens after the user picks a
-    // destination inside ExportChooserSheet.
-    const { navigate } = require('../../lib/navigate');
-    navigate.mockClear?.();
-    const { getByLabelText } = await renderJournal();
-
-    fireEvent.press(getByLabelText(/^Share$/));
-
-    expect(navigate).not.toHaveBeenCalledWith('/visit-prep');
   });
 });

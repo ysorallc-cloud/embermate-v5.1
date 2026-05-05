@@ -50,7 +50,6 @@ import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataS
 import { TodayOutcomes } from '../../components/journal/TodayOutcomes';
 import { HandoffCard } from '../../components/journal/HandoffCard';
 import { HandoffSheet } from '../../components/journal/HandoffSheet';
-import { ExportChooserSheet } from '../../components/journal/ExportChooserSheet';
 import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
 import { getDailyOutcomes } from '../../utils/dailyOutcomes';
 import type { DailyOutcomes } from '../../utils/text/types';
@@ -94,7 +93,6 @@ export default function JournalTab() {
   });
   const [dayCompleteFlag, setDayCompleteFlag] = useState(false);
   const [handoffSheetVisible, setHandoffSheetVisible] = useState(false);
-  const [exportChooserVisible, setExportChooserVisible] = useState(false);
   const handoffPulse = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const handoffCardLayoutY = useRef<number | null>(null);
@@ -468,13 +466,6 @@ export default function JournalTab() {
     setHandoffSheetVisible(true);
   }
 
-  // Phase 5.7.b: header Share pill opens the chooser sheet so the user
-  // picks today's-handoff vs visit-prep instead of defaulting either way.
-  function handleShareClinical() {
-    if (loading) return;
-    setExportChooserVisible(true);
-  }
-
   function handleDoneForToday() {
     markDayComplete(selectedDate).then(() => {
       setDayCompleteFlag(true);
@@ -513,21 +504,8 @@ export default function JournalTab() {
               <Text style={s.headerDate}>{dayName}, {dateStr}</Text>
               <Text style={s.headerPurpose}>{headerSubtitle}</Text>
             </View>
-            <View style={s.headerActions}>
-              {/* Share moved to the HandoffCard at the bottom of the page —
-                  the page header now carries only the clinician-facing
-                  Report action (Phase 9). */}
-              <TouchableOpacity
-                style={[s.headerPillReport, loading && { opacity: 0.4 }]}
-                onPress={handleShareClinical}
-                activeOpacity={0.7}
-                accessibilityLabel={loading ? 'Share, loading' : 'Share'}
-                accessibilityRole="button"
-                accessibilityState={{ busy: loading }}
-              >
-                <Text style={s.headerPillReportText}>Share</Text>
-              </TouchableOpacity>
-            </View>
+            {/* Header actions removed — Share is now exclusively on the
+                bottom HandoffCard. Visit Prep is reachable from Insights. */}
           </View>
 
           {/* ─── SAMPLE DATA INDICATOR — tap to open the manage sheet ─── */}
@@ -603,20 +581,6 @@ export default function JournalTab() {
         patientName={patientName}
         date={new Date()}
         dateKey={getTodayDateString()}
-      />
-
-      <ExportChooserSheet
-        visible={exportChooserVisible}
-        onClose={() => setExportChooserVisible(false)}
-        patientName={patientName}
-        onChooseHandoff={() => {
-          setExportChooserVisible(false);
-          setHandoffSheetVisible(true);
-        }}
-        onChooseVisitPrep={() => {
-          setExportChooserVisible(false);
-          navigate('/visit-prep');
-        }}
       />
 
       <ManageSampleDataSheet
