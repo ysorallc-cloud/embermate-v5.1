@@ -19,6 +19,7 @@ import {
   StyleSheet,
   Linking,
   Platform,
+  Switch,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -118,6 +119,19 @@ export function HandoffSheet(props: HandoffSheetProps) {
   const [canonicalState, setCanonicalState] =
     useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [rebuildSignal, setRebuildSignal] = useState(0);
+
+  // Phase 5.7.c — include-notes toggle. Default true; canonical builder
+  // omits the NOTES TODAY section when false.
+  const [includeNotes, setIncludeNotes] = useState(true);
+
+  // Phase 5.7.c — edit-before-share. When isEditing is true, the
+  // canonical body becomes a multiline TextInput pre-populated with
+  // canonicalText; the resulting `editedText` overrides canonicalText
+  // for the Copy / SMS / PDF actions. "Reset" discards edits and
+  // restores the builder output.
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedText, setEditedText] = useState('');
+
   useEffect(() => {
     let cancelled = false;
     if (!visible) {
@@ -133,10 +147,14 @@ export function HandoffSheet(props: HandoffSheetProps) {
     setCanonicalState('loading');
     (async () => {
       try {
-        const out = await buildHandoffReport({ now: date });
+        const out = await buildHandoffReport({ now: date, includeNotes });
         if (cancelled) return;
         setCanonicalText(out);
         setCanonicalState('ready');
+        // Any rebuild discards in-progress edits — the user explicitly
+        // asked for a fresh canonical render (toggle flip / sheet open).
+        setIsEditing(false);
+        setEditedText('');
       } catch (err) {
         if (cancelled) return;
         if (err instanceof ProfileMissingError) {
@@ -151,28 +169,35 @@ export function HandoffSheet(props: HandoffSheetProps) {
       }
     })();
     return () => { cancelled = true; };
-  }, [visible, date, profilePromptVisible, rebuildSignal]);
+  }, [visible, date, profilePromptVisible, rebuildSignal, includeNotes]);
+
+  // Phase 5.7.c — what the share actions ship. When the user has edited,
+  // their text wins; otherwise the canonical build flows through.
+  const shareText = useMemo(
+    () => (isEditing && editedText.length > 0 ? editedText : canonicalText),
+    [isEditing, editedText, canonicalText],
+  );
 
   const handleCopy = useCallback(async () => {
-    if (!canonicalText) return;
-    await Clipboard.setStringAsync(canonicalText);
-  }, [canonicalText]);
+    if (!shareText) return;
+    await Clipboard.setStringAsync(shareText);
+  }, [shareText]);
 
   const handleSharePdf = useCallback(async () => {
-    if (!canonicalText) return;
+    if (!shareText) return;
     await generateAndShareHandoff({
       patientName: name,
       dateLabel: dateLabel(date),
       timeLabel: formatTime(date),
-      bodyText: canonicalText,
+      bodyText: shareText,
     });
-  }, [name, date, canonicalText]);
+  }, [name, date, shareText]);
 
   const handleSms = useCallback(async () => {
-    if (!canonicalText) return;
-    const body = encodeURIComponent(canonicalText);
+    if (!shareText) return;
+    const body = encodeURIComponent(shareText);
     await Linking.openURL(`sms:&body=${body}`);
-  }, [canonicalText]);
+  }, [shareText]);
 
   return (
     <>
@@ -222,10 +247,55 @@ export function HandoffSheet(props: HandoffSheetProps) {
               />
             </View>
 
-            {/* Phase 5.8.d — single canonical body. What's previewed here is
-                exactly what the Copy / SMS / PDF actions send.
-                Phase 5.9.b — explicit loading / error states so an
-                in-flight build never looks like a broken sheet. */}
+            {/* Phase 5.7.c — include-notes toggle. Flipping rebuilds
+                canonicalText with the new flag. Default true. */}
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>{"Include today's notes"}</Text>
+              <Switch
+                value={includeNotes}
+                onValueChange={(val) => {
+                  setIncludeNotes(val);
+                  setRebuildSignal((n) => n + 1);
+                }}
+                trackColor={{ false: colors.glassDim, true: colors.accent }}
+                thumbColor={colors.textPrimary}
+                accessibilityLabel="Include today's notes in the handoff"
+              />
+            </View>
+
+            {/* Phase 5.7.c — Edit / Reset link above the canonical body. */}
+            {canonicalState === 'ready' && (
+              <View style={styles.editHeader}>
+                {!isEditing ? (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setIsEditing(true);
+                      setEditedText(canonicalText);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Edit handoff text before sharing"
+                  >
+                    <Text style={styles.editLink}>{'Edit'}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setIsEditing(false);
+                      setEditedText('');
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Reset handoff text — restore the auto-generated build"
+                  >
+                    <Text style={styles.editLink}>{'Reset'}</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            {/* Phase 5.8.d — canonical body. What's previewed here is
+                exactly what Copy / SMS / PDF send.
+                Phase 5.9.b — explicit loading / error states.
+                Phase 5.7.c — toggleable to a multiline editor. */}
             {canonicalState === 'loading' && (
               <Text style={styles.canonicalStatus}>{'Building summary…'}</Text>
             )}
@@ -237,8 +307,18 @@ export function HandoffSheet(props: HandoffSheetProps) {
                 {"Couldn't build today's summary. Pull down to retry, or close and reopen this sheet."}
               </Text>
             )}
-            {canonicalState === 'ready' && (
+            {canonicalState === 'ready' && !isEditing && (
               <Text style={styles.canonicalBody}>{canonicalText}</Text>
+            )}
+            {canonicalState === 'ready' && isEditing && (
+              <TextInput
+                style={styles.canonicalBodyEditable}
+                multiline
+                value={editedText}
+                onChangeText={setEditedText}
+                accessibilityLabel="Edit handoff text"
+                textAlignVertical="top"
+              />
             )}
           </ScrollView>
 
@@ -340,6 +420,45 @@ const createStyles = (c: any) => StyleSheet.create({
     lineHeight: 19,
     color: c.textPrimary,
     fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
+  },
+  // Phase 5.7.c — include-notes toggle row.
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    marginBottom: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border,
+  },
+  toggleLabel: {
+    fontSize: 13,
+    color: c.textSecondary,
+  },
+  // Phase 5.7.c — Edit / Reset link above the canonical body.
+  editHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 6,
+  },
+  editLink: {
+    fontSize: 13,
+    color: c.accent,
+    fontWeight: '500' as const,
+  },
+  // Phase 5.7.c — multiline editable mirror of canonicalBody. System
+  // font (no monospace) so caregivers don't feel like they're editing
+  // a code dump.
+  canonicalBodyEditable: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: c.textPrimary,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: c.border,
+    borderRadius: 8,
+    padding: 10,
+    minHeight: 120,
+    textAlignVertical: 'top' as const,
   },
   // Phase 5.9.b — explicit loading + error states.
   canonicalStatus: {

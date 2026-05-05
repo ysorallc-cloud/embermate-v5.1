@@ -33,29 +33,36 @@ describe('Phase 5.8.d — HandoffSheet uses the canonical builder', () => {
     expect(sheetSrc).toMatch(/useEffect[\s\S]{0,800}?buildHandoffReport/);
   });
 
-  it('Copy uses the canonical text, not buildPreviewText', () => {
-    // handleCopy must call setStringAsync with the canonical state value;
-    // it must not call buildPreviewText.
+  it('Copy uses the canonical/share text, not buildPreviewText', () => {
+    // Phase 5.7.c — handlers now use `shareText` (derived from
+    // canonicalText, with editedText overriding when the user is in
+    // edit mode). The contract still holds: user sees what ships.
     const handleCopy = sheetSrc.match(/handleCopy[\s\S]{0,400}?\}\,/);
     expect(handleCopy).toBeTruthy();
-    expect(handleCopy?.[0]).toMatch(/canonicalText|canonical/);
+    expect(handleCopy?.[0]).toMatch(/canonicalText|canonical|shareText/);
     expect(handleCopy?.[0]).not.toMatch(/buildPreviewText/);
   });
 
-  it('SMS uses the canonical text', () => {
+  it('SMS uses the canonical/share text', () => {
     const handleSms = sheetSrc.match(/handleSms[\s\S]{0,400}?\}\,/);
     expect(handleSms).toBeTruthy();
-    expect(handleSms?.[0]).toMatch(/canonicalText|canonical/);
+    expect(handleSms?.[0]).toMatch(/canonicalText|canonical|shareText/);
     expect(handleSms?.[0]).not.toMatch(/buildPreviewText/);
   });
 
-  it('Share-as-PDF uses the canonical text', () => {
-    // generateAndShareHandoff is called with the canonical body — it may
-    // be passed under a `bodyText` field or as the only payload, but the
-    // canonical state must reach it.
+  it('Share-as-PDF uses the canonical/share text', () => {
     const handleShare = sheetSrc.match(/handleSharePdf[\s\S]{0,500}?\}\,/);
     expect(handleShare).toBeTruthy();
-    expect(handleShare?.[0]).toMatch(/canonicalText|canonical/);
+    expect(handleShare?.[0]).toMatch(/canonicalText|canonical|shareText/);
+  });
+
+  it('shareText derives from canonicalText (preview-share parity invariant)', () => {
+    // The user MUST see what gets shipped. shareText pulls from
+    // canonicalText when not editing; when editing, the visible
+    // editor value (editedText) is what ships. Either source means
+    // the user is looking at the same string the action sends.
+    expect(sheetSrc).toMatch(/shareText[\s\S]{0,200}?canonicalText/);
+    expect(sheetSrc).toMatch(/shareText[\s\S]{0,200}?editedText/);
   });
 });
 

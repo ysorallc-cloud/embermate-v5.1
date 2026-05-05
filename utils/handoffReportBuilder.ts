@@ -40,6 +40,10 @@ import { logError } from './devLog';
 export interface BuildHandoffOptions {
   /** Override "now" — used by tests and by future scheduled-share flows. */
   now?: Date;
+  /** Phase 5.7.c — toggle the NOTES TODAY section. Defaults to true.
+   *  When false, the section is omitted regardless of whether a saved
+   *  reflection exists. */
+  includeNotes?: boolean;
 }
 
 export class ProfileMissingError extends Error {
@@ -257,9 +261,10 @@ export async function buildHandoffReport(opts: BuildHandoffOptions = {}): Promis
       lines.push('', 'TONE', tone.trim());
     }
 
-    // NOTES TODAY
+    // NOTES TODAY — Phase 5.7.c toggle gate. Default true.
+    const shouldIncludeNotes = opts.includeNotes !== false;
     const notes = (reflection?.text ?? '').trim();
-    if (notes.length > 0) {
+    if (shouldIncludeNotes && notes.length > 0) {
       lines.push('', 'NOTES TODAY', notes);
     }
 
