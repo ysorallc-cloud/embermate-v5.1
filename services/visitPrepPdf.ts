@@ -69,6 +69,11 @@ export interface VisitPrepConfig {
   includeWellness: boolean;
   includeJournal: boolean;
   includeQuestions: boolean;
+  /** Phase 5.10.d — toggle gates for the new sections added in 5.10.a.
+   *  Both default true on the config screen. Marked optional so callers
+   *  pre-dating this phase don't break. */
+  includeRedFlags?: boolean;
+  includeHydrationNutrition?: boolean;
   questions: string;
   patientName: string;
   caregiverName?: string;
@@ -106,6 +111,16 @@ export interface VisitPrepWhatChanged {
   userEdited: boolean;
 }
 
+export interface VisitPrepIncludes {
+  redFlags: boolean;
+  meds: boolean;
+  vitals: boolean;
+  hydrationNutrition: boolean;
+  wellness: boolean;
+  notes: boolean;
+  questions: boolean;
+}
+
 export interface VisitPrepData {
   header: {
     patientName: string;
@@ -117,6 +132,10 @@ export interface VisitPrepData {
     generatedAt: string;
     periodDays: number;
   };
+  /** Phase 5.10.d — toggle state, threaded so renderers can show header
+   *  + "no data in window" sentinel when a toggle is ON but data is sparse,
+   *  vs. omit entirely when the toggle is OFF. */
+  includes: VisitPrepIncludes;
   /** Phase 5.10.a — top-of-page critical/attention callout. Empty array
    *  → caller omits the section entirely. */
   redFlags: RedFlag[];
@@ -334,15 +353,21 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
 
   // Phase 5.10.a — Hydration & Nutrition. Cup totals + meal full/partial/
   // refused counts + appetite summary. Returns null when both arms are
-  // empty; the HTML/preview renderer omits the section in that case.
+  // empty.
+  // Phase 5.10.d — gated by includeHydrationNutrition (default true).
+  // When toggle is OFF, the renderer omits the section entirely.
+  // When toggle is ON but data is null, the renderer surfaces a
+  // "no hydration or meals logged in this window" sentinel.
   let hydrationNutrition: HydrationNutritionSummary | null = null;
-  try {
-    hydrationNutrition = await buildHydrationNutrition({
-      patientId: DEFAULT_PATIENT_ID,
-      dateRange,
-    });
-  } catch (err) {
-    logError('visitPrepPdf.hydrationNutrition', err);
+  if (config.includeHydrationNutrition !== false) {
+    try {
+      hydrationNutrition = await buildHydrationNutrition({
+        patientId: DEFAULT_PATIENT_ID,
+        dateRange,
+      });
+    } catch (err) {
+      logError('visitPrepPdf.hydrationNutrition', err);
+    }
   }
 
   // Phase 5.8.b — curate notes. Pull all reflections in the window (no
@@ -491,17 +516,34 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
       ? wellnessPatterns.sleep.avgQuality - wellnessPatterns.sleep.priorAvg
       : 0;
   const notesForFlags = selectedNotes.map((n) => ({ date: n.date, text: n.text }));
-  const redFlags = buildRedFlags({
-    adherence, vitals, notesInRange: notesForFlags,
-    symptomChanges, sleepDelta, refusedByMed,
-  });
+  // Phase 5.10.d — gated by includeRedFlags (default true).
+  const redFlags = config.includeRedFlags !== false
+    ? buildRedFlags({
+        adherence, vitals, notesInRange: notesForFlags,
+        symptomChanges, sleepDelta, refusedByMed,
+      })
+    : [];
 
   // Footer — Phase 5.8.b copy. caregiverTrimmed is non-empty here (we'd
   // have thrown ProfileMissingError otherwise).
   const footer = buildCaregiverDisclaimer(days, caregiverTrimmed);
 
+  // Phase 5.10.d — toggle state threaded for the renderer. Defaults true
+  // for the two new (5.10.a) sections so callers pre-dating this phase
+  // get the new content automatically.
+  const includes: VisitPrepIncludes = {
+    redFlags: config.includeRedFlags !== false,
+    meds: config.includeMeds,
+    vitals: config.includeVitals,
+    hydrationNutrition: config.includeHydrationNutrition !== false,
+    wellness: config.includeWellness,
+    notes: config.includeJournal,
+    questions: config.includeQuestions,
+  };
+
   return {
     header,
+    includes,
     redFlags,
     whatChanged,
     adherence,
@@ -697,17 +739,22 @@ function buildHtml(data: VisitPrepData): string {
     ${data.header.dateRange}${data.header.caregiverName ? ' · Prepared by ' + data.header.caregiverName : ''} · ${data.header.generatedAt}
   </div>
 
-  ${data.redFlags.length > 0 ? `
+  ${data.includes.redFlags ? (data.redFlags.length > 0 ? `
   <div class="callout callout-redflag">
     <h2>Red Flags &amp; Alerts</h2>
     <ul>${redFlagItems}</ul>
   </div>
-  ` : ''}
+  ` : `
+  <div class="callout callout-redflag">
+    <h2>Red Flags &amp; Alerts</h2>
+    <p style="color:#9a9aa8;">No flags raised in this window.</p>
+  </div>
+  `) : ''}
 
   <h2>What changed</h2>
   <ul>${whatChangedItems}</ul>
 
-  ${data.adherence.length > 0 ? `
+  ${data.includes.meds ? (data.adherence.length > 0 ? `
   <h2>Medication adherence</h2>
   <table>
     <tr><th>Medication</th><th>Dose</th><th>Adherence</th><th>Missed</th></tr>
@@ -720,33 +767,49 @@ function buildHtml(data: VisitPrepData): string {
     ${skippedRows}
   </table>
   ` : ''}
-  ` : ''}
+  ` : `
+  <h2>Medication adherence</h2>
+  <p style="color:#9a9aa8;">No medications logged in this window.</p>
+  `) : ''}
 
-  ${data.vitals.length > 0 ? `
+  ${data.includes.vitals ? (data.vitals.length > 0 ? `
   <h2>Vitals</h2>
   <table>
     <tr><th>Vital</th><th>Latest</th><th>Trend</th><th>Out of Range</th></tr>
     ${vitalsRows}
   </table>
-  ` : ''}
+  ` : `
+  <h2>Vitals</h2>
+  <p style="color:#9a9aa8;">No vitals readings in this window.</p>
+  `) : ''}
 
-  ${data.hydrationNutrition ? `
+  ${data.includes.hydrationNutrition ? (data.hydrationNutrition ? `
   <div class="callout callout-hydration">
     <h2>Hydration &amp; Nutrition</h2>
     ${hydrationLine ? `<p>${hydrationLine}</p>` : ''}
     ${mealsLine ? `<p>${mealsLine}</p>` : ''}
     ${appetiteLine ? `<p>${appetiteLine}</p>` : ''}
   </div>
-  ` : ''}
+  ` : `
+  <div class="callout callout-hydration">
+    <h2>Hydration &amp; Nutrition</h2>
+    <p style="color:#9a9aa8;">No hydration or meals logged in this window.</p>
+  </div>
+  `) : ''}
 
-  ${(data.wellnessPatterns.sleep || data.wellnessPatterns.energy || data.wellnessPatterns.mood) ? `
+  ${data.includes.wellness ? ((data.wellnessPatterns.sleep || data.wellnessPatterns.energy || data.wellnessPatterns.mood) ? `
   <div class="callout callout-wellness">
     <h2>Sleep, Energy &amp; Mood Patterns</h2>
     ${sleepLine ? `<p>${sleepLine}</p>` : ''}
     ${energyLine ? `<p>${energyLine}</p>` : ''}
     ${moodLine ? `<p>${moodLine}</p>` : ''}
   </div>
-  ` : ''}
+  ` : `
+  <div class="callout callout-wellness">
+    <h2>Sleep, Energy &amp; Mood Patterns</h2>
+    <p style="color:#9a9aa8;">No reflections logged in this window.</p>
+  </div>
+  `) : ''}
 
   <h2>Symptom progression</h2>
   <ul>${symptomItems}</ul>
@@ -754,11 +817,21 @@ function buildHtml(data: VisitPrepData): string {
   <h2>Functional observations</h2>
   <ul>${functionalItems}</ul>
 
+  ${data.includes.notes ? (data.journalHighlights.length > 0 ? `
   <h2>Caregiver notes</h2>
   <ul>${highlights}</ul>
+  ` : `
+  <h2>Caregiver notes</h2>
+  <p style="color:#9a9aa8;">No notes saved in this window.</p>
+  `) : ''}
 
+  ${data.includes.questions ? (data.patientQuestions.length > 0 ? `
   <h2>Questions for this visit</h2>
   <ul>${patientQuestionItems}</ul>
+  ` : `
+  <h2>Questions for this visit</h2>
+  <p style="color:#9a9aa8;">No questions saved for this visit.</p>
+  `) : ''}
 
   ${data.medicationChanges.length > 0 ? `
   <h2>What changed after medication updates</h2>

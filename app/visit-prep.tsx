@@ -77,6 +77,9 @@ export default function VisitPrepScreen() {
   const [includeWellness, setIncludeWellness] = useState(true);
   const [includeJournal, setIncludeJournal] = useState(true);
   const [includeQuestions, setIncludeQuestions] = useState(true);
+  // Phase 5.10.d — toggles for the two new clinical sections (5.10.a).
+  const [includeRedFlags, setIncludeRedFlags] = useState(true);
+  const [includeHydrationNutrition, setIncludeHydrationNutrition] = useState(true);
   const [questions, setQuestions] = useState('');
   const [generating, setGenerating] = useState(false);
 
@@ -157,6 +160,8 @@ export default function VisitPrepScreen() {
         includeWellness,
         includeJournal,
         includeQuestions,
+        includeRedFlags,
+        includeHydrationNutrition,
         questions,
         patientName,
         caregiverName,
@@ -173,7 +178,7 @@ export default function VisitPrepScreen() {
     } finally {
       setGenerating(false);
     }
-  }, [generating, range, includeMeds, includeVitals, includeWellness, includeJournal, includeQuestions, questions, patientName]);
+  }, [generating, range, includeMeds, includeVitals, includeWellness, includeJournal, includeQuestions, includeRedFlags, includeHydrationNutrition, questions, patientName]);
 
   const handleProfileSaved = useCallback(async () => {
     const res = await requireProfileFields();
@@ -227,15 +232,23 @@ export default function VisitPrepScreen() {
             ))}
           </View>
 
-          {/* Toggles */}
+          {/* Phase 5.10.d — Toggle labels and order match the PDF's
+              section names exactly. Renamed: Vitals & trends → Vitals;
+              Mood & wellness → Sleep, Energy & Mood; Journal highlights
+              → Caregiver notes; Questions for the doctor → Questions for
+              this visit. New: Red Flags & Alerts and Hydration & Nutrition
+              (both default ON). Section is rendered in BOTH preview and
+              PDF; toggling off removes the section from both surfaces. */}
           <Text style={styles.sectionLabel}>Include in report</Text>
           <View style={styles.toggleCard}>
             {[
+              { label: 'Red Flags & Alerts', value: includeRedFlags, setter: setIncludeRedFlags },
               { label: 'Medication adherence', value: includeMeds, setter: setIncludeMeds },
-              { label: 'Vitals & trends', value: includeVitals, setter: setIncludeVitals },
-              { label: 'Mood & wellness', value: includeWellness, setter: setIncludeWellness },
-              { label: 'Journal highlights', value: includeJournal, setter: setIncludeJournal },
-              { label: 'Questions for the doctor', value: includeQuestions, setter: setIncludeQuestions },
+              { label: 'Vitals', value: includeVitals, setter: setIncludeVitals },
+              { label: 'Hydration & Nutrition', value: includeHydrationNutrition, setter: setIncludeHydrationNutrition },
+              { label: 'Sleep, Energy & Mood', value: includeWellness, setter: setIncludeWellness },
+              { label: 'Caregiver notes', value: includeJournal, setter: setIncludeJournal },
+              { label: 'Questions for this visit', value: includeQuestions, setter: setIncludeQuestions },
             ].map((toggle, i) => (
               <View key={toggle.label} style={[styles.toggleRow, i > 0 && styles.toggleRowBorder]}>
                 <Text style={styles.toggleLabel}>{toggle.label}</Text>

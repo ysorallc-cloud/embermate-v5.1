@@ -218,18 +218,27 @@ export default function VisitPrepPreviewScreen() {
                 {data.header.preparedBy ? ` · Prepared by ${data.header.preparedBy}` : ''}
               </Text>
 
-              {/* Phase 5.10.a — Red Flags & Alerts callout (top of page). */}
-              {data.redFlags.length > 0 && (
+              {/* Phase 5.10.a — Red Flags & Alerts callout (top of page).
+                  Phase 5.10.d — toggle gates the entire section; when ON
+                  but no flags surface, the body becomes a "No flags
+                  raised in this window." sentinel. */}
+              {data.includes.redFlags && (
                 <View style={styles.redFlagCallout}>
                   <Text style={styles.redFlagHeader}>{'RED FLAGS & ALERTS'}</Text>
-                  {data.redFlags.map((f, i) => (
-                    <Text key={`rf-${i}`} style={styles.redFlagLine}>
-                      <Text style={styles.redFlagTag}>
-                        {f.severity === 'critical' ? 'CRITICAL: ' : 'ATTENTION: '}
+                  {data.redFlags.length > 0 ? (
+                    data.redFlags.map((f, i) => (
+                      <Text key={`rf-${i}`} style={styles.redFlagLine}>
+                        <Text style={styles.redFlagTag}>
+                          {f.severity === 'critical' ? 'CRITICAL: ' : 'ATTENTION: '}
+                        </Text>
+                        {f.text}
                       </Text>
-                      {f.text}
+                    ))
+                  ) : (
+                    <Text style={styles.redFlagLine}>
+                      {'No flags raised in this window.'}
                     </Text>
-                  ))}
+                  )}
                 </View>
               )}
 
@@ -293,85 +302,115 @@ export default function VisitPrepPreviewScreen() {
                 </View>
               )}
 
-              {/* Medication adherence */}
-              {data.adherence.length > 0 && (
+              {/* Medication adherence — Phase 5.10.d toggle linkage. */}
+              {data.includes.meds && (
                 <>
                   <Text style={styles.sectionHeader}>Medication adherence</Text>
                   <View style={styles.sectionBody}>
-                    {data.adherence.map((m, i) => (
-                      <Text key={`med-${i}`} style={styles.bulletLine}>
-                        {`• ${m.name}${m.dosage ? ' ' + m.dosage : ''} — ${m.rate}% (${m.missedDays > 0 ? m.missedDays + ' missed' : 'no misses'})`}
+                    {data.adherence.length > 0 ? (
+                      data.adherence.map((m, i) => (
+                        <Text key={`med-${i}`} style={styles.bulletLine}>
+                          {`• ${m.name}${m.dosage ? ' ' + m.dosage : ''} — ${m.rate}% (${m.missedDays > 0 ? m.missedDays + ' missed' : 'no misses'})`}
+                        </Text>
+                      ))
+                    ) : (
+                      <Text style={[styles.bulletLine, styles.bulletLineMuted]}>
+                        {'No medications logged in this window.'}
                       </Text>
-                    ))}
+                    )}
                   </View>
                 </>
               )}
 
-              {/* Vitals */}
-              {data.vitals.length > 0 && (
+              {/* Vitals — Phase 5.10.d toggle linkage. */}
+              {data.includes.vitals && (
                 <>
                   <Text style={styles.sectionHeader}>Vitals</Text>
                   <View style={styles.sectionBody}>
-                    {data.vitals.map((v, i) => (
-                      <Text key={`vital-${i}`} style={styles.bulletLine}>
-                        {`• ${v.label}: ${v.latestValue}${v.outOfRange > 0 ? ` (${v.outOfRange} out of range)` : ''}`}
+                    {data.vitals.length > 0 ? (
+                      data.vitals.map((v, i) => (
+                        <Text key={`vital-${i}`} style={styles.bulletLine}>
+                          {`• ${v.label}: ${v.latestValue}${v.outOfRange > 0 ? ` (${v.outOfRange} out of range)` : ''}`}
+                        </Text>
+                      ))
+                    ) : (
+                      <Text style={[styles.bulletLine, styles.bulletLineMuted]}>
+                        {'No vitals readings in this window.'}
                       </Text>
-                    ))}
+                    )}
                   </View>
                 </>
               )}
 
-              {/* Phase 5.10.a — Hydration & Nutrition callout. */}
-              {data.hydrationNutrition && (
+              {/* Phase 5.10.a — Hydration & Nutrition callout.
+                  Phase 5.10.d — toggle gates the section. */}
+              {data.includes.hydrationNutrition && (
                 <View style={styles.hydrationCallout}>
                   <Text style={styles.calloutHeader}>{'HYDRATION & NUTRITION'}</Text>
-                  {data.hydrationNutrition.hydration && (
+                  {data.hydrationNutrition ? (
+                    <>
+                      {data.hydrationNutrition.hydration && (
+                        <Text style={styles.calloutBody}>
+                          {`Hydration: ${data.hydrationNutrition.hydration.avgCupsPerDay.toFixed(1)} cups/day average (target ${data.hydrationNutrition.hydration.target}). ${data.hydrationNutrition.hydration.lowDays.length} low days.`}
+                        </Text>
+                      )}
+                      {data.hydrationNutrition.meals && (
+                        <Text style={styles.calloutBody}>
+                          {`Meals: ${data.hydrationNutrition.meals.fullMealDays} full days, ${data.hydrationNutrition.meals.partialMealDays} partial. ${data.hydrationNutrition.meals.refusedMeals.length} refused.`}
+                        </Text>
+                      )}
+                      {data.hydrationNutrition.appetiteSummary && (
+                        <Text style={styles.calloutBody}>{data.hydrationNutrition.appetiteSummary}</Text>
+                      )}
+                    </>
+                  ) : (
                     <Text style={styles.calloutBody}>
-                      {`Hydration: ${data.hydrationNutrition.hydration.avgCupsPerDay.toFixed(1)} cups/day average (target ${data.hydrationNutrition.hydration.target}). ${data.hydrationNutrition.hydration.lowDays.length} low days.`}
+                      {'No hydration or meals logged in this window.'}
                     </Text>
-                  )}
-                  {data.hydrationNutrition.meals && (
-                    <Text style={styles.calloutBody}>
-                      {`Meals: ${data.hydrationNutrition.meals.fullMealDays} full days, ${data.hydrationNutrition.meals.partialMealDays} partial. ${data.hydrationNutrition.meals.refusedMeals.length} refused.`}
-                    </Text>
-                  )}
-                  {data.hydrationNutrition.appetiteSummary && (
-                    <Text style={styles.calloutBody}>{data.hydrationNutrition.appetiteSummary}</Text>
                   )}
                 </View>
               )}
 
-              {/* Phase 5.10.a — Sleep, Energy & Mood Patterns callout. */}
-              {(data.wellnessPatterns.sleep || data.wellnessPatterns.energy || data.wellnessPatterns.mood) && (
+              {/* Phase 5.10.a — Sleep, Energy & Mood Patterns callout.
+                  Phase 5.10.d — toggle gates the section. */}
+              {data.includes.wellness && (
                 <View style={styles.wellnessCallout}>
                   <Text style={styles.calloutHeader}>{'SLEEP, ENERGY & MOOD PATTERNS'}</Text>
-                  {data.wellnessPatterns.sleep && (
+                  {(data.wellnessPatterns.sleep || data.wellnessPatterns.energy || data.wellnessPatterns.mood) ? (
+                    <>
+                      {data.wellnessPatterns.sleep && (
+                        <Text style={styles.calloutBody}>
+                          <Text style={styles.calloutLabel}>{'Sleep: '}</Text>
+                          {`${data.wellnessPatterns.sleep.avgQuality.toFixed(1)}/5 average`}
+                          {data.wellnessPatterns.sleep.priorAvg !== null
+                            ? ` (vs ${data.wellnessPatterns.sleep.priorAvg.toFixed(1)} prior period)`
+                            : ''}
+                          {data.wellnessPatterns.sleep.poorNights.length > 0
+                            ? `. ${data.wellnessPatterns.sleep.poorNights.length} poor night${data.wellnessPatterns.sleep.poorNights.length === 1 ? '' : 's'}`
+                            : ''}
+                          {data.wellnessPatterns.sleep.earlierWaking ? ' · concentrating recently' : ''}.
+                        </Text>
+                      )}
+                      {data.wellnessPatterns.energy && (
+                        <Text style={styles.calloutBody}>
+                          <Text style={styles.calloutLabel}>{'Energy: '}</Text>
+                          {`${data.wellnessPatterns.energy.afternoonDipDays} low-energy day${data.wellnessPatterns.energy.afternoonDipDays === 1 ? '' : 's'}`}
+                          {data.wellnessPatterns.energy.correlatesWithPoorSleep && data.wellnessPatterns.energy.correlatesWithPoorSleep > 0
+                            ? ` (correlates with poor sleep on ${data.wellnessPatterns.energy.correlatesWithPoorSleep} of those)`
+                            : ''}
+                          .
+                        </Text>
+                      )}
+                      {data.wellnessPatterns.mood && (
+                        <Text style={styles.calloutBody}>
+                          <Text style={styles.calloutLabel}>{'Mood: '}</Text>
+                          {`${data.wellnessPatterns.mood.difficultMornings.length} difficult morning${data.wellnessPatterns.mood.difficultMornings.length === 1 ? '' : 's'}.`}
+                        </Text>
+                      )}
+                    </>
+                  ) : (
                     <Text style={styles.calloutBody}>
-                      <Text style={styles.calloutLabel}>{'Sleep: '}</Text>
-                      {`${data.wellnessPatterns.sleep.avgQuality.toFixed(1)}/5 average`}
-                      {data.wellnessPatterns.sleep.priorAvg !== null
-                        ? ` (vs ${data.wellnessPatterns.sleep.priorAvg.toFixed(1)} prior period)`
-                        : ''}
-                      {data.wellnessPatterns.sleep.poorNights.length > 0
-                        ? `. ${data.wellnessPatterns.sleep.poorNights.length} poor night${data.wellnessPatterns.sleep.poorNights.length === 1 ? '' : 's'}`
-                        : ''}
-                      {data.wellnessPatterns.sleep.earlierWaking ? ' · concentrating recently' : ''}.
-                    </Text>
-                  )}
-                  {data.wellnessPatterns.energy && (
-                    <Text style={styles.calloutBody}>
-                      <Text style={styles.calloutLabel}>{'Energy: '}</Text>
-                      {`${data.wellnessPatterns.energy.afternoonDipDays} low-energy day${data.wellnessPatterns.energy.afternoonDipDays === 1 ? '' : 's'}`}
-                      {data.wellnessPatterns.energy.correlatesWithPoorSleep && data.wellnessPatterns.energy.correlatesWithPoorSleep > 0
-                        ? ` (correlates with poor sleep on ${data.wellnessPatterns.energy.correlatesWithPoorSleep} of those)`
-                        : ''}
-                      .
-                    </Text>
-                  )}
-                  {data.wellnessPatterns.mood && (
-                    <Text style={styles.calloutBody}>
-                      <Text style={styles.calloutLabel}>{'Mood: '}</Text>
-                      {`${data.wellnessPatterns.mood.difficultMornings.length} difficult morning${data.wellnessPatterns.mood.difficultMornings.length === 1 ? '' : 's'}.`}
+                      {'No reflections logged in this window.'}
                     </Text>
                   )}
                 </View>
@@ -411,30 +450,42 @@ export default function VisitPrepPreviewScreen() {
                 </>
               )}
 
-              {/* Caregiver notes */}
-              {(data.selectedNotes.length > 0 || data.journalHighlights.length > 0) && (
+              {/* Caregiver notes — Phase 5.10.d toggle linkage. */}
+              {data.includes.notes && (
                 <>
                   <Text style={styles.sectionHeader}>Caregiver notes</Text>
                   <View style={styles.sectionBody}>
-                    {data.selectedNotes.map((n, i) => (
-                      <Text key={`note-${i}`} style={styles.bulletLine}>
-                        {`• ${new Date(`${n.date}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${n.text}`}
+                    {data.selectedNotes.length > 0 ? (
+                      data.selectedNotes.map((n, i) => (
+                        <Text key={`note-${i}`} style={styles.bulletLine}>
+                          {`• ${new Date(`${n.date}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${n.text}`}
+                        </Text>
+                      ))
+                    ) : (
+                      <Text style={[styles.bulletLine, styles.bulletLineMuted]}>
+                        {'No notes saved in this window.'}
                       </Text>
-                    ))}
+                    )}
                   </View>
                 </>
               )}
 
-              {/* Questions for this visit */}
-              {data.patientQuestions.length > 0 && (
+              {/* Questions for this visit — Phase 5.10.d toggle linkage. */}
+              {data.includes.questions && (
                 <>
                   <Text style={styles.sectionHeader}>Questions for this visit</Text>
                   <View style={styles.sectionBody}>
-                    {data.patientQuestions.map((q, i) => (
-                      <Text key={`q-${i}`} style={styles.bulletLine}>
-                        {`• ${q}`}
+                    {data.patientQuestions.length > 0 ? (
+                      data.patientQuestions.map((q, i) => (
+                        <Text key={`q-${i}`} style={styles.bulletLine}>
+                          {`• ${q}`}
+                        </Text>
+                      ))
+                    ) : (
+                      <Text style={[styles.bulletLine, styles.bulletLineMuted]}>
+                        {'No questions saved for this visit.'}
                       </Text>
-                    ))}
+                    )}
                   </View>
                 </>
               )}
