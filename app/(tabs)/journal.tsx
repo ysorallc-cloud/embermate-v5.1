@@ -438,6 +438,16 @@ export default function JournalTab() {
     : null;
   const showAppointment = brief?.nextAppointment && daysUntilAppt != null && daysUntilAppt <= 7;
 
+  // UX-restructure (Commit 6) — feed-forward banner. Visible when an
+  // appointment is within 14 days. Connects daily logging to the
+  // clinical visit-prep report on Insights.
+  const FEED_LOOKAHEAD_DAYS = 14;
+  const showFeedBanner =
+    isViewingToday &&
+    brief?.nextAppointment &&
+    daysUntilAppt != null &&
+    daysUntilAppt <= FEED_LOOKAHEAD_DAYS;
+
   // ============================================================================
   // BRIEFING NARRATIVE
   // ============================================================================
@@ -525,6 +535,25 @@ export default function JournalTab() {
             </TouchableOpacity>
           )}
 
+
+          {/* UX-restructure (Commit 6) — feed-forward banner. Connects
+              daily logging on Journal to the clinical visit-prep report
+              on Insights when an appointment is within 14 days. */}
+          {showFeedBanner && brief?.nextAppointment && (
+            <TouchableOpacity
+              style={s.feedBanner}
+              onPress={() => navigate('/(tabs)/understand')}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={`Your entries are building ${patientName}'s visit prep for ${brief.nextAppointment.provider}, ${daysUntilAppt} days away`}
+            >
+              <Text style={s.feedBannerIcon}>{'🩺'}</Text>
+              <Text style={s.feedBannerText} numberOfLines={2}>
+                {`Your entries are building ${patientName}'s visit prep for ${brief.nextAppointment.provider} · ${daysUntilAppt} day${daysUntilAppt === 1 ? '' : 's'}`}
+              </Text>
+              <Text style={s.feedBannerArrow}>{'›'}</Text>
+            </TouchableOpacity>
+          )}
 
           {/* ═══ DATE TAB STRIP (left fade + Jump popover replace MonthCalendar) ═══ */}
           <DateTabStrip
@@ -689,6 +718,34 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   authGateButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
 
   // ─── SAMPLE DATA INDICATOR ───
+  // UX-restructure (Commit 6) — feed-forward banner. Lavender tint
+  // signals the clinical lane (visit prep on Insights).
+  feedBanner: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    backgroundColor: c.caregiverAccentBg,
+    borderWidth: 0.5,
+    borderColor: c.caregiverAccentBorder,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 10,
+  },
+  feedBannerIcon: {
+    fontSize: 14,
+  },
+  feedBannerText: {
+    flex: 1,
+    fontSize: 12,
+    color: c.caregiverAccent,
+    fontWeight: '500' as const,
+    lineHeight: 16,
+  },
+  feedBannerArrow: {
+    fontSize: 16,
+    color: c.caregiverAccent,
+  },
   sampleIndicator: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
