@@ -1,5 +1,5 @@
 // ============================================================================
-// JournalPatternLink — single tappable card pointing at the Insights tab.
+// RecentWindowCard — single tappable card pointing at the Insights tab.
 // Phase 4 of the Journal handoff redesign — replaces the heavier Patterns
 // paragraph with a one-line acknowledgement.
 // ============================================================================
@@ -35,7 +35,7 @@ jest.mock('react-native', () => {
   };
 });
 
-import { JournalPatternLink } from '../../components/journal/JournalPatternLink';
+import { RecentWindowCard } from '../../components/understand/RecentWindowCard';
 
 function findAll(node: any, predicate: (n: any) => boolean): any[] {
   if (!node || typeof node !== 'object') return [];
@@ -67,33 +67,33 @@ beforeEach(() => {
   mockNavigate.mockReset();
 });
 
-describe('JournalPatternLink — visibility', () => {
+describe('RecentWindowCard — visibility', () => {
   it('renders nothing when no patterns are passed', () => {
-    expect(JournalPatternLink({ topPattern: null })).toBeNull();
+    expect(RecentWindowCard({ topPattern: null })).toBeNull();
   });
 
   it('renders the card when a pattern exists', () => {
-    const tree = JournalPatternLink({ topPattern: samplePattern });
+    const tree = RecentWindowCard({ topPattern: samplePattern });
     expect(tree).not.toBeNull();
   });
 });
 
-describe('JournalPatternLink — content', () => {
+describe('RecentWindowCard — content', () => {
   it('shows the tightened static title "This week"', () => {
     // v6.7: shortened from "This week's pattern" → "This week" so the
     // pattern engine's headline carries the full meaning in the subtitle.
-    const tree = JournalPatternLink({ topPattern: samplePattern });
+    const tree = RecentWindowCard({ topPattern: samplePattern });
     expect(flattenText(tree)).toContain('This week');
     expect(flattenText(tree)).not.toContain("This week's pattern");
   });
 
   it('shows the pattern\'s headline sentence as the subtitle', () => {
-    const tree = JournalPatternLink({ topPattern: samplePattern });
+    const tree = RecentWindowCard({ topPattern: samplePattern });
     expect(flattenText(tree)).toContain('Med adherence is low');
   });
 
   it('takes only the first sentence of a multi-sentence pattern context', () => {
-    const tree = JournalPatternLink({
+    const tree = RecentWindowCard({
       topPattern: {
         id: 'p1',
         title: 'Sleep is variable',
@@ -106,21 +106,21 @@ describe('JournalPatternLink — content', () => {
   });
 
   it('falls back to the pattern title when no context is provided', () => {
-    const tree = JournalPatternLink({
+    const tree = RecentWindowCard({
       topPattern: { id: 'p1', title: 'Mood dipped on Tuesday', context: '' },
     });
     expect(flattenText(tree)).toContain('Mood dipped on Tuesday');
   });
 
   it('renders the chevron affordance', () => {
-    const tree = JournalPatternLink({ topPattern: samplePattern });
+    const tree = RecentWindowCard({ topPattern: samplePattern });
     expect(flattenText(tree)).toMatch(/›|→/);
   });
 });
 
-describe('JournalPatternLink — navigation', () => {
+describe('RecentWindowCard — navigation', () => {
   it('tapping the card navigates to the Insights tab with the scrollTo param', () => {
-    const tree = JournalPatternLink({ topPattern: samplePattern });
+    const tree = RecentWindowCard({ topPattern: samplePattern });
     const button = findAll(tree, (n) => n.type === 'TouchableOpacity')[0];
     expect(button).toBeDefined();
     button.props.onPress();
@@ -129,7 +129,7 @@ describe('JournalPatternLink — navigation', () => {
   });
 
   it('exposes a button accessibility role + descriptive label', () => {
-    const tree = JournalPatternLink({ topPattern: samplePattern });
+    const tree = RecentWindowCard({ topPattern: samplePattern });
     const button = findAll(tree, (n) => n.type === 'TouchableOpacity')[0];
     expect(button.props.accessibilityRole).toBe('button');
     expect(button.props.accessibilityLabel).toMatch(/pattern|insights/i);

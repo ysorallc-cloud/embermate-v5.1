@@ -1,8 +1,15 @@
 // ============================================================================
-// JOURNAL PATTERN LINK
-// Demoted Patterns surface — Journal acknowledges in passing, Insights
-// analyzes in depth. Single tappable card that takes only the headline
-// sentence from the existing pattern engine and routes to the Insights tab.
+// RECENT WINDOW CARD — Phase 5.11
+//
+// Renamed and relocated from components/journal/JournalPatternLink.tsx.
+// Now-and-Journal are today-focused; longitudinal stats belong on
+// Insights, which dedicates itself to patterns over time.
+//
+// The card itself is unchanged in behavior and styling — single tappable
+// row showing the first sentence of the top-ranked pattern's `context`.
+// Tap routes to /(tabs)/understand?scrollTo={id} for the deep-link scroll;
+// since the card now LIVES on Insights, the tap is mostly a scroll
+// affordance to a more detailed pattern card lower on the page.
 // ============================================================================
 
 import React, { useMemo } from 'react';
@@ -18,7 +25,7 @@ export interface PatternHeadline {
   context?: string;
 }
 
-export interface JournalPatternLinkProps {
+export interface RecentWindowCardProps {
   topPattern: PatternHeadline | null;
 }
 
@@ -29,7 +36,7 @@ function firstSentence(input: string | undefined): string {
   return (m ? m[0] : input).trim();
 }
 
-export function JournalPatternLink({ topPattern }: JournalPatternLinkProps) {
+export function RecentWindowCard({ topPattern }: RecentWindowCardProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -56,7 +63,7 @@ export function JournalPatternLink({ topPattern }: JournalPatternLinkProps) {
 }
 
 const createStyles = (c: any) => StyleSheet.create({
-  // Phase 5d cleanup:
+  // Phase 5d cleanup carries over:
   //   • Symmetric padding via Sizing.cardInternalPadding (12pt) — Phase 2
   //     contract; the prior 10/12 axis split was a pre-spec asymmetry.
   //   • Lavender bg + border routed through caregiverAccent token family
@@ -97,4 +104,4 @@ const createStyles = (c: any) => StyleSheet.create({
   },
 });
 
-export default JournalPatternLink;
+export default RecentWindowCard;

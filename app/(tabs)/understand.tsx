@@ -45,6 +45,8 @@ import { EVENT } from '../../lib/eventNames';
 import { buildProviderPrep, ProviderPrepData } from '../../utils/providerPrepBuilder';
 import { ShareToast } from '../../components/shared/ShareToast';
 import { InsightsEmptyStatePreview } from '../../components/understand/InsightsEmptyStatePreview';
+import { RecentWindowCard, type PatternHeadline } from '../../components/understand/RecentWindowCard';
+import { getAllInsights, type InsightData } from '../../utils/insightEngine';
 import { classifyInsightsState, gatingForState } from '../../utils/insightsState';
 import { getVitalsInRange, VitalReading } from '../../utils/vitalsStorage';
 import { listDailyInstancesRange, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
@@ -459,6 +461,8 @@ export default function UnderstandScreen() {
   const [vitalTiles, setVitalTiles] = useState<VitalTile[]>([]);
   const [shareToastVisible, setShareToastVisible] = useState(false);
   const [adherence, setAdherence] = useState<AdherenceData | null>(null);
+  // Phase 5.11 — top-ranked pattern feeds the THIS WEEK card.
+  const [topPattern, setTopPattern] = useState<PatternHeadline | null>(null);
   const [expandedCorrelation, setExpandedCorrelation] = useState<number | null>(0);
 
   // Animated values for chevron rotation
@@ -527,6 +531,20 @@ export default function UnderstandScreen() {
       } catch (err) {
         logError('UnderstandScreen.loadProviderPrep', err);
         setProviderPrep(null);
+      }
+
+      // Phase 5.11 — top-ranked pattern for the THIS WEEK card.
+      try {
+        const all = await getAllInsights();
+        const head = all[0] ?? null;
+        setTopPattern(head ? {
+          id: head.id,
+          title: head.title,
+          context: head.context,
+        } : null);
+      } catch (err) {
+        logError('UnderstandScreen.loadTopPattern', err);
+        setTopPattern(null);
       }
     } catch (error) {
       logError('UnderstandScreen.loadData', error);
@@ -801,6 +819,23 @@ export default function UnderstandScreen() {
               first-impression damage. Default per spec — Visit prep
               follows the same gate as the other reports. */}
 
+          {/* Phase 5.11 — THIS WEEK card. Relocated from Journal: longitudinal
+              data (7-day pattern headline) belongs on Insights. Gated to
+              render in building + populated states; absent in empty (no
+              patterns yet to surface). */}
+          {pageData && topPattern && (() => {
+            const days = pageData.daysOfData;
+            const events = days > 0 ? 1 : 0;
+            const state = classifyInsightsState(days, events);
+            if (state === 'empty') return null;
+            return (
+              <View style={styles.thisWeekSection}>
+                <Text style={styles.thisWeekEyebrow}>{'THIS WEEK'}</Text>
+                <RecentWindowCard topPattern={topPattern} />
+              </View>
+            );
+          })()}
+
           {/* Phase 5.10.b — UPCOMING VISIT card. Renders OUTSIDE the
               data-state gating so a 5-day-out appointment surfaces even
               in empty/building states. */}
@@ -1032,6 +1067,22 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
     marginVertical: Spacing.md,
     marginHorizontal: -16,
+  },
+
+  // Phase 5.11 — THIS WEEK section. Eyebrow + RecentWindowCard pulled
+  // up out of Journal so longitudinal data lives where users go to look
+  // at trends.
+  thisWeekSection: {
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  thisWeekEyebrow: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    letterSpacing: 0.5,
+    color: c.textSecondary,
+    textTransform: 'uppercase' as const,
+    marginBottom: 6,
   },
 
   // Section

@@ -176,7 +176,7 @@ const createStyles = (c: any) => StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   // Lavender secondary card — Visit prep. caregiverAccent* family,
-  // matching JournalPatternLink and EndOfShiftCard.
+  // matching RecentWindowCard and EndOfShiftCard.
   visitPrepCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',

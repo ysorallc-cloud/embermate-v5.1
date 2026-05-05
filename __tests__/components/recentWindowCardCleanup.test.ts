@@ -1,7 +1,7 @@
 // ============================================================================
-// JournalPatternLink ("This week" card) cleanup — Phase 5d.
+// RecentWindowCard ("This week" card) cleanup — Phase 5d.
 //
-// Two pre-existing issues in components/journal/JournalPatternLink.tsx:
+// Two pre-existing issues in components/journal/RecentWindowCard.tsx:
 //
 //   1. Asymmetric padding (paddingVertical: 10, paddingHorizontal: 12) —
 //      diverges from the Phase 2 symmetric card-padding contract. The
@@ -26,8 +26,11 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 const ROOT = join(__dirname, '../..');
+// Phase 5.11 — file relocated to components/understand/RecentWindowCard.tsx.
+// The 5d cleanup contract (symmetric padding + caregiverAccent token
+// migration) carries over unchanged.
 const src = readFileSync(
-  join(ROOT, 'components/journal/JournalPatternLink.tsx'),
+  join(ROOT, 'components/understand/RecentWindowCard.tsx'),
   'utf8',
 );
 
@@ -49,7 +52,7 @@ function extractStyleBody(name: string): string {
     .join('\n');
 }
 
-describe('Phase 5d — JournalPatternLink padding symmetry', () => {
+describe('Phase 5d — RecentWindowCard padding symmetry', () => {
   const card = extractStyleBody('card');
 
   it('padding routes through Sizing.cardInternalPadding (no axis split)', () => {
@@ -62,7 +65,7 @@ describe('Phase 5d — JournalPatternLink padding symmetry', () => {
   });
 });
 
-describe('Phase 5d — JournalPatternLink lavender palette routes through tokens', () => {
+describe('Phase 5d — RecentWindowCard lavender palette routes through tokens', () => {
   const card = extractStyleBody('card');
 
   it('backgroundColor uses c.caregiverAccentBg (not a hardcoded rgba)', () => {
@@ -82,7 +85,7 @@ describe('Phase 5d — JournalPatternLink lavender palette routes through tokens
 });
 
 describe('Phase 5d — Sizing import plumbed', () => {
-  it('JournalPatternLink imports Sizing from theme-tokens', () => {
+  it('RecentWindowCard imports Sizing from theme-tokens', () => {
     expect(src).toMatch(
       /import\s*\{[^}]*\bSizing\b[^}]*\}\s*from\s*['"][^'"]*theme-tokens['"]/,
     );

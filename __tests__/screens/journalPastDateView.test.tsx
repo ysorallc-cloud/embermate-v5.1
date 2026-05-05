@@ -47,14 +47,11 @@ describe('journal.tsx — past-date view wiring', () => {
     expect(journalSrc).toMatch(/<JournalNotesCard[\s\S]{0,500}?readOnly=\{isViewingPast\}/);
   });
 
-  it('Pattern link card is unconditionally rendered (weekly, not day-scoped)', () => {
-    // Search for <JournalPatternLink that is NOT immediately preceded by
-    // an isViewingPast gate.
-    expect(journalSrc).toMatch(/<JournalPatternLink\b/);
-    // The line above the JournalPatternLink should not be a past-gate.
-    const idx = journalSrc.indexOf('<JournalPatternLink');
-    const before = journalSrc.slice(Math.max(0, idx - 200), idx);
-    expect(before).not.toMatch(/isViewingPast\s*&&\s*$/);
+  it('Pattern link card is no longer on Journal at all (Phase 5.11 → Insights)', () => {
+    // The card moved to /(tabs)/understand.tsx as RecentWindowCard.
+    // Journal carries no version of the pattern link, day-scoped or not.
+    expect(journalSrc).not.toMatch(/<JournalPatternLink\b/);
+    expect(journalSrc).not.toMatch(/<RecentWindowCard\b/);
   });
 });
 

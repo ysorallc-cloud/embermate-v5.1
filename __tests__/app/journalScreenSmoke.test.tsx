@@ -109,9 +109,8 @@ jest.mock('../../components/ScreenHeader', () => {
 jest.mock('../../components/journal/JournalNotesCard', () => ({
   JournalNotesCard: () => null,
 }));
-jest.mock('../../components/journal/JournalPatternLink', () => ({
-  JournalPatternLink: () => null,
-}));
+// Phase 5.11 — JournalPatternLink relocated to Insights as RecentWindowCard.
+// No mock needed; Journal no longer imports it.
 jest.mock('../../components/journal/HandoffCard', () => ({
   HandoffCard: () => null,
 }));
@@ -293,9 +292,8 @@ jest.mock('../../components/journal/TodayOutcomes', () => ({
     return React.createElement('Text', { testID: 'today-outcomes' }, '[TodayOutcomes]');
   },
 }));
-jest.mock('../../components/journal/JournalPatternLink', () => ({
-  JournalPatternLink: () => null,
-}));
+// Phase 5.11 — JournalPatternLink relocated to Insights as RecentWindowCard.
+// No mock needed; Journal no longer imports it.
 jest.mock('../../components/journal/HandoffCard', () => ({
   HandoffCard: () => null,
 }));

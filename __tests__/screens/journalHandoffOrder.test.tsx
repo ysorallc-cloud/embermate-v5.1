@@ -21,8 +21,10 @@ describe('Journal — new sections present', () => {
     expect(src).toMatch(/import\s+\{\s*JournalNotesCard\s*\}\s+from\s+['"][^'"]+JournalNotesCard['"]/);
   });
 
-  it('imports JournalPatternLink', () => {
-    expect(src).toMatch(/import\s+\{\s*JournalPatternLink\s*\}\s+from\s+['"][^'"]+JournalPatternLink['"]/);
+  it('no longer imports JournalPatternLink (Phase 5.11 relocated to Insights)', () => {
+    // The card moved out of Journal to /(tabs)/understand.tsx as
+    // RecentWindowCard. Journal no longer imports it.
+    expect(src).not.toMatch(/JournalPatternLink/);
   });
 
   it('imports HandoffCard', () => {
@@ -41,8 +43,8 @@ describe('Journal — new sections present', () => {
     expect(src).toMatch(/<JournalNotesCard\b/);
   });
 
-  it('renders JournalPatternLink', () => {
-    expect(src).toMatch(/<JournalPatternLink\b/);
+  it('no longer renders JournalPatternLink (Phase 5.11 relocated to Insights)', () => {
+    expect(src).not.toMatch(/<JournalPatternLink\b/);
   });
 
   it('renders HandoffCard', () => {
@@ -63,16 +65,10 @@ describe('Journal — section order in the rendered tree', () => {
     expect(outcomes).toBeLessThan(notes);
   });
 
-  it('JournalNotesCard appears before <JournalPatternLink', () => {
+  it('JournalNotesCard appears before HandoffCard (Phase 5.11 dropped the Pattern Link from this column)', () => {
     const notes = src.indexOf('<JournalNotesCard');
-    const pattern = src.indexOf('<JournalPatternLink');
-    expect(notes).toBeLessThan(pattern);
-  });
-
-  it('JournalPatternLink appears before <HandoffCard', () => {
-    const pattern = src.indexOf('<JournalPatternLink');
     const handoff = src.indexOf('<HandoffCard');
-    expect(pattern).toBeLessThan(handoff);
+    expect(notes).toBeLessThan(handoff);
   });
 });
 

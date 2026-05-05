@@ -25,7 +25,6 @@ import {
   buildCareBrief,
   CareBrief,
 } from '../../utils/careSummaryBuilder';
-import { getAllInsights, InsightData } from '../../utils/insightEngine';
 import { logError } from '../../utils/devLog';
 import { useCareTasks } from '../../hooks/useCareTasks';
 import { useEnabledBuckets } from '../../hooks/useCarePlanConfig';
@@ -49,7 +48,6 @@ import { DateTabStrip } from '../../components/journal/DateTabStrip';
 import { JournalNotesCard } from '../../components/journal/JournalNotesCard';
 import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataSheet';
 import { TodayOutcomes } from '../../components/journal/TodayOutcomes';
-import { JournalPatternLink } from '../../components/journal/JournalPatternLink';
 import { HandoffCard } from '../../components/journal/HandoffCard';
 import { HandoffSheet } from '../../components/journal/HandoffSheet';
 import { ExportChooserSheet } from '../../components/journal/ExportChooserSheet';
@@ -73,7 +71,6 @@ export default function JournalTab() {
   const [error, setError] = useState<string | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
   const [todayNotes, setTodayNotes] = useState<NotesLog[]>([]);
-  const [insights, setInsights] = useState<InsightData[]>([]);
   const { state: careTasksState } = useCareTasks(getTodayDateString());
   const { enabledBuckets } = useEnabledBuckets();
   const [medicalInfo, setMedicalInfo] = useState<MedicalInfo | null>(null);
@@ -217,14 +214,8 @@ export default function JournalTab() {
         setTodayNotes([]);
       }
 
-      // Load insights
-      try {
-        const allInsights = await getAllInsights();
-        setInsights(allInsights);
-      } catch (err) {
-        logError('JournalTab.loadInsights', err);
-        setInsights([]);
-      }
+      // Phase 5.11 — insights loading removed; the card that consumed it
+      // is now on the Insights tab. The Insights tab loads its own data.
 
       // Load patient context for patient card + share
       try {
@@ -578,14 +569,9 @@ export default function JournalTab() {
             />
           </View>
 
-          {/* ═══ PATTERNS (Phase 4) — demoted to a one-line link card ═══ */}
-          <JournalPatternLink
-            topPattern={insights.length > 0 ? {
-              id: insights[0].id,
-              title: insights[0].title,
-              context: insights[0].context,
-            } : null}
-          />
+          {/* Phase 5.11 — "This week" pattern card relocated to Insights.
+              Now and Journal are today-focused; longitudinal stats live
+              on the Insights tab. */}
 
           {/* ═══ HANDOFF CARD (Phase 6) — hidden on past dates ═══ */}
           {!isViewingPast && (

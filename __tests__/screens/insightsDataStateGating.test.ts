@@ -37,11 +37,12 @@ describe('Phase 3.7.3 — Insights data-state gating wired into understand.tsx',
 
   it('Reports section is gated by gating.showReports', () => {
     // The wrapper IIFE must mention `gating.showReports` near the
-    // Reports section. We pin both: the section header marker AND the
-    // gating reference within ~600 chars of it (the Reports IIFE).
+    // Reports section. Window widened to 2000 chars after Phase 5.11
+    // inserted the THIS WEEK + UPCOMING VISIT cards between the marker
+    // and the gating IIFE.
     const reportsIdx = understandSrc.indexOf('═══ REPORTS ═══');
     expect(reportsIdx).toBeGreaterThan(0);
-    const window = understandSrc.slice(reportsIdx, reportsIdx + 1000);
+    const window = understandSrc.slice(reportsIdx, reportsIdx + 2000);
     expect(window).toMatch(/gating\.showReports\b/);
   });
 
