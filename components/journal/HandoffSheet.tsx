@@ -588,7 +588,7 @@ const createStyles = (c: any) => StyleSheet.create({
     // the canonical body don't appear to slide under the buttons.
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: c.border,
-    paddingTop: 14,
+    paddingTop: 14, // allow: divider clearance above action stack
     marginTop: 4,
     gap: 8,
   },

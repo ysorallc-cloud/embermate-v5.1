@@ -136,13 +136,13 @@ describe('InsightsEmptyStatePreview — What we\'ll be watching card', () => {
     expect(flattenText(tree)).not.toContain('Patient');
   });
 
-  it('renders four pattern preview rows in order (verbatim copy)', () => {
+  it('renders four pattern preview rows in order (Phase 6.3 caregiver-voice copy)', () => {
     const tree = (InsightsEmptyStatePreview as any)({ daysOfData: 4, patientName: 'Mom' });
     const text = flattenText(tree);
-    expect(text).toContain('Whether sleep quality affects her BP readings');
-    expect(text).toContain('skipped doses cluster on certain days');
-    expect(text).toContain('Whether hydration affects her energy');
-    expect(text).toContain('Mood patterns through the week');
+    expect(text).toContain("If rough nights show up in the morning's BP.");
+    expect(text).toContain('Whether missed doses fall on the same days');
+    expect(text).toContain('If drinking more water shows up in energy or pain.');
+    expect(text).toContain('Whether calm days and rough days fall on a pattern.');
   });
 
   it('shows the correct when-tags (~2 wks, ~2 wks, ~3 wks, ~4 wks)', () => {
