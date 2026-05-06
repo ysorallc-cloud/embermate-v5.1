@@ -469,7 +469,9 @@ const createStyles = (c: any) => StyleSheet.create({
     minHeight: 0,
   },
   previewContent: {
-    paddingBottom: 12,
+    // Trailing space so the last section card clears the divider/actions
+    // when the user scrolls to the end of the body.
+    paddingBottom: 20,
   },
   section: {
     marginBottom: Spacing.md,
@@ -581,7 +583,13 @@ const createStyles = (c: any) => StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   actions: {
-    marginTop: 8,
+    // Hairline divider + top padding visually separate the action stack
+    // from the scrolling preview, so structured cards near the bottom of
+    // the canonical body don't appear to slide under the buttons.
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: c.border,
+    paddingTop: 14,
+    marginTop: 4,
     gap: 8,
   },
   // Phase 5.7.c-visual — primary CTA. Sage-filled, dark text. The most
