@@ -34,25 +34,27 @@ interface PatternPreview {
   when: string;
 }
 
+// Phase 6.3 — caregiver-voice rewrite. Same four observation themes,
+// neutral pronouns, plain-spoken phrasing.
 const PATTERN_PREVIEWS: PatternPreview[] = [
   {
     icon: '📊',
-    description: 'Whether sleep quality affects her BP readings the next morning.',
+    description: "If rough nights show up in the morning's BP.",
     when: '~2 wks',
   },
   {
     icon: '💊',
-    description: 'If skipped doses cluster on certain days or after poor sleep.',
+    description: 'Whether missed doses fall on the same days or follow rough nights.',
     when: '~2 wks',
   },
   {
     icon: '💧',
-    description: 'Whether hydration affects her energy and pain levels.',
+    description: 'If drinking more water shows up in energy or pain.',
     when: '~3 wks',
   },
   {
     icon: '🌅',
-    description: 'Mood patterns through the week — when calm and rough days tend to fall.',
+    description: 'Whether calm days and rough days fall on a pattern.',
     when: '~4 wks',
   },
 ];
