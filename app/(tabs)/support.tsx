@@ -227,16 +227,20 @@ function createStyles(c: typeof Colors) {
       paddingBottom: 4,
     },
     // ── Footer affirmation ──
+    // Phase 7.4 — Option B: lift the closing affirmation slightly so it
+    // reads as a deliberate emotional beat rather than chrome. +2pt
+    // type, +1 token of color (textTertiary → textSecondary), +8pt of
+    // vertical breathing room above and below.
     footer: {
       alignItems: 'center' as const,
-      paddingTop: 36,
-      paddingBottom: 100,
+      paddingTop: 44,
+      paddingBottom: 108,
     },
     footerText: {
-      fontSize: 13,
-      color: c.textTertiary,
+      fontSize: 15,
+      color: c.textSecondary,
       textAlign: 'center' as const,
-      lineHeight: 21,
+      lineHeight: 24,
       fontStyle: 'italic' as const,
     },
   });
