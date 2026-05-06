@@ -98,6 +98,21 @@ export function InsightsEmptyStatePreview({
         {/* Top half — patterns coming countdown */}
         <View style={styles.consolidatedTop}>
           <Text style={styles.patternsEyebrow}>{'PATTERNS COMING'}</Text>
+          {/* Phase 6.2 — visible progress through the 14-day window. The
+              bar fill width caps at 100% defensively; in practice this
+              component returns null at daysOfData >= 14. */}
+          <View testID="insights-progress-track" style={styles.progressBar}>
+            <View
+              testID="insights-progress-fill"
+              style={[
+                styles.progressFill,
+                { width: `${Math.min(100, (daysOfData / 14) * 100)}%` },
+              ]}
+            />
+          </View>
+          <Text testID="insights-progress-label" style={styles.progressLabel}>
+            {`${daysOfData} of 14 days`}
+          </Text>
           <Text style={styles.patternsHeadline}>
             {`${remainingLabel}, then trends appear.`}
           </Text>
@@ -176,6 +191,26 @@ const createStyles = (c: any) => StyleSheet.create({
     color: c.accent,
     textTransform: 'uppercase',
     marginBottom: 6,
+  },
+  // Phase 6.2 — slim progress bar for the 14-day building window. Sage
+  // fill matches the eyebrow accent (legitimate progress signal, not
+  // competing with another sage element on this surface).
+  progressBar: {
+    height: 4,
+    backgroundColor: 'rgba(255, 240, 215, 0.06)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 4,
+    backgroundColor: c.accent,
+    borderRadius: 2,
+  },
+  progressLabel: {
+    fontSize: 9.5,
+    color: c.textTertiary,
+    marginTop: 4,
+    marginBottom: 8,
   },
   patternsHeadline: {
     fontSize: 13,
