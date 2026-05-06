@@ -38,9 +38,11 @@ describe('You tab — Plan ahead block sits on the page (no card wrapper)', () =
     );
   });
 
-  it('keeps the "Plan ahead" header and the calm subtitle copy', () => {
-    expect(supportSrc).toContain('Plan ahead');
-    expect(supportSrc).toContain('When things are calm, future you will be glad.');
+  it('renders the Phase 7.3 caregiver-voice header above the card', () => {
+    // Phase 7.3 retired the "PLAN AHEAD" eyebrow + serif subtitle pair
+    // in favour of a single header line "When you have a moment" sized
+    // to match the affirmation bump.
+    expect(supportSrc).toContain('When you have a moment');
   });
 
   it('subtitle is no longer overridden with a hardcoded olive-green color', () => {
@@ -51,20 +53,13 @@ describe('You tab — Plan ahead block sits on the page (no card wrapper)', () =
   });
 });
 
-describe('You tab — Plan ahead typography (v6.7 internal-eyebrow card)', () => {
-  it('planAheadEyebrow: 9pt textTertiary weight 500, letter-spacing 0.5', () => {
-    const block = styleBlock(supportSrc, 'planAheadEyebrow');
-    expect(num(block, 'fontSize')).toBe(9);
-    expect(block).toMatch(/fontWeight:\s*['"]500['"]/);
-    expect(block).toMatch(/color:\s*c\.textTertiary|color:\s*colors\.textTertiary/);
-    expect(num(block, 'letterSpacing')).toBe(0.5);
-  });
-
-  it('planAheadSubtitle: 11pt serif italic textSecondary', () => {
-    const block = styleBlock(supportSrc, 'planAheadSubtitle');
-    expect(num(block, 'fontSize')).toBe(11);
+describe('You tab — Plan ahead typography (Phase 7.3 single header)', () => {
+  it('planAheadHeader: 18pt serif italic, sized to match the affirmation bump', () => {
+    const block = styleBlock(supportSrc, 'planAheadHeader');
+    expect(num(block, 'fontSize')).toBe(18);
+    expect(block).toMatch(/fontFamily:\s*['"]Georgia['"]/);
     expect(block).toMatch(/fontStyle:\s*['"]italic['"]/);
-    expect(block).toMatch(/color:\s*c\.textSecondary|color:\s*colors\.textSecondary/);
+    expect(block).toMatch(/color:\s*c\.textPrimary|color:\s*colors\.textPrimary/);
   });
 });
 

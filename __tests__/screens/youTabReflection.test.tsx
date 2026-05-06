@@ -65,9 +65,9 @@ describe('You tab — required components all render', () => {
     expect(supportSrc).toContain('YOUR WELLNESS OVER TIME');
   });
 
-  it('Plan ahead section renders ResourcesList', () => {
+  it('Plan ahead section renders ResourcesList under the Phase 7.3 header', () => {
     expect(supportSrc).toMatch(/<View style=\{styles\.planAheadCard\}/);
-    expect(supportSrc).toContain('When things are calm, future you will be glad.');
+    expect(supportSrc).toContain('When you have a moment');
     expect(supportSrc).toMatch(/<ResourcesList\b/);
   });
 

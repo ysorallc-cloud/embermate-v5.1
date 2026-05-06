@@ -211,26 +211,20 @@ describe('QuickResetPills — equal flex with category colors', () => {
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-describe('You tab — Plan-ahead grouped card', () => {
+describe('You tab — Plan-ahead grouped card (Phase 7.3 reframe)', () => {
   const supportSrc = readFileSync(
     join(__dirname, '../../app/(tabs)/support.tsx'),
     'utf8',
   );
 
-  it('eyebrow PLAN AHEAD lives above the card, not inside it', () => {
-    // Find the planAheadCard JSX block. Capture preceding text — the
-    // eyebrow Text should appear BEFORE the planAheadCard View.
+  it('serif-italic header lives above the card, not inside it', () => {
+    // Phase 7.3 collapsed the prior eyebrow + subtitle pair into a single
+    // "When you have a moment" header, sized to match the affirmation
+    // bump. The header still sits above the planAheadCard JSX.
     const cardIdx = supportSrc.indexOf('styles.planAheadCard');
-    const eyebrowIdx = supportSrc.indexOf("'PLAN AHEAD'");
-    expect(eyebrowIdx).toBeGreaterThan(0);
+    const headerIdx = supportSrc.indexOf('When you have a moment');
+    expect(headerIdx).toBeGreaterThan(0);
     expect(cardIdx).toBeGreaterThan(0);
-    expect(eyebrowIdx).toBeLessThan(cardIdx);
-  });
-
-  it('serif italic subtitle lives above the card, not inside it', () => {
-    const cardIdx = supportSrc.indexOf('styles.planAheadCard');
-    const subtitleIdx = supportSrc.indexOf('When things are calm');
-    expect(subtitleIdx).toBeGreaterThan(0);
-    expect(subtitleIdx).toBeLessThan(cardIdx);
+    expect(headerIdx).toBeLessThan(cardIdx);
   });
 });

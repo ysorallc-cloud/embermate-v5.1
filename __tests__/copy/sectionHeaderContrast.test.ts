@@ -37,10 +37,11 @@ describe('You tab — "Plan ahead" header contrast', () => {
     expect(cardMatch![0]).not.toContain('#6a7a72');
   });
 
-  it('Plan ahead eyebrow uses a theme token (no hardcoded hex)', () => {
-    // v6.7 reframed Plan ahead as a contained card with an internal eyebrow
-    // header (planAheadEyebrow) instead of the old sectionLabel/Context pair.
-    const block = styleBlock(supportSrc, 'planAheadEyebrow');
+  it('Plan ahead header uses a theme token (no hardcoded hex)', () => {
+    // Phase 7.3 collapsed the prior eyebrow into a single serif-italic
+    // header. The contract — theme-token color, no hardcoded hex —
+    // continues to apply to the new style block.
+    const block = styleBlock(supportSrc, 'planAheadHeader');
     expect(block).not.toBe('');
     expect(block).toMatch(/color:\s*c\.text(?:Primary|Secondary|Tertiary)|color:\s*colors\.text(?:Primary|Secondary|Tertiary)/);
     expect(block).not.toMatch(/color:\s*['"]#[0-9a-fA-F]/);
