@@ -14,6 +14,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  Pressable,
   Modal,
   ScrollView,
   StyleSheet,
@@ -233,17 +234,19 @@ export function HandoffSheet(props: HandoffSheetProps) {
       transparent
       onRequestClose={onClose}
     >
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="Close handoff sheet"
-      >
-        <TouchableOpacity
-          activeOpacity={1}
+      <View style={styles.overlay}>
+        {/* Tap-to-dismiss layer behind the sheet. A plain Pressable here
+            (instead of wrapping the sheet in a TouchableOpacity) keeps
+            the inner ScrollView's gesture responder uncontested, so the
+            structured-section preview scrolls reliably on iOS. */}
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Close handoff sheet"
+        />
+        <View
           style={styles.sheet}
-          accessibilityRole="none"
           accessibilityLabel="Hand off to next caregiver"
         >
           <View style={styles.handle} />
@@ -418,8 +421,8 @@ export function HandoffSheet(props: HandoffSheetProps) {
               <Text style={styles.cancelText}>{'Cancel'}</Text>
             </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
     </>
   );
