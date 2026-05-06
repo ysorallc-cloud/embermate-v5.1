@@ -50,6 +50,7 @@ import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataS
 import { TodayOutcomes } from '../../components/journal/TodayOutcomes';
 import { HandoffCard } from '../../components/journal/HandoffCard';
 import { HandoffSheet } from '../../components/journal/HandoffSheet';
+import { NarrativeView } from '../../components/journal/NarrativeView';
 import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
 import { getDailyOutcomes } from '../../utils/dailyOutcomes';
 import type { DailyOutcomes } from '../../utils/text/types';
@@ -561,20 +562,29 @@ export default function JournalTab() {
             onDateSelect={handleDateSelect}
           />
 
-          {/* ═══ TODAY'S OUTCOMES (internal eyebrow header in v6.7 redesign) ═══ */}
-          <TodayOutcomes outcomes={outcomes} asOf={new Date()} />
+          {/* Past-day mode: prose recap + notable moments + saved notes,
+              built from local events. Today still uses the live outcomes
+              + notes + handoff layout below. */}
+          {isViewingPast ? (
+            <NarrativeView dateKey={selectedDate} />
+          ) : (
+            <>
+              {/* ═══ TODAY'S OUTCOMES (internal eyebrow header in v6.7 redesign) ═══ */}
+              <TodayOutcomes outcomes={outcomes} asOf={new Date()} />
 
-          {/* ═══ TODAY'S NOTES (single-card layout, internal eyebrow + footer) ═══ */}
-          <View style={{ marginTop: 12 }}>
-            <JournalNotesCard
-              date={selectedDate}
-              savedText={reflection?.text}
-              savedAt={reflection?.savedAt}
-              onSave={handleSaveReflection}
-              onDirtyChange={setReflectionDirty}
-              readOnly={isViewingPast}
-            />
-          </View>
+              {/* ═══ TODAY'S NOTES (single-card layout, internal eyebrow + footer) ═══ */}
+              <View style={{ marginTop: 12 }}>
+                <JournalNotesCard
+                  date={selectedDate}
+                  savedText={reflection?.text}
+                  savedAt={reflection?.savedAt}
+                  onSave={handleSaveReflection}
+                  onDirtyChange={setReflectionDirty}
+                  readOnly={isViewingPast}
+                />
+              </View>
+            </>
+          )}
 
           {/* Phase 5.11 — "This week" pattern card relocated to Insights.
               Now and Journal are today-focused; longitudinal stats live
