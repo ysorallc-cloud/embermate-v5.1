@@ -455,7 +455,12 @@ const createStyles = (c: any) => StyleSheet.create({
     marginBottom: 14, // allow: off-scale gap (intentional)
   },
   preview: {
-    flexGrow: 0,
+    // flex: 1 + minHeight: 0 lets the ScrollView claim the bounded space
+    // between the title and the action stack. Without this, structured
+    // section cards overflow the sheet's maxHeight and the user can't
+    // scroll to the bottom of the canonical body.
+    flex: 1,
+    minHeight: 0,
   },
   previewContent: {
     paddingBottom: 12,
