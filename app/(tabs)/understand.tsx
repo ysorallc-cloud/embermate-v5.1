@@ -990,10 +990,21 @@ export default function UnderstandScreen() {
             </View>
           )}
 
-          {/* Footer */}
-          <Text style={styles.footerNote}>
-            Analysis based on {timeRange} days of data {'\u00B7'} Not a medical diagnosis
-          </Text>
+          {/* Phase 6.1 — gate the disclaimer to the populated state. On
+              empty/building (days < 14) there is nothing to disclaim;
+              the line just adds anxiety while implying analysis the user
+              can't see. */}
+          {pageData && (() => {
+            const days = pageData.daysOfData;
+            const events = days > 0 ? 1 : 0;
+            const state = classifyInsightsState(days, events);
+            if (state !== 'populated') return null;
+            return (
+              <Text style={styles.footerNote}>
+                Analysis based on {timeRange} days of data {'\u00B7'} Not a medical diagnosis
+              </Text>
+            );
+          })()}
 
           <View style={{ height: 100 }} />
         </ScrollView>
