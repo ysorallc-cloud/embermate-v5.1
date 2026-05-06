@@ -304,10 +304,13 @@ const createStyles = (c: any) => StyleSheet.create({
     color: c.textSecondary,
     lineHeight: 14.7,
   },
+  // Phase 6.4 — demote from sage to neutral. Future-time estimates are
+  // informational, not progress. Sage is reserved for the eyebrow + the
+  // 14-day progress fill on this surface.
   watchingWhen: {
     fontSize: 8.5,
     fontWeight: '500',
-    color: c.accent,
+    color: c.textSecondary,
     flexShrink: 0,
     paddingTop: 2,
   },
