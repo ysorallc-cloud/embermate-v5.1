@@ -89,14 +89,25 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderWidth: 0.5,
     borderColor: (c as any).youResetPillBorder || c.glassBorder,
     borderRadius: 18,
+    // Phase 7.2 — lift to a primary-action tap target. minHeight: 52
+    // pins the floor above the HIG ≥ 44pt baseline; the shadow gives
+    // the pill physical weight against the warm-cream page surface.
+    minHeight: 52, // allow: primary tap-target floor (Apple HIG ≥44pt)
     paddingVertical: 12,
     paddingHorizontal: 6,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   icon: {
-    fontSize: 18,
+    // Phase 7.2 — bump 18 → 20 so the icon reads from arm's length
+    // (typical Quick Reset usage is mid-stress, one-glance scan).
+    fontSize: 20,
     opacity: 0.95,
   },
   label: {
