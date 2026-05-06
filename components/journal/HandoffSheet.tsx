@@ -437,7 +437,10 @@ const createStyles = (c: any) => StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 20,
     paddingBottom: 40,
-    maxHeight: '88%',
+    // Fixed height so the inner ScrollView (flex: 1) has bounded space
+    // to claim. Without this the ScrollView collapses to 0 height and
+    // the canonical preview disappears.
+    height: '88%',
   },
   handle: {
     width: 40,
