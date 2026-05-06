@@ -51,9 +51,9 @@ describe('AffirmationHeader — typography contract', () => {
     expect(block).toMatch(/fontStyle:\s*['"]italic['"]/);
   });
 
-  it('text fontSize is 13.5pt (v6.7 You-tab content warmth pass)', () => {
+  it('text fontSize is 18pt (Phase 7.1 affirmation presence bump)', () => {
     const block = styleBlock('text');
-    expect(num(block, 'fontSize')).toBe(13.5);
+    expect(num(block, 'fontSize')).toBe(18);
   });
 
   it('text uses the youAffirmationText cream tint', () => {
@@ -61,13 +61,13 @@ describe('AffirmationHeader — typography contract', () => {
     expect(block).toMatch(/youAffirmationText|c\.textPrimary/);
   });
 
-  it('text lineHeight is 1.7× the font size (≈ 23)', () => {
+  it('text lineHeight is ≈ 1.65× the font size (Phase 7.1 → 30pt)', () => {
     const block = styleBlock('text');
     const lh = num(block, 'lineHeight');
     expect(lh).not.toBeNull();
-    // 13.5 * 1.7 = 22.95.
-    expect(lh as number).toBeGreaterThanOrEqual(22);
-    expect(lh as number).toBeLessThanOrEqual(24);
+    // 18 × 1.65 = 29.7, rounded to 30.
+    expect(lh as number).toBeGreaterThanOrEqual(29);
+    expect(lh as number).toBeLessThanOrEqual(31);
   });
 
   it('text is centered', () => {
@@ -75,16 +75,18 @@ describe('AffirmationHeader — typography contract', () => {
     expect(block).toMatch(/textAlign:\s*['"]center['"]/);
   });
 
-  it('container constrains the line width to ~280pt for natural wrapping', () => {
+  it('container constrains the line width to ~320pt for natural wrapping at 18pt', () => {
     // Either via a maxWidth on the container or on the text node.
+    // Phase 7.1 widened the cap from 280 → 320 so the larger type
+    // doesn't produce 2-word orphan lines.
     const containerBlock = styleBlock('container');
     const textBlock = styleBlock('text');
     const containerMax = num(containerBlock, 'maxWidth');
     const textMax = num(textBlock, 'maxWidth');
     const winner = containerMax ?? textMax;
     expect(winner).not.toBeNull();
-    expect(winner as number).toBeGreaterThanOrEqual(260);
-    expect(winner as number).toBeLessThanOrEqual(300);
+    expect(winner as number).toBeGreaterThanOrEqual(300);
+    expect(winner as number).toBeLessThanOrEqual(340);
   });
 });
 

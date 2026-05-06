@@ -44,11 +44,15 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   text: {
     fontFamily: 'Georgia',
     fontStyle: 'italic',
-    fontSize: 13.5,
-    lineHeight: 23, // 1.7 × 13.5
+    // Phase 7.1 — bump to 18pt / 30 line-height so the affirmation has
+    // presence proportional to its emotional weight on the You tab.
+    // Stays the warmest line on the page; same voice (serif italic),
+    // larger volume.
+    fontSize: 18,
+    lineHeight: 30, // 1.65 × 18, rounded
     letterSpacing: 0.1,
     color: (c as any).youAffirmationText || c.textPrimary,
     textAlign: 'center',
-    maxWidth: 280,
+    maxWidth: 320,
   },
 });
