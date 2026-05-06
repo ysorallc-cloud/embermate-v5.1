@@ -99,16 +99,12 @@ export default function SupportScreen() {
             <Text style={styles.wellnessChevron}>{'›'}</Text>
           </TouchableOpacity>
 
-          {/* ═══ Plan ahead — Phase 5 visual-consistency: eyebrow +
-                serif italic subtitle live ABOVE the card, not inside.
-                The card itself is a single grouped surface with row
-                hairlines (rendered by ResourcesList). ═══ */}
-          <View style={styles.planAheadHeader}>
-            <Text style={styles.planAheadEyebrow}>{'PLAN AHEAD'}</Text>
-            <Text style={styles.planAheadSubtitle}>
-              When things are calm, future you will be glad.
-            </Text>
-          </View>
+          {/* ═══ Plan ahead — Phase 7.3 reframe: the prior admin
+                eyebrow + serif subtitle pair was retired in favour of a
+                single caregiver-voice header sized to match the
+                affirmation bump. The list below carries the meaning.
+                ═══ */}
+          <Text style={styles.planAheadHeader}>When you have a moment</Text>
           <View style={styles.planAheadCard}>
             <View style={styles.planAheadBody}>
               <ResourcesList />
@@ -200,7 +196,7 @@ function createStyles(c: typeof Colors) {
       color: c.textTertiary,
     },
     // ── Plan ahead — contained card with an internal eyebrow header
-    //    ("future you will be glad"). Surface tinted slightly warmer than
+    //    Surface tinted slightly warmer than
     //    the global glass via the youCardSurface token. ──
     // v6.7 Phase 5 — single grouped card; no internal header (the eyebrow
     // sits above via planAheadHeader). marginTop folded into planAheadHeader.
@@ -212,29 +208,18 @@ function createStyles(c: typeof Colors) {
       overflow: 'hidden' as const,
     },
     // v6.7 Phase 5 — eyebrow + subtitle now live ABOVE the card. No
-    // background tint, no border — it's a free-standing label group.
+    // Phase 7.3 — single serif-italic header replaces the prior eyebrow +
+    // subtitle pair. Sized to match the affirmation header (18pt) so
+    // the "warm voice" lines of the You tab read at the same volume.
     planAheadHeader: {
-      // Phase 3.5 — section break above eyebrow uses Spacing.lg (28pt,
-      // a stronger separation than card-to-card 20pt). The literal 16
-      // here predated the token bump and read as "yet another card gap"
-      // rather than the section-level break the spec calls for.
-      marginTop: Spacing.lg,
-      paddingHorizontal: 4,
-      paddingBottom: 8,
-    },
-    planAheadEyebrow: {
-      fontSize: 9,
-      fontWeight: '500' as const,
-      letterSpacing: 0.5,
-      color: c.textTertiary,
-    },
-    planAheadSubtitle: {
       fontFamily: 'Georgia',
       fontStyle: 'italic' as const,
-      fontSize: 11,
-      lineHeight: 15.4,
-      color: c.textSecondary,
-      marginTop: 4,
+      fontSize: 18,
+      lineHeight: 30,
+      color: c.textPrimary,
+      marginTop: Spacing.lg,
+      marginBottom: 12, // allow: tap-target padding (Apple HIG ≥44pt)
+      paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     },
     planAheadBody: {
       paddingTop: 4,
