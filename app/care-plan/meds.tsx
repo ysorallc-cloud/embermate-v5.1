@@ -837,7 +837,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#22c55e',
+    backgroundColor: c.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -849,6 +849,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   toastText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#22c55e',
+    color: c.accent,
   },
 });
