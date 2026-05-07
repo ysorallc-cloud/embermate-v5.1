@@ -431,3 +431,20 @@ export async function resetSampleDataState(): Promise<void> {
     SAMPLE_DATA_KEYS.firstCarePlanCreated,
   ]);
 }
+
+/**
+ * Phase 5.13.1.e — reset the SampleDataBanner persisted mode so a freshly
+ * loaded sample dataset shows the full pitch on next mount, regardless of
+ * whether the user previously dismissed the banner to compact mode.
+ *
+ * Call after any path that loads sample data (fresh-load via Settings,
+ * onboarding "Try with sample data"). The banner's mount logic defaults
+ * to 'full' when the key is missing, so removeItem is sufficient.
+ */
+export async function resetSampleBannerMode(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(StorageKeys.SAMPLE_BANNER_MODE);
+  } catch (error) {
+    logError('sampleDataManager.resetSampleBannerMode', error);
+  }
+}

@@ -19,6 +19,7 @@ import { AsYouUseScreen } from './screens/AsYouUseScreen';
 
 import { PaginationDots } from './components/PaginationDots';
 import { seedSampleData } from '../../utils/sampleData';
+import { resetSampleBannerMode } from '../../utils/sampleDataManager';
 import { initializeSampleData } from '../../utils/sampleDataGenerator';
 import { logError } from '../../utils/devLog';
 import { Colors, Typography, Spacing, BorderRadius } from '../../theme/theme-tokens';
@@ -116,6 +117,9 @@ export default function OnboardingFlow() {
         await AsyncStorage.removeItem(StorageKeys.SAMPLE_DATA_INITIALIZED);
         await seedSampleData({ daysOfData: 14 });
         await initializeSampleData();
+        // Phase 5.13.1.e — fresh sample seed shows banner in 'full' mode
+        // on first Now-tab landing.
+        await resetSampleBannerMode();
       }
 
       // Navigate to main app

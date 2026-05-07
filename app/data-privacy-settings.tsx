@@ -21,6 +21,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import {
   detectSampleData,
   clearSampleData,
+  resetSampleBannerMode,
   SampleDataStatus,
 } from '../utils/sampleDataManager';
 import { resetSampleData } from '../utils/sampleDataGenerator';
@@ -120,6 +121,10 @@ export default function DataPrivacySettingsScreen() {
             setClearing(true);
             try {
               await resetSampleData();
+              // Phase 5.13.1.e — fresh sample load resets the banner so
+              // it appears in 'full' mode on the next Now-tab visit, even
+              // if the user previously dismissed it to compact.
+              await resetSampleBannerMode();
               Alert.alert(
                 'Sample Data Reloaded',
                 'The full Mom profile has been loaded with medications, vitals, appointments, caregivers, and 14 days of tracking data.',
