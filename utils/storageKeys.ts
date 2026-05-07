@@ -12,6 +12,21 @@
 export const StorageKeys = {
   // ---- Patient ----
   CARE_MODE: '@embermate_care_mode',
+  /**
+   * @deprecated Use `useActivePatientName()` hook (or the registry directly
+   * for non-React utils). This key is retained as a write mirror for
+   * backward compatibility with installs that may have written it directly
+   * before Phase 5.13.1. Read paths in app/ and components/ should NOT
+   * consume this key — go through PatientContext / patientRegistry instead.
+   *
+   * Last legitimate consumers as of 5.13.1:
+   *   • utils/cloudBackup.ts            — storage-layer backup
+   *   • app/(tabs)/now.tsx (one-shot legacy migration block)
+   *
+   * Removal plan: when cloud backup migrates to a snapshot-based format
+   * (TBD phase), this key can be removed entirely. The audit guard at
+   * __tests__/audit/patientNameReadAudit.test.ts enforces the constraint.
+   */
   PATIENT_NAME: '@embermate_patient_name',
   PATIENT_INFO: '@embermate_patient_info',
   PATIENT_DOB: '@embermate_patient_dob',    // DEPRECATED — not stored for HIPAA compliance

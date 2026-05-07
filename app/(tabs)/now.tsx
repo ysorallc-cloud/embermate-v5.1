@@ -852,6 +852,8 @@ export default function NowScreen() {
       // into the patient registry — once. After that, PatientContext is the
       // single source of truth for the rendered name.
       if (!activePatient || activePatient.name === 'Patient') {
+        // allow: one-shot legacy migration — copies any pre-5.13.1 install's
+        // AsyncStorage name into the registry so PatientContext picks it up.
         const legacyName = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
         if (legacyName && legacyName !== 'Patient') {
           try {
