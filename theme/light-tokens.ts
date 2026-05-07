@@ -102,7 +102,6 @@ export const LightColors = {
   purpleWash: 'rgba(109, 90, 138, 0.12)',
   purpleBorder: 'rgba(109, 90, 138, 0.18)',
   purpleStrong: 'rgba(109, 90, 138, 0.22)',
-  purpleGlow: 'rgba(109, 90, 138, 0.28)',
 
   sky: '#3D7A8A',
   skyLight: 'rgba(61, 122, 138, 0.08)',

@@ -199,7 +199,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   primaryButton: {
     backgroundColor: c.caregiverAccentBorder,
     borderWidth: 1,
-    borderColor: c.purpleGlow,
+    borderColor: c.caregiverAccentStrong,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)

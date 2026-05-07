@@ -1,9 +1,9 @@
 // ============================================================================
-// Phase 8.2 — Guard: no purple* token references in app/ or components/.
+// Phase 8.2 / 8.3 — Guard: no purple* token references in app/ or components/.
 //
-// The purple* family was migrated 1:1 to caregiverAccent* in Phase 8.2.
-// purpleGlow is the only legacy token still in scope (handled in Phase 8.3).
-// This guard catches future code that re-introduces the legacy family.
+// The purple* family was migrated 1:1 to caregiverAccent* in Phase 8.2 and
+// purpleGlow was dropped in Phase 8.3. After this point the entire purple*
+// family is unused; Phase 8.6 removes the token definitions themselves.
 // ============================================================================
 
 import { execSync } from 'child_process';
@@ -17,18 +17,14 @@ function grepHits(pattern: string): string[] {
       `grep -rEn '${pattern}' app components --include='*.tsx' --include='*.ts' || true`,
       { cwd: ROOT, encoding: 'utf8' },
     );
-    return out
-      .split('\n')
-      .filter(Boolean)
-      // purpleGlow is the lone exception — Phase 8.3 retires it.
-      .filter((l) => !/purpleGlow/.test(l));
+    return out.split('\n').filter(Boolean);
   } catch {
     return [];
   }
 }
 
-describe('Phase 8.2 — purple* family is unused outside theme tokens', () => {
-  it('no Colors.purple / c.purple / colors.purple references remain (purpleGlow excepted)', () => {
+describe('Phase 8.2 / 8.3 — purple* family is unused outside theme tokens', () => {
+  it('no Colors.purple / c.purple / colors.purple references remain anywhere', () => {
     const hits = grepHits('(Colors|c|colors)\\.purple[A-Za-z]*');
     if (hits.length > 0) {
       throw new Error(

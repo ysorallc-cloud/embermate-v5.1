@@ -115,7 +115,6 @@ const DarkColors = {
   purpleWash: 'rgba(167, 139, 250, 0.15)',
   purpleBorder: 'rgba(167, 139, 250, 0.20)',
   purpleStrong: 'rgba(167, 139, 250, 0.25)',
-  purpleGlow: 'rgba(167, 139, 250, 0.35)',
   sky: '#7DD3FC',
   skyLight: 'rgba(125, 211, 252, 0.10)',
   skyBorder: 'rgba(125, 211, 252, 0.20)',
