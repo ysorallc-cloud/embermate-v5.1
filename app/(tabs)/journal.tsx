@@ -52,6 +52,8 @@ import { HandoffCard } from '../../components/journal/HandoffCard';
 import { HandoffSheet } from '../../components/journal/HandoffSheet';
 import { NarrativeView } from '../../components/journal/NarrativeView';
 import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
+import { getHandoffTone } from '../../storage/handoffToneRepo';
+import { buildDayNarrative } from '../../utils/narrativeSummaryBuilder';
 import { getDailyOutcomes } from '../../utils/dailyOutcomes';
 import type { DailyOutcomes } from '../../utils/text/types';
 import { isDayComplete, markDayComplete } from '../../utils/dayComplete';
@@ -108,10 +110,49 @@ export default function JournalTab() {
   const [reflection, setReflection] = useState<StoredReflection | null>(null);
   const [reflectionDirty, setReflectionDirty] = useState(false);
 
+  // Phase 5.12.b — mood line is the page's emotional anchor. Resolved
+  // in priority: (1) caregiver-authored handoff tone for the day,
+  // (2) factual narrative summary, (3) "No record from this day."
+  const [handoffTone, setHandoffTone] = useState<string | null>(null);
+  const [narrativeSummary, setNarrativeSummary] = useState<string | null>(null);
+
   // Load reflection when date changes
   useEffect(() => {
     getReflection(selectedDate).then(setReflection);
   }, [selectedDate]);
+
+  // Load tone + factual narrative summary for the mood line.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const tone = await getHandoffTone(selectedDate);
+        if (cancelled) return;
+        setHandoffTone(tone);
+        // Only build the narrative as a fallback — when no tone exists.
+        // The narrative builder reads several stores, so skipping it when
+        // we already have a tone keeps the load light.
+        if (tone && tone.trim().length > 0) {
+          setNarrativeSummary(null);
+        } else {
+          const narrative = await buildDayNarrative(selectedDate, { factualOnly: true });
+          if (cancelled) return;
+          setNarrativeSummary(narrative.hasData ? narrative.summary : null);
+        }
+      } catch (err) {
+        logError('JournalTab.loadMoodLine', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedDate]);
+
+  // Resolution: tone → narrative summary → empty-day fallback.
+  const moodLine: string =
+    (handoffTone && handoffTone.trim().length > 0)
+      ? handoffTone.trim()
+      : (narrativeSummary && narrativeSummary.trim().length > 0)
+      ? narrativeSummary.trim()
+      : 'No record from this day.';
 
   // Load outcomes + day-complete flag for the selected date.
   useEffect(() => {
@@ -499,11 +540,15 @@ export default function JournalTab() {
           }
         >
           {/* ─── HEADER ─── */}
+          {/* Phase 5.12.b — third line is the mood line (caregiver tone
+              first, factual summary fallback, "No record" empty). The
+              page's emotional anchor; serif italic at the small header
+              size keeps it visually weighted as voice, not chrome. */}
           <View style={s.headerRow}>
             <View style={s.headerLeft}>
               <Text style={s.headerTitle}>Journal</Text>
               <Text style={s.headerDate}>{dayName}, {dateStr}</Text>
-              <Text style={s.headerPurpose}>{headerSubtitle}</Text>
+              <Text style={s.headerMood}>{moodLine}</Text>
             </View>
             {/* Header actions removed — Share is now exclusively on the
                 bottom HandoffCard. Visit Prep is reachable from Insights. */}
@@ -814,6 +859,17 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
     marginTop: 8,
     lineHeight: 20,
+  },
+  // Phase 5.12.b — mood line. Serif italic for caregiver-voice register;
+  // sized down (11pt vs the 13pt headerPurpose) to read as breath, not
+  // a section header.
+  headerMood: {
+    fontFamily: 'Georgia',
+    fontStyle: 'italic' as const,
+    fontSize: 11,
+    color: c.textSecondary,
+    marginTop: 6,
+    lineHeight: 16,
   },
   headerActions: {
     flexDirection: 'row' as const,

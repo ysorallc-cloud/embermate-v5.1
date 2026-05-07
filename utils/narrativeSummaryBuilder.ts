@@ -36,6 +36,23 @@ export interface DayNarrative {
   notes: string | null;
 }
 
+export interface BuildDayNarrativeOptions {
+  /**
+   * Phase 5.12.b — strip interpretive language from `summary` so the output
+   * is safe to render as auto-generated content next to user-authored copy.
+   *
+   * Default `false`: existing callers (NarrativeView past-day mode, handoff,
+   * Visit Prep) keep their interpretive output. They carry their own legal
+   * hygiene and the interpretive phrasing reads as part of the page voice.
+   *
+   * Pass `true` from Journal's mood line + narrative snapshot, where the
+   * builder output competes with caregiver-authored tone and any auto-gen
+   * judgment ("calm day", "vitals stable") would read as the app speaking
+   * for the caregiver.
+   */
+  factualOnly?: boolean;
+}
+
 function formatTime(ts: string): string {
   const d = new Date(ts);
   let h = d.getHours();
@@ -105,7 +122,11 @@ function isNotable(e: CareEvent): NarrativeTone | null {
   return null;
 }
 
-export async function buildDayNarrative(dateKey: string): Promise<DayNarrative> {
+export async function buildDayNarrative(
+  dateKey: string,
+  options: BuildDayNarrativeOptions = {},
+): Promise<DayNarrative> {
+  const factualOnly = options.factualOnly === true;
   try {
     const patientId = await getActivePatientId();
     const [events, instances, reflection] = await Promise.all([
@@ -150,30 +171,58 @@ export async function buildDayNarrative(dateKey: string): Promise<DayNarrative> 
     }
 
     // Prose summary — one or two sentences synthesising the day.
+    // Two flavors: the default (interpretive — "All scheduled medications
+    // were taken on time.") and factualOnly (counts/timings only — used by
+    // Journal's mood line + auto-recap where the builder output competes
+    // with caregiver-authored tone and any judgment would read as the app
+    // speaking for the caregiver).
     const sentences: string[] = [];
-    if (medsTotal > 0) {
-      if (medsTaken === medsTotal) {
-        sentences.push('All scheduled medications were taken on time.');
-      } else if (medsTaken > 0) {
-        sentences.push(`${medsTaken} of ${medsTotal} medications were taken; ${medsTotal - medsTaken} were missed.`);
-      } else {
-        sentences.push('Medications were not logged.');
+    if (factualOnly) {
+      if (medsTotal > 0) {
+        sentences.push(`${medsTaken}/${medsTotal} medications logged.`);
+      } else if (medsTakenEvents > 0) {
+        sentences.push(`${medsTakenEvents} medication${medsTakenEvents === 1 ? '' : 's'} logged.`);
       }
-    } else if (medsTakenEvents > 0) {
-      sentences.push(`${medsTakenEvents} medication${medsTakenEvents === 1 ? '' : 's'} logged ad-hoc.`);
-    }
-    if (vitalsEvents > 0 && wellnessEvents > 0) {
-      sentences.push('Vitals and wellness check both completed.');
-    } else if (vitalsEvents > 0) {
-      sentences.push('Vitals recorded.');
-    } else if (wellnessEvents > 0) {
-      sentences.push('Wellness check completed.');
-    }
-    if (symptomEvents > 0) {
-      sentences.push(`${symptomEvents} symptom${symptomEvents === 1 ? '' : 's'} reported.`);
-    }
-    if (medsSkippedEvents > 0 && medsTotal === 0) {
-      sentences.push(`${medsSkippedEvents} medication skip${medsSkippedEvents === 1 ? '' : 's'} logged.`);
+      if (vitalsEvents > 0) {
+        sentences.push(`${vitalsEvents} vitals reading${vitalsEvents === 1 ? '' : 's'} recorded.`);
+      }
+      if (wellnessEvents > 0) {
+        sentences.push(`${wellnessEvents} wellness check${wellnessEvents === 1 ? '' : 's'} recorded.`);
+      }
+      if (mealsCount > 0) {
+        sentences.push(`${mealsCount} meal${mealsCount === 1 ? '' : 's'} logged.`);
+      }
+      if (symptomEvents > 0) {
+        sentences.push(`${symptomEvents} symptom${symptomEvents === 1 ? '' : 's'} reported.`);
+      }
+      if (medsSkippedEvents > 0) {
+        sentences.push(`${medsSkippedEvents} medication skip${medsSkippedEvents === 1 ? '' : 's'} logged.`);
+      }
+    } else {
+      if (medsTotal > 0) {
+        if (medsTaken === medsTotal) {
+          sentences.push('All scheduled medications were taken on time.');
+        } else if (medsTaken > 0) {
+          sentences.push(`${medsTaken} of ${medsTotal} medications were taken; ${medsTotal - medsTaken} were missed.`);
+        } else {
+          sentences.push('Medications were not logged.');
+        }
+      } else if (medsTakenEvents > 0) {
+        sentences.push(`${medsTakenEvents} medication${medsTakenEvents === 1 ? '' : 's'} logged ad-hoc.`);
+      }
+      if (vitalsEvents > 0 && wellnessEvents > 0) {
+        sentences.push('Vitals and wellness check both completed.');
+      } else if (vitalsEvents > 0) {
+        sentences.push('Vitals recorded.');
+      } else if (wellnessEvents > 0) {
+        sentences.push('Wellness check completed.');
+      }
+      if (symptomEvents > 0) {
+        sentences.push(`${symptomEvents} symptom${symptomEvents === 1 ? '' : 's'} reported.`);
+      }
+      if (medsSkippedEvents > 0 && medsTotal === 0) {
+        sentences.push(`${medsSkippedEvents} medication skip${medsSkippedEvents === 1 ? '' : 's'} logged.`);
+      }
     }
     const summary = sentences.length > 0
       ? sentences.join(' ')
