@@ -597,7 +597,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '500',
   },
   lockedBadge: {
-    backgroundColor: c.purpleWash,
+    backgroundColor: c.caregiverAccentWash,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -605,7 +605,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   lockedBadgeText: {
     fontSize: 9,
     fontWeight: '700',
-    color: c.purpleBright,
+    color: c.caregiverAccentText,
     letterSpacing: 0.5,
   },
   scheduleRow: {

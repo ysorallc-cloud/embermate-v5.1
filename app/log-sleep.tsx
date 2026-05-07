@@ -335,7 +335,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.background,
   },
   saveButton: {
-    backgroundColor: c.purple,
+    backgroundColor: c.caregiverAccent,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     alignItems: 'center',

@@ -41,7 +41,7 @@ const REPORT_CATEGORIES: ReportCategory[] = [
     reports: [
       { id: 'medication', icon: '💊', name: 'Medication Adherence', badge: '94%', color: Colors.amber, route: '/hub/reports/medication', requiredBuckets: ['meds'] },
       { id: 'vitals', icon: '🫀', name: 'Vitals Stability', badge: 'Coming soon', color: Colors.rose, route: '', requiredBuckets: ['vitals'] },
-      { id: 'symptoms', icon: '🩺', name: 'Symptom Timeline', badge: 'Coming soon', color: Colors.purple, route: '', requiredBuckets: ['wellness'] },
+      { id: 'symptoms', icon: '🩺', name: 'Symptom Timeline', badge: 'Coming soon', color: Colors.caregiverAccent, route: '', requiredBuckets: ['wellness'] },
       { id: 'nutrition', icon: '🥗', name: 'Hydration & Nutrition', badge: 'Coming soon', color: Colors.green, route: '', requiredBuckets: ['meals', 'water'] },
     ],
   },
@@ -49,7 +49,7 @@ const REPORT_CATEGORIES: ReportCategory[] = [
     title: 'Wellness Reports',
     description: 'Mood, sleep & patterns',
     reports: [
-      { id: 'wellness', icon: '😊', name: 'Sleep, Energy & Mood', badge: 'Coming soon', color: Colors.purple, route: '', requiredBuckets: ['wellness', 'sleep'] },
+      { id: 'wellness', icon: '😊', name: 'Sleep, Energy & Mood', badge: 'Coming soon', color: Colors.caregiverAccent, route: '', requiredBuckets: ['wellness', 'sleep'] },
       { id: 'correlation', icon: '🧠', name: 'Correlation Insights', badge: 'View patterns', color: Colors.sky, route: '/correlation-report' }, // Always show - cross-bucket
     ],
   },
@@ -200,8 +200,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
 
   // Intro
   introCard: {
-    backgroundColor: `${c.purple}08`,
-    borderColor: `${c.purple}20`,
+    backgroundColor: `${c.caregiverAccent}08`,
+    borderColor: `${c.caregiverAccent}20`,
     marginBottom: Spacing.lg,
   },
   introText: {

@@ -505,8 +505,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   carePlanBanner: {
-    backgroundColor: c.purpleFaint,
-    borderColor: c.purpleWash,
+    backgroundColor: c.caregiverAccentFaint,
+    borderColor: c.caregiverAccentWash,
   },
   carePlanBannerLabel: {
     fontSize: 10,

@@ -179,14 +179,14 @@ const createStyles = (c: any) => StyleSheet.create({
     fontWeight: '500',
   },
   patientChipDemo: {
-    borderColor: c.purpleBright,
+    borderColor: c.caregiverAccentText,
     borderWidth: 1.5,
   },
   demoBadge: {
     fontSize: 9,
     fontWeight: '700',
-    color: c.purpleBright,
-    backgroundColor: c.purpleFaint,
+    color: c.caregiverAccentText,
+    backgroundColor: c.caregiverAccentFaint,
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 3,

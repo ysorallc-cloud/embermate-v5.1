@@ -191,9 +191,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingHorizontal: 20,
   },
   carePlanBanner: {
-    backgroundColor: c.purpleFaint,
+    backgroundColor: c.caregiverAccentFaint,
     borderWidth: 1,
-    borderColor: c.purpleWash,
+    borderColor: c.caregiverAccentWash,
     borderRadius: 10,
     padding: 10,
     marginTop: 16,

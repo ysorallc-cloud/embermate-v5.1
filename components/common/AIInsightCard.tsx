@@ -189,10 +189,10 @@ function getTypeColors(type: InsightType, c: typeof Colors): {
       };
     case 'pattern':
       return {
-        background: c.purpleLight,
-        border: c.purpleBorder,
-        accent: c.purple,
-        iconBackground: c.purpleWash,
+        background: c.caregiverAccentLight,
+        border: c.caregiverAccentBorder,
+        accent: c.caregiverAccent,
+        iconBackground: c.caregiverAccentWash,
       };
     case 'contextual':
     default:

@@ -63,9 +63,9 @@ export const EndOfDayCard: React.FC<EndOfDayCardProps> = ({
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: c.purpleLight,
+    backgroundColor: c.caregiverAccentLight,
     borderWidth: 1,
-    borderColor: c.purpleBorder,
+    borderColor: c.caregiverAccentBorder,
     borderRadius: 14,
     padding: 14,
   },
@@ -82,7 +82,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.5,
-    color: c.purple,
+    color: c.caregiverAccent,
   },
   prompt: {
     fontSize: 14,
@@ -101,7 +101,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     gap: 6,
     backgroundColor: c.border,
     borderWidth: 1,
-    borderColor: c.purpleBorder,
+    borderColor: c.caregiverAccentBorder,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 12,

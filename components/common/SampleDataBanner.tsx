@@ -155,9 +155,9 @@ export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: c.purpleMuted,
+    backgroundColor: c.caregiverAccentMuted,
     borderWidth: 1,
-    borderColor: c.purpleBorder,
+    borderColor: c.caregiverAccentBorder,
     borderRadius: BorderRadius.md,
     padding: Spacing.sm,
     marginBottom: Spacing.sm,
@@ -172,7 +172,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: c.purpleWash,
+    backgroundColor: c.caregiverAccentWash,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -185,7 +185,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '600',
-    color: c.purpleBright,
+    color: c.caregiverAccentText,
     marginBottom: 4,
   },
   subtitle: {
@@ -197,7 +197,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     gap: 8,
   },
   primaryButton: {
-    backgroundColor: c.purpleBorder,
+    backgroundColor: c.caregiverAccentBorder,
     borderWidth: 1,
     borderColor: c.purpleGlow,
     borderRadius: 8,
@@ -208,7 +208,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   primaryButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: c.purpleBright,
+    color: c.caregiverAccentText,
   },
   secondaryButton: {
     paddingVertical: 8,
@@ -224,7 +224,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   compactContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: c.purpleFaint,
+    backgroundColor: c.caregiverAccentFaint,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -250,7 +250,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   compactActionText: {
     fontSize: 12,
     fontWeight: '600',
-    color: c.purpleBright,
+    color: c.caregiverAccentText,
   },
 });
 

@@ -768,12 +768,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   sampleIndicatorText: {
     fontSize: 12,
     fontWeight: '500',
-    color: c.purpleBright,
+    color: c.caregiverAccentText,
     flex: 1,
   },
   sampleIndicatorChevron: {
     fontSize: 16,
-    color: c.purpleBright,
+    color: c.caregiverAccentText,
     marginLeft: 8,
   },
 
@@ -830,16 +830,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '500' as const,
   },
   headerPillReport: {
-    backgroundColor: c.purpleFaint,
+    backgroundColor: c.caregiverAccentFaint,
     borderWidth: 1,
-    borderColor: c.purpleBorder,
+    borderColor: c.caregiverAccentBorder,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   headerPillReportText: {
     fontSize: 12,
-    color: c.purple,
+    color: c.caregiverAccent,
     fontWeight: '500' as const,
   },
   // ─── Day status block (Phase 1B) ───

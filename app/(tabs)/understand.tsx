@@ -1124,7 +1124,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // ─── AI SUMMARY (replaces Care Score) ───
   aiSummarySection: {
     borderLeftWidth: 2,
-    borderLeftColor: c.purpleLight || '#A78BFA',
+    borderLeftColor: c.caregiverAccentLight || '#A78BFA',
     paddingLeft: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 8,
     marginBottom: 8,
@@ -1132,7 +1132,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   aiSummaryLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: c.purpleLight || '#A78BFA',
+    color: c.caregiverAccentLight || '#A78BFA',
     marginBottom: 6,
   },
   aiSummaryText: {

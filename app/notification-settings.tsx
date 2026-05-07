@@ -296,8 +296,8 @@ export default function NotificationSettingsScreen() {
                 <Switch
                   value={settings.quietHoursEnabled}
                   onValueChange={handleToggleQuietHours}
-                  trackColor={{ false: colors.glassStrong, true: colors.purpleStrong }}
-                  thumbColor={settings.quietHoursEnabled ? colors.purpleBright : colors.textHalf}
+                  trackColor={{ false: colors.glassStrong, true: colors.caregiverAccentStrong }}
+                  thumbColor={settings.quietHoursEnabled ? colors.caregiverAccentText : colors.textHalf}
                   accessibilityLabel="Enable quiet hours"
                   accessibilityRole="switch"
                   accessibilityState={{ checked: settings.quietHoursEnabled }}
@@ -576,9 +576,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   timeButton: {
     alignItems: 'center',
-    backgroundColor: c.purpleMuted,
+    backgroundColor: c.caregiverAccentMuted,
     borderWidth: 1,
-    borderColor: c.purpleWash,
+    borderColor: c.caregiverAccentWash,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -592,7 +592,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   timeValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: c.purpleBright,
+    color: c.caregiverAccentText,
   },
   timeArrow: {
     fontSize: 16,

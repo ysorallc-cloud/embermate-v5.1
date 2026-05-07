@@ -366,9 +366,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Info Card
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: c.purpleMuted,
+    backgroundColor: c.caregiverAccentMuted,
     borderWidth: 1,
-    borderColor: c.purpleStrong,
+    borderColor: c.caregiverAccentStrong,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginTop: Spacing.lg,
@@ -383,7 +383,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   infoTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: c.purpleBright,
+    color: c.caregiverAccentText,
     marginBottom: 4,
   },
   infoText: {

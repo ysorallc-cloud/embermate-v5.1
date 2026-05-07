@@ -55,7 +55,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   careInsightCard: {
     backgroundColor: c.accentFaint,
     borderWidth: 1,
-    borderColor: c.purpleHint,
+    borderColor: c.caregiverAccentHint,
     borderRadius: 12,
     padding: 14,
     marginBottom: 20,

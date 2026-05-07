@@ -414,9 +414,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   firstTimeBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: c.purpleMuted,
+    backgroundColor: c.caregiverAccentMuted,
     borderWidth: 1,
-    borderColor: c.purpleStrong,
+    borderColor: c.caregiverAccentStrong,
     borderRadius: BorderRadius.md,
     padding: Spacing.sm,
     marginBottom: Spacing.sm,
@@ -433,7 +433,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   firstTimeBannerText: {
     flex: 1,
     fontSize: 13,
-    color: c.purpleBright,
+    color: c.caregiverAccentText,
     lineHeight: 18,
   },
   firstTimeBannerDismiss: {
