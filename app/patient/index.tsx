@@ -11,6 +11,7 @@ import { usePatient } from '../../contexts/PatientContext';
 import { StorageKeys } from '../../utils/storageKeys';
 import { logError } from '../../utils/devLog';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
+import { writePatientName } from '../../utils/patientNameWriter';
 import {
   getMedicalInfo,
   saveMedicalInfo,
@@ -247,7 +248,17 @@ export default function PatientScreen() {
                     style={styles.inlineInput}
                     value={patientName}
                     onChangeText={setPatientName}
-                    onBlur={() => saveBasicField(StorageKeys.PATIENT_NAME, patientName)}
+                    onBlur={async () => {
+                      // Phase 5.13.1.b — name goes through the canonical writer so
+                      // registry, AsyncStorage mirror, and EVENT.PATIENT all stay
+                      // in sync. saveBasicField was AsyncStorage-only.
+                      const id = activePatient?.id || 'default';
+                      try {
+                        await writePatientName(id, patientName);
+                      } catch (err) {
+                        logError('PatientScreen.savePatientName', err);
+                      }
+                    }}
                     placeholder="Patient name"
                     placeholderTextColor={colors.textMuted}
                     accessibilityLabel="Patient name"

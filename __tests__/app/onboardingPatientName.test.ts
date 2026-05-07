@@ -33,9 +33,10 @@ describe('Onboarding patient name persistence', () => {
     expect(getStarted).not.toContain("patientName.trim() || 'Patient'");
   });
 
-  it('persists name via both AsyncStorage PATIENT_NAME and updatePatient', () => {
-    expect(getStarted).toContain('AsyncStorage.setItem(StorageKeys.PATIENT_NAME, name)');
-    expect(getStarted).toMatch(/updatePatient\(['"]default['"],\s*\{\s*name\s*\}\)/);
+  it('persists name through the canonical writePatientName helper', () => {
+    // Phase 5.13.1.b — registry write + AsyncStorage mirror + EVENT.PATIENT
+    // emit are consolidated under writePatientName.
+    expect(getStarted).toMatch(/writePatientName\(['"]default['"]\s*,\s*name\s*\)/);
   });
 });
 

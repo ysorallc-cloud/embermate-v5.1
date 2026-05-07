@@ -22,9 +22,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { Colors, Spacing, BorderRadius } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { updatePatient } from '../../../storage/patientRegistry';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { StorageKeys } from '../../../utils/storageKeys';
+import { writePatientName } from '../../../utils/patientNameWriter';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -61,8 +59,7 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete, careMode = 'care
       // place only as a backwards-compat filter for installs from earlier
       // versions of the onboarding flow.
       const name = patientName.trim() || 'your loved one';
-      await AsyncStorage.setItem(StorageKeys.PATIENT_NAME, name);
-      await updatePatient('default', { name });
+      await writePatientName('default', name);
     } catch {}
     onComplete(false);
   };

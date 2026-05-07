@@ -92,9 +92,10 @@ describe('GetStartedScreen — secondary card seeds sample data', () => {
 });
 
 describe('GetStartedScreen — preserves the existing name persistence', () => {
-  it('still writes the name to AsyncStorage and the patient registry', () => {
-    expect(src).toContain('AsyncStorage.setItem(StorageKeys.PATIENT_NAME');
-    expect(src).toMatch(/updatePatient\(['"]default['"],\s*\{\s*name\s*\}\)/);
+  it('persists the name through writePatientName (registry + mirror + event)', () => {
+    // Phase 5.13.1.b — direct AsyncStorage.setItem + updatePatient pair
+    // collapsed into a single canonical writer call.
+    expect(src).toMatch(/writePatientName\(['"]default['"]\s*,\s*name\s*\)/);
   });
 
   it('still uses the "your loved one" friendly fallback when name is empty', () => {

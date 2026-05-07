@@ -22,13 +22,11 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../contexts/ThemeContext';
 import { clearSampleData } from '../../utils/sampleDataManager';
-import { updatePatient } from '../../storage/patientRegistry';
+import { writePatientName } from '../../utils/patientNameWriter';
 import { emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
-import { StorageKeys } from '../../utils/storageKeys';
 import { logError } from '../../utils/devLog';
 
 import { Spacing } from '../../theme/theme-tokens';
@@ -73,10 +71,11 @@ export function ManageSampleDataSheet({
     setBusy(true);
     try {
       await clearSampleData();
-      await updatePatient('default', { name: trimmed });
-      await AsyncStorage.setItem(StorageKeys.PATIENT_NAME, trimmed);
+      // Phase 5.13.1.b — patient name now flows through the canonical
+      // writer (registry + AsyncStorage mirror + EVENT.PATIENT). The
+      // sample-cleared emit stays separate.
+      await writePatientName('default', trimmed);
       emitDataUpdate(EVENT.SAMPLE_DATA_CLEARED);
-      emitDataUpdate(EVENT.PATIENT);
       setSuccessMessage(`Welcome — ${trimmed}'s profile is ready.`);
       setMode('success');
       setTimeout(() => {

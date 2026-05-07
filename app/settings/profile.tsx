@@ -24,10 +24,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Spacing, Sizing } from '../../theme/theme-tokens';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
-import {
-  getPatientRegistry,
-  updatePatient,
-} from '../../storage/patientRegistry';
+import { getPatientRegistry } from '../../storage/patientRegistry';
+import { writePatientName } from '../../utils/patientNameWriter';
 import {
   getCaregiverProfile,
   saveCaregiverProfile,
@@ -75,7 +73,7 @@ export default function ProfileScreen() {
       const trimmedPatient = patientName.trim();
       const trimmedCaregiver = caregiverName.trim();
       if (activePatientId && trimmedPatient.length > 0) {
-        await updatePatient(activePatientId, { name: trimmedPatient });
+        await writePatientName(activePatientId, trimmedPatient);
       }
       if (trimmedCaregiver.length > 0) {
         const shortName = trimmedCaregiver.split(/\s+/)[0];

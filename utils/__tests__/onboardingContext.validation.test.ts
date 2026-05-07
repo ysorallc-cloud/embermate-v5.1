@@ -17,7 +17,7 @@ describe('Onboarding context collection', () => {
   // careMode + name alone — no per-screen bucket toggling.
 
   test('GetStartedScreen saves patient name on completion', () => {
-    expect(content).toMatch(/patient_name|PATIENT_NAME|patientRegistry/i);
+    expect(content).toMatch(/patient_name|PATIENT_NAME|patientRegistry|patientNameWriter/i);
   });
 
   test('orchestrator generates the default care plan via generateCarePlanFromOnboarding', () => {

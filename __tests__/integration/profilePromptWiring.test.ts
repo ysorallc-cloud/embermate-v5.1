@@ -81,8 +81,10 @@ describe('Phase 5.8.c — Settings → Profile entry', () => {
   it('profile.tsx imports both repos for read + write', () => {
     const src = readFileSync(join(ROOT, 'app/settings/profile.tsx'), 'utf8');
     expect(src).toMatch(/from\s+['"][^'"]+caregiverProfileRepo['"]/);
-    expect(src).toMatch(/from\s+['"][^'"]+patientRegistry['"]/);
+    // Phase 5.13.1.b — patient-name writes consolidated under
+    // patientNameWriter (registry + mirror + EVENT.PATIENT in one call).
+    expect(src).toMatch(/from\s+['"][^'"]+patientNameWriter['"]/);
     expect(src).toMatch(/saveCaregiverProfile/);
-    expect(src).toMatch(/updatePatient/);
+    expect(src).toMatch(/writePatientName/);
   });
 });
