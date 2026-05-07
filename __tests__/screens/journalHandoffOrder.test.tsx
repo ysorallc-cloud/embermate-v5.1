@@ -13,8 +13,11 @@ const ROOT = join(__dirname, '../..');
 const src = readFileSync(join(ROOT, 'app/(tabs)/journal.tsx'), 'utf8');
 
 describe('Journal — new sections present', () => {
-  it('imports TodayOutcomes', () => {
-    expect(src).toMatch(/import\s+\{\s*TodayOutcomes\s*\}\s+from\s+['"][^'"]+TodayOutcomes['"]/);
+  it('no longer imports TodayOutcomes (Phase 5.12.a stripped the dashboard)', () => {
+    // Pre-5.12 Journal led with the missed-tasks dashboard. That made the
+    // page a clone of Now. The dashboard is removed; completion data
+    // lives in a quiet footer line at the bottom.
+    expect(src).not.toMatch(/import\s+\{[^}]*\bTodayOutcomes\b[^}]*\}/);
   });
 
   it('imports JournalNotesCard', () => {
@@ -35,8 +38,8 @@ describe('Journal — new sections present', () => {
     expect(src).toMatch(/import\s+\{\s*HandoffSheet\s*\}\s+from\s+['"][^'"]+HandoffSheet['"]/);
   });
 
-  it('renders TodayOutcomes', () => {
-    expect(src).toMatch(/<TodayOutcomes\b/);
+  it('no longer renders <TodayOutcomes> (Phase 5.12.a)', () => {
+    expect(src).not.toMatch(/<TodayOutcomes\b/);
   });
 
   it('renders JournalNotesCard', () => {
@@ -57,14 +60,6 @@ describe('Journal — new sections present', () => {
 });
 
 describe('Journal — section order in the rendered tree', () => {
-  it('TodayOutcomes appears before JournalNotesCard', () => {
-    const outcomes = src.indexOf('<TodayOutcomes');
-    const notes = src.indexOf('<JournalNotesCard');
-    expect(outcomes).toBeGreaterThan(-1);
-    expect(notes).toBeGreaterThan(-1);
-    expect(outcomes).toBeLessThan(notes);
-  });
-
   it('JournalNotesCard appears before HandoffCard (Phase 5.11 dropped the Pattern Link from this column)', () => {
     const notes = src.indexOf('<JournalNotesCard');
     const handoff = src.indexOf('<HandoffCard');

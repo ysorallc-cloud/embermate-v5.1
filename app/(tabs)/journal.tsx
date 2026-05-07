@@ -48,7 +48,6 @@ import { ReportData } from '../../utils/pdfExport';
 import { DateTabStrip } from '../../components/journal/DateTabStrip';
 import { JournalNotesCard } from '../../components/journal/JournalNotesCard';
 import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataSheet';
-import { TodayOutcomes } from '../../components/journal/TodayOutcomes';
 import { HandoffCard } from '../../components/journal/HandoffCard';
 import { HandoffSheet } from '../../components/journal/HandoffSheet';
 import { NarrativeView } from '../../components/journal/NarrativeView';
@@ -560,8 +559,9 @@ export default function JournalTab() {
             <NarrativeView dateKey={selectedDate} />
           ) : (
             <>
-              {/* ═══ TODAY'S OUTCOMES (internal eyebrow header in v6.7 redesign) ═══ */}
-              <TodayOutcomes outcomes={outcomes} asOf={new Date()} />
+              {/* Phase 5.12.a — leading dashboard card removed. Journal
+                  no longer duplicates Now; completion counts demote to a
+                  quiet footer line at the bottom of the page. */}
 
               {/* ═══ TODAY'S NOTES (single-card layout, internal eyebrow + footer) ═══ */}
               <View style={{ marginTop: 12 }}>
@@ -598,6 +598,19 @@ export default function JournalTab() {
             />
           </View>
           )}
+
+          {/* Phase 5.12.a — quiet completion footer line (replaces the
+              missed-tasks dashboard). Ambient, not a section header. */}
+          {!isViewingPast && (() => {
+            const total = outcomes.logged.count + outcomes.missed.count + outcomes.pending.count;
+            if (total === 0) return null;
+            const pending = outcomes.pending.count;
+            return (
+              <Text style={s.completionFooter}>
+                {`${outcomes.logged.count} of ${total} logged${pending > 0 ? ` · ${pending} still to do` : ''}`}
+              </Text>
+            );
+          })()}
 
           {/* ─── FOOTER ─── */}
           <Text style={s.timestamp}>Not a medical record</Text>
@@ -854,6 +867,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 12,
     color: c.textWarmMuted,
     marginTop: 2,
+  },
+
+  // Phase 5.12.a — quiet completion line ("9 of 12 logged · 1 still to do").
+  // Demoted from the leading dashboard card; ambient footer copy only.
+  completionFooter: {
+    fontSize: 10,
+    color: c.textTertiary,
+    textAlign: 'center',
+    marginTop: Spacing.md,
+    lineHeight: 14,
   },
 
   // ─── TIMESTAMP ───
