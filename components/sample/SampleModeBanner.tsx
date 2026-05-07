@@ -45,7 +45,7 @@ const createStyles = (c: any) => StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: c.caregiverAccentBg,
     borderWidth: 0.5,
-    borderColor: c.caregiverAccentBorder,
+    borderColor: c.caregiverAccentStrong,
     borderRadius: 999,
     paddingVertical: 8,
     paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)

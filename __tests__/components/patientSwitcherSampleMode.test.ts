@@ -47,7 +47,7 @@ describe('PatientSwitcherModal — EXAMPLE pill on sample-mode patient row', () 
     const block = styleBlock('exampleBadge');
     expect(block).not.toBe('');
     expect(block).toMatch(/backgroundColor:\s*c\.caregiverAccentBg/);
-    expect(block).toMatch(/borderColor:\s*c\.caregiverAccentBorder/);
+    expect(block).toMatch(/borderColor:\s*c\.caregiverAccentStrong/);
   });
 
   it('the EXAMPLE pill text uses caregiverAccentText (readable on the tint)', () => {

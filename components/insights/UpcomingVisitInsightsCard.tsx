@@ -191,7 +191,7 @@ function SourcePill({ label, active, c }: { label: string; active: boolean; c: a
           borderWidth: 0.5,
         },
         active
-          ? { backgroundColor: c.caregiverAccentBg, borderColor: c.caregiverAccentBorder }
+          ? { backgroundColor: c.caregiverAccentBg, borderColor: c.caregiverAccentStrong }
           : { backgroundColor: 'transparent', borderColor: c.glassBorder },
       ]}
     >
@@ -215,7 +215,7 @@ const createStyles = (c: any) => StyleSheet.create({
     paddingVertical: Spacing.sm,
     backgroundColor: c.caregiverAccentBg,
     borderWidth: 0.5,
-    borderColor: c.caregiverAccentBorder,
+    borderColor: c.caregiverAccentStrong,
     borderRadius: Sizing.cardRadius,
   },
   headerRow: {
@@ -274,7 +274,7 @@ const createStyles = (c: any) => StyleSheet.create({
     marginTop: Spacing.sm,
     paddingTop: 6,
     borderTopWidth: 0.5,
-    borderTopColor: c.caregiverAccentBorder,
+    borderTopColor: c.caregiverAccentStrong,
   },
   ctaText: {
     fontSize: 13,

@@ -89,7 +89,7 @@ const createStyles = (c: any) => StyleSheet.create({
     paddingVertical: Spacing.sm,
     backgroundColor: c.caregiverAccentBg,
     borderWidth: 0.5,
-    borderColor: c.caregiverAccentBorder,
+    borderColor: c.caregiverAccentStrong,
     borderRadius: Sizing.cardRadius,
   },
   eyebrow: {

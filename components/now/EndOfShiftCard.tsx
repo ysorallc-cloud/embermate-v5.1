@@ -99,7 +99,7 @@ const createStyles = (c: any) => StyleSheet.create({
   card: {
     backgroundColor: c.caregiverAccentBg,
     borderWidth: 0.5,
-    borderColor: c.caregiverAccentBorder,
+    borderColor: c.caregiverAccentStrong,
     borderRadius: Sizing.cardRadius,
     padding: Sizing.cardInternalPadding,
     marginTop: 0,

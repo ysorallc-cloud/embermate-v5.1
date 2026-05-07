@@ -741,7 +741,7 @@ const createStyles = (c: any) => StyleSheet.create({
   outlinedButton: {
     flex: 1,
     borderWidth: 0.5,
-    borderColor: c.caregiverAccentBorder,
+    borderColor: c.caregiverAccentStrong,
     backgroundColor: c.caregiverAccentBg,
     borderRadius: Sizing.cardRadius,
     paddingVertical: 12,

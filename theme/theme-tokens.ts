@@ -196,11 +196,21 @@ const DarkColors = {
   textDisabled: 'rgba(255, 255, 255, 0.28)',
   textHalf: 'rgba(255, 255, 255, 0.42)',
   textPlaceholder: 'rgba(255, 255, 255, 0.35)',
-  // ── Caregiver accent (purple — used by End of Shift + Care Circle) ──
+  // ── Caregiver accent (lavender) ──
+  // Phase 8.1 — opacity ladder mirrors the legacy purple* family so the
+  // 64-site purple migration in Phase 8.2 is a 1:1 token rename rather
+  // than a visual judgment call. caregiverAccentBorder shifts from 0.25
+  // → 0.20 to match purpleBorder; the 0.25 value is now caregiverAccentStrong.
   caregiverAccent: '#aa8adc',
   caregiverAccentText: '#d4baff',
   caregiverAccentBg: 'rgba(170, 138, 220, 0.06)',
-  caregiverAccentBorder: 'rgba(170, 138, 220, 0.25)',
+  caregiverAccentFaint: 'rgba(170, 138, 220, 0.06)',
+  caregiverAccentMuted: 'rgba(170, 138, 220, 0.08)',
+  caregiverAccentLight: 'rgba(170, 138, 220, 0.10)',
+  caregiverAccentHint: 'rgba(170, 138, 220, 0.12)',
+  caregiverAccentWash: 'rgba(170, 138, 220, 0.15)',
+  caregiverAccentBorder: 'rgba(170, 138, 220, 0.20)',
+  caregiverAccentStrong: 'rgba(170, 138, 220, 0.25)',
   // ── You tab — slightly warmer card surface for content warmth (Prompt 2) ──
   // Lifted in lockstep with bg (Phase 0): L* 22.09 vs bg L* 12.01 = delta
   // 10.08, restoring "warm card sitting on a surface" affordance.

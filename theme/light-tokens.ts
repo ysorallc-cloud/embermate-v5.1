@@ -186,11 +186,20 @@ export const LightColors = {
   textHalf: '#6b7280',
   textPlaceholder: '#9ca3af',
   textInverse: '#ffffff',
-  // ── Caregiver accent (purple — used by End of Shift + Care Circle) ──
+  // ── Caregiver accent (lavender) ──
+  // Phase 8.1 — opacity ladder mirrors the legacy purple* family.
+  // caregiverAccentBorder shifts from 0.30 → 0.20 to track the dark-theme
+  // recalibration; the 0.30 value is now caregiverAccentStrong.
   caregiverAccent: '#6b46c1',
   caregiverAccentText: '#5b21b6',
   caregiverAccentBg: 'rgba(107, 70, 193, 0.08)',
-  caregiverAccentBorder: 'rgba(107, 70, 193, 0.30)',
+  caregiverAccentFaint: 'rgba(107, 70, 193, 0.06)',
+  caregiverAccentMuted: 'rgba(107, 70, 193, 0.08)',
+  caregiverAccentLight: 'rgba(107, 70, 193, 0.10)',
+  caregiverAccentHint: 'rgba(107, 70, 193, 0.12)',
+  caregiverAccentWash: 'rgba(107, 70, 193, 0.15)',
+  caregiverAccentBorder: 'rgba(107, 70, 193, 0.20)',
+  caregiverAccentStrong: 'rgba(107, 70, 193, 0.30)',
   // ── Warm text (light) ──
   textWarmPrimary: '#1A1A2E',
   textWarmSecondary: '#4A4A5A',

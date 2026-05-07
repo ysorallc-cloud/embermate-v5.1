@@ -430,7 +430,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   exampleBadge: {
     backgroundColor: c.caregiverAccentBg,
     borderWidth: 0.5,
-    borderColor: c.caregiverAccentBorder,
+    borderColor: c.caregiverAccentStrong,
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,

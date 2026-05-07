@@ -715,7 +715,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   aiInsightCard: {
     backgroundColor: c.caregiverAccentBg,
     borderWidth: 1,
-    borderColor: c.caregiverAccentBorder,
+    borderColor: c.caregiverAccentStrong,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.lg,

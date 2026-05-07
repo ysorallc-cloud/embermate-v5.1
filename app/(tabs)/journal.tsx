@@ -736,7 +736,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     gap: 10,
     backgroundColor: c.caregiverAccentBg,
     borderWidth: 0.5,
-    borderColor: c.caregiverAccentBorder,
+    borderColor: c.caregiverAccentStrong,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,

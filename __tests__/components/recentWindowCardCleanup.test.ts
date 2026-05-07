@@ -15,7 +15,7 @@
 // 5d fix:
 //   • paddingVertical / paddingHorizontal → padding: Sizing.cardInternalPadding
 //   • backgroundColor → c.caregiverAccentBg
-//   • borderColor → c.caregiverAccentBorder
+//   • borderColor → c.caregiverAccentStrong
 //
 // The token migration is technically Phase 8 audit territory but is
 // in-scope here because the file is being touched anyway and the visual
@@ -72,8 +72,8 @@ describe('Phase 5d — RecentWindowCard lavender palette routes through tokens',
     expect(card).toMatch(/backgroundColor:\s*c\.caregiverAccentBg\b/);
   });
 
-  it('borderColor uses c.caregiverAccentBorder (not a hardcoded rgba)', () => {
-    expect(card).toMatch(/borderColor:\s*c\.caregiverAccentBorder\b/);
+  it('borderColor uses c.caregiverAccentStrong (not a hardcoded rgba)', () => {
+    expect(card).toMatch(/borderColor:\s*c\.caregiverAccentStrong\b/);
   });
 
   it('the legacy electric-purple rgba(183, 148, 244, ...) is gone from the file', () => {

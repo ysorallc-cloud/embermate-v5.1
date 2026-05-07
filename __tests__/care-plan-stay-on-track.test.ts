@@ -51,9 +51,9 @@ describe('Phase 2.6.5 — Stay-on-Track card uses caregiverAccent palette', () =
     expect(body).toMatch(/backgroundColor:\s*c\.caregiverAccentBg\b/);
   });
 
-  it('aiInsightCard border routes through caregiverAccentBorder', () => {
+  it('aiInsightCard border routes through caregiverAccentStrong', () => {
     const body = extractBlock('aiInsightCard');
-    expect(body).toMatch(/borderColor:\s*c\.caregiverAccentBorder\b/);
+    expect(body).toMatch(/borderColor:\s*c\.caregiverAccentStrong\b/);
   });
 
   it('aiInsightTitle uses caregiverAccentText (the heading lavender stays)', () => {
@@ -76,11 +76,11 @@ describe('Phase 2.6.5 — Stay-on-Track card uses caregiverAccent palette', () =
     expect(combined).not.toMatch(/c\.purpleBright\b/);
   });
 
-  it('caregiverAccentBorder opacity is ≤ 0.3 (matches Phase 2 dim contract)', () => {
+  it('caregiverAccentStrong opacity is ≤ 0.3 (matches Phase 2 dim contract)', () => {
     // Read directly from the token source so the test reflects the live
     // value rather than just the consuming code.
     const tokens = readFileSync(join(ROOT, 'theme/theme-tokens.ts'), 'utf8');
-    const m = tokens.match(/caregiverAccentBorder:\s*['"]rgba\([^)]+,\s*([\d.]+)\s*\)['"]/);
+    const m = tokens.match(/caregiverAccentStrong:\s*['"]rgba\([^)]+,\s*([\d.]+)\s*\)['"]/);
     expect(m).not.toBeNull();
     const alpha = parseFloat(m![1]);
     expect(alpha).toBeLessThanOrEqual(0.3);

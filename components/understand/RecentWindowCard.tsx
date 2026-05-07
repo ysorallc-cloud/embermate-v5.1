@@ -75,7 +75,7 @@ const createStyles = (c: any) => StyleSheet.create({
     alignItems: 'center',
     backgroundColor: c.caregiverAccentBg,
     borderWidth: 0.5,
-    borderColor: c.caregiverAccentBorder,
+    borderColor: c.caregiverAccentStrong,
     borderRadius: 8,
     padding: Sizing.cardInternalPadding,
     gap: 10,

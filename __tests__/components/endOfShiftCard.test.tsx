@@ -31,7 +31,7 @@ jest.mock('../../contexts/ThemeContext', () => ({
     colors: {
       caregiverAccent: '#aa8adc',
       caregiverAccentBg: 'rgba(139, 92, 246, 0.06)',
-      caregiverAccentBorder: 'rgba(139, 92, 246, 0.25)',
+      caregiverAccentStrong: 'rgba(139, 92, 246, 0.25)',
       caregiverAccentText: '#d4baff',
       textWarmSecondary: '#b0b8c0',
       textSecondary: 'rgba(255, 255, 255, 0.72)',
@@ -120,8 +120,8 @@ describe('EndOfShiftCard caregiver-accent identity', () => {
     expect(src).toMatch(/caregiverAccentBg/);
   });
 
-  it('border uses caregiverAccentBorder token', () => {
-    expect(src).toMatch(/caregiverAccentBorder/);
+  it('border uses caregiverAccentStrong token', () => {
+    expect(src).toMatch(/caregiverAccentStrong/);
   });
 
   it('text/title uses caregiverAccentText token', () => {

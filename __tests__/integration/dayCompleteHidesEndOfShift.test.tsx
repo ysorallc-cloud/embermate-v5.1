@@ -112,7 +112,7 @@ describe('EOS card hides when dayComplete is true', () => {
         colors: {
           caregiverAccent: '#aa8adc',
           caregiverAccentBg: 'rgba(139, 92, 246, 0.06)',
-          caregiverAccentBorder: 'rgba(139, 92, 246, 0.25)',
+          caregiverAccentStrong: 'rgba(139, 92, 246, 0.25)',
           caregiverAccentText: '#d4baff',
           textWarmSecondary: '#b0b8c0',
           textSecondary: 'rgba(255,255,255,0.72)',
