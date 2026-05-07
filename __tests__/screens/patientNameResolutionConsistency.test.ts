@@ -23,13 +23,16 @@ describe('Tab consumers filter the legacy "Patient" sentinel', () => {
     'app/(tabs)/now.tsx',
     'app/(tabs)/understand.tsx',
     'app/(tabs)/journal.tsx',
-  ])('%s — filters the legacy "Patient" sentinel via comparison or PLACEHOLDERS set', (path) => {
+  ])('%s — filters the legacy "Patient" sentinel via comparison, PLACEHOLDERS set, or canonical hook', (path) => {
     const src = read(path);
-    // Either the inline `!== 'Patient'` comparison (now / understand) or
-    // the broader PLACEHOLDERS Set filter (journal). Both are accepted.
+    // Three accepted shapes (Phase 5.13.1.c added the hook path):
+    //   1. inline `!== 'Patient'` comparison (now / understand legacy)
+    //   2. PLACEHOLDERS Set filter (journal legacy)
+    //   3. routes through useActivePatientName/Raw which centralises both.
     const hasFilter =
       /!==\s*['"]Patient['"]/.test(src) ||
-      /PLACEHOLDERS[\s\S]{0,200}?['"]Patient['"]/.test(src);
+      /PLACEHOLDERS[\s\S]{0,200}?['"]Patient['"]/.test(src) ||
+      /useActivePatientName(?:Raw)?\b/.test(src);
     expect(hasFilter).toBe(true);
   });
 
@@ -37,8 +40,12 @@ describe('Tab consumers filter the legacy "Patient" sentinel', () => {
     'app/(tabs)/now.tsx',
     'app/(tabs)/understand.tsx',
     'app/(tabs)/journal.tsx',
-  ])('%s — falls back to "your loved one"', (path) => {
-    expect(read(path)).toContain("'your loved one'");
+  ])('%s — falls back to "your loved one" (literal or via canonical hook)', (path) => {
+    const src = read(path);
+    const hasFallback =
+      src.includes("'your loved one'") ||
+      /useActivePatientName(?:Raw)?\b/.test(src);
+    expect(hasFallback).toBe(true);
   });
 });
 

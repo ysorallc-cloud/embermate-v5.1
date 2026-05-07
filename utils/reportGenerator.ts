@@ -9,6 +9,7 @@ import { getVitals, VitalReading } from './vitalsStorage';
 import { logError } from './devLog';
 import { StorageKeys } from './storageKeys';
 import { safeGetItem } from './safeStorage';
+import { getPatientRegistry, getActivePatientId } from '../storage/patientRegistry';
 
 interface VitalLog {
   id: string;
@@ -148,11 +149,15 @@ export interface ComprehensiveReport {
 export async function generateComprehensiveReport(): Promise<ComprehensiveReport> {
   const now = new Date();
   
-  // Load patient name
+  // Phase 5.13.1.c — patient name from the registry directly. This is a
+  // util function called outside React, so the hook can't apply.
   let patientName = 'Patient';
   try {
-    const name = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
-    if (name) patientName = name;
+    const id = await getActivePatientId();
+    const registry = await getPatientRegistry();
+    const patient = registry.patients.find((p) => p.id === id);
+    const name = patient?.name?.trim() ?? '';
+    if (name && name !== 'Patient' && name !== 'patient') patientName = name;
   } catch (e) {}
   
   // Load all data sources

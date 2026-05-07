@@ -21,6 +21,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { BackButton } from '../components/common/BackButton';
 import { StorageKeys, StorageKeyPrefixes } from '../utils/storageKeys';
 import { safeGetItem } from '../utils/safeStorage';
+import { getPatientRegistry, getActivePatientId } from '../storage/patientRegistry';
 
 // ============================================================================
 // DATA
@@ -51,9 +52,14 @@ const QUICK_START_ITEMS: QuickStartItem[] = [
     label: 'Add who you care for',
     icon: '\uD83D\uDC64',
     route: '/patient',
+    // Phase 5.13.1.c — module-scope check (not React render path), so go
+    // through the registry directly rather than the hook.
     check: async () => {
-      const name = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
-      return !!name;
+      const id = await getActivePatientId();
+      const registry = await getPatientRegistry();
+      const patient = registry.patients.find((p) => p.id === id);
+      const name = patient?.name?.trim() ?? '';
+      return !!name && name !== 'Patient' && name !== 'patient';
     },
   },
   {

@@ -39,6 +39,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { getMedicalInfo, MedicalInfo } from '../../utils/medicalInfo';
 import { safeGetItem } from '../../utils/safeStorage';
 import { usePatient } from '../../contexts/PatientContext';
+import { useActivePatientNameRaw } from '../../hooks/useActivePatientName';
 import { StorageKeys } from '../../utils/storageKeys';
 import { getMedications } from '../../utils/medicationStorage';
 import { journalSubtitle } from '../../utils/journalSubtitle';
@@ -63,6 +64,7 @@ import { isDayComplete, markDayComplete } from '../../utils/dayComplete';
 export default function JournalTab() {
   const { colors } = useTheme();
   const { activePatient } = usePatient();
+  const patientNameRaw = useActivePatientNameRaw();
   const insets = useSafeAreaInsets();
   const s = useMemo(() => createStyles(colors), [colors]);
   const [brief, setBrief] = useState<CareBrief | null>(null);
@@ -216,30 +218,19 @@ export default function JournalTab() {
       // Phase 5.11 — insights loading removed; the card that consumed it
       // is now on the Insights tab. The Insights tab loads its own data.
 
-      // Load patient context for patient card + share
+      // Load patient context for patient card + share. Phase 5.13.1.c —
+      // patient name now flows from PatientContext via the canonical hook;
+      // the AsyncStorage read + 3-source merge is gone. The empty-string
+      // not-set sentinel that drives `showPatientCard` continues to apply.
       try {
-        const [mi, name, ageVal, genderVal, meds] = await Promise.all([
+        const [mi, ageVal, genderVal, meds] = await Promise.all([
           getMedicalInfo(),
-          safeGetItem<string>(StorageKeys.PATIENT_NAME, ''),
           safeGetItem<string | null>(StorageKeys.PATIENT_AGE ?? '@embermate_patient_age', null),
           safeGetItem<string | null>(StorageKeys.PATIENT_GENDER, null),
           getMedications(),
         ]);
         setMedicalInfo(mi);
-        // Resolve patient name with priority: PatientContext → safeStorage.
-        // Filter out the legacy 'Patient' default and the friendly skip
-        // placeholder 'your loved one' so the patient card and possessive
-        // header copy ("Mom's care story") only show when a *real* name
-        // has been entered. journal.tsx uses an empty string as the
-        // not-set sentinel that drives `showPatientCard` + the
-        // "Today's care story" fallback header.
-        const PLACEHOLDERS = new Set(['', 'Patient', 'your loved one']);
-        const fromContext =
-          activePatient?.name && !PLACEHOLDERS.has(activePatient.name)
-            ? activePatient.name
-            : null;
-        const fromStorage = name && !PLACEHOLDERS.has(name) ? name : null;
-        setPatientName(fromContext || fromStorage || '');
+        setPatientName(patientNameRaw ?? '');
         setPatientAge(ageVal);
         setPatientGender(genderVal);
         setActiveMedCount(meds?.length ?? 0);

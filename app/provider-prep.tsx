@@ -34,6 +34,7 @@ import { getSymptoms, SymptomLog } from '../utils/symptomStorage';
 import { generateProviderQuestions } from '../utils/insightEngine';
 import { generateAndSharePDF, generatePreviewHTML } from '../utils/pdfExport';
 import { ReportPreviewModal } from '../components/shared/ReportPreviewModal';
+import { useActivePatientName } from '../hooks/useActivePatientName';
 import { safeGetItem } from '../utils/safeStorage';
 import { StorageKeys } from '../utils/storageKeys';
 import { logError } from '../utils/devLog';
@@ -51,6 +52,9 @@ export default function ProviderPrepScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { appointmentId } = useLocalSearchParams<{ appointmentId?: string }>();
   const insets = useSafeAreaInsets();
+  // Phase 5.13.1.c — canonical patient name; replaces a buildReportData
+  // local AsyncStorage read.
+  const patientName = useActivePatientName();
 
   const [loading, setLoading] = useState(true);
   const [appointment, setAppointment] = useState<Appointment | null>(null);
@@ -154,8 +158,6 @@ export default function ProviderPrepScreen() {
   }, [appointment]);
 
   const buildReportData = useCallback(async () => {
-    const patientName = await safeGetItem<string>(StorageKeys.PATIENT_NAME, 'Patient');
-
     const allQuestions = checklist
       ? checklist.items.filter(i => i.checked).map(i => i.label)
       : [];
@@ -279,9 +281,9 @@ export default function ProviderPrepScreen() {
           value: q,
         })),
       },
-      patient: { name: patientName || 'Patient' },
+      patient: { name: patientName },
     };
-  }, [appointment, checklist, showVitals, showMedAdherence, showSymptoms, showQuestions]);
+  }, [appointment, checklist, patientName, showVitals, showMedAdherence, showSymptoms, showQuestions]);
 
   const handlePreview = useCallback(async () => {
     try {

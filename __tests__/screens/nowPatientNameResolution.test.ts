@@ -68,12 +68,14 @@ describe('Now tab patientName resolution — re-derives on activePatient changes
 
 describe('Patient name resolution — consistent fallback across tabs', () => {
   it('Journal, Understand, and Now all use the same family of fallback strings', () => {
-    // The exact fallback can be 'your loved one' or 'Your loved one' depending
-    // on grammatical position, but it must be one of those two — never blank,
-    // never "Patient", never "the patient".
+    // Two accepted shapes (Phase 5.13.1.c added the hook):
+    //   • inline literal 'your loved one' / 'Your loved one'
+    //   • routes through useActivePatientName/Raw which centralises the
+    //     placeholder fallback.
     const fallbacks = [
       /['"]your loved one['"]/i,
       /['"]Your loved one['"]/i,
+      /useActivePatientName(?:Raw)?\b/,
     ];
     for (const src of [nowSrc, journalSrc, understandSrc]) {
       const hasFallback = fallbacks.some(re => re.test(src));
@@ -82,11 +84,16 @@ describe('Patient name resolution — consistent fallback across tabs', () => {
   });
 
   it('all three tabs filter out the legacy "Patient" placeholder', () => {
-    // Every tab must reject `activePatient.name === 'Patient'` as a real
-    // value — that's the legacy default for unconfigured profiles.
-    expect(nowSrc).toMatch(/['"]Patient['"]/); // referenced in filter logic
-    expect(understandSrc).toMatch(/['"]Patient['"]/);
-    // Journal uses a PLACEHOLDERS set
-    expect(journalSrc).toMatch(/PLACEHOLDERS|['"]Patient['"]/);
+    // Filter can live inline or be inherited via the canonical hook (which
+    // applies the same legacy-placeholder normalization).
+    const filterShapes = [
+      /['"]Patient['"]/,
+      /PLACEHOLDERS/,
+      /useActivePatientName(?:Raw)?\b/,
+    ];
+    for (const src of [nowSrc, journalSrc, understandSrc]) {
+      const hasFilter = filterShapes.some(re => re.test(src));
+      expect(hasFilter).toBe(true);
+    }
   });
 });

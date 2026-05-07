@@ -30,6 +30,7 @@ import { GlassCard } from '../components/aurora/GlassCard';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 
 // Data sources
+import { useActivePatientName } from '../hooks/useActivePatientName';
 import { getMedications, getMedicationLogs, Medication, MedicationLog } from '../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../utils/appointmentStorage';
 import { getMedicalInfo, MedicalInfo } from '../utils/medicalInfo';
@@ -85,7 +86,9 @@ export default function CareReportScreen() {
   const [exporting, setExporting] = useState(false);
 
   // Shared data
-  const [patientName, setPatientName] = useState('Patient');
+  // Phase 5.13.1.c — patient name flows from PatientContext via the
+  // canonical hook; AsyncStorage read removed from loadData.
+  const patientName = useActivePatientName();
   const [medications, setMedications] = useState<Medication[]>([]);
   const [medicationLogs, setMedicationLogs] = useState<MedicationLog[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -122,8 +125,7 @@ export default function CareReportScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [name, cgName, meds, allLogs, appts, mi, contacts, brief, allInsights, prep, vitals, mood, meals, notes, activities] = await Promise.all([
-        safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null),
+      const [cgName, meds, allLogs, appts, mi, contacts, brief, allInsights, prep, vitals, mood, meals, notes, activities] = await Promise.all([
         safeGetItem<string | null>(StorageKeys.CAREGIVER_NAME, null),
         getMedications(),
         getMedicationLogs(),
@@ -140,7 +142,6 @@ export default function CareReportScreen() {
         getCareActivities(10),
       ]);
 
-      if (name) setPatientName(name);
       if (cgName) setCaregiverName(cgName);
       setMedications(meds.filter(m => m.active));
       setMedicationLogs(allLogs);

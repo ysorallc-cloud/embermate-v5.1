@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { safeGetItem } from '../utils/safeStorage';
+import { useActivePatientName } from '../hooks/useActivePatientName';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
 import { SubScreenHeader } from '../components/SubScreenHeader';
@@ -29,11 +29,10 @@ import {
   ShareInvite,
   CaregiverProfile,
 } from '../utils/collaborativeCare';
-import { StorageKeys } from '../utils/storageKeys';
-
 export default function FamilySharingScreen() {
   const router = useRouter();
-  const [patientName, setPatientName] = useState('Patient');
+  // Phase 5.13.1.c — canonical name via PatientContext.
+  const patientName = useActivePatientName();
   const [invites, setInvites] = useState<ShareInvite[]>([]);
   const [caregivers, setCaregivers] = useState<CaregiverProfile[]>([]);
   const [showJoinCode, setShowJoinCode] = useState(false);
@@ -46,9 +45,6 @@ export default function FamilySharingScreen() {
   }, []);
 
   const loadData = async () => {
-    const name = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
-    if (name) setPatientName(name);
-
     const loadedInvites = await getShareInvites();
     const activeInvites = loadedInvites.filter(i => !i.used && new Date(i.expiresAt) > new Date());
     setInvites(activeInvites);

@@ -32,6 +32,7 @@ import { Colors } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
 import { useSampleMode } from '../../hooks/useSampleMode';
+import { useActivePatientName, useActivePatientNameRaw } from '../../hooks/useActivePatientName';
 import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataSheet';
 import { StorageKeys } from '../../utils/storageKeys';
 import { deleteAllUserData } from '../../utils/privacyUtils';
@@ -71,7 +72,11 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [patientName, setPatientName] = useState('');
+  // Phase 5.13.1.c — patient name from canonical hook. The raw variant is
+  // null when no real name is set, which lets the profile-row title fall
+  // back to a generic "Mom's profile" header (see profileTitle below).
+  const patientName = useActivePatientName();
+  const patientNameRaw = useActivePatientNameRaw();
   const [activeConditions, setActiveConditions] = useState<string[]>([]);
   // v6.7 Phase 5 — light unread dot on the watchlist row when the caregiver
   // hasn't visited the screen in 7+ days. Stored timestamp lives in
@@ -87,10 +92,6 @@ export default function SettingsScreen() {
   }>({ open: false });
 
   useEffect(() => {
-    AsyncStorage.getItem(StorageKeys.PATIENT_NAME)
-      .then((name) => name && setPatientName(name))
-      .catch((e) => logError('SettingsScreen.loadPatientName', e));
-
     // Pull active diagnoses to drive the "What to watch for" row subtitle.
     getMedicalInfo()
       .then((info) => {
@@ -218,7 +219,7 @@ export default function SettingsScreen() {
   }, []);
 
   // ── 4-category layout ────────────────────────────────────────────────────
-  const profileTitle = patientName ? `${patientName}'s profile` : "Mom's profile";
+  const profileTitle = patientNameRaw ? `${patientNameRaw}'s profile` : "Mom's profile";
 
   const categories: SettingsCategory[] = useMemo(() => [
     {

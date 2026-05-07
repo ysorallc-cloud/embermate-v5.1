@@ -8,6 +8,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
 import { useDataListener } from '../../lib/events';
 import { StorageKeys, StorageKeyPrefixes } from '../../utils/storageKeys';
+import { getPatientRegistry, getActivePatientId } from '../../storage/patientRegistry';
 
 const DISMISSED_KEY = StorageKeys.CHECKLIST_DISMISSED;
 
@@ -37,9 +38,13 @@ const items: ChecklistItem[] = [
     label: 'Add who you care for',
     description: 'Personalize the app with their name',
     route: '/patient',
+    // Phase 5.13.1.c — module-scope check, registry direct (no React hook).
     check: async () => {
-      const name = await safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null);
-      return !!name;
+      const id = await getActivePatientId();
+      const registry = await getPatientRegistry();
+      const patient = registry.patients.find((p) => p.id === id);
+      const name = patient?.name?.trim() ?? '';
+      return !!name && name !== 'Patient' && name !== 'patient';
     },
   },
   {

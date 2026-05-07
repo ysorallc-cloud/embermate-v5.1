@@ -83,27 +83,19 @@ describe('Tab consumers filter placeholder names', () => {
       expect(src).toMatch(/const\s*\{\s*activePatient\s*\}\s*=\s*usePatient\(\)/);
     });
 
-    it('filters BOTH the legacy "Patient" literal AND the "your loved one" placeholder', () => {
-      // The PLACEHOLDERS set contains the empty string + both legacy
-      // sentinels so showPatientCard / possessive header copy only fire
-      // for real entered names.
-      expect(src).toMatch(
-        /PLACEHOLDERS\s*=\s*new\s+Set\(\[\s*['"]['"]\s*,\s*['"]Patient['"]\s*,\s*['"]your loved one['"]\s*\]\)/,
-      );
-    });
-
-    it('prefers activePatient over storage when resolving the display name', () => {
-      // Resolution path should set patientName to the first non-placeholder
-      // value from PatientContext, falling back to safeStorage, then ''.
-      expect(src).toMatch(/fromContext\s*\|\|\s*fromStorage\s*\|\|\s*['"]['"]/);
+    it('filters legacy + placeholder names via the canonical hook', () => {
+      // Phase 5.13.1.c — the PLACEHOLDERS Set + fromContext/fromStorage
+      // resolution moved into useActivePatientNameRaw. Journal seeds its
+      // local state from that hook, so the hook applies the filter.
+      expect(src).toMatch(/useActivePatientNameRaw\b/);
     });
 
     it('preserves the empty-string sentinel as the "no real name" indicator', () => {
-      // The empty-string default on patientName drives the conditional
-      // header: `patientName ? "${name}'s care story" : "Today's care story"`.
-      // When no real name is set the fallback generic copy renders.
+      // Local state still defaults to '' so showPatientCard / possessive
+      // header copy only fire for real names. The hook returns null when
+      // no real name is set, which the seeding line maps to ''.
       expect(src).toContain("useState('')");
-      expect(src).toContain("Today's care story");
+      expect(src).toMatch(/setPatientName\s*\(\s*patientNameRaw\s*\?\?/);
     });
   });
 });

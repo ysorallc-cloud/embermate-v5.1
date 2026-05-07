@@ -79,14 +79,18 @@ export default function PatientScreen() {
 
   const loadBasicInfo = async () => {
     try {
-      const [name, rel, ageVal, gen, lang] = await Promise.all([
-        safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null),
+      // Phase 5.13.1.c — patient name seeds from PatientContext (canonical
+      // source). Other basic-info fields still live in AsyncStorage.
+      const [rel, ageVal, gen, lang] = await Promise.all([
         safeGetItem<string | null>(StorageKeys.PATIENT_RELATIONSHIP, null),
         safeGetItem<string | null>(StorageKeys.PATIENT_AGE, null),
         safeGetItem<string | null>(StorageKeys.PATIENT_GENDER, null),
         safeGetItem<string | null>(StorageKeys.PATIENT_LANGUAGE, null),
       ]);
-      if (name) setPatientName(name);
+      const ctxName = activePatient?.name?.trim() ?? '';
+      if (ctxName && ctxName !== 'Patient' && ctxName !== 'patient') {
+        setPatientName(ctxName);
+      }
       if (rel) setRelationship(rel);
       if (ageVal) setAge(ageVal);
       if (gen) setGender(gen);

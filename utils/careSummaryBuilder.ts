@@ -656,7 +656,7 @@ export async function buildCareBrief(targetDate?: string): Promise<CareBrief> {
       ? getTodayWaterLog()
       : getWaterLogs().then(arr => arr.find(l => new Date(l.timestamp).toDateString() === targetDateKey) || null);
 
-    [logs, morningWellness, eveningWellness, todayVitals, mealsLogs, upcomingAppointments, sleepLog, waterLog, medInfo, clinicalSettings, patientName, emergencyContacts, patientRegistry] =
+    [logs, morningWellness, eveningWellness, todayVitals, mealsLogs, upcomingAppointments, sleepLog, waterLog, medInfo, clinicalSettings, emergencyContacts, patientRegistry] =
       await Promise.all([
         listLogsByDate(DEFAULT_PATIENT_ID, date),
         getMorningWellness(date),
@@ -668,10 +668,18 @@ export async function buildCareBrief(targetDate?: string): Promise<CareBrief> {
         waterPromise,
         getMedicalInfo(),
         getClinicalCareSettings(),
-        safeGetItem<string | null>(StorageKeys.PATIENT_NAME, null).then(n => n || 'Patient'),
         getEmergencyContacts(),
         getPatientRegistry(),
       ]);
+    // Phase 5.13.1.c — derive patient name from the registry result we
+    // already have in hand instead of a duplicate AsyncStorage read.
+    {
+      const active = patientRegistry.patients.find(
+        (p: any) => p.id === patientRegistry.activePatientId,
+      );
+      const ctx = active?.name?.trim() ?? '';
+      patientName = ctx && ctx !== 'Patient' && ctx !== 'patient' ? ctx : 'Patient';
+    }
   } catch (error) {
     logError('buildCareBrief.fetchData', error);
     throw error;
