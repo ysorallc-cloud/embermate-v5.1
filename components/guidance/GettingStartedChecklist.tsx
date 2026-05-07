@@ -158,7 +158,7 @@ export function GettingStartedChecklist() {
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
-    backgroundColor: c.cardBackground,
+    backgroundColor: c.glass,
     borderRadius: BorderRadius.lg,
     padding: Spacing.sm,
     marginBottom: Spacing.sm,

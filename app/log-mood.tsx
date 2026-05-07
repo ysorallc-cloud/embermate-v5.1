@@ -212,7 +212,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     textAlign: 'center',
   },
   moodCard: {
-    backgroundColor: c.cardBackground,
+    backgroundColor: c.glass,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.07)',
     borderRadius: 18,

@@ -35,7 +35,7 @@ export function InsightCard({ insight, expandable = false }: Props) {
 
   return (
     <Wrapper
-      style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.glassBorder }]}
+      style={[styles.card, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}
       {...(expandable ? { onPress: () => setExpanded(!expanded) } : {})}
       accessibilityRole={expandable ? 'button' : undefined}
     >

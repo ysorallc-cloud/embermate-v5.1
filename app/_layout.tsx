@@ -295,7 +295,7 @@ function RootLayout() {
 const styles = StyleSheet.create({
   webOuter: {
     flex: 1,
-    backgroundColor: Colors.backgroundDeep, // Match app background
+    backgroundColor: Colors.background, // Phase 0 page bg (#1f201c)
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
