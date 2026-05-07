@@ -23,8 +23,8 @@ import {
   Platform,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { setUpLovedOneFromSample } from '../../utils/setUpLovedOneFromSample';
 import { clearSampleData } from '../../utils/sampleDataManager';
-import { writePatientName } from '../../utils/patientNameWriter';
 import { emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
 import { logError } from '../../utils/devLog';
@@ -70,12 +70,10 @@ export function ManageSampleDataSheet({
     if (!trimmed || busy) return;
     setBusy(true);
     try {
-      await clearSampleData();
-      // Phase 5.13.1.b — patient name now flows through the canonical
-      // writer (registry + AsyncStorage mirror + EVENT.PATIENT). The
-      // sample-cleared emit stays separate.
-      await writePatientName('default', trimmed);
-      emitDataUpdate(EVENT.SAMPLE_DATA_CLEARED);
+      // Phase 5.13.1.g — single helper owns the post-sample transition,
+      // covering registry rename + 'self' marker clear + legacy mirror +
+      // event emission. See utils/setUpLovedOneFromSample.ts.
+      await setUpLovedOneFromSample(trimmed);
       setSuccessMessage(`Welcome — ${trimmed}'s profile is ready.`);
       setMode('success');
       setTimeout(() => {
