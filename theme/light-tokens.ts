@@ -94,14 +94,6 @@ export const LightColors = {
   roseLight: 'rgba(159, 18, 57, 0.08)',
   roseBorder: 'rgba(159, 18, 57, 0.18)',
 
-  purple: '#6D5A8A',
-  purpleFaint: 'rgba(109, 90, 138, 0.05)',
-  purpleMuted: 'rgba(109, 90, 138, 0.07)',
-  purpleLight: 'rgba(109, 90, 138, 0.08)',
-  purpleHint: 'rgba(109, 90, 138, 0.10)',
-  purpleWash: 'rgba(109, 90, 138, 0.12)',
-  purpleBorder: 'rgba(109, 90, 138, 0.18)',
-  purpleStrong: 'rgba(109, 90, 138, 0.22)',
 
   sky: '#3D7A8A',
   skyLight: 'rgba(61, 122, 138, 0.08)',
@@ -152,7 +144,6 @@ export const LightColors = {
   sageDim: 'rgba(74, 107, 93, 0.05)',
 
   // Chart variants
-  purpleBright: '#6D5A8A',
   amberBright: '#A16207',
   amberBrightTint: 'rgba(161, 98, 7, 0.06)',
   amberBrightStrong: 'rgba(161, 98, 7, 0.6)',
@@ -240,15 +231,9 @@ export const LightColors = {
   // Compatibility
   backgroundGradientStart: '#E8E4DE',
   backgroundGradientEnd: '#E0DCD6',
-  cardBackground: '#FFFFFF',
 
   // Background variants
-  backgroundDark: '#DCD8D2',
-  backgroundDeep: '#E0DCD6',
   backgroundElevated: '#FFFFFF',
-
-  // Input
-  inputBackground: '#F5F3EF',
 
   // Switch
   switchThumbOn: '#FFFFFF',

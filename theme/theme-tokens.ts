@@ -107,14 +107,6 @@ const DarkColors = {
   rose: '#FB7185',
   roseLight: 'rgba(251, 113, 133, 0.10)',
   roseBorder: 'rgba(251, 113, 133, 0.20)',
-  purple: '#A78BFA',
-  purpleFaint: 'rgba(167, 139, 250, 0.06)',
-  purpleMuted: 'rgba(167, 139, 250, 0.08)',
-  purpleLight: 'rgba(167, 139, 250, 0.10)',
-  purpleHint: 'rgba(167, 139, 250, 0.12)',
-  purpleWash: 'rgba(167, 139, 250, 0.15)',
-  purpleBorder: 'rgba(167, 139, 250, 0.20)',
-  purpleStrong: 'rgba(167, 139, 250, 0.25)',
   sky: '#7DD3FC',
   skyLight: 'rgba(125, 211, 252, 0.10)',
   skyBorder: 'rgba(125, 211, 252, 0.20)',
@@ -154,7 +146,6 @@ const DarkColors = {
   sageStrong: 'rgba(196, 181, 253, 0.70)',
   sageBright: 'rgba(196, 181, 253, 0.85)',
   sageDim: 'rgba(95, 184, 138, 0.06)',
-  purpleBright: '#C4B5FD',
   amberBright: '#e5b04a',
   amberBrightTint: 'rgba(229, 176, 74, 0.08)',
   amberBrightStrong: 'rgba(229, 176, 74, 0.75)',
@@ -262,9 +253,6 @@ const DarkColors = {
   // screens) for a future deliberate design call that wants depth back.
   backgroundGradientStart: '#1f201c',
   backgroundGradientEnd: '#1f201c',
-  cardBackground: '#111111',
-  backgroundDark: '#000000',
-  backgroundDeep: '#050505',
   // Phase 2.6.2 — lifted to the Phase 0 glass-tier value (#363830). Pre-lift
   // was '#1A1A1A', which sat L* 2.7 BELOW the new warm-charcoal bg — making
   // buttons read darker than the page they sat on. Same root cause as the
@@ -273,7 +261,6 @@ const DarkColors = {
   // log forms, medication form), not the four main tabs. If on device this
   // reads too prominent for back-button purposes, drop one step to #2e2f29.
   backgroundElevated: '#363830',
-  inputBackground: '#111111',
   switchThumbOn: '#FFFFFF',
   switchThumbOff: '#F4F3F4',
   switchThumb: '#F4F3F4',
