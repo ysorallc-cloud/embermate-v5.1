@@ -100,6 +100,8 @@ import { hasSampleData } from '../../utils/sampleDataManager';
 import { useSampleMode } from '../../hooks/useSampleMode';
 import { SampleModeBanner } from '../../components/sample/SampleModeBanner';
 import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataSheet';
+import { FirstTimeWelcomeCard } from '../../components/now/FirstTimeWelcomeCard';
+import { getCaregiverProfile } from '../../storage/caregiverProfileRepo';
 
 
 // ============================================================================
@@ -257,6 +259,21 @@ export default function NowScreen() {
     activePatient?.name && activePatient.name !== 'Patient'
       ? activePatient.name
       : 'your loved one';
+
+  // Phase 5.13.e — caregiver name for the first-time welcome card.
+  // Loaded once on mount; the card itself reads the first-real-mode flag
+  // and decides whether to render.
+  const [caregiverName, setCaregiverName] = useState('');
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const profile = await getCaregiverProfile();
+        if (!cancelled && profile?.name) setCaregiverName(profile.name);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // v6.7 — water goal pulled from CarePlanConfig.water.dailyGoalGlasses
   // when the bucket is configured; falls back to the legacy default of 8.
@@ -998,6 +1015,12 @@ export default function NowScreen() {
           nextScheduledTime={nextScheduledTime}
           onManageSample={(focus) => setManageSampleSheet({ open: true, focus })}
         />
+
+        {/* Phase 5.13.e — first-time welcome card. Renders once after
+            wizard completion (5.13.d sets the @embermate_first_real_mode_landed
+            flag). The component reads the flag itself; we always mount
+            it and let it decide whether to render. */}
+        <FirstTimeWelcomeCard patientName={patientName} caregiverName={caregiverName} />
 
         <SampleModeBanner
           isSampleMode={isSampleMode}
