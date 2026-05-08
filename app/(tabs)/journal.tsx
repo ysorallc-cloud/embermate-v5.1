@@ -53,6 +53,9 @@ import { HandoffSheet } from '../../components/journal/HandoffSheet';
 import { NarrativeView } from '../../components/journal/NarrativeView';
 import { NarrativeSnapshot } from '../../components/journal/NarrativeSnapshot';
 import { WhatChangedToday } from '../../components/journal/WhatChangedToday';
+import { EventsTimeline } from '../../components/journal/EventsTimeline';
+import { useDayEvents } from '../../hooks/useDayEvents';
+import { useDayLevelChanges } from '../../hooks/useDayLevelChanges';
 import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
 import { getHandoffTone } from '../../storage/handoffToneRepo';
 import { buildDayNarrative } from '../../utils/narrativeSummaryBuilder';
@@ -117,6 +120,11 @@ export default function JournalTab() {
   // (2) factual narrative summary, (3) "No record from this day."
   const [handoffTone, setHandoffTone] = useState<string | null>(null);
   const [narrativeSummary, setNarrativeSummary] = useState<string | null>(null);
+
+  // Phase 5.12.e — timeline + cross-section flag linkage. The hooks share
+  // the dateKey effect and re-fetch when the user changes day.
+  const { events: dayEvents } = useDayEvents(selectedDate);
+  const { result: dayChangesResult } = useDayLevelChanges(selectedDate);
 
   // Load reflection when date changes
   useEffect(() => {
@@ -620,6 +628,14 @@ export default function JournalTab() {
                   meaningful deltas (else null). Coral eyebrow on any
                   flag-severity change; lavender when only notes. */}
               <WhatChangedToday dateKey={selectedDate} />
+
+              {/* Phase 5.12.e — flat events timeline. Read-only, no card
+                  chrome. Cross-section linkage colours rows coral when
+                  their event matches a flag-severity day-level change. */}
+              <EventsTimeline
+                events={dayEvents}
+                dayLevelChanges={dayChangesResult?.changes ?? []}
+              />
 
               {/* Phase 5.12.a — leading dashboard card removed. Journal
                   no longer duplicates Now; completion counts demote to a
