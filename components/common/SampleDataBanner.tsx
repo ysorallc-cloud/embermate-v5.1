@@ -57,13 +57,10 @@ export const SampleDataBanner: React.FC<SampleDataBannerProps> = ({
     try {
       const hasData = await hasSampleData();
       if (hasData) {
-        // Auto-hide if user has started entering real data
-        const firstRealLog = await safeGetItem<string | null>('first_real_log_timestamp', null);
-        if (firstRealLog) {
-          setVisible(false);
-          return;
-        }
-        // Check persisted mode
+        // Phase 5.13.h — banner persists until sample data is actually
+        // cleared. The legacy first-real-log auto-hide was removed because
+        // real logs can coexist with sample data while the user is still
+        // mid-wizard. The only hide signal is the sampleDataCleared event.
         const savedMode = await safeGetItem<string | null>(StorageKeys.SAMPLE_BANNER_MODE, null);
         if (savedMode === 'compact') {
           setMode('compact');
