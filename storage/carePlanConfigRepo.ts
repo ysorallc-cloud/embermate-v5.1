@@ -110,6 +110,26 @@ export async function setBucketEnabled(
   return updateBucketConfig(patientId, bucketType, { enabled });
 }
 
+/**
+ * Stamp the CarePlanTemplate id the user picked in the setup wizard.
+ * Pass `null` to clear it (e.g. when the user re-runs the wizard and
+ * selects "Start blank"). Used by the welcome card to echo the template
+ * name back to the user.
+ */
+export async function setAppliedTemplateId(
+  patientId: string,
+  templateId: string | null
+): Promise<CarePlanConfig> {
+  const config = await getOrCreateCarePlanConfig(patientId);
+  if (templateId === null) {
+    delete (config as any).appliedTemplateId;
+  } else {
+    config.appliedTemplateId = templateId;
+  }
+  await saveCarePlanConfig(config);
+  return config;
+}
+
 // ============================================================================
 // MEDICATION OPERATIONS
 // ============================================================================

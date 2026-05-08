@@ -44,7 +44,8 @@ import { useAppointments } from '../../hooks/useAppointments';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import { useTodayScope } from '../../hooks/useTodayScope';
 import { getTodayDateString } from '../../services/carePlanGenerator';
-import { BucketType } from '../../types/carePlanConfig';
+import { BUCKET_META, BucketType, type CarePlanConfig, type MedsBucketConfig } from '../../types/carePlanConfig';
+import { CARE_PLAN_TEMPLATES } from '../../constants/carePlanTemplates';
 
 // Urgency System
 import {
@@ -279,6 +280,24 @@ export default function NowScreen() {
   // when the bucket is configured; falls back to the legacy default of 8.
   const waterGoal = (carePlanConfig as any)?.buckets?.water?.dailyGoalGlasses ?? 8;
   const isWaterBucketEnabled = (carePlanConfig as any)?.buckets?.water?.enabled === true;
+
+  // Phase 5.13.2 — summary surfaced on the first-time welcome card. Reads
+  // appliedTemplateId (stamped in applyCarePlanTemplate), bucket-enabled
+  // flags, and meds.medications for the count.
+  const welcomeSummary = useMemo(() => {
+    const cfg = carePlanConfig as CarePlanConfig | null;
+    const templateId = cfg?.appliedTemplateId;
+    const template = templateId
+      ? CARE_PLAN_TEMPLATES.find((t) => t.id === templateId)
+      : undefined;
+    const labels = (enabledBuckets ?? []).map((b) => BUCKET_META[b]?.name).filter(Boolean);
+    const medCount = (cfg?.meds as MedsBucketConfig | undefined)?.medications?.length ?? 0;
+    return {
+      appliedTemplateName: template?.name,
+      enabledBucketLabels: labels,
+      medicationCount: medCount,
+    };
+  }, [carePlanConfig, enabledBuckets]);
 
   const handleWaterUpdate = useCallback(async (newGlasses: number) => {
     try {
@@ -1020,7 +1039,11 @@ export default function NowScreen() {
             wizard completion (5.13.d sets the @embermate_first_real_mode_landed
             flag). The component reads the flag itself; we always mount
             it and let it decide whether to render. */}
-        <FirstTimeWelcomeCard patientName={patientName} caregiverName={caregiverName} />
+        <FirstTimeWelcomeCard
+          patientName={patientName}
+          caregiverName={caregiverName}
+          summary={welcomeSummary}
+        />
 
         <SampleModeBanner
           isSampleMode={isSampleMode}

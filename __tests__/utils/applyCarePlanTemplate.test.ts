@@ -17,11 +17,13 @@ import type { CarePlanTemplate } from '../../constants/carePlanTemplates';
 const setBucketEnabled = jest.fn();
 const updateBucketConfig = jest.fn();
 const getOrCreateCarePlanConfig = jest.fn();
+const setAppliedTemplateId = jest.fn();
 
 jest.mock('../../storage/carePlanConfigRepo', () => ({
   setBucketEnabled: (...args: any[]) => setBucketEnabled(...args),
   updateBucketConfig: (...args: any[]) => updateBucketConfig(...args),
   getOrCreateCarePlanConfig: (...args: any[]) => getOrCreateCarePlanConfig(...args),
+  setAppliedTemplateId: (...args: any[]) => setAppliedTemplateId(...args),
 }));
 
 jest.mock('../../utils/devLog', () => ({ logError: () => {} }));
@@ -30,6 +32,7 @@ beforeEach(() => {
   setBucketEnabled.mockReset().mockResolvedValue(undefined);
   updateBucketConfig.mockReset().mockResolvedValue(undefined);
   getOrCreateCarePlanConfig.mockReset().mockResolvedValue({});
+  setAppliedTemplateId.mockReset().mockResolvedValue(undefined);
 });
 
 const elderlyTemplate: CarePlanTemplate = {
@@ -89,6 +92,23 @@ describe('applyCarePlanTemplate — pure config write', () => {
     // At least one updateBucketConfig per bucket with suggestedSettings.
     const buckets = updateCalls.map((c) => c[1]);
     expect(buckets).toEqual(expect.arrayContaining(['meds', 'vitals']));
+  });
+});
+
+describe('applyCarePlanTemplate — appliedTemplateId persistence (Phase 5.13.2)', () => {
+  it('persists template.id via setAppliedTemplateId for the default patient', async () => {
+    await applyCarePlanTemplate(elderlyTemplate);
+    expect(setAppliedTemplateId).toHaveBeenCalledWith('default', 'elderly');
+  });
+
+  it('persists template.id for a non-default patientId', async () => {
+    await applyCarePlanTemplate(elderlyTemplate, 'patient-2');
+    expect(setAppliedTemplateId).toHaveBeenCalledWith('patient-2', 'elderly');
+  });
+
+  it('persists the id even when the template has no suggestedMedications', async () => {
+    await applyCarePlanTemplate(blankTemplate);
+    expect(setAppliedTemplateId).toHaveBeenCalledWith('default', 'general-wellness');
   });
 });
 

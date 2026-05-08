@@ -355,6 +355,12 @@ export interface CarePlanConfig {
   updatedAt: string;
   version: number;
 
+  // Phase 5.13.2 — id of the CarePlanTemplate the user picked in the
+  // setup wizard (e.g. 'elderly'). Optional so legacy configs and the
+  // "Start blank" path leave it unset; the welcome card only renders
+  // its template line when this resolves to a real template.
+  appliedTemplateId?: string;
+
   // Bucket configurations
   meds: MedsBucketConfig;
   vitals: VitalsBucketConfig;

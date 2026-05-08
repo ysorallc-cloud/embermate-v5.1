@@ -103,46 +103,161 @@ beforeEach(() => {
   mockMarkSeen = jest.fn();
 });
 
+// Phase 5.13.2 — every call now supplies a summary prop. Default to an
+// empty config (no template, no meds, no buckets) and override per test.
+const baseSummary = {
+  appliedTemplateName: undefined as string | undefined,
+  enabledBucketLabels: [] as string[],
+  medicationCount: 0,
+};
+
 describe('FirstTimeWelcomeCard — visibility', () => {
   it('renders when shouldShow is true', () => {
-    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: 'Linda' });
+    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: 'Linda', summary: baseSummary });
     expect(tree).not.toBeNull();
   });
 
   it('returns null when shouldShow is false', () => {
     mockShouldShow = false;
-    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: 'Linda' });
+    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: 'Linda', summary: baseSummary });
     expect(tree).toBeNull();
   });
 });
 
 describe('FirstTimeWelcomeCard — content', () => {
   it('greets the caregiver by name when provided', () => {
-    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: 'Linda' });
+    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: 'Linda', summary: baseSummary });
     expect(textOf(tree)).toMatch(/Welcome,\s*Linda/);
   });
 
   it('falls back to a generic "Welcome." when caregiver name is empty', () => {
-    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: '' });
+    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: '', summary: baseSummary });
     const txt = textOf(tree);
     expect(txt).toMatch(/Welcome\./);
     expect(txt).not.toMatch(/Welcome,/);
   });
 
-  it('mentions the patient by name in the body', () => {
-    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: 'Linda' });
+  it("mentions the patient by name in the body", () => {
+    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: 'Linda', summary: baseSummary });
     expect(textOf(tree)).toMatch(/Mom/);
   });
 
   it('renders the "Add a medication" CTA copy', () => {
-    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: 'Linda' });
+    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: 'Linda', summary: baseSummary });
     expect(textOf(tree)).toMatch(/Add a medication/);
+  });
+});
+
+describe('FirstTimeWelcomeCard — Phase 5.13.2 summary', () => {
+  it('echoes the template name as the first bullet when applied', () => {
+    const tree = FirstTimeWelcomeCard({
+      patientName: 'Mom',
+      caregiverName: 'Amber',
+      summary: {
+        appliedTemplateName: 'Aging in Place',
+        enabledBucketLabels: ['Medications', 'Vitals', 'Meals', 'Wellness'],
+        medicationCount: 3,
+      },
+    });
+    const txt = textOf(tree);
+    expect(txt).toMatch(/Aging in Place template applied/);
+    // Template line precedes buckets line.
+    expect(txt.indexOf('template applied')).toBeLessThan(txt.indexOf('tracked'));
+  });
+
+  it('lists enabled buckets joined as a comma list followed by "tracked"', () => {
+    const tree = FirstTimeWelcomeCard({
+      patientName: 'Mom',
+      caregiverName: 'Amber',
+      summary: {
+        appliedTemplateName: 'Aging in Place',
+        enabledBucketLabels: ['Medications', 'Vitals', 'Meals', 'Wellness'],
+        medicationCount: 3,
+      },
+    });
+    expect(textOf(tree)).toMatch(/Medications, vitals, meals, wellness tracked/);
+  });
+
+  it('includes a medication count line when medicationCount > 0', () => {
+    const tree = FirstTimeWelcomeCard({
+      patientName: 'Mom',
+      caregiverName: 'Amber',
+      summary: {
+        appliedTemplateName: 'Aging in Place',
+        enabledBucketLabels: ['Medications', 'Vitals'],
+        medicationCount: 3,
+      },
+    });
+    expect(textOf(tree)).toMatch(/3 medications added/);
+  });
+
+  it('uses the singular form for medicationCount === 1', () => {
+    const tree = FirstTimeWelcomeCard({
+      patientName: 'Mom',
+      caregiverName: 'Amber',
+      summary: {
+        appliedTemplateName: 'Aging in Place',
+        enabledBucketLabels: ['Medications'],
+        medicationCount: 1,
+      },
+    });
+    const txt = textOf(tree);
+    expect(txt).toMatch(/1 medication added/);
+    expect(txt).not.toMatch(/medications added/);
+  });
+
+  it('omits the medication count line when medicationCount === 0', () => {
+    const tree = FirstTimeWelcomeCard({
+      patientName: 'Mom',
+      caregiverName: 'Amber',
+      summary: {
+        appliedTemplateName: 'Aging in Place',
+        enabledBucketLabels: ['Medications', 'Vitals'],
+        medicationCount: 0,
+      },
+    });
+    expect(textOf(tree)).not.toMatch(/medication added/);
+  });
+
+  it('omits the template line when appliedTemplateName is undefined ("Start blank" path)', () => {
+    const tree = FirstTimeWelcomeCard({
+      patientName: 'Mom',
+      caregiverName: 'Amber',
+      summary: {
+        appliedTemplateName: undefined,
+        enabledBucketLabels: ['Medications', 'Vitals'],
+        medicationCount: 0,
+      },
+    });
+    expect(textOf(tree)).not.toMatch(/template applied/);
+  });
+
+  it('renders an action prompt instead of the meds count for the Start blank path', () => {
+    const tree = FirstTimeWelcomeCard({
+      patientName: 'Mom',
+      caregiverName: 'Amber',
+      summary: {
+        appliedTemplateName: undefined,
+        enabledBucketLabels: ['Medications', 'Vitals'],
+        medicationCount: 0,
+      },
+    });
+    expect(textOf(tree)).toMatch(/Add medications, vitals readings, and notes from the schedule below/);
+  });
+
+  it('opens the body with "<patient>\'s care plan is set:"', () => {
+    const tree = FirstTimeWelcomeCard({
+      patientName: 'Mom',
+      caregiverName: 'Amber',
+      summary: baseSummary,
+    });
+    expect(textOf(tree)).toMatch(/Mom['’]s care plan is set:/);
   });
 });
 
 describe('FirstTimeWelcomeCard — interactions', () => {
   it('tapping the primary CTA marks the card as seen', () => {
-    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: 'Linda' });
+    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: 'Linda', summary: baseSummary });
     const cta = findAll(tree, (n) => n.props?.testID === 'first-welcome-cta')[0];
     expect(cta).toBeDefined();
     cta.props.onPress();
@@ -150,7 +265,7 @@ describe('FirstTimeWelcomeCard — interactions', () => {
   });
 
   it('tapping the dismiss affordance marks the card as seen', () => {
-    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: 'Linda' });
+    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: 'Linda', summary: baseSummary });
     const dismiss = findAll(tree, (n) => n.props?.testID === 'first-welcome-dismiss')[0];
     expect(dismiss).toBeDefined();
     dismiss.props.onPress();

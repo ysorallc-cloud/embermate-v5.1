@@ -17,6 +17,7 @@
 import {
   setBucketEnabled,
   updateBucketConfig,
+  setAppliedTemplateId,
 } from '../storage/carePlanConfigRepo';
 import {
   BUCKET_TYPES,
@@ -68,6 +69,10 @@ export async function applyCarePlanTemplate(
         await updateBucketConfig(patientId, bucket, updates);
       }
     }
+
+    // Phase 5.13.2 — stamp the picked template id so the Now-tab welcome
+    // card can echo "Aging in Place template applied" back to the user.
+    await setAppliedTemplateId(patientId, template.id);
 
     const pendingMedSeeding =
       template.suggestedMedications && template.suggestedMedications.length > 0
