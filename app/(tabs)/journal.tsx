@@ -54,6 +54,8 @@ import { NarrativeSnapshot } from '../../components/journal/NarrativeSnapshot';
 import { WhatChangedToday } from '../../components/journal/WhatChangedToday';
 import { EventsTimeline } from '../../components/journal/EventsTimeline';
 import { ForNextCaregiver } from '../../components/journal/ForNextCaregiver';
+import { JournalEmptyDay } from '../../components/journal/JournalEmptyDay';
+import { JournalDisclaimer } from '../../components/journal/JournalDisclaimer';
 import { useDayEvents } from '../../hooks/useDayEvents';
 import { useDayLevelChanges } from '../../hooks/useDayLevelChanges';
 import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
@@ -125,6 +127,12 @@ export default function JournalTab() {
   // the dateKey effect and re-fetch when the user changes day.
   const { events: dayEvents } = useDayEvents(selectedDate);
   const { result: dayChangesResult } = useDayLevelChanges(selectedDate);
+
+  // Phase 5.12.h — when the user taps "+ Add a note" from the empty-day
+  // composition, flip into populated mode so JournalNotesCard mounts and
+  // accepts input. Once they save, the reflection state populates and the
+  // empty-day branch naturally falls out of the conditional.
+  const [addNoteMode, setAddNoteMode] = useState(false);
 
   // Load reflection when date changes
   useEffect(() => {
@@ -607,13 +615,42 @@ export default function JournalTab() {
             onDateSelect={handleDateSelect}
           />
 
+          {/* Phase 5.12.h — empty-day composition. When today has no
+              events, no notes, and no tone, render the restorative
+              hero + nearby-days continuity + add-note affordance
+              instead of the populated structure with empty sections.
+              Past days keep NarrativeView (which has its own empty
+              handling). */}
+          {(() => {
+            if (isViewingPast) return false;
+            if (addNoteMode) return false;
+            const hasEvents = dayEvents && dayEvents.length > 0;
+            const hasNotes = (reflection?.text?.trim().length ?? 0) > 0;
+            const hasTone = !!handoffTone && handoffTone.trim().length > 0;
+            return !hasEvents && !hasNotes && !hasTone;
+          })() && (
+            <JournalEmptyDay
+              dateKey={selectedDate}
+              onAddNote={() => setAddNoteMode(true)}
+              onSelectDay={handleDateSelect}
+            />
+          )}
+
           {/* Past-day mode: prose recap + notable moments + saved notes,
               built from local events. Today still uses the live outcomes
               + notes + handoff layout below. */}
           {isViewingPast ? (
             <NarrativeView dateKey={selectedDate} />
-          ) : (
-            <>
+          ) : (() => {
+            // Hide the populated structure on empty-day mode unless the
+            // user opted into addNoteMode (which mounts JournalNotesCard).
+            const hasEvents = dayEvents && dayEvents.length > 0;
+            const hasNotes = (reflection?.text?.trim().length ?? 0) > 0;
+            const hasTone = !!handoffTone && handoffTone.trim().length > 0;
+            const isEmpty = !hasEvents && !hasNotes && !hasTone;
+            if (isEmpty && !addNoteMode) return null;
+            return (
+              <>
               {/* Phase 5.12.c — narrative snapshot. Caregiver-authored
                   tone if set, else factual auto-recap with disclaimer.
                   Tapping the snapshot opens HandoffSheet whose first
@@ -660,8 +697,9 @@ export default function JournalTab() {
                   readOnly={isViewingPast}
                 />
               </View>
-            </>
-          )}
+              </>
+            );
+          })()}
 
           {/* Phase 5.11 — "This week" pattern card relocated to Insights.
               Now and Journal are today-focused; longitudinal stats live
@@ -686,8 +724,11 @@ export default function JournalTab() {
             );
           })()}
 
-          {/* ─── FOOTER ─── */}
-          <Text style={s.timestamp}>Not a medical record</Text>
+          {/* Phase 5.12.i — Layer 1 disclaimer. Persistent on every state
+              (populated today, empty today, past day). Quiet legal
+              hygiene; not dismissable. Replaces the previous one-line
+              "Not a medical record" timestamp footer. */}
+          <JournalDisclaimer />
 
         </ScrollView>
       </SafeAreaView>
