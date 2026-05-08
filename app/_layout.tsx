@@ -3,7 +3,7 @@
 // App shell with navigation structure
 // ============================================================================
 
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { View, Text, StyleSheet, Platform, useWindowDimensions, AppState, AppStateStatus, TouchableOpacity } from 'react-native';
@@ -20,6 +20,7 @@ import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { requestNotificationPermissions } from '../utils/notificationService';
 import { useNotificationHandler } from '../utils/useNotificationHandler';
 import { runStartupSequence } from '../services/appStartup';
+import { getPendingWizardResume } from '../services/wizardResume';
 import { isBiometricEnabled, shouldLockSession, requireAuthentication, updateLastActivity, getAutoLockTimeout, getPINLockoutInfo, PINLockoutInfo } from '../utils/biometricAuth';
 import { shouldShowIntegrityWarning } from '../utils/deviceIntegrity';
 import { logError } from '../utils/devLog';
@@ -117,9 +118,18 @@ function RootLayout() {
 
   useEffect(() => {
     // Orchestrated startup: error reporting → migrations → daily reset → cleanup.
-    // Once complete, dismiss the native splash so the first React render is
-    // visible without a white-flash gap.
-    runStartupSequence().then(() => {
+    // Once complete, check for in-flight wizard progress (Phase 5.13.g) and
+    // dismiss the native splash so the first React render is visible without
+    // a white-flash gap.
+    runStartupSequence().then(async () => {
+      try {
+        const resumePath = await getPendingWizardResume();
+        if (resumePath) {
+          router.replace(resumePath as any);
+        }
+      } catch (err) {
+        logError('RootLayout.wizardResume', err);
+      }
       SplashScreen.hideAsync().catch(() => {});
     }).catch(() => {
       // Splash must hide even if startup fails — otherwise the app is
