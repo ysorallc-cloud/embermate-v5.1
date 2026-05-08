@@ -52,6 +52,7 @@ import { HandoffCard } from '../../components/journal/HandoffCard';
 import { HandoffSheet } from '../../components/journal/HandoffSheet';
 import { NarrativeView } from '../../components/journal/NarrativeView';
 import { NarrativeSnapshot } from '../../components/journal/NarrativeSnapshot';
+import { WhatChangedToday } from '../../components/journal/WhatChangedToday';
 import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
 import { getHandoffTone } from '../../storage/handoffToneRepo';
 import { buildDayNarrative } from '../../utils/narrativeSummaryBuilder';
@@ -613,6 +614,12 @@ export default function JournalTab() {
                 dateKey={selectedDate}
                 onEditPress={() => setHandoffSheetVisible(true)}
               />
+
+              {/* Phase 5.12.4b — "What changed today" significance row.
+                  Renders only when the day-level detector surfaces
+                  meaningful deltas (else null). Coral eyebrow on any
+                  flag-severity change; lavender when only notes. */}
+              <WhatChangedToday dateKey={selectedDate} />
 
               {/* Phase 5.12.a — leading dashboard card removed. Journal
                   no longer duplicates Now; completion counts demote to a
