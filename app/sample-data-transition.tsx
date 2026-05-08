@@ -32,7 +32,12 @@ export default function SampleDataTransition() {
       await clearSampleData();
       // Brief pause so the user sees the loading state
       await new Promise(resolve => setTimeout(resolve, 500));
-      router.replace('/(tabs)/now');
+      // Phase 5.13.f — sample data is cleared; hand off to the wizard
+      // with from=transition so Cancel returns to /(tabs)/now.
+      router.replace({
+        pathname: '/care-plan/setup/who',
+        params: { from: 'transition' },
+      } as any);
     } catch (error) {
       logError('SampleDataTransition.handleClear', error);
       setIsClearing(false);

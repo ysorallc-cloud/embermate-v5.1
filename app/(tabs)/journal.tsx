@@ -772,6 +772,7 @@ export default function JournalTab() {
         visible={manageSampleOpen}
         onClose={() => setManageSampleOpen(false)}
         activePatientName={patientName}
+        entrySource="banner"
       />
     </View>
   );

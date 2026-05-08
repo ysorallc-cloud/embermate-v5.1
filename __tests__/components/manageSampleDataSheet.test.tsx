@@ -70,6 +70,10 @@ jest.mock('../../lib/events', () => ({
   emitDataUpdate: jest.fn(),
 }));
 
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
+}));
+
 import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataSheet';
 
 function findAll(node: any, predicate: (n: any) => boolean): any[] {

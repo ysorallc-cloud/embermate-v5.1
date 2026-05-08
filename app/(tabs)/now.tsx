@@ -1193,6 +1193,7 @@ export default function NowScreen() {
         visible={manageSampleSheet.open}
         focusOn={manageSampleSheet.focus}
         activePatientName={patientName}
+        entrySource="banner"
         onClose={() => setManageSampleSheet({ open: false })}
       />
     </View>

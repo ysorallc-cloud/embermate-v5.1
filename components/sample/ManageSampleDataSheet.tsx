@@ -22,6 +22,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTheme } from '../../contexts/ThemeContext';
 import { setUpLovedOneFromSample } from '../../utils/setUpLovedOneFromSample';
 import { clearSampleData } from '../../utils/sampleDataManager';
@@ -38,6 +39,13 @@ export interface ManageSampleDataSheetProps {
   focusOn?: ManageSampleFocus;
   /** Optional active patient name for the Remove confirmation copy. */
   activePatientName?: string;
+  /**
+   * Phase 5.13.f — entry-source token forwarded to the wizard's `from`
+   * param so step 1 Cancel can route back correctly. 'settings' from
+   * the Settings sample row; 'banner' from Now / Journal banner pills.
+   * Defaults to 'banner' (Now is the safer fallback for unknown origins).
+   */
+  entrySource?: 'settings' | 'banner';
 }
 
 type Mode = 'menu' | 'setup' | 'remove' | 'success';
@@ -47,7 +55,9 @@ export function ManageSampleDataSheet({
   onClose,
   focusOn,
   activePatientName,
+  entrySource = 'banner',
 }: ManageSampleDataSheetProps) {
+  const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -76,15 +86,22 @@ export function ManageSampleDataSheet({
       await setUpLovedOneFromSample(trimmed);
       setSuccessMessage(`Welcome — ${trimmed}'s profile is ready.`);
       setMode('success');
+      // Phase 5.13.f — after the success state, hand off to the wizard
+      // step 1 with the appropriate entry-source token. The sheet closes
+      // before the push so the wizard mounts on a clean stack.
       setTimeout(() => {
         onClose();
+        router.push({
+          pathname: '/care-plan/setup/who',
+          params: { from: entrySource },
+        } as any);
       }, 1500);
     } catch (error) {
       logError('ManageSampleDataSheet.handleSetUp', error);
     } finally {
       setBusy(false);
     }
-  }, [name, busy, onClose]);
+  }, [name, busy, onClose, entrySource, router]);
 
   const handleRemove = useCallback(async () => {
     if (busy) return;

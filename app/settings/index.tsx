@@ -506,6 +506,7 @@ export default function SettingsScreen() {
         visible={manageSampleSheet.open}
         focusOn={manageSampleSheet.focus}
         activePatientName={patientName}
+        entrySource="settings"
         onClose={() => setManageSampleSheet({ open: false })}
       />
     </View>

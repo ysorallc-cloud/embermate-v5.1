@@ -120,10 +120,19 @@ export default function OnboardingFlow() {
         // Phase 5.13.1.e — fresh sample seed shows banner in 'full' mode
         // on first Now-tab landing.
         await resetSampleBannerMode();
+        // Sample-mode users land on Now and pick up the wizard later via
+        // the banner — preserve the legacy route here.
+        router.replace('/(tabs)/now');
+        return;
       }
 
-      // Navigate to main app
-      router.replace('/(tabs)/now');
+      // Phase 5.13.f — real-mode path now hands off to the wizard so
+      // the user picks a template and confirms buckets before landing
+      // on Now. Cancel from the wizard returns to the onboarding stack.
+      router.replace({
+        pathname: '/care-plan/setup/who',
+        params: { from: 'onboarding' },
+      } as any);
     } catch (error) {
       logError('OnboardingFlow.completeOnboarding', error);
     }

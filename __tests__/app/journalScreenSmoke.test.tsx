@@ -138,6 +138,7 @@ jest.mock('expo-linear-gradient', () => {
 });
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({}),
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
 }));
 
 jest.mock('../../components/journal/DateTabStrip', () => {
@@ -273,6 +274,7 @@ jest.mock('../../lib/eventNames', () => ({
 jest.mock('../../lib/navigate', () => ({ navigate: jest.fn() }));
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({}),
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
 }));
 jest.mock('../../utils/dailyOutcomes', () => ({
   getDailyOutcomes: jest.fn().mockResolvedValue({
