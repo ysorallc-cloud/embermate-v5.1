@@ -30,8 +30,11 @@ describe('Journal — new sections present', () => {
     expect(src).not.toMatch(/JournalPatternLink/);
   });
 
-  it('imports HandoffCard', () => {
-    expect(src).toMatch(/import\s+\{\s*HandoffCard\s*\}\s+from\s+['"][^'"]+HandoffCard['"]/);
+  it('no longer imports HandoffCard (Phase 5.12.g — sticky CTA replaces it)', () => {
+    // Phase 5.12.g introduced a single sticky "Share handoff" CTA as
+    // the page's only primary action. HandoffCard's competing share
+    // affordance was retired here.
+    expect(src).not.toMatch(/import\s+\{[^}]*\bHandoffCard\b[^}]*\}/);
   });
 
   it('imports HandoffSheet', () => {
@@ -50,8 +53,8 @@ describe('Journal — new sections present', () => {
     expect(src).not.toMatch(/<JournalPatternLink\b/);
   });
 
-  it('renders HandoffCard', () => {
-    expect(src).toMatch(/<HandoffCard\b/);
+  it('no longer renders <HandoffCard> (Phase 5.12.g)', () => {
+    expect(src).not.toMatch(/<HandoffCard\b/);
   });
 
   it('renders HandoffSheet', () => {
@@ -60,10 +63,15 @@ describe('Journal — new sections present', () => {
 });
 
 describe('Journal — section order in the rendered tree', () => {
-  it('JournalNotesCard appears before HandoffCard (Phase 5.11 dropped the Pattern Link from this column)', () => {
+  it('the sticky share CTA renders below the in-flow content (Phase 5.12.g)', () => {
+    // After 5.12.g, HandoffCard was removed and replaced by an absolute-
+    // positioned sticky CTA. The CTA's testID lands LATE in the file
+    // (after the JSX of all in-flow sections) since it sits inside the
+    // outer screen container after the SafeAreaView/ScrollView close.
     const notes = src.indexOf('<JournalNotesCard');
-    const handoff = src.indexOf('<HandoffCard');
-    expect(notes).toBeLessThan(handoff);
+    const sticky = src.indexOf("testID=\"journal-share-cta\"");
+    expect(notes).toBeGreaterThan(-1);
+    expect(sticky).toBeGreaterThan(notes);
   });
 });
 

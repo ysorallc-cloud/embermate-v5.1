@@ -36,7 +36,14 @@ describe('Phase 10 — Journal honors scrollTo=handoff on mount', () => {
     expect(journalSrc).toMatch(/handoffPulse/);
   });
 
-  it('passes the pulse Animated.Value to HandoffCard via the pulse prop', () => {
-    expect(journalSrc).toMatch(/<HandoffCard[\s\S]{0,400}?pulse=\{handoffPulse\}/);
+  it('Phase 5.12.g — HandoffCard target was retired; the EOS scroll plumbing remains', () => {
+    // Phase 5.12.g introduced a single sticky "Share handoff" CTA and
+    // removed HandoffCard. The Phase 10 wiring above (param parsing,
+    // scrollTo, pulse animation, handoffPulse ref) is preserved so the
+    // EOS card → Journal scroll continues to land at the page bottom
+    // even though the pulse target is no longer mounted. A future
+    // follow-up may either wire the pulse to the sticky CTA or retire
+    // the EOS scroll-to-handoff flow entirely.
+    expect(journalSrc).not.toMatch(/<HandoffCard\b/);
   });
 });

@@ -48,7 +48,6 @@ import { ReportData } from '../../utils/pdfExport';
 import { DateTabStrip } from '../../components/journal/DateTabStrip';
 import { JournalNotesCard } from '../../components/journal/JournalNotesCard';
 import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataSheet';
-import { HandoffCard } from '../../components/journal/HandoffCard';
 import { HandoffSheet } from '../../components/journal/HandoffSheet';
 import { NarrativeView } from '../../components/journal/NarrativeView';
 import { NarrativeSnapshot } from '../../components/journal/NarrativeSnapshot';
@@ -668,23 +667,11 @@ export default function JournalTab() {
               Now and Journal are today-focused; longitudinal stats live
               on the Insights tab. */}
 
-          {/* ═══ HANDOFF CARD (Phase 6) — hidden on past dates ═══ */}
-          {!isViewingPast && (
-          <View
-            onLayout={(e) => { handoffCardLayoutY.current = e.nativeEvent.layout.y; }}
-          >
-            <HandoffCard
-              hasNotes={!!reflection?.text?.trim()}
-              hasMissed={outcomes.missed.count > 0}
-              hasPending={outcomes.pending.count > 0}
-              hasLogged={outcomes.logged.count > 0}
-              dayComplete={dayCompleteFlag}
-              onShare={() => setHandoffSheetVisible(true)}
-              onDoneForToday={handleDoneForToday}
-              pulse={handoffPulse}
-            />
-          </View>
-          )}
+          {/* Phase 5.12.g — HandoffCard removed. The sticky "Share
+              handoff" CTA below is the page's only primary action;
+              competing share affordances were retired here. The
+              "Done for today" affordance from HandoffCard is dropped
+              with this commit and may resurface as a Now-tab feature. */}
 
           {/* Phase 5.12.a — quiet completion footer line (replaces the
               missed-tasks dashboard). Ambient, not a section header. */}
@@ -704,6 +691,33 @@ export default function JournalTab() {
 
         </ScrollView>
       </SafeAreaView>
+
+      {/* Phase 5.12.g — sticky "Share handoff" CTA. The page's only
+          primary action. Hidden on past days (handoff is today-only)
+          and on empty days (no events, no notes, no tone — nothing to
+          share). Opens the canonical HandoffSheet directly; the
+          earlier chooser-style export surface was retired in the v6
+          UX restructure. */}
+      {(() => {
+        const isViewingToday = !isViewingPast;
+        const hasShareableContent =
+          (dayEvents && dayEvents.length > 0) ||
+          (reflection?.text?.trim().length ?? 0) > 0 ||
+          (handoffTone && handoffTone.trim().length > 0);
+        if (!isViewingToday || !hasShareableContent) return null;
+        return (
+          <TouchableOpacity
+            testID="journal-share-cta"
+            style={[s.shareCta, { marginBottom: insets.bottom }]}
+            onPress={() => setHandoffSheetVisible(true)}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Share handoff for today"
+          >
+            <Text style={s.shareCtaText}>{'Share handoff →'}</Text>
+          </TouchableOpacity>
+        );
+      })()}
 
       <HandoffSheet
         visible={handoffSheetVisible}
@@ -975,6 +989,30 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     textAlign: 'center',
     marginTop: Spacing.md,
     lineHeight: 14,
+  },
+
+  // Phase 5.12.g — sticky "Share handoff →" CTA. Anchored absolute over
+  // the scroll content so it stays put while events scroll underneath.
+  // Sage filled per the spec (single primary action on the page).
+  shareCta: {
+    position: 'absolute',
+    left: 14,
+    right: 14,
+    bottom: 14, // allow: anchored sticky-CTA inset (Phase 5.12.g)
+    backgroundColor: c.accent,
+    borderRadius: 11,
+    paddingVertical: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -8 },
+    elevation: 6,
+  },
+  shareCtaText: {
+    fontSize: 11.5,
+    fontWeight: '600' as const,
+    color: '#1a1f1a',
   },
 
   // ─── TIMESTAMP ───
