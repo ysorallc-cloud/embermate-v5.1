@@ -54,6 +54,7 @@ import { NarrativeView } from '../../components/journal/NarrativeView';
 import { NarrativeSnapshot } from '../../components/journal/NarrativeSnapshot';
 import { WhatChangedToday } from '../../components/journal/WhatChangedToday';
 import { EventsTimeline } from '../../components/journal/EventsTimeline';
+import { ForNextCaregiver } from '../../components/journal/ForNextCaregiver';
 import { useDayEvents } from '../../hooks/useDayEvents';
 import { useDayLevelChanges } from '../../hooks/useDayLevelChanges';
 import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
@@ -634,6 +635,14 @@ export default function JournalTab() {
                   their event matches a flag-severity day-level change. */}
               <EventsTimeline
                 events={dayEvents}
+                dayLevelChanges={dayChangesResult?.changes ?? []}
+              />
+
+              {/* Phase 5.12.f — handoff section for the next caregiver.
+                  Renders only when there are pending items or flag-
+                  severity day-level changes to surface. */}
+              <ForNextCaregiver
+                pending={outcomes.pending.names ?? []}
                 dayLevelChanges={dayChangesResult?.changes ?? []}
               />
 
