@@ -189,6 +189,29 @@ export async function clearRhythm(): Promise<void> {
 
 // ============================================================================
 // TODAY'S PROGRESS
+//
+// Phase 9.6 — Pending dedicated medication-confirm migration.
+//
+// Phase 9.2 / 9.3 / 9.5 retired this helper from every log-* screen
+// (those now read counts directly from listDailyInstances filtered to
+// the relevant CarePlanItemType — the canonical wizard-driven source).
+//
+// One non-log consumer remains: app/medication-confirm.tsx. That screen
+// is outside the Phase 9 log-* migration scope and was deferred to its
+// own dedicated phase. Until medication-confirm migrates to the
+// instance-derived pattern, this helper stays in place. Once the last
+// consumer is gone, delete this helper + the TodayProgress type.
+//
+// Known issues with the current implementation (already documented in
+// log-vitals 9.2.0 diagnostic, kept here for the deletion notes):
+//   • Numerator counts non-null FIELDS for vitals — saving 6 vitals at
+//     once increments by 6, producing "6 of 2 checks logged" when the
+//     scheduled count is 2.
+//   • Source path reads the legacy single-day log via getTodayVitalsLog
+//     / getTodayMealsLog rather than DailyCareInstance, so wizard-driven
+//     completions don't reach this counter.
+//
+// Don't fix in place. The migration to listDailyInstances is the fix.
 // ============================================================================
 
 export async function getTodayProgress(): Promise<TodayProgress> {
