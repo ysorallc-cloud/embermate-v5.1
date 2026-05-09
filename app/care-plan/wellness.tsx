@@ -1,65 +1,92 @@
 // ============================================================================
-// WELLNESS CHECK CONFIGURATION
-// Configure morning and evening wellness check fields
+// WELLNESS CHECK CONFIGURATION — Phase 10.2 tightened pass.
+//
+// Pre-10.2 the screen was a 504-line config sheet with:
+//   • SubScreenHeader + LinearGradient page chrome
+//   • 9 patient-name interpolations (5 evening + 2 morning field
+//     descriptions, plus the helper signatures + the subtitle)
+//   • "Core" badge per always-on field
+//   • Evening section expanded by default (parity with Morning)
+//   • Per-row description prose ("Track ${name}'s pain on a none-to-
+//     severe scale.") that read like a clinician's chart
+//   • Info card at the bottom restating the section structure in prose
+//
+// Post-10.2:
+//   • Wraps in CarePlanConfigScreen with chrome="gradient" — the
+//     bucket-config family chrome.
+//   • Zero patient-name interpolation. Patient context comes from the
+//     screen header / Care Plan ownership; per-row name echoes are gone.
+//   • Section structure replaces per-row badges:
+//       MORNING · 8 AM
+//       ALWAYS TRACKED   — sleep / mood / energy
+//       ADD MORE         — orientation / decision-making toggles
+//       Reminder
+//       (collapsible) EVENING · 8 PM · N fields
+//         ALWAYS TRACKED   — mood / meals / day rating / notes
+//         ADD MORE         — pain / alertness / bowel / bathing / mobility
+//         Reminder
+//   • Optional rows are label + toggle only. Description prose dropped.
+//   • Info card removed — the section structure speaks for itself.
+//
+// The rewrite operates on the existing useWellnessSettings storage
+// shape unchanged. Per Q5 from 10.0, Phase 10 is UI/copy/layout only;
+// data model migrations are tracked separately.
 // ============================================================================
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Switch,
-  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useWellnessSettings } from '../../hooks/useWellnessSettings';
-import { SubScreenHeader } from '../../components/SubScreenHeader';
-import { usePatient } from '../../contexts/PatientContext';
+import { CarePlanConfigScreen } from '../../components/care-plan/CarePlanConfigScreen';
 
 // ============================================================================
-// FIELD METADATA
+// FIELD METADATA — patient-agnostic. No name interpolation.
 // ============================================================================
 
-const MORNING_CORE_FIELDS = [
-  { key: 'sleep', label: 'Sleep Quality' },
-  { key: 'mood', label: 'Mood' },
-  { key: 'energy', label: 'Energy Level' },
+interface FieldDef {
+  key: string;
+  label: string;
+}
+
+const MORNING_CORE_FIELDS: FieldDef[] = [
+  { key: 'sleep',  label: 'Sleep quality' },
+  { key: 'mood',   label: 'Mood' },
+  { key: 'energy', label: 'Energy level' },
 ];
 
-// Field descriptions are written as complete sentences (not lists of the
-// option values). They take the patient name so the copy reads naturally;
-// callers compute the list with `getMorningOptionalFields(patientName)`.
-const getMorningOptionalFields = (patient: string) => [
-  { key: 'orientation', label: 'Orientation', description: `Track whether ${patient} is alert, confused, or disoriented.` },
-  { key: 'decisionMaking', label: 'Decision Making', description: `Track ${patient}'s decision-making capacity day-to-day.` },
+const MORNING_OPTIONAL_FIELDS: FieldDef[] = [
+  { key: 'orientation',    label: 'Orientation' },
+  { key: 'decisionMaking', label: 'Decision making' },
 ];
 
-const EVENING_CORE_FIELDS = [
-  { key: 'mood', label: 'Mood' },
-  { key: 'meals', label: 'Meals Tracked' },
-  { key: 'dayRating', label: 'Day Rating' },
-  { key: 'notes', label: 'Highlights & Concerns' },
+const EVENING_CORE_FIELDS: FieldDef[] = [
+  { key: 'mood',      label: 'Mood' },
+  { key: 'meals',     label: 'Meals tracked' },
+  { key: 'dayRating', label: 'Day rating' },
+  { key: 'notes',     label: 'Highlights & concerns' },
 ];
 
-const getEveningOptionalFields = (patient: string) => [
-  { key: 'painLevel', label: 'Pain Level', description: `Track ${patient}'s pain on a none-to-severe scale.` },
-  { key: 'alertness', label: 'Alertness', description: `Track ${patient}'s alertness from clear-headed to unresponsive.` },
-  { key: 'bowelMovement', label: 'Bowel Movement', description: `Note whether ${patient} had a bowel movement today.` },
-  { key: 'bathingStatus', label: 'Bathing Status', description: `Track how independently ${patient} bathed today.` },
-  { key: 'mobilityStatus', label: 'Mobility Status', description: `Track how ${patient} got around today — independent or with support.` },
+const EVENING_OPTIONAL_FIELDS: FieldDef[] = [
+  { key: 'painLevel',      label: 'Pain level' },
+  { key: 'alertness',      label: 'Alertness' },
+  { key: 'bowelMovement',  label: 'Bowel movement' },
+  { key: 'bathingStatus',  label: 'Bathing' },
+  { key: 'mobilityStatus', label: 'Mobility' },
 ];
 
 const MORNING_TIME_PRESETS = ['06:00', '07:00', '08:00', '09:00'];
 const EVENING_TIME_PRESETS = ['19:00', '20:00', '21:00', '22:00'];
 
 function formatTime(time: string): string {
-  const [h, m] = time.split(':');
+  const [h] = time.split(':');
   const hour = parseInt(h, 10);
   const ampm = hour >= 12 ? 'PM' : 'AM';
   const display = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
@@ -75,19 +102,11 @@ export default function WellnessConfigScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { settings, updateSettings } = useWellnessSettings();
-  const { activePatient } = usePatient();
-  const patientName =
-    activePatient?.name && activePatient.name !== 'Patient'
-      ? activePatient.name
-      : 'your loved one';
-  const morningOptionalFields = useMemo(
-    () => getMorningOptionalFields(patientName),
-    [patientName],
-  );
-  const eveningOptionalFields = useMemo(
-    () => getEveningOptionalFields(patientName),
-    [patientName],
-  );
+
+  // Evening collapsed by default. Caregivers configure morning more
+  // often (alarm time, mood/sleep checks); evening details surface on
+  // demand.
+  const [eveningExpanded, setEveningExpanded] = useState(false);
 
   const handleTimeChange = useCallback(async (period: 'morning' | 'evening', time: string) => {
     await updateSettings({
@@ -116,202 +135,159 @@ export default function WellnessConfigScreen() {
     });
   }, [settings, updateSettings]);
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient
-        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
-        style={styles.gradient}
+  const eveningEnabledOptionals = EVENING_OPTIONAL_FIELDS.filter(
+    (f) => settings.evening.optionalChecks[f.key] ?? false,
+  ).length;
+  const eveningTotalFields = EVENING_CORE_FIELDS.length + eveningEnabledOptionals;
+
+  const renderTimeRow = (period: 'morning' | 'evening', presets: string[]) => (
+    <View style={styles.timeRow}>
+      {presets.map((time) => {
+        const selected = settings[period].time === time;
+        return (
+          <TouchableOpacity
+            key={time}
+            style={[styles.timeChip, selected && styles.timeChipSelected]}
+            onPress={() => handleTimeChange(period, time)}
+            activeOpacity={0.7}
+            accessibilityLabel={`${period} check time ${formatTime(time)}`}
+            accessibilityRole="radio"
+            accessibilityState={{ selected }}
+          >
+            <Text style={[styles.timeChipText, selected && styles.timeChipTextSelected]}>
+              {formatTime(time)}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+
+  const renderCoreRows = (period: 'morning' | 'evening', fields: FieldDef[]) =>
+    fields.map((field) => (
+      <View
+        key={field.key}
+        testID={`wellness-core-row-${period}-${field.key}`}
+        style={styles.coreRow}
       >
-        {/* Header */}
-        <SubScreenHeader
-          title="Wellness Checks"
-          subtitle="Configure your daily morning and evening check-ins."
-        />
+        <Text style={styles.rowLabel}>{field.label}</Text>
+      </View>
+    ));
 
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
+  const renderOptionalRows = (period: 'morning' | 'evening', fields: FieldDef[]) =>
+    fields.map((field) => {
+      const value = settings[period].optionalChecks[field.key] ?? false;
+      return (
+        <View
+          key={field.key}
+          testID={`wellness-optional-row-${period}-${field.key}`}
+          style={styles.optionalRow}
         >
+          <Text style={styles.rowLabel}>{field.label}</Text>
+          <Switch
+            value={value}
+            onValueChange={(v) => handleToggleOptional(period, field.key, v)}
+            trackColor={{ false: colors.glassStrong, true: colors.accent }}
+            thumbColor={value ? colors.textPrimary : colors.switchThumbOff}
+            ios_backgroundColor={colors.glassStrong}
+            accessibilityLabel={`${period} ${field.label}`}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: value }}
+          />
+        </View>
+      );
+    });
 
-          {/* ============================================================ */}
-          {/* MORNING CHECK */}
-          {/* ============================================================ */}
-          <Text style={styles.sectionLabel}>MORNING CHECK</Text>
+  const renderReminderRow = (period: 'morning' | 'evening') => (
+    <View
+      testID={`wellness-reminder-row-${period}`}
+      style={styles.reminderRow}
+    >
+      <View style={styles.reminderInfo}>
+        <Text style={styles.rowLabel}>Reminder</Text>
+        <Text style={styles.reminderHint}>Push notification at check-in time</Text>
+      </View>
+      <Switch
+        value={settings[period].reminderEnabled}
+        onValueChange={(v) => handleToggleReminder(period, v)}
+        trackColor={{ false: colors.glassStrong, true: colors.accent }}
+        thumbColor={settings[period].reminderEnabled ? colors.textPrimary : colors.switchThumbOff}
+        ios_backgroundColor={colors.glassStrong}
+        accessibilityLabel={`${period} reminder`}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: settings[period].reminderEnabled }}
+      />
+    </View>
+  );
 
-          {/* Time Selector */}
-          <View style={styles.timeRow}>
-            {MORNING_TIME_PRESETS.map((time) => (
-              <TouchableOpacity
-                key={time}
-                style={[
-                  styles.timeChip,
-                  settings.morning.time === time && styles.timeChipSelected,
-                ]}
-                onPress={() => handleTimeChange('morning', time)}
-                activeOpacity={0.7}
-                accessibilityLabel={`Morning check time ${formatTime(time)}`}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: settings.morning.time === time }}
-              >
-                <Text style={[
-                  styles.timeChipText,
-                  settings.morning.time === time && styles.timeChipTextSelected,
-                ]}>
-                  {formatTime(time)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+  return (
+    <CarePlanConfigScreen
+      title="Wellness checks"
+      subtitle="Daily morning and evening check-ins."
+      chrome="gradient"
+      onBack={() => router.back()}
+    >
+      {/* MORNING — expanded by default */}
+      <Text style={styles.sectionHeader}>
+        MORNING · {formatTime(settings.morning.time)}
+      </Text>
+      {renderTimeRow('morning', MORNING_TIME_PRESETS)}
 
-          {/* Core Fields */}
-          {MORNING_CORE_FIELDS.map((field) => (
-            <View key={field.key} style={styles.coreRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>{field.label}</Text>
-              </View>
-              <View style={styles.coreBadge}>
-                <Text style={styles.coreBadgeText}>Core</Text>
-              </View>
-            </View>
-          ))}
+      <Text testID="wellness-morning-always-eyebrow" style={styles.eyebrow}>
+        ALWAYS TRACKED
+      </Text>
+      {renderCoreRows('morning', MORNING_CORE_FIELDS)}
 
-          {/* Optional Fields */}
-          {morningOptionalFields.map((field) => (
-            <View key={field.key} style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>{field.label}</Text>
-                <Text style={styles.settingDescription}>{field.description}</Text>
-              </View>
-              <Switch
-                value={settings.morning.optionalChecks[field.key] ?? false}
-                onValueChange={(value) => handleToggleOptional('morning', field.key, value)}
-                trackColor={{ false: colors.glassStrong, true: colors.accent }}
-                thumbColor={(settings.morning.optionalChecks[field.key] ?? false) ? colors.textPrimary : colors.switchThumbOff}
-                ios_backgroundColor={colors.glassStrong}
-                accessibilityLabel={`Morning ${field.label}`}
-                accessibilityRole="switch"
-                accessibilityState={{ checked: settings.morning.optionalChecks[field.key] ?? false }}
-              />
-            </View>
-          ))}
+      <Text testID="wellness-morning-add-more-eyebrow" style={styles.eyebrow}>
+        ADD MORE
+      </Text>
+      {renderOptionalRows('morning', MORNING_OPTIONAL_FIELDS)}
 
-          {/* Morning Reminder */}
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Morning Reminder</Text>
-              <Text style={styles.settingDescription}>Push notification at check-in time</Text>
-            </View>
-            <Switch
-              value={settings.morning.reminderEnabled}
-              onValueChange={(value) => handleToggleReminder('morning', value)}
-              trackColor={{ false: colors.glassStrong, true: colors.accent }}
-              thumbColor={settings.morning.reminderEnabled ? colors.textPrimary : colors.switchThumbOff}
-              ios_backgroundColor={colors.glassStrong}
-              accessibilityLabel="Morning Reminder"
-              accessibilityRole="switch"
-              accessibilityState={{ checked: settings.morning.reminderEnabled }}
-            />
-          </View>
+      {renderReminderRow('morning')}
 
-          {/* ============================================================ */}
-          {/* EVENING CHECK */}
-          {/* ============================================================ */}
-          <Text style={styles.sectionLabel}>EVENING CHECK</Text>
+      {/* EVENING — collapsed by default; tap header to expand */}
+      <TouchableOpacity
+        testID="wellness-evening-header"
+        style={styles.eveningHeader}
+        onPress={() => setEveningExpanded((v) => !v)}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={
+          eveningExpanded
+            ? 'Collapse evening check section'
+            : 'Expand evening check section'
+        }
+        accessibilityState={{ expanded: eveningExpanded }}
+      >
+        <View style={styles.eveningHeaderTextBlock}>
+          <Text style={styles.sectionHeader}>
+            EVENING · {formatTime(settings.evening.time)}
+          </Text>
+          <Text style={styles.eveningSummary}>
+            {eveningTotalFields} {eveningTotalFields === 1 ? 'field' : 'fields'}
+          </Text>
+        </View>
+        <Text style={styles.eveningChevron}>{eveningExpanded ? '▴' : '▾'}</Text>
+      </TouchableOpacity>
 
-          {/* Time Selector */}
-          <View style={styles.timeRow}>
-            {EVENING_TIME_PRESETS.map((time) => (
-              <TouchableOpacity
-                key={time}
-                style={[
-                  styles.timeChip,
-                  settings.evening.time === time && styles.timeChipSelected,
-                ]}
-                onPress={() => handleTimeChange('evening', time)}
-                activeOpacity={0.7}
-                accessibilityLabel={`Evening check time ${formatTime(time)}`}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: settings.evening.time === time }}
-              >
-                <Text style={[
-                  styles.timeChipText,
-                  settings.evening.time === time && styles.timeChipTextSelected,
-                ]}>
-                  {formatTime(time)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+      {eveningExpanded && (
+        <View testID="wellness-evening-body">
+          {renderTimeRow('evening', EVENING_TIME_PRESETS)}
 
-          {/* Core Fields */}
-          {EVENING_CORE_FIELDS.map((field) => (
-            <View key={field.key} style={styles.coreRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>{field.label}</Text>
-              </View>
-              <View style={styles.coreBadge}>
-                <Text style={styles.coreBadgeText}>Core</Text>
-              </View>
-            </View>
-          ))}
+          <Text testID="wellness-evening-always-eyebrow" style={styles.eyebrow}>
+            ALWAYS TRACKED
+          </Text>
+          {renderCoreRows('evening', EVENING_CORE_FIELDS)}
 
-          {/* Optional Fields */}
-          {eveningOptionalFields.map((field) => (
-            <View key={field.key} style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>{field.label}</Text>
-                <Text style={styles.settingDescription}>{field.description}</Text>
-              </View>
-              <Switch
-                value={settings.evening.optionalChecks[field.key] ?? false}
-                onValueChange={(value) => handleToggleOptional('evening', field.key, value)}
-                trackColor={{ false: colors.glassStrong, true: colors.accent }}
-                thumbColor={(settings.evening.optionalChecks[field.key] ?? false) ? colors.textPrimary : colors.switchThumbOff}
-                ios_backgroundColor={colors.glassStrong}
-                accessibilityLabel={`Evening ${field.label}`}
-                accessibilityRole="switch"
-                accessibilityState={{ checked: settings.evening.optionalChecks[field.key] ?? false }}
-              />
-            </View>
-          ))}
+          <Text testID="wellness-evening-add-more-eyebrow" style={styles.eyebrow}>
+            ADD MORE
+          </Text>
+          {renderOptionalRows('evening', EVENING_OPTIONAL_FIELDS)}
 
-          {/* Evening Reminder */}
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Evening Reminder</Text>
-              <Text style={styles.settingDescription}>Push notification at check-in time</Text>
-            </View>
-            <Switch
-              value={settings.evening.reminderEnabled}
-              onValueChange={(value) => handleToggleReminder('evening', value)}
-              trackColor={{ false: colors.glassStrong, true: colors.accent }}
-              thumbColor={settings.evening.reminderEnabled ? colors.textPrimary : colors.switchThumbOff}
-              ios_backgroundColor={colors.glassStrong}
-              accessibilityLabel="Evening Reminder"
-              accessibilityRole="switch"
-              accessibilityState={{ checked: settings.evening.reminderEnabled }}
-            />
-          </View>
-
-          {/* Info Card */}
-          <View style={styles.infoCard}>
-            <Text style={styles.infoEmoji}>💡</Text>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>About wellness checks</Text>
-              <Text style={styles.infoText}>
-                Morning and evening check-ins are always active. Core fields appear every
-                time. Toggle optional fields to track additional care details like
-                orientation, pain, and mobility.
-              </Text>
-            </View>
-          </View>
-
-          {/* Bottom spacing */}
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </LinearGradient>
-    </SafeAreaView>
+          {renderReminderRow('evening')}
+        </View>
+      )}
+    </CarePlanConfigScreen>
   );
 }
 
@@ -320,77 +296,21 @@ export default function WellnessConfigScreen() {
 // ============================================================================
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: c.background,
-  },
-  gradient: {
-    flex: 1,
-  },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Platform.OS === 'android' ? 20 : 0,
-    paddingBottom: Spacing.sm,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: c.backgroundElevated,
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backIcon: {
-    fontSize: 24,
-    color: c.textPrimary,
-  },
-  headerLabel: {
-    fontSize: 11,
-    color: c.textMuted,
-    letterSpacing: 1,
-    fontWeight: '600',
-  },
-
-  // Scroll
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: 40,
-  },
-
-  // Title
-  titleSection: {
-    marginBottom: Spacing.lg,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: c.textPrimary,
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: c.textSecondary,
-    lineHeight: 22,
-  },
-
-  // Section Labels
-  sectionLabel: {
+  sectionHeader: {
     fontSize: 11,
     fontWeight: '600',
     color: c.textHalf,
     letterSpacing: 1,
-    marginBottom: Spacing.sm,
     marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  eyebrow: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: c.textTertiary,
+    letterSpacing: 1.5,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
   },
 
   // Time row
@@ -403,14 +323,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     paddingVertical: Spacing.xs,
     backgroundColor: c.glassFaint,
-    borderWidth: 1,
-    borderColor: c.glassActive,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
   },
   timeChipSelected: {
-    borderColor: c.accent,
-    backgroundColor: c.sageFaint,
+    borderColor: c.accentBorder,
+    backgroundColor: c.accentLight,
   },
   timeChipText: {
     fontSize: 13,
@@ -418,87 +338,87 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '500',
   },
   timeChipTextSelected: {
-    color: c.accent,
+    // selectionListContrast a11y contract — keep label color stable.
+    fontWeight: '600',
   },
 
-  // Core row (non-toggleable)
+  // Core row (always tracked) — label only, no badge
   coreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     backgroundColor: c.surfaceAlt,
-    borderWidth: 1,
-    borderColor: c.glassHover,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
+    borderRadius: BorderRadius.md,
     marginBottom: Spacing.xs,
   },
-  coreBadge: {
-    backgroundColor: c.border,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  coreBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: c.textMuted,
-    letterSpacing: 0.5,
-  },
 
-  // Setting Row (toggleable)
-  settingRow: {
+  // Optional row (toggleable) — label + switch only, no description
+  optionalRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     backgroundColor: c.glassFaint,
-    borderWidth: 1,
-    borderColor: c.glassActive,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.xs,
   },
-  settingInfo: {
+
+  rowLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: c.textPrimary,
+  },
+
+  // Reminder row — keeps a one-line hint since the toggle's effect
+  // (push notification) isn't obvious from the label alone.
+  reminderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: c.glassFaint,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.sm,
+  },
+  reminderInfo: {
     flex: 1,
     marginRight: Spacing.sm,
   },
-  settingLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: c.textPrimary,
-    marginBottom: 4,
-  },
-  settingDescription: {
-    fontSize: 13,
-    color: c.textSecondary,
+  reminderHint: {
+    fontSize: 12,
+    color: c.textTertiary,
+    marginTop: 2,
   },
 
-  // Info Card
-  infoCard: {
+  // Evening collapsible header
+  eveningHeader: {
     flexDirection: 'row',
-    backgroundColor: c.caregiverAccentMuted,
-    borderWidth: 1,
-    borderColor: c.caregiverAccentStrong,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
     marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  eveningHeaderTextBlock: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'baseline',
     gap: Spacing.sm,
   },
-  infoEmoji: {
-    fontSize: 24,
+  eveningSummary: {
+    fontSize: 12,
+    color: c.textTertiary,
   },
-  infoContent: {
-    flex: 1,
-  },
-  infoTitle: {
+  eveningChevron: {
     fontSize: 14,
-    fontWeight: '600',
-    color: c.caregiverAccentText,
-    marginBottom: 4,
-  },
-  infoText: {
-    fontSize: 13,
-    color: c.textSecondary,
-    lineHeight: 18,
+    color: c.textTertiary,
+    paddingHorizontal: Spacing.xs,
   },
 });

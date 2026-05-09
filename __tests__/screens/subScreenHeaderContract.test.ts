@@ -92,12 +92,11 @@ const targets: Array<{
     title: /title=['"]Vitals['"]/,
     subtitle: /subtitle=/,
   },
-  {
-    rel: 'app/care-plan/wellness.tsx',
-    shouldDropCaps: ['WELLNESS'],
-    title: /title=['"]Wellness Checks['"]/,
-    subtitle: /subtitle=/,
-  },
+  // Phase 10.2 — wellness migrated to CarePlanConfigScreen primitive
+  // and no longer consumes SubScreenHeader. Header / subtitle metrics
+  // for the new family are pinned in
+  // __tests__/components/care-plan/CarePlanConfigScreen.test.tsx and
+  // __tests__/screens/wellnessConfigTightened.test.tsx.
   {
     rel: 'app/care-plan/meals.tsx',
     shouldDropCaps: ['MEALS'],
