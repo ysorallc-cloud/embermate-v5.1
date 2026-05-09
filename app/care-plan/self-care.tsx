@@ -1,6 +1,10 @@
 // ============================================================================
-// SELF-CARE CONFIGURATION
-// Block time for your own rest, meals, and personal appointments
+// SELF-CARE CONFIGURATION — Phase 10.3.x migrated to
+// CarePlanConfigScreen with chrome="aurora-support" (self-care family).
+//
+// The primitive owns SafeAreaView + AuroraBackground + header chrome.
+// This file owns the configuration body: header text + preset grid +
+// item list + add form.
 // ============================================================================
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
@@ -8,14 +12,12 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   TextInput,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { SubScreenHeader } from '../../components/SubScreenHeader';
-import { AuroraBackground } from '../../components/aurora/AuroraBackground';
+import { useRouter } from 'expo-router';
+import { CarePlanConfigScreen } from '../../components/care-plan/CarePlanConfigScreen';
 import { useTheme } from '../../contexts/ThemeContext';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { emitDataUpdate } from '../../lib/events';
@@ -57,6 +59,7 @@ const TIME_OPTIONS: { value: SelfCareItem['timeOfDay']; label: string }[] = [
 export default function SelfCareConfigScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const router = useRouter();
   const [items, setItems] = useState<SelfCareItem[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
@@ -102,111 +105,106 @@ export default function SelfCareConfigScreen() {
   }, [items, saveItems]);
 
   return (
-    <View style={styles.root}>
-      <AuroraBackground variant="support" />
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <SubScreenHeader title="Self-Care" />
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.headerText}>
-            Block time for yourself. These appear as 💛 YOU items on your timeline.
-          </Text>
+    <CarePlanConfigScreen
+      title="Self-Care"
+      chrome="aurora-support"
+      onBack={() => router.back()}
+    >
+      <Text style={styles.headerText}>
+        Block time for yourself. These appear as 💛 YOU items on your timeline.
+      </Text>
 
-          {items.length === 0 && !showAdd && (
-            <>
-              <Text style={styles.emptyText}>No self-care blocks yet. Pick a preset or create your own.</Text>
-              <Text style={styles.presetLabel}>Quick add</Text>
-              <View style={styles.presetGrid}>
-                {PRESETS.map(p => (
-                  <TouchableOpacity
-                    key={p}
-                    style={styles.presetChip}
-                    onPress={() => handlePreset(p)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Add self-care preset: ${p}`}
-                  >
-                    <Text style={styles.presetChipText}>{p}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </>
-          )}
-
-          {items.map(item => (
-            <View key={item.id} style={styles.itemCard}>
-              <Text style={styles.itemEmoji}>💛</Text>
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemDetail}>{TIME_OPTIONS.find(t => t.value === item.timeOfDay)?.label}</Text>
-              </View>
-              <TouchableOpacity onPress={() => handleDelete(item.id)} accessibilityLabel="Remove" accessibilityRole="button">
-                <Text style={styles.deleteBtn}>✕</Text>
+      {items.length === 0 && !showAdd && (
+        <>
+          <Text style={styles.emptyText}>No self-care blocks yet. Pick a preset or create your own.</Text>
+          <Text style={styles.presetLabel}>Quick add</Text>
+          <View style={styles.presetGrid}>
+            {PRESETS.map(p => (
+              <TouchableOpacity
+                key={p}
+                style={styles.presetChip}
+                onPress={() => handlePreset(p)}
+                accessibilityRole="button"
+                accessibilityLabel={`Add self-care preset: ${p}`}
+              >
+                <Text style={styles.presetChipText}>{p}</Text>
               </TouchableOpacity>
-            </View>
-          ))}
+            ))}
+          </View>
+        </>
+      )}
 
-          {showAdd && (
-            <View style={styles.addForm}>
-              <TextInput
-                style={styles.input}
-                placeholder="What's your self-care block?"
-                placeholderTextColor={colors.textMuted}
-                value={newName}
-                onChangeText={setNewName}
-                autoFocus
-              />
-              <Text style={styles.formLabel}>When</Text>
-              <View style={styles.chipRow}>
-                {TIME_OPTIONS.map(opt => (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[styles.chip, newTime === opt.value && { backgroundColor: colors.accent }]}
-                    onPress={() => setNewTime(opt.value)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`When: ${opt.label}`}
-                    accessibilityState={{ selected: newTime === opt.value }}
-                  >
-                    <Text style={[styles.chipText, newTime === opt.value && { color: '#fff' }]}>{opt.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <View style={styles.formButtons}>
-                <TouchableOpacity
-                  style={[styles.saveBtn, { backgroundColor: colors.accent }]}
-                  onPress={handleAdd}
-                  accessibilityRole="button"
-                  accessibilityLabel="Save self-care block"
-                >
-                  <Text style={styles.saveBtnText}>Save</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => { setShowAdd(false); setNewName(''); }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Cancel adding self-care block"
-                >
-                  <Text style={styles.cancelText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
+      {items.map(item => (
+        <View key={item.id} style={styles.itemCard}>
+          <Text style={styles.itemEmoji}>💛</Text>
+          <View style={styles.itemInfo}>
+            <Text style={styles.itemName}>{item.name}</Text>
+            <Text style={styles.itemDetail}>{TIME_OPTIONS.find(t => t.value === item.timeOfDay)?.label}</Text>
+          </View>
+          <TouchableOpacity onPress={() => handleDelete(item.id)} accessibilityLabel="Remove" accessibilityRole="button">
+            <Text style={styles.deleteBtn}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
 
-          {!showAdd && items.length > 0 && (
-            <TouchableOpacity style={styles.addButton} onPress={() => setShowAdd(true)} accessibilityLabel="Add self-care block" accessibilityRole="button">
-              <Text style={styles.addButtonText}>+ Add block</Text>
+      {showAdd && (
+        <View style={styles.addForm}>
+          <TextInput
+            style={styles.input}
+            placeholder="What's your self-care block?"
+            placeholderTextColor={colors.textMuted}
+            value={newName}
+            onChangeText={setNewName}
+            autoFocus
+          />
+          <Text style={styles.formLabel}>When</Text>
+          <View style={styles.chipRow}>
+            {TIME_OPTIONS.map(opt => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[styles.chip, newTime === opt.value && { backgroundColor: colors.accent }]}
+                onPress={() => setNewTime(opt.value)}
+                accessibilityRole="button"
+                accessibilityLabel={`When: ${opt.label}`}
+                accessibilityState={{ selected: newTime === opt.value }}
+              >
+                <Text style={[styles.chipText, newTime === opt.value && { color: '#fff' }]}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.formButtons}>
+            <TouchableOpacity
+              style={[styles.saveBtn, { backgroundColor: colors.accent }]}
+              onPress={handleAdd}
+              accessibilityRole="button"
+              accessibilityLabel="Save self-care block"
+            >
+              <Text style={styles.saveBtnText}>Save</Text>
             </TouchableOpacity>
-          )}
+            <TouchableOpacity
+              onPress={() => { setShowAdd(false); setNewName(''); }}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel adding self-care block"
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+      {!showAdd && items.length > 0 && (
+        <TouchableOpacity style={styles.addButton} onPress={() => setShowAdd(true)} accessibilityLabel="Add self-care block" accessibilityRole="button">
+          <Text style={styles.addButtonText}>+ Add block</Text>
+        </TouchableOpacity>
+      )}
+
+      <View style={{ height: 40 }} />
+    </CarePlanConfigScreen>
   );
 }
 
 function createStyles(c: typeof Colors) {
   return StyleSheet.create({
-    root: { flex: 1, backgroundColor: c.background },
-    scroll: { flex: 1 },
-    scrollContent: { paddingHorizontal: 16, paddingTop: 8 },
     headerText: { fontSize: 14, color: c.textSecondary, lineHeight: 20, marginBottom: 16 },
     emptyText: { fontSize: 14, color: c.textMuted, textAlign: 'center', paddingVertical: 20 },
     presetLabel: { fontSize: 12, fontWeight: '600', color: c.textMuted, marginBottom: 8, marginTop: 8 },

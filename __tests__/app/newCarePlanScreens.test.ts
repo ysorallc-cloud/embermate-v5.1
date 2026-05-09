@@ -31,7 +31,8 @@ describe('New care plan config screens', () => {
 
   it('self-care.tsx renders without crash (has default export)', () => {
     expect(selfCareSrc).toContain('export default function SelfCareConfigScreen');
-    expect(selfCareSrc).toContain('SubScreenHeader');
+    // Phase 10.3.x: migrated from SubScreenHeader to CarePlanConfigScreen.
+    expect(selfCareSrc).toContain('CarePlanConfigScreen');
     expect(selfCareSrc).toContain('Self-Care');
   });
 
@@ -45,12 +46,11 @@ describe('New care plan config screens', () => {
   });
 
   it('each screen navigates back to care-plan index (header present)', () => {
-    // Phase 10.3.x: shifts + errands migrated to CarePlanConfigScreen
-    // (which provides its own BackButton). self-care still uses
-    // SubScreenHeader until its migration commit lands.
+    // Phase 10.3.x: all three migrated to CarePlanConfigScreen
+    // (which provides its own BackButton via the primitive).
     expect(errandsSrc).toContain('CarePlanConfigScreen');
     expect(shiftsSrc).toContain('CarePlanConfigScreen');
-    expect(selfCareSrc).toContain('SubScreenHeader');
+    expect(selfCareSrc).toContain('CarePlanConfigScreen');
   });
 
   it('self-care has preset quick-add options', () => {
