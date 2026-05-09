@@ -86,12 +86,6 @@ const targets: Array<{
     title: /title=['"]Medications['"]/,
     subtitle: /Set up [\s\S]+daily meds and reminders/,
   },
-  {
-    rel: 'app/care-plan/vitals.tsx',
-    shouldDropCaps: ['VITALS'],
-    title: /title=['"]Vitals['"]/,
-    subtitle: /subtitle=/,
-  },
   // Phase 10.2 — wellness migrated to CarePlanConfigScreen primitive
   // and no longer consumes SubScreenHeader. Header / subtitle metrics
   // for the new family are pinned in
@@ -101,6 +95,10 @@ const targets: Array<{
   // Phase 10.3.6 — meals migrated to CarePlanConfigScreen primitive
   // (chrome="gradient"). Migration contract pinned in
   // __tests__/screens/mealsConfigMigrated.test.tsx.
+  //
+  // Phase 10.3.7 — vitals migrated to CarePlanConfigScreen primitive
+  // (chrome="gradient"). Migration contract pinned in
+  // __tests__/screens/vitalsConfigMigrated.test.tsx.
   {
     rel: 'app/patient/index.tsx',
     // Old "Patient" hardcoded title is replaced by the resolved patient name.
