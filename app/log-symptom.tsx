@@ -1,28 +1,30 @@
 // ============================================================================
-// LOG SYMPTOM - Functional symptom logging
+// LOG SYMPTOM — Phase 9.5 multi-step exception wrap.
 //
 // LogScreen exception: multi-step parent of log-pain. When the user
 // selects "Pain" in the symptom picker, the screen hands off to
 // app/log-pain.tsx for NRS-scale + body-location capture. Both halves
 // of the pair were classified as multi-step exceptions in the Phase 9.0
-// reachability audit; the LogScreen pattern still applies but the
-// parent→child handoff is documented here for future-readers.
+// reachability audit; the LogScreen pattern still applies (header /
+// disclaimer / single sage CTA / ghost cancel) but the parent→child
+// handoff stays as-is.
+//
+// Phase 9.5 wraps the existing body in <LogScreen>; the symptom chip
+// grid + severity scale + notes textarea preserve their multi-step
+// shape. Drops LinearGradient + SubScreenHeader.
 // ============================================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   TextInput,
-  ScrollView,
   Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { navigate, navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
@@ -34,7 +36,7 @@ import { hapticSuccess } from '../utils/hapticFeedback';
 import { EVENT } from '../lib/eventNames';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
-import { SubScreenHeader } from '../components/SubScreenHeader';
+import { LogScreen } from '../components/logging/LogScreen';
 
 const COMMON_SYMPTOMS = [
   'Pain', 'Nausea', 'Dizziness', 'Fatigue',
@@ -43,31 +45,34 @@ const COMMON_SYMPTOMS = [
 
 export default function LogSymptomScreen() {
   const params = useLocalSearchParams();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [selectedSymptom, setSelectedSymptom] = useState('');
   const [customSymptom, setCustomSymptom] = useState('');
   const [severity, setSeverity] = useState(5);
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const handleSymptomSelect = (symptom: string) => {
+  const handleSymptomSelect = useCallback((symptom: string) => {
     if (symptom === 'Pain') {
       const instanceId = params.instanceId as string | undefined;
       navigate(instanceId ? `/log-pain?instanceId=${instanceId}` : '/log-pain');
       return;
     }
     setSelectedSymptom(symptom);
-  };
+  }, [params.instanceId]);
 
-  const handleSave = async () => {
-    const symptomToLog = selectedSymptom === 'Other' ? customSymptom : selectedSymptom;
+  const symptomToLog = selectedSymptom === 'Other' ? customSymptom : selectedSymptom;
+  const canSave = symptomToLog.trim().length > 0 && !saving;
 
-    if (!symptomToLog.trim()) {
-      Alert.alert('Required', 'Please select or enter a symptom');
+  const handleSave = useCallback(async () => {
+    if (!canSave) {
+      if (!symptomToLog.trim()) {
+        Alert.alert('Required', 'Please select or enter a symptom');
+      }
       return;
     }
-
     setSaving(true);
     try {
       const now = new Date();
@@ -78,15 +83,19 @@ export default function LogSymptomScreen() {
         timestamp: now.toISOString(),
         date: getTodayDateString(),
       });
-
       emitDataUpdate(EVENT.SYMPTOMS);
 
       const instanceId = params.instanceId as string | undefined;
       if (instanceId) {
         try {
-          await logInstanceCompletion(DEFAULT_PATIENT_ID, getTodayDateString(), instanceId, 'completed',
-            { type: 'custom', symptom: { name: symptomToLog.trim(), severity } },
-            { source: 'record' });
+          await logInstanceCompletion(
+            DEFAULT_PATIENT_ID,
+            getTodayDateString(),
+            instanceId,
+            'completed',
+            { type: 'custom', symptom: { name: symptomToLog.trim(), severity } } as any,
+            { source: 'record' },
+          );
           emitDataUpdate(EVENT.DAILY_INSTANCES);
         } catch (err) {
           logError('LogSymptomScreen.completeInstance', err);
@@ -98,182 +107,166 @@ export default function LogSymptomScreen() {
     } catch (error) {
       Alert.alert('Error', 'Failed to log symptom. Please try again.');
       logError('LogSymptomScreen.handleSave', error);
-    } finally {
       setSaving(false);
     }
-  };
+  }, [canSave, symptomToLog, severity, description, params.instanceId]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient
-        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
-        style={styles.gradient}
+    <LogScreen
+      title="Symptom"
+      onBack={navigateBack}
+      primaryAction={{
+        label: saving ? 'Saving…' : 'Save symptom',
+        onPress: handleSave,
+        disabled: !canSave,
+      }}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.kav}
       >
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={100}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <View style={styles.content}>
-            <SubScreenHeader title="Log Symptom" emoji="🤒" />
+        <Text testID="log-symptom-disclaimer" style={styles.disclaimer}>
+          For caregiver record-keeping. Not medical advice.
+        </Text>
 
-            {/* Form */}
-            <View style={styles.form}>
-              {/* Symptom Selection */}
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>What symptom? *</Text>
-                <View style={styles.symptomGrid}>
-                  {COMMON_SYMPTOMS.map((symptom) => (
-                    <TouchableOpacity
-                      key={symptom}
-                      style={[
-                        styles.symptomChip,
-                        selectedSymptom === symptom && styles.symptomChipSelected,
-                      ]}
-                      onPress={() => handleSymptomSelect(symptom)}
-                      accessibilityLabel={`${symptom} symptom`}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: selectedSymptom === symptom }}
-                    >
-                      <Text
-                        style={[
-                          styles.symptomChipText,
-                          selectedSymptom === symptom && styles.symptomChipTextSelected,
-                        ]}
-                      >
-                        {symptom}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Custom Symptom */}
-              {selectedSymptom === 'Other' && (
-                <View style={styles.formGroup}>
-                  <Text style={styles.label}>Specify symptom</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={customSymptom}
-                    onChangeText={setCustomSymptom}
-                    placeholder="Enter symptom name"
-                    placeholderTextColor={colors.textMuted}
-                    accessibilityLabel="Custom symptom name"
-                  />
-                </View>
-              )}
-
-              {/* Severity */}
-              <View style={styles.formGroup}>
-                <View style={styles.severityHeader}>
-                  <Text style={styles.label}>Severity</Text>
-                  <Text style={styles.severityValue}>{severity}/10</Text>
-                </View>
-                <View style={styles.severityScale}>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                    <TouchableOpacity
-                      key={num}
-                      style={[
-                        styles.severityButton,
-                        severity === num && styles.severityButtonSelected,
-                      ]}
-                      onPress={() => setSeverity(num)}
-                      accessibilityLabel={`Severity ${num} out of 10`}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: severity === num }}
-                    >
-                      <Text
-                        style={[
-                          styles.severityButtonText,
-                          severity === num && styles.severityButtonTextSelected,
-                        ]}
-                      >
-                        {num}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Description */}
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Additional notes (optional)</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  value={description}
-                  onChangeText={setDescription}
-                  placeholder="When did it start? What makes it better/worse?"
-                  placeholderTextColor={colors.textMuted}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                  accessibilityLabel="Symptom notes"
-                />
-              </View>
-
-              {/* Save Button */}
-              <TouchableOpacity
-                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-                onPress={handleSave}
-                disabled={saving}
-                accessibilityLabel={saving ? 'Saving symptom' : 'Log symptom'}
-                accessibilityHint="Saves the symptom with severity rating"
-                accessibilityRole="button"
-                accessibilityState={{ disabled: saving }}
-              >
-                <Text style={styles.saveButtonText}>
-                  {saving ? 'Saving...' : 'Log Symptom'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>What symptom?</Text>
+          <View style={styles.chipGrid}>
+            {COMMON_SYMPTOMS.map((symptom) => {
+              const selected = selectedSymptom === symptom;
+              return (
+                <Pressable
+                  key={symptom}
+                  testID={`log-symptom-chip-${symptom.replace(/\s+/g, '-')}`}
+                  style={[styles.chip, selected && styles.chipSelected]}
+                  onPress={() => handleSymptomSelect(symptom)}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`${symptom} symptom`}
+                  accessibilityState={{ selected }}
+                >
+                  <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                    {symptom}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
-        </ScrollView>
-        </KeyboardAvoidingView>
-      </LinearGradient>
-    </SafeAreaView>
+        </View>
+
+        {selectedSymptom === 'Other' && (
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Specify symptom</Text>
+            <TextInput
+              testID="log-symptom-custom"
+              style={styles.input}
+              value={customSymptom}
+              onChangeText={setCustomSymptom}
+              placeholder="Enter symptom name"
+              placeholderTextColor={colors.textMuted}
+              accessibilityLabel="Custom symptom name"
+            />
+          </View>
+        )}
+
+        <View style={styles.formGroup}>
+          <View style={styles.severityHeader}>
+            <Text style={styles.label}>Severity</Text>
+            <Text style={styles.severityValue}>{severity}/10</Text>
+          </View>
+          <View style={styles.severityScale}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
+              const selected = severity === num;
+              return (
+                <Pressable
+                  key={num}
+                  testID={`log-symptom-severity-${num}`}
+                  style={[styles.severityButton, selected && styles.severityButtonSelected]}
+                  onPress={() => setSeverity(num)}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`Severity ${num} out of 10`}
+                  accessibilityState={{ selected }}
+                >
+                  <Text style={[styles.severityButtonText, selected && styles.severityButtonTextSelected]}>
+                    {num}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Notes (optional)</Text>
+          <TextInput
+            testID="log-symptom-notes"
+            style={[styles.input, styles.textArea]}
+            value={description}
+            onChangeText={setDescription}
+            placeholder="When did it start? What makes it better/worse?"
+            placeholderTextColor={colors.textMuted}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+            accessibilityLabel="Symptom notes"
+          />
+        </View>
+      </KeyboardAvoidingView>
+    </LogScreen>
   );
 }
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.background },
-  gradient: { flex: 1 },
-  scrollView: { flex: 1 },
-  content: { padding: 20, paddingBottom: 40 },
-  form: { gap: 24 },
-  formGroup: { gap: 8 },
-  label: { fontSize: 13, fontWeight: '500', color: c.textSecondary },
+  kav: { flex: 1 },
+  disclaimer: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: c.textTertiary,
+    marginBottom: 20,
+  },
+  formGroup: { gap: 8, marginBottom: 20 },
+  label: {
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: c.textTertiary,
+  },
   input: {
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderColor: c.border,
+    backgroundColor: c.surfaceElevated,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    paddingVertical: 12,
     fontSize: 15,
     color: c.textPrimary,
   },
-  textArea: { minHeight: 100, paddingTop: 14 },
-  symptomGrid: {
+  textArea: { minHeight: 80, paddingTop: 12 },
+  chipGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
-  symptomChip: {
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderColor: c.border,
+  chip: {
+    backgroundColor: c.surfaceElevated,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
     borderRadius: 20,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 10,
+    minHeight: 40,
   },
-  symptomChipSelected: {
+  chipSelected: {
     backgroundColor: c.accentLight,
-    borderColor: c.accent,
+    borderColor: c.accentBorder,
   },
-  symptomChipText: {
+  chipText: {
     fontSize: 14,
-    color: c.textSecondary,
+    color: c.textPrimary,
   },
-  symptomChipTextSelected: {
-    color: c.accent,
-    fontWeight: '500',
+  chipTextSelected: {
+    // selectionListContrast a11y contract — keep label color stable.
+    fontWeight: '600',
   },
   severityHeader: {
     flexDirection: 'row',
@@ -281,28 +274,28 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     alignItems: 'center',
   },
   severityValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: c.accent,
+    color: c.textSecondary,
   },
   severityScale: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 6,
+    gap: 4,
   },
   severityButton: {
     flex: 1,
     aspectRatio: 1,
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderColor: c.border,
+    backgroundColor: c.surfaceElevated,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   severityButtonSelected: {
-    backgroundColor: c.accent,
-    borderColor: c.accent,
+    backgroundColor: c.accentLight,
+    borderColor: c.accentBorder,
   },
   severityButtonText: {
     fontSize: 13,
@@ -312,13 +305,4 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textPrimary,
     fontWeight: '600',
   },
-  saveButton: {
-    backgroundColor: c.accent,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: { color: c.textPrimary, fontSize: 15, fontWeight: '600' },
 });
