@@ -126,6 +126,13 @@ const DarkColors = {
   indigo: '#A5B4FC',
   indigoLight: 'rgba(165, 180, 252, 0.10)',
   indigoBorder: 'rgba(165, 180, 252, 0.20)',
+  // Phase 9.6 — Colors.orange is retained as a semantic clinical-severity
+  // token. Not in the Phase 7 3-accent decorative budget. Only valid
+  // consumer is app/log-pain.tsx getSeverityColor(), where it appears
+  // as the middle band of the green→amber→orange→red→rose pain-intensity
+  // gradient. The legacy decorative use (log-meal saveButton) was
+  // removed in Phase 9.3. Don't reintroduce decorative orange uses;
+  // the logScreenPattern audit will catch new violations.
   orange: '#FB923C',
   orangeLight: 'rgba(251, 146, 60, 0.10)',
   orangeBorder: 'rgba(251, 146, 60, 0.20)',
