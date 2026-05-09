@@ -1,6 +1,9 @@
 // ============================================================================
-// SHIFT SCHEDULE CONFIGURATION
-// Configure who covers care and when handoffs happen
+// SHIFT SCHEDULE CONFIGURATION — Phase 10.3.x migrated to
+// CarePlanConfigScreen with chrome="aurora-care" (coordination family).
+//
+// The primitive owns SafeAreaView + AuroraBackground + header chrome.
+// This file owns the configuration body: shift list + add form.
 // ============================================================================
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
@@ -8,14 +11,12 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   TextInput,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { SubScreenHeader } from '../../components/SubScreenHeader';
-import { AuroraBackground } from '../../components/aurora/AuroraBackground';
+import { useRouter } from 'expo-router';
+import { CarePlanConfigScreen } from '../../components/care-plan/CarePlanConfigScreen';
 import { useTheme } from '../../contexts/ThemeContext';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { emitDataUpdate } from '../../lib/events';
@@ -45,6 +46,7 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export default function ShiftsConfigScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const router = useRouter();
   const [shifts, setShifts] = useState<ShiftItem[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
@@ -93,90 +95,85 @@ export default function ShiftsConfigScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <AuroraBackground variant="care" />
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <SubScreenHeader title="Shift Schedule" />
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          {shifts.length === 0 && !showAdd && (
-            <Text style={styles.emptyText}>No shifts configured. Tap + to add a caregiver shift.</Text>
-          )}
+    <CarePlanConfigScreen
+      title="Shift Schedule"
+      chrome="aurora-care"
+      onBack={() => router.back()}
+    >
+      {shifts.length === 0 && !showAdd && (
+        <Text style={styles.emptyText}>No shifts configured. Tap + to add a caregiver shift.</Text>
+      )}
 
-          {shifts.map(item => (
-            <View key={item.id} style={styles.itemCard}>
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.caregiverName}</Text>
-                <Text style={styles.itemDetail}>{item.startTime} – {item.endTime} · {item.days.join(', ')}</Text>
-              </View>
-              <TouchableOpacity onPress={() => handleDelete(item.id)} accessibilityLabel="Delete shift" accessibilityRole="button">
-                <Text style={styles.deleteBtn}>✕</Text>
+      {shifts.map(item => (
+        <View key={item.id} style={styles.itemCard}>
+          <View style={styles.itemInfo}>
+            <Text style={styles.itemName}>{item.caregiverName}</Text>
+            <Text style={styles.itemDetail}>{item.startTime} – {item.endTime} · {item.days.join(', ')}</Text>
+          </View>
+          <TouchableOpacity onPress={() => handleDelete(item.id)} accessibilityLabel="Delete shift" accessibilityRole="button">
+            <Text style={styles.deleteBtn}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+
+      {showAdd && (
+        <View style={styles.addForm}>
+          <TextInput
+            style={styles.input}
+            placeholder="Caregiver name"
+            placeholderTextColor={colors.textMuted}
+            value={newName}
+            onChangeText={setNewName}
+            autoFocus
+          />
+          <Text style={styles.formLabel}>Days</Text>
+          <View style={styles.chipRow}>
+            {DAYS.map(day => (
+              <TouchableOpacity
+                key={day}
+                style={[styles.dayChip, newDays.includes(day) && { backgroundColor: colors.accent }]}
+                onPress={() => toggleDay(day)}
+                accessibilityRole="button"
+                accessibilityLabel={`Toggle ${day}`}
+                accessibilityState={{ selected: newDays.includes(day) }}
+              >
+                <Text style={[styles.dayChipText, newDays.includes(day) && { color: '#fff' }]}>{day}</Text>
               </TouchableOpacity>
-            </View>
-          ))}
-
-          {showAdd && (
-            <View style={styles.addForm}>
-              <TextInput
-                style={styles.input}
-                placeholder="Caregiver name"
-                placeholderTextColor={colors.textMuted}
-                value={newName}
-                onChangeText={setNewName}
-                autoFocus
-              />
-              <Text style={styles.formLabel}>Days</Text>
-              <View style={styles.chipRow}>
-                {DAYS.map(day => (
-                  <TouchableOpacity
-                    key={day}
-                    style={[styles.dayChip, newDays.includes(day) && { backgroundColor: colors.accent }]}
-                    onPress={() => toggleDay(day)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Toggle ${day}`}
-                    accessibilityState={{ selected: newDays.includes(day) }}
-                  >
-                    <Text style={[styles.dayChipText, newDays.includes(day) && { color: '#fff' }]}>{day}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <View style={styles.formButtons}>
-                <TouchableOpacity
-                  style={[styles.saveBtn, { backgroundColor: colors.accent }]}
-                  onPress={handleAdd}
-                  accessibilityRole="button"
-                  accessibilityLabel="Save shift"
-                >
-                  <Text style={styles.saveBtnText}>Save</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setShowAdd(false)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Cancel adding shift"
-                >
-                  <Text style={styles.cancelText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {!showAdd && (
-            <TouchableOpacity style={styles.addButton} onPress={() => setShowAdd(true)} accessibilityLabel="Add shift" accessibilityRole="button">
-              <Text style={styles.addButtonText}>+ Add shift</Text>
+            ))}
+          </View>
+          <View style={styles.formButtons}>
+            <TouchableOpacity
+              style={[styles.saveBtn, { backgroundColor: colors.accent }]}
+              onPress={handleAdd}
+              accessibilityRole="button"
+              accessibilityLabel="Save shift"
+            >
+              <Text style={styles.saveBtnText}>Save</Text>
             </TouchableOpacity>
-          )}
+            <TouchableOpacity
+              onPress={() => setShowAdd(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel adding shift"
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+      {!showAdd && (
+        <TouchableOpacity style={styles.addButton} onPress={() => setShowAdd(true)} accessibilityLabel="Add shift" accessibilityRole="button">
+          <Text style={styles.addButtonText}>+ Add shift</Text>
+        </TouchableOpacity>
+      )}
+
+      <View style={{ height: 40 }} />
+    </CarePlanConfigScreen>
   );
 }
 
 function createStyles(c: typeof Colors) {
   return StyleSheet.create({
-    root: { flex: 1, backgroundColor: c.background },
-    scroll: { flex: 1 },
-    scrollContent: { paddingHorizontal: 16, paddingTop: 8 },
     emptyText: { fontSize: 14, color: c.textMuted, textAlign: 'center', paddingVertical: 40 },
     itemCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: c.glass, borderWidth: 1, borderColor: c.glassBorder, borderRadius: 14, padding: 14, marginBottom: 8, gap: 12 },
     itemInfo: { flex: 1 },

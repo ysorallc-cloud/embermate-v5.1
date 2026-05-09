@@ -23,7 +23,8 @@ describe('New care plan config screens', () => {
 
   it('shifts.tsx renders without crash (has default export)', () => {
     expect(shiftsSrc).toContain('export default function ShiftsConfigScreen');
-    expect(shiftsSrc).toContain('SubScreenHeader');
+    // Phase 10.3.x: migrated from SubScreenHeader to CarePlanConfigScreen.
+    expect(shiftsSrc).toContain('CarePlanConfigScreen');
     expect(shiftsSrc).toContain('Shift Schedule');
   });
 
@@ -42,10 +43,12 @@ describe('New care plan config screens', () => {
     expect((stored as any)[0].name).toBe('Rx pickup');
   });
 
-  it('each screen navigates back to care-plan index (SubScreenHeader present)', () => {
-    // SubScreenHeader includes back button by default
+  it('each screen navigates back to care-plan index (header present)', () => {
+    // Phase 10.3.x: shifts migrated to CarePlanConfigScreen (which provides
+    // its own BackButton). Errands and self-care still use SubScreenHeader
+    // until their migration commits land.
     expect(errandsSrc).toContain('SubScreenHeader');
-    expect(shiftsSrc).toContain('SubScreenHeader');
+    expect(shiftsSrc).toContain('CarePlanConfigScreen');
     expect(selfCareSrc).toContain('SubScreenHeader');
   });
 
