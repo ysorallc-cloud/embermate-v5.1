@@ -299,6 +299,8 @@ export default function NowScreen() {
       appliedTemplateName: template?.name,
       enabledBucketLabels: labels,
       medicationCount: medCount,
+      // Phase 5.13.4 — drives CTA branching on the welcome card.
+      medsBucketEnabled: cfg?.meds?.enabled === true,
     };
   }, [carePlanConfig, enabledBuckets]);
 

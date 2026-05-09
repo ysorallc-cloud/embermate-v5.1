@@ -105,10 +105,12 @@ beforeEach(() => {
 
 // Phase 5.13.2 — every call now supplies a summary prop. Default to an
 // empty config (no template, no meds, no buckets) and override per test.
+// Phase 5.13.4 added medsBucketEnabled.
 const baseSummary = {
   appliedTemplateName: undefined as string | undefined,
   enabledBucketLabels: [] as string[],
   medicationCount: 0,
+  medsBucketEnabled: false,
 };
 
 describe('FirstTimeWelcomeCard — visibility', () => {
@@ -142,8 +144,16 @@ describe('FirstTimeWelcomeCard — content', () => {
     expect(textOf(tree)).toMatch(/Mom/);
   });
 
-  it('renders the "Add a medication" CTA copy', () => {
-    const tree = FirstTimeWelcomeCard({ patientName: 'Mom', caregiverName: 'Linda', summary: baseSummary });
+  it('renders the "Add a medication" CTA copy when meds bucket is enabled and no meds yet', () => {
+    // Phase 5.13.4 — CTA copy now branches by setup state. Pre-5.13.4 it
+    // was always "Add a medication". This case (meds enabled, count 0)
+    // is the only path that still routes there; deeper CTA-branching
+    // contracts live in firstTimeWelcomeCardCtaBranching.test.tsx.
+    const tree = FirstTimeWelcomeCard({
+      patientName: 'Mom',
+      caregiverName: 'Linda',
+      summary: { ...baseSummary, medsBucketEnabled: true },
+    });
     expect(textOf(tree)).toMatch(/Add a medication/);
   });
 });
@@ -157,6 +167,7 @@ describe('FirstTimeWelcomeCard — Phase 5.13.2 summary', () => {
         appliedTemplateName: 'Aging in Place',
         enabledBucketLabels: ['Medications', 'Vitals', 'Meals', 'Wellness'],
         medicationCount: 3,
+        medsBucketEnabled: true,
       },
     });
     const txt = textOf(tree);
@@ -173,6 +184,7 @@ describe('FirstTimeWelcomeCard — Phase 5.13.2 summary', () => {
         appliedTemplateName: 'Aging in Place',
         enabledBucketLabels: ['Medications', 'Vitals', 'Meals', 'Wellness'],
         medicationCount: 3,
+        medsBucketEnabled: true,
       },
     });
     expect(textOf(tree)).toMatch(/Medications, vitals, meals, wellness tracked/);
@@ -186,6 +198,7 @@ describe('FirstTimeWelcomeCard — Phase 5.13.2 summary', () => {
         appliedTemplateName: 'Aging in Place',
         enabledBucketLabels: ['Medications', 'Vitals'],
         medicationCount: 3,
+        medsBucketEnabled: true,
       },
     });
     expect(textOf(tree)).toMatch(/3 medications added/);
@@ -199,6 +212,7 @@ describe('FirstTimeWelcomeCard — Phase 5.13.2 summary', () => {
         appliedTemplateName: 'Aging in Place',
         enabledBucketLabels: ['Medications'],
         medicationCount: 1,
+        medsBucketEnabled: true,
       },
     });
     const txt = textOf(tree);
@@ -214,6 +228,7 @@ describe('FirstTimeWelcomeCard — Phase 5.13.2 summary', () => {
         appliedTemplateName: 'Aging in Place',
         enabledBucketLabels: ['Medications', 'Vitals'],
         medicationCount: 0,
+        medsBucketEnabled: true,
       },
     });
     expect(textOf(tree)).not.toMatch(/medication added/);
@@ -227,6 +242,7 @@ describe('FirstTimeWelcomeCard — Phase 5.13.2 summary', () => {
         appliedTemplateName: undefined,
         enabledBucketLabels: ['Medications', 'Vitals'],
         medicationCount: 0,
+        medsBucketEnabled: false,
       },
     });
     expect(textOf(tree)).not.toMatch(/template applied/);
@@ -240,6 +256,7 @@ describe('FirstTimeWelcomeCard — Phase 5.13.2 summary', () => {
         appliedTemplateName: undefined,
         enabledBucketLabels: ['Medications', 'Vitals'],
         medicationCount: 0,
+        medsBucketEnabled: false,
       },
     });
     expect(textOf(tree)).toMatch(/Add medications, vitals readings, and notes from the schedule below/);

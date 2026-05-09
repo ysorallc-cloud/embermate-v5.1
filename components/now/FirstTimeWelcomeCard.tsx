@@ -26,6 +26,12 @@ export interface WelcomeSummary {
   enabledBucketLabels: string[];
   /** Count of medications currently in the plan. */
   medicationCount: number;
+  /**
+   * Phase 5.13.4 — whether the meds bucket is enabled in the active config.
+   * Drives CTA branching: only the (enabled, empty) intersection routes to
+   * /care-plan/meds; every other state routes to /care-plan home.
+   */
+  medsBucketEnabled: boolean;
 }
 
 interface FirstTimeWelcomeCardProps {
@@ -50,10 +56,23 @@ export function FirstTimeWelcomeCard({
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { shouldShow, markSeen } = useFirstRealMode();
 
+  // Phase 5.13.4 — CTA branches by setup state. Templates that exclude
+  // meds (General Wellness, Mental Health Support) and users who already
+  // added a medication route to Care Plan home so they can drill into
+  // the buckets they actually enabled. Only the (meds-enabled, zero-meds)
+  // intersection routes to the meds form directly.
+  const shouldRouteToMedsForm =
+    summary.medsBucketEnabled === true && summary.medicationCount === 0;
+  const ctaLabel = shouldRouteToMedsForm
+    ? 'Add a medication →'
+    : 'Open Care Plan →';
+  const ctaDestination = shouldRouteToMedsForm ? '/care-plan/meds' : '/care-plan';
+  const ctaA11yLabel = shouldRouteToMedsForm ? 'Add a medication' : 'Open Care Plan';
+
   const handlePrimary = useCallback(() => {
     markSeen();
-    navigate('/care-plan/meds');
-  }, [markSeen]);
+    navigate(ctaDestination);
+  }, [markSeen, ctaDestination]);
 
   const handleDismiss = useCallback(() => {
     markSeen();
@@ -117,9 +136,9 @@ export function FirstTimeWelcomeCard({
         onPress={handlePrimary}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel="Add a medication"
+        accessibilityLabel={ctaA11yLabel}
       >
-        <Text style={styles.ctaText}>{'Add a medication →'}</Text>
+        <Text style={styles.ctaText}>{ctaLabel}</Text>
       </TouchableOpacity>
     </View>
   );
