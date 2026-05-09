@@ -22,7 +22,7 @@ import { join } from 'path';
 const ROOT = join(__dirname, '../..');
 const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 
-const captureSrc = read('components/now/SilentVitalsCapture.tsx');
+const captureSrc = read('components/logging/SilentVitalsCapture.tsx');
 const screenSrc = read('app/silent-vitals.tsx');
 
 describe('Wellness check — Phase 9.4 framing', () => {

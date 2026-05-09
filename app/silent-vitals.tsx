@@ -44,7 +44,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import {
   SilentVitalsCapture,
   type SilentVitalsValues,
-} from '../components/now/SilentVitalsCapture';
+} from '../components/logging/SilentVitalsCapture';
 import {
   upsertDailyReflection,
   getDailyReflection,

@@ -47,7 +47,7 @@ jest.mock('react-native', () => {
 import {
   SilentVitalsCapture,
   type SilentVitalsValues,
-} from '../../components/now/SilentVitalsCapture';
+} from '../../components/logging/SilentVitalsCapture';
 
 function findAll(
   root: TestRenderer.ReactTestInstance,
