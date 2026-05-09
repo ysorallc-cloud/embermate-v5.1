@@ -13,7 +13,7 @@ import { getTodayDateString, toLocalDateString } from '../services/carePlanGener
 
 import { getDailyTrackingLogs } from './dailyTrackingStorage';
 import { getAllBaselines } from './baselineStorage';
-import { listLogsInRange, listCarePlanItems, getActiveCarePlan, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
+import { listLogsInRange, listDailyInstancesRange, listCarePlanItems, getActiveCarePlan, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { LogEntry, CarePlanItem, CarePlanItemType } from '../types/carePlan';
 
 // ============================================================================
@@ -790,6 +790,44 @@ function generateCarePlanPositives(stats: CarePlanStats, timeRange: TimeRange): 
 // MAIN DATA LOADER
 // ============================================================================
 
+/**
+ * Phase 11.5.2 — third source for daysOfData. Counts distinct dates
+ * within the time range that have at least one completed
+ * DailyCareInstance. Pre-fix the daysOfData computation read only
+ * the log-pipeline (uniqueDays) and the baseline counter (days since
+ * first use); when the two went out of sync — sample-data seeding
+ * paths, sparse log indexes — daysOfData undercounted. The
+ * loadUnderstandPageData consumer unions this into Math.max alongside
+ * the existing sources.
+ *
+ * Failures resolve to 0 rather than throwing: this is one input to a
+ * Math.max, and a missing source must not crash the page.
+ */
+export async function getDistinctInstanceCompletionDays(
+  timeRange: TimeRange,
+): Promise<number> {
+  try {
+    const endDate = getTodayDateString();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - timeRange);
+    const startDateStr = toLocalDateString(startDate);
+    const instances = await listDailyInstancesRange(
+      DEFAULT_PATIENT_ID,
+      startDateStr,
+      endDate,
+    );
+    const distinct = new Set<string>();
+    for (const i of instances) {
+      if (i.status !== 'completed') continue;
+      distinct.add(i.date);
+    }
+    return distinct.size;
+  } catch (error) {
+    logError('understandInsights.getDistinctInstanceCompletionDays', error);
+    return 0;
+  }
+}
+
 export async function loadUnderstandPageData(timeRange: TimeRange): Promise<UnderstandPageData> {
   try {
     // Load baseline data to check days of data
@@ -819,8 +857,17 @@ export async function loadUnderstandPageData(timeRange: TimeRange): Promise<Unde
     // Load engine insights
     const engineInsights = await getAllInsights();
 
-    // Compute effective days of data early (needed by insight generators)
-    const effectiveDaysOfData = Math.max(daysOfData, carePlanStats.uniqueDays);
+    // Compute effective days of data early (needed by insight generators).
+    // Phase 11.5.2 — third source: distinct dates with completed instances.
+    // Same bug class Phase 5.13.5 fixed for narrativeSummaryBuilder; the
+    // page-level counter previously read only logs + baseline and missed
+    // sample-data seeded historical days that lived in the instance pipeline.
+    const instanceCompletionDays = await getDistinctInstanceCompletionDays(timeRange);
+    const effectiveDaysOfData = Math.max(
+      daysOfData,
+      carePlanStats.uniqueDays,
+      instanceCompletionDays,
+    );
 
     // Generate all sections (combine old system + Care Plan data)
     const [standOutInsights, positiveObservations, correlationCards] = await Promise.all([
