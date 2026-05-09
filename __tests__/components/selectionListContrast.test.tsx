@@ -36,7 +36,9 @@ const targets: Array<{ file: string; styles: string[] }> = [
     file: 'app/care-plan/manage.tsx',
     styles: ['typeChipLabelSelected', 'windowLabelSelected', 'priorityLabelSelected'],
   },
-  { file: 'app/log-mood.tsx',             styles: ['moodLabelSelected'] },
+  // Phase 9.5 renamed moodLabelSelected → pillLabelSelected as part of
+  // the LogScreen migration.
+  { file: 'app/log-mood.tsx',             styles: ['pillLabelSelected'] },
   // Phase 9.5 renamed activityLabelSelected → pillLabelSelected when
   // log-activity migrated to LogScreen pattern (matches log-meal's
   // identical rename in 9.3). The selected pill keeps label at

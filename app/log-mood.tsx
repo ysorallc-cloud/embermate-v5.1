@@ -1,22 +1,33 @@
 // ============================================================================
-// LOG MOOD SCREEN - Simple mood logging
+// LOG MOOD — Phase 9.5 migration to LogScreen + instance-completion fix.
+//
+// Pre-9.5 wrapped LinearGradient + SubScreenHeader + 5-mood emoji row +
+// auto-save-on-tap. The auto-save UX traded explicit confirmation for
+// speed; LogScreen's single-CTA contract restores select-then-Save,
+// which costs one tap but matches the rest of the log family. The
+// confirmation banner gets dropped (the navigateBack itself is the
+// confirmation).
+//
+// Defensive instance-completion fix per 9.4 pattern: receive
+// instanceId from search params, conditionally call
+// logInstanceCompletion(instanceId) on save. Pre-9.5 the screen had
+// neither — same silent-bug class as 9.4 silent-vitals had. Mood is a
+// valid CarePlanItemType so the wiring is in place for when a template
+// schedules mood instances.
 // ============================================================================
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
-  ScrollView,
+  Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { navigateBack } from '../lib/navigate';
-import { Colors } from '../theme/theme-tokens';
+import { Colors, Spacing } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
-import { SubScreenHeader } from '../components/SubScreenHeader';
 import { saveMoodLog } from '../utils/centralStorage';
 import { logMood } from '../utils/logEvents';
 import { hapticSuccess } from '../utils/hapticFeedback';
@@ -25,53 +36,59 @@ import { trackCarePlanProgress } from '../utils/carePlanStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
+import {
+  listDailyInstances,
+  logInstanceCompletion,
+  DEFAULT_PATIENT_ID,
+} from '../storage/carePlanRepo';
+import { getTodayDateString } from '../services/carePlanGenerator';
+import { LogScreen } from '../components/logging/LogScreen';
 
-const MOODS = [
-  { id: 'great', emoji: '😊', label: 'Great' },
-  { id: 'good', emoji: '🙂', label: 'Good' },
-  { id: 'okay', emoji: '😐', label: 'Okay' },
-  { id: 'down', emoji: '😔', label: 'Down' },
-  { id: 'difficult', emoji: '😢', label: 'Difficult' },
+const MOODS: { id: string; value: number; label: string }[] = [
+  { id: 'great',     value: 5, label: 'Great' },
+  { id: 'good',      value: 4, label: 'Good' },
+  { id: 'okay',      value: 3, label: 'Okay' },
+  { id: 'down',      value: 2, label: 'Down' },
+  { id: 'difficult', value: 1, label: 'Difficult' },
 ];
 
 export default function LogMoodScreen() {
   const params = useLocalSearchParams();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const today = useMemo(() => getTodayDateString(), []);
 
-  // Parse CarePlan context from navigation params
   const carePlanContext = parseCarePlanContext(params as Record<string, string>);
   const isFromCarePlan = carePlanContext !== null;
 
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [moodCompleted, setMoodCompleted] = useState(0);
+  const [moodExpected, setMoodExpected] = useState(0);
 
-  // Cleanup timeout on unmount to prevent memory leaks
   useEffect(() => {
-    return () => {
-      if (navigationTimeoutRef.current) {
-        clearTimeout(navigationTimeoutRef.current);
+    let cancelled = false;
+    (async () => {
+      try {
+        const instances = await listDailyInstances(DEFAULT_PATIENT_ID, today);
+        if (cancelled) return;
+        const moodInstances = instances.filter((i) => i.itemType === 'mood');
+        setMoodExpected(moodInstances.length);
+        setMoodCompleted(moodInstances.filter((i) => i.status === 'completed').length);
+      } catch (err) {
+        logError('LogMood.loadInstances', err);
       }
-    };
-  }, []);
+    })();
+    return () => { cancelled = true; };
+  }, [today]);
 
-  const handleMoodSelect = async (moodId: string) => {
-    setSelectedMood(moodId);
+  const canSave = selectedMood != null && !saving;
 
-    // Convert mood ID to numeric value for storage
-    const moodValues: Record<string, number> = {
-      'great': 5,
-      'good': 4,
-      'okay': 3,
-      'down': 2,
-      'difficult': 1,
-    };
-
-    const moodValue = moodValues[moodId] || 3;
-
+  const handleSave = useCallback(async () => {
+    if (!canSave || !selectedMood) return;
+    const moodValue = MOODS.find((m) => m.id === selectedMood)?.value ?? 3;
+    setSaving(true);
     try {
-      // Save to legacy storage for backward compatibility
       await saveMoodLog({
         timestamp: new Date().toISOString(),
         mood: moodValue,
@@ -79,7 +96,6 @@ export default function LogMoodScreen() {
         pain: null,
       });
 
-      // Emit log event for CarePlan/Now page tracking
       await logMood(moodValue, {
         carePlanTaskId: carePlanContext?.carePlanItemId,
         routineId: carePlanContext?.routineId,
@@ -89,207 +105,158 @@ export default function LogMoodScreen() {
         },
       });
 
-      // Track CarePlan progress if navigated from CarePlan
       if (carePlanContext) {
         await trackCarePlanProgress(
           carePlanContext.routineId,
           carePlanContext.carePlanItemId,
-          { logType: 'mood' }
+          { logType: 'mood' },
         );
+      }
+
+      // Phase 9.5 — defensive instance-completion fix (9.4 pattern).
+      // Mood is a valid CarePlanItemType; if a future template schedules
+      // a mood instance and routes here, mark it completed.
+      const instanceId = params.instanceId as string | undefined;
+      if (instanceId) {
+        try {
+          await logInstanceCompletion(
+            DEFAULT_PATIENT_ID,
+            today,
+            instanceId,
+            'completed',
+            { type: 'mood', mood: moodValue } as any,
+            { source: 'record' },
+          );
+          emitDataUpdate(EVENT.DAILY_INSTANCES);
+        } catch (err) {
+          logError('LogMood.completeInstance', err);
+        }
       }
 
       await hapticSuccess();
       emitDataUpdate(EVENT.MOOD);
-
-      // Show confirmation before navigating back
-      setShowConfirmation(true);
-
-      navigationTimeoutRef.current = setTimeout(() => {
-        navigateBack();
-      }, 800);
-    } catch (error) {
-      logError('LogMoodScreen.handleMoodSelect', error);
       navigateBack();
+    } catch (error) {
+      logError('LogMoodScreen.handleSave', error);
+      Alert.alert('Error', 'Failed to save mood');
+      setSaving(false);
     }
-  };
+  }, [canSave, selectedMood, today, carePlanContext, isFromCarePlan, params.instanceId]);
+
+  const countSubtitle = moodExpected > 0
+    ? `${moodCompleted} of ${moodExpected} today`
+    : undefined;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient
-        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
-        style={styles.gradient}
-      >
-        <SubScreenHeader title="Log Mood" emoji="😊" />
+    <LogScreen
+      title="Mood"
+      countSubtitle={countSubtitle}
+      onBack={navigateBack}
+      primaryAction={{
+        label: saving ? 'Saving…' : 'Save mood',
+        onPress: handleSave,
+        disabled: !canSave,
+      }}
+    >
+      <Text testID="log-mood-disclaimer" style={styles.disclaimer}>
+        For caregiver record-keeping. Captures subjective state, not clinical assessment.
+      </Text>
 
-        <ScrollView style={styles.content}>
-          {/* CarePlan context banner */}
-          {isFromCarePlan && carePlanContext && (
-            <View style={styles.carePlanBanner}>
-              <Text style={styles.carePlanBannerLabel}>FROM CARE PLAN</Text>
-              <Text style={styles.carePlanBannerText}>
-                {getCarePlanBannerText(carePlanContext)}
-              </Text>
-            </View>
-          )}
+      {isFromCarePlan && carePlanContext && (
+        <View style={styles.carePlanBanner}>
+          <Text style={styles.carePlanBannerLabel}>FROM CARE PLAN</Text>
+          <Text style={styles.carePlanBannerText}>
+            {getCarePlanBannerText(carePlanContext)}
+          </Text>
+        </View>
+      )}
 
-          <View style={styles.moodCard}>
-            <Text style={styles.moodSectionLabel}>SELECT MOOD</Text>
-            <View style={styles.moodsContainer}>
-              {MOODS.map((mood) => (
-                <TouchableOpacity
-                  key={mood.id}
-                  style={[
-                    styles.moodButton,
-                    selectedMood === mood.id && styles.moodButtonSelected,
-                  ]}
-                  onPress={() => handleMoodSelect(mood.id)}
-                  activeOpacity={0.7}
-                  disabled={showConfirmation}
-                  accessibilityLabel={`${mood.label} mood`}
-                  accessibilityHint="Logs this mood for the current check-in"
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: selectedMood === mood.id, disabled: showConfirmation }}
-                >
-                  <Text style={[styles.moodEmoji, selectedMood === mood.id && styles.moodEmojiSelected]}>
-                    {mood.emoji}
-                  </Text>
-                  <Text style={[styles.moodLabel, selectedMood === mood.id && styles.moodLabelSelected]}>
-                    {mood.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Confirmation message */}
-          {showConfirmation && selectedMood && (
-            <View style={styles.confirmationContainer}>
-              <Text style={styles.confirmationEmoji}>
-                {MOODS.find(m => m.id === selectedMood)?.emoji}
+      <Text style={styles.label}>Mood</Text>
+      <View style={styles.row}>
+        {MOODS.map((mood) => {
+          const selected = selectedMood === mood.id;
+          return (
+            <Pressable
+              key={mood.id}
+              testID={`log-mood-pill-${mood.id}`}
+              style={[styles.pill, selected && styles.pillSelected]}
+              onPress={() => setSelectedMood(mood.id)}
+              accessibilityRole="radio"
+              accessibilityLabel={`${mood.label} mood`}
+              accessibilityState={{ selected }}
+            >
+              <Text style={[styles.pillLabel, selected && styles.pillLabelSelected]}>
+                {mood.label}
               </Text>
-              <Text style={styles.confirmationText}>
-                Mood logged: {MOODS.find(m => m.id === selectedMood)?.label}
-              </Text>
-            </View>
-          )}
-        </ScrollView>
-      </LinearGradient>
-    </SafeAreaView>
+            </Pressable>
+          );
+        })}
+      </View>
+    </LogScreen>
   );
 }
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: c.background,
-  },
-  gradient: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
+  disclaimer: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: c.textTertiary,
+    marginBottom: Spacing.md,
   },
   carePlanBanner: {
     backgroundColor: c.caregiverAccentFaint,
-    borderWidth: 1,
-    borderColor: c.caregiverAccentWash,
     borderRadius: 10,
-    padding: 10,
-    marginTop: 16,
+    padding: 12, // allow: tap-target padding (Apple HIG ≥44pt)
+    marginBottom: Spacing.md,
   },
   carePlanBannerLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: c.violetBright,
+    color: c.caregiverAccent,
     letterSpacing: 1,
-    textAlign: 'center',
     marginBottom: 4,
   },
   carePlanBannerText: {
     fontSize: 13,
     color: c.textSecondary,
-    textAlign: 'center',
   },
-  moodCard: {
-    backgroundColor: c.glass,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.07)',
-    borderRadius: 18,
-    padding: 16,
-    marginTop: 20,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  moodSectionLabel: {
+  label: {
     fontSize: 9,
     fontWeight: '600',
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: c.textTertiary,
-    marginBottom: 14,
-  },
-  moodsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  moodButton: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 6,
-  },
-  moodButtonSelected: {},
-  moodEmoji: {
-    fontSize: 26,
-    width: 50,
-    height: 50,
-    borderRadius: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    lineHeight: 50,
-    overflow: 'hidden',
-  },
-  moodEmojiSelected: {
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
-    borderColor: 'rgba(52, 211, 153, 0.35)',
-    shadowColor: '#5fb88a',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-  },
-  moodLabel: {
-    fontSize: 9,
-    color: c.textTertiary,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  moodLabelSelected: {
-    color: c.textPrimary,
-    fontWeight: '600' as const,
-  },
-  confirmationContainer: {
-    alignItems: 'center',
-    marginTop: 32,
-    paddingVertical: 24,
-    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 0.3)',
-  },
-  confirmationEmoji: {
-    fontSize: 48,
     marginBottom: 8,
   },
-  confirmationText: {
-    fontSize: 18,
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  pill: {
+    flexBasis: '48%',
+    flexGrow: 1,
+    minHeight: 48,
+    paddingVertical: 12, // allow: tap-target padding (Apple HIG ≥44pt)
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
+    backgroundColor: c.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillSelected: {
+    backgroundColor: c.accentLight,
+    borderColor: c.accentBorder,
+  },
+  pillLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: c.textPrimary,
+  },
+  pillLabelSelected: {
+    // selectionListContrast a11y contract — keep label color stable.
     fontWeight: '600',
-    color: c.greenBright,
   },
 });
