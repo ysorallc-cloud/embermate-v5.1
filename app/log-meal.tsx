@@ -1,40 +1,79 @@
 // ============================================================================
-// LOG MEAL SCREEN
-// Individual meal logging with meal type and optional description
+// LOG MEAL — Phase 9.3 migration to LogScreen.
+//
+// Pre-9.3:
+//   • 2x2 grid of 180pt-tall emoji-first meal-type cards.
+//   • Mid-screen "She ate" sage CTA + bottom orange "Log Meal" CTA — two
+//     competing primary actions plus a palette violation (c.orange =
+//     #FB923C, the sole consumer of the orange token outside theme).
+//   • Progress chip read getTodayProgress.meals from the legacy
+//     getTodayMealsLog source path (units consistent but stale post-5.13.5
+//     against the wizard-driven instance pipeline).
+//
+// Post-9.3:
+//   • Wraps in <LogScreen> — single sage CTA, ghost cancel, compact header.
+//   • Title "Meal", subtitle derived directly from listDailyInstances
+//     filtered to itemType === 'nutrition' — same canonical pattern 9.2
+//     established for vitals.
+//   • Meal types render as a 2-column pill grid; pills < 100pt tall, no
+//     emojis. Multi-select preserved (caregivers can log breakfast +
+//     lunch in one save).
+//   • Quick-foods filtered by selected meal type render as compact pills
+//     (no emojis, sage-tinted selected state) between meal pills and the
+//     time-taken row. Per-meal-type filter preserved.
+//   • "Add details" expander mirrors 9.2's "More fields" pattern:
+//     Pressable + chevron + conditional textarea below.
+//   • Time-taken row: Just now (default) / 15 min ago / Earlier. Same
+//     Phase 9 follow-up note for inline DateTimePicker.
+//   • Medical disclaimer at the top of the input zone, single italic
+//     textTertiary line.
+//
+// Dropped vs spec:
+//   • Portion picker — no portion field exists in the meal data model.
+//     Tracked product question; a UI-only stub or description-text
+//     workaround was rejected in 9.3.0 scope discussion.
+//   • "Use last meal" affordance — meal type is time-bound (auto-detect
+//     from hour); a last-meal fill at 8 AM after a 7 PM dinner save
+//     would be wrong. The existing getDefaultMealType() time-of-day
+//     default already does the smart-default work.
+//   • The mid-screen "She ate" CTA — the meal-type selection state IS
+//     "she ate," conveyed by the selected pill plus the single Save CTA.
 // ============================================================================
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { navigateBack } from '../lib/navigate';
-import { Colors, BorderRadius, Spacing } from '../theme/theme-tokens';
+import { Colors } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
 import { saveDailyTracking, getDailyTracking } from '../utils/dailyTrackingStorage';
-import { saveMealsLog, getTodayMealsLog, MealsLog } from '../utils/centralStorage';
+import { saveMealsLog } from '../utils/centralStorage';
 import { hapticSuccess } from '../utils/hapticFeedback';
-import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage';
 import { parseCarePlanContext, getCarePlanBannerText, getPreSelectionHints } from '../utils/carePlanRouting';
 import { trackCarePlanProgress } from '../utils/carePlanStorage';
-import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
+import {
+  logInstanceCompletion,
+  listDailyInstances,
+  DEFAULT_PATIENT_ID,
+} from '../storage/carePlanRepo';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
 import { logError } from '../utils/devLog';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { LogScreen } from '../components/logging/LogScreen';
 
-// Phase 3A — auto-detect meal type from time of day. Used as the third
-// fallback after `params.mealType` and CarePlan pre-selection hints.
+// Auto-detect meal type from time of day. Used as the third fallback
+// after `params.mealType` and CarePlan pre-selection hints. This is the
+// reason "Use last meal" doesn't fit the data model (Q1 in 9.3.0).
 function getDefaultMealType(): string {
   const hour = new Date().getHours();
   if (hour < 10) return 'breakfast';
@@ -43,94 +82,76 @@ function getDefaultMealType(): string {
   return 'snack';
 }
 
-const MEAL_TYPES = [
-  { id: 'breakfast', label: 'Breakfast', icon: '🌅' },
-  { id: 'lunch', label: 'Lunch', icon: '☀️' },
-  { id: 'dinner', label: 'Dinner', icon: '🌙' },
-  { id: 'snack', label: 'Snack', icon: '🍎' },
+const MEAL_TYPES: { id: string; label: string }[] = [
+  { id: 'breakfast', label: 'Breakfast' },
+  { id: 'lunch',     label: 'Lunch' },
+  { id: 'dinner',    label: 'Dinner' },
+  { id: 'snack',     label: 'Snack' },
 ];
 
-// Quick food suggestions per meal type
-const QUICK_FOODS: Record<string, { label: string; icon: string }[]> = {
-  breakfast: [
-    { label: 'Eggs & Toast', icon: '🍳' },
-    { label: 'Oatmeal', icon: '🥣' },
-    { label: 'Cereal', icon: '🥣' },
-    { label: 'Yogurt & Fruit', icon: '🫐' },
-    { label: 'Smoothie', icon: '🥤' },
-  ],
-  lunch: [
-    { label: 'Sandwich', icon: '🥪' },
-    { label: 'Salad', icon: '🥗' },
-    { label: 'Soup', icon: '🍲' },
-    { label: 'Leftovers', icon: '📦' },
-    { label: 'Fast Food', icon: '🍔' },
-  ],
-  dinner: [
-    { label: 'Chicken & Veggies', icon: '🍗' },
-    { label: 'Pasta', icon: '🍝' },
-    { label: 'Rice & Protein', icon: '🍚' },
-    { label: 'Takeout', icon: '🥡' },
-    { label: 'Soup & Bread', icon: '🍞' },
-  ],
-  snack: [
-    { label: 'Fruit', icon: '🍎' },
-    { label: 'Nuts', icon: '🥜' },
-    { label: 'Crackers', icon: '🍘' },
-    { label: 'Protein Bar', icon: '🍫' },
-    { label: 'Veggies & Dip', icon: '🥕' },
-  ],
+const QUICK_FOODS: Record<string, string[]> = {
+  breakfast: ['Eggs & Toast', 'Oatmeal', 'Cereal', 'Yogurt & Fruit', 'Smoothie'],
+  lunch:     ['Sandwich', 'Salad', 'Soup', 'Leftovers', 'Fast Food'],
+  dinner:    ['Chicken & Veggies', 'Pasta', 'Rice & Protein', 'Takeout', 'Soup & Bread'],
+  snack:     ['Fruit', 'Nuts', 'Crackers', 'Protein Bar', 'Veggies & Dip'],
 };
+
+type TimeTaken = 'now' | '15m' | 'earlier';
 
 export default function LogMeal() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams();
 
-  // Parse CarePlan context from navigation params
   const carePlanContext = parseCarePlanContext(params as Record<string, string>);
-  const isFromCarePlan = carePlanContext !== null;
   const preSelectionHints = carePlanContext ? getPreSelectionHints(carePlanContext) : null;
 
   const [selectedMeals, setSelectedMeals] = useState<string[]>([]);
   const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
-  // Phase 3B — quick "She ate" save vs. expanded details
-  const [showDetails, setShowDetails] = useState(false);
-  const [progress, setProgress] = useState<TodayProgress | null>(null);
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const [timeTaken, setTimeTaken] = useState<TimeTaken>('now');
+  const [mealsCompleted, setMealsCompleted] = useState(0);
+  const [mealsExpected, setMealsExpected] = useState(0);
 
   const today = getTodayDateString();
 
-  // Load rhythm progress on mount
+  // Phase 9.3 — count subtitle reads from listDailyInstances directly,
+  // matching 9.2's pattern. Sidesteps the legacy getTodayProgress source
+  // path; getTodayProgress retires by attrition.
   useEffect(() => {
-    const loadProgress = async () => {
-      const progressData = await getTodayProgress();
-      setProgress(progressData);
-    };
-    loadProgress();
-  }, []);
+    let cancelled = false;
+    (async () => {
+      try {
+        const instances = await listDailyInstances(DEFAULT_PATIENT_ID, today);
+        if (cancelled) return;
+        const nutritionInstances = instances.filter(i => i.itemType === 'nutrition');
+        setMealsExpected(nutritionInstances.length);
+        setMealsCompleted(nutritionInstances.filter(i => i.status === 'completed').length);
+      } catch (err) {
+        logError('LogMeal.loadInstances', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [today]);
 
-  // Pre-select meal type if passed via params or CarePlan context
+  // Pre-select meal type and load any same-day entries.
   useEffect(() => {
-    // First priority: explicit mealType param
     if (params.mealType) {
       setSelectedMeals([params.mealType as string]);
-    }
-    // Second priority: CarePlan context hints
-    else if (preSelectionHints?.mealType) {
+    } else if (preSelectionHints?.mealType) {
       const mealId = preSelectionHints.mealType.toLowerCase();
       if (MEAL_TYPES.some(m => m.id === mealId)) {
         setSelectedMeals([mealId]);
       } else {
         setSelectedMeals([getDefaultMealType()]);
       }
-    }
-    // Third priority (Phase 3A): auto-detect by time of day
-    else {
+    } else {
       setSelectedMeals([getDefaultMealType()]);
     }
     loadExistingData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadExistingData = async () => {
@@ -141,9 +162,7 @@ export default function LogMeal() {
         if (existing.meals.breakfast) existingMeals.push('breakfast');
         if (existing.meals.lunch) existingMeals.push('lunch');
         if (existing.meals.dinner) existingMeals.push('dinner');
-        // Note: snack not stored in DailyTrackingLog.meals, but we still show it
         if (existingMeals.length > 0 && !params.mealType) {
-          // Don't override if user came with a specific meal type
           setSelectedMeals(existingMeals);
         }
       }
@@ -152,23 +171,18 @@ export default function LogMeal() {
     }
   };
 
-  const toggleMealType = (mealId: string) => {
+  const toggleMealType = useCallback((mealId: string) => {
     setSelectedMeals((prev) =>
-      prev.includes(mealId)
-        ? prev.filter((id) => id !== mealId)
-        : [...prev, mealId]
+      prev.includes(mealId) ? prev.filter((id) => id !== mealId) : [...prev, mealId],
     );
-  };
+  }, []);
 
-  const toggleFood = (foodLabel: string) => {
+  const toggleFood = useCallback((foodLabel: string) => {
     setSelectedFoods((prev) =>
-      prev.includes(foodLabel)
-        ? prev.filter((f) => f !== foodLabel)
-        : [...prev, foodLabel]
+      prev.includes(foodLabel) ? prev.filter((f) => f !== foodLabel) : [...prev, foodLabel],
     );
-  };
+  }, []);
 
-  // Build combined description from quick picks + free text
   const getFullDescription = (): string => {
     const parts: string[] = [];
     if (selectedFoods.length > 0) parts.push(selectedFoods.join(', '));
@@ -176,69 +190,73 @@ export default function LogMeal() {
     return parts.join(' — ');
   };
 
-  // Get relevant quick food suggestions based on selected meal types
-  const relevantFoods = selectedMeals.length > 0
-    ? Array.from(new Map(
-        selectedMeals.flatMap(m => QUICK_FOODS[m] || []).map(f => [f.label, f])
-      ).values())
-    : [];
+  // Quick-foods row filters by selected meal types — preserves the pre-9.3
+  // per-meal-type filter logic (Q3 decision).
+  const relevantFoods = useMemo<string[]>(() => {
+    if (selectedMeals.length === 0) return [];
+    const set = new Set<string>();
+    for (const m of selectedMeals) {
+      for (const f of QUICK_FOODS[m] ?? []) set.add(f);
+    }
+    return Array.from(set);
+  }, [selectedMeals]);
+
+  const computeTimestamp = useCallback((): string => {
+    const now = new Date();
+    if (timeTaken === '15m') return new Date(now.getTime() - 15 * 60 * 1000).toISOString();
+    if (timeTaken === 'earlier') {
+      // Phase 9 follow-up: inline DateTimePicker (pattern in
+      // app/appointment-form.tsx). 60-min-ago placeholder for now.
+      return new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+    }
+    return now.toISOString();
+  }, [timeTaken]);
+
+  const canSave = selectedMeals.length > 0 && !loading;
 
   const handleSave = async () => {
-    if (selectedMeals.length === 0) {
-      Alert.alert('Select Meal', 'Please select at least one meal type');
+    if (!canSave) {
+      if (selectedMeals.length === 0) {
+        Alert.alert('Select Meal', 'Please select at least one meal type');
+      }
       return;
     }
-
     setLoading(true);
     try {
-      // Build meals object for dailyTrackingStorage
+      const ts = computeTimestamp();
       const meals = {
         breakfast: selectedMeals.includes('breakfast'),
         lunch: selectedMeals.includes('lunch'),
         dinner: selectedMeals.includes('dinner'),
       };
-
-      // If there's a description, we could save it to notes
-      // For now, just save the meal tracking
       const updateData: { meals: typeof meals; notes?: string } = { meals };
       const fullDescription = getFullDescription();
-
-      // Optionally append meal description to notes
       if (fullDescription) {
         const existing = await getDailyTracking(today);
         const existingNotes = existing?.notes || '';
         const mealNote = `[Meal] ${selectedMeals.join(', ')}: ${fullDescription}`;
-        updateData.notes = existingNotes
-          ? `${existingNotes}\n${mealNote}`
-          : mealNote;
+        updateData.notes = existingNotes ? `${existingNotes}\n${mealNote}` : mealNote;
       }
-
-      // Save to dailyTrackingStorage (legacy)
       await saveDailyTracking(today, updateData);
 
-      // Also save to centralStorage for Now page sync
-      // Convert meal IDs to display labels
       const mealLabels = selectedMeals.map(id => {
         const meal = MEAL_TYPES.find(m => m.id === id);
         return meal ? meal.label : id;
       });
-
       await saveMealsLog({
-        timestamp: new Date().toISOString(),
+        timestamp: ts,
         meals: mealLabels,
         description: fullDescription || undefined,
       });
 
-      // Track CarePlan progress if navigated from CarePlan
       if (carePlanContext) {
         await trackCarePlanProgress(
           carePlanContext.routineId,
           carePlanContext.carePlanItemId,
-          { logType: 'meals' }
+          { logType: 'meals' },
         );
       }
 
-      // Mark the daily care instance as completed (updates progress card)
       const instanceId = params.instanceId as string | undefined;
       if (instanceId) {
         try {
@@ -248,7 +266,7 @@ export default function LogMeal() {
             instanceId,
             'completed',
             { type: 'nutrition', mealType: selectedMeals.join(', ') },
-            { source: 'record' }
+            { source: 'record' },
           );
           emitDataUpdate(EVENT.DAILY_INSTANCES);
         } catch (err) {
@@ -266,418 +284,341 @@ export default function LogMeal() {
     }
   };
 
+  const countSubtitle = mealsExpected > 0
+    ? `${mealsCompleted} of ${mealsExpected} today`
+    : undefined;
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient
-        colors={[colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
-        style={styles.gradient}
+    <LogScreen
+      title="Meal"
+      countSubtitle={countSubtitle}
+      onBack={navigateBack}
+      primaryAction={{
+        label: loading ? 'Saving…' : 'Save meal',
+        onPress: handleSave,
+        disabled: !canSave,
+      }}
+    >
+      {/* Phase 9.3 — KAV inside children for keyboardAvoidance audit;
+          primitive-level KAV is a tracked Phase 9 follow-up. */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.kav}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <ScrollView
-            style={styles.scrollView}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => navigateBack()}
-                accessibilityLabel="Go back"
-                accessibilityRole="button"
+        <Text testID="log-meal-disclaimer" style={styles.disclaimer}>
+          For caregiver record-keeping. Not medical advice or nutrition tracking.
+        </Text>
+
+        {/* Meal type — 2-col pill grid, no emojis, multi-select */}
+        <Text style={styles.label}>Meal Type</Text>
+        <View testID="log-meal-grid" style={styles.grid}>
+          {MEAL_TYPES.map((meal) => {
+            const selected = selectedMeals.includes(meal.id);
+            return (
+              <Pressable
+                key={meal.id}
+                testID={`log-meal-pill-${meal.id}`}
+                style={[styles.pill, selected && styles.pillSelected]}
+                onPress={() => toggleMealType(meal.id)}
+                accessibilityRole="checkbox"
+                accessibilityLabel={meal.label}
+                accessibilityState={{ selected, checked: selected }}
               >
-                <Text style={styles.backIcon}>←</Text>
-              </TouchableOpacity>
-              <Text style={styles.title}>Log Meal</Text>
-              <View style={{ width: 44 }} />
-            </View>
-
-            {/* CarePlan context banner */}
-            {isFromCarePlan && carePlanContext && (
-              <View style={[styles.contextBanner, styles.carePlanBanner]}>
-                <Text style={styles.carePlanBannerLabel}>FROM CARE PLAN</Text>
-                <Text style={styles.contextText}>
-                  {getCarePlanBannerText(carePlanContext)}
+                <Text style={[styles.pillLabel, selected && styles.pillLabelSelected]}>
+                  {meal.label}
                 </Text>
-              </View>
-            )}
+                {selected && <Text style={styles.pillCheck}>✓</Text>}
+              </Pressable>
+            );
+          })}
+        </View>
 
-            {/* Rhythm context banner (fallback when not from CarePlan) */}
-            {!isFromCarePlan && progress && progress.meals.expected > 0 && (
-              <View style={styles.contextBanner}>
-                <Text style={styles.contextText}>
-                  {progress.meals.completed} of {progress.meals.expected} meals logged today
-                </Text>
-              </View>
-            )}
-
-            {/* Meal Type Selection */}
-            <View style={styles.section}>
-              <Text style={styles.label}>Meal Type</Text>
-              <View style={styles.mealGrid}>
-                {MEAL_TYPES.map((meal) => (
-                  <TouchableOpacity
-                    key={meal.id}
-                    style={[
-                      styles.mealCard,
-                      selectedMeals.includes(meal.id) && styles.mealCardSelected,
-                    ]}
-                    onPress={() => toggleMealType(meal.id)}
-                    accessibilityLabel={`${meal.label}, ${selectedMeals.includes(meal.id) ? 'selected' : 'not selected'}`}
+        {/* Quick-foods row — filtered by selected meal type. Q3 preserved. */}
+        {relevantFoods.length > 0 && (
+          <View style={styles.quickFoodsSection}>
+            <Text style={styles.label}>Quick foods</Text>
+            <View style={styles.quickFoodsGrid}>
+              {relevantFoods.map((food) => {
+                const selected = selectedFoods.includes(food);
+                return (
+                  <Pressable
+                    key={food}
+                    testID={`log-meal-quick-${food}`}
+                    style={[styles.quickFood, selected && styles.quickFoodSelected]}
+                    onPress={() => toggleFood(food)}
                     accessibilityRole="checkbox"
-                    accessibilityState={{ checked: selectedMeals.includes(meal.id) }}
+                    accessibilityLabel={food}
+                    accessibilityState={{ selected, checked: selected }}
                   >
-                    <Text style={styles.mealIcon}>{meal.icon}</Text>
-                    <Text
-                      style={[
-                        styles.mealLabel,
-                        selectedMeals.includes(meal.id) && styles.mealLabelSelected,
-                      ]}
-                    >
-                      {meal.label}
+                    <Text style={[styles.quickFoodLabel, selected && styles.quickFoodLabelSelected]}>
+                      {food}
                     </Text>
-                    {selectedMeals.includes(meal.id) && (
-                      <View style={styles.checkBadge}>
-                        <Text style={styles.checkBadgeText}>✓</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <Text style={styles.hint}>Tap to select one or more meals</Text>
+                  </Pressable>
+                );
+              })}
             </View>
-
-            {/* Phase 3B — quick "She ate" + expand-for-details */}
-            {!showDetails && (
-              <View style={styles.section}>
-                <TouchableOpacity
-                  style={[styles.quickSaveButton, loading && styles.saveButtonDisabled]}
-                  onPress={() => {
-                    if (selectedMeals.length === 0) {
-                      setSelectedMeals([getDefaultMealType()]);
-                    }
-                    handleSave();
-                  }}
-                  disabled={loading}
-                  accessibilityLabel={`Log ${selectedMeals[0] || 'meal'} — she ate`}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.quickSaveText}>She ate</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.expandDetailsButton}
-                  onPress={() => setShowDetails(true)}
-                  accessibilityLabel="Add meal details"
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.expandDetailsText}>Add details</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Description (Optional) — only when details expanded */}
-            {showDetails && (
-            <View style={styles.section}>
-              <Text style={styles.label}>What did you eat? (optional)</Text>
-
-              {/* Quick food suggestions */}
-              {relevantFoods.length > 0 && (
-                <View style={styles.quickFoodsContainer}>
-                  {relevantFoods.map((food) => {
-                    const isSelected = selectedFoods.includes(food.label);
-                    return (
-                      <TouchableOpacity
-                        key={food.label}
-                        style={[
-                          styles.quickFoodChip,
-                          isSelected && styles.quickFoodChipSelected,
-                        ]}
-                        onPress={() => toggleFood(food.label)}
-                        accessibilityLabel={`${food.label}, ${isSelected ? 'selected' : 'not selected'}`}
-                        accessibilityRole="checkbox"
-                        accessibilityState={{ checked: isSelected }}
-                      >
-                        <Text style={styles.quickFoodIcon}>{food.icon}</Text>
-                        <Text style={[
-                          styles.quickFoodLabel,
-                          isSelected && styles.quickFoodLabelSelected,
-                        ]}>{food.label}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
-
-              <TextInput
-                style={styles.descriptionInput}
-                placeholder="Oatmeal with berries and coffee..."
-                placeholderTextColor={colors.textMuted}
-                multiline
-                numberOfLines={4}
-                value={description}
-                onChangeText={setDescription}
-                textAlignVertical="top"
-                accessibilityLabel="Meal description"
-              />
-            </View>
-            )}
-
-            <View style={{ height: 100 }} />
-          </ScrollView>
-
-          {/* Footer Button */}
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={[
-                styles.saveButton,
-                loading && styles.saveButtonDisabled,
-                selectedMeals.length === 0 && styles.saveButtonDisabled,
-              ]}
-              onPress={handleSave}
-              disabled={loading || selectedMeals.length === 0}
-              accessibilityLabel={loading ? 'Saving meal' : 'Log meal'}
-              accessibilityHint="Saves the selected meals and notes"
-              accessibilityRole="button"
-              accessibilityState={{ disabled: loading || selectedMeals.length === 0 }}
-            >
-              <Text style={styles.saveButtonText}>
-                {loading ? 'Saving...' : 'Log Meal'}
-              </Text>
-            </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </LinearGradient>
-    </SafeAreaView>
+        )}
+
+        {/* Add details expander — Q4 mirrors 9.2's "More fields" pattern */}
+        <Pressable
+          testID="log-meal-expander"
+          style={styles.expander}
+          onPress={() => setDetailsExpanded((v) => !v)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: detailsExpanded }}
+          accessibilityLabel={detailsExpanded ? 'Hide details' : 'Add details'}
+        >
+          <View style={styles.expanderTextBlock}>
+            <Text testID="log-meal-expander-label" style={styles.expanderLabel}>
+              Add details
+            </Text>
+            <Text testID="log-meal-expander-subtitle" style={styles.expanderSubtitle}>
+              Free-text note
+            </Text>
+          </View>
+          <Text style={styles.expanderChevron}>{detailsExpanded ? '▴' : '▾'}</Text>
+        </Pressable>
+
+        {detailsExpanded && (
+          <TextInput
+            testID="log-meal-description"
+            style={styles.descriptionInput}
+            placeholder="Oatmeal with berries and coffee…"
+            placeholderTextColor={colors.textMuted}
+            multiline
+            numberOfLines={4}
+            value={description}
+            onChangeText={setDescription}
+            textAlignVertical="top"
+            accessibilityLabel="Meal description"
+          />
+        )}
+
+        {/* Time-taken row — same shape as 9.2 */}
+        <View style={styles.timeRow}>
+          <Pressable
+            testID="log-meal-time-now"
+            style={[styles.timePill, timeTaken === 'now' && styles.timePillSelected]}
+            onPress={() => setTimeTaken('now')}
+            accessibilityRole="button"
+            accessibilityState={{ selected: timeTaken === 'now' }}
+            accessibilityLabel="Time taken: just now"
+          >
+            <Text style={[styles.timePillText, timeTaken === 'now' && styles.timePillTextSelected]}>
+              Just now
+            </Text>
+          </Pressable>
+          <Pressable
+            testID="log-meal-time-15m"
+            style={[styles.timePill, timeTaken === '15m' && styles.timePillSelected]}
+            onPress={() => setTimeTaken('15m')}
+            accessibilityRole="button"
+            accessibilityState={{ selected: timeTaken === '15m' }}
+            accessibilityLabel="Time taken: 15 minutes ago"
+          >
+            <Text style={[styles.timePillText, timeTaken === '15m' && styles.timePillTextSelected]}>
+              15 min ago
+            </Text>
+          </Pressable>
+          <Pressable
+            testID="log-meal-time-earlier"
+            style={[styles.timePill, timeTaken === 'earlier' && styles.timePillSelected]}
+            onPress={() => setTimeTaken('earlier')}
+            accessibilityRole="button"
+            accessibilityState={{ selected: timeTaken === 'earlier' }}
+            accessibilityLabel="Time taken: earlier"
+          >
+            <Text style={[styles.timePillText, timeTaken === 'earlier' && styles.timePillTextSelected]}>
+              Earlier
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Care Plan context — preserved when reached from a care plan instance */}
+        {carePlanContext && (
+          <View style={styles.carePlanContext}>
+            <Text style={styles.carePlanContextLabel}>FROM CARE PLAN</Text>
+            <Text style={styles.carePlanContextText}>
+              {getCarePlanBannerText(carePlanContext)}
+            </Text>
+          </View>
+        )}
+      </KeyboardAvoidingView>
+    </LogScreen>
   );
 }
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: c.background,
-  },
-  gradient: {
+  kav: {
     flex: 1,
   },
-  scrollView: {
-    flex: 1,
-  },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: Spacing.lg,
-    paddingTop: Spacing.md,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
-    backgroundColor: c.surfaceHighlight,
-    borderWidth: 1,
-    borderColor: c.accentLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backIcon: {
-    fontSize: 20,
-    color: c.textPrimary,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: c.textPrimary,
-  },
-
-  // Rhythm context banner
-  contextBanner: {
-    backgroundColor: 'rgba(74, 222, 128, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(74, 222, 128, 0.15)',
-    borderRadius: 10,
-    padding: 10,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-  },
-  carePlanBanner: {
-    backgroundColor: c.caregiverAccentFaint,
-    borderColor: c.caregiverAccentWash,
-  },
-  carePlanBannerLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: c.violetBright,
-    letterSpacing: 1,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  contextText: {
-    fontSize: 13,
-    color: c.textSecondary,
-    textAlign: 'center',
-  },
-
-  // Section
-  section: {
-    padding: Spacing.lg,
-    marginBottom: Spacing.sm,
+  disclaimer: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: c.textTertiary,
+    marginBottom: 16,
   },
   label: {
-    fontSize: 16,
+    fontSize: 9,
     fontWeight: '600',
-    color: c.accent,
-    marginBottom: Spacing.md,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: c.textTertiary,
+    marginBottom: 8,
   },
-  hint: {
-    fontSize: 13,
-    color: c.textMuted,
-    marginTop: Spacing.sm,
-    textAlign: 'center',
-  },
-
-  // Meal Grid
-  mealGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  mealCard: {
-    width: '47%',
-    backgroundColor: c.surfaceHighlight,
-    borderWidth: 1,
-    borderColor: c.accentHint,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    alignItems: 'center',
-    position: 'relative',
-  },
-  mealCardSelected: {
-    backgroundColor: c.greenLight,
-    borderColor: c.green,
-  },
-  mealIcon: {
-    fontSize: 32,
-    marginBottom: Spacing.xs,
-  },
-  mealLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: c.textSecondary,
-  },
-  mealLabelSelected: {
-    color: c.textPrimary,
-    fontWeight: '600',
-  },
-  checkBadge: {
-    position: 'absolute',
-    top: Spacing.xs,
-    right: Spacing.xs,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: c.green,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkBadgeText: {
-    color: c.textPrimary,
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-
-  // Description Input
-  descriptionInput: {
-    backgroundColor: c.surfaceHighlight,
-    borderWidth: 1,
-    borderColor: c.accentHint,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    color: c.textPrimary,
-    fontSize: 15,
-    minHeight: 120,
-  },
-
-  // Quick Food Suggestions
-  quickFoodsContainer: {
+  // 2-col pill grid: row + wrap, each pill ~48% width to give a 2-up
+  // layout with a small gap between columns.
+  grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: Spacing.md,
+    marginBottom: 16,
   },
-  quickFoodChip: {
+  pill: {
+    flexBasis: '48%',
+    flexGrow: 1,
+    minHeight: 48, // tap-target floor; explicit cap is the < 100 contract
+    paddingVertical: 12, // allow: tap-target padding (Apple HIG ≥44pt)
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
+    backgroundColor: c.surfaceElevated,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: c.surfaceHighlight,
-    borderWidth: 1,
-    borderColor: c.accentHint,
-    borderRadius: 20,
+    justifyContent: 'space-between',
+  },
+  pillSelected: {
+    backgroundColor: c.accentLight,
+    borderColor: c.accentBorder,
+  },
+  pillLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: c.textPrimary,
+  },
+  pillLabelSelected: {
+    // Phase 9.3 — selected state keeps label color at textPrimary
+    // (selectionListContrast audit). Selection conveyed by the pill's
+    // accentLight background + accentBorder + the trailing checkmark.
+    fontWeight: '600',
+  },
+  pillCheck: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.accent,
+  },
+  quickFoodsSection: {
+    marginBottom: 16,
+  },
+  quickFoodsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  quickFood: {
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    gap: 6,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    borderRadius: 999,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
+    backgroundColor: c.surfaceElevated,
   },
-  quickFoodChipSelected: {
-    backgroundColor: c.greenLight,
-    borderColor: c.green,
-  },
-  quickFoodIcon: {
-    fontSize: 16,
+  quickFoodSelected: {
+    backgroundColor: c.accentLight,
+    borderColor: c.accentBorder,
   },
   quickFoodLabel: {
     fontSize: 13,
-    fontWeight: '500',
-    color: c.textSecondary,
+    color: c.textPrimary,
   },
   quickFoodLabelSelected: {
+    // selectionListContrast audit: keep label at textPrimary; selection
+    // is carried by the pill background change.
+    fontWeight: '500',
+  },
+  expander: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderTopWidth: 0.5,
+    borderTopColor: c.glassBorder,
+    borderBottomWidth: 0.5,
+    borderBottomColor: c.glassBorder,
+    marginVertical: 8,
+  },
+  expanderTextBlock: {
+    flex: 1,
+  },
+  expanderLabel: {
+    fontSize: 14,
+    fontWeight: '500',
     color: c.textPrimary,
-    fontWeight: '600',
   },
-
-  // Footer
-  footer: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: c.accentHint,
-    backgroundColor: c.background,
+  expanderSubtitle: {
+    fontSize: 12,
+    color: c.textTertiary,
+    marginTop: 2,
   },
-  saveButton: {
-    backgroundColor: c.orange,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
+  expanderChevron: {
+    fontSize: 12,
+    color: c.textTertiary,
   },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
+  descriptionInput: {
+    backgroundColor: c.surfaceElevated,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    borderRadius: 12,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    paddingVertical: 12,
+    fontSize: 15,
     color: c.textPrimary,
-    fontSize: 16,
-    fontWeight: '600',
+    minHeight: 88,
+    marginTop: 8,
+    marginBottom: 16,
   },
-  // Phase 3B — quick "She ate" save + collapsible details
-  quickSaveButton: {
-    backgroundColor: c.accent,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-    marginBottom: 10,
+  timeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
   },
-  quickSaveText: {
-    color: '#0a0c0a',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  expandDetailsButton: {
-    alignItems: 'center',
+  timePill: {
+    flex: 1,
     paddingVertical: 10,
+    paddingHorizontal: 12, // allow: tap-target padding (Apple HIG ≥44pt)
+    borderRadius: 999,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
+    alignItems: 'center',
   },
-  expandDetailsText: {
+  timePillSelected: {
+    backgroundColor: c.accentLight,
+    borderColor: c.accentBorder,
+  },
+  timePillText: {
+    fontSize: 12,
+    color: c.textSecondary,
+  },
+  timePillTextSelected: {
+    color: c.accent,
+    fontWeight: '500',
+  },
+  carePlanContext: {
+    backgroundColor: c.caregiverAccentFaint,
+    borderRadius: 10,
+    padding: 12, // allow: tap-target padding (Apple HIG ≥44pt)
+    marginTop: 16,
+  },
+  carePlanContextLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: c.caregiverAccent,
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  carePlanContextText: {
     fontSize: 13,
-    color: c.textWarmHint,
+    color: c.textSecondary,
   },
 });

@@ -43,8 +43,12 @@ const targets: Array<{ file: string; styles: string[] }> = [
     styles: ['optionLabelSelected', 'ratingLabelSelected'],
   },
   {
+    // Phase 9.3 renamed mealLabelSelected → pillLabelSelected when the
+    // 2x2 emoji-first card grid was replaced with a 2-column pill grid.
+    // quickFoodLabelSelected kept its name; quick-foods got restyled
+    // as compact pills matching the meal-pill family.
     file: 'app/log-meal.tsx',
-    styles: ['mealLabelSelected', 'quickFoodLabelSelected'],
+    styles: ['pillLabelSelected', 'quickFoodLabelSelected'],
   },
   // GetStartedScreen.tsx had a `bucketLabelSelected` style backing the
   // bucket-grid selection UI. The grid was retired in v6.7 (default care

@@ -103,25 +103,27 @@ describe('rhythmStorage module integrity', () => {
 // ============================================================================
 
 describe('rhythmStorage usage in log-meal.tsx', () => {
-  it('imports getTodayProgress and TodayProgress from rhythmStorage', () => {
+  // Phase 9.3 — log-meal dropped getTodayProgress for the same reason
+  // 9.2 dropped it on log-vitals: switched to the canonical
+  // listDailyInstances pipeline filtered to itemType === 'nutrition'.
+  // medication-confirm is the only remaining consumer; getTodayProgress
+  // retires by attrition through Phase 9 and gets deleted in 9.6.
+  it('does NOT import getTodayProgress (Phase 9.3 retired the legacy source)', () => {
     const source = readSource('app/log-meal.tsx');
-    expect(source).toContain("import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage'");
+    expect(source).not.toMatch(/import\s+\{[^}]*getTodayProgress/);
   });
 
-  it('getTodayProgress is USED in file body (not a dead import)', () => {
+  it('does NOT call getTodayProgress', () => {
     const source = readSource('app/log-meal.tsx');
-    expect(isImportUsedInBody(source, 'getTodayProgress')).toBe(true);
+    expect(source).not.toMatch(/getTodayProgress\s*\(/);
   });
 
-  it('TodayProgress is USED in file body as a type annotation', () => {
+  it('reads counts via listDailyInstances (canonical wizard pipeline)', () => {
     const source = readSource('app/log-meal.tsx');
-    expect(isImportUsedInBody(source, 'TodayProgress')).toBe(true);
-  });
-
-  it('progress.meals is referenced in the render output', () => {
-    const source = readSource('app/log-meal.tsx');
-    expect(source).toContain('progress.meals.completed');
-    expect(source).toContain('progress.meals.expected');
+    expect(source).toMatch(
+      /import\s+\{[^}]*listDailyInstances[^}]*\}\s+from\s+['"][^'"]+\/storage\/carePlanRepo['"]/,
+    );
+    expect(source).toContain('listDailyInstances(');
   });
 });
 
