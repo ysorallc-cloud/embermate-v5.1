@@ -2,6 +2,13 @@
 // LOG MEDICATION FOR PLAN ITEM
 // Contextual logging screen for medications from the Care Plan
 // Pre-filled and locked to the specific medication - no search needed
+//
+// LogScreen exception: dual-mode confirm/skip with skip-reason picker
+// and side-effects multi-select. Single-CTA primitive doesn't fit;
+// forcing migration would either degrade UX (collapse mode toggle) or
+// require multi-CTA primitive extension (out of Phase 9 scope).
+// Revisit when medication-confirm flow gets product review, OR when
+// LogScreen primitive grows multi-action support.
 // ============================================================================
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
