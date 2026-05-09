@@ -160,10 +160,9 @@ function evalMorningStreak(ctx: SignalContext): WitnessSignal | null {
   }
   const n = morningDays.size;
   if (n < THRESHOLDS.MORNING_STREAK_DAYS) return null;
-  const line = `You showed up ${n} of 7 mornings this week`;
   return {
-    line,
-    footerLine: line,
+    line: `You showed up ${n} of 7 mornings this week`,
+    footerLine: `${n} mornings this week.\nMost people never see what that takes.`,
     source: 'morning_streak',
   };
 }

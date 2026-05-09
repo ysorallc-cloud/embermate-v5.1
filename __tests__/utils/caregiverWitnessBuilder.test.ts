@@ -178,6 +178,24 @@ describe('Phase 11.1 — caregiverWitnessBuilder', () => {
       expect(out!.line).toBe('You showed up 7 of 7 mornings this week');
     });
 
+    it('footer converges on the recognition anchor (drops "of 7" — scoreboard belongs in the line slot only)', async () => {
+      // The line carries personal recognition ("You showed up...");
+      // the footer carries count + temporal qualifier + anchor —
+      // matching medication_volume / wellness_consistency / etc. The
+      // "of 7" frame reads as scoreboard in the footer slot.
+      const instances = [];
+      for (let n = 0; n < 7; n++) {
+        const date = ymd(addDays(TODAY, -n));
+        instances.push(inst({ date, windowLabel: 'morning', status: 'completed' }));
+      }
+      setMocks(instances, [], []);
+      const out = await buildCaregiverWitness('default', TODAY);
+      expect(out!.source).toBe('morning_streak');
+      expect(out!.footerLine).toBe(
+        '7 mornings this week.\nMost people never see what that takes.',
+      );
+    });
+
     it('4 of 7 mornings does NOT qualify (below threshold)', async () => {
       // 4 morning days → must NOT trigger morning_streak. With no other
       // qualifying signals, the result is either null or a different
