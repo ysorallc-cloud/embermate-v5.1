@@ -64,6 +64,7 @@ import { buildDayNarrative } from '../../utils/narrativeSummaryBuilder';
 import { getDailyOutcomes } from '../../utils/dailyOutcomes';
 import type { DailyOutcomes } from '../../utils/text/types';
 import { isDayComplete, markDayComplete } from '../../utils/dayComplete';
+import { shouldRenderJournalEmptyDay } from '../../utils/journalEmptyDayCheck';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -622,12 +623,14 @@ export default function JournalTab() {
               Past days keep NarrativeView (which has its own empty
               handling). */}
           {(() => {
-            if (isViewingPast) return false;
             if (addNoteMode) return false;
-            const hasEvents = dayEvents && dayEvents.length > 0;
-            const hasNotes = (reflection?.text?.trim().length ?? 0) > 0;
-            const hasTone = !!handoffTone && handoffTone.trim().length > 0;
-            return !hasEvents && !hasNotes && !hasTone;
+            return shouldRenderJournalEmptyDay({
+              isViewingPast,
+              hasEvents: !!(dayEvents && dayEvents.length > 0),
+              hasNotes: (reflection?.text?.trim().length ?? 0) > 0,
+              hasTone: !!handoffTone && handoffTone.trim().length > 0,
+              hasCompletedInstances: outcomes.logged.count > 0,
+            });
           })() && (
             <JournalEmptyDay
               dateKey={selectedDate}
@@ -644,10 +647,13 @@ export default function JournalTab() {
           ) : (() => {
             // Hide the populated structure on empty-day mode unless the
             // user opted into addNoteMode (which mounts JournalNotesCard).
-            const hasEvents = dayEvents && dayEvents.length > 0;
-            const hasNotes = (reflection?.text?.trim().length ?? 0) > 0;
-            const hasTone = !!handoffTone && handoffTone.trim().length > 0;
-            const isEmpty = !hasEvents && !hasNotes && !hasTone;
+            const isEmpty = shouldRenderJournalEmptyDay({
+              isViewingPast,
+              hasEvents: !!(dayEvents && dayEvents.length > 0),
+              hasNotes: (reflection?.text?.trim().length ?? 0) > 0,
+              hasTone: !!handoffTone && handoffTone.trim().length > 0,
+              hasCompletedInstances: outcomes.logged.count > 0,
+            });
             if (isEmpty && !addNoteMode) return null;
             return (
               <>
