@@ -16,7 +16,50 @@ import { getActivePatientId } from '../storage/patientRegistry';
 import { getReflection } from '../storage/reflectionStorage';
 import { listDailyInstances } from '../storage/carePlanRepo';
 import { logError } from './devLog';
-import type { CareEvent } from '../types/event';
+import type { CareEvent, EventType } from '../types/event';
+import type { DailyCareInstance, CarePlanItemType } from '../types/carePlan';
+
+/**
+ * Phase 5.13.5 — count completions across both pipelines.
+ *
+ * A type's count is the union of (a) events of the given event type and
+ * (b) completed daily instances of the given itemType, deduplicated by
+ * (carePlanItemId, scheduledTime). Most flows only emit one or the other,
+ * so the dedup is a precaution against any future flow that writes both.
+ *
+ * Events don't carry carePlanItemId / scheduledTime as typed fields — we
+ * fall back to event id, which won't collide with the instance keyspace.
+ * Instances always have both fields, so the cross-source dedup fires only
+ * when an event explicitly stamps those keys in its metadata.
+ */
+function unionCount(
+  events: CareEvent[],
+  eventType: EventType,
+  instances: DailyCareInstance[],
+  itemType: CarePlanItemType,
+): number {
+  const seen = new Set<string>();
+  let count = 0;
+  for (const e of events) {
+    if (e.type !== eventType) continue;
+    const meta = (e.metadata || {}) as Record<string, any>;
+    const itemId = meta.carePlanItemId;
+    const sched = meta.scheduledTime;
+    const key = itemId && sched ? `${itemId}:${sched}` : `event:${e.id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    count++;
+  }
+  for (const i of instances) {
+    if (i.itemType !== itemType) continue;
+    if (i.status !== 'completed') continue;
+    const key = `${i.carePlanItemId}:${i.scheduledTime}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    count++;
+  }
+  return count;
+}
 
 export type NarrativeTone = 'good' | 'concern' | 'neutral';
 
@@ -139,12 +182,23 @@ export async function buildDayNarrative(
     const medsTaken = medInstances.filter((i) => i.status === 'completed').length;
     const medsTotal = medInstances.length;
 
+    // Meds keep the dedicated medInstances pipeline (above) plus events
+    // for ad-hoc logs that don't have an instance behind them.
     const medsTakenEvents = events.filter((e) => e.type === 'medication_taken').length;
     const medsSkippedEvents = events.filter((e) => e.type === 'medication_skipped').length;
-    const vitalsEvents = events.filter((e) => e.type === 'vitals_recorded').length;
-    const wellnessEvents = events.filter((e) => e.type === 'wellness_check').length;
-    const symptomEvents = events.filter((e) => e.type === 'symptom_reported').length;
-    const mealsCount = events.filter((e) => e.type === 'meal_logged').length;
+
+    // Phase 5.13.5 — non-meds types now union events with completed instances.
+    // Inline-confirm completions on Now-tab write LogEntry + update instance
+    // status but don't emit events; pre-fix those completions were invisible.
+    const vitalsCount = unionCount(events, 'vitals_recorded', instances, 'vitals');
+    const wellnessCount = unionCount(events, 'wellness_check', instances, 'wellness');
+    const mealsCount = unionCount(events, 'meal_logged', instances, 'nutrition');
+    const sleepCount = unionCount(events, 'sleep_logged', instances, 'sleep');
+    const activityCount = unionCount(events, 'activity_logged', instances, 'activity');
+
+    // Symptoms have no instance counterpart — CarePlanItemType doesn't
+    // include 'symptom'. Stay event-only.
+    const symptomCount = events.filter((e) => e.type === 'symptom_reported').length;
 
     // Summary pills — short tags shown above the prose summary.
     const summaryPills: { label: string; tone: NarrativeTone }[] = [];
@@ -157,17 +211,23 @@ export async function buildDayNarrative(
     } else if (medsTakenEvents > 0) {
       summaryPills.push({ label: `${medsTakenEvents} meds`, tone: 'good' });
     }
-    if (vitalsEvents > 0) {
+    if (vitalsCount > 0) {
       summaryPills.push({ label: 'Vitals logged', tone: 'good' });
     }
-    if (wellnessEvents > 0) {
+    if (wellnessCount > 0) {
       summaryPills.push({ label: 'Wellness OK', tone: 'good' });
     }
     if (mealsCount > 0) {
       summaryPills.push({ label: `${mealsCount} meals`, tone: 'neutral' });
     }
-    if (symptomEvents > 0) {
-      summaryPills.push({ label: `${symptomEvents} symptom${symptomEvents === 1 ? '' : 's'}`, tone: 'concern' });
+    if (sleepCount > 0) {
+      summaryPills.push({ label: `${sleepCount} sleep`, tone: 'neutral' });
+    }
+    if (activityCount > 0) {
+      summaryPills.push({ label: `${activityCount} activity`, tone: 'neutral' });
+    }
+    if (symptomCount > 0) {
+      summaryPills.push({ label: `${symptomCount} symptom${symptomCount === 1 ? '' : 's'}`, tone: 'concern' });
     }
 
     // Prose summary — one or two sentences synthesising the day.
@@ -183,17 +243,23 @@ export async function buildDayNarrative(
       } else if (medsTakenEvents > 0) {
         sentences.push(`${medsTakenEvents} medication${medsTakenEvents === 1 ? '' : 's'} logged.`);
       }
-      if (vitalsEvents > 0) {
-        sentences.push(`${vitalsEvents} vitals reading${vitalsEvents === 1 ? '' : 's'} recorded.`);
+      if (vitalsCount > 0) {
+        sentences.push(`${vitalsCount} vitals reading${vitalsCount === 1 ? '' : 's'} recorded.`);
       }
-      if (wellnessEvents > 0) {
-        sentences.push(`${wellnessEvents} wellness check${wellnessEvents === 1 ? '' : 's'} recorded.`);
+      if (wellnessCount > 0) {
+        sentences.push(`${wellnessCount} wellness check${wellnessCount === 1 ? '' : 's'} recorded.`);
       }
       if (mealsCount > 0) {
         sentences.push(`${mealsCount} meal${mealsCount === 1 ? '' : 's'} logged.`);
       }
-      if (symptomEvents > 0) {
-        sentences.push(`${symptomEvents} symptom${symptomEvents === 1 ? '' : 's'} reported.`);
+      if (sleepCount > 0) {
+        sentences.push(`${sleepCount} sleep entr${sleepCount === 1 ? 'y' : 'ies'} logged.`);
+      }
+      if (activityCount > 0) {
+        sentences.push(`${activityCount} activity log${activityCount === 1 ? '' : 's'}.`);
+      }
+      if (symptomCount > 0) {
+        sentences.push(`${symptomCount} symptom${symptomCount === 1 ? '' : 's'} reported.`);
       }
       if (medsSkippedEvents > 0) {
         sentences.push(`${medsSkippedEvents} medication skip${medsSkippedEvents === 1 ? '' : 's'} logged.`);
@@ -210,15 +276,21 @@ export async function buildDayNarrative(
       } else if (medsTakenEvents > 0) {
         sentences.push(`${medsTakenEvents} medication${medsTakenEvents === 1 ? '' : 's'} logged ad-hoc.`);
       }
-      if (vitalsEvents > 0 && wellnessEvents > 0) {
+      if (vitalsCount > 0 && wellnessCount > 0) {
         sentences.push('Vitals and wellness check both completed.');
-      } else if (vitalsEvents > 0) {
+      } else if (vitalsCount > 0) {
         sentences.push('Vitals recorded.');
-      } else if (wellnessEvents > 0) {
+      } else if (wellnessCount > 0) {
         sentences.push('Wellness check completed.');
       }
-      if (symptomEvents > 0) {
-        sentences.push(`${symptomEvents} symptom${symptomEvents === 1 ? '' : 's'} reported.`);
+      if (sleepCount > 0) {
+        sentences.push(`${sleepCount} sleep entr${sleepCount === 1 ? 'y' : 'ies'} logged.`);
+      }
+      if (activityCount > 0) {
+        sentences.push(`${activityCount} activity log${activityCount === 1 ? '' : 's'}.`);
+      }
+      if (symptomCount > 0) {
+        sentences.push(`${symptomCount} symptom${symptomCount === 1 ? '' : 's'} reported.`);
       }
       if (medsSkippedEvents > 0 && medsTotal === 0) {
         sentences.push(`${medsSkippedEvents} medication skip${medsSkippedEvents === 1 ? '' : 's'} logged.`);
@@ -247,7 +319,16 @@ export async function buildDayNarrative(
 
     return {
       dateKey,
-      hasData: events.length > 0 || medsTotal > 0 || !!reflection?.text,
+      hasData:
+        events.length > 0
+        || medsTotal > 0
+        || vitalsCount > 0
+        || wellnessCount > 0
+        || mealsCount > 0
+        || sleepCount > 0
+        || activityCount > 0
+        || symptomCount > 0
+        || !!reflection?.text,
       summary,
       summaryPills,
       notableMoments,
