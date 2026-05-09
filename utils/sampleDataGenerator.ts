@@ -746,6 +746,20 @@ export const initializeSampleData = async (): Promise<boolean> => {
       // Non-critical — don't block initialization
     }
 
+    // Phase 11.5.3 — seed correlation engine inputs: 14 days of
+    // dailyTracking (mood/sleep/hydration/pain), trend symptoms
+    // (Pain/Fatigue/Nausea/Dizziness), and per-day medication logs.
+    // Read by detectCorrelations() and getAllInsights() — without
+    // this, Insights middle-section renders empty in sample-data
+    // mode even though the data shape exists. The function is
+    // idempotent via SAMPLE_CORRELATION_GENERATED.
+    try {
+      await generateSampleCorrelationData();
+    } catch (error) {
+      logError('initializeSampleData.correlationData', error);
+      // Non-critical — don't block initialization
+    }
+
     // Mark as initialized
     await safeSetItem(SAMPLE_DATA_INITIALIZED_KEY, 'true');
 
