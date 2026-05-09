@@ -1,6 +1,10 @@
 // ============================================================================
-// ACTIVITY BUCKET CONFIGURATION
-// Configure activity tracking in the Care Plan
+// ACTIVITY BUCKET CONFIGURATION — Phase 10.3.x migrated to
+// CarePlanConfigScreen (chrome=gradient, the bucket-config family).
+//
+// The primitive owns SafeAreaView + LinearGradient + header chrome
+// (back button + title + subtitle). Body content unchanged: enable
+// toggle, priority selector, activity types, info card, notifications.
 // ============================================================================
 
 import React, { useCallback, useMemo } from 'react';
@@ -8,17 +12,14 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Switch,
-  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
+import { CarePlanConfigScreen } from '../../components/care-plan/CarePlanConfigScreen';
 import {
   BucketConfig,
   PRIORITY_OPTIONS,
@@ -34,7 +35,6 @@ export default function ActivityBucketScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     config,
-    loading,
     toggleBucket,
     updateBucket,
   } = useCarePlanConfig();
@@ -52,150 +52,121 @@ export default function ActivityBucketScreen() {
   }, [updateBucket]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient
-        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
-        style={styles.gradient}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerLabel}>ACTIVITY</Text>
-          <View style={{ width: 44 }} />
+    <CarePlanConfigScreen
+      title="Activity"
+      subtitle="Shows how movement connects to energy, mood, and overall wellness."
+      chrome="gradient"
+      onBack={() => router.back()}
+    >
+      {/* Enable Toggle */}
+      <View style={styles.settingRow}>
+        <View style={styles.settingInfo}>
+          <Text style={styles.settingLabel}>Track Activity</Text>
+          <Text style={styles.settingDescription}>
+            Enable activity tracking in your Care Plan
+          </Text>
         </View>
+        <Switch
+          value={enabled}
+          onValueChange={handleToggleEnabled}
+          trackColor={{ false: colors.glassStrong, true: colors.accent }}
+          thumbColor={enabled ? colors.textPrimary : colors.switchThumbOff}
+          ios_backgroundColor={colors.glassStrong}
+          accessibilityLabel="Track Activity"
+          accessibilityRole="switch"
+          accessibilityState={{ checked: enabled }}
+        />
+      </View>
 
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Title */}
-          <View style={styles.titleSection}>
-            <Text style={styles.title}>Activity</Text>
-            <Text style={styles.subtitle}>
-              Shows how movement connects to energy, mood, and overall wellness.
-            </Text>
+      {enabled && (
+        <>
+          {/* Priority Selector */}
+          <Text style={styles.sectionLabel}>PRIORITY</Text>
+          <View style={styles.priorityContainer}>
+            {PRIORITY_OPTIONS.map(option => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.priorityOption,
+                  priority === option.value && styles.priorityOptionSelected,
+                ]}
+                onPress={() => handleChangePriority(option.value)}
+                activeOpacity={0.7}
+                accessibilityLabel={`${option.label} priority: ${option.description}`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: priority === option.value }}
+              >
+                <Text style={[
+                  styles.priorityLabel,
+                  priority === option.value && styles.priorityLabelSelected,
+                ]}>
+                  {option.label}
+                </Text>
+                <Text style={styles.priorityDescription}>{option.description}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
-          {/* Enable Toggle */}
+          {/* Activity Types */}
+          <Text style={styles.sectionLabel}>ACTIVITY TYPES</Text>
+          <View style={styles.activitiesGrid}>
+            {[
+              { emoji: '🚶', label: 'Walking', description: 'Daily walks and steps' },
+              { emoji: '🏃', label: 'Exercise', description: 'Workouts and gym sessions' },
+              { emoji: '🧘', label: 'Stretching', description: 'Yoga and flexibility' },
+              { emoji: '🏊', label: 'Swimming', description: 'Pool or water activities' },
+              { emoji: '🚴', label: 'Cycling', description: 'Bike rides' },
+              { emoji: '🧹', label: 'Housework', description: 'Cleaning and chores' },
+            ].map(activity => (
+              <View key={activity.label} style={styles.activityItem}>
+                <Text style={styles.activityEmoji}>{activity.emoji}</Text>
+                <View style={styles.activityInfo}>
+                  <Text style={styles.activityLabel}>{activity.label}</Text>
+                  <Text style={styles.activityDescription}>{activity.description}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          {/* Info Card */}
+          <View style={styles.infoCard}>
+            <Text style={styles.infoEmoji}>💡</Text>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoTitle}>Every bit counts</Text>
+              <Text style={styles.infoText}>
+                Activity doesn't have to be intense exercise. Walking around
+                the house, doing chores, or gentle stretching all contribute
+                to overall wellness and can be tracked here.
+              </Text>
+            </View>
+          </View>
+
+          {/* Notifications Setting */}
+          <Text style={styles.sectionLabel}>NOTIFICATIONS</Text>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Track Activity</Text>
+              <Text style={styles.settingLabel}>Activity Reminders</Text>
               <Text style={styles.settingDescription}>
-                Enable activity tracking in your Care Plan
+                Get gentle reminders to move or log activity
               </Text>
             </View>
             <Switch
-              value={enabled}
-              onValueChange={handleToggleEnabled}
+              value={activityConfig?.notificationsEnabled ?? false}
+              onValueChange={(value) => updateBucket('activity', { notificationsEnabled: value })}
               trackColor={{ false: colors.glassStrong, true: colors.accent }}
-              thumbColor={enabled ? colors.textPrimary : colors.switchThumbOff}
+              thumbColor={(activityConfig?.notificationsEnabled ?? false) ? colors.textPrimary : colors.switchThumbOff}
               ios_backgroundColor={colors.glassStrong}
-              accessibilityLabel="Track Activity"
+              accessibilityLabel="Activity Reminders"
               accessibilityRole="switch"
-              accessibilityState={{ checked: enabled }}
+              accessibilityState={{ checked: activityConfig?.notificationsEnabled ?? false }}
             />
           </View>
+        </>
+      )}
 
-          {enabled && (
-            <>
-              {/* Priority Selector */}
-              <Text style={styles.sectionLabel}>PRIORITY</Text>
-              <View style={styles.priorityContainer}>
-                {PRIORITY_OPTIONS.map(option => (
-                  <TouchableOpacity
-                    key={option.value}
-                    // Phase 2.6.3 — severity stripe retired (color-budget).
-                    style={[
-                      styles.priorityOption,
-                      priority === option.value && styles.priorityOptionSelected,
-                    ]}
-                    onPress={() => handleChangePriority(option.value)}
-                    activeOpacity={0.7}
-                    accessibilityLabel={`${option.label} priority: ${option.description}`}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: priority === option.value }}
-                  >
-                    <Text style={[
-                      styles.priorityLabel,
-                      priority === option.value && styles.priorityLabelSelected,
-                    ]}>
-                      {option.label}
-                    </Text>
-                    <Text style={styles.priorityDescription}>{option.description}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Activity Types */}
-              <Text style={styles.sectionLabel}>ACTIVITY TYPES</Text>
-              <View style={styles.activitiesGrid}>
-                {[
-                  { emoji: '🚶', label: 'Walking', description: 'Daily walks and steps' },
-                  { emoji: '🏃', label: 'Exercise', description: 'Workouts and gym sessions' },
-                  { emoji: '🧘', label: 'Stretching', description: 'Yoga and flexibility' },
-                  { emoji: '🏊', label: 'Swimming', description: 'Pool or water activities' },
-                  { emoji: '🚴', label: 'Cycling', description: 'Bike rides' },
-                  { emoji: '🧹', label: 'Housework', description: 'Cleaning and chores' },
-                ].map(activity => (
-                  <View key={activity.label} style={styles.activityItem}>
-                    <Text style={styles.activityEmoji}>{activity.emoji}</Text>
-                    <View style={styles.activityInfo}>
-                      <Text style={styles.activityLabel}>{activity.label}</Text>
-                      <Text style={styles.activityDescription}>{activity.description}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-
-              {/* Info Card */}
-              <View style={styles.infoCard}>
-                <Text style={styles.infoEmoji}>💡</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoTitle}>Every bit counts</Text>
-                  <Text style={styles.infoText}>
-                    Activity doesn't have to be intense exercise. Walking around
-                    the house, doing chores, or gentle stretching all contribute
-                    to overall wellness and can be tracked here.
-                  </Text>
-                </View>
-              </View>
-
-              {/* Notifications Setting */}
-              <Text style={styles.sectionLabel}>NOTIFICATIONS</Text>
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Activity Reminders</Text>
-                  <Text style={styles.settingDescription}>
-                    Get gentle reminders to move or log activity
-                  </Text>
-                </View>
-                <Switch
-                  value={activityConfig?.notificationsEnabled ?? false}
-                  onValueChange={(value) => updateBucket('activity', { notificationsEnabled: value })}
-                  trackColor={{ false: colors.glassStrong, true: colors.accent }}
-                  thumbColor={(activityConfig?.notificationsEnabled ?? false) ? colors.textPrimary : colors.switchThumbOff}
-                  ios_backgroundColor={colors.glassStrong}
-                  accessibilityLabel="Activity Reminders"
-                  accessibilityRole="switch"
-                  accessibilityState={{ checked: activityConfig?.notificationsEnabled ?? false }}
-                />
-              </View>
-            </>
-          )}
-
-          {/* Bottom spacing */}
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </LinearGradient>
-    </SafeAreaView>
+      {/* Bottom spacing */}
+      <View style={{ height: 40 }} />
+    </CarePlanConfigScreen>
   );
 }
 
@@ -204,69 +175,6 @@ export default function ActivityBucketScreen() {
 // ============================================================================
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: c.background,
-  },
-  gradient: {
-    flex: 1,
-  },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Platform.OS === 'android' ? 20 : 0,
-    paddingBottom: Spacing.sm,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: c.backgroundElevated,
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backIcon: {
-    fontSize: 24,
-    color: c.textPrimary,
-  },
-  headerLabel: {
-    fontSize: 11,
-    color: c.textMuted,
-    letterSpacing: 1,
-    fontWeight: '600',
-  },
-
-  // Scroll
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: 40,
-  },
-
-  // Title
-  titleSection: {
-    marginBottom: Spacing.lg,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: c.textPrimary,
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: c.textSecondary,
-    lineHeight: 22,
-  },
-
   // Section Labels
   sectionLabel: {
     fontSize: 11,
