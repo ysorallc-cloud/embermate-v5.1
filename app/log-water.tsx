@@ -1,28 +1,34 @@
 // ============================================================================
-// WATER LOGGING SCREEN - Quick Water Counter
+// LOG WATER — Phase 9.5 migration to LogScreen.
+//
+// Pre-9.5 wrapped AuroraBackground + custom header + counter + progress
+// bar + quick-add row + bottom "Done ✓" button. Post-9.5 wraps in
+// <LogScreen> with the standard header / disclaimer / single CTA pattern
+// established by 9.2 / 9.3 / 9.4.
+//
+// Counter subtitle derives from listDailyInstances filtered to
+// itemType === 'hydration', matching the canonical wizard-driven source.
+// Instance-completion already wired (preserved as-is).
 // ============================================================================
 
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { navigateBack } from '../lib/navigate';
-import { AuroraBackground } from '../components/aurora/AuroraBackground';
-import { Colors, Spacing } from '../theme/theme-tokens';
+import { Colors } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
 import { getTodayWaterLog, updateTodayWaterLog } from '../utils/centralStorage';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { EVENT } from '../lib/eventNames';
-import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
+import {
+  listDailyInstances,
+  logInstanceCompletion,
+  DEFAULT_PATIENT_ID,
+} from '../storage/carePlanRepo';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { LogScreen } from '../components/logging/LogScreen';
 
 const WATER_GOAL = 8;
 
@@ -30,48 +36,68 @@ export default function LogWaterScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams();
+  const today = useMemo(() => getTodayDateString(), []);
+
   const [glasses, setGlasses] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [hydrationCompleted, setHydrationCompleted] = useState(0);
+  const [hydrationExpected, setHydrationExpected] = useState(0);
 
   useEffect(() => {
-    loadWaterData();
+    let cancelled = false;
+    (async () => {
+      try {
+        const todayWater = await getTodayWaterLog();
+        if (!cancelled && todayWater?.glasses) setGlasses(todayWater.glasses);
+      } catch (error) {
+        logError('LogWaterScreen.loadWaterData', error);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  const loadWaterData = async () => {
-    try {
-      const todayWater = await getTodayWaterLog();
-      if (todayWater?.glasses) {
-        setGlasses(todayWater.glasses);
+  // Counter subtitle from listDailyInstances filtered to itemType hydration —
+  // canonical 9.2 / 9.3 / 9.4 pattern.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const instances = await listDailyInstances(DEFAULT_PATIENT_ID, today);
+        if (cancelled) return;
+        const hydrationInstances = instances.filter((i) => i.itemType === 'hydration');
+        setHydrationExpected(hydrationInstances.length);
+        setHydrationCompleted(hydrationInstances.filter((i) => i.status === 'completed').length);
+      } catch (err) {
+        logError('LogWater.loadInstances', err);
       }
-    } catch (error) {
-      logError('LogWaterScreen.loadWaterData', error);
-    }
-  };
+    })();
+    return () => { cancelled = true; };
+  }, [today]);
 
-  const handleIncrement = () => {
-    setGlasses(prev => Math.min(prev + 1, WATER_GOAL + 4));
-  };
+  const handleIncrement = useCallback(() => {
+    setGlasses((prev) => Math.min(prev + 1, WATER_GOAL + 4));
+  }, []);
 
-  const handleDecrement = () => {
-    setGlasses(prev => Math.max(prev - 1, 0));
-  };
+  const handleDecrement = useCallback(() => {
+    setGlasses((prev) => Math.max(prev - 1, 0));
+  }, []);
 
   const handleSave = async () => {
+    if (saving) return;
     try {
       setSaving(true);
       await updateTodayWaterLog(glasses);
 
-      // Mark the daily care instance as completed (updates progress card)
       const instanceId = params.instanceId as string | undefined;
       if (instanceId) {
         try {
           await logInstanceCompletion(
             DEFAULT_PATIENT_ID,
-            getTodayDateString(),
+            today,
             instanceId,
             'completed',
-            { type: 'hydration', glasses },
-            { source: 'record' }
+            { type: 'hydration', glasses } as any,
+            { source: 'record' },
           );
           emitDataUpdate(EVENT.DAILY_INSTANCES);
         } catch (err) {
@@ -85,167 +111,105 @@ export default function LogWaterScreen() {
     } catch (error) {
       logError('LogWaterScreen.handleSave', error);
       Alert.alert('Error', 'Failed to save water intake');
-    } finally {
       setSaving(false);
     }
   };
 
   const progressPercent = Math.min((glasses / WATER_GOAL) * 100, 100);
+  const countSubtitle = hydrationExpected > 0
+    ? `${hydrationCompleted} of ${hydrationExpected} today`
+    : undefined;
 
   return (
-    <View style={styles.container}>
-      <AuroraBackground variant="log" />
+    <LogScreen
+      title="Water"
+      countSubtitle={countSubtitle}
+      onBack={navigateBack}
+      primaryAction={{
+        label: saving ? 'Saving…' : 'Save water',
+        onPress: handleSave,
+        disabled: saving,
+      }}
+    >
+      <Text testID="log-water-disclaimer" style={styles.disclaimer}>
+        For caregiver record-keeping. Not medical advice.
+      </Text>
 
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
+      <View style={styles.counterContainer}>
+        <TouchableOpacity
+          testID="log-water-decrement"
+          style={styles.counterButton}
+          onPress={handleDecrement}
+          disabled={glasses === 0}
+          accessibilityLabel="Decrease water by one glass"
+          accessibilityRole="button"
+        >
+          <Text style={[styles.counterButtonText, glasses === 0 && styles.counterButtonDisabled]}>−</Text>
+        </TouchableOpacity>
+
+        <View style={styles.counterDisplay}>
+          <Text testID="log-water-display" style={styles.counterNumber}>{glasses}</Text>
+          <Text style={styles.counterLabel}>of {WATER_GOAL} glasses</Text>
+        </View>
+
+        <TouchableOpacity
+          testID="log-water-increment"
+          style={styles.counterButton}
+          onPress={handleIncrement}
+          accessibilityLabel="Increase water by one glass"
+          accessibilityRole="button"
+        >
+          <Text style={styles.counterButtonText}>+</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.progressContainer}>
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+        </View>
+        <Text style={styles.progressText}>
+          {glasses >= WATER_GOAL ? '✓ Goal reached' : `${WATER_GOAL - glasses} more to go`}
+        </Text>
+      </View>
+
+      <View style={styles.quickAddRow}>
+        {[1, 2, 3, 4].map((num) => (
           <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigateBack()}
-            accessibilityLabel="Go back"
+            key={num}
+            style={styles.quickAddButton}
+            onPress={() => setGlasses((prev) => Math.min(prev + num, WATER_GOAL + 4))}
+            accessibilityLabel={`Add ${num} glass${num !== 1 ? 'es' : ''}`}
             accessibilityRole="button"
           >
-            <Text style={styles.backButtonText}>←</Text>
+            <Text style={styles.quickAddText}>+{num}</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Water today?</Text>
-          <View style={styles.placeholder} />
-        </View>
-
-        <View style={styles.content}>
-          <Text style={styles.subtitle}>Quick count</Text>
-
-          {/* Water Counter */}
-          <View style={styles.counterContainer}>
-            <TouchableOpacity
-              style={styles.counterButton}
-              onPress={handleDecrement}
-              disabled={glasses === 0}
-              accessibilityLabel="Decrease water by one glass"
-              accessibilityRole="button"
-            >
-              <Text style={[styles.counterButtonText, glasses === 0 && styles.counterButtonDisabled]}>−</Text>
-            </TouchableOpacity>
-
-            <View style={styles.counterDisplay}>
-              <Text style={styles.counterNumber}>{glasses}</Text>
-              <Text style={styles.counterLabel}>of {WATER_GOAL} glasses</Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.counterButton}
-              onPress={handleIncrement}
-              accessibilityLabel="Increase water by one glass"
-              accessibilityRole="button"
-            >
-              <Text style={styles.counterButtonText}>+</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Progress Bar */}
-          <View style={styles.progressContainer}>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
-            </View>
-            <Text style={styles.progressText}>
-              {glasses >= WATER_GOAL ? '✓ Goal reached!' : `${WATER_GOAL - glasses} more to go`}
-            </Text>
-          </View>
-
-          {/* Quick Add Buttons */}
-          <View style={styles.quickAddRow}>
-            {[1, 2, 3, 4].map(num => (
-              <TouchableOpacity
-                key={num}
-                style={styles.quickAddButton}
-                onPress={() => setGlasses(prev => Math.min(prev + num, WATER_GOAL + 4))}
-                accessibilityLabel={`Add ${num} glass${num !== 1 ? 'es' : ''}`}
-                accessibilityRole="button"
-              >
-                <Text style={styles.quickAddText}>+{num}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Save Button */}
-        <View style={styles.bottomActions}>
-          <TouchableOpacity
-            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-            onPress={handleSave}
-            disabled={saving}
-            accessibilityLabel={saving ? "Saving water intake" : "Save water intake"}
-            accessibilityHint="Saves the water intake amount"
-            accessibilityRole="button"
-          >
-            <Text style={styles.saveButtonText}>
-              {saving ? 'Saving...' : 'Done ✓'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    </View>
+        ))}
+      </View>
+    </LogScreen>
   );
 }
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: c.background,
+  disclaimer: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: c.textTertiary,
+    marginBottom: 20,
   },
-  safeArea: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButtonText: {
-    fontSize: 28,
-    color: c.textPrimary,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: c.textPrimary,
-  },
-  placeholder: {
-    width: 44,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: c.textMuted,
-    marginBottom: 40,
-  },
-
-  // Counter
   counterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 30,
-    marginBottom: 40,
+    justifyContent: 'center',
+    gap: 28, // allow: counter knob spacing (Apple HIG ≥44pt)
+    marginVertical: 20,
   },
   counterButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: c.sageBorder,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: c.accentLight,
     borderWidth: 1,
-    borderColor: c.sageGlow,
+    borderColor: c.accentBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -261,21 +225,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     alignItems: 'center',
   },
   counterNumber: {
-    fontSize: 72,
+    fontSize: 64,
     fontWeight: '200',
     color: c.textPrimary,
   },
   counterLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: c.textMuted,
-    marginTop: -5,
+    marginTop: 2,
   },
-
-  // Progress
   progressContainer: {
     width: '100%',
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 20,
   },
   progressBar: {
     width: '100%',
@@ -283,55 +245,35 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.glassActive,
     borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: c.cyan,
+    backgroundColor: c.accent,
     borderRadius: 4,
   },
   progressText: {
     fontSize: 13,
     color: c.textSecondary,
   },
-
-  // Quick Add
   quickAddRow: {
     flexDirection: 'row',
     gap: 12,
+    justifyContent: 'center',
   },
   quickAddButton: {
-    paddingVertical: 12,
+    paddingVertical: 12, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingHorizontal: 20,
     backgroundColor: c.surfaceElevated,
-    borderWidth: 1,
-    borderColor: c.glassActive,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
     borderRadius: 8,
+    minWidth: 56,
+    alignItems: 'center',
   },
   quickAddText: {
     fontSize: 14,
     fontWeight: '500',
     color: c.textSecondary,
-  },
-
-  // Bottom
-  bottomActions: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: c.glassHover,
-  },
-  saveButton: {
-    backgroundColor: c.accent,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  saveButtonDisabled: {
-    opacity: 0.7,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: c.background,
   },
 });
