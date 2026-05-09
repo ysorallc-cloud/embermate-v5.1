@@ -158,9 +158,14 @@ describe('v6.7 tone audit — forbidden phrasing on caregiver surfaces', () => {
 
 // ── Required — vocabulary anchors land where they should ───────────────────
 describe('v6.7 tone audit — required vocabulary anchors', () => {
-  it('"silent vital signs" appears on the silent-vitals capture surface', () => {
-    const src = readFileSync(join(ROOT, 'components/now/SilentVitalsCapture.tsx'), 'utf8');
-    expect(src.toLowerCase()).toContain('silent vital signs');
+  it('"wellness check" appears on the silent-vitals screen surface', () => {
+    // Phase 9.4 retired the "silent vital signs" framing — the screen
+    // now branded as "Wellness check" to match useWellnessSettings and
+    // Care Plan config language. The capture component module name
+    // (SilentVitalsCapture) is preserved as a tracked relocation
+    // follow-up; only the user-facing copy changed.
+    const src = readFileSync(join(ROOT, 'app/silent-vitals.tsx'), 'utf8');
+    expect(src.toLowerCase()).toContain('wellness check');
   });
 
   it('"things to watch for" appears on the watchlist surface', () => {

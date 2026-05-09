@@ -1,11 +1,19 @@
 // ============================================================================
-// Silent vital signs — tone + framing audit.
+// Silent vitals — tone + framing audit (Phase 9.4 update).
 //
-// Locks in the Prompt 3 contract: caregiver-natural questions ("How did Mom
-// sleep?"), "silent vital signs" framing in the eyebrow, and zero clinical
-// jargon in user-facing copy. Assertions are source-driven — if any of these
-// strings drift in a future redesign, the test fails so the team can decide
-// whether the framing should evolve or stay anchored.
+// Pre-9.4 the screen branded itself as "Silent vital signs" with an
+// all-caps eyebrow and wordy patient-named questions ("How did Mom
+// sleep?"). The Phase 9.4 migration aligned the surface with the
+// LogScreen pattern set by 9.2 / 9.3:
+//   • Title is "Wellness check" — matches existing useWellnessSettings
+//     and Care Plan config language.
+//   • Single-word labels (Sleep / Mood / Energy) replace the wordy
+//     prose; the disclaimer above carries the framing context.
+//   • The all-caps eyebrow is gone (LogScreen primitive owns the
+//     header rhythm).
+//
+// This file pins the new copy contract. The clinical-jargon banlist
+// below is unchanged — those forbidden terms still apply.
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -17,35 +25,31 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 const captureSrc = read('components/now/SilentVitalsCapture.tsx');
 const screenSrc = read('app/silent-vitals.tsx');
 
-describe('Silent vitals — eyebrow + framing', () => {
-  it('eyebrow on the capture card names the framing explicitly', () => {
-    expect(captureSrc).toContain('THE SILENT VITAL SIGNS');
+describe('Wellness check — Phase 9.4 framing', () => {
+  it('screen title is "Wellness check" (matches Care Plan config language)', () => {
+    expect(screenSrc).toMatch(/title=['"`]Wellness check['"`]/);
   });
 
-  it('serif italic subtitle invokes the clinical-context framing', () => {
-    // Caregivers often don't realise sleep / mood / energy are exactly what a
-    // clinician would ask about. The subtitle makes that legibility explicit.
-    expect(captureSrc).toMatch(/clinicians treat as critical context/i);
+  it('capture component renders single-word labels Sleep / Mood / Energy', () => {
+    expect(captureSrc).toMatch(/label:\s*['"`]Sleep['"`]/);
+    expect(captureSrc).toMatch(/label:\s*['"`]Mood['"`]/);
+    expect(captureSrc).toMatch(/label:\s*['"`]Energy['"`]/);
   });
 
-  it('screen header uses "Silent vital signs" (sentence case, not all caps)', () => {
-    expect(screenSrc).toContain('Silent vital signs');
-    expect(screenSrc).not.toContain('SILENT VITAL SIGNS"'); // (note: the eyebrow allcaps lives on the card, not the header)
-  });
-});
-
-describe('Silent vitals — caregiver-natural question copy', () => {
-  it('sleep question uses caregiver framing with patient-name interpolation', () => {
-    // Question copy reads "How did <Name> sleep?" — natural caregiver phrasing.
-    expect(captureSrc).toMatch(/How did \$\{n\} sleep\?/);
+  it('capture component drops the legacy all-caps "THE SILENT VITAL SIGNS" eyebrow', () => {
+    expect(captureSrc).not.toContain('THE SILENT VITAL SIGNS');
   });
 
-  it('mood question is framed as how the day "felt", not a clinical mood scale', () => {
-    expect(captureSrc).toMatch(/How did \$\{n\}'s mood feel today\?/);
+  it('no patient-name echo in the question copy', () => {
+    // Pre-9.4: "How did ${n} sleep?" / "How did ${n}'s mood feel today?".
+    // Post-9.4: single-word labels carry the question, no name interpolation.
+    expect(captureSrc).not.toMatch(/How did \$\{[^}]+\} sleep/);
+    expect(captureSrc).not.toMatch(/How was \$\{[^}]+\}'s/);
   });
 
-  it('energy question matches the conversational shape', () => {
-    expect(captureSrc).toMatch(/How was \$\{n\}'s energy\?/);
+  it('anchor labels Rough / Good frame the slider extremes', () => {
+    expect(captureSrc).toMatch(/['"`]Rough['"`]/);
+    expect(captureSrc).toMatch(/['"`]Good['"`]/);
   });
 });
 
@@ -69,14 +73,26 @@ describe('Silent vitals — no clinical jargon in user-facing copy', () => {
   }
 });
 
-describe('Silent vitals — Save gating + caregiver agency', () => {
-  it('reflection input copy invites a single-sentence note (not a journaling prompt)', () => {
-    expect(captureSrc).toMatch(/One sentence/);
+describe('Wellness check — Save gating + caregiver agency', () => {
+  it('reflection placeholder invites a brief note ("anything to remember?")', () => {
+    // Phase 9.4 simplified the placeholder — was "One sentence — anything
+    // you'd want to remember tomorrow?"; now just "anything to remember?"
+    // matching the spec's italic-serif copy.
+    expect(captureSrc).toMatch(/anything to remember/i);
   });
 
-  it('the Save button label is the plain word "Save" (not "Submit" / "Record")', () => {
-    expect(captureSrc).toContain(`'Save'`);
+  it('save action is owned by the LogScreen primitive — capture component has no inline Save', () => {
+    // Inline Save / Submit / Record buttons would compete with the
+    // LogScreen primary CTA. None of those words should appear as
+    // testID values or button labels inside the capture component.
+    expect(captureSrc).not.toMatch(/testID=['"`]silent-vitals-save['"`]/);
     expect(captureSrc).not.toMatch(/['"`]Submit['"`]/);
     expect(captureSrc).not.toMatch(/['"`]Record['"`]/);
+  });
+
+  it('screen-level Save CTA reads "Save check-in" (set on LogScreen primaryAction)', () => {
+    expect(screenSrc).toMatch(/Save check-in/);
+    expect(screenSrc).not.toMatch(/['"`]Submit['"`]/);
+    expect(screenSrc).not.toMatch(/['"`]Record['"`]/);
   });
 });

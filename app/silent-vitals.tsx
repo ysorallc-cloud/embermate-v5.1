@@ -1,33 +1,67 @@
 // ============================================================================
-// SILENT VITALS — single-screen capture for the patient's silent vital signs
-// (sleep / mood / energy). Replaces the legacy 5-page wellness wizard. Hosts
-// the SilentVitalsCapture card on a dedicated screen so it's reachable from
-// the Now-tab wellness checkbox, the wellness checklist, and any deep link.
+// SILENT VITALS — Phase 9.4 migration to LogScreen.
+//
+// Pre-9.4 the screen rendered SubScreenHeader + TodaySilentVitals recap
+// + the SilentVitalsCapture card-in-card with its own inline Cancel/Save
+// footer. Wordy "How did Mom sleep?" question prose, patient-name echo,
+// two competing CTAs (the inline footer pair).
+//
+// Post-9.4:
+//   • Wraps in <LogScreen> — single sage "Save check-in" CTA, ghost
+//     cancel, compact header. Title "Wellness check" matches existing
+//     useWellnessSettings / Care Plan config language.
+//   • Counter subtitle derived from listDailyInstances filtered to
+//     itemType === 'wellness' — same canonical pattern 9.2/9.3 set.
+//   • TodaySilentVitals recap dropped — slider rows display preset
+//     selections via the controlled `values` prop, so the duplicate
+//     "today" surface above became redundant.
+//   • Instance-completion fix: when reached from a Now-tab wellness
+//     instance (instanceId in search params), the save also calls
+//     logInstanceCompletion so the schedule counter and StatRings
+//     reflect the completion. Pre-9.4 the screen captured instanceId
+//     but never marked the instance done — silent data bug, surfaced
+//     in 9.4.0 pre-flight, fixed here.
+//   • Medical disclaimer at the top of the input zone.
+//
+// Out of scope:
+//   • The wellness data model (DailyReflection storage shape, wellness
+//     settings).
+//   • Modifications to LogScreen primitive itself.
 // ============================================================================
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Colors } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
-import { SubScreenHeader } from '../components/SubScreenHeader';
 import {
   SilentVitalsCapture,
   type SilentVitalsValues,
 } from '../components/now/SilentVitalsCapture';
-import { TodaySilentVitals } from '../components/now/TodaySilentVitals';
 import {
   upsertDailyReflection,
   getDailyReflection,
-  type DailyReflection,
 } from '../storage/dailyReflectionRepo';
 import { usePatient } from '../contexts/PatientContext';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { navigateBack } from '../lib/navigate';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { logError } from '../utils/devLog';
-import { DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
+import {
+  listDailyInstances,
+  logInstanceCompletion,
+  DEFAULT_PATIENT_ID,
+} from '../storage/carePlanRepo';
+import { emitDataUpdate } from '../lib/events';
+import { EVENT } from '../lib/eventNames';
+import { LogScreen } from '../components/logging/LogScreen';
 
 export default function SilentVitalsScreen() {
   const { colors } = useTheme();
@@ -36,76 +70,142 @@ export default function SilentVitalsScreen() {
   const params = useLocalSearchParams<{ instanceId?: string; itemName?: string }>();
 
   const patientId = activePatient?.id || DEFAULT_PATIENT_ID;
-  const patientName = activePatient?.name || 'they';
   const today = useMemo(() => getTodayDateString(), []);
 
-  const [initial, setInitial] = useState<DailyReflection | null | undefined>(undefined);
+  const [values, setValues] = useState<SilentVitalsValues>({});
+  const [saving, setSaving] = useState(false);
+  const [wellnessCompleted, setWellnessCompleted] = useState(0);
+  const [wellnessExpected, setWellnessExpected] = useState(0);
 
+  // Load any existing reflection for today so the slider rows reflect a
+  // mid-day re-open without losing the previous selections.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const existing = await getDailyReflection(patientId, today);
-      if (!cancelled) setInitial(existing);
+      try {
+        const existing = await getDailyReflection(patientId, today);
+        if (cancelled || !existing) return;
+        setValues({
+          sleepQuality: existing.sleepQuality,
+          mood: existing.mood,
+          energyLevel: existing.energyLevel,
+          reflection: existing.reflection,
+        });
+      } catch (err) {
+        logError('silent-vitals.loadExisting', err);
+      }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [patientId, today]);
 
-  const handleSave = useCallback(async (values: SilentVitalsValues) => {
+  // Phase 9.4 — counter subtitle reads from listDailyInstances directly,
+  // mirroring the 9.2 / 9.3 pattern.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const instances = await listDailyInstances(patientId, today);
+        if (cancelled) return;
+        const wellnessInstances = instances.filter(i => i.itemType === 'wellness');
+        setWellnessExpected(wellnessInstances.length);
+        setWellnessCompleted(wellnessInstances.filter(i => i.status === 'completed').length);
+      } catch (err) {
+        logError('silent-vitals.loadInstances', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [patientId, today]);
+
+  const filledCount =
+    (values.sleepQuality != null ? 1 : 0) +
+    (values.mood != null ? 1 : 0) +
+    (values.energyLevel != null ? 1 : 0);
+  const canSave = filledCount > 0 && !saving;
+
+  const handleSave = useCallback(async () => {
+    if (!canSave) return;
+    setSaving(true);
     try {
+      const payload: SilentVitalsValues = {};
+      if (values.sleepQuality != null) payload.sleepQuality = values.sleepQuality;
+      if (values.mood != null) payload.mood = values.mood;
+      if (values.energyLevel != null) payload.energyLevel = values.energyLevel;
+      const trimmed = (values.reflection ?? '').trim();
+      if (trimmed) payload.reflection = trimmed;
+
       await upsertDailyReflection(patientId, today, {
-        ...values,
+        ...payload,
         source: 'silent-vitals',
       });
+
+      // Phase 9.4 — instance-completion fix. When the user reached this
+      // screen from a Now-tab wellness instance, mark that instance
+      // completed so the schedule counter and StatRings reflect the save.
+      // Pre-9.4 the screen captured instanceId but never marked the
+      // instance done — silent data bug.
+      if (params.instanceId) {
+        try {
+          await logInstanceCompletion(
+            patientId,
+            today,
+            params.instanceId,
+            'completed',
+            { type: 'wellness', ...payload } as any,
+            { source: 'record' },
+          );
+          emitDataUpdate(EVENT.DAILY_INSTANCES);
+        } catch (err) {
+          logError('silent-vitals.completeInstance', err);
+        }
+      }
+
       void hapticSuccess();
       navigateBack();
     } catch (err) {
       logError('silent-vitals.save', err);
       Alert.alert('Could not save', 'Please try again.');
+      setSaving(false);
     }
-  }, [patientId, today]);
+  }, [canSave, values, patientId, today, params.instanceId]);
 
-  const handleCancel = useCallback(() => {
-    navigateBack();
-  }, []);
-
-  // initial is undefined until the load finishes; render the capture card
-  // with no preset until then so the screen never blocks the user.
-  const presetValues: SilentVitalsValues | undefined = initial
-    ? {
-        sleepQuality: initial.sleepQuality,
-        mood: initial.mood,
-        energyLevel: initial.energyLevel,
-        reflection: initial.reflection,
-      }
+  const countSubtitle = wellnessExpected > 0
+    ? `${wellnessCompleted} of ${wellnessExpected} today`
     : undefined;
 
   return (
-    <View style={styles.root}>
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <SubScreenHeader
-          title="Silent vital signs"
-          subtitle={`How is ${patientName} today?`}
-        />
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <TodaySilentVitals values={presetValues} />
-          <SilentVitalsCapture
-            initial={presetValues}
-            patientName={patientName}
-            onSave={handleSave}
-            onCancel={handleCancel}
-          />
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+    <LogScreen
+      title="Wellness check"
+      countSubtitle={countSubtitle}
+      onBack={navigateBack}
+      primaryAction={{
+        label: saving ? 'Saving…' : 'Save check-in',
+        onPress: handleSave,
+        disabled: !canSave,
+      }}
+    >
+      {/* KAV inside LogScreen children — primitive-level KAV is the
+          tracked Phase 9 follow-up. */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.kav}
+      >
+        <Text testID="silent-vitals-disclaimer" style={styles.disclaimer}>
+          For caregiver record-keeping. Captures subjective state, not clinical assessment.
+        </Text>
+        <SilentVitalsCapture values={values} onChange={setValues} />
+      </KeyboardAvoidingView>
+    </LogScreen>
   );
 }
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
-  root: { flex: 1, backgroundColor: c.background },
-  content: { padding: 20, paddingBottom: 60 },
+  kav: {
+    flex: 1,
+  },
+  disclaimer: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: c.textTertiary,
+    marginBottom: 16,
+  },
 });

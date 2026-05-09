@@ -1,24 +1,40 @@
 // ============================================================================
-// SILENT VITALS CAPTURE
+// SILENT VITALS CAPTURE — Phase 9.4 restructure.
 //
-// Single-screen capture for the silent vital signs — sleep, mood, and energy.
-// Replaces the legacy 5-page wellness wizard. Three emoji rows (1–5 scale)
-// plus an optional one-sentence reflection. Save is gated on at least one
-// row having a value, matching the v6.7 caregiver-natural framing: even a
-// partial day is worth keeping.
+// Pre-9.4 the component was a self-contained card with eyebrow + 3 emoji
+// rows + reflection input + inline Cancel/Save footer. The card-in-card
+// look (screen padding holding a glass card holding inner sections), the
+// wordy "How did Mom sleep?" question prose, and the inline footer pair
+// all conflicted with the LogScreen primary-CTA contract introduced in
+// 9.1 and consumed by 9.2/9.3.
 //
-// Eyebrow + serif italic subtitle name the framing explicitly — clinicians
-// treat sleep / mood / energy as critical context, but the wizard didn't
-// surface that. Cards inherit the standard glass + internal-eyebrow shape
-// shared with the Now-tab Reflection card.
+// Post-9.4:
+//   • Controlled component — parent owns `values` + `onChange`. The
+//     enclosing LogScreen primitive renders the single sage Save CTA
+//     and the ghost cancel link.
+//   • No outer card; rows render flat, separated by 0.5px hairlines.
+//   • Single-word labels (Sleep / Mood / Energy). Patient-name echo
+//     dropped — the disclaimer above already establishes context.
+//   • 5-emoji slider per row with redundant selection signals: 28pt
+//     selected vs 24pt unselected, opacity 1.0 vs 0.4, plus
+//     accessibilityState.selected on the Pressable.
+//   • Anchor labels (Rough left / Good right) at textTertiary; tinted
+//     to accent when the corresponding extreme emoji is selected.
+//   • Optional reflection note field. Italic serif placeholder
+//     "anything to remember?" — matches the spec copy.
+//
+// Note: the components/now/ folder location is a legacy from when this
+// was meant to render inline on the Now timeline. Tracked as a
+// post-Phase-9 follow-up to relocate; renaming the module path now
+// would ripple imports beyond 9.4's scope.
 // ============================================================================
 
-import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Spacing } from '../../theme/theme-tokens';
 import type { ReflectionScore } from '../../storage/dailyReflectionRepo';
 
-import { Spacing } from '../../theme/theme-tokens';
 export interface SilentVitalsValues {
   sleepQuality?: ReflectionScore;
   mood?: ReflectionScore;
@@ -27,11 +43,8 @@ export interface SilentVitalsValues {
 }
 
 export interface SilentVitalsCaptureProps {
-  initial?: SilentVitalsValues;
-  /** Used to substitute the patient's name into the question copy. */
-  patientName?: string;
-  onSave: (values: SilentVitalsValues) => void;
-  onCancel?: () => void;
+  values: SilentVitalsValues;
+  onChange: (next: SilentVitalsValues) => void;
 }
 
 type RowKey = 'sleep' | 'mood' | 'energy';
@@ -66,276 +79,178 @@ const ENERGY: EmojiOption[] = [
   { value: 5, emoji: '⚡', label: 'Energetic' },
 ];
 
-const ROWS: Array<{ key: RowKey; options: EmojiOption[]; question: (n: string) => string }> = [
-  { key: 'sleep', options: SLEEP, question: (n) => `How did ${n} sleep?` },
-  { key: 'mood', options: MOOD, question: (n) => `How did ${n}'s mood feel today?` },
-  { key: 'energy', options: ENERGY, question: (n) => `How was ${n}'s energy?` },
+const ROWS: Array<{
+  key: RowKey;
+  label: string;
+  options: EmojiOption[];
+  field: keyof SilentVitalsValues;
+}> = [
+  { key: 'sleep',  label: 'Sleep',  options: SLEEP,  field: 'sleepQuality' },
+  { key: 'mood',   label: 'Mood',   options: MOOD,   field: 'mood' },
+  { key: 'energy', label: 'Energy', options: ENERGY, field: 'energyLevel' },
 ];
 
-const FIELD_BY_ROW: Record<RowKey, keyof SilentVitalsValues> = {
-  sleep: 'sleepQuality',
-  mood: 'mood',
-  energy: 'energyLevel',
-};
+const ANCHOR_LEFT = 'Rough';
+const ANCHOR_RIGHT = 'Good';
 
-export function SilentVitalsCapture({
-  initial,
-  patientName = 'they',
-  onSave,
-  onCancel,
-}: SilentVitalsCaptureProps) {
+export function SilentVitalsCapture({ values, onChange }: SilentVitalsCaptureProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const [sleep, setSleep] = useState<ReflectionScore | undefined>(initial?.sleepQuality);
-  const [mood, setMood] = useState<ReflectionScore | undefined>(initial?.mood);
-  const [energy, setEnergy] = useState<ReflectionScore | undefined>(initial?.energyLevel);
-  const [reflection, setReflection] = useState<string>(initial?.reflection ?? '');
+  const setForRow = (field: keyof SilentVitalsValues, value: ReflectionScore) => {
+    onChange({ ...values, [field]: value });
+  };
 
-  const setForRow = useCallback((row: RowKey, value: ReflectionScore) => {
-    if (row === 'sleep') setSleep(value);
-    else if (row === 'mood') setMood(value);
-    else setEnergy(value);
-  }, []);
-
-  const valueForRow = (row: RowKey): ReflectionScore | undefined =>
-    row === 'sleep' ? sleep : row === 'mood' ? mood : energy;
-
-  const filledCount =
-    (sleep != null ? 1 : 0) + (mood != null ? 1 : 0) + (energy != null ? 1 : 0);
-  const canSave = filledCount > 0;
-
-  const handleSave = useCallback(() => {
-    const values: SilentVitalsValues = {};
-    if (sleep != null) values.sleepQuality = sleep;
-    if (mood != null) values.mood = mood;
-    if (energy != null) values.energyLevel = energy;
-    const trimmed = reflection.trim();
-    if (trimmed) values.reflection = trimmed;
-    onSave(values);
-  }, [sleep, mood, energy, reflection, onSave]);
+  const setReflection = (text: string) => {
+    onChange({ ...values, reflection: text });
+  };
 
   return (
-    <View style={styles.card} accessibilityLabel="Silent vital signs capture">
-      <View style={styles.header}>
-        <Text style={styles.eyebrow}>{'THE SILENT VITAL SIGNS'}</Text>
-        <Text style={styles.subtitle}>
-          What clinicians treat as critical context.
-        </Text>
-      </View>
-
-      <View style={styles.body}>
-        {ROWS.map((row) => {
-          const selected = valueForRow(row.key);
-          const filled = selected != null;
-          return (
-            <View
-              key={row.key}
-              testID={`silent-vitals-row-${row.key}`}
-              style={styles.row}
-            >
-              <View style={styles.rowHeader}>
-                <Text style={styles.question}>{row.question(patientName)}</Text>
-                {filled && <Text style={styles.rowCheck}>{'✓'}</Text>}
-              </View>
-              <View style={styles.emojiRow}>
-                {row.options.map((opt) => {
-                  const isSelected = selected === opt.value;
-                  return (
-                    <TouchableOpacity
-                      key={opt.value}
-                      testID={`silent-vitals-${row.key}-${opt.value}`}
-                      style={[styles.emojiButton, isSelected && styles.emojiButtonSelected]}
-                      onPress={() => setForRow(row.key, opt.value)}
-                      activeOpacity={0.7}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${opt.label} (${opt.value} of 5)`}
-                      accessibilityState={{ selected: isSelected }}
-                    >
-                      <Text style={styles.emojiGlyph}>{opt.emoji}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          );
-        })}
-
-        <TextInput
-          testID="silent-vitals-reflection"
-          style={styles.reflectionInput}
-          placeholder="One sentence — anything you'd want to remember tomorrow?"
-          placeholderTextColor={colors.textTertiary}
-          value={reflection}
-          onChangeText={setReflection}
-          multiline
-          numberOfLines={2}
-          maxLength={200}
-          accessibilityLabel="Optional one-sentence reflection"
-        />
-      </View>
-
-      <View style={styles.footer}>
-        {onCancel && (
-          <TouchableOpacity
-            testID="silent-vitals-cancel"
-            onPress={onCancel}
-            style={styles.cancelButton}
-            accessibilityRole="button"
-            accessibilityLabel="Cancel without saving"
+    <View testID="silent-vitals-capture">
+      {ROWS.map((row, idx) => {
+        const selected = values[row.field] as ReflectionScore | undefined;
+        const isLeftExtreme = selected === 1;
+        const isRightExtreme = selected === 5;
+        return (
+          <View
+            key={row.key}
+            testID={`silent-vitals-row-${row.key}`}
+            style={[styles.row, idx > 0 && styles.rowDivider]}
           >
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          testID="silent-vitals-save"
-          onPress={handleSave}
-          disabled={!canSave}
-          style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Save silent vital signs"
-          accessibilityState={{ disabled: !canSave }}
-        >
-          <Text style={[styles.saveText, !canSave && styles.saveTextDisabled]}>{'Save'}</Text>
-        </TouchableOpacity>
-      </View>
+            <Text testID={`silent-vitals-label-${row.key}`} style={styles.label}>
+              {row.label}
+            </Text>
+            <View style={styles.emojiRow}>
+              {row.options.map((opt) => {
+                const isSelected = selected === opt.value;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    testID={`silent-vitals-${row.key}-${opt.value}`}
+                    style={styles.emojiButton}
+                    onPress={() => setForRow(row.field, opt.value)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${opt.label} (${opt.value} of 5)`}
+                    accessibilityState={{ selected: isSelected }}
+                  >
+                    <Text
+                      testID={`silent-vitals-emoji-${row.key}-${opt.value}`}
+                      style={[
+                        styles.emojiBase,
+                        isSelected ? styles.emojiSelected : styles.emojiUnselected,
+                      ]}
+                    >
+                      {opt.emoji}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <View style={styles.anchorRow}>
+              <Text
+                testID={`silent-vitals-anchor-left-${row.key}`}
+                style={[styles.anchor, isLeftExtreme && styles.anchorSelected]}
+              >
+                {ANCHOR_LEFT}
+              </Text>
+              <Text
+                testID={`silent-vitals-anchor-right-${row.key}`}
+                style={[styles.anchor, isRightExtreme && styles.anchorSelected]}
+              >
+                {ANCHOR_RIGHT}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
+
+      <TextInput
+        testID="silent-vitals-reflection"
+        style={styles.reflectionInput}
+        placeholder="anything to remember?"
+        placeholderTextColor={colors.textTertiary}
+        value={values.reflection ?? ''}
+        onChangeText={setReflection}
+        multiline
+        numberOfLines={2}
+        maxLength={200}
+        accessibilityLabel="Optional one-sentence reflection"
+      />
     </View>
   );
 }
 
-const createStyles = (c: any) => StyleSheet.create({
-  card: {
-    backgroundColor: c.glass,
-    borderWidth: 0.5,
-    borderColor: c.glassBorder,
-    borderRadius: 12,
-    overflow: 'hidden',
-    // Card holds rows with their own padding; symmetric per Phase 2 contract.
-    padding: 0,
-  },
-  header: {
-    paddingTop: 12,
-    paddingBottom: 10,
-    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    backgroundColor: 'rgba(255, 235, 205, 0.025)',
-    borderBottomWidth: 0.5,
-    borderBottomColor: c.glassBorder,
-  },
-  eyebrow: {
-    fontSize: 9,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    color: c.textTertiary,
-  },
-  subtitle: {
-    fontFamily: 'Georgia',
-    fontStyle: 'italic',
-    fontSize: 11,
-    lineHeight: 15.4,
-    color: c.textSecondary,
-    marginTop: 4,
-  },
-  body: {
-    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    paddingTop: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    paddingBottom: 8,
-  },
-  row: {
-    marginBottom: Spacing.md,
-  },
-  rowHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  question: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: c.textPrimary,
-    flex: 1,
-  },
-  rowCheck: {
-    fontSize: 12,
-    color: c.accent,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  emojiRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  emojiButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  emojiButtonSelected: {
-    backgroundColor: 'rgba(95, 184, 138, 0.15)',
-    borderColor: c.accent,
-  },
-  emojiGlyph: {
-    fontSize: 22,
-  },
-  reflectionInput: {
-    minHeight: 44,
-    maxHeight: 88,
-    backgroundColor: c.menuSurface || c.glass,
-    borderWidth: 0.5,
-    borderColor: c.glassBorder,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 13,
-    color: c.textPrimary,
-    marginTop: 4,
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    paddingTop: 10,
-    paddingBottom: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    gap: 10,
-    borderTopWidth: 0.5,
-    borderTopColor: c.glassBorder,
-  },
-  cancelButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-  },
-  cancelText: {
-    fontSize: 13,
-    color: c.textSecondary,
-    fontWeight: '500',
-  },
-  saveButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 18, // allow: tap-target padding (Apple HIG ≥44pt)
-    borderRadius: 8,
-    backgroundColor: c.accent,
-  },
-  saveButtonDisabled: {
-    backgroundColor: 'transparent',
-    borderWidth: 0.5,
-    borderColor: c.glassBorder,
-  },
-  saveText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: c.textPrimary,
-  },
-  saveTextDisabled: {
-    color: c.textTertiary,
-  },
-});
+const createStyles = (c: any) =>
+  StyleSheet.create({
+    row: {
+      paddingVertical: Spacing.md,
+    },
+    rowDivider: {
+      // 0.5px hairline between rows replaces the pre-9.4 inner card chrome.
+      borderTopWidth: 0.5,
+      borderTopColor: c.glassBorder,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: c.textPrimary,
+      marginBottom: 12,
+    },
+    emojiRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    emojiButton: {
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    emojiBase: {
+      fontSize: 24,
+    },
+    emojiSelected: {
+      fontSize: 28,
+      opacity: 1,
+    },
+    emojiUnselected: {
+      fontSize: 24,
+      opacity: 0.4,
+    },
+    anchorRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    anchor: {
+      fontSize: 11,
+      color: c.textTertiary,
+    },
+    anchorSelected: {
+      // selectionListContrast a11y contract permits color tint on anchor
+      // labels because they are NOT *LabelSelected pattern targets — they
+      // are independent text nodes whose role is "label for the slider
+      // extreme that's currently chosen." The tint reinforces selection
+      // beyond the size+opacity signals on the emoji row.
+      color: c.accent,
+      fontWeight: '500',
+    },
+    reflectionInput: {
+      fontFamily: 'Georgia',
+      fontStyle: 'italic',
+      minHeight: 44,
+      backgroundColor: c.menuSurface ?? c.glass,
+      borderWidth: 0.5,
+      borderColor: c.glassBorder,
+      borderRadius: 8,
+      paddingHorizontal: 12, // allow: tap-target padding (Apple HIG ≥44pt)
+      paddingVertical: 10,
+      fontSize: 13,
+      color: c.textPrimary,
+      marginTop: Spacing.md,
+    },
+  });
 
 export default SilentVitalsCapture;
