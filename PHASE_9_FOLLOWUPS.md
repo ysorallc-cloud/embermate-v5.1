@@ -82,6 +82,60 @@ vs. what got resolved.
     when medication-confirm flow gets product review, OR when
     LogScreen primitive grows multi-action support.
 
+## Resolved before Phase 10
+
+Closing dangling task entries that look pending but track work that
+has already shipped (or been intentionally rolled back). No code
+changes — these are bookkeeping resolutions.
+
+### Phase 5.7 PR2 — closed obsolete
+
+The original Phase 5.7 spec decomposed into four sub-phases targeting
+the Journal share affordance. Status check on 2026-05-09:
+
+- **5.7.a (Rename "Report" pill → "Share") — superseded.** Header
+  pill rename shipped in `439582d0` (May 3) but was intentionally
+  rolled back by Phase 5.12 (Journal as shift report). The header
+  pill itself was removed in `c0ac5d98 refactor(journal): remove
+  ExportChooserSheet + header Share button` in favor of 5.12's
+  single sticky bottom CTA model. The 5.7.a mental model ("rename
+  the existing pill") was replaced wholesale by 5.12's redesign.
+
+- **5.7.b (ExportChooserSheet) — superseded.** Two-destination
+  chooser sheet (today's handoff vs. visit prep) shipped in
+  `ad896342` (May 3). Deleted in the same `c0ac5d98` commit. The
+  chooser pattern was abandoned because Journal's redesign reframed
+  the page around a single calm narrative log with one outbound
+  action; disambiguating two destinations through a sheet stopped
+  fitting once the header pill was gone.
+
+- **5.7.c (Today's handoff preview enhancements) — shipped, live.**
+  Include-notes Switch row, Edit-before-share with multiline mirror
+  + Reset link + derived `shareText`, and visual polish (system
+  font replaces monospace, title 16/600 → 20/700, "Send via
+  Messages" promoted to primary sage CTA above secondary Copy /
+  Share-as-PDF) all landed in `7ed651cf` + `90cec136` (May 5).
+  Lives in `components/journal/HandoffSheet.tsx` with 11 in-source
+  `Phase 5.7.c` markers. Pinned by
+  `__tests__/utils/handoffBuilderIncludeNotes.test.ts` and
+  `__tests__/components/handoffSheetToggleEdit.test.ts`.
+
+- **5.7.d (Visit Prep PDF preview step) — shipped under renumbered
+  name 5.9.d.** Work was renumbered when it resumed during Phase
+  5.9; the in-app preview screen `app/visit-prep-preview.tsx`
+  shipped in `b516b956` + `545ee44f` (May 4). Section-by-section
+  React Native render of the structured shape, inline Edit
+  affordance on "What changed," parity guaranteed by
+  `__tests__/services/visitPrepPreviewParity.test.ts`. The 5.7.d
+  task entry is the original spec name for what landed as 5.9.d.
+
+The "PR2 push" task implied work was waiting to ship. Bundling
+actually happened in `8317e4dc` (May 5, "5.9.e + 5.7.c bundle"); the
+combined commits have been on `origin/v6-restructure` for days and
+have been validated through Phases 5.8 → 5.13.5 device reviews.
+
+**Task #97 closed obsolete.** No remaining work.
+
 ## Phase 9 stats
 
 - 12 `app/log-*.tsx` screens audited
