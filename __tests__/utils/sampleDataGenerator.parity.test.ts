@@ -159,7 +159,7 @@ describe('Phase 11.5.3 — initializeSampleData wiring', () => {
     expect(fnStart).toBeGreaterThan(-1);
     // Find the matching closing brace by walking from fnStart to the
     // first balanced closure. Simpler: take a generous slice.
-    const fnBody = SRC.slice(fnStart, fnStart + 6000);
+    const fnBody = SRC.slice(fnStart, fnStart + 10000);
     expect(fnBody).toMatch(/await\s+generateSampleCorrelationData\s*\(\)/);
   });
 
@@ -167,7 +167,7 @@ describe('Phase 11.5.3 — initializeSampleData wiring', () => {
     // Per the existing pattern (historicalData seeding), correlation
     // seeding failure must not block sample-data initialization.
     const fnStart = SRC.indexOf('initializeSampleData = async');
-    const fnBody = SRC.slice(fnStart, fnStart + 6000);
+    const fnBody = SRC.slice(fnStart, fnStart + 10000);
     // Match: try { ... generateSampleCorrelationData ... } catch
     expect(fnBody).toMatch(
       /try\s*\{[\s\S]*?generateSampleCorrelationData\s*\(\)[\s\S]*?\}\s*catch/,

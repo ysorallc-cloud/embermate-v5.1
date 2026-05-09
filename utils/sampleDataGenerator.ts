@@ -36,6 +36,7 @@ import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
 import { createDefaultCarePlanConfig } from '../types/carePlanConfig';
 import { ensureDailyInstances, getTodayDateString } from '../services/carePlanGenerator';
+import { decideHistoricalSeedStatus } from './sampleDataHistoricalSeedShape';
 
 const SAMPLE_DATA_INITIALIZED_KEY = StorageKeys.SAMPLE_DATA_INITIALIZED;
 
@@ -724,8 +725,17 @@ export const initializeSampleData = async (): Promise<boolean> => {
       logError('sampleDataGenerator.initializeSampleData', error);
     }
 
-    // Seed 14 days of historical wellness, sleep, and hydration data
-    // so the Insights screen shows patterns instead of "14 days missing"
+    // Seed 14 days of historical instance completions for the surfaces
+    // that read listDailyInstancesRange (Insights medication adherence
+    // grid, Visit Prep, getDistinctInstanceCompletionDays, narrative
+    // builder past-day reads).
+    //
+    // Phase 11.6 — extended from wellness/sleep/hydration only to
+    // include medication at ~90% adherence (matching
+    // seedSampleMedicationLogs's 0.1 skip rate). The decision is
+    // delegated to decideHistoricalSeedStatus so the per-itemType
+    // policy is testable in isolation and the medication-parity fix
+    // is co-located with its contract.
     try {
       for (let daysAgo = 1; daysAgo <= 14; daysAgo++) {
         const pastDate = new Date();
@@ -735,12 +745,13 @@ export const initializeSampleData = async (): Promise<boolean> => {
         const pastInstances = await ensureDailyInstances(DEFAULT_PATIENT_ID, dateStr);
 
         for (const inst of pastInstances) {
-          if (['wellness', 'sleep', 'hydration'].includes(inst.itemType) && inst.status === 'pending') {
-            await logInstanceCompletion(DEFAULT_PATIENT_ID, dateStr, inst.id, 'completed');
-          }
+          if (inst.status !== 'pending') continue;
+          const decision = decideHistoricalSeedStatus(inst.itemType);
+          if (decision == null) continue;
+          await logInstanceCompletion(DEFAULT_PATIENT_ID, dateStr, inst.id, decision);
         }
       }
-      devLog('[initializeSampleData] Seeded 14 days of historical wellness/sleep/hydration data');
+      devLog('[initializeSampleData] Seeded 14 days of historical instances (wellness/sleep/hydration/medication)');
     } catch (error) {
       logError('initializeSampleData.historicalData', error);
       // Non-critical — don't block initialization
