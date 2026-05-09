@@ -11,7 +11,7 @@
 //   • Footer affirmation
 // ============================================================================
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -30,6 +30,24 @@ import { QuickResetPills } from '../../components/support/QuickResetPills';
 import { BreathingExercise } from '../../components/support/BreathingExercise';
 import { ResourcesList } from '../../components/support/ResourcesList';
 import { Colors, Spacing } from '../../theme/theme-tokens';
+import {
+  buildCaregiverWitness,
+  WitnessSignal,
+} from '../../utils/caregiverWitnessBuilder';
+import { useDataListener } from '../../lib/events';
+import { EVENT } from '../../lib/eventNames';
+
+// Events that change the data the witness builder reads. Anything else
+// fires the listener but the listener filter ignores it — the builder
+// reads from instances + logs + events, so we re-fetch only when one
+// of those pipelines writes.
+const WITNESS_EVENTS = new Set<string>([
+  EVENT.DAILY_INSTANCES,
+  EVENT.LOGS,
+  EVENT.LOG_EVENTS,
+  EVENT.MEDICATION,
+  EVENT.WELLNESS,
+]);
 
 
 // ============================================================================
@@ -41,12 +59,33 @@ export default function SupportScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [refreshing, setRefreshing] = useState(false);
   const [breathingVisible, setBreathingVisible] = useState(false);
+  const [witness, setWitness] = useState<WitnessSignal | null>(null);
+
+  // Single fetch on mount; re-fetch only when the witness builder's
+  // read sources change. The builder is cheap (cached storage reads),
+  // so no debounce — the multi-pipeline filter is what keeps this
+  // from thrashing on unrelated emits.
+  const refreshWitness = useCallback(async () => {
+    const next = await buildCaregiverWitness();
+    setWitness(next);
+  }, []);
+
+  useEffect(() => {
+    refreshWitness();
+  }, [refreshWitness]);
+
+  useDataListener((category) => {
+    if (WITNESS_EVENTS.has(category)) {
+      refreshWitness();
+    }
+  });
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
+    await refreshWitness();
     await new Promise((r) => setTimeout(r, 500));
     setRefreshing(false);
-  }, []);
+  }, [refreshWitness]);
 
 
   return (
@@ -74,8 +113,10 @@ export default function SupportScreen() {
             </Text>
           </View>
 
-          {/* ═══ Daily affirmation ═══ */}
-          <AffirmationHeader />
+          {/* ═══ Daily affirmation — Phase 11.2: witness signal
+                replaces the generic affirmation when one qualifies.
+                Same styling, same voice. ═══ */}
+          <AffirmationHeader witness={witness} />
 
           {/* ═══ Reflection card (mood + text + save) ═══ */}
           <ReflectionCard />
@@ -111,10 +152,12 @@ export default function SupportScreen() {
             </View>
           </View>
 
-          {/* ═══ Footer affirmation ═══ */}
+          {/* ═══ Footer affirmation — Phase 11.3: witness footer
+                replaces the generic line when a signal qualifies.
+                Generic preserved with its \n line break exactly. ═══ */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              You're doing something{'\n'}most people never see.
+              {witness?.footerLine ?? "You're doing something\nmost people never see."}
             </Text>
           </View>
         </ScrollView>
