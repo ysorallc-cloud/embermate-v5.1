@@ -619,6 +619,105 @@ async function syncOtherBucketsWithConfig(
       }
     }
 
+    // ===== SLEEP SYNC =====
+    // Phase 5.13.3 — single sync item per bucket, mirrors the vitals
+    // pattern. Sleep is new and has no legacy non-sync items, so the
+    // logic is the simpler reactivate / create / deactivate triad.
+    const sleepConfig = (config as any).sleep as BucketConfig | undefined;
+    const sleepEnabled = sleepConfig?.enabled === true;
+    const existingSleepItems = allItems.filter(i => i.type === 'sleep');
+    const hasActiveSleepItem = existingSleepItems.some(i => i.active);
+
+    if (sleepEnabled && existingSleepItems.length > 0 && !hasActiveSleepItem) {
+      for (const item of existingSleepItems) {
+        if (!item.active) {
+          devLog('[syncOtherBucketsWithConfig] Reactivating sleep item:', item.id);
+          await upsertCarePlanItem({ ...item, active: true, updatedAt: now });
+          changed = true;
+        }
+      }
+    } else if (sleepEnabled && existingSleepItems.length === 0) {
+      const sleepTimesOfDay = sleepConfig?.timesOfDay || ['morning'];
+      const times: TimeWindow[] = sleepTimesOfDay.map(tod => ({
+        id: `sync-sleep-${tod}-time`,
+        kind: 'exact' as const,
+        label: TIME_OF_DAY_TO_WINDOW[tod as TimeOfDay],
+        at: TIME_OF_DAY_DEFAULTS[tod as TimeOfDay] || '08:00',
+      }));
+
+      const sleepItem: CarePlanItem = {
+        id: 'sync-sleep',
+        carePlanId,
+        type: 'sleep',
+        name: 'Log sleep',
+        priority: sleepConfig?.priority || 'recommended',
+        active: true,
+        schedule: { frequency: 'daily', times },
+        emoji: '😴',
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      devLog('[syncOtherBucketsWithConfig] Creating sleep CarePlanItem');
+      await upsertCarePlanItem(sleepItem);
+      changed = true;
+    } else if (!sleepEnabled && hasActiveSleepItem) {
+      for (const item of existingSleepItems) {
+        if (item.active) {
+          await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
+          changed = true;
+        }
+      }
+    }
+
+    // ===== ACTIVITY SYNC =====
+    const activityConfig = (config as any).activity as BucketConfig | undefined;
+    const activityEnabled = activityConfig?.enabled === true;
+    const existingActivityItems = allItems.filter(i => i.type === 'activity');
+    const hasActiveActivityItem = existingActivityItems.some(i => i.active);
+
+    if (activityEnabled && existingActivityItems.length > 0 && !hasActiveActivityItem) {
+      for (const item of existingActivityItems) {
+        if (!item.active) {
+          devLog('[syncOtherBucketsWithConfig] Reactivating activity item:', item.id);
+          await upsertCarePlanItem({ ...item, active: true, updatedAt: now });
+          changed = true;
+        }
+      }
+    } else if (activityEnabled && existingActivityItems.length === 0) {
+      const activityTimesOfDay = activityConfig?.timesOfDay || ['evening'];
+      const times: TimeWindow[] = activityTimesOfDay.map(tod => ({
+        id: `sync-activity-${tod}-time`,
+        kind: 'exact' as const,
+        label: TIME_OF_DAY_TO_WINDOW[tod as TimeOfDay],
+        at: TIME_OF_DAY_DEFAULTS[tod as TimeOfDay] || '18:00',
+      }));
+
+      const activityItem: CarePlanItem = {
+        id: 'sync-activity',
+        carePlanId,
+        type: 'activity',
+        name: 'Log activity',
+        priority: activityConfig?.priority || 'recommended',
+        active: true,
+        schedule: { frequency: 'daily', times },
+        emoji: '🚶',
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      devLog('[syncOtherBucketsWithConfig] Creating activity CarePlanItem');
+      await upsertCarePlanItem(activityItem);
+      changed = true;
+    } else if (!activityEnabled && hasActiveActivityItem) {
+      for (const item of existingActivityItems) {
+        if (item.active) {
+          await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
+          changed = true;
+        }
+      }
+    }
+
     // ===== ERRANDS SYNC =====
     const errandsEnabled = (config as any).errands?.enabled;
     const existingErrandItems = allItems.filter(i => i.type === 'errand');
