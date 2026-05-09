@@ -17,7 +17,8 @@ const selfCareSrc = fs.readFileSync(selfCarePath, 'utf-8');
 describe('New care plan config screens', () => {
   it('errands.tsx renders without crash (has default export)', () => {
     expect(errandsSrc).toContain('export default function ErrandsConfigScreen');
-    expect(errandsSrc).toContain('SubScreenHeader');
+    // Phase 10.3.x: migrated from SubScreenHeader to CarePlanConfigScreen.
+    expect(errandsSrc).toContain('CarePlanConfigScreen');
     expect(errandsSrc).toContain('Errands & Tasks');
   });
 
@@ -44,10 +45,10 @@ describe('New care plan config screens', () => {
   });
 
   it('each screen navigates back to care-plan index (header present)', () => {
-    // Phase 10.3.x: shifts migrated to CarePlanConfigScreen (which provides
-    // its own BackButton). Errands and self-care still use SubScreenHeader
-    // until their migration commits land.
-    expect(errandsSrc).toContain('SubScreenHeader');
+    // Phase 10.3.x: shifts + errands migrated to CarePlanConfigScreen
+    // (which provides its own BackButton). self-care still uses
+    // SubScreenHeader until its migration commit lands.
+    expect(errandsSrc).toContain('CarePlanConfigScreen');
     expect(shiftsSrc).toContain('CarePlanConfigScreen');
     expect(selfCareSrc).toContain('SubScreenHeader');
   });

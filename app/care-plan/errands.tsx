@@ -1,6 +1,10 @@
 // ============================================================================
-// ERRANDS & TASKS CONFIGURATION
-// Add/edit/delete errand items (name, frequency, time of day)
+// ERRANDS & TASKS CONFIGURATION — Phase 10.3.x migrated to
+// CarePlanConfigScreen with chrome="aurora-care" (coordination family).
+//
+// The primitive owns SafeAreaView + AuroraBackground + header chrome.
+// This file owns the configuration body: errand list + add form with
+// frequency/time chips.
 // ============================================================================
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
@@ -8,14 +12,12 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   TextInput,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { SubScreenHeader } from '../../components/SubScreenHeader';
-import { AuroraBackground } from '../../components/aurora/AuroraBackground';
+import { useRouter } from 'expo-router';
+import { CarePlanConfigScreen } from '../../components/care-plan/CarePlanConfigScreen';
 import { useTheme } from '../../contexts/ThemeContext';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { emitDataUpdate } from '../../lib/events';
@@ -55,6 +57,7 @@ const TIME_OPTIONS: { value: ErrandItem['timeOfDay']; label: string }[] = [
 export default function ErrandsConfigScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const router = useRouter();
   const [errands, setErrands] = useState<ErrandItem[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
@@ -101,99 +104,97 @@ export default function ErrandsConfigScreen() {
   }, [errands, saveErrands]);
 
   return (
-    <View style={styles.root}>
-      <AuroraBackground variant="care" />
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <SubScreenHeader title="Errands & Tasks" />
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          {errands.length === 0 && !showAdd && (
-            <Text style={styles.emptyText}>No errands configured. Tap + to add one.</Text>
-          )}
+    <CarePlanConfigScreen
+      title="Errands & Tasks"
+      chrome="aurora-care"
+      onBack={() => router.back()}
+    >
+      {errands.length === 0 && !showAdd && (
+        <Text style={styles.emptyText}>No errands configured. Tap + to add one.</Text>
+      )}
 
-          {errands.map(item => (
-            <View key={item.id} style={styles.itemCard}>
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemDetail}>
-                  {FREQUENCY_OPTIONS.find(f => f.value === item.frequency)?.label} · {TIME_OPTIONS.find(t => t.value === item.timeOfDay)?.label}
-                </Text>
-              </View>
-              <TouchableOpacity onPress={() => handleDelete(item.id)} accessibilityLabel="Delete errand" accessibilityRole="button">
-                <Text style={styles.deleteBtn}>✕</Text>
+      {errands.map(item => (
+        <View key={item.id} style={styles.itemCard}>
+          <View style={styles.itemInfo}>
+            <Text style={styles.itemName}>{item.name}</Text>
+            <Text style={styles.itemDetail}>
+              {FREQUENCY_OPTIONS.find(f => f.value === item.frequency)?.label} · {TIME_OPTIONS.find(t => t.value === item.timeOfDay)?.label}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={() => handleDelete(item.id)} accessibilityLabel="Delete errand" accessibilityRole="button">
+            <Text style={styles.deleteBtn}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+
+      {showAdd && (
+        <View style={styles.addForm}>
+          <TextInput
+            style={styles.input}
+            placeholder="Errand name (e.g., Rx pickup)"
+            placeholderTextColor={colors.textMuted}
+            value={newName}
+            onChangeText={setNewName}
+            autoFocus
+          />
+          <Text style={styles.formLabel}>Frequency</Text>
+          <View style={styles.chipRow}>
+            {FREQUENCY_OPTIONS.map(opt => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[styles.chip, newFreq === opt.value && { backgroundColor: colors.accent }]}
+                onPress={() => setNewFreq(opt.value)}
+                accessibilityRole="button"
+                accessibilityLabel={`Frequency: ${opt.label}`}
+                accessibilityState={{ selected: newFreq === opt.value }}
+              >
+                <Text style={[styles.chipText, newFreq === opt.value && { color: '#fff' }]}>{opt.label}</Text>
               </TouchableOpacity>
-            </View>
-          ))}
-
-          {showAdd && (
-            <View style={styles.addForm}>
-              <TextInput
-                style={styles.input}
-                placeholder="Errand name (e.g., Rx pickup)"
-                placeholderTextColor={colors.textMuted}
-                value={newName}
-                onChangeText={setNewName}
-                autoFocus
-              />
-              <Text style={styles.formLabel}>Frequency</Text>
-              <View style={styles.chipRow}>
-                {FREQUENCY_OPTIONS.map(opt => (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[styles.chip, newFreq === opt.value && { backgroundColor: colors.accent }]}
-                    onPress={() => setNewFreq(opt.value)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Frequency: ${opt.label}`}
-                    accessibilityState={{ selected: newFreq === opt.value }}
-                  >
-                    <Text style={[styles.chipText, newFreq === opt.value && { color: '#fff' }]}>{opt.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <Text style={styles.formLabel}>Time of day</Text>
-              <View style={styles.chipRow}>
-                {TIME_OPTIONS.map(opt => (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[styles.chip, newTime === opt.value && { backgroundColor: colors.accent }]}
-                    onPress={() => setNewTime(opt.value)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Time of day: ${opt.label}`}
-                    accessibilityState={{ selected: newTime === opt.value }}
-                  >
-                    <Text style={[styles.chipText, newTime === opt.value && { color: '#fff' }]}>{opt.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <View style={styles.formButtons}>
-                <TouchableOpacity
-                  style={[styles.saveBtn, { backgroundColor: colors.accent }]}
-                  onPress={handleAdd}
-                  accessibilityRole="button"
-                  accessibilityLabel="Save errand"
-                >
-                  <Text style={styles.saveBtnText}>Save</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setShowAdd(false)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Cancel adding errand"
-                >
-                  <Text style={styles.cancelText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {!showAdd && (
-            <TouchableOpacity style={styles.addButton} onPress={() => setShowAdd(true)} accessibilityLabel="Add errand" accessibilityRole="button">
-              <Text style={styles.addButtonText}>+ Add errand</Text>
+            ))}
+          </View>
+          <Text style={styles.formLabel}>Time of day</Text>
+          <View style={styles.chipRow}>
+            {TIME_OPTIONS.map(opt => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[styles.chip, newTime === opt.value && { backgroundColor: colors.accent }]}
+                onPress={() => setNewTime(opt.value)}
+                accessibilityRole="button"
+                accessibilityLabel={`Time of day: ${opt.label}`}
+                accessibilityState={{ selected: newTime === opt.value }}
+              >
+                <Text style={[styles.chipText, newTime === opt.value && { color: '#fff' }]}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.formButtons}>
+            <TouchableOpacity
+              style={[styles.saveBtn, { backgroundColor: colors.accent }]}
+              onPress={handleAdd}
+              accessibilityRole="button"
+              accessibilityLabel="Save errand"
+            >
+              <Text style={styles.saveBtnText}>Save</Text>
             </TouchableOpacity>
-          )}
+            <TouchableOpacity
+              onPress={() => setShowAdd(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel adding errand"
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+      {!showAdd && (
+        <TouchableOpacity style={styles.addButton} onPress={() => setShowAdd(true)} accessibilityLabel="Add errand" accessibilityRole="button">
+          <Text style={styles.addButtonText}>+ Add errand</Text>
+        </TouchableOpacity>
+      )}
+
+      <View style={{ height: 40 }} />
+    </CarePlanConfigScreen>
   );
 }
 
@@ -203,9 +204,6 @@ export default function ErrandsConfigScreen() {
 
 function createStyles(c: typeof Colors) {
   return StyleSheet.create({
-    root: { flex: 1, backgroundColor: c.background },
-    scroll: { flex: 1 },
-    scrollContent: { paddingHorizontal: 16, paddingTop: 8 },
     emptyText: { fontSize: 14, color: c.textMuted, textAlign: 'center', paddingVertical: 40 },
     itemCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: c.glass, borderWidth: 1, borderColor: c.glassBorder, borderRadius: 14, padding: 14, marginBottom: 8, gap: 12 },
     itemInfo: { flex: 1 },
