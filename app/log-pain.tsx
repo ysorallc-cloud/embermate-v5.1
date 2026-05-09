@@ -1,5 +1,5 @@
 // ============================================================================
-// LOG PAIN - Dedicated NRS 0-10 pain tracking with body location & character
+// LOG PAIN — Phase 9.5 multi-step exception wrap.
 //
 // LogScreen exception: multi-step companion to log-symptom. Reached
 // from log-symptom.tsx when the caregiver picks "Pain" from the
@@ -8,22 +8,25 @@
 // as a post-Phase-9 follow-up ("Investigate now.tsx pain-name-match
 // route"). Classified as a multi-step exception in the Phase 9.0
 // reachability audit.
+//
+// Phase 9.5 wraps the existing body in <LogScreen>; the NRS 0–10
+// scale + body location chips + character chips + notes textarea
+// preserve their current shape. The clinical traffic-light severity
+// gradient (Colors.green→amber→orange→red→rose) stays — those are
+// semantic clinical signals, not decorative palette violations.
 // ============================================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   TextInput,
-  ScrollView,
   Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
@@ -35,7 +38,7 @@ import { hapticSuccess } from '../utils/hapticFeedback';
 import { EVENT } from '../lib/eventNames';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
-import { SubScreenHeader } from '../components/SubScreenHeader';
+import { LogScreen } from '../components/logging/LogScreen';
 
 const BODY_LOCATIONS = [
   'Head', 'Neck', 'Chest', 'Abdomen', 'Back',
@@ -66,19 +69,19 @@ function getSeverityLabel(value: number): string {
 
 export default function LogPainScreen() {
   const params = useLocalSearchParams();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [severity, setSeverity] = useState<number | null>(null);
   const [bodyLocation, setBodyLocation] = useState<string | null>(null);
   const [character, setCharacter] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const canSave = severity !== null;
+  const canSave = severity !== null && !saving;
 
-  const handleSave = async () => {
-    if (severity === null || saving) return;
-
+  const handleSave = useCallback(async () => {
+    if (!canSave || severity === null) return;
     setSaving(true);
     try {
       const now = new Date();
@@ -91,15 +94,26 @@ export default function LogPainScreen() {
         timestamp: now.toISOString(),
         date: getTodayDateString(),
       });
-
       emitDataUpdate(EVENT.SYMPTOMS);
 
       const instanceId = params.instanceId as string | undefined;
       if (instanceId) {
         try {
-          await logInstanceCompletion(DEFAULT_PATIENT_ID, getTodayDateString(), instanceId, 'completed',
-            { type: 'custom', pain: { severity, bodyLocation: bodyLocation || undefined, character: character || undefined } },
-            { source: 'record' });
+          await logInstanceCompletion(
+            DEFAULT_PATIENT_ID,
+            getTodayDateString(),
+            instanceId,
+            'completed',
+            {
+              type: 'custom',
+              pain: {
+                severity,
+                bodyLocation: bodyLocation || undefined,
+                character: character || undefined,
+              },
+            } as any,
+            { source: 'record' },
+          );
           emitDataUpdate(EVENT.DAILY_INSTANCES);
         } catch (err) {
           logError('LogPainScreen.completeInstance', err);
@@ -111,178 +125,160 @@ export default function LogPainScreen() {
     } catch (error) {
       Alert.alert('Error', 'Failed to log pain. Please try again.');
       logError('LogPainScreen.handleSave', error);
-    } finally {
       setSaving(false);
     }
-  };
+  }, [canSave, severity, bodyLocation, character, notes, params.instanceId]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient
-        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
-        style={styles.gradient}
+    <LogScreen
+      title="Pain"
+      onBack={navigateBack}
+      primaryAction={{
+        label: saving ? 'Saving…' : 'Save pain',
+        onPress: handleSave,
+        disabled: !canSave,
+      }}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.kav}
       >
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={100}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <View style={styles.content}>
-            <SubScreenHeader title="Log Pain" emoji="🩹" />
+        <Text testID="log-pain-disclaimer" style={styles.disclaimer}>
+          For caregiver record-keeping. Not medical advice.
+        </Text>
 
-            <View style={styles.form}>
-              {/* NRS 0-10 Scale */}
-              <View style={styles.formGroup}>
-                <View style={styles.severityHeader}>
-                  <Text style={styles.label}>Pain intensity *</Text>
-                  {severity !== null && (
-                    <Text style={[styles.severityValue, { color: getSeverityColor(severity) }]}>
-                      {severity}/10 — {getSeverityLabel(severity)}
-                    </Text>
-                  )}
-                </View>
-                <View style={styles.severityScale}>
-                  {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
-                    const color = getSeverityColor(num);
-                    const isSelected = severity === num;
-                    return (
-                      <TouchableOpacity
-                        key={num}
-                        style={[
-                          styles.severityButton,
-                          isSelected && { backgroundColor: color, borderColor: color },
-                        ]}
-                        onPress={() => setSeverity(num)}
-                        accessibilityLabel={`Pain level ${num} out of 10, ${getSeverityLabel(num)}`}
-                        accessibilityRole="radio"
-                        accessibilityState={{ selected: isSelected }}
-                      >
-                        <Text
-                          style={[
-                            styles.severityButtonText,
-                            isSelected && styles.severityButtonTextSelected,
-                          ]}
-                        >
-                          {num}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                <View style={styles.scaleLabels}>
-                  <Text style={styles.scaleLabel}>No Pain</Text>
-                  <Text style={styles.scaleLabel}>Worst</Text>
-                </View>
-              </View>
-
-              {/* Body Location */}
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Location (optional)</Text>
-                <View style={styles.chipGrid}>
-                  {BODY_LOCATIONS.map((location) => (
-                    <TouchableOpacity
-                      key={location}
-                      style={[
-                        styles.chip,
-                        bodyLocation === location && styles.chipSelected,
-                      ]}
-                      onPress={() => setBodyLocation(bodyLocation === location ? null : location)}
-                      accessibilityLabel={`Body location: ${location}`}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: bodyLocation === location }}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          bodyLocation === location && styles.chipTextSelected,
-                        ]}
-                      >
-                        {location}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Pain Character */}
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Character (optional)</Text>
-                <View style={styles.chipGrid}>
-                  {PAIN_CHARACTERS.map((ch) => (
-                    <TouchableOpacity
-                      key={ch}
-                      style={[
-                        styles.chip,
-                        character === ch && styles.chipSelected,
-                      ]}
-                      onPress={() => setCharacter(character === ch ? null : ch)}
-                      accessibilityLabel={`Pain character: ${ch}`}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: character === ch }}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          character === ch && styles.chipTextSelected,
-                        ]}
-                      >
-                        {ch}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Notes */}
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Notes (optional)</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  value={notes}
-                  onChangeText={setNotes}
-                  placeholder="When did it start? What makes it better/worse?"
-                  placeholderTextColor={colors.textPlaceholder}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                  accessibilityLabel="Pain notes"
-                />
-              </View>
-
-              {/* Save */}
-              <TouchableOpacity
-                style={[styles.saveButton, (!canSave || saving) && styles.saveButtonDisabled]}
-                onPress={handleSave}
-                disabled={!canSave || saving}
-                accessibilityLabel={saving ? 'Saving pain entry' : 'Log pain'}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !canSave || saving }}
-              >
-                <Text style={styles.saveButtonText}>
-                  {saving ? 'Saving...' : 'Log Pain'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+        <View style={styles.formGroup}>
+          <View style={styles.severityHeader}>
+            <Text style={styles.label}>Pain intensity</Text>
+            {severity !== null && (
+              <Text style={[styles.severityValue, { color: getSeverityColor(severity) }]}>
+                {severity}/10 — {getSeverityLabel(severity)}
+              </Text>
+            )}
           </View>
-        </ScrollView>
-        </KeyboardAvoidingView>
-      </LinearGradient>
-    </SafeAreaView>
+          <View style={styles.severityScale}>
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
+              const color = getSeverityColor(num);
+              const selected = severity === num;
+              return (
+                <Pressable
+                  key={num}
+                  testID={`log-pain-severity-${num}`}
+                  style={[
+                    styles.severityButton,
+                    selected && { backgroundColor: color, borderColor: color },
+                  ]}
+                  onPress={() => setSeverity(num)}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`Pain level ${num} out of 10, ${getSeverityLabel(num)}`}
+                  accessibilityState={{ selected }}
+                >
+                  <Text
+                    style={[styles.severityButtonText, selected && styles.severityButtonTextSelected]}
+                  >
+                    {num}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={styles.scaleLabels}>
+            <Text style={styles.scaleLabel}>No pain</Text>
+            <Text style={styles.scaleLabel}>Worst</Text>
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Location (optional)</Text>
+          <View style={styles.chipGrid}>
+            {BODY_LOCATIONS.map((location) => {
+              const selected = bodyLocation === location;
+              return (
+                <Pressable
+                  key={location}
+                  testID={`log-pain-location-${location.replace(/\s+/g, '-')}`}
+                  style={[styles.chip, selected && styles.chipSelected]}
+                  onPress={() => setBodyLocation(selected ? null : location)}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`Body location: ${location}`}
+                  accessibilityState={{ selected }}
+                >
+                  <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                    {location}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Character (optional)</Text>
+          <View style={styles.chipGrid}>
+            {PAIN_CHARACTERS.map((ch) => {
+              const selected = character === ch;
+              return (
+                <Pressable
+                  key={ch}
+                  testID={`log-pain-character-${ch}`}
+                  style={[styles.chip, selected && styles.chipSelected]}
+                  onPress={() => setCharacter(selected ? null : ch)}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`Pain character: ${ch}`}
+                  accessibilityState={{ selected }}
+                >
+                  <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                    {ch}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Notes (optional)</Text>
+          <TextInput
+            testID="log-pain-notes"
+            style={[styles.input, styles.textArea]}
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="When did it start? What makes it better/worse?"
+            placeholderTextColor={colors.textMuted}
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+            accessibilityLabel="Pain notes"
+          />
+        </View>
+      </KeyboardAvoidingView>
+    </LogScreen>
   );
 }
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.background },
-  gradient: { flex: 1 },
-  scrollView: { flex: 1 },
-  content: { padding: 20, paddingBottom: 40 },
-  form: { gap: 24 },
-  formGroup: { gap: 8 },
-  label: { fontSize: 13, fontWeight: '500', color: c.textSecondary },
+  kav: { flex: 1 },
+  disclaimer: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: c.textTertiary,
+    marginBottom: 20,
+  },
+  formGroup: { gap: 8, marginBottom: 20 },
+  label: {
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: c.textTertiary,
+  },
   severityHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   severityValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   severityScale: {
@@ -293,9 +289,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   severityButton: {
     flex: 1,
     aspectRatio: 1,
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderColor: c.border,
+    backgroundColor: c.surfaceElevated,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -315,7 +311,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   scaleLabel: {
     fontSize: 11,
-    color: c.textMuted,
+    color: c.textTertiary,
   },
   chipGrid: {
     flexDirection: 'row',
@@ -323,43 +319,35 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     gap: 8,
   },
   chip: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 10,
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderColor: c.border,
+    backgroundColor: c.surfaceElevated,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
     borderRadius: 20,
+    minHeight: 40,
   },
   chipSelected: {
     backgroundColor: c.accentLight,
-    borderColor: c.accent,
+    borderColor: c.accentBorder,
   },
   chipText: {
     fontSize: 14,
-    color: c.textSecondary,
+    color: c.textPrimary,
   },
   chipTextSelected: {
-    color: c.accent,
-    fontWeight: '500',
+    // selectionListContrast a11y contract — keep label color stable.
+    fontWeight: '600',
   },
   input: {
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderColor: c.border,
+    backgroundColor: c.surfaceElevated,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    paddingVertical: 12,
     fontSize: 15,
     color: c.textPrimary,
   },
-  textArea: { minHeight: 80, paddingTop: 14 },
-  saveButton: {
-    backgroundColor: c.accent,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: { color: c.textPrimary, fontSize: 15, fontWeight: '600' },
+  textArea: { minHeight: 80, paddingTop: 12 },
 });
