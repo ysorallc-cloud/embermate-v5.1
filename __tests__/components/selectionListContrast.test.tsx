@@ -37,7 +37,11 @@ const targets: Array<{ file: string; styles: string[] }> = [
     styles: ['typeChipLabelSelected', 'windowLabelSelected', 'priorityLabelSelected'],
   },
   { file: 'app/log-mood.tsx',             styles: ['moodLabelSelected'] },
-  { file: 'app/log-activity.tsx',         styles: ['activityLabelSelected'] },
+  // Phase 9.5 renamed activityLabelSelected → pillLabelSelected when
+  // log-activity migrated to LogScreen pattern (matches log-meal's
+  // identical rename in 9.3). The selected pill keeps label at
+  // textPrimary; selection conveyed by background + border + checkmark.
+  { file: 'app/log-activity.tsx',         styles: ['pillLabelSelected'] },
   {
     file: 'app/log-evening-wellness.tsx',
     styles: ['optionLabelSelected', 'ratingLabelSelected'],

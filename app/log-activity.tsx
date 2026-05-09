@@ -1,9 +1,13 @@
 // ============================================================================
-// ACTIVITY LOGGING SCREEN - Simple Activity Tracker
+// LOG ACTIVITY — Phase 9.5 migration to LogScreen.
+//
+// Pre-9.5 wrapped AuroraBackground + custom header + 6-pill activity grid
+// + duration + notes + bottom "Done ✓". Post-9.5 wraps in <LogScreen>.
+// Counter subtitle from listDailyInstances filtered to itemType
+// 'activity'. Activity multi-select preserved.
 // ============================================================================
 
-import React, { useState, useMemo } from 'react';
-import { devLog, logError } from '../utils/devLog';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,70 +15,99 @@ import {
   StyleSheet,
   TextInput,
   Alert,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
+import { devLog, logError } from '../utils/devLog';
 import { navigateBack } from '../lib/navigate';
-import { AuroraBackground } from '../components/aurora/AuroraBackground';
-import { Colors } from '../theme/theme-tokens';
+import { Colors, Spacing } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
-import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
+import {
+  listDailyInstances,
+  logInstanceCompletion,
+  DEFAULT_PATIENT_ID,
+} from '../storage/carePlanRepo';
 import { emitDataUpdate } from '../lib/events';
 import { hapticSuccess } from '../utils/hapticFeedback';
 import { EVENT } from '../lib/eventNames';
 import { getTodayDateString } from '../services/carePlanGenerator';
+import { LogScreen } from '../components/logging/LogScreen';
 
-const ACTIVITY_TYPES = [
-  { id: 'walk', emoji: '🚶', label: 'Walking' },
-  { id: 'exercise', emoji: '💪', label: 'Exercise' },
-  { id: 'stretch', emoji: '🧘', label: 'Stretching' },
-  { id: 'garden', emoji: '🌱', label: 'Gardening' },
-  { id: 'chores', emoji: '🧹', label: 'Chores' },
-  { id: 'other', emoji: '✨', label: 'Other' },
+const ACTIVITY_TYPES: { id: string; label: string }[] = [
+  { id: 'walk',     label: 'Walking' },
+  { id: 'exercise', label: 'Exercise' },
+  { id: 'stretch',  label: 'Stretching' },
+  { id: 'garden',   label: 'Gardening' },
+  { id: 'chores',   label: 'Chores' },
+  { id: 'other',    label: 'Other' },
 ];
 
 export default function LogActivityScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams();
+  const today = useMemo(() => getTodayDateString(), []);
+
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [duration, setDuration] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [activityCompleted, setActivityCompleted] = useState(0);
+  const [activityExpected, setActivityExpected] = useState(0);
 
-  const toggleActivity = (activityId: string) => {
-    setSelectedActivities(prev =>
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const instances = await listDailyInstances(DEFAULT_PATIENT_ID, today);
+        if (cancelled) return;
+        const activityInstances = instances.filter((i) => i.itemType === 'activity');
+        setActivityExpected(activityInstances.length);
+        setActivityCompleted(activityInstances.filter((i) => i.status === 'completed').length);
+      } catch (err) {
+        logError('LogActivity.loadInstances', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [today]);
+
+  const toggleActivity = useCallback((activityId: string) => {
+    setSelectedActivities((prev) =>
       prev.includes(activityId)
-        ? prev.filter(id => id !== activityId)
-        : [...prev, activityId]
+        ? prev.filter((id) => id !== activityId)
+        : [...prev, activityId],
     );
-  };
+  }, []);
 
-  const handleSave = async () => {
-    if (selectedActivities.length === 0) {
-      Alert.alert('Select Activity', 'Please select at least one activity type');
+  const canSave = selectedActivities.length > 0 && !saving;
+
+  const handleSave = useCallback(async () => {
+    if (!canSave) {
+      if (selectedActivities.length === 0) {
+        Alert.alert('Select Activity', 'Please select at least one activity type');
+      }
       return;
     }
-
     try {
       setSaving(true);
-      // For now, just log to console - can be connected to storage later
       devLog('Activity logged:', { selectedActivities, duration, notes });
 
-      // Mark the daily care instance as completed (updates progress card)
       const instanceId = params.instanceId as string | undefined;
       if (instanceId) {
         try {
           await logInstanceCompletion(
             DEFAULT_PATIENT_ID,
-            getTodayDateString(),
+            today,
             instanceId,
             'completed',
-            { type: 'activity', activityType: selectedActivities.join(', '), duration: parseInt(duration) || 0 },
-            { source: 'record' }
+            {
+              type: 'activity',
+              activityType: selectedActivities.join(', '),
+              duration: parseInt(duration) || 0,
+            } as any,
+            { source: 'record' },
           );
           emitDataUpdate(EVENT.DAILY_INSTANCES);
         } catch (err) {
@@ -87,232 +120,157 @@ export default function LogActivityScreen() {
     } catch (error) {
       logError('LogActivityScreen.handleSave', error);
       Alert.alert('Error', 'Failed to save activity');
-    } finally {
       setSaving(false);
     }
-  };
+  }, [canSave, selectedActivities, duration, notes, params.instanceId, today]);
+
+  const countSubtitle = activityExpected > 0
+    ? `${activityCompleted} of ${activityExpected} today`
+    : undefined;
 
   return (
-    <View style={styles.container}>
-      <AuroraBackground variant="log" />
+    <LogScreen
+      title="Activity"
+      countSubtitle={countSubtitle}
+      onBack={navigateBack}
+      primaryAction={{
+        label: saving ? 'Saving…' : 'Save activity',
+        onPress: handleSave,
+        disabled: !canSave,
+      }}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.kav}
+      >
+        <Text testID="log-activity-disclaimer" style={styles.disclaimer}>
+          For caregiver record-keeping. Not medical advice.
+        </Text>
 
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigateBack()}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Activity today?</Text>
-          <View style={styles.placeholder} />
-        </View>
-
-        <View style={styles.content}>
-          <Text style={styles.subtitle}>What did they do?</Text>
-
-          {/* Activity Types */}
-          <View style={styles.activityGrid}>
-            {ACTIVITY_TYPES.map(activity => (
-              <TouchableOpacity
+        <Text style={styles.label}>Activity type</Text>
+        <View style={styles.grid}>
+          {ACTIVITY_TYPES.map((activity) => {
+            const selected = selectedActivities.includes(activity.id);
+            return (
+              <Pressable
                 key={activity.id}
-                style={[
-                  styles.activityCard,
-                  selectedActivities.includes(activity.id) && styles.activityCardSelected,
-                ]}
+                testID={`log-activity-pill-${activity.id}`}
+                style={[styles.pill, selected && styles.pillSelected]}
                 onPress={() => toggleActivity(activity.id)}
-                accessibilityLabel={`${activity.label}, ${selectedActivities.includes(activity.id) ? 'selected' : 'not selected'}`}
                 accessibilityRole="checkbox"
-                accessibilityState={{ checked: selectedActivities.includes(activity.id) }}
+                accessibilityLabel={activity.label}
+                accessibilityState={{ selected, checked: selected }}
               >
-                <Text style={styles.activityEmoji}>{activity.emoji}</Text>
-                <Text style={[
-                  styles.activityLabel,
-                  selectedActivities.includes(activity.id) && styles.activityLabelSelected,
-                ]}>
+                <Text style={[styles.pillLabel, selected && styles.pillLabelSelected]}>
                   {activity.label}
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Duration */}
-          <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>How long? (optional)</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="e.g., 30 minutes"
-              placeholderTextColor={colors.textPlaceholder}
-              value={duration}
-              onChangeText={setDuration}
-              accessibilityLabel="Activity duration"
-            />
-          </View>
-
-          {/* Notes */}
-          <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>Notes (optional)</Text>
-            <TextInput
-              style={[styles.textInput, styles.textArea]}
-              placeholder="Any observations..."
-              placeholderTextColor={colors.textPlaceholder}
-              multiline
-              numberOfLines={3}
-              value={notes}
-              onChangeText={setNotes}
-              accessibilityLabel="Activity notes"
-            />
-          </View>
+                {selected && <Text style={styles.pillCheck}>✓</Text>}
+              </Pressable>
+            );
+          })}
         </View>
 
-        {/* Save Button */}
-        <View style={styles.bottomActions}>
-          <TouchableOpacity
-            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-            onPress={handleSave}
-            disabled={saving}
-            accessibilityLabel={saving ? 'Saving activity' : 'Save activity'}
-            accessibilityHint="Saves the selected activities and details"
-            accessibilityRole="button"
-            accessibilityState={{ disabled: saving }}
-          >
-            <Text style={styles.saveButtonText}>
-              {saving ? 'Saving...' : 'Done ✓'}
-            </Text>
-          </TouchableOpacity>
+        <View style={styles.section}>
+          <Text style={styles.label}>How long? (optional)</Text>
+          <TextInput
+            testID="log-activity-duration"
+            style={styles.textInput}
+            placeholder="e.g., 30 minutes"
+            placeholderTextColor={colors.textMuted}
+            value={duration}
+            onChangeText={setDuration}
+            accessibilityLabel="Activity duration"
+          />
         </View>
-        </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </View>
+
+        <View style={styles.section}>
+          <Text style={styles.label}>Notes (optional)</Text>
+          <TextInput
+            testID="log-activity-notes"
+            style={[styles.textInput, styles.textArea]}
+            placeholder="Any observations…"
+            placeholderTextColor={colors.textMuted}
+            multiline
+            numberOfLines={3}
+            value={notes}
+            onChangeText={setNotes}
+            accessibilityLabel="Activity notes"
+          />
+        </View>
+      </KeyboardAvoidingView>
+    </LogScreen>
   );
 }
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: c.background,
+  kav: { flex: 1 },
+  disclaimer: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: c.textTertiary,
+    marginBottom: Spacing.md,
   },
-  safeArea: {
-    flex: 1,
+  label: {
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: c.textTertiary,
+    marginBottom: 8,
   },
-  header: {
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: Spacing.md,
+  },
+  pill: {
+    flexBasis: '48%',
+    flexGrow: 1,
+    minHeight: 48,
+    paddingVertical: 12, // allow: tap-target padding (Apple HIG ≥44pt)
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
+    backgroundColor: c.surfaceElevated,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
   },
-  backButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+  pillSelected: {
+    backgroundColor: c.accentLight,
+    borderColor: c.accentBorder,
   },
-  backButtonText: {
-    fontSize: 28,
-    color: c.textPrimary,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: c.textPrimary,
-  },
-  placeholder: {
-    width: 44,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  subtitle: {
+  pillLabel: {
     fontSize: 14,
-    color: c.textMuted,
-    marginBottom: 20,
-  },
-
-  // Activity Grid
-  activityGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 30,
-  },
-  activityCard: {
-    width: '30%',
-    aspectRatio: 1,
-    backgroundColor: c.glassFaint,
-    borderWidth: 1,
-    borderColor: c.glassActive,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  activityCardSelected: {
-    backgroundColor: c.sageBorder,
-    borderColor: c.accent,
-  },
-  activityEmoji: {
-    fontSize: 28,
-  },
-  activityLabel: {
-    fontSize: 12,
-    color: c.textSecondary,
-  },
-  activityLabelSelected: {
+    fontWeight: '500',
     color: c.textPrimary,
-    fontWeight: '600' as const,
   },
-
-  // Inputs
-  inputSection: {
-    marginBottom: 20,
+  pillLabelSelected: {
+    // selectionListContrast a11y contract — keep label color stable;
+    // selection conveyed by background + checkmark.
+    fontWeight: '600',
   },
-  inputLabel: {
-    fontSize: 12,
-    color: c.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
+  pillCheck: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.accent,
+  },
+  section: {
+    marginBottom: Spacing.md,
   },
   textInput: {
-    backgroundColor: c.glassFaint,
-    borderWidth: 1,
-    borderColor: c.glassActive,
+    backgroundColor: c.surfaceElevated,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
     borderRadius: 10,
-    padding: 14,
+    padding: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     color: c.textPrimary,
     fontSize: 15,
   },
   textArea: {
     minHeight: 80,
     textAlignVertical: 'top',
-  },
-
-  // Bottom
-  bottomActions: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: c.glassHover,
-  },
-  saveButton: {
-    backgroundColor: c.accent,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  saveButtonDisabled: {
-    opacity: 0.7,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: c.background,
   },
 });
