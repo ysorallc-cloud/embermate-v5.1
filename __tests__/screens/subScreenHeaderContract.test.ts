@@ -97,12 +97,10 @@ const targets: Array<{
   // for the new family are pinned in
   // __tests__/components/care-plan/CarePlanConfigScreen.test.tsx and
   // __tests__/screens/wellnessConfigTightened.test.tsx.
-  {
-    rel: 'app/care-plan/meals.tsx',
-    shouldDropCaps: ['MEALS'],
-    title: /title=['"]Meals['"]/,
-    subtitle: /subtitle=/,
-  },
+  //
+  // Phase 10.3.6 — meals migrated to CarePlanConfigScreen primitive
+  // (chrome="gradient"). Migration contract pinned in
+  // __tests__/screens/mealsConfigMigrated.test.tsx.
   {
     rel: 'app/patient/index.tsx',
     // Old "Patient" hardcoded title is replaced by the resolved patient name.

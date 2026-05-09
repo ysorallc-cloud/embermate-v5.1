@@ -1,6 +1,10 @@
 // ============================================================================
-// MEALS BUCKET CONFIGURATION
-// Configure meal tracking in the Care Plan
+// MEALS BUCKET CONFIGURATION — Phase 10.3.x migrated to
+// CarePlanConfigScreen (chrome=gradient, the bucket-config family).
+//
+// The primitive owns SafeAreaView + LinearGradient + header chrome.
+// Body unchanged: enable toggle, priority, meal-time grid,
+// tracking style, notifications.
 // ============================================================================
 
 import React, { useCallback, useMemo } from 'react';
@@ -8,18 +12,14 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Switch,
-  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
-import { SubScreenHeader } from '../../components/SubScreenHeader';
+import { CarePlanConfigScreen } from '../../components/care-plan/CarePlanConfigScreen';
 import {
   MealsBucketConfig,
   TimeOfDay,
@@ -37,7 +37,6 @@ export default function MealsBucketScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     config,
-    loading,
     toggleBucket,
     updateBucket,
   } = useCarePlanConfig();
@@ -62,7 +61,6 @@ export default function MealsBucketScreen() {
       ? currentTimes.filter(t => t !== time)
       : [...currentTimes, time];
 
-    // Ensure at least one time is selected
     if (newTimes.length > 0) {
       await updateBucket('meals', { timesOfDay: newTimes });
     }
@@ -80,192 +78,173 @@ export default function MealsBucketScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient
-        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
-        style={styles.gradient}
-      >
-        {/* Header */}
-        <SubScreenHeader
-          title="Meals"
-          subtitle="Helps connect nutrition to mood, energy, and symptoms."
+    <CarePlanConfigScreen
+      title="Meals"
+      subtitle="Helps connect nutrition to mood, energy, and symptoms."
+      chrome="gradient"
+      onBack={() => router.back()}
+    >
+      {/* Enable Toggle */}
+      <View style={styles.settingRow}>
+        <View style={styles.settingInfo}>
+          <Text style={styles.settingLabel}>Track Meals</Text>
+          <Text style={styles.settingDescription}>
+            Enable meal tracking in your Care Plan
+          </Text>
+        </View>
+        <Switch
+          value={enabled}
+          onValueChange={handleToggleEnabled}
+          trackColor={{ false: colors.glassStrong, true: colors.accent }}
+          thumbColor={enabled ? colors.textPrimary : colors.switchThumbOff}
+          ios_backgroundColor={colors.glassStrong}
         />
+      </View>
 
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
+      {enabled && (
+        <>
+          {/* Priority Selector */}
+          <Text style={styles.sectionLabel}>PRIORITY</Text>
+          <View style={styles.priorityContainer}>
+            {PRIORITY_OPTIONS.map(option => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.priorityOption,
+                  priority === option.value && styles.priorityOptionSelected,
+                ]}
+                onPress={() => handleChangePriority(option.value)}
+                activeOpacity={0.7}
+                accessibilityLabel={`${option.label} priority, ${option.description}`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: priority === option.value }}
+              >
+                <Text style={[
+                  styles.priorityLabel,
+                  priority === option.value && styles.priorityLabelSelected,
+                ]}>
+                  {option.label}
+                </Text>
+                <Text style={styles.priorityDescription}>{option.description}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-          {/* Enable Toggle */}
+          {/* Meals to Track */}
+          <Text style={styles.sectionLabel}>MEALS TO TRACK</Text>
+          <View style={styles.mealsGrid}>
+            {TIME_OF_DAY_OPTIONS.filter(t => t.value !== 'custom').map(timeOption => (
+              <TouchableOpacity
+                key={timeOption.value}
+                style={[
+                  styles.mealItem,
+                  timesOfDay.includes(timeOption.value) && styles.mealItemSelected,
+                ]}
+                onPress={() => handleToggleMealTime(timeOption.value)}
+                activeOpacity={0.7}
+                accessibilityLabel={`${mealTimeLabels[timeOption.value] || timeOption.label}`}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: timesOfDay.includes(timeOption.value) }}
+              >
+                <Text style={styles.mealEmoji}>
+                  {timeOption.value === 'morning' ? '🌅' :
+                   timeOption.value === 'midday' ? '☀️' :
+                   timeOption.value === 'evening' ? '🌆' : '🌙'}
+                </Text>
+                <Text style={[
+                  styles.mealLabel,
+                  timesOfDay.includes(timeOption.value) && styles.mealLabelSelected,
+                ]}>
+                  {mealTimeLabels[timeOption.value] || timeOption.label}
+                </Text>
+                <View style={[
+                  styles.checkbox,
+                  timesOfDay.includes(timeOption.value) && styles.checkboxSelected,
+                ]}>
+                  {timesOfDay.includes(timeOption.value) && (
+                    <Text style={styles.checkmark}>✓</Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Tracking Style */}
+          <Text style={styles.sectionLabel}>TRACKING STYLE</Text>
+          <View style={styles.styleContainer}>
+            <TouchableOpacity
+              style={[
+                styles.styleOption,
+                trackingStyle === 'quick' && styles.styleOptionSelected,
+              ]}
+              onPress={() => handleChangeTrackingStyle('quick')}
+              activeOpacity={0.7}
+              accessibilityLabel="Quick Log, Just tap to log that you ate"
+              accessibilityRole="radio"
+              accessibilityState={{ selected: trackingStyle === 'quick' }}
+            >
+              <Text style={styles.styleEmoji}>⚡</Text>
+              <View style={styles.styleInfo}>
+                <Text style={[
+                  styles.styleLabel,
+                  trackingStyle === 'quick' && styles.styleLabelSelected,
+                ]}>
+                  Quick Log
+                </Text>
+                <Text style={styles.styleDescription}>
+                  Just tap to log that you ate
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.styleOption,
+                trackingStyle === 'detailed' && styles.styleOptionSelected,
+              ]}
+              onPress={() => handleChangeTrackingStyle('detailed')}
+              activeOpacity={0.7}
+              accessibilityLabel="Detailed, Log what you ate and how much"
+              accessibilityRole="radio"
+              accessibilityState={{ selected: trackingStyle === 'detailed' }}
+            >
+              <Text style={styles.styleEmoji}>📝</Text>
+              <View style={styles.styleInfo}>
+                <Text style={[
+                  styles.styleLabel,
+                  trackingStyle === 'detailed' && styles.styleLabelSelected,
+                ]}>
+                  Detailed
+                </Text>
+                <Text style={styles.styleDescription}>
+                  Log what you ate and how much
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Notifications Setting */}
+          <Text style={styles.sectionLabel}>NOTIFICATIONS</Text>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Track Meals</Text>
+              <Text style={styles.settingLabel}>Meal Reminders</Text>
               <Text style={styles.settingDescription}>
-                Enable meal tracking in your Care Plan
+                Get notified at meal times
               </Text>
             </View>
             <Switch
-              value={enabled}
-              onValueChange={handleToggleEnabled}
+              value={mealsConfig?.notificationsEnabled ?? false}
+              onValueChange={(value) => updateBucket('meals', { notificationsEnabled: value })}
               trackColor={{ false: colors.glassStrong, true: colors.accent }}
-              thumbColor={enabled ? colors.textPrimary : colors.switchThumbOff}
+              thumbColor={(mealsConfig?.notificationsEnabled ?? false) ? colors.textPrimary : colors.switchThumbOff}
               ios_backgroundColor={colors.glassStrong}
             />
           </View>
+        </>
+      )}
 
-          {enabled && (
-            <>
-              {/* Priority Selector */}
-              <Text style={styles.sectionLabel}>PRIORITY</Text>
-              <View style={styles.priorityContainer}>
-                {PRIORITY_OPTIONS.map(option => (
-                  <TouchableOpacity
-                    key={option.value}
-                    // Phase 2.6.3 — severity stripe retired. Required's coral
-                    // left-bar doubled as the criticalAlert affordance, which
-                    // is reserved for genuine emergency cues; using it for a
-                    // setup-screen category indicator was a color-budget
-                    // violation. Differentiation now comes from typography
-                    // weight and the selected-state ring (sage on accent).
-                    style={[
-                      styles.priorityOption,
-                      priority === option.value && styles.priorityOptionSelected,
-                    ]}
-                    onPress={() => handleChangePriority(option.value)}
-                    activeOpacity={0.7}
-                    accessibilityLabel={`${option.label} priority, ${option.description}`}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: priority === option.value }}
-                  >
-                    <Text style={[
-                      styles.priorityLabel,
-                      priority === option.value && styles.priorityLabelSelected,
-                    ]}>
-                      {option.label}
-                    </Text>
-                    <Text style={styles.priorityDescription}>{option.description}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Meals to Track */}
-              <Text style={styles.sectionLabel}>MEALS TO TRACK</Text>
-              <View style={styles.mealsGrid}>
-                {TIME_OF_DAY_OPTIONS.filter(t => t.value !== 'custom').map(timeOption => (
-                  <TouchableOpacity
-                    key={timeOption.value}
-                    style={[
-                      styles.mealItem,
-                      timesOfDay.includes(timeOption.value) && styles.mealItemSelected,
-                    ]}
-                    onPress={() => handleToggleMealTime(timeOption.value)}
-                    activeOpacity={0.7}
-                    accessibilityLabel={`${mealTimeLabels[timeOption.value] || timeOption.label}`}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: timesOfDay.includes(timeOption.value) }}
-                  >
-                    <Text style={styles.mealEmoji}>
-                      {timeOption.value === 'morning' ? '🌅' :
-                       timeOption.value === 'midday' ? '☀️' :
-                       timeOption.value === 'evening' ? '🌆' : '🌙'}
-                    </Text>
-                    <Text style={[
-                      styles.mealLabel,
-                      timesOfDay.includes(timeOption.value) && styles.mealLabelSelected,
-                    ]}>
-                      {mealTimeLabels[timeOption.value] || timeOption.label}
-                    </Text>
-                    <View style={[
-                      styles.checkbox,
-                      timesOfDay.includes(timeOption.value) && styles.checkboxSelected,
-                    ]}>
-                      {timesOfDay.includes(timeOption.value) && (
-                        <Text style={styles.checkmark}>✓</Text>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Tracking Style */}
-              <Text style={styles.sectionLabel}>TRACKING STYLE</Text>
-              <View style={styles.styleContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.styleOption,
-                    trackingStyle === 'quick' && styles.styleOptionSelected,
-                  ]}
-                  onPress={() => handleChangeTrackingStyle('quick')}
-                  activeOpacity={0.7}
-                  accessibilityLabel="Quick Log, Just tap to log that you ate"
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: trackingStyle === 'quick' }}
-                >
-                  <Text style={styles.styleEmoji}>⚡</Text>
-                  <View style={styles.styleInfo}>
-                    <Text style={[
-                      styles.styleLabel,
-                      trackingStyle === 'quick' && styles.styleLabelSelected,
-                    ]}>
-                      Quick Log
-                    </Text>
-                    <Text style={styles.styleDescription}>
-                      Just tap to log that you ate
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.styleOption,
-                    trackingStyle === 'detailed' && styles.styleOptionSelected,
-                  ]}
-                  onPress={() => handleChangeTrackingStyle('detailed')}
-                  activeOpacity={0.7}
-                  accessibilityLabel="Detailed, Log what you ate and how much"
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: trackingStyle === 'detailed' }}
-                >
-                  <Text style={styles.styleEmoji}>📝</Text>
-                  <View style={styles.styleInfo}>
-                    <Text style={[
-                      styles.styleLabel,
-                      trackingStyle === 'detailed' && styles.styleLabelSelected,
-                    ]}>
-                      Detailed
-                    </Text>
-                    <Text style={styles.styleDescription}>
-                      Log what you ate and how much
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              {/* Notifications Setting */}
-              <Text style={styles.sectionLabel}>NOTIFICATIONS</Text>
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Meal Reminders</Text>
-                  <Text style={styles.settingDescription}>
-                    Get notified at meal times
-                  </Text>
-                </View>
-                <Switch
-                  value={mealsConfig?.notificationsEnabled ?? false}
-                  onValueChange={(value) => updateBucket('meals', { notificationsEnabled: value })}
-                  trackColor={{ false: colors.glassStrong, true: colors.accent }}
-                  thumbColor={(mealsConfig?.notificationsEnabled ?? false) ? colors.textPrimary : colors.switchThumbOff}
-                  ios_backgroundColor={colors.glassStrong}
-                />
-              </View>
-            </>
-          )}
-
-          {/* Bottom spacing */}
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </LinearGradient>
-    </SafeAreaView>
+      {/* Bottom spacing */}
+      <View style={{ height: 40 }} />
+    </CarePlanConfigScreen>
   );
 }
 
@@ -274,69 +253,6 @@ export default function MealsBucketScreen() {
 // ============================================================================
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: c.background,
-  },
-  gradient: {
-    flex: 1,
-  },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Platform.OS === 'android' ? 20 : 0,
-    paddingBottom: Spacing.sm,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: c.backgroundElevated,
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backIcon: {
-    fontSize: 24,
-    color: c.textPrimary,
-  },
-  headerLabel: {
-    fontSize: 11,
-    color: c.textMuted,
-    letterSpacing: 1,
-    fontWeight: '600',
-  },
-
-  // Scroll
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: 40,
-  },
-
-  // Title
-  titleSection: {
-    marginBottom: Spacing.lg,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: c.textPrimary,
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: c.textSecondary,
-    lineHeight: 22,
-  },
-
   // Section Labels
   sectionLabel: {
     fontSize: 11,
