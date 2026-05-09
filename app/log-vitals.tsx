@@ -276,7 +276,7 @@ export default function LogVitalsScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.kav}
       >
-        <Text style={styles.disclaimer}>
+        <Text testID="log-vitals-disclaimer" style={styles.disclaimer}>
           Not a medical device. For caregiver record-keeping only.
         </Text>
 

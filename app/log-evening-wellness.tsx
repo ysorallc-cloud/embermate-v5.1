@@ -7,7 +7,9 @@
 // itemTypes (5 callsites: taskAction.ts:71/107/163/206, carePlanRouting.ts:69).
 // Migration must preserve fallback contract. Section-stacking would be
 // ~150 LOC inside children well, exceeding the 50-LOC pattern threshold.
-// Revisit alongside fallback-route refactor.
+// Revisit when: the fallback-route refactor lands, scoping how unknown
+// itemTypes resolve to a logger so this screen's load-bearing role can
+// be unwound before LogScreen migration.
 // ============================================================================
 
 import React, { useState, useMemo, useCallback } from 'react';
