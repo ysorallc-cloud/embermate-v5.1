@@ -32,7 +32,6 @@ const PRIORITY_SCREENS = [
 const ADDITIONAL_SCREENS = [
   'app/log-medication-plan-item.tsx',
   'app/log-activity.tsx',
-  'app/log-bathroom.tsx',
   'app/log-symptom.tsx',
   'app/log-pain.tsx',
 ];

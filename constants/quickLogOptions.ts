@@ -102,16 +102,6 @@ export const QUICK_LOG_OPTIONS: QuickLogOption[] = [
     bucketType: 'activity',
   },
   {
-    id: 'bathroom',
-    icon: '🚽',
-    label: 'Bathroom',
-    description: 'Bowel movements, urination',
-    screen: '/log-bathroom',
-    isCore: false,
-    category: 'health',
-    bucketType: null, // General health — always visible
-  },
-  {
     id: 'symptom',
     icon: '🤒',
     label: 'Symptom',

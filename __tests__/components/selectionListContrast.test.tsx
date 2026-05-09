@@ -36,7 +36,6 @@ const targets: Array<{ file: string; styles: string[] }> = [
     file: 'app/care-plan/manage.tsx',
     styles: ['typeChipLabelSelected', 'windowLabelSelected', 'priorityLabelSelected'],
   },
-  { file: 'app/log-bathroom.tsx',         styles: ['optionLabelSelected'] },
   { file: 'app/log-mood.tsx',             styles: ['moodLabelSelected'] },
   { file: 'app/log-activity.tsx',         styles: ['activityLabelSelected'] },
   {

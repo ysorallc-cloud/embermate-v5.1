@@ -288,7 +288,6 @@ function RootLayout() {
           <Stack.Screen name="log-sleep" />
           <Stack.Screen name="log-activity" />
           <Stack.Screen name="quick-log-more" />
-          <Stack.Screen name="log-bathroom" />
           <Stack.Screen name="guide-hub" />
           <Stack.Screen name="hub" />
           <Stack.Screen name="silent-vitals" />

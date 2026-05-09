@@ -52,9 +52,9 @@ describe('getFilteredOptions', () => {
   it('empty enabledBuckets shows only always-visible items', () => {
     const result = getFilteredOptions([]);
     const visibleIds = [...result.core, ...result.more].map(o => o.id);
-    // Only items with bucketType null
+    // Only items with bucketType null. Phase 9.0 removed 'bathroom' as a
+    // vestigial route — its quickLogOption was deleted alongside the screen.
     expect(visibleIds).toContain('note');
-    expect(visibleIds).toContain('bathroom');
     expect(visibleIds).toContain('symptom');
     expect(visibleIds).toContain('appointment');
     // Bucket-dependent items should be disabled
