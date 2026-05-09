@@ -1,6 +1,12 @@
 // ============================================================================
 // LOG MORNING WELLNESS CHECK
 // Step-by-step wizard: one question per step, auto-advance on tap
+//
+// LogScreen exception: step-by-step wizard pattern (one-question-per-step,
+// auto-advance, progress segments). Single-CTA primitive doesn't fit;
+// forcing migration would collapse the focus the wizard was designed for.
+// Revisit when LogScreen primitive grows step-indicator support, OR when
+// a dedicated wizard primitive is established.
 // ============================================================================
 
 import React, { useState, useMemo, useCallback } from 'react';
