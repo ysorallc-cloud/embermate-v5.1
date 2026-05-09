@@ -130,25 +130,29 @@ describe('rhythmStorage usage in log-meal.tsx', () => {
 // ============================================================================
 
 describe('rhythmStorage usage in log-vitals.tsx', () => {
-  it('imports getTodayProgress and TodayProgress from rhythmStorage', () => {
+  // Phase 9.2 — log-vitals dropped the broken getTodayProgress source
+  // (numerator counted non-null FIELDS, denominator counted scheduled
+  // CHECKS — produced "6 of 2 vitals checks logged today"). The migrated
+  // screen reads counts directly from listDailyInstances, the canonical
+  // wizard-driven source. log-meal and medication-confirm still use
+  // getTodayProgress until they migrate in 9.3 / a future phase; their
+  // assertions below are unchanged.
+  it('does NOT import getTodayProgress (Phase 9.2 retired the broken source)', () => {
     const source = readSource('app/log-vitals.tsx');
-    expect(source).toContain("import { getTodayProgress, TodayProgress } from '../utils/rhythmStorage'");
+    expect(source).not.toMatch(/import\s+\{[^}]*getTodayProgress/);
   });
 
-  it('getTodayProgress is USED in file body (not a dead import)', () => {
+  it('does NOT call getTodayProgress', () => {
     const source = readSource('app/log-vitals.tsx');
-    expect(isImportUsedInBody(source, 'getTodayProgress')).toBe(true);
+    expect(source).not.toMatch(/getTodayProgress\s*\(/);
   });
 
-  it('TodayProgress is USED in file body as a type annotation', () => {
+  it('reads counts via listDailyInstances (canonical wizard pipeline)', () => {
     const source = readSource('app/log-vitals.tsx');
-    expect(isImportUsedInBody(source, 'TodayProgress')).toBe(true);
-  });
-
-  it('progress.vitals is referenced in the render output', () => {
-    const source = readSource('app/log-vitals.tsx');
-    expect(source).toContain('progress.vitals.completed');
-    expect(source).toContain('progress.vitals.expected');
+    expect(source).toMatch(
+      /import\s+\{[^}]*listDailyInstances[^}]*\}\s+from\s+['"][^'"]+\/storage\/carePlanRepo['"]/,
+    );
+    expect(source).toContain('listDailyInstances(');
   });
 });
 
