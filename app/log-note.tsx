@@ -1,8 +1,22 @@
-// Functional note logging
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+// ============================================================================
+// LOG NOTE — Phase 9.5 migration to LogScreen.
+//
+// Smallest screen in the log family — single textarea + Save. Wraps in
+// <LogScreen>, drops LinearGradient + SubScreenHeader. No counter
+// subtitle (notes are not a scheduled instance type). Disclaimer at top.
+// Storage write paths and instance-completion call preserved.
+// ============================================================================
+
+import React, { useState, useMemo, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { navigateBack } from '../lib/navigate';
 import { Colors } from '../theme/theme-tokens';
@@ -14,7 +28,7 @@ import { hapticSuccess } from '../utils/hapticFeedback';
 import { EVENT } from '../lib/eventNames';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { logInstanceCompletion, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
-import { SubScreenHeader } from '../components/SubScreenHeader';
+import { LogScreen } from '../components/logging/LogScreen';
 
 export default function LogNoteScreen() {
   const { colors } = useTheme();
@@ -23,12 +37,13 @@ export default function LogNoteScreen() {
   const [content, setContent] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const handleSave = async () => {
-    if (!content.trim()) {
-      Alert.alert('Required', 'Please enter a note');
+  const canSave = content.trim().length > 0 && !saving;
+
+  const handleSave = useCallback(async () => {
+    if (!canSave) {
+      if (!content.trim()) Alert.alert('Required', 'Please enter a note');
       return;
     }
-
     setSaving(true);
     try {
       const now = new Date();
@@ -37,15 +52,19 @@ export default function LogNoteScreen() {
         timestamp: now.toISOString(),
         date: getTodayDateString(),
       });
-
       emitDataUpdate(EVENT.NOTES);
 
       const instanceId = params.instanceId as string | undefined;
       if (instanceId) {
         try {
-          await logInstanceCompletion(DEFAULT_PATIENT_ID, getTodayDateString(), instanceId, 'completed',
-            { type: 'custom', note: content.trim() },
-            { source: 'record' });
+          await logInstanceCompletion(
+            DEFAULT_PATIENT_ID,
+            getTodayDateString(),
+            instanceId,
+            'completed',
+            { type: 'custom', note: content.trim() } as any,
+            { source: 'record' },
+          );
           emitDataUpdate(EVENT.DAILY_INSTANCES);
         } catch (err) {
           logError('LogNoteScreen.completeInstance', err);
@@ -57,59 +76,77 @@ export default function LogNoteScreen() {
     } catch (error) {
       Alert.alert('Error', 'Failed to save note');
       logError('LogNoteScreen.handleSave', error);
-    } finally {
       setSaving(false);
     }
-  };
+  }, [canSave, content, params.instanceId]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]} style={styles.gradient}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
-        <ScrollView style={styles.scrollView}>
-          <View style={styles.content}>
-            <SubScreenHeader title="Log Note" emoji="📝" />
+    <LogScreen
+      title="Note"
+      onBack={navigateBack}
+      primaryAction={{
+        label: saving ? 'Saving…' : 'Save note',
+        onPress: handleSave,
+        disabled: !canSave,
+      }}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.kav}
+      >
+        <Text testID="log-note-disclaimer" style={styles.disclaimer}>
+          For caregiver record-keeping. Not medical advice.
+        </Text>
 
-            <View style={styles.form}>
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Note *</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  value={content}
-                  onChangeText={setContent}
-                  placeholder="Seemed more energetic today. Appetite was good at lunch. Remember to ask doctor about new medication next visit..."
-                  placeholderTextColor={colors.textMuted}
-                  multiline
-                  numberOfLines={10}
-                  textAlignVertical="top"
-                  autoFocus
-                  accessibilityLabel="Care note, required"
-                />
-              </View>
-
-              <TouchableOpacity style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSave} disabled={saving} accessibilityLabel={saving ? 'Saving note' : 'Save note'} accessibilityHint="Saves the care observation note" accessibilityRole="button" accessibilityState={{ disabled: saving }}>
-                <Text style={styles.saveButtonText}>{saving ? 'Saving...' : 'Save Note'}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </ScrollView>
-        </KeyboardAvoidingView>
-      </LinearGradient>
-    </SafeAreaView>
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Note</Text>
+          <TextInput
+            testID="log-note-input"
+            style={[styles.input, styles.textArea]}
+            value={content}
+            onChangeText={setContent}
+            placeholder="Seemed more energetic today. Appetite was good at lunch. Remember to ask doctor about new medication next visit…"
+            placeholderTextColor={colors.textMuted}
+            multiline
+            numberOfLines={10}
+            textAlignVertical="top"
+            autoFocus
+            accessibilityLabel="Care note"
+          />
+        </View>
+      </KeyboardAvoidingView>
+    </LogScreen>
   );
 }
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.background },
-  gradient: { flex: 1 },
-  scrollView: { flex: 1 },
-  content: { padding: 20, paddingBottom: 40 },
-  form: { gap: 24 },
+  kav: { flex: 1 },
+  disclaimer: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: c.textTertiary,
+    marginBottom: 20,
+  },
   formGroup: { gap: 8 },
-  label: { fontSize: 13, fontWeight: '500', color: c.textSecondary },
-  input: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: c.textPrimary },
-  textArea: { minHeight: 200, paddingTop: 14 },
-  saveButton: { backgroundColor: c.accent, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 12 },
-  saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: { color: c.textPrimary, fontSize: 15, fontWeight: '600' },
+  label: {
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: c.textTertiary,
+  },
+  input: {
+    backgroundColor: c.surfaceElevated,
+    borderWidth: 0.5,
+    borderColor: c.glassBorder,
+    borderRadius: 12,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    fontSize: 15,
+    color: c.textPrimary,
+  },
+  textArea: {
+    minHeight: 200,
+    paddingTop: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+  },
 });
