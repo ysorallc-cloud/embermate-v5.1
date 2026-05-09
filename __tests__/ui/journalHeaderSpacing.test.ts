@@ -28,10 +28,13 @@ describe('Journal header spacing', () => {
     expect(Number(match![1])).toBeGreaterThanOrEqual(24);
   });
 
-  it('headerRow has paddingTop >= 56', () => {
+  it('headerRow has paddingTop >= 32', () => {
+    // Phase 5.13.4 — dropped 56 → 32. The contract is now a floor at 32
+    // (matches the four-tab unified value pinned in
+    // headerStructureContract.test.ts).
     const block = extractStyleBlock('headerRow');
     const match = block.match(/paddingTop:\s*(\d+)/);
     expect(match).toBeTruthy();
-    expect(Number(match![1])).toBeGreaterThanOrEqual(56);
+    expect(Number(match![1])).toBeGreaterThanOrEqual(32);
   });
 });

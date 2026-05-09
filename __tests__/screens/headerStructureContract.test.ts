@@ -32,25 +32,29 @@ function num(block: string, prop: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-describe('Header structure contract — paddingTop: 56 across all tabs', () => {
-  it('Now tab header container: paddingTop 56', () => {
+describe('Header structure contract — paddingTop: 32 across all tabs', () => {
+  // Phase 5.13.4 — dropped 56 → 32. Combined with safe-area insets, 56
+  // produced ~103pt of dead space above the H1 on notched iPhones (~12%
+  // of screen height). 32 still gives breathing room above the 22pt H1
+  // but pulls content up to where the eye expects it.
+  it('Now tab header container: paddingTop 32', () => {
     const block = styleBlock(read('components/now/NowHeader.tsx'), 'headerRow');
-    expect(num(block, 'paddingTop')).toBe(56);
+    expect(num(block, 'paddingTop')).toBe(32);
   });
 
-  it('Journal tab header container: paddingTop 56', () => {
+  it('Journal tab header container: paddingTop 32', () => {
     const block = styleBlock(read('app/(tabs)/journal.tsx'), 'headerRow');
-    expect(num(block, 'paddingTop')).toBe(56);
+    expect(num(block, 'paddingTop')).toBe(32);
   });
 
-  it('Understand tab uses ScreenHeader; container paddingTop 56', () => {
+  it('Understand tab uses ScreenHeader; container paddingTop 32', () => {
     const block = styleBlock(read('components/ScreenHeader.tsx'), 'container');
-    expect(num(block, 'paddingTop')).toBe(56);
+    expect(num(block, 'paddingTop')).toBe(32);
   });
 
-  it('Support tab header container: paddingTop 56', () => {
+  it('Support tab header container: paddingTop 32', () => {
     const block = styleBlock(read('app/(tabs)/support.tsx'), 'headerWrap');
-    expect(num(block, 'paddingTop')).toBe(56);
+    expect(num(block, 'paddingTop')).toBe(32);
   });
 });
 

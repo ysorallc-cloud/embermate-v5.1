@@ -143,7 +143,8 @@ function createStyles(c: typeof Colors) {
     },
     // Phase 3 page rhythm — every tab's outermost ScrollView lands at
     // paddingTop: 24 / paddingHorizontal: 14. The hero `headerWrap` below
-    // carries its own paddingTop: 56 to clear the safe-area; scrollContent's
+    // carries its own paddingTop: 32 (lowered from 56 in 5.13.4) to clear
+    // the safe-area without eating ~12% of screen height; scrollContent's
     // 24 stacks above that as the canonical page-edge offset before the
     // header begins.
     scrollContent: {
@@ -152,7 +153,7 @@ function createStyles(c: typeof Colors) {
       paddingBottom: 24, // allow: tap-target padding (Apple HIG ≥44pt)
     },
     headerWrap: {
-      paddingTop: 56,
+      paddingTop: 32,
       paddingBottom: 24, // allow: tap-target padding (Apple HIG ≥44pt)
       paddingHorizontal: 4,
       borderBottomWidth: 0.5,

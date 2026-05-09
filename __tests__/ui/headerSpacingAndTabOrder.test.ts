@@ -5,26 +5,28 @@ const ROOT = join(__dirname, '../..');
 const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 
 describe('Header top spacing', () => {
-  it('ScreenHeader container has paddingTop: 56', () => {
-    // Unified across all four tabs in v6.7 — see __tests__/screens/headerStructureContract.test.ts.
+  // Phase 5.13.4 — dropped 56 → 32 to recover ~24pt of vertical real
+  // estate above the H1. Unified across all four tabs — see
+  // __tests__/screens/headerStructureContract.test.ts.
+  it('ScreenHeader container has paddingTop: 32', () => {
     const src = read('components/ScreenHeader.tsx');
     const containerMatch = src.match(/container:\s*\{[^}]*\}/s);
     expect(containerMatch).toBeTruthy();
-    expect(containerMatch![0]).toMatch(/paddingTop:\s*56/);
+    expect(containerMatch![0]).toMatch(/paddingTop:\s*32/);
   });
 
-  it('Support headerWrap has paddingTop: 56', () => {
+  it('Support headerWrap has paddingTop: 32', () => {
     const src = read('app/(tabs)/support.tsx');
     const headerWrapMatch = src.match(/headerWrap:\s*\{[^}]*\}/s);
     expect(headerWrapMatch).toBeTruthy();
-    expect(headerWrapMatch![0]).toMatch(/paddingTop:\s*56/);
+    expect(headerWrapMatch![0]).toMatch(/paddingTop:\s*32/);
   });
 
-  it('Journal headerRow has paddingTop: 56', () => {
+  it('Journal headerRow has paddingTop: 32', () => {
     const src = read('app/(tabs)/journal.tsx');
     const headerRowMatch = src.match(/headerRow:\s*\{[^}]*\}/s);
     expect(headerRowMatch).toBeTruthy();
-    expect(headerRowMatch![0]).toMatch(/paddingTop:\s*56/);
+    expect(headerRowMatch![0]).toMatch(/paddingTop:\s*32/);
   });
 });
 

@@ -929,7 +929,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'flex-start' as const,
-    paddingTop: 56,
+    paddingTop: 32,
     paddingBottom: 24, // allow: tap-target padding (Apple HIG ≥44pt)
     borderBottomWidth: 0.5,
     borderBottomColor: c.glassHover,

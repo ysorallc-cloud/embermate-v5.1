@@ -5,8 +5,8 @@
 //   • ReflectionCard, QuickResetPills, wellness link, and Plan ahead all render
 //   • No legacy 2×2 grid components (MoodCard / BreathCard / HelplineCard /
 //     CommunityCard) survive at the screen level
-//   • The standardized 4-tab header structure still applies (32pt title,
-//     56pt top padding, etc. — see headerStructureContract.test.ts)
+//   • The standardized 4-tab header structure still applies (22pt title,
+//     32pt top padding — see headerStructureContract.test.ts)
 // ============================================================================
 
 import { existsSync, readFileSync } from 'fs';
@@ -113,8 +113,8 @@ describe('You tab — old 2×2 grid components are gone at the screen level', ()
 describe('You tab — header structure contract still applies', () => {
   // Re-asserts the four-tab contract from
   // __tests__/screens/headerStructureContract.test.ts as a regression guard
-  // local to the You tab. Title 32pt/300, subtitle 13pt/textSecondary,
-  // paddingTop 56, paddingBottom 24.
+  // local to the You tab. Title 22pt/500, subtitle 13pt/textSecondary,
+  // paddingTop 32 (Phase 5.13.4), paddingBottom 24.
   function styleBlock(name: string): string {
     const re = new RegExp(`\\b${name}:\\s*\\{([^}]*)\\}`, 's');
     const m = supportSrc.match(re);
@@ -126,8 +126,8 @@ describe('You tab — header structure contract still applies', () => {
     return m ? Number(m[1]) : null;
   }
 
-  it('headerWrap paddingTop: 56', () => {
-    expect(num(styleBlock('headerWrap'), 'paddingTop')).toBe(56);
+  it('headerWrap paddingTop: 32', () => {
+    expect(num(styleBlock('headerWrap'), 'paddingTop')).toBe(32);
   });
 
   it('headerWrap paddingBottom: 24', () => {
