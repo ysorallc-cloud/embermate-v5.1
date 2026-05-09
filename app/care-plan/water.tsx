@@ -1,24 +1,25 @@
 // ============================================================================
-// WATER BUCKET CONFIGURATION
-// Configure hydration tracking in the Care Plan
+// WATER BUCKET CONFIGURATION — Phase 10.3.x migrated to
+// CarePlanConfigScreen (chrome=gradient, the bucket-config family).
+//
+// The primitive owns SafeAreaView + LinearGradient + header chrome.
+// Body unchanged: enable toggle, priority, daily goal, units,
+// reminder frequency, notifications.
 // ============================================================================
 
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Switch,
-  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
+import { CarePlanConfigScreen } from '../../components/care-plan/CarePlanConfigScreen';
 import {
   WaterBucketConfig,
   PRIORITY_OPTIONS,
@@ -53,7 +54,6 @@ export default function WaterBucketScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     config,
-    loading,
     toggleBucket,
     updateBucket,
   } = useCarePlanConfig();
@@ -86,202 +86,178 @@ export default function WaterBucketScreen() {
   }, [updateBucket]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient
-        colors={[colors.backgroundGradientStart, colors.backgroundGradientEnd]}
-        style={styles.gradient}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerLabel}>WATER</Text>
-          <View style={{ width: 44 }} />
+    <CarePlanConfigScreen
+      title="Water"
+      subtitle="Supports hydration goals and explains fatigue or headaches."
+      chrome="gradient"
+      onBack={() => router.back()}
+    >
+      {/* Enable Toggle */}
+      <View style={styles.settingRow}>
+        <View style={styles.settingInfo}>
+          <Text style={styles.settingLabel}>Track Water Intake</Text>
+          <Text style={styles.settingDescription}>
+            Enable hydration tracking in your Care Plan
+          </Text>
         </View>
+        <Switch
+          value={enabled}
+          onValueChange={handleToggleEnabled}
+          trackColor={{ false: colors.glassStrong, true: colors.accent }}
+          thumbColor={enabled ? colors.textPrimary : colors.switchThumbOff}
+          ios_backgroundColor={colors.glassStrong}
+        />
+      </View>
 
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Title */}
-          <View style={styles.titleSection}>
-            <Text style={styles.title}>Water</Text>
-            <Text style={styles.subtitle}>
-              Supports hydration goals and explains fatigue or headaches.
+      {enabled && (
+        <>
+          {/* Priority Selector */}
+          <Text style={styles.sectionLabel}>PRIORITY</Text>
+          <View style={styles.priorityContainer}>
+            {PRIORITY_OPTIONS.map(option => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.priorityOption,
+                  priority === option.value && styles.priorityOptionSelected,
+                ]}
+                onPress={() => handleChangePriority(option.value)}
+                activeOpacity={0.7}
+                accessibilityLabel={`${option.label} priority, ${option.description}`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: priority === option.value }}
+              >
+                <Text style={[
+                  styles.priorityLabel,
+                  priority === option.value && styles.priorityLabelSelected,
+                ]}>
+                  {option.label}
+                </Text>
+                <Text style={styles.priorityDescription}>{option.description}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Daily Goal */}
+          <Text style={styles.sectionLabel}>DAILY GOAL</Text>
+          <View style={styles.goalContainer}>
+            <View style={styles.goalDisplay}>
+              <Text style={styles.goalEmoji}>💧</Text>
+              <Text style={styles.goalValue}>{dailyGoalGlasses}</Text>
+              <Text style={styles.goalUnits}>{units}</Text>
+            </View>
+            <View style={styles.goalOptions}>
+              {GOAL_OPTIONS.map(option => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.goalOption,
+                    dailyGoalGlasses === option.value && styles.goalOptionSelected,
+                  ]}
+                  onPress={() => handleChangeGoal(option.value)}
+                  activeOpacity={0.7}
+                  accessibilityLabel={`${option.label} daily goal`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: dailyGoalGlasses === option.value }}
+                >
+                  <Text style={[
+                    styles.goalOptionLabel,
+                    dailyGoalGlasses === option.value && styles.goalOptionLabelSelected,
+                  ]}>
+                    {option.value}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.goalHint}>
+              About {Math.round(dailyGoalGlasses * 8)} oz or {Math.round(dailyGoalGlasses * 0.24)} liters
             </Text>
           </View>
 
-          {/* Enable Toggle */}
+          {/* Units */}
+          <Text style={styles.sectionLabel}>UNITS</Text>
+          <View style={styles.unitsContainer}>
+            {[
+              { value: 'glasses', label: 'Glasses', subtext: '~8 oz each' },
+              { value: 'oz', label: 'Ounces', subtext: 'Fluid oz' },
+              { value: 'ml', label: 'Milliliters', subtext: 'Metric' },
+            ].map(option => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.unitOption,
+                  units === option.value && styles.unitOptionSelected,
+                ]}
+                onPress={() => handleChangeUnits(option.value)}
+                activeOpacity={0.7}
+                accessibilityLabel={`${option.label}, ${option.subtext}`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: units === option.value }}
+              >
+                <Text style={[
+                  styles.unitLabel,
+                  units === option.value && styles.unitLabelSelected,
+                ]}>
+                  {option.label}
+                </Text>
+                <Text style={styles.unitSubtext}>{option.subtext}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Reminder Frequency */}
+          <Text style={styles.sectionLabel}>REMINDER FREQUENCY</Text>
+          <Text style={styles.sectionDescription}>
+            Get prompts to drink water throughout the day
+          </Text>
+          <View style={styles.reminderContainer}>
+            {WATER_REMINDER_OPTIONS.filter(o => o.value !== 'custom').map(option => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.reminderOption,
+                  reminderFrequency === option.value && styles.reminderOptionSelected,
+                ]}
+                onPress={() => handleChangeReminderFrequency(option.value)}
+                activeOpacity={0.7}
+                accessibilityLabel={`${option.label}, ${option.description}`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: reminderFrequency === option.value }}
+              >
+                <Text style={[
+                  styles.reminderLabel,
+                  reminderFrequency === option.value && styles.reminderLabelSelected,
+                ]}>
+                  {option.label}
+                </Text>
+                <Text style={styles.reminderDescription}>{option.description}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Notifications Setting */}
+          <Text style={styles.sectionLabel}>NOTIFICATIONS</Text>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Track Water Intake</Text>
+              <Text style={styles.settingLabel}>Hydration Reminders</Text>
               <Text style={styles.settingDescription}>
-                Enable hydration tracking in your Care Plan
+                Get periodic reminders to drink water
               </Text>
             </View>
             <Switch
-              value={enabled}
-              onValueChange={handleToggleEnabled}
+              value={waterConfig?.notificationsEnabled ?? false}
+              onValueChange={(value) => updateBucket('water', { notificationsEnabled: value })}
               trackColor={{ false: colors.glassStrong, true: colors.accent }}
-              thumbColor={enabled ? colors.textPrimary : colors.switchThumbOff}
+              thumbColor={(waterConfig?.notificationsEnabled ?? false) ? colors.textPrimary : colors.switchThumbOff}
               ios_backgroundColor={colors.glassStrong}
             />
           </View>
+        </>
+      )}
 
-          {enabled && (
-            <>
-              {/* Priority Selector */}
-              <Text style={styles.sectionLabel}>PRIORITY</Text>
-              <View style={styles.priorityContainer}>
-                {PRIORITY_OPTIONS.map(option => (
-                  <TouchableOpacity
-                    key={option.value}
-                    // Phase 2.6.3 — severity stripe retired (color-budget).
-                    style={[
-                      styles.priorityOption,
-                      priority === option.value && styles.priorityOptionSelected,
-                    ]}
-                    onPress={() => handleChangePriority(option.value)}
-                    activeOpacity={0.7}
-                    accessibilityLabel={`${option.label} priority, ${option.description}`}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: priority === option.value }}
-                  >
-                    <Text style={[
-                      styles.priorityLabel,
-                      priority === option.value && styles.priorityLabelSelected,
-                    ]}>
-                      {option.label}
-                    </Text>
-                    <Text style={styles.priorityDescription}>{option.description}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Daily Goal */}
-              <Text style={styles.sectionLabel}>DAILY GOAL</Text>
-              <View style={styles.goalContainer}>
-                <View style={styles.goalDisplay}>
-                  <Text style={styles.goalEmoji}>💧</Text>
-                  <Text style={styles.goalValue}>{dailyGoalGlasses}</Text>
-                  <Text style={styles.goalUnits}>{units}</Text>
-                </View>
-                <View style={styles.goalOptions}>
-                  {GOAL_OPTIONS.map(option => (
-                    <TouchableOpacity
-                      key={option.value}
-                      style={[
-                        styles.goalOption,
-                        dailyGoalGlasses === option.value && styles.goalOptionSelected,
-                      ]}
-                      onPress={() => handleChangeGoal(option.value)}
-                      activeOpacity={0.7}
-                      accessibilityLabel={`${option.label} daily goal`}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: dailyGoalGlasses === option.value }}
-                    >
-                      <Text style={[
-                        styles.goalOptionLabel,
-                        dailyGoalGlasses === option.value && styles.goalOptionLabelSelected,
-                      ]}>
-                        {option.value}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <Text style={styles.goalHint}>
-                  About {Math.round(dailyGoalGlasses * 8)} oz or {Math.round(dailyGoalGlasses * 0.24)} liters
-                </Text>
-              </View>
-
-              {/* Units */}
-              <Text style={styles.sectionLabel}>UNITS</Text>
-              <View style={styles.unitsContainer}>
-                {[
-                  { value: 'glasses', label: 'Glasses', subtext: '~8 oz each' },
-                  { value: 'oz', label: 'Ounces', subtext: 'Fluid oz' },
-                  { value: 'ml', label: 'Milliliters', subtext: 'Metric' },
-                ].map(option => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.unitOption,
-                      units === option.value && styles.unitOptionSelected,
-                    ]}
-                    onPress={() => handleChangeUnits(option.value)}
-                    activeOpacity={0.7}
-                    accessibilityLabel={`${option.label}, ${option.subtext}`}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: units === option.value }}
-                  >
-                    <Text style={[
-                      styles.unitLabel,
-                      units === option.value && styles.unitLabelSelected,
-                    ]}>
-                      {option.label}
-                    </Text>
-                    <Text style={styles.unitSubtext}>{option.subtext}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Reminder Frequency */}
-              <Text style={styles.sectionLabel}>REMINDER FREQUENCY</Text>
-              <Text style={styles.sectionDescription}>
-                Get prompts to drink water throughout the day
-              </Text>
-              <View style={styles.reminderContainer}>
-                {WATER_REMINDER_OPTIONS.filter(o => o.value !== 'custom').map(option => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.reminderOption,
-                      reminderFrequency === option.value && styles.reminderOptionSelected,
-                    ]}
-                    onPress={() => handleChangeReminderFrequency(option.value)}
-                    activeOpacity={0.7}
-                    accessibilityLabel={`${option.label}, ${option.description}`}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: reminderFrequency === option.value }}
-                  >
-                    <Text style={[
-                      styles.reminderLabel,
-                      reminderFrequency === option.value && styles.reminderLabelSelected,
-                    ]}>
-                      {option.label}
-                    </Text>
-                    <Text style={styles.reminderDescription}>{option.description}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Notifications Setting */}
-              <Text style={styles.sectionLabel}>NOTIFICATIONS</Text>
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Hydration Reminders</Text>
-                  <Text style={styles.settingDescription}>
-                    Get periodic reminders to drink water
-                  </Text>
-                </View>
-                <Switch
-                  value={waterConfig?.notificationsEnabled ?? false}
-                  onValueChange={(value) => updateBucket('water', { notificationsEnabled: value })}
-                  trackColor={{ false: colors.glassStrong, true: colors.accent }}
-                  thumbColor={(waterConfig?.notificationsEnabled ?? false) ? colors.textPrimary : colors.switchThumbOff}
-                  ios_backgroundColor={colors.glassStrong}
-                />
-              </View>
-            </>
-          )}
-
-          {/* Bottom spacing */}
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </LinearGradient>
-    </SafeAreaView>
+      {/* Bottom spacing */}
+      <View style={{ height: 40 }} />
+    </CarePlanConfigScreen>
   );
 }
 
@@ -290,69 +266,6 @@ export default function WaterBucketScreen() {
 // ============================================================================
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: c.background,
-  },
-  gradient: {
-    flex: 1,
-  },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Platform.OS === 'android' ? 20 : 0,
-    paddingBottom: Spacing.sm,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: c.backgroundElevated,
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backIcon: {
-    fontSize: 24,
-    color: c.textPrimary,
-  },
-  headerLabel: {
-    fontSize: 11,
-    color: c.textMuted,
-    letterSpacing: 1,
-    fontWeight: '600',
-  },
-
-  // Scroll
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: 40,
-  },
-
-  // Title
-  titleSection: {
-    marginBottom: Spacing.lg,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: c.textPrimary,
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: c.textSecondary,
-    lineHeight: 22,
-  },
-
   // Section Labels
   sectionLabel: {
     fontSize: 11,
