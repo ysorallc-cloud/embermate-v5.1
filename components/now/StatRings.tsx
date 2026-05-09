@@ -1,11 +1,21 @@
 // ============================================================================
-// STAT RINGS — flat 4-up grid for the core care buckets.
+// STAT RINGS — flat 4-up grid for the active care buckets.
 //
-// v6.7 visual-consistency Phase 2: the stat tiles are no longer wrapped in
-// a glass card (which created nested-card visual weight). Each tile is a
-// 28pt circle with a 0.5px category-color ring at 35% opacity, sitting
-// directly on the page background. Progress is conveyed by the count text
-// below ("1 of 3"); the tile itself is a category indicator, not a ring.
+// Visual contract (preserved from earlier phases):
+//   • Each tile is a 36pt circle with a 1px solid #3a3b35 ring against
+//     a recessed glassDim well. Phase 3.6.1 + 3.7.2 spell this out.
+//   • Hairline grouping (top + bottom 0.5px on the row container) per
+//     Phase 3.8.1.
+//   • Page-edge contract owns horizontal containment; no padding on the
+//     row itself.
+//
+// Phase 5.13.3 — render is now driven by enabledBuckets, not by a fixed
+// four-item list. Templates that disable meds/vitals (General Wellness,
+// Mental Health Support) or enable sleep/activity now show the right
+// tiles. We keep MAX_TILES = 4 so the 320pt iPhone-SE width math from
+// statRingsVisibility holds. Optional consumers (the existing component
+// tests) that omit enabledBuckets still get the legacy four — meds,
+// vitals, wellness, meals — so older surfaces don't break.
 // ============================================================================
 
 import React, { useMemo } from 'react';
@@ -13,6 +23,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing, Sizing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { StatData, TodayStats } from '../../utils/nowHelpers';
+import type { BucketType } from '../../types/carePlanConfig';
 
 // Phase 3.7.2 — bumped 28 → 36. At 28pt with a 1px border, the ring
 // occupied ~3.6% of the tile diameter, below the perceptual threshold
@@ -21,48 +32,115 @@ import type { StatData, TodayStats } from '../../utils/nowHelpers';
 // still fits four tiles inside the smallest target iPhone width.
 const TILE_SIZE = 36;
 
-type CategoryKey = 'meds' | 'vitals' | 'wellness' | 'meals';
+// Width math (from statRingsVisibility.test.tsx): 4 × 36 + 3 × 8 = 168pt
+// content. Page edge 14 × 2 = 28pt. Total 196pt fits comfortably in 320pt
+// (iPhone SE). Capping the rendered tiles at four preserves that.
+const MAX_TILES = 4;
+
+type CategoryKey =
+  | 'meds'
+  | 'vitals'
+  | 'wellness'
+  | 'meals'
+  | 'water'
+  | 'sleep'
+  | 'activity';
 
 interface CategoryDef {
   key: CategoryKey;
   emoji: string;
   label: string;
+  /** Which key on TodayStats this tile reads. Most map 1:1 with the bucket. */
+  statKey: keyof TodayStats;
 }
 
-const CATEGORIES: CategoryDef[] = [
-  { key: 'meds', emoji: '💊', label: 'MEDS' },
-  { key: 'vitals', emoji: '📊', label: 'VITALS' },
-  { key: 'wellness', emoji: '🌅', label: 'WELLNESS' },
-  { key: 'meals', emoji: '🍽️', label: 'MEALS' },
+// Per-bucket display metadata. The key here is the CarePlanConfig bucket
+// type; statKey lets us read the matching slice off TodayStats.
+const CATEGORY_REGISTRY: Record<CategoryKey, CategoryDef> = {
+  meds: { key: 'meds', emoji: '💊', label: 'MEDS', statKey: 'meds' },
+  vitals: { key: 'vitals', emoji: '📊', label: 'VITALS', statKey: 'vitals' },
+  wellness: { key: 'wellness', emoji: '🌅', label: 'WELLNESS', statKey: 'wellness' },
+  meals: { key: 'meals', emoji: '🍽️', label: 'MEALS', statKey: 'meals' },
+  water: { key: 'water', emoji: '💧', label: 'WATER', statKey: 'water' },
+  sleep: { key: 'sleep', emoji: '😴', label: 'SLEEP', statKey: 'sleep' },
+  activity: { key: 'activity', emoji: '🚶', label: 'ACTIVITY', statKey: 'activity' },
+};
+
+// Stable ordering. When the user has more than MAX_TILES buckets enabled,
+// we keep this order and slice — meds/vitals lead because they are the
+// most clinically important when present.
+const PRIORITY_ORDER: CategoryKey[] = [
+  'meds',
+  'vitals',
+  'wellness',
+  'meals',
+  'water',
+  'sleep',
+  'activity',
 ];
+
+// Legacy fallback for callers that don't pass enabledBuckets (existing
+// component tests, in particular). Matches the pre-5.13.3 default tile
+// set so those tests keep passing.
+const LEGACY_FALLBACK: CategoryKey[] = ['meds', 'vitals', 'wellness', 'meals'];
 
 // Phase 3.6.1 — solid ring at #3a3b35 (~L* 3 above page bg). The prior
 // rgba(255,240,215,0.18) read too faint on the lifted warm-charcoal
 // page; an alpha overlay at 18% lacked enough contrast to register as
 // a deliberate UI element. Solid color + crisp 1px edge fixes that
-// without making the rings shout. Same neutral across all four
-// categories so the row stays unified (the emoji inside carries the
-// per-category meaning).
+// without making the rings shout. Same neutral across all categories
+// so the row stays unified (the emoji inside carries the per-category
+// meaning).
 const NEUTRAL_RING = '#3a3b35';
 const RING_COLOR: Record<CategoryKey, string> = {
   meds: NEUTRAL_RING,
   vitals: NEUTRAL_RING,
   wellness: NEUTRAL_RING,
   meals: NEUTRAL_RING,
+  water: NEUTRAL_RING,
+  sleep: NEUTRAL_RING,
+  activity: NEUTRAL_RING,
 };
 
 export interface StatRingsProps {
   stats: TodayStats;
+  /**
+   * Active buckets from CarePlanConfig. When supplied, the row renders
+   * only the tiles whose buckets the user enabled (capped at MAX_TILES,
+   * ordered by PRIORITY_ORDER). When omitted, falls back to the legacy
+   * four — meds, vitals, wellness, meals — so older callers and tests
+   * that pre-date Phase 5.13.3 don't break.
+   */
+  enabledBuckets?: BucketType[];
 }
 
-export function StatRings({ stats }: StatRingsProps) {
+const RENDERABLE_KEYS = new Set<CategoryKey>(PRIORITY_ORDER);
+
+function isCategoryKey(b: BucketType): b is CategoryKey {
+  return RENDERABLE_KEYS.has(b as CategoryKey);
+}
+
+export function StatRings({ stats, enabledBuckets }: StatRingsProps) {
   const { colors } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
 
+  const categoriesToRender = useMemo<CategoryDef[]>(() => {
+    const source: CategoryKey[] = enabledBuckets
+      ? enabledBuckets.filter(isCategoryKey)
+      : LEGACY_FALLBACK;
+    const allowed = new Set<CategoryKey>(source);
+    return PRIORITY_ORDER
+      .filter((k) => allowed.has(k))
+      .slice(0, MAX_TILES)
+      .map((k) => CATEGORY_REGISTRY[k]);
+  }, [enabledBuckets]);
+
+  if (categoriesToRender.length === 0) return null;
+
   return (
     <View style={s.container}>
-      {CATEGORIES.map((cat) => {
-        const stat: StatData = (stats as any)[cat.key] ?? { completed: 0, total: 0 };
+      {categoriesToRender.map((cat) => {
+        const stat: StatData = (stats as any)[cat.statKey] ?? { completed: 0, total: 0 };
         const isEmpty = stat.total === 0;
         return (
           <View

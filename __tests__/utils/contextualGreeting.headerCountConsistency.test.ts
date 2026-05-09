@@ -54,9 +54,13 @@ describe('Phase 2.7 — header count matches displayed stat tiles', () => {
     expect(g.subtitle).not.toMatch(/\b1[78]\b/);
   });
 
-  it('HEADER_COUNT_CATEGORIES matches the StatRings CATEGORIES key set', () => {
+  it('HEADER_COUNT_CATEGORIES matches the StatRings default tile set', () => {
     // Structural lockstep: any future fifth tile / removed tile forces a
-    // sync update here. Read the StatRings source directly so we don't have
+    // sync update here. Phase 5.13.3 made the rendered tile set
+    // prop-driven (enabledBuckets), so the canonical default four now
+    // lives in a `LEGACY_FALLBACK: CategoryKey[]` constant inside
+    // StatRings — that's what the header subtitle's static counter
+    // mirrors. Read the StatRings source directly so we don't have
     // to mount React Native to introspect the exported component.
     const { readFileSync } = require('fs');
     const { join } = require('path');
@@ -64,11 +68,10 @@ describe('Phase 2.7 — header count matches displayed stat tiles', () => {
       join(__dirname, '../../components/now/StatRings.tsx'),
       'utf8',
     );
-    // Pull every `key: '<value>'` literal inside the CATEGORIES const block.
-    const block = src.match(/CATEGORIES[^=]*=\s*\[([\s\S]*?)\];/);
+    const block = src.match(/LEGACY_FALLBACK[^=]*=\s*\[([\s\S]*?)\];/);
     expect(block).not.toBeNull();
     const keyMatches = Array.from(
-      (block![1] as string).matchAll(/key:\s*['"](\w+)['"]/g),
+      (block![1] as string).matchAll(/['"](\w+)['"]/g),
     ).map((m) => m[1]);
     expect(keyMatches.length).toBe(4);
 

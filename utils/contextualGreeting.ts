@@ -14,8 +14,10 @@ export interface Greeting {
 // Categories surfaced in the Now tab StatRings. Header counts must match
 // what's visible in the tile row — counting hidden categories (water,
 // sleep, activity) creates trust-eroding mismatches like "17 pending"
-// when the user can only see 9 across the tiles. Keep this in sync with
-// components/now/StatRings.tsx CATEGORIES; the structural test at
+// when the user can only see 9 across the tiles. Phase 5.13.3 made the
+// rendered tile set prop-driven; this list mirrors LEGACY_FALLBACK in
+// components/now/StatRings.tsx (the default four when no enabledBuckets
+// prop is supplied). The structural test at
 // __tests__/utils/contextualGreeting.headerCountConsistency.test.ts
 // pins both surfaces in lockstep.
 export const HEADER_COUNT_CATEGORIES = [

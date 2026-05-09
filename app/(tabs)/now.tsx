@@ -1056,7 +1056,7 @@ export default function NowScreen() {
         <View style={styles.content}>
 
           {/* ═══ PROGRESS RINGS ═══ */}
-          <StatRings stats={todayStats} />
+          <StatRings stats={todayStats} enabledBuckets={enabledBuckets} />
 
           {/* ═══ HYDRATION TODAY (Prompt 2 Phase 7) ═══
               Stays visible whenever water tracking is on or any cup has
