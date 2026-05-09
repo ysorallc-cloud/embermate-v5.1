@@ -1,5 +1,12 @@
 // ============================================================================
 // LOG SYMPTOM - Functional symptom logging
+//
+// LogScreen exception: multi-step parent of log-pain. When the user
+// selects "Pain" in the symptom picker, the screen hands off to
+// app/log-pain.tsx for NRS-scale + body-location capture. Both halves
+// of the pair were classified as multi-step exceptions in the Phase 9.0
+// reachability audit; the LogScreen pattern still applies but the
+// parent→child handoff is documented here for future-readers.
 // ============================================================================
 
 import React, { useState, useMemo } from 'react';

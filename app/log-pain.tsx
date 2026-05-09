@@ -1,5 +1,13 @@
 // ============================================================================
 // LOG PAIN - Dedicated NRS 0-10 pain tracking with body location & character
+//
+// LogScreen exception: multi-step companion to log-symptom. Reached
+// from log-symptom.tsx when the caregiver picks "Pain" from the
+// symptom list, plus a fragile case-insensitive itemName-includes
+// match in app/(tabs)/now.tsx (~line 506) — that match is tracked
+// as a post-Phase-9 follow-up ("Investigate now.tsx pain-name-match
+// route"). Classified as a multi-step exception in the Phase 9.0
+// reachability audit.
 // ============================================================================
 
 import React, { useState, useMemo } from 'react';
