@@ -278,8 +278,11 @@ export default function NowScreen() {
 
   // v6.7 — water goal pulled from CarePlanConfig.water.dailyGoalGlasses
   // when the bucket is configured; falls back to the legacy default of 8.
-  const waterGoal = (carePlanConfig as any)?.buckets?.water?.dailyGoalGlasses ?? 8;
-  const isWaterBucketEnabled = (carePlanConfig as any)?.buckets?.water?.enabled === true;
+  // Phase 5.13.3 — buckets live at the top level of CarePlanConfig
+  // (see types/carePlanConfig.ts:351–376); the legacy .buckets.water
+  // nest never existed and silently produced fallback values.
+  const waterGoal = carePlanConfig?.water?.dailyGoalGlasses ?? 8;
+  const isWaterBucketEnabled = carePlanConfig?.water?.enabled === true;
 
   // Phase 5.13.2 — summary surfaced on the first-time welcome card. Reads
   // appliedTemplateId (stamped in applyCarePlanTemplate), bucket-enabled
