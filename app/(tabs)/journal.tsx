@@ -51,6 +51,7 @@ import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataS
 import { HandoffSheet } from '../../components/journal/HandoffSheet';
 import { NarrativeView } from '../../components/journal/NarrativeView';
 import { NarrativeSnapshot } from '../../components/journal/NarrativeSnapshot';
+import { TodayNotableMoments } from '../../components/journal/TodayNotableMoments';
 import { WhatChangedToday } from '../../components/journal/WhatChangedToday';
 import { EventsTimeline } from '../../components/journal/EventsTimeline';
 import { ForNextCaregiver } from '../../components/journal/ForNextCaregiver';
@@ -695,6 +696,12 @@ export default function JournalTab() {
                 onEditPress={() => setHandoffSheetVisible(true)}
                 isToday={!isViewingPast}
               />
+
+              {/* Phase 11.8.2 — notable moments. Today-only inline
+                  call-outs for day-level deltas (BP / glucose /
+                  refused meal / sleep outlier). Renders nothing when
+                  no moments qualify. */}
+              {!isViewingPast && <TodayNotableMoments dateKey={selectedDate} />}
 
               {/* Phase 5.12.4b — "What changed today" significance row.
                   Renders only when the day-level detector surfaces
