@@ -25,7 +25,18 @@
 // compliance signals, not adherence-style behavior. Other itemTypes
 // (vitals, activity, mood, etc.) return null so the loop skips them
 // (they're seeded through other paths).
+//
+// Phase 11.7.3a — payload helper. The Insights aggregator at
+// understandInsights.ts:614-619 reads `LogEntry.data?.type` to
+// bucket avgSleepHours / avgHydrationPerDay. Pre-fix the historical
+// loop wrote no payload, so the aggregator's switch never fired;
+// the Missing Data section claimed "Sleep / Hydration / Evening
+// wellness 14 days missing" while correlations populated from a
+// different store. The helper now returns a per-itemType
+// LogEntryData payload so the seeded LogEntries decode cleanly.
 // ============================================================================
+
+import type { LogEntryData } from '../types/carePlan';
 
 export type HistoricalSeedDecision = 'completed' | 'skipped' | null;
 
@@ -48,4 +59,41 @@ export function decideHistoricalSeedStatus(
     return random() > 0.1 ? 'completed' : 'skipped';
   }
   return null;
+}
+
+/**
+ * Returns a minimal LogEntryData payload for the given itemType so
+ * the persisted LogEntry can be decoded by understandInsights's
+ * data?.type-keyed aggregator. Returns undefined when no payload is
+ * needed (medication / non-seeded itemTypes).
+ *
+ * `random` is injected so tests can drive deterministic values.
+ */
+export function historicalSeedDataPayload(
+  itemType: string,
+  random: () => number = Math.random,
+): LogEntryData | undefined {
+  if (itemType === 'sleep') {
+    // 6.5–8.5 hours — a plausible distribution; 14 days of seeded
+    // sleep produces a believable avg around 7.5h.
+    const hours = Math.round((6.5 + random() * 2) * 10) / 10;
+    return { type: 'sleep', hours };
+  }
+  if (itemType === 'hydration') {
+    // 5–10 glasses — 14-day average reads as a reasonable hydration
+    // pattern, not perfect, not concerning.
+    const glasses = 5 + Math.floor(random() * 6);
+    return { type: 'hydration', glasses };
+  }
+  if (itemType === 'wellness') {
+    // The aggregator currently keys wellness via itemType === 'mood'
+    // (understandInsights.ts:604). Use type 'mood' so the persisted
+    // payload also decodes through any future data-aware aggregation.
+    // 11.7.3b fixes the itemType-key mismatch independently — once
+    // that lands, this payload still parses cleanly because mood
+    // is also a valid LogEntryData shape.
+    const mood = 3 + Math.floor(random() * 3); // 3, 4, or 5 — neutral-to-good
+    return { type: 'mood', mood };
+  }
+  return undefined;
 }

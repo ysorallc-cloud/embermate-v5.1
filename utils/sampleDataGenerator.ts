@@ -36,7 +36,7 @@ import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
 import { createDefaultCarePlanConfig } from '../types/carePlanConfig';
 import { ensureDailyInstances, getTodayDateString } from '../services/carePlanGenerator';
-import { decideHistoricalSeedStatus } from './sampleDataHistoricalSeedShape';
+import { decideHistoricalSeedStatus, historicalSeedDataPayload } from './sampleDataHistoricalSeedShape';
 
 const SAMPLE_DATA_INITIALIZED_KEY = StorageKeys.SAMPLE_DATA_INITIALIZED;
 
@@ -51,6 +51,9 @@ const SAMPLE_DATA_INITIALIZED_KEY = StorageKeys.SAMPLE_DATA_INITIALIZED;
 //
 //   v1 — Phase 11.7.2 baseline (post-11.6 medication-instance seed,
 //        post-11.5.3 correlation-engine inputs).
+//   v2 — Phase 11.7.3a (LogEntryData payloads on sleep / hydration /
+//        wellness historical completions so the Insights aggregator
+//        can decode avgSleepHours / avgHydrationPerDay).
 //
 // On app open, migrateSampleSeedShape() compares the persisted version
 // against this constant. When stored < current, it clears
@@ -63,7 +66,7 @@ const SAMPLE_DATA_INITIALIZED_KEY = StorageKeys.SAMPLE_DATA_INITIALIZED;
 // when this commit ships, refreshing already-seeded testers under
 // 11.6's medication-instance shape.
 //
-export const SAMPLE_SEED_SHAPE_VERSION = 1;
+export const SAMPLE_SEED_SHAPE_VERSION = 2;
 
 export interface SampleSeedShapeMigrationResult {
   migrated: boolean;
@@ -828,7 +831,14 @@ export const initializeSampleData = async (): Promise<boolean> => {
           if (inst.status !== 'pending') continue;
           const decision = decideHistoricalSeedStatus(inst.itemType);
           if (decision == null) continue;
-          await logInstanceCompletion(DEFAULT_PATIENT_ID, dateStr, inst.id, decision);
+          const data = historicalSeedDataPayload(inst.itemType);
+          await logInstanceCompletion(
+            DEFAULT_PATIENT_ID,
+            dateStr,
+            inst.id,
+            decision,
+            data,
+          );
         }
       }
       devLog('[initializeSampleData] Seeded 14 days of historical instances (wellness/sleep/hydration/medication)');
