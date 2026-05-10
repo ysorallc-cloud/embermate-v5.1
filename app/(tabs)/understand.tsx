@@ -39,6 +39,7 @@ import {
   UnderstandPageData,
   CorrelationCard,
 } from '../../utils/understandInsights';
+import { computeDataGaps, DataGap } from '../../utils/insightsDataGaps';
 import { logError } from '../../utils/devLog';
 import { useDataListener } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
@@ -72,12 +73,9 @@ interface CareScoreFactor {
   status: string;
 }
 
-interface DataGap {
-  metric: string;
-  daysMissing: number;
-  impact: string;
-  icon: string;
-}
+// Phase 11.9.3 — DataGap + computeDataGaps moved to utils/insightsDataGaps
+// so the integration tests can import them without pulling React Native
+// / expo-router. Re-exported via import below.
 
 interface AdherenceData {
   rate: number;
@@ -255,39 +253,10 @@ function computeHealthScore(pageData: UnderstandPageData): { score: number; prev
   return { score, previous, factors };
 }
 
-function computeDataGaps(pageData: UnderstandPageData, timeRange: number): DataGap[] {
-  const gaps: DataGap[] = [];
-
-  if (pageData.avgSleepHours === 0) {
-    gaps.push({
-      metric: 'Sleep',
-      daysMissing: timeRange,
-      impact: "Can't assess if fatigue reports correlate with sleep quality",
-      icon: '\uD83D\uDE34',
-    });
-  }
-
-  if (pageData.avgWellnessPerDay < 0.5) {
-    const missing = Math.round(timeRange * (1 - pageData.avgWellnessPerDay));
-    gaps.push({
-      metric: 'Evening wellness',
-      daysMissing: missing,
-      impact: 'Incomplete picture of end-of-day pain and alertness levels',
-      icon: '\uD83D\uDCCB',
-    });
-  }
-
-  if (pageData.avgHydrationPerDay === 0) {
-    gaps.push({
-      metric: 'Hydration',
-      daysMissing: timeRange,
-      impact: 'Unable to track dehydration risk or medication absorption',
-      icon: '\uD83D\uDCA7',
-    });
-  }
-
-  return gaps;
-}
+// Phase 11.9.3 — computeDataGaps moved to utils/insightsDataGaps.
+// The function stays pure; this extraction enables integration
+// tests to assert the gap output without mounting the screen's
+// component graph.
 
 function computeVitalTiles(readings: VitalReading[]): VitalTile[] {
   const tiles: VitalTile[] = [];

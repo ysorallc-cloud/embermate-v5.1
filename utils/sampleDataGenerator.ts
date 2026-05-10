@@ -54,6 +54,10 @@ const SAMPLE_DATA_INITIALIZED_KEY = StorageKeys.SAMPLE_DATA_INITIALIZED;
 //   v2 — Phase 11.7.3a (LogEntryData payloads on sleep / hydration /
 //        wellness historical completions so the Insights aggregator
 //        can decode avgSleepHours / avgHydrationPerDay).
+//   v3 — Phase 11.9 (sleep + water buckets enabled in sample-data
+//        config + hydration sync case in syncOtherBucketsWithConfig
+//        so sleep + hydration CarePlanItems actually get created and
+//        the historical loop has instances to seed payloads onto).
 //
 // On app open, migrateSampleSeedShape() compares the persisted version
 // against this constant. When stored < current, it clears
@@ -66,7 +70,7 @@ const SAMPLE_DATA_INITIALIZED_KEY = StorageKeys.SAMPLE_DATA_INITIALIZED;
 // when this commit ships, refreshing already-seeded testers under
 // 11.6's medication-instance shape.
 //
-export const SAMPLE_SEED_SHAPE_VERSION = 2;
+export const SAMPLE_SEED_SHAPE_VERSION = 3;
 
 export interface SampleSeedShapeMigrationResult {
   migrated: boolean;
