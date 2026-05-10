@@ -598,6 +598,7 @@ export default function JournalTab() {
             <View style={s.headerLeft}>
               <Text style={s.headerTitle}>Journal</Text>
               <Text style={s.headerDate}>{dayName}, {dateStr}</Text>
+              {/* Phase 12 retires this subtitle in favor of headline tiles + narrative bridge. Do not patch independently — see Phase 12 spec. */}
               <Text style={s.headerMood}>{moodLine}</Text>
             </View>
             {/* Header actions removed — Share is now exclusively on the

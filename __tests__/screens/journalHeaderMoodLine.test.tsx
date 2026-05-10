@@ -57,3 +57,22 @@ describe('Phase 5.12.b — Journal header mood line', () => {
     );
   });
 });
+
+describe('Phase 11.8 subtitle bug — Phase 12 deferral marker', () => {
+  // The count-based subtitle ("5/5 medications logged. 1 vitals reading
+  // recorded...") will be retired entirely by Phase 12's D2 layout. A
+  // deferral marker must sit colocated with the render site so a future
+  // maintainer can't "fix" the surface independently.
+  it('the deferral comment is colocated with the headerMood render', () => {
+    const marker = 'Phase 12 retires this subtitle in favor of headline tiles + narrative bridge. Do not patch independently — see Phase 12 spec.';
+    expect(journalSrc).toContain(marker);
+
+    const markerIdx = journalSrc.indexOf(marker);
+    const renderIdx = journalSrc.indexOf('<Text style={s.headerMood}>{moodLine}</Text>');
+    expect(renderIdx).toBeGreaterThan(-1);
+    // The marker must precede and sit within ~200 chars of the render line.
+    expect(markerIdx).toBeGreaterThan(-1);
+    expect(markerIdx).toBeLessThan(renderIdx);
+    expect(renderIdx - markerIdx).toBeLessThan(200);
+  });
+});
