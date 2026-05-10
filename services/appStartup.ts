@@ -7,7 +7,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 import { resetDailyMedicationStatus } from '../utils/medicationStorage';
-import { initializeSampleData, deduplicateSampleSymptoms } from '../utils/sampleDataGenerator';
+import { initializeSampleData, deduplicateSampleSymptoms, migrateSampleSeedShape } from '../utils/sampleDataGenerator';
 import { ensureDailySnapshot, pruneOldOverrides } from '../utils/carePlanStorage';
 import { logError, devLog } from '../utils/devLog';
 import { runMigrations } from './migrationService';
@@ -126,6 +126,15 @@ export async function runStartupSequence(): Promise<StartupResult> {
 
   // Phase 5: Cache warming (safe to fail)
   await runPhase('loadThresholds', () => loadCustomThresholds(), phases);
+
+  // Phase 5b: Sample-seed shape migration — Phase 11.7.2.
+  // Clears SAMPLE_DATA_INITIALIZED + SAMPLE_CORRELATION_GENERATED when
+  // the persisted seed-shape version is older than the current code
+  // version, so the sampleData phase below re-seeds existing testers
+  // under current logic. Must run BEFORE the sampleData phase.
+  await runPhase('sampleSeedShape', async () => {
+    await migrateSampleSeedShape();
+  }, phases);
 
   // Phase 6: Sample data — only if user chose sample data during onboarding
   // (initializeSampleData has its own flag check, but we skip entirely for

@@ -40,6 +40,86 @@ import { decideHistoricalSeedStatus } from './sampleDataHistoricalSeedShape';
 
 const SAMPLE_DATA_INITIALIZED_KEY = StorageKeys.SAMPLE_DATA_INITIALIZED;
 
+// ============================================================================
+// PHASE 11.7.2 — SAMPLE-SEED SHAPE VERSION
+// ============================================================================
+//
+// Monotonically incrementing integer that represents the shape of the
+// sample-data seed produced by initializeSampleData() +
+// generateSampleCorrelationData(). Bumped in code whenever the seed
+// shape changes — for example:
+//
+//   v1 — Phase 11.7.2 baseline (post-11.6 medication-instance seed,
+//        post-11.5.3 correlation-engine inputs).
+//
+// On app open, migrateSampleSeedShape() compares the persisted version
+// against this constant. When stored < current, it clears
+// SAMPLE_DATA_INITIALIZED + SAMPLE_CORRELATION_GENERATED so the next
+// sample-data init runs from scratch under current logic. Existing
+// testers who pulled the new build automatically re-seed without a
+// manual reset.
+//
+// First-launch default is 0 (missing key), so the migration fires once
+// when this commit ships, refreshing already-seeded testers under
+// 11.6's medication-instance shape.
+//
+export const SAMPLE_SEED_SHAPE_VERSION = 1;
+
+export interface SampleSeedShapeMigrationResult {
+  migrated: boolean;
+  fromVersion: number;
+  toVersion: number;
+}
+
+/**
+ * If the persisted seed-shape version is older than the current code
+ * version, clear the init flags so the next initializeSampleData() and
+ * generateSampleCorrelationData() calls run again under current logic.
+ * Returns a result object for telemetry / debugging.
+ *
+ * Wired into appStartup BEFORE the sampleData phase so the cleared
+ * flags are honoured on the same launch.
+ */
+export async function migrateSampleSeedShape(): Promise<SampleSeedShapeMigrationResult> {
+  try {
+    const stored = await safeGetItem<number>(
+      StorageKeys.SAMPLE_SEED_SHAPE_VERSION,
+      0,
+    );
+    if (stored >= SAMPLE_SEED_SHAPE_VERSION) {
+      return {
+        migrated: false,
+        fromVersion: stored,
+        toVersion: SAMPLE_SEED_SHAPE_VERSION,
+      };
+    }
+    // Clear both seed-init flags so the next initializeSampleData() and
+    // generateSampleCorrelationData() runs from scratch.
+    await AsyncStorage.removeItem(SAMPLE_DATA_INITIALIZED_KEY);
+    await AsyncStorage.removeItem(StorageKeys.SAMPLE_CORRELATION_GENERATED);
+    // Persist the new version so subsequent launches don't re-migrate.
+    await safeSetItem(
+      StorageKeys.SAMPLE_SEED_SHAPE_VERSION,
+      SAMPLE_SEED_SHAPE_VERSION,
+    );
+    devLog(
+      `[migrateSampleSeedShape] Seed shape ${stored} → ${SAMPLE_SEED_SHAPE_VERSION}, init flags cleared`,
+    );
+    return {
+      migrated: true,
+      fromVersion: stored,
+      toVersion: SAMPLE_SEED_SHAPE_VERSION,
+    };
+  } catch (error) {
+    logError('sampleDataGenerator.migrateSampleSeedShape', error);
+    return {
+      migrated: false,
+      fromVersion: -1,
+      toVersion: SAMPLE_SEED_SHAPE_VERSION,
+    };
+  }
+}
+
 /**
  * Helper to add origin tag to sample data
  */

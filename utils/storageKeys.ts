@@ -149,6 +149,11 @@ export const StorageKeys = {
   SAMPLE_BANNER_DISMISSED: '@embermate_sample_banner_dismissed',
   SAMPLE_BANNER_MODE: '@embermate_sample_banner_mode',
   SAMPLE_CORRELATION_GENERATED: '@embermate_sample_correlation_generated',
+  // Phase 11.7.2 — monotonic version of the sample-data seed shape.
+  // Bumped in code when the seed shape changes; the appStartup
+  // migration clears the init flags when stored version < current,
+  // re-seeding existing testers under current logic.
+  SAMPLE_SEED_SHAPE_VERSION: '@embermate_sample_seed_shape_version',
   USER_DECLINED_SAMPLE_DATA: '@embermate_user_declined_sample_data',
 
   // ---- UX Prompts ----
