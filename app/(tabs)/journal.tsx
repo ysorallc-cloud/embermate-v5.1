@@ -693,6 +693,7 @@ export default function JournalTab() {
               <NarrativeSnapshot
                 dateKey={selectedDate}
                 onEditPress={() => setHandoffSheetVisible(true)}
+                isToday={!isViewingPast}
               />
 
               {/* Phase 5.12.4b — "What changed today" significance row.
