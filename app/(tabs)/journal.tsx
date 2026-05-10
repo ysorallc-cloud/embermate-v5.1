@@ -53,13 +53,14 @@ import { NarrativeView } from '../../components/journal/NarrativeView';
 import { NarrativeSnapshot } from '../../components/journal/NarrativeSnapshot';
 import { TodayNotableMoments } from '../../components/journal/TodayNotableMoments';
 import { TodayStillPending } from '../../components/journal/TodayStillPending';
-import { WhatChangedToday } from '../../components/journal/WhatChangedToday';
-import { EventsTimeline } from '../../components/journal/EventsTimeline';
-import { ForNextCaregiver } from '../../components/journal/ForNextCaregiver';
+// Phase 11.8.4 — WhatChangedToday / EventsTimeline / ForNextCaregiver
+// imports retired from the today path. The components themselves stay
+// in the codebase (they have their own component-level tests) and may
+// surface again in past-day rendering or future surfaces. Today Tiers
+// 1-3 (Recap / Notable Moments / Still Pending) cover their roles.
 import { JournalEmptyDay } from '../../components/journal/JournalEmptyDay';
 import { JournalDisclaimer } from '../../components/journal/JournalDisclaimer';
 import { useDayEvents } from '../../hooks/useDayEvents';
-import { useDayLevelChanges } from '../../hooks/useDayLevelChanges';
 import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
 import { getHandoffTone } from '../../storage/handoffToneRepo';
 import { buildDayNarrative } from '../../utils/narrativeSummaryBuilder';
@@ -129,7 +130,6 @@ export default function JournalTab() {
   // Phase 5.12.e — timeline + cross-section flag linkage. The hooks share
   // the dateKey effect and re-fetch when the user changes day.
   const { events: dayEvents } = useDayEvents(selectedDate);
-  const { result: dayChangesResult } = useDayLevelChanges(selectedDate);
 
   // Phase 5.12.h — when the user taps "+ Add a note" from the empty-day
   // composition, flip into populated mode so JournalNotesCard mounts and
@@ -710,33 +710,16 @@ export default function JournalTab() {
                   nothing when nothing is pending. */}
               {!isViewingPast && <TodayStillPending dateKey={selectedDate} />}
 
-              {/* Phase 5.12.4b — "What changed today" significance row.
-                  Renders only when the day-level detector surfaces
-                  meaningful deltas (else null). Coral eyebrow on any
-                  flag-severity change; lavender when only notes. */}
-              <WhatChangedToday dateKey={selectedDate} />
-
-              {/* Phase 5.12.e — flat events timeline. Read-only, no card
-                  chrome. Cross-section linkage colours rows coral when
-                  their event matches a flag-severity day-level change. */}
-              <EventsTimeline
-                events={dayEvents}
-                dayLevelChanges={dayChangesResult?.changes ?? []}
-              />
-
-              {/* Phase 5.12.f — handoff section for the next caregiver.
-                  Renders only when there are pending items or flag-
-                  severity day-level changes to surface. */}
-              <ForNextCaregiver
-                pending={outcomes.pending.names ?? []}
-                dayLevelChanges={dayChangesResult?.changes ?? []}
-              />
-
-              {/* Phase 5.12.a — leading dashboard card removed. Journal
-                  no longer duplicates Now; completion counts demote to a
-                  quiet footer line at the bottom of the page. */}
-
-              {/* ═══ TODAY'S NOTES (single-card layout, internal eyebrow + footer) ═══ */}
+              {/* Phase 11.8.4 — Tier 4: Today's Notes. Caregiver-
+                  authored handoff. The legacy WhatChangedToday /
+                  EventsTimeline / ForNextCaregiver surfaces have
+                  been retired from the today path — Tiers 1-3 above
+                  cover their roles:
+                    - Notable Moments supersedes WhatChangedToday
+                    - Today Recap supersedes EventsTimeline
+                    - Still Pending supersedes ForNextCaregiver
+                  Past-day path still uses NarrativeView (line ~675)
+                  which keeps the original surfaces. */}
               <View style={{ marginTop: 12 }}>
                 <JournalNotesCard
                   date={selectedDate}

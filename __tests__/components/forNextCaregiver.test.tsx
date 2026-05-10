@@ -252,7 +252,7 @@ describe('ForNextCaregiver — overflow line', () => {
   });
 });
 
-describe('ForNextCaregiver — Journal mounting', () => {
+describe('ForNextCaregiver — Journal mounting (post-Phase 11.8.4 retirement)', () => {
   const { readFileSync } = require('fs');
   const { join } = require('path');
   const journalSrc = readFileSync(
@@ -260,16 +260,16 @@ describe('ForNextCaregiver — Journal mounting', () => {
     'utf8',
   );
 
-  it('Journal imports ForNextCaregiver', () => {
-    expect(journalSrc).toMatch(
-      /import\s+\{\s*ForNextCaregiver\s*\}\s+from\s+['"][^'"]+ForNextCaregiver['"]/,
+  // Phase 11.8.4 retired ForNextCaregiver from the today path —
+  // TodayStillPending (Tier 3) supersedes its pending-handoff
+  // role. Component stays in the codebase.
+  it('Journal does NOT import ForNextCaregiver (retired in 11.8.4)', () => {
+    expect(journalSrc).not.toMatch(
+      /^\s*import\s+\{\s*ForNextCaregiver\s*\}\s+from\s+['"][^'"]+ForNextCaregiver['"]/m,
     );
   });
 
-  it('Journal renders ForNextCaregiver below EventsTimeline', () => {
-    const timeline = journalSrc.indexOf('<EventsTimeline');
-    const forNext = journalSrc.indexOf('<ForNextCaregiver');
-    expect(timeline).toBeGreaterThan(-1);
-    expect(forNext).toBeGreaterThan(timeline);
+  it('Journal does NOT render <ForNextCaregiver />', () => {
+    expect(journalSrc).not.toMatch(/<ForNextCaregiver\b/);
   });
 });

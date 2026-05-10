@@ -182,7 +182,7 @@ describe('WhatChangedToday — per-row coloring', () => {
   });
 });
 
-describe('WhatChangedToday — Journal mounting', () => {
+describe('WhatChangedToday — Journal mounting (post-Phase 11.8.4 retirement)', () => {
   const { readFileSync } = require('fs');
   const { join } = require('path');
   const journalSrc = readFileSync(
@@ -190,18 +190,19 @@ describe('WhatChangedToday — Journal mounting', () => {
     'utf8',
   );
 
-  it('Journal imports WhatChangedToday', () => {
-    expect(journalSrc).toMatch(
-      /import\s+\{\s*WhatChangedToday\s*\}\s+from\s+['"][^'"]+WhatChangedToday['"]/,
+  // Phase 11.8.4 retired WhatChangedToday from the today path —
+  // TodayNotableMoments (Tier 2) supersedes its day-level-delta
+  // role. The component itself stays in the codebase and the
+  // component-level tests above still exercise it. The Journal
+  // import + render assertions are inverted to lock in the
+  // retirement.
+  it('Journal does NOT import WhatChangedToday (retired in 11.8.4)', () => {
+    expect(journalSrc).not.toMatch(
+      /^\s*import\s+\{\s*WhatChangedToday\s*\}\s+from\s+['"][^'"]+WhatChangedToday['"]/m,
     );
   });
 
-  it('Journal renders WhatChangedToday between NarrativeSnapshot and JournalNotesCard', () => {
-    const snapshot = journalSrc.indexOf('<NarrativeSnapshot');
-    const whatChanged = journalSrc.indexOf('<WhatChangedToday');
-    const notes = journalSrc.indexOf('<JournalNotesCard');
-    expect(snapshot).toBeGreaterThan(-1);
-    expect(whatChanged).toBeGreaterThan(snapshot);
-    expect(notes).toBeGreaterThan(whatChanged);
+  it('Journal does NOT render <WhatChangedToday />', () => {
+    expect(journalSrc).not.toMatch(/<WhatChangedToday\b/);
   });
 });

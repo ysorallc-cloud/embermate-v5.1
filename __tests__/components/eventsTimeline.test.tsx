@@ -248,7 +248,7 @@ describe('EventsTimeline — cross-section flag linkage', () => {
   });
 });
 
-describe('EventsTimeline — Journal mounting', () => {
+describe('EventsTimeline — Journal mounting (post-Phase 11.8.4 retirement)', () => {
   const { readFileSync } = require('fs');
   const { join } = require('path');
   const journalSrc = readFileSync(
@@ -256,18 +256,17 @@ describe('EventsTimeline — Journal mounting', () => {
     'utf8',
   );
 
-  it('Journal imports EventsTimeline', () => {
-    expect(journalSrc).toMatch(
-      /import\s+\{\s*EventsTimeline\s*\}\s+from\s+['"][^'"]+EventsTimeline['"]/,
+  // Phase 11.8.4 retired EventsTimeline from the today path — the
+  // value-based Today Recap (Tier 1) supersedes the raw event log
+  // for the today view. Component stays in the codebase; today
+  // path no longer renders it.
+  it('Journal does NOT import EventsTimeline (retired in 11.8.4)', () => {
+    expect(journalSrc).not.toMatch(
+      /^\s*import\s+\{\s*EventsTimeline\s*\}\s+from\s+['"][^'"]+EventsTimeline['"]/m,
     );
   });
 
-  it('Journal renders EventsTimeline below WhatChangedToday and above JournalNotesCard', () => {
-    const whatChanged = journalSrc.indexOf('<WhatChangedToday');
-    const timeline = journalSrc.indexOf('<EventsTimeline');
-    const notes = journalSrc.indexOf('<JournalNotesCard');
-    expect(whatChanged).toBeGreaterThan(-1);
-    expect(timeline).toBeGreaterThan(whatChanged);
-    expect(notes).toBeGreaterThan(timeline);
+  it('Journal does NOT render <EventsTimeline />', () => {
+    expect(journalSrc).not.toMatch(/<EventsTimeline\b/);
   });
 });

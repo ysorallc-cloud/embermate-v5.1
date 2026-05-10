@@ -84,7 +84,7 @@ const createStyles = (c: any) => StyleSheet.create({
     marginTop: Spacing.sm,
     marginBottom: Spacing.sm,
     paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     backgroundColor: c.glassFaint,
     borderWidth: 0.5,
     borderColor: c.glassBorder,
