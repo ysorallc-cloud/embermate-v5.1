@@ -25,17 +25,10 @@ describe('CareCircleEmailCapture sheet', () => {
     expect(src).toMatch(/disabled=\{.*!isValid|disabled=\{.*!emailValid/);
   });
 
-  it('POSTs email to configurable waitlist endpoint on submit', () => {
-    expect(src).toMatch(/fetch\(/);
-    expect(src).toMatch(/method:\s*['"]POST['"]/);
-    expect(src).toMatch(/EXPO_PUBLIC_WAITLIST_URL|waitlistUrl/);
-  });
-
-  it('reads endpoint URL from env with a fallback warning', () => {
-    expect(src).toMatch(/process\.env\.EXPO_PUBLIC_WAITLIST_URL/);
-    // Should log a warning if the env var is not set
-    expect(src).toMatch(/warn|console\.warn|devLog/i);
-  });
+  // v1.0 — Phase 13.5.2: the modal is gated off in NowFooter and the
+  // submit path is local-only. The two prior tests asserting a network POST
+  // and an EXPO_PUBLIC_WAITLIST_URL env-var read have been removed. v1.1
+  // will reinstate them when a real backend is wired up.
 
   it('on success, sets earlyAccessJoined flag in AsyncStorage', () => {
     expect(src).toContain('embermate.careCircle.earlyAccessJoined');

@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { safeSetItem } from '../utils/safeStorage';
-import { logError, devLog } from '../utils/devLog';
+import { logError } from '../utils/devLog';
 import { Colors, Spacing } from '../theme/theme-tokens';
 
 // ============================================================================
@@ -26,14 +26,13 @@ import { Colors, Spacing } from '../theme/theme-tokens';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const JOINED_KEY = 'embermate.careCircle.earlyAccessJoined';
 
-// Read the waitlist endpoint from the Expo env. The actual URL is set in
-// eas.json or .env — not hardcoded here. If absent, submissions are
-// logged locally but not sent to a server.
-const waitlistUrl = process.env.EXPO_PUBLIC_WAITLIST_URL || '';
-
-if (!waitlistUrl && typeof __DEV__ !== 'undefined' && __DEV__) {
-  devLog('[CareCircleEmailCapture] EXPO_PUBLIC_WAITLIST_URL is not set — submissions will be local-only.');
-}
+// v1.0: this component is unreachable (gated off by CARE_CIRCLE_V7_TEASER_ENABLED
+// in components/now/NowFooter.tsx). The submit path writes the joined flag to
+// local AsyncStorage only — no network call, no env-var read. v1.1 enablement:
+// flip the gate flag and replace the local-only branch in handleSubmit with a
+// real backend POST whose URL comes from a build-time config (e.g. a new
+// EXPO_PUBLIC_WAITLIST_URL — be sure to declare Email Address collection on
+// the App Store privacy label at that point).
 
 // ============================================================================
 // PROPS
@@ -64,20 +63,8 @@ export function CareCircleEmailCapture({ visible, onClose }: CareCircleEmailCapt
     setError('');
 
     try {
-      if (waitlistUrl) {
-        const response = await fetch(waitlistUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim(), source: 'embermate-ios' }),
-        });
-        if (!response.ok) {
-          throw new Error(`Server returned ${response.status}`);
-        }
-      } else {
-        // No endpoint configured — log locally for dev builds
-        devLog('[CareCircleEmailCapture] Would POST:', email.trim());
-      }
-
+      // v1.0: local-only — no network call. v1.1 will replace this branch
+      // with a real backend POST. See file header for enablement steps.
       await safeSetItem(JOINED_KEY, 'true');
       setSubmitted(true);
     } catch (err) {

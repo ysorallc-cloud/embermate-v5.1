@@ -17,6 +17,25 @@ import { shouldShowTeaser } from '../../utils/careCircleTeaser';
 import { safeSetItem } from '../../utils/safeStorage';
 
 // ============================================================================
+// FEATURE FLAG — Phase 13.5.2
+// ============================================================================
+// v1.0 ships without the Care Circle waitlist so the App Store privacy label
+// can stay "Data Not Collected." When this flag is false, the teaser card
+// and the email-capture modal are not rendered, the modal is unreachable
+// through any user flow, and no email is captured locally or remotely.
+//
+// v1.1 enablement path:
+//   1. Flip CARE_CIRCLE_V7_TEASER_ENABLED to true.
+//   2. Wire components/CareCircleEmailCapture.tsx handleSubmit to a real
+//      backend POST (currently writes to local AsyncStorage only).
+//   3. Re-add EXPO_PUBLIC_WAITLIST_URL (or equivalent config path) to surface
+//      the URL — at that point, the privacy label must declare Email Address
+//      collection.
+// ============================================================================
+
+const CARE_CIRCLE_V7_TEASER_ENABLED = false;
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -50,6 +69,7 @@ export function NowFooter({
   const [emailSheetVisible, setEmailSheetVisible] = useState(false);
 
   useEffect(() => {
+    if (!CARE_CIRCLE_V7_TEASER_ENABLED) return;
     shouldShowTeaser().then(show => setShowTeaser(show));
   }, []);
 
@@ -104,22 +124,24 @@ export function NowFooter({
 
       <EndOfShiftCard completedCount={completedCount} outcomes={outcomes} />
 
-      {/* Care Circle teaser — only for invested users (14+ days) */}
-      {showTeaser && (
+      {/* Care Circle teaser — gated off for v1.0 (see CARE_CIRCLE_V7_TEASER_ENABLED) */}
+      {CARE_CIRCLE_V7_TEASER_ENABLED && showTeaser && (
         <CareCircleTeaser
           onJoin={handleTeaserJoin}
           onDismiss={handleTeaserDismiss}
         />
       )}
 
-      <CareCircleEmailCapture
-        visible={emailSheetVisible}
-        onClose={() => {
-          setEmailSheetVisible(false);
-          // Re-check visibility — if user joined, teaser should hide
-          shouldShowTeaser().then(show => setShowTeaser(show));
-        }}
-      />
+      {CARE_CIRCLE_V7_TEASER_ENABLED && (
+        <CareCircleEmailCapture
+          visible={emailSheetVisible}
+          onClose={() => {
+            setEmailSheetVisible(false);
+            // Re-check visibility — if user joined, teaser should hide
+            shouldShowTeaser().then(show => setShowTeaser(show));
+          }}
+        />
+      )}
     </>
   );
 }
