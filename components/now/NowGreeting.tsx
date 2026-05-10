@@ -1,22 +1,28 @@
 // ============================================================================
-// NOW GREETING — compressed header (Phase 3.6.2).
+// NOW GREETING — compressed header (Phase 3.6.2, subtitle revised in 15.2).
 //
 // Pre-3.6.2: row 1 carried a 32pt title; row 2 carried a metadata strip
-// with the time-of-day emoji, the current device-clock time ("5:58 PM"),
-// a separator dot, and the next-meds subtitle. ~110pt total header zone
-// once the patient chip + page top padding stacked above.
+// with the time-of-day emoji, the current device-clock time, a separator
+// dot, and the next-meds subtitle. ~110pt total header zone.
 //
-// The current-time display was redundant — the iOS status bar device
-// clock already shows it — and the metadata strip occupied ~30pt for an
-// emoji + time + subtitle that read better inlined under a smaller
-// title. 3.6.2 collapses to a tighter ~60pt header zone:
-//
+// 3.6.2 collapsed to ~60pt:
 //   Row 1: title (22pt, weight 500, letterSpacing -0.3)
-//   Row 2: subtitle ("{tod-emoji} {greeting.subtitle}", 12pt, textSecondary)
+//   Row 2: subtitle (12pt, textSecondary)
+//
+// Phase 15.2 — subtitle is the formatted date ("Sunday, May 10").
+// Pre-15.2 the subtitle was state-derived ("Next meds: 8:00 AM",
+// "All done. Nice work.", etc.), which duplicated information the
+// StatRings + the timeline below already convey. The date carries
+// grounding alone, so the time-of-day emoji prefix is dropped — emoji
+// + date together reads busy. buildGreeting is left untouched (its
+// `title` is still state-derived and other consumers may use the
+// full output); this component just overrides the subtitle slot at
+// the render site.
 // ============================================================================
 
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { format } from 'date-fns';
 import { Colors } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { buildGreeting } from '../../utils/contextualGreeting';
@@ -25,30 +31,30 @@ import type { TodayStats } from '../../utils/nowHelpers';
 export interface NowGreetingProps {
   stats: TodayStats;
   patientName: string;
+  /**
+   * Phase 15.2 — no longer consumed for subtitle composition. Kept in
+   * the prop signature because call paths upstream (NowHeader, screen-
+   * level orchestration) thread it through alongside stats; removing it
+   * is its own scoped cleanup.
+   */
   nextScheduledTime: string | null;
 }
 
-function getTimeOfDay(hour: number): 'morning' | 'midday' | 'evening' | 'night' {
-  if (hour < 6) return 'night';
-  if (hour < 12) return 'morning';
-  if (hour < 18) return 'midday';
-  return 'evening';
-}
-
-const TIME_EMOJI: Record<string, string> = {
-  morning: '☀',
-  midday: '⛅',
-  evening: '☾',
-  night: '☾',
-};
-
-export function NowGreeting({ stats, patientName, nextScheduledTime }: NowGreetingProps) {
+export function NowGreeting({
+  stats,
+  patientName,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  nextScheduledTime,
+}: NowGreetingProps) {
   const { colors } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
 
   const hour = new Date().getHours();
-  const tod = getTimeOfDay(hour);
+  // buildGreeting still drives the title (state-derived greeting copy).
+  // Its subtitle output is intentionally discarded here — see file
+  // header for the 15.2 rationale.
   const greeting = buildGreeting(hour, stats, nextScheduledTime, patientName);
+  const dateSubtitle = format(new Date(), 'EEEE, MMMM d');
 
   return (
     <View style={s.container}>
@@ -60,7 +66,7 @@ export function NowGreeting({ stats, patientName, nextScheduledTime }: NowGreeti
         numberOfLines={1}
         ellipsizeMode="tail"
       >
-        {`${TIME_EMOJI[tod]} ${greeting.subtitle}`}
+        {dateSubtitle}
       </Text>
     </View>
   );
