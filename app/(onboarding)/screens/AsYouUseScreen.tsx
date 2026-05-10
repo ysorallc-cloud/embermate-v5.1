@@ -9,8 +9,10 @@
 // ============================================================================
 
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export interface AsYouUseScreenProps {
   onContinue: () => void;
@@ -97,6 +99,7 @@ export function AsYouUseScreen({ onContinue }: AsYouUseScreenProps) {
 const createStyles = (c: any) => StyleSheet.create({
   root: {
     flex: 1,
+    width: SCREEN_WIDTH,
     backgroundColor: c.background,
     paddingHorizontal: 20,
     paddingTop: 56,

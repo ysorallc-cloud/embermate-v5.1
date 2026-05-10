@@ -36,6 +36,7 @@ jest.mock('react-native', () => {
     Text: PT('Text'),
     TouchableOpacity: PT('TouchableOpacity'),
     StyleSheet: { create: (s: any) => s, flatten: (s: any) => s },
+    Dimensions: { get: () => ({ width: 390, height: 844 }) },
   };
 });
 
@@ -129,6 +130,21 @@ describe('AsYouUseScreen — framing rules', () => {
   it('does NOT use "coming soon!" anywhere', () => {
     const tree = (AsYouUseScreen as any)(baseProps());
     expect(flattenText(tree).toLowerCase()).not.toContain('coming soon');
+  });
+});
+
+describe('AsYouUseScreen — page width (regression: 11.7.6.1)', () => {
+  // The screen lives inside a horizontal pagingEnabled FlatList. Items in
+  // such a list don't auto-constrain to viewport width — they get content
+  // width unless given an explicit width. Without `width: SCREEN_WIDTH`
+  // on the root, milestone body text overflows the right edge and clips
+  // ("missed doses", "and what", "Built with inputs").
+  it('root style sets an explicit pixel width matching window width', () => {
+    const tree = (AsYouUseScreen as any)(baseProps());
+    const rootStyle = tree.props?.style;
+    expect(rootStyle).toBeDefined();
+    expect(typeof rootStyle.width).toBe('number');
+    expect(rootStyle.width).toBe(390);
   });
 });
 
