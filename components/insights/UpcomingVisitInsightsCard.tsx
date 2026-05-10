@@ -21,26 +21,22 @@ import {
   type Appointment,
 } from '../../utils/appointmentStorage';
 import { getEventsByDateRange } from '../../storage/eventRepo';
+import { listDailyInstancesRange } from '../../storage/carePlanRepo';
 import { getActivePatientId } from '../../storage/patientRegistry';
 import { logError } from '../../utils/devLog';
+import {
+  computeDataCoverage,
+  COVERAGE_WINDOW_DAYS,
+  type DataCoverage,
+} from '../../utils/visitCoverage';
 
 const UPCOMING_LOOKAHEAD_DAYS = 7;
-const COVERAGE_WINDOW_DAYS = 15;
 
 const SHORT_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const SHORT_MONTHS = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
-
-interface DataCoverage {
-  daysLogged: number;
-  windowDays: number;
-  meds: number;
-  vitals: number;
-  meals: number;
-  notes: number;
-}
 
 function withinDays(isoDate: string, days: number): boolean {
   const apptMs = new Date(isoDate).getTime();
@@ -70,29 +66,17 @@ async function loadDataCoverage(): Promise<DataCoverage | null> {
     const end = new Date();
     const start = new Date();
     start.setDate(start.getDate() - (COVERAGE_WINDOW_DAYS - 1));
-    const events = await getEventsByDateRange(
-      isoDate(start),
-      isoDate(end),
-      patientId,
-    );
-    let meds = 0;
-    let vitals = 0;
-    let meals = 0;
-    let notes = 0;
-    const dayKeys = new Set<string>();
-    for (const e of events) {
-      const day = e.timestamp.slice(0, 10);
-      dayKeys.add(day);
-      if (e.type === 'medication_taken' || e.type === 'medication_skipped') meds += 1;
-      else if (e.type === 'vitals_recorded') vitals += 1;
-      else if (e.type === 'meal_logged') meals += 1;
-      else if (e.type === 'note_added') notes += 1;
-    }
-    return {
-      daysLogged: dayKeys.size,
-      windowDays: COVERAGE_WINDOW_DAYS,
-      meds, vitals, meals, notes,
-    };
+    const startStr = isoDate(start);
+    const endStr = isoDate(end);
+    // Phase 11.7.4 — union read of events + completed instances.
+    // Pre-fix the events-only path missed sample-data writes (which
+    // go through the instance pipeline) and any future flow that
+    // writes only one or the other.
+    const [events, instances] = await Promise.all([
+      getEventsByDateRange(startStr, endStr, patientId),
+      listDailyInstancesRange(patientId, startStr, endStr),
+    ]);
+    return computeDataCoverage(events, instances, COVERAGE_WINDOW_DAYS);
   } catch (err) {
     logError('UpcomingVisitInsightsCard.coverage', err);
     return null;
