@@ -52,6 +52,7 @@ import { HandoffSheet } from '../../components/journal/HandoffSheet';
 import { NarrativeView } from '../../components/journal/NarrativeView';
 import { NarrativeSnapshot } from '../../components/journal/NarrativeSnapshot';
 import { TodayNotableMoments } from '../../components/journal/TodayNotableMoments';
+import { TodayStillPending } from '../../components/journal/TodayStillPending';
 import { WhatChangedToday } from '../../components/journal/WhatChangedToday';
 import { EventsTimeline } from '../../components/journal/EventsTimeline';
 import { ForNextCaregiver } from '../../components/journal/ForNextCaregiver';
@@ -702,6 +703,12 @@ export default function JournalTab() {
                   refused meal / sleep outlier). Renders nothing when
                   no moments qualify. */}
               {!isViewingPast && <TodayNotableMoments dateKey={selectedDate} />}
+
+              {/* Phase 11.8.3 — still-pending card. Closes the
+                  "what's left to handle" gap so the handoff to the
+                  next caregiver is obvious. Today only; renders
+                  nothing when nothing is pending. */}
+              {!isViewingPast && <TodayStillPending dateKey={selectedDate} />}
 
               {/* Phase 5.12.4b — "What changed today" significance row.
                   Renders only when the day-level detector surfaces
