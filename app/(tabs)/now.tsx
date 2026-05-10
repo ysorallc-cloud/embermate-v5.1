@@ -77,6 +77,7 @@ import { NowTimeline } from '../../components/now/NowTimeline';
 import { NowFooter } from '../../components/now/NowFooter';
 import { UpcomingAppointmentCard } from '../../components/now/UpcomingAppointmentCard';
 import { StatRings } from '../../components/now/StatRings';
+import { MorningMedsBanner } from '../../components/now/MorningMedsBanner';
 import { HydrationTodayRow } from '../../components/now/HydrationTodayRow';
 
 
@@ -1056,6 +1057,25 @@ export default function NowScreen() {
         />
 
         <View style={styles.content}>
+
+          {/* ═══ MORNING MEDS BANNER (Phase 15.3) ═══
+              Lifted from inside NowTimeline so the "X meds due now ·
+              Confirm All" affordance sits above the StatRings rather
+              than nested inside the schedule card. The banner self-
+              suppresses internally when pendingCount === 0, so we
+              can render it unconditionally and let the component
+              decide. Medication-filter derivation moved here from
+              NowTimeline. */}
+          {(() => {
+            const pendingMeds = allPending.filter((i: any) => i.itemType === 'medication');
+            return (
+              <MorningMedsBanner
+                pendingCount={pendingMeds.length}
+                pendingInstanceIds={pendingMeds.map((i: any) => i.id)}
+                onConfirmAll={handleBatchMedConfirm}
+              />
+            );
+          })()}
 
           {/* ═══ PROGRESS RINGS ═══ */}
           <StatRings stats={todayStats} enabledBuckets={enabledBuckets} />

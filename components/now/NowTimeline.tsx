@@ -10,7 +10,13 @@ import { Spacing } from '../../theme/theme-tokens';
 import { navigate } from '../../lib/navigate';
 import { BucketType } from '../../types/carePlanConfig';
 import { type TodayStats, type TimeWindow } from '../../utils/nowHelpers';
-import { MorningMedsBanner } from './MorningMedsBanner';
+// Phase 15.3 — MorningMedsBanner lifted to app/(tabs)/now.tsx so it
+// renders ABOVE StatRings rather than nested inside the schedule
+// section card. The banner consumes pendingCount/pendingInstanceIds
+// derived from allPending; both the derivation and the render moved
+// to now.tsx. onBatchMedConfirm stays in NowTimeline's prop surface
+// because TimelineSection's filtered-meds path still consumes it
+// for its own batch-confirm CTA inside the schedule.
 import { TimelineSection } from './TimelineSection';
 import { ScheduleCard, type ScheduleWindow } from './ScheduleCard';
 
@@ -180,12 +186,10 @@ export function NowTimeline({
         />
       ) : (
         <View style={s.sectionCard}>
-          <MorningMedsBanner
-            pendingCount={allPending.filter((i: any) => i.itemType === 'medication').length}
-            pendingInstanceIds={allPending.filter((i: any) => i.itemType === 'medication').map((i: any) => i.id)}
-            onConfirmAll={onBatchMedConfirm}
-          />
-
+          {/* Phase 15.3 — MorningMedsBanner moved to now.tsx (renders
+              above StatRings now). The banner's medication-count
+              derivation moved with it; this card opens directly with
+              the timeline section. */}
           <TimelineSection
             allPending={allPending}
             completed={completed}

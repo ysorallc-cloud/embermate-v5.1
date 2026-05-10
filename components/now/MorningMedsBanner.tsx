@@ -30,7 +30,10 @@ export function MorningMedsBanner({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.warmSurfaceAlert, borderColor: colors.warmSurfaceAlertBorder }]}>
+    <View
+      testID="morning-meds-banner"
+      style={[styles.container, { backgroundColor: colors.warmSurfaceAlert, borderColor: colors.warmSurfaceAlertBorder }]}
+    >
       <View style={styles.content}>
         <Text style={[styles.emoji]}>💊</Text>
         <View style={styles.textContainer}>
