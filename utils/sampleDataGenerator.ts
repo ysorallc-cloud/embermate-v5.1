@@ -776,6 +776,16 @@ export const initializeSampleData = async (): Promise<boolean> => {
     };
     config.vitals = { ...config.vitals, vitalTypes: ['bp', 'hr', 'spo2', 'glucose', 'temp', 'weight'] };
     // meals and wellness already enabled by default in createDefaultCarePlanConfig
+    // Phase 11.9.1 — sleep + water default to enabled: false in
+    // createDefaultCarePlanConfig (DEFAULT_BUCKET_CONFIG / DEFAULT_WATER_CONFIG).
+    // syncOtherBucketsWithConfig gates sleep CarePlanItem creation on
+    // sleep.enabled === true; without this override, the historical
+    // seed loop never sees a sleep instance to write a payload to,
+    // and Insights surfaces "Sleep · 14 days missing" indefinitely.
+    // Water/hydration needs both this override AND a sync case in
+    // carePlanGenerator.ts (added in 11.9.2).
+    config.sleep = { ...config.sleep, enabled: true };
+    config.water = { ...config.water, enabled: true };
     await saveCarePlanConfig(config);
 
     // Mark migration as complete to prevent duplicate items from old-format medications
