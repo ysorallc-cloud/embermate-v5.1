@@ -78,7 +78,9 @@ import { NowFooter } from '../../components/now/NowFooter';
 import { UpcomingAppointmentCard } from '../../components/now/UpcomingAppointmentCard';
 import { StatRings } from '../../components/now/StatRings';
 import { MorningMedsBanner } from '../../components/now/MorningMedsBanner';
-import { HydrationTodayRow } from '../../components/now/HydrationTodayRow';
+// Phase 15.4 — HydrationTodayRow retired. Hydration is the 5th
+// StatRings ring; the water-ring tap routes to /log-water (see
+// StatRings.tsx). Inline +1 cup is filed for v1.1.
 
 
 // Banners (removed: NoMedicationsBanner, NoCarePlanBanner, DataIntegrityBanner)
@@ -744,22 +746,12 @@ export default function NowScreen() {
   // hydrationRepo (event store) and updateTodayWaterLog (legacy single-day
   // log) so StatRings + the water Mode A panel stay in sync without any
   // additional refactor.
-  const handleHydrationRowAdd = useCallback(async (amount: number) => {
-    try {
-      const next = waterGlasses + amount;
-      setWaterGlasses(next);
-      await addCup(activePatient?.id || DEFAULT_PATIENT_ID, amount);
-      await updateTodayWaterLog(next);
-      emitDataUpdate(EVENT.WATER);
-      void hapticSuccess();
-    } catch (err) {
-      logError('handleHydrationRowAdd', err);
-    }
-  }, [activePatient, waterGlasses]);
-
-  const handleHydrationRowPress = useCallback(() => {
-    navigate('/log-water');
-  }, []);
+  // Phase 15.4 — handleHydrationRowAdd / handleHydrationRowPress
+  // removed with the standalone HydrationTodayRow. Their only consumer
+  // was the row; the water-ring tap on StatRings now owns the
+  // navigate('/log-water') affordance, and the inline +1 cup is
+  // filed for v1.1. handleAddCup below stays — NowTimeline still
+  // threads it for inline +1 on water-tracking schedule rows.
 
   const handleAddCup = useCallback(async (_instance: any) => {
     try {
@@ -1080,18 +1072,13 @@ export default function NowScreen() {
           {/* ═══ PROGRESS RINGS ═══ */}
           <StatRings stats={todayStats} enabledBuckets={enabledBuckets} />
 
-          {/* ═══ HYDRATION TODAY (Prompt 2 Phase 7) ═══
-              Stays visible whenever water tracking is on or any cup has
-              already been logged today — keeps the affordance reachable
-              even before the bucket is configured. */}
-          {(isWaterBucketEnabled || waterGlasses > 0) && (
-            <HydrationTodayRow
-              cupsToday={waterGlasses}
-              goal={isWaterBucketEnabled ? waterGoal : undefined}
-              onAddCup={handleHydrationRowAdd}
-              onRowPress={handleHydrationRowPress}
-            />
-          )}
+          {/* Phase 15.4 — HydrationTodayRow retired. Hydration folded
+              into StatRings as the 5th ring (when 'water' is in
+              enabledBuckets). The standalone row's tap-to-/log-water
+              affordance moved to the water ring's onPress; inline +1
+              cup is filed for v1.1 ("extend StatRings API to support
+              per-ring inline quick-actions, primary use case =
+              hydration +1"). */}
 
           {/* ═══ ZONE 2: TODAY'S SCHEDULE ═══ */}
           <NowTimeline

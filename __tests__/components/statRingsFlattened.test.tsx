@@ -36,6 +36,7 @@ jest.mock('react-native', () => {
   return {
     View: PT('View'),
     Text: PT('Text'),
+    TouchableOpacity: PT('TouchableOpacity'),
     StyleSheet: { create: (s: any) => s, flatten: (s: any) => s },
   };
 });
@@ -44,6 +45,13 @@ jest.mock('react-native-svg', () => {
   const PT = (n: string) => n;
   return { __esModule: true, default: PT('Svg'), Circle: PT('SvgCircle') };
 });
+
+// Phase 15.4 — StatRings now imports navigate (water ring routes to
+// /log-water on tap). Mock the wrapper to keep expo-router out of
+// the test runtime.
+jest.mock('../../lib/navigate', () => ({
+  navigate: jest.fn(),
+}));
 
 import { StatRings } from '../../components/now/StatRings';
 

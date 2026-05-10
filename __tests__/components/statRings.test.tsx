@@ -10,7 +10,15 @@
 jest.mock('react-native', () => ({
   View: 'View',
   Text: 'Text',
+  TouchableOpacity: 'TouchableOpacity',
   StyleSheet: { create: (styles: any) => styles },
+}));
+
+// Phase 15.4 — StatRings now imports navigate (water ring routes to
+// /log-water on tap). Mock the wrapper to keep expo-router out of
+// the test runtime.
+jest.mock('../../lib/navigate', () => ({
+  navigate: jest.fn(),
 }));
 
 jest.mock('react', () => {

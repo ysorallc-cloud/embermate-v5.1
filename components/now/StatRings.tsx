@@ -19,9 +19,10 @@
 // ============================================================================
 
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors, Spacing, Sizing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
+import { navigate } from '../../lib/navigate';
 import type { StatData, TodayStats } from '../../utils/nowHelpers';
 import type { BucketType } from '../../types/carePlanConfig';
 
@@ -163,16 +164,18 @@ export function StatRings({ stats, enabledBuckets }: StatRingsProps) {
       {categoriesToRender.map((cat) => {
         const stat: StatData = (stats as any)[cat.statKey] ?? { completed: 0, total: 0 };
         const isEmpty = stat.total === 0;
-        return (
-          <View
-            key={cat.key}
-            style={s.column}
-            accessibilityLabel={
-              isEmpty
-                ? `${cat.label}, none scheduled`
-                : `${cat.label}, ${stat.completed} of ${stat.total} completed`
-            }
-          >
+        const a11yLabel = isEmpty
+          ? `${cat.label}, none scheduled`
+          : `${cat.label}, ${stat.completed} of ${stat.total} completed`;
+
+        // Phase 15.4 — water ring carries the standalone HydrationTodayRow's
+        // tap-to-/log-water affordance. Other rings stay non-interactive
+        // Views; per-ring inline quick-actions (e.g. inline +1 cup) are
+        // filed for v1.1 ("extend StatRings API to support per-ring
+        // inline quick-actions, primary use case = hydration +1").
+        const isWater = cat.key === 'water';
+        const tile = (
+          <>
             <View
               testID={`stat-tile-${cat.key}`}
               style={[s.tile, { borderColor: RING_COLOR[cat.key] }]}
@@ -183,6 +186,31 @@ export function StatRings({ stats, enabledBuckets }: StatRingsProps) {
             <Text style={s.value}>
               {isEmpty ? '—' : `${stat.completed} of ${stat.total}`}
             </Text>
+          </>
+        );
+
+        if (isWater) {
+          return (
+            <TouchableOpacity
+              key={cat.key}
+              style={s.column}
+              accessibilityLabel={a11yLabel}
+              accessibilityRole="button"
+              onPress={() => navigate('/log-water')}
+              activeOpacity={0.7}
+            >
+              {tile}
+            </TouchableOpacity>
+          );
+        }
+
+        return (
+          <View
+            key={cat.key}
+            style={s.column}
+            accessibilityLabel={a11yLabel}
+          >
+            {tile}
           </View>
         );
       })}
