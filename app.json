@@ -139,6 +139,7 @@
         "encryption": "AES-256",
         "localStorage": true,
         "noExternalServers": true,
+        "noExternalServersAuditNote": "Reconciled in v1.0 (May 2026) after 13.5.1 (Sentry kill-switch) and 13.5.2 (Care Circle gate). Future changes that introduce outbound network traffic must update this claim or add an audit contract that enforces it. Enforced by __tests__/utils/noExternalServersAudit.test.ts.",
         "hipaaCompliant": false
       },
       "features": [
