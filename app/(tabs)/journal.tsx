@@ -173,11 +173,40 @@ export default function JournalTab() {
       ? narrativeSummary.trim()
       : 'No record from this day.';
 
+  // Phase 11.7.1 — outcomes refresh callback. Used by:
+  //   1. The mount + selectedDate-change useEffect below (existing path).
+  //   2. The event-driven useDataListener that re-fetches when sample-
+  //      data init or any logging surface writes to a pipeline that
+  //      changes outcomes. Pre-fix the listener at line ~316 only
+  //      called loadReport, which doesn't touch outcomes — leaving
+  //      the empty-day check at line ~632 reading stale state.
+  const refreshOutcomes = useCallback(() => {
+    getDailyOutcomes(selectedDate).then(setOutcomes).catch(() => {});
+  }, [selectedDate]);
+
   // Load outcomes + day-complete flag for the selected date.
   useEffect(() => {
-    getDailyOutcomes(selectedDate).then(setOutcomes).catch(() => {});
+    refreshOutcomes();
     isDayComplete(selectedDate).then(setDayCompleteFlag).catch(() => {});
-  }, [selectedDate]);
+  }, [selectedDate, refreshOutcomes]);
+
+  // Event-driven outcomes refresh — same multi-pipeline filter pattern
+  // as Phase 11.3's support.tsx witness refresh. The categories listed
+  // are the pipelines that change the instance-pipeline view feeding
+  // outcomes (DAILY_INSTANCES + LOGS for logs/instance writes;
+  // MEDICATION + WELLNESS for category-specific emits;
+  // SAMPLE_DATA_CLEARED for the reset flow).
+  useDataListener(useCallback((category) => {
+    if (
+      category === EVENT.DAILY_INSTANCES
+      || category === EVENT.LOGS
+      || category === EVENT.MEDICATION
+      || category === EVENT.WELLNESS
+      || category === EVENT.SAMPLE_DATA_CLEARED
+    ) {
+      refreshOutcomes();
+    }
+  }, [refreshOutcomes]));
 
   // scrollTo='handoff' from End of Shift card → scroll + one-time pulse.
   useEffect(() => {
