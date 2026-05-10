@@ -118,7 +118,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "sentryDsn": "https://2797ddae89180f0fc0978e5ba2491cf8@o4510988284919808.ingest.us.sentry.io/4510988286558208",
+      "sentryDsn": "",
       "eas": {
         "projectId": "c1c2cfb3-2d20-485c-9e9d-29a53d853228"
       },

@@ -7,12 +7,21 @@ import * as Sentry from '@sentry/react-native';
 import Constants from 'expo-constants';
 import { StorageKeyPrefixes } from './storageKeys';
 
+// v1.0 ships with "Data Not Collected" on the App Store privacy label.
+// This kill switch hard-disables Sentry regardless of DSN configuration so
+// no init, no transport, no installation ID is ever created in production.
+// Flip to false (and restore the DSN in app.json) to re-enable post-launch.
+const SENTRY_FORCE_DISABLED = true;
+
 // Read DSN from app.json `expo.extra.sentryDsn`. Empty string when missing
 // — production builds without a configured DSN simply skip Sentry init
 // rather than crashing or reporting to a placeholder host.
 const SENTRY_DSN: string = Constants.expoConfig?.extra?.sentryDsn ?? '';
 
 let initialized = false;
+// Distinct from `initialized`: only true when Sentry.init actually ran.
+// Report functions guard on this so calls no-op when init was skipped.
+let sentryActive = false;
 
 /**
  * Initialize error reporting. Call once in appStartup.ts.
@@ -20,6 +29,14 @@ let initialized = false;
  */
 export function initErrorReporting(): void {
   if (initialized) return;
+
+  if (SENTRY_FORCE_DISABLED) {
+    if (__DEV__) {
+      console.log('[ErrorReporting] SENTRY_FORCE_DISABLED — crash reporting disabled for v1.0.');
+    }
+    initialized = true;
+    return;
+  }
 
   // Skip initialization if DSN is not configured. Log a single notice so the
   // dev/QA build is observably crash-reporting-disabled instead of silently
@@ -81,6 +98,7 @@ export function initErrorReporting(): void {
   });
 
   initialized = true;
+  sentryActive = true;
 }
 
 /**
@@ -94,6 +112,8 @@ export function reportError(error: Error, context?: Record<string, string>): voi
     console.error('[ErrorReporting]', error.message, context);
     return;
   }
+
+  if (!sentryActive) return;
 
   Sentry.withScope((scope) => {
     if (context) {
@@ -125,6 +145,8 @@ export function reportWarning(message: string, context?: Record<string, string>)
     return;
   }
 
+  if (!sentryActive) return;
+
   Sentry.withScope((scope) => {
     scope.setLevel('warning');
     if (context) scope.setExtras(context);
@@ -136,6 +158,8 @@ export function reportWarning(message: string, context?: Record<string, string>)
  * Set user context (non-PII). Use patient tier, not name.
  */
 export function setUserContext(tier: string, patientCount: number): void {
+  if (!sentryActive) return;
+
   Sentry.setUser({
     // No PII — just tier and count for debugging
     subscription: tier,
