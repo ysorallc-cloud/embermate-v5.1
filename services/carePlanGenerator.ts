@@ -240,7 +240,7 @@ async function syncMedicationItemsWithConfig(
  * IMPORTANT: Only creates items if NONE of that type exist (to prevent duplicates)
  * @returns true if any changes were made
  */
-async function syncOtherBucketsWithConfig(
+export async function syncOtherBucketsWithConfig(
   carePlanId: string,
   patientId: string
 ): Promise<boolean> {
@@ -663,6 +663,63 @@ async function syncOtherBucketsWithConfig(
       changed = true;
     } else if (!sleepEnabled && hasActiveSleepItem) {
       for (const item of existingSleepItems) {
+        if (item.active) {
+          await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
+          changed = true;
+        }
+      }
+    }
+
+    // ===== HYDRATION SYNC =====
+    // Phase 11.9.2 — water bucket previously had no sync case here,
+    // so even with water.enabled === true no CarePlanItem of type
+    // 'hydration' was ever created. Insights kept surfacing
+    // "Hydration · 14 days missing" because the historical seed
+    // loop never saw a hydration instance to write a payload to.
+    // Mirrors the sleep block: reactivate / create / deactivate
+    // triad. Bucket key is 'water' on CarePlanConfig; CarePlanItem
+    // type is 'hydration' (matching LogEntryData.type and the
+    // aggregator's data?.type === 'hydration' check).
+    const waterConfig = (config as any).water as BucketConfig | undefined;
+    const waterEnabled = waterConfig?.enabled === true;
+    const existingHydrationItems = allItems.filter(i => i.type === 'hydration');
+    const hasActiveHydrationItem = existingHydrationItems.some(i => i.active);
+
+    if (waterEnabled && existingHydrationItems.length > 0 && !hasActiveHydrationItem) {
+      for (const item of existingHydrationItems) {
+        if (!item.active) {
+          devLog('[syncOtherBucketsWithConfig] Reactivating hydration item:', item.id);
+          await upsertCarePlanItem({ ...item, active: true, updatedAt: now });
+          changed = true;
+        }
+      }
+    } else if (waterEnabled && existingHydrationItems.length === 0) {
+      const waterTimesOfDay = waterConfig?.timesOfDay || ['midday'];
+      const times: TimeWindow[] = waterTimesOfDay.map(tod => ({
+        id: `sync-hydration-${tod}-time`,
+        kind: 'exact' as const,
+        label: TIME_OF_DAY_TO_WINDOW[tod as TimeOfDay],
+        at: TIME_OF_DAY_DEFAULTS[tod as TimeOfDay] || '12:00',
+      }));
+
+      const hydrationItem: CarePlanItem = {
+        id: 'sync-hydration',
+        carePlanId,
+        type: 'hydration',
+        name: 'Log water',
+        priority: waterConfig?.priority || 'recommended',
+        active: true,
+        schedule: { frequency: 'daily', times },
+        emoji: '💧',
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      devLog('[syncOtherBucketsWithConfig] Creating hydration CarePlanItem');
+      await upsertCarePlanItem(hydrationItem);
+      changed = true;
+    } else if (!waterEnabled && hasActiveHydrationItem) {
+      for (const item of existingHydrationItems) {
         if (item.active) {
           await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
           changed = true;
