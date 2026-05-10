@@ -125,9 +125,30 @@ export function StatRings({ stats, enabledBuckets }: StatRingsProps) {
   const s = useMemo(() => createStyles(colors), [colors]);
 
   const categoriesToRender = useMemo<CategoryDef[]>(() => {
-    const source: CategoryKey[] = enabledBuckets
-      ? enabledBuckets.filter(isCategoryKey)
-      : LEGACY_FALLBACK;
+    // Phase 11.9.5 — empty-array → defaults fallback.
+    //
+    // Phase 11.9 enabled sleep + water buckets in sample-data
+    // config, which surfaced a regression: when enabledBuckets
+    // arrives as [] during the brief moment between mount and
+    // useCarePlanConfig's first resolved load, StatRings rendered
+    // nothing. Pre-fix the ternary `enabledBuckets ? filter :
+    // LEGACY_FALLBACK` treated [] as truthy → empty filter result
+    // → no tiles. Pre-11.9 the loading window was short enough
+    // this stayed invisible; 11.9's added migration + 14-day
+    // re-seed work made it long enough to flash on device.
+    //
+    // The defaults-fallback now handles both undefined and []
+    // because both represent "no validated config yet, render the
+    // standard four orbs." If a user genuinely disables all
+    // buckets via Care Plan UI, falling back to standard orbs for
+    // that edge case is forgivable — caregivers expect to see
+    // SOMETHING above Today's Schedule, and a flash to nothing
+    // reads as "the app is broken" rather than "everything is
+    // disabled."
+    const source: CategoryKey[] =
+      enabledBuckets && enabledBuckets.length > 0
+        ? enabledBuckets.filter(isCategoryKey)
+        : LEGACY_FALLBACK;
     const allowed = new Set<CategoryKey>(source);
     return PRIORITY_ORDER
       .filter((k) => allowed.has(k))
