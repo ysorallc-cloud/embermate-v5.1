@@ -599,6 +599,14 @@ async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanS
         case 'vitals':
           vitalsLogs++;
           break;
+        // Phase 11.7.3b — wellness completions have itemType ===
+        // 'wellness' on the runtime DailyCareInstance / LogEntry;
+        // the original aggregator only counted 'mood', so wellness
+        // never reached avgWellnessPerDay and computeDataGaps
+        // flagged "14 days missing" even with seeded completions.
+        // Both itemTypes feed the same counter — wellness check-ins
+        // and mood check-ins are conceptually overlapping.
+        case 'wellness':
         case 'mood':
           moodLogs++;
           wellnessPerDay[log.date] = (wellnessPerDay[log.date] || 0) + 1;
