@@ -251,8 +251,10 @@ export default function NowScreen() {
     focus?: 'setup' | 'remove';
   }>({ open: false });
 
-  // Appointment prep state (Task 4.5)
-  const [upcomingPrepAppointment, setUpcomingPrepAppointment] = useState<any>(null);
+  // Phase 15.7 — appointment prep state retired. UpcomingAppointmentCard
+  // (rendered just below the timeline section) is now the sole
+  // upcoming-appointment surface on Now. Its lookahead was bumped
+  // 7 → 14 to preserve the more inclusive window the inline block had.
   const [showPatientSwitcher, setShowPatientSwitcher] = useState(false);
   const { activePatient, patients } = usePatient();
 
@@ -961,17 +963,9 @@ export default function NowScreen() {
         setVitalsExceedances([]);
       }
 
-      // Check for appointment within 14 days (Task 4.5)
-      try {
-        const prepAppt = appts.find(a => {
-          const daysUntil = Math.ceil((new Date(a.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-          return daysUntil >= 0 && daysUntil <= 14;
-        });
-        setUpcomingPrepAppointment(prepAppt || null);
-      } catch (err) {
-        logError('NowScreen.loadPrepAppointment', err);
-        setUpcomingPrepAppointment(null);
-      }
+      // Phase 15.7 — inline 14-day prep filter retired.
+      // UpcomingAppointmentCard runs its own lookahead (now 14d) from
+      // getUpcomingAppointments() — no parallel filter needed here.
 
       // Phase 15.6 — buildCareBrief() call retired. Only consumer
       // was the Today's Journal preview tile in NowFooter (removed
@@ -1111,37 +1105,11 @@ export default function NowScreen() {
             onWaterUpdate={handleWaterUpdate}
           />
 
-          {/* ═══ ZONE 3: UPCOMING THIS WEEK ═══ */}
-          {upcomingPrepAppointment && (
-            <>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionHeaderTitle}>Upcoming This Week</Text>
-              </View>
-              <View style={styles.sectionCard}>
-                <TouchableOpacity
-                  style={styles.appointmentPrepCard}
-                  onPress={() => navigate(`/provider-prep?appointmentId=${upcomingPrepAppointment.id}`)}
-                  activeOpacity={0.7}
-                  accessibilityLabel="Prepare for upcoming appointment"
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.appointmentPrepIcon}>{'\uD83E\uDE7A'}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.appointmentPrepTitle}>
-                      {upcomingPrepAppointment.provider || 'Appointment'} — Visit Prep
-                    </Text>
-                    <Text style={styles.appointmentPrepSubtitle}>
-                      {Math.ceil((new Date(upcomingPrepAppointment.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days away
-                    </Text>
-                  </View>
-                  <Text style={styles.appointmentPrepArrow}>{'\u203A'}</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
-
-          {/* Phase 5.10.b — Upcoming appointment within 7 days. Renders
-              null when no appointment is in window. */}
+          {/* Phase 5.10.b — Upcoming appointment surface.
+              Phase 15.7 — inline "Upcoming This Week" block retired; the
+              card is now the sole upcoming-appointment surface and uses
+              a 14-day lookahead. Renders null when no appointment is in
+              window. */}
           <UpcomingAppointmentCard />
 
           {/* ═══ FOOTER ═══ */}
@@ -1277,14 +1245,5 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderRadius: 16, padding: 12, marginBottom: 12,
   },
 
-  // Appointment prep
-  appointmentPrepCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: c.warmSurface,
-    borderRadius: 10, borderWidth: 1, borderColor: c.warmSurfaceBorder,
-    padding: 12, marginBottom: 4, gap: 12,
-  },
-  appointmentPrepIcon: { fontSize: 20 },
-  appointmentPrepTitle: { fontSize: 14, fontWeight: '600', color: c.textBright },
-  appointmentPrepSubtitle: { fontSize: 12, color: c.textMuted, marginTop: 2 },
-  appointmentPrepArrow: { fontSize: 20, color: c.textMuted },
+  // Phase 15.7 — appointmentPrep* styles retired with the inline block.
 });

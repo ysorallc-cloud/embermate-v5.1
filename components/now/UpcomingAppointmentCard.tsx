@@ -1,9 +1,18 @@
 // ============================================================================
-// UPCOMING APPOINTMENT CARD — Phase 5.10.b
+// UPCOMING APPOINTMENT CARD — Phase 5.10.b (15.7 consolidation)
 //
-// Now-tab COMING UP block for the next upcoming appointment within 7 days.
+// Now-tab block for the next upcoming appointment.
 // Surfaces a small "Prepare visit prep →" link in lavender ghost styling.
 // Renders nothing when no appointment is within the lookahead window.
+//
+// Phase 15.7 — UPCOMING_LOOKAHEAD_DAYS bumped 7 → 14. This card
+// became the sole upcoming-appointment surface on Now after the
+// inline "Upcoming This Week" block in now.tsx was retired; the
+// inline block used a 14-day window, and per the consolidation
+// audit the more inclusive window is canonical. The eyebrow copy
+// also shifted from the static "COMING UP" to a dynamic
+// "UPCOMING · N DAYS" where N is days-until-appointment.
+// SectionEyebrow component swap is deferred to 15.12.
 // ============================================================================
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -17,7 +26,7 @@ import {
 } from '../../utils/appointmentStorage';
 import { logError } from '../../utils/devLog';
 
-const UPCOMING_LOOKAHEAD_DAYS = 7;
+export const UPCOMING_LOOKAHEAD_DAYS = 14;
 
 const SHORT_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const SHORT_MONTHS = [
@@ -35,6 +44,12 @@ function withinDays(isoDate: string, days: number): boolean {
 function shortDateLabel(isoDate: string): string {
   const d = new Date(isoDate);
   return `${SHORT_WEEKDAYS[d.getDay()]}, ${SHORT_MONTHS[d.getMonth()]} ${d.getDate()}`;
+}
+
+function daysUntil(isoDate: string): number {
+  const apptMs = new Date(isoDate).getTime();
+  const nowMs = Date.now();
+  return Math.max(0, Math.ceil((apptMs - nowMs) / (1000 * 60 * 60 * 24)));
 }
 
 export function UpcomingAppointmentCard() {
@@ -59,13 +74,16 @@ export function UpcomingAppointmentCard() {
 
   if (!appt) return null;
 
+  const n = daysUntil(appt.date);
+  const eyebrowLabel = `UPCOMING · ${n} ${n === 1 ? 'DAY' : 'DAYS'}`;
+
   return (
     <View
       style={styles.card}
       accessibilityRole="summary"
-      accessibilityLabel={`Coming up: ${appt.specialty} with ${appt.provider} on ${shortDateLabel(appt.date)}`}
+      accessibilityLabel={`Upcoming in ${n} ${n === 1 ? 'day' : 'days'}: ${appt.specialty} with ${appt.provider} on ${shortDateLabel(appt.date)}`}
     >
-      <Text style={styles.eyebrow}>{'COMING UP'}</Text>
+      <Text style={styles.eyebrow}>{eyebrowLabel}</Text>
       <Text style={styles.title}>{`${appt.specialty} with ${appt.provider}`}</Text>
       <Text style={styles.subtitle}>{shortDateLabel(appt.date)}</Text>
       <TouchableOpacity
