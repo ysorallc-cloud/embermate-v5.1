@@ -19,7 +19,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Animated,
   Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,13 +30,15 @@ import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { UpcomingVisitInsightsCard } from '../../components/insights/UpcomingVisitInsightsCard';
+// Phase 15.9 — pattern stack moved into its own component with an
+// outer collapse so it doesn't dominate vertical real estate.
+import { PatternStack } from '../../components/insights/PatternStack';
 import { usePatient } from '../../contexts/PatientContext';
 import {
   loadUnderstandPageData,
   generatePlainLanguageSummary,
   TimeRange,
   UnderstandPageData,
-  CorrelationCard,
 } from '../../utils/understandInsights';
 import { computeDataGaps, DataGap } from '../../utils/insightsDataGaps';
 import { logError } from '../../utils/devLog';
@@ -401,20 +402,9 @@ async function computeAdherence(timeRange: number): Promise<AdherenceData> {
 }
 
 // ============================================================================
-// SEVERITY STYLES
-// ============================================================================
-
-const SEVERITY = {
-  high: { bg: 'rgba(239,68,68,0.06)', border: Colors.redBright, badge: 'rgba(239,68,68,0.15)', badgeText: '#FCA5A5' },
-  medium: { bg: 'rgba(245,158,11,0.06)', border: Colors.amberBright, badge: 'rgba(245,158,11,0.15)', badgeText: '#FCD34D' },
-  low: { bg: 'rgba(96,165,250,0.06)', border: '#60A5FA', badge: 'rgba(96,165,250,0.15)', badgeText: '#93C5FD' },
-};
-
-function correlationSeverity(card: CorrelationCard): 'high' | 'medium' | 'low' {
-  if (card.confidence === 'strong' && card.coefficient > 0.7) return 'high';
-  if (card.confidence === 'strong') return 'medium';
-  return 'low';
-}
+// Phase 15.9 — SEVERITY constant + correlationSeverity helper moved
+// into components/insights/PatternStack.tsx along with the rest of
+// the pattern stack machinery.
 
 // ============================================================================
 // MAIN COMPONENT
@@ -438,13 +428,11 @@ export default function UnderstandScreen() {
   const [adherence, setAdherence] = useState<AdherenceData | null>(null);
   // Phase 5.11 — top-ranked pattern feeds the THIS WEEK card.
   const [topPattern, setTopPattern] = useState<PatternHeadline | null>(null);
-  const [expandedCorrelation, setExpandedCorrelation] = useState<number | null>(0);
   // Phase 15.8 — next upcoming appointment in the canonical 14-day
   // window, used by the header subtitle to anchor to visit context.
   const [upcomingAppointment, setUpcomingAppointment] = useState<Appointment | null>(null);
-
-  // Animated values for chevron rotation
-  const chevronAnims = useRef<Animated.Value[]>([]).current;
+  // Phase 15.9 — per-card expand state + chevron anims moved into
+  // PatternStack along with the inline render they belonged to.
 
   useFocusEffect(
     useCallback(() => {
@@ -551,26 +539,9 @@ export default function UnderstandScreen() {
     setRefreshing(false);
   }, [timeRange]);
 
-  // Ensure enough chevron anims
-  const correlationCards = pageData?.correlationCards ?? [];
-  while (chevronAnims.length < correlationCards.length) {
-    chevronAnims.push(new Animated.Value(chevronAnims.length === 0 ? 1 : 0));
-  }
-
-  const toggleCorrelation = (index: number) => {
-    const isExpanding = expandedCorrelation !== index;
-    if (expandedCorrelation !== null && expandedCorrelation < chevronAnims.length) {
-      Animated.timing(chevronAnims[expandedCorrelation], {
-        toValue: 0, duration: 200, useNativeDriver: true,
-      }).start();
-    }
-    if (isExpanding && index < chevronAnims.length) {
-      Animated.timing(chevronAnims[index], {
-        toValue: 1, duration: 200, useNativeDriver: true,
-      }).start();
-    }
-    setExpandedCorrelation(isExpanding ? index : null);
-  };
+  // Phase 15.9 — chevron anim ref + toggleCorrelation moved into
+  // PatternStack. understand.tsx only sources the array now.
+  const patternStackData = pageData?.correlationCards ?? [];
 
   // Loading state
   if (loading && !pageData) {
@@ -686,97 +657,12 @@ export default function UnderstandScreen() {
 
           <View style={styles.divider} />
 
-          {/* ═══ SECTION 2: CORRELATIONS FOUND ═══ */}
-          {correlationCards.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>EmberMate noticed</Text>
-              <Text style={styles.sectionSublabel}>Patterns worth mentioning at the next appointment.</Text>
-
-              {correlationCards.map((card, i) => {
-                const sev = SEVERITY[correlationSeverity(card)];
-                const isExpanded = expandedCorrelation === i;
-                const rotate = i < chevronAnims.length
-                  ? chevronAnims[i].interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0deg', '180deg'],
-                    })
-                  : '0deg';
-
-                // Build metrics pills from card title keywords
-                const metricsPills: string[] = [];
-                const titleLower = card.title.toLowerCase();
-                if (titleLower.includes('sleep')) metricsPills.push('Sleep');
-                if (titleLower.includes('mood') || titleLower.includes('energy')) metricsPills.push('Mood');
-                if (titleLower.includes('meal') || titleLower.includes('lunch') || titleLower.includes('appetite')) metricsPills.push('Meals');
-                if (titleLower.includes('bp') || titleLower.includes('blood pressure')) metricsPills.push('BP');
-                if (titleLower.includes('medication') || titleLower.includes('med')) metricsPills.push('Meds');
-                if (titleLower.includes('hydration') || titleLower.includes('water')) metricsPills.push('Water');
-
-                return (
-                  <View key={card.id} style={[styles.correlationCard, { borderColor: `${sev.border}20` }]}>
-                    <TouchableOpacity
-                      style={styles.correlationHeader}
-                      onPress={() => toggleCorrelation(i)}
-                      activeOpacity={0.7}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${card.title}, tap to ${expandedCorrelation === i ? 'collapse' : 'expand'}`}
-                    >
-                      <View style={styles.correlationMeta}>
-                        <View style={[styles.severityBadge, { backgroundColor: sev.badge }]}>
-                          <Text style={[styles.severityBadgeText, { color: sev.badgeText }]}>
-                            {correlationSeverity(card)}
-                          </Text>
-                        </View>
-                        {metricsPills.map((m, j) => (
-                          <View key={j} style={styles.metricPill}>
-                            <Text style={styles.metricPillText}>{m}</Text>
-                          </View>
-                        ))}
-                      </View>
-                      <View style={styles.correlationTitleRow}>
-                        <Text style={styles.correlationTitle}>{card.title}</Text>
-                        <Animated.Text style={[styles.correlationChevron, { transform: [{ rotate }] }]}>
-                          {'\u25BC'}
-                        </Animated.Text>
-                      </View>
-                      <Text style={styles.correlationSummary}>{card.insight}</Text>
-                    </TouchableOpacity>
-
-                    {isExpanded && (
-                      <View style={styles.correlationExpanded}>
-                        {/* Evidence */}
-                        <Text style={styles.evidenceLabel}>Evidence</Text>
-                        <View style={styles.evidenceList}>
-                          <View style={styles.evidenceItem}>
-                            <Text style={styles.evidenceBullet}>{'\u25CF'}</Text>
-                            <Text style={styles.evidenceText}>Based on {card.dataPoints} days of tracking data</Text>
-                          </View>
-                          <View style={styles.evidenceItem}>
-                            <Text style={styles.evidenceBullet}>{'\u25CF'}</Text>
-                            <Text style={styles.evidenceText}>
-                              {card.confidence === 'strong'
-                                ? 'Strong statistical correlation detected'
-                                : 'Emerging pattern — more data will clarify'}
-                            </Text>
-                          </View>
-                        </View>
-
-                        {/* Recommendation */}
-                        {card.suggestion && (
-                          <View style={styles.recommendationBox}>
-                            <Text style={styles.recommendationIcon}>{'\uD83D\uDCA1'}</Text>
-                            <Text style={styles.recommendationText}>{card.suggestion}</Text>
-                          </View>
-                        )}
-                      </View>
-                    )}
-                  </View>
-                );
-              })}
-
-              <View style={styles.divider} />
-            </View>
-          )}
+          {/* ═══ SECTION 2: EMBERMATE NOTICED (pattern stack) ═══
+              Phase 15.9 — wrapped in PatternStack so the section
+              collapses by default and doesn't dominate vertical
+              real estate. Inner per-card expand behavior is
+              preserved inside the stack. */}
+          <PatternStack patterns={patternStackData} />
 
           {/* ═══ SECTION 3: DATA GAPS ═══
               v6.7 May 1 sizing pass — Phase 5: suppressed for under-7-day
@@ -1190,127 +1076,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
   },
 
-  // ─── CORRELATIONS ───
-  correlationCard: {
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 10,
-  },
-  correlationHeader: {
-    padding: 14,
-  },
-  correlationMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 6,
-    flexWrap: 'wrap',
-  },
-  severityBadge: {
-    paddingVertical: 2,
-    paddingHorizontal: 7,
-    borderRadius: 4,
-  },
-  severityBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  metricPill: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 4,
-  },
-  metricPillText: {
-    // 10 → 11 for a11y label minimum. Pill paddingVertical 2 absorbs the
-    // glyph height bump.
-    fontSize: 11,
-    color: c.textMuted,
-  },
-  correlationTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  correlationTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.textPrimary,
-    flex: 1,
-    lineHeight: 20,
-  },
-  correlationChevron: {
-    fontSize: 10,
-    color: c.textTertiary,
-    marginTop: 6,
-  },
-  correlationSummary: {
-    fontSize: 13,
-    color: c.textSecondary,
-    lineHeight: 19,
-    marginTop: 6,
-  },
-  correlationExpanded: {
-    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    paddingBottom: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    borderTopWidth: 1,
-    borderTopColor: c.hairlineInset,
-  },
-  evidenceLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: c.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginTop: 12,
-    marginBottom: 6,
-  },
-  evidenceList: {
-    marginBottom: 12,
-  },
-  evidenceItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginBottom: 4,
-  },
-  evidenceBullet: {
-    fontSize: 6,
-    color: c.textTertiary,
-    marginTop: 5,
-  },
-  evidenceText: {
-    fontSize: 12,
-    color: c.textSecondary,
-    lineHeight: 18,
-    flex: 1,
-  },
-  recommendationBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    backgroundColor: c.surfaceHighlight,
-    borderWidth: 1,
-    borderColor: c.accentBorder,
-    borderRadius: 8,
-    padding: 10,
-  },
-  recommendationIcon: {
-    fontSize: 14,
-    marginTop: 1,
-  },
-  recommendationText: {
-    fontSize: 13,
-    color: c.accent,
-    lineHeight: 19,
-    fontWeight: '500',
-    flex: 1,
-  },
 
   // ─── DATA GAPS ───
   dataGapCard: {

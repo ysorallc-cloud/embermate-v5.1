@@ -9,6 +9,13 @@ import { join } from 'path';
 const src = readFileSync(join(__dirname, '../../app/(tabs)/understand.tsx'), 'utf8');
 const render = src.slice(src.indexOf('return ('));
 const utilSrc = readFileSync(join(__dirname, '../../utils/understandInsights.ts'), 'utf8');
+// Phase 15.9 — the "EmberMate noticed" pattern stack moved out of
+// understand.tsx into components/insights/PatternStack.tsx. The
+// severity logic, suggestion render, and section markup now live
+// there. Audits below read both sources so they keep guarding the
+// surface wherever it lives.
+const patternStackSrc = readFileSync(join(__dirname, '../../components/insights/PatternStack.tsx'), 'utf8');
+const understandPlusPatternStack = src + '\n' + patternStackSrc;
 
 // ============================================================================
 // IG-1: CareScoreRing replaces StatSpotlight hero
@@ -38,15 +45,20 @@ describe('IG-2: Correlations section', () => {
   });
 
   test('Correlations Found section exists', () => {
-    expect(render).toContain('EmberMate noticed');
+    // Phase 15.9 — the "EmberMate noticed" eyebrow moved into
+    // PatternStack along with the rest of the section.
+    expect(understandPlusPatternStack).toContain('EmberMate noticed');
   });
 
-  test('correlationSeverity function exists', () => {
-    expect(src).toContain('correlationSeverity');
+  test('correlation severity logic exists (in understand.tsx OR PatternStack.tsx)', () => {
+    // Phase 15.9 — function was renamed to `patternSeverity` when
+    // it moved into PatternStack. Check either name in either file.
+    expect(understandPlusPatternStack).toMatch(/correlationSeverity|patternSeverity/);
   });
 
   test('suggestion text is shown for correlation cards', () => {
-    expect(src).toMatch(/suggestion/);
+    // Phase 15.9 — the suggestion render moved to PatternStack.
+    expect(understandPlusPatternStack).toMatch(/suggestion/);
   });
 });
 
