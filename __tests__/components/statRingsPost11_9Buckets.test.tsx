@@ -92,11 +92,16 @@ describe('Phase 11.9.5 — StatRings post-11.9 enabledBuckets regression', () =>
     expect(text).toContain('MEALS');
   });
 
-  it('contract 3: renders exactly 4 columns (MAX_TILES cap holds)', () => {
+  it('contract 3: renders all 6 columns (MAX_TRACKED_DIMENSIONS=6 post-15.5)', () => {
+    // Phase 15.5 lifted the cap from MAX_TILES=4 to
+    // MAX_TRACKED_DIMENSIONS=6. The post-11.9 6-bucket sample-data
+    // set now renders all six (including the hydration ring that
+    // 15.4 wired). This contract was originally a 4-column
+    // assertion under the old cap; updated for the new ceiling.
     const tree: any = (StatRings as any)({ stats, enabledBuckets: POST_11_9_BUCKETS });
     const React = jest.requireActual('react');
     const columns = React.Children.toArray(tree.props.children);
-    expect(columns).toHaveLength(4);
+    expect(columns).toHaveLength(6);
   });
 
   it('contract 4: values render in "N of N" format from the stats prop', () => {

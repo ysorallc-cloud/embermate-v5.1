@@ -23,6 +23,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors, Spacing, Sizing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
+import { MAX_TRACKED_DIMENSIONS } from '../../constants/carePlanLimits';
 import type { StatData, TodayStats } from '../../utils/nowHelpers';
 import type { BucketType } from '../../types/carePlanConfig';
 
@@ -33,10 +34,19 @@ import type { BucketType } from '../../types/carePlanConfig';
 // still fits four tiles inside the smallest target iPhone width.
 const TILE_SIZE = 36;
 
-// Width math (from statRingsVisibility.test.tsx): 4 × 36 + 3 × 8 = 168pt
-// content. Page edge 14 × 2 = 28pt. Total 196pt fits comfortably in 320pt
-// (iPhone SE). Capping the rendered tiles at four preserves that.
-const MAX_TILES = 4;
+// Phase 15.5 — cap lifted from a local MAX_TILES=4 to
+// MAX_TRACKED_DIMENSIONS=6 (single source of truth in
+// constants/carePlanLimits.ts). Post-Phase 11.9 sample-data enables
+// 6 buckets; pre-15.5 the local 4-cap sliced hydration off the row.
+//
+// Width math at iPhone SE 320pt:
+//   6 × 36 (TILE_SIZE) + 5 × 8 (gap) = 256pt
+//   + 14 × 2 (page edge) = 284pt
+//   → fits 320pt with 36pt of headroom.
+//
+// The legacy 4-tile width-math test (statRingsVisibility.test.tsx)
+// stays as a regression-pin: 4 tiles still fit on iPhone SE; cap=6
+// is the new ceiling, not a forced count.
 
 type CategoryKey =
   | 'meds'
@@ -67,9 +77,9 @@ const CATEGORY_REGISTRY: Record<CategoryKey, CategoryDef> = {
   activity: { key: 'activity', emoji: '🚶', label: 'ACTIVITY', statKey: 'activity' },
 };
 
-// Stable ordering. When the user has more than MAX_TILES buckets enabled,
-// we keep this order and slice — meds/vitals lead because they are the
-// most clinically important when present.
+// Stable ordering. When the user has more than MAX_TRACKED_DIMENSIONS
+// buckets enabled, we keep this order and slice — meds/vitals lead
+// because they are the most clinically important when present.
 const PRIORITY_ORDER: CategoryKey[] = [
   'meds',
   'vitals',
@@ -107,10 +117,10 @@ export interface StatRingsProps {
   stats: TodayStats;
   /**
    * Active buckets from CarePlanConfig. When supplied, the row renders
-   * only the tiles whose buckets the user enabled (capped at MAX_TILES,
-   * ordered by PRIORITY_ORDER). When omitted, falls back to the legacy
-   * four — meds, vitals, wellness, meals — so older callers and tests
-   * that pre-date Phase 5.13.3 don't break.
+   * only the tiles whose buckets the user enabled (capped at
+   * MAX_TRACKED_DIMENSIONS, ordered by PRIORITY_ORDER). When omitted,
+   * falls back to the legacy four — meds, vitals, wellness, meals —
+   * so older callers and tests that pre-date Phase 5.13.3 don't break.
    */
   enabledBuckets?: BucketType[];
 }
@@ -153,7 +163,7 @@ export function StatRings({ stats, enabledBuckets }: StatRingsProps) {
     const allowed = new Set<CategoryKey>(source);
     return PRIORITY_ORDER
       .filter((k) => allowed.has(k))
-      .slice(0, MAX_TILES)
+      .slice(0, MAX_TRACKED_DIMENSIONS)
       .map((k) => CATEGORY_REGISTRY[k]);
   }, [enabledBuckets]);
 
@@ -182,8 +192,23 @@ export function StatRings({ stats, enabledBuckets }: StatRingsProps) {
             >
               <Text style={s.emoji}>{cat.emoji}</Text>
             </View>
-            <Text testID={`stat-label-${cat.key}`} style={s.label}>{cat.label}</Text>
-            <Text style={s.value}>
+            {/* Phase 15.5 — numberOfLines={1} + ellipsizeMode='tail'
+                defensive against label/value wrap at narrow column
+                widths. At MAX_TRACKED_DIMENSIONS=6 on iPhone SE 320pt
+                the per-column width drops to ~42pt; 8-character
+                labels (WELLNESS / ACTIVITY) and values like
+                "12 of 12" approach that bound. Ellipsis is the
+                graceful failure mode on the narrowest devices;
+                ≥375pt devices have ample room. */}
+            <Text
+              testID={`stat-label-${cat.key}`}
+              style={s.label}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {cat.label}
+            </Text>
+            <Text style={s.value} numberOfLines={1} ellipsizeMode="tail">
               {isEmpty ? '—' : `${stat.completed} of ${stat.total}`}
             </Text>
           </>
