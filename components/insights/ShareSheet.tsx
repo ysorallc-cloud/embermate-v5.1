@@ -1,10 +1,17 @@
 // ============================================================================
-// SHARE SHEET — Phase 15.11
+// SHARE SHEET — Phase 15.11 (label fix in 15.11.1)
 //
 // Single action sheet that exposes the three Insights share
-// destinations (Visit prep summary / Care report (PDF) /
-// Medication report). Replaces the three stacked reportCards on
-// Insights with a single Share CTA + this sheet.
+// destinations (Visit prep summary / Care report / Medication
+// report). Replaces the three stacked reportCards on Insights
+// with a single Share CTA + this sheet.
+//
+// Phase 15.11.1 — dropped "(PDF)" from the Care report label.
+// Share.share only sends plain text; the parenthetical promised
+// something the implementation does not deliver. Real PDF
+// generation is filed for Phase 21 alongside the BP averaging
+// fix — truth-in-labeling matters. When the PDF actually ships,
+// the label can return.
 //
 // Pre-15.11 each option lived in its own reportCard with its own
 // "Share" button. The triple-stack read like a checklist; only
@@ -54,7 +61,7 @@ const OPTIONS: ShareOptionConfig[] = [
   {
     key: 'care-report',
     testID: 'share-option-care-report',
-    label: 'Care report (PDF)',
+    label: 'Care report',
     helper: 'Full PDF with trends and patterns.',
     icon: '📋',
   },

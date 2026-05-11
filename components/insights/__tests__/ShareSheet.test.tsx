@@ -107,10 +107,15 @@ function findOption(
 describe('Phase 15.11 — ShareSheet', () => {
   describe('contract 1: renders three labeled options when visible', () => {
     it('shows all three option labels', () => {
+      // Phase 15.11.1 — Care report label no longer carries "(PDF)".
+      // The label promised a PDF but Share.share only sends plain
+      // text. Real PDF generation is Phase 21 scope; until then the
+      // label drops the parenthetical so the caregiver isn't
+      // misled.
       const tree = render({ visible: true, onSelect: jest.fn(), onClose: jest.fn() });
       const text = flattenText(tree.toJSON());
       expect(text).toContain('Visit prep summary');
-      expect(text).toContain('Care report (PDF)');
+      expect(text).toContain('Care report');
       expect(text).toContain('Medication report');
     });
 
@@ -119,6 +124,33 @@ describe('Phase 15.11 — ShareSheet', () => {
       expect(findOption(tree, 'share-option-visit-prep')).toBeDefined();
       expect(findOption(tree, 'share-option-care-report')).toBeDefined();
       expect(findOption(tree, 'share-option-medication-report')).toBeDefined();
+    });
+
+    // Phase 15.11.1 — truth-in-labeling contracts.
+    it('renders the Care report option labeled "Care report" without "(PDF)"', () => {
+      // The Care report row's label text must read exactly "Care
+      // report" — pinned via the row's accessibilityLabel so a
+      // regex on body text can't be satisfied by an adjacent
+      // option. accessibilityLabel format is `${label}: ${helper}`
+      // (see ShareSheet.tsx), so we anchor on "Care report:".
+      const tree = render({ visible: true, onSelect: jest.fn(), onClose: jest.fn() });
+      const row = findOption(tree, 'share-option-care-report')!;
+      const a11y = row.props.accessibilityLabel as string;
+      expect(a11y.startsWith('Care report:')).toBe(true);
+      expect(a11y).not.toMatch(/\(PDF\)/);
+    });
+
+    it('does not contain the string "Care report (PDF)" anywhere in the ShareSheet', () => {
+      // Absence pin so a future "we ship a real PDF now" change has
+      // to come with an explicit label revert (and presumably real
+      // generation logic). Files for Phase 21:
+      //   "Real PDF generation for Care Report and Medication
+      //    Report — currently labels and ships as plain text via
+      //    Share.share. Same priority as BP averaging fix;
+      //    truth-in-labeling matters."
+      const tree = render({ visible: true, onSelect: jest.fn(), onClose: jest.fn() });
+      const text = flattenText(tree.toJSON());
+      expect(text).not.toContain('Care report (PDF)');
     });
   });
 
