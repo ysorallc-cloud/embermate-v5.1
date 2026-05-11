@@ -25,8 +25,17 @@ import {
   type Appointment,
 } from '../../utils/appointmentStorage';
 import { logError } from '../../utils/devLog';
+import {
+  UPCOMING_LOOKAHEAD_DAYS,
+  daysUntilAppointment,
+  withinUpcomingWindow,
+} from '../../utils/appointmentLookahead';
 
-export const UPCOMING_LOOKAHEAD_DAYS = 14;
+// Phase 15.8 — UPCOMING_LOOKAHEAD_DAYS now sourced from
+// utils/appointmentLookahead (Insights subtitle reuses it). Re-exported
+// here for back-compat with the 15.7 test that imports it from this
+// path.
+export { UPCOMING_LOOKAHEAD_DAYS };
 
 const SHORT_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const SHORT_MONTHS = [
@@ -34,22 +43,9 @@ const SHORT_MONTHS = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
-function withinDays(isoDate: string, days: number): boolean {
-  const apptMs = new Date(isoDate).getTime();
-  const nowMs = Date.now();
-  const diff = (apptMs - nowMs) / (1000 * 60 * 60 * 24);
-  return diff >= 0 && diff <= days;
-}
-
 function shortDateLabel(isoDate: string): string {
   const d = new Date(isoDate);
   return `${SHORT_WEEKDAYS[d.getDay()]}, ${SHORT_MONTHS[d.getMonth()]} ${d.getDate()}`;
-}
-
-function daysUntil(isoDate: string): number {
-  const apptMs = new Date(isoDate).getTime();
-  const nowMs = Date.now();
-  return Math.max(0, Math.ceil((apptMs - nowMs) / (1000 * 60 * 60 * 24)));
 }
 
 export function UpcomingAppointmentCard() {
@@ -63,7 +59,7 @@ export function UpcomingAppointmentCard() {
       try {
         const upcoming = await getUpcomingAppointments();
         if (cancelled) return;
-        const next = upcoming.find((a) => withinDays(a.date, UPCOMING_LOOKAHEAD_DAYS));
+        const next = upcoming.find((a) => withinUpcomingWindow(a.date));
         setAppt(next ?? null);
       } catch (err) {
         logError('UpcomingAppointmentCard.load', err);
@@ -74,7 +70,7 @@ export function UpcomingAppointmentCard() {
 
   if (!appt) return null;
 
-  const n = daysUntil(appt.date);
+  const n = daysUntilAppointment(appt.date);
   const eyebrowLabel = `UPCOMING · ${n} ${n === 1 ? 'DAY' : 'DAYS'}`;
 
   return (

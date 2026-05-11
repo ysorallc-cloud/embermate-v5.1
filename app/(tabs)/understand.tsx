@@ -52,6 +52,12 @@ import { classifyInsightsState, gatingForState } from '../../utils/insightsState
 import { getVitalsInRange, VitalReading } from '../../utils/vitalsStorage';
 import { listDailyInstancesRange, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 import { getTodayDateString, toLocalDateString } from '../../services/carePlanGenerator';
+// Phase 15.8 — Insights subtitle anchors to the upcoming appointment
+// when one exists in the canonical 14-day window. Shared with
+// UpcomingAppointmentCard on Now via utils/appointmentLookahead.
+import { getUpcomingAppointments, type Appointment } from '../../utils/appointmentStorage';
+import { daysUntilAppointment, withinUpcomingWindow } from '../../utils/appointmentLookahead';
+import { computeInsightsSubtitle } from '../../utils/insightsSubtitle';
 
 // ============================================================================
 // TYPES
@@ -433,6 +439,9 @@ export default function UnderstandScreen() {
   // Phase 5.11 — top-ranked pattern feeds the THIS WEEK card.
   const [topPattern, setTopPattern] = useState<PatternHeadline | null>(null);
   const [expandedCorrelation, setExpandedCorrelation] = useState<number | null>(0);
+  // Phase 15.8 — next upcoming appointment in the canonical 14-day
+  // window, used by the header subtitle to anchor to visit context.
+  const [upcomingAppointment, setUpcomingAppointment] = useState<Appointment | null>(null);
 
   // Animated values for chevron rotation
   const chevronAnims = useRef<Animated.Value[]>([]).current;
@@ -515,6 +524,20 @@ export default function UnderstandScreen() {
         logError('UnderstandScreen.loadTopPattern', err);
         setTopPattern(null);
       }
+
+      // Phase 15.8 — anchor the header subtitle to the next upcoming
+      // appointment when one lands in the canonical 14-day window.
+      // Uses the same getUpcomingAppointments selector + lookahead
+      // helper as UpcomingAppointmentCard on Now to keep the two
+      // surfaces in sync.
+      try {
+        const upcoming = await getUpcomingAppointments();
+        const next = upcoming.find((a) => withinUpcomingWindow(a.date)) ?? null;
+        setUpcomingAppointment(next);
+      } catch (err) {
+        logError('UnderstandScreen.loadUpcomingAppointment', err);
+        setUpcomingAppointment(null);
+      }
     } catch (error) {
       logError('UnderstandScreen.loadData', error);
     } finally {
@@ -584,15 +607,21 @@ export default function UnderstandScreen() {
           }
         >
           {/* Header */}
+          {/* Phase 15.8 — subtitle anchors to upcoming appointment when
+              one exists in the canonical 14-day window; otherwise falls
+              back to the daysOfData copy chain. Helper lives in
+              utils/insightsSubtitle so the copy rules can be pinned
+              with pure-function tests. */}
           <ScreenHeader
             title="Insights"
-            subtitle={(() => {
-              const days = pageData?.daysOfData ?? 0;
-              if (days === 0) return 'Log a few days of meds and mood, and patterns will start to surface.';
-              if (days < 7) return `Building ${patientName}'s picture — ${days} day${days !== 1 ? 's' : ''} in.`;
-              if (days < 30) return `What the last ${days} days are showing.`;
-              return 'What the last 30 days are showing.';
-            })()}
+            subtitle={computeInsightsSubtitle({
+              daysOfData: pageData?.daysOfData ?? 0,
+              patientName,
+              upcomingAppointment: upcomingAppointment ? {
+                provider: upcomingAppointment.provider,
+                daysUntil: daysUntilAppointment(upcomingAppointment.date),
+              } : null,
+            })}
             rightAction={
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 {pageData && !pageData.isSampleData && pageData.daysOfData >= 7 && (

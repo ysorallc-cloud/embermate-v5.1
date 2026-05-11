@@ -14,6 +14,13 @@ const journalSrc    = read('app/(tabs)/journal.tsx');
 const understandSrc = read('app/(tabs)/understand.tsx');
 const supportSrc    = read('app/(tabs)/support.tsx');
 const greetingSrc   = read('utils/contextualGreeting.ts');
+// Phase 15.8 — the Insights subtitle copy chain moved from an inline
+// IIFE in understand.tsx to utils/insightsSubtitle.ts so the visit-
+// anchored variant and the daysOfData fallback chain can be pinned
+// with pure-function tests. The copy assertions below now read both
+// files so they keep guarding the chain wherever it lives.
+const insightsSubtitleSrc = read('utils/insightsSubtitle.ts');
+const understandPlusHelper = understandSrc + '\n' + insightsSubtitleSrc;
 
 describe('Header subtitle copy — Journal', () => {
   it('does NOT contain "Share with the next caregiver"', () => {
@@ -41,13 +48,15 @@ describe('Header subtitle copy — Insights / Understand', () => {
   it('exposes a conditional subtitle keyed on days-of-data', () => {
     // The screen should branch on `daysOfData` to produce the four variants:
     //  0 days, 1–6 days, 7–29 days, 30+ days.
-    expect(understandSrc).toMatch(/daysOfData/);
+    // Phase 15.8 — copy chain moved into utils/insightsSubtitle.ts;
+    // assertions now check understand.tsx + the helper together.
+    expect(understandPlusHelper).toMatch(/daysOfData/);
     // Empty-state copy
-    expect(understandSrc).toMatch(/patterns will start to surface/i);
+    expect(understandPlusHelper).toMatch(/patterns will start to surface/i);
     // Building copy
-    expect(understandSrc).toMatch(/Building [^]+ picture|building [^]+ picture/i);
+    expect(understandPlusHelper).toMatch(/Building [^]+ picture|building [^]+ picture/i);
     // 7+ days copy
-    expect(understandSrc).toMatch(/last \d+ days are showing|last \$\{[^}]+\} days are showing/);
+    expect(understandPlusHelper).toMatch(/last \d+ days are showing|last \$\{[^}]+\} days are showing/);
   });
 });
 
