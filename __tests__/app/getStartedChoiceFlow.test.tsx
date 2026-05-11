@@ -1,7 +1,15 @@
 // ============================================================================
-// GetStartedScreen choice flow — v6.7 two-card layout.
+// GetStartedScreen choice flow — v6.7 two-card layout (16.3 reframe).
 // Locks in: primary card reveals an inline name input on tap; secondary card
 // triggers the seed-sample-data path; bucket grid is gone (regression guard).
+//
+// Phase 16.3 — the careMode prop was retired (WhoIsThisForScreen cut from
+// the welcome flow). Secondary-card copy reframed from a demo/fallback to
+// a legitimate first-choice path. Affected contracts below: secondary
+// title/subtitle copy updated; placeholder is now unconditional (only
+// "e.g. Mom, Dad, Linda"). A dedicated 16.3 test file
+// (__tests__/app/getStartedReframe16_3.test.ts) carries the new positive
+// and absence pins.
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -48,9 +56,9 @@ describe('GetStartedScreen — two-card choice layout', () => {
     expect(src).toContain('Just a name. Add meds whenever.');
   });
 
-  it('renders a secondary "Keep exploring" card', () => {
-    expect(src).toMatch(/Keep exploring/);
-    expect(src).toContain('Try the app populated. Switch to your own anytime in Settings.');
+  it('renders a secondary "Start with the populated example" card (Phase 16.3 reframe)', () => {
+    expect(src).toContain('Start with the populated example');
+    expect(src).toContain('Switch to your own anytime.');
   });
 
   it('primary card uses mint (accent) background', () => {
@@ -73,11 +81,12 @@ describe('GetStartedScreen — primary card reveals an inline name input on tap'
     expect(src).toMatch(/expanded\s*&&[\s\S]{0,300}?<TextInput/);
   });
 
-  it('placeholder copy varies by careMode', () => {
-    // Caregiver: "e.g. Mom, Dad, Linda"
-    // Self:     "Your first name"
+  it('placeholder copy is the caregiver-mode default (careMode prop retired in 16.3)', () => {
+    // Phase 16.3 — careMode prop retired with the WhoIsThisFor cut.
+    // The "Your first name" self-mode placeholder is gone with it.
+    // "e.g. Mom, Dad, Linda" is the unconditional copy.
     expect(src).toContain('Mom, Dad, Linda');
-    expect(src).toContain('Your first name');
+    expect(src).not.toContain('Your first name');
   });
 
   it('inline Done button calls onComplete(false) (the not-seeded path)', () => {

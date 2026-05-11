@@ -1,6 +1,21 @@
 // ============================================================================
-// ONBOARDING FLOW — 5-Screen Experience (v6.7)
-// Welcome → Who Is This For → Privacy → Meet (sample) → Get Started
+// ONBOARDING FLOW — 5-Screen Experience (v1.0; Phase 16.3)
+// Welcome → Privacy → Meet (sample) → As You Use → Get Started
+//
+// Phase 16.3 — "Who are you caring for?" (WhoIsThisForScreen) cut from
+// the welcome flow. The careMode selection drove only in-onboarding
+// copy variations and no persistent app state: the CARE_MODE storage
+// key had zero production readers, and the relationship value never
+// flowed into Patient.relationship (the default Patient row hardcodes
+// relationship='self' in patientRegistry regardless). Per the spec's
+// stated trade-off ("if the 'myself' path is meaningfully different
+// and someone needs it, they can configure in Settings later"), the
+// screen was retired and careMode is now hardcoded 'caregiver' (the
+// primary EmberMate use case).
+//
+// The WhoIsThisForScreen.tsx file is left in place as orphan source
+// (matches 15.10 / 15.6 patterns) for a separate cleanup scope or
+// v1.1+ re-introduction as a Settings-page selector.
 // ============================================================================
 
 import React, { useRef, useState, useMemo } from 'react';
@@ -11,7 +26,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { safeSetItem } from '../../utils/safeStorage';
 
 import { WelcomeScreen } from './screens/WelcomeScreen';
-import { WhoIsThisForScreen } from './screens/WhoIsThisForScreen';
 import { PrivacyDisclaimerScreen } from './screens/PrivacyDisclaimerScreen';
 import { MeetSampleScreen } from './screens/MeetSampleScreen';
 import { GetStartedScreen } from './screens/GetStartedScreen';
@@ -32,7 +46,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
-// 6-screen flow: Welcome → Who Is This For → Privacy → Meet → As You Use → Get Started
+// 5-screen flow (Phase 16.3): Welcome → Privacy → Meet → As You Use → Get Started.
+// "Who Is This For" cut — see header comment for the careMode-as-theater
+// audit finding.
 //
 // v6.7 limitation: the "What to watch for" screen
 // (app/(onboarding)/screens/WatchForScreen.tsx) is reachable from
@@ -44,11 +60,10 @@ const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 // to slot in once a Diagnosis[] is captured on this side of onboarding.
 const ONBOARDING_SCREENS = [
   { id: '1', title: 'Welcome' },
-  { id: '2', title: 'Who Is This For' },
-  { id: '3', title: 'Privacy' },
-  { id: '4', title: 'Meet' },
-  { id: '5', title: 'As You Use' },
-  { id: '6', title: 'Get Started' },
+  { id: '2', title: 'Privacy' },
+  { id: '3', title: 'Meet' },
+  { id: '4', title: 'As You Use' },
+  { id: '5', title: 'Get Started' },
 ];
 
 export default function OnboardingFlow() {
@@ -58,7 +73,10 @@ export default function OnboardingFlow() {
   const scrollX = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
-  const [careMode, setCareMode] = useState<'caregiver' | 'self'>('caregiver');
+  // Phase 16.3 — careMode hardcoded to 'caregiver' (primary EmberMate
+  // use case). The state hook + WhoIsThisForScreen selector were
+  // retired; see the file's header comment for the audit findings.
+  const careMode: 'caregiver' | 'self' = 'caregiver';
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -75,15 +93,7 @@ export default function OnboardingFlow() {
     }
   };
 
-  const handleSelectCareMode = async (mode: 'caregiver' | 'self') => {
-    setCareMode(mode);
-    await safeSetItem(StorageKeys.CARE_MODE, mode);
-    // Auto-advance to next screen
-    flatListRef.current?.scrollToIndex({
-      index: 2,
-      animated: true,
-    });
-  };
+  // Phase 16.3 — handleSelectCareMode retired with WhoIsThisForScreen.
 
   const handleAcceptDisclaimer = async (seedData: boolean) => {
     await completeOnboarding(seedData);
@@ -155,33 +165,35 @@ export default function OnboardingFlow() {
     });
   };
 
+  // Phase 16.3 — renderer reindexed after WhoIsThisFor cut. Screen
+  // ordering is now Welcome(0) → Privacy(1) → Meet(2) → AsYouUse(3)
+  // → GetStarted(4).
   const renderItem = ({ item, index }: any) => {
     if (index === 0) {
       return <WelcomeScreen />;
     }
     if (index === 1) {
-      return <WhoIsThisForScreen onSelectMode={handleSelectCareMode} />;
-    }
-    if (index === 2) {
       return <PrivacyDisclaimerScreen onDisclaimerAccepted={setDisclaimerAccepted} />;
     }
-    if (index === 3) {
+    if (index === 2) {
       return <MeetSampleScreen careMode={careMode} />;
     }
-    if (index === 4) {
+    if (index === 3) {
       return <AsYouUseScreen onContinue={advanceToNext} />;
     }
-    if (index === 5) {
+    if (index === 4) {
       return <GetStartedScreen onComplete={handleAcceptDisclaimer} careMode={careMode} />;
     }
     return null;
   };
 
-  // Hide footer on screen 1 (WhoIsThisFor — card tap advances), screen 4
-  // (AsYouUse — own Got it button), and screen 5 (GetStarted — its own
-  // two-card layout owns the next action).
-  const showFooter = currentIndex !== 1 && currentIndex !== 4 && currentIndex !== 5;
-  const isNextDisabled = currentIndex === 2 && !disclaimerAccepted;
+  // Phase 16.3 — footer-hide indices reshifted after WhoIsThisFor cut.
+  // Hide footer on screen 3 (AsYouUse — own Got it button) and screen
+  // 4 (GetStarted — its own two-card layout owns the next action).
+  const showFooter = currentIndex !== 3 && currentIndex !== 4;
+  // Privacy is now index 1; the Next button stays disabled until the
+  // disclaimer toggle is accepted.
+  const isNextDisabled = currentIndex === 1 && !disclaimerAccepted;
 
   return (
     <View style={styles.container}>

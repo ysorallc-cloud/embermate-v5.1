@@ -1,7 +1,12 @@
 // ============================================================================
-// Onboarding flow — verifies AsYouUseScreen is integrated as the new
+// Onboarding flow — verifies AsYouUseScreen is integrated as the
 // last-but-one screen, between MeetSampleScreen and GetStartedScreen.
-// (Prompt 7 Phase 2.)
+// (Prompt 7 Phase 2; counts updated for Phase 16.3.)
+//
+// Phase 16.3 — flow narrowed 6 → 5 screens after WhoIsThisForScreen
+// was cut. AsYouUse moved from index 4 → index 3 (penultimate, still
+// between Meet and Get Started). The total ONBOARDING_SCREENS count
+// is now 5.
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -15,16 +20,16 @@ describe('Onboarding flow integration — AsYouUseScreen', () => {
     expect(onboardingSrc).toMatch(/from\s+'\.\/screens\/AsYouUseScreen'/);
   });
 
-  it('declares 6 onboarding screens (added "As You Use")', () => {
+  it('declares 5 onboarding screens (Phase 16.3 — was 6 before WhoIsThisFor cut)', () => {
     const block = onboardingSrc.match(/ONBOARDING_SCREENS\s*=\s*\[([\s\S]*?)\]/);
     expect(block).not.toBeNull();
     expect(block![1]).toContain("'As You Use'");
-    // Six entries — count distinct id strings.
+    // Five entries post-16.3 — count distinct id strings.
     const idMatches = block![1].match(/id:\s*['"`]\d+['"`]/g) ?? [];
-    expect(idMatches.length).toBe(6);
+    expect(idMatches.length).toBe(5);
   });
 
-  it('renders <AsYouUseScreen /> at the new index 4 slot, before GetStarted', () => {
+  it('renders <AsYouUseScreen /> before GetStarted (index 3 after the 16.3 cut)', () => {
     // The flow advances by index, so AsYouUse must precede GetStarted.
     const asYouUseIdx = onboardingSrc.indexOf('<AsYouUseScreen');
     const getStartedIdx = onboardingSrc.indexOf('<GetStartedScreen');
@@ -38,7 +43,7 @@ describe('Onboarding flow integration — AsYouUseScreen', () => {
 
   it('hides the standard footer on the AsYouUse screen (it owns its own button)', () => {
     // The screen owns the Got it button, so the global footer should be
-    // suppressed at the AsYouUse index.
-    expect(onboardingSrc).toMatch(/currentIndex !== 4/);
+    // suppressed at the AsYouUse index (3 post-16.3, was 4 pre-cut).
+    expect(onboardingSrc).toMatch(/currentIndex !== 3/);
   });
 });

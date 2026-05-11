@@ -79,6 +79,13 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
       { name: 'Aspirin', dosage: '81mg', timesPerDay: 1, timeSlots: ['morning'] },
     ],
   },
+  // v1.1+ — specialized care templates deferred from v1.0. The shapes
+  // below are preserved verbatim so the work can resume cleanly without
+  // re-deriving suggested settings or medication suggestions. The four
+  // commented IDs are: post-surgical, pediatric, mental-health, hospice.
+  // (post-surgical sits here in PRIORITY_ORDER; pediatric/mental-health/
+  // hospice sit after general-wellness below.)
+  /*
   {
     id: 'post-surgical',
     name: 'Post-Surgical Recovery',
@@ -115,6 +122,7 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
       { name: 'Ibuprofen', dosage: '400mg', timesPerDay: 2, timeSlots: ['morning', 'evening'] },
     ],
   },
+  */
   {
     id: 'chronic-illness',
     name: 'Chronic Illness',
@@ -175,7 +183,8 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
       },
     },
   },
-  {
+  /*
+    {
     id: 'pediatric',
     name: 'Pediatric Recovery',
     description: 'Child-focused recovery with fluid tracking, medication timing, sleep monitoring, and gentle activity.',
@@ -265,4 +274,5 @@ export const CARE_PLAN_TEMPLATES: CarePlanTemplate[] = [
       { name: 'Acetaminophen', dosage: '500mg', timesPerDay: 3, timeSlots: ['morning', 'midday', 'evening'] },
     ],
   },
+  */
 ];
