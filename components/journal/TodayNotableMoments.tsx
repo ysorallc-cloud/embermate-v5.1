@@ -14,6 +14,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Spacing } from '../../theme/theme-tokens';
+import { SectionEyebrow } from '../SectionEyebrow';
 import {
   buildNotableMoments,
   NotableMoment,
@@ -81,7 +82,12 @@ export function TodayNotableMoments({ dateKey }: TodayNotableMomentsProps) {
 
   return (
     <View style={styles.section} testID="today-notable-moments">
-      <Text style={styles.eyebrow}>{'NOTABLE TODAY'}</Text>
+      {/* Phase 22.2 — uniform SectionEyebrow + section-color encoding.
+          Amber tint signals "attention without alarm" per the section-
+          color encoding for this content type. Hairline divider auto-
+          gates with the section's null-return path. */}
+      <View style={styles.sectionDivider} />
+      <SectionEyebrow text="Worth mentioning" tint="amber" />
       {moments.map((m, i) => (
         <View
           key={`${m.category}-${i}`}
@@ -102,12 +108,14 @@ const createStyles = (c: any) => StyleSheet.create({
     marginBottom: Spacing.sm,
     paddingHorizontal: 2,
   },
-  eyebrow: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    color: c.textTertiary,
-    letterSpacing: 0.6,
-    marginBottom: 8,
+  // Phase 22.2 — local eyebrow style retired; SectionEyebrow owns
+  // the typography. Hairline divider matches the 15.12 Insights
+  // pattern (height 1, near-transparent overlay color).
+  sectionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    marginVertical: Spacing.md,
+    marginHorizontal: -16,
   },
   row: {
     flexDirection: 'row' as const,

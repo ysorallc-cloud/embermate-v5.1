@@ -17,6 +17,7 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { SectionEyebrow } from '../SectionEyebrow';
 import { formatTime } from '../../utils/text/primitives';
 
 export interface JournalNotesCardProps {
@@ -130,9 +131,17 @@ export function JournalNotesCard({
     : 'Anything to pass to the next caregiver, or to flag for the next visit?';
 
   return (
+    <View>
+      {/* Phase 22.2 — uniform SectionEyebrow + section-color encoding.
+          NOTES uses the default tint (textTertiary) so the human-voice
+          notes content owns the visual weight, not the eyebrow. The
+          hairline divider above matches the 15.12 Insights pattern.
+          The card chrome below keeps its internal headerRow for the
+          last-edited label only. */}
+      <View style={styles.sectionDivider} />
+      <SectionEyebrow text={eyebrowText} />
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.eyebrow}>{eyebrowText}</Text>
         {lastEditedLabel && (
           <Text
             style={styles.lastEdited}
@@ -214,6 +223,7 @@ export function JournalNotesCard({
         )}
       </View>
     </View>
+    </View>
   );
 }
 
@@ -238,11 +248,14 @@ const createStyles = (c: any) =>
       borderBottomWidth: 0.5,
       borderBottomColor: c.glassBorder,
     },
-    eyebrow: {
-      fontSize: 9,
-      fontWeight: '500',
-      color: c.textTertiary,
-      letterSpacing: 0.5,
+    // Phase 22.2 — local eyebrow style retired; SectionEyebrow owns
+    // the typography. Hairline divider matches the 15.12 Insights
+    // pattern.
+    sectionDivider: {
+      height: 1,
+      backgroundColor: 'rgba(255,255,255,0.04)',
+      marginVertical: 16, // allow: section-divider rhythm (15.12 parity)
+      marginHorizontal: -16, // allow: section-divider rhythm (15.12 parity)
     },
     lastEdited: {
       marginLeft: 'auto',

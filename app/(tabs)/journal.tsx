@@ -63,6 +63,8 @@ import { JournalDisclaimer } from '../../components/journal/JournalDisclaimer';
 // Phase 22.1 — handoff-document framing.
 import { JournalIdentityStrip } from '../../components/journal/JournalIdentityStrip';
 import { GestaltSummary } from '../../components/journal/GestaltSummary';
+// Phase 22.2 — uniform SectionEyebrow + section-color encoding.
+import { SectionEyebrow } from '../../components/SectionEyebrow';
 import { getCaregiverProfile } from '../../storage/caregiverProfileRepo';
 import {
   getUpcomingAppointments,
@@ -756,21 +758,31 @@ export default function JournalTab() {
               disclaimer footer), matching the handoff-document order:
               identity → gestalt → day picker → narrative → notable →
               pending → notes → BUILDING TOWARD → footer. Source:
-              utils/appointmentLookahead (same as the notes prompt). */}
+              utils/appointmentLookahead (same as the notes prompt).
+              Phase 22.2 — eyebrow + hairline divider added at page
+              level (banner has no internal eyebrow container).
+              Lavender tint matches the visit-prep semantic used by
+              the banner's existing accent color. Gated by
+              showFeedBanner so no orphan eyebrow/divider above empty
+              space. */}
           {showFeedBanner && upcomingAppointment && (
-            <TouchableOpacity
-              style={s.feedBanner}
-              onPress={() => navigate('/(tabs)/understand')}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel={`Your entries are building ${patientName}'s visit prep for ${upcomingAppointment.provider}, ${daysUntilAppt} days away`}
-            >
-              <Text style={s.feedBannerIcon}>{'\u{1FA7A}'}</Text>
-              <Text style={s.feedBannerText} numberOfLines={2}>
-                {`Your entries are building ${patientName}'s visit prep for ${upcomingAppointment.provider} · ${daysUntilAppt} day${daysUntilAppt === 1 ? '' : 's'}`}
-              </Text>
-              <Text style={s.feedBannerArrow}>{'›'}</Text>
-            </TouchableOpacity>
+            <>
+              <View style={s.sectionDivider} />
+              <SectionEyebrow text="Building toward" tint="caregiverAccent" />
+              <TouchableOpacity
+                style={s.feedBanner}
+                onPress={() => navigate('/(tabs)/understand')}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={`Your entries are building ${patientName}'s visit prep for ${upcomingAppointment.provider}, ${daysUntilAppt} days away`}
+              >
+                <Text style={s.feedBannerIcon}>{'\u{1FA7A}'}</Text>
+                <Text style={s.feedBannerText} numberOfLines={2}>
+                  {`Your entries are building ${patientName}'s visit prep for ${upcomingAppointment.provider} · ${daysUntilAppt} day${daysUntilAppt === 1 ? '' : 's'}`}
+                </Text>
+                <Text style={s.feedBannerArrow}>{'›'}</Text>
+              </TouchableOpacity>
+            </>
           )}
 
           {/* Phase 5.11 — "This week" pattern card relocated to Insights.
@@ -942,6 +954,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   authGateSubtitle: { fontSize: 14, color: c.textSecondary, textAlign: 'center', marginBottom: Spacing.lg, lineHeight: 20 },
   authGateButton: { backgroundColor: c.accent, paddingHorizontal: 32, paddingVertical: 14, borderRadius: BorderRadius.lg }, // allow: tap-target padding (Apple HIG ≥44pt)
   authGateButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+
+  // Phase 22.2 — hairline divider for the page-level BUILDING TOWARD
+  // section (the banner has no internal eyebrow container). Matches
+  // the 15.12 Insights divider visual.
+  sectionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    marginVertical: Spacing.md,
+    marginHorizontal: -16,
+  },
 
   // ─── SAMPLE DATA INDICATOR ───
   // UX-restructure (Commit 6) — feed-forward banner. Lavender tint

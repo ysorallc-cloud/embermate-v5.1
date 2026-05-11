@@ -114,8 +114,20 @@ describe('Journal — deprecated sections removed', () => {
     expect(src).not.toMatch(/getDailyPrompt\(/);
   });
 
-  it('does not render the floating <SectionEyebrow> wrappers anymore', () => {
-    // Eyebrows now live INSIDE TodayOutcomes / JournalNotesCard.
-    expect(src).not.toMatch(/<SectionEyebrow\b/);
+  it('Phase 22.2 — page-level SectionEyebrow allowed for BUILDING TOWARD (banner has no child container)', () => {
+    // Pre-22.2 eyebrows lived only INSIDE the section components
+    // (NarrativeSnapshot / TodayNotableMoments / TodayStillPending /
+    // JournalNotesCard). 22.2 added a single page-level SectionEyebrow
+    // for the BUILDING TOWARD feed-forward banner — that banner is a
+    // TouchableOpacity at the page scope, not a child component, so
+    // its eyebrow lives in journal.tsx itself.
+    //
+    // Pin the post-22.2 reality: exactly one <SectionEyebrow> at
+    // page level, with the "Building toward" text and the lavender
+    // (caregiverAccent) tint that matches the banner's accent color.
+    const eyebrows = src.match(/<SectionEyebrow\b[\s\S]*?\/>/g) || [];
+    expect(eyebrows.length).toBe(1);
+    expect(eyebrows[0]).toMatch(/text=["']Building toward["']/);
+    expect(eyebrows[0]).toMatch(/tint=["']caregiverAccent["']/);
   });
 });

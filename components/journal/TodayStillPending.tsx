@@ -14,6 +14,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Spacing } from '../../theme/theme-tokens';
+import { SectionEyebrow } from '../SectionEyebrow';
 import { listDailyInstances, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 import {
   formatStillPendingTonight,
@@ -62,8 +63,15 @@ export function TodayStillPending({ dateKey }: TodayStillPendingProps) {
   if (items.length === 0) return null;
 
   return (
-    <View style={styles.section} testID="today-still-pending">
-      <Text style={styles.eyebrow}>{'STILL PENDING'}</Text>
+    <View testID="today-still-pending">
+      {/* Phase 22.2 — uniform SectionEyebrow + section-color encoding.
+          Coral tint signals "handoff action required" (reframed for
+          22.2 — Phase 7's 3-accent budget was decorative restraint;
+          22.2 uses coral semantically). Hairline divider sits above
+          the card; auto-gates with the null-return paths. */}
+      <View style={styles.sectionDivider} />
+      <SectionEyebrow text="Still pending" tint="coral" />
+      <View style={styles.section}>
       {items.map((p) => (
         <View
           key={p.id}
@@ -75,6 +83,7 @@ export function TodayStillPending({ dateKey }: TodayStillPendingProps) {
           <Text style={styles.time}>{p.time}</Text>
         </View>
       ))}
+      </View>
     </View>
   );
 }
@@ -90,12 +99,14 @@ const createStyles = (c: any) => StyleSheet.create({
     borderColor: c.glassBorder,
     borderRadius: 10,
   },
-  eyebrow: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    color: c.textTertiary,
-    letterSpacing: 0.6,
-    marginBottom: 8,
+  // Phase 22.2 — local eyebrow style retired; SectionEyebrow owns
+  // the typography. Hairline divider matches the 15.12 Insights
+  // pattern (height 1, near-transparent overlay color).
+  sectionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    marginVertical: Spacing.md,
+    marginHorizontal: -16,
   },
   row: {
     flexDirection: 'row' as const,

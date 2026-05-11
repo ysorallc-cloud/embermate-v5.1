@@ -17,6 +17,7 @@
 // ============================================================================
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { SectionEyebrow } from '../SectionEyebrow';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Spacing } from '../../theme/theme-tokens';
@@ -93,6 +94,13 @@ export function NarrativeSnapshot({
 
   return (
     <View style={styles.section}>
+      {/* Phase 22.2 — uniform SectionEyebrow + section-color encoding.
+          Sage tint (accent) signals "settled, factual baseline" per
+          the section-color encoding for this content type. The
+          hairline divider above auto-gates with the null-return path
+          (no tone/recap/summary → no eyebrow + no divider). */}
+      <View style={styles.sectionDivider} />
+      <SectionEyebrow text="What happened" tint="accent" />
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={onEditPress}
@@ -140,6 +148,14 @@ const createStyles = (c: any) =>
     section: {
       marginVertical: Spacing.sm,
       paddingHorizontal: 2,
+    },
+    // Phase 22.2 — hairline divider above the section, matches the
+    // 15.12 Insights pattern.
+    sectionDivider: {
+      height: 1,
+      backgroundColor: 'rgba(255,255,255,0.04)',
+      marginVertical: Spacing.md,
+      marginHorizontal: -16,
     },
     snapshotText: {
       fontFamily: 'Georgia',
