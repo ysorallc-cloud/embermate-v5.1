@@ -15,6 +15,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Spacing, Sizing } from '../../theme/theme-tokens';
+import { SectionEyebrow } from '../SectionEyebrow';
 import { navigate } from '../../lib/navigate';
 import {
   getUpcomingAppointments,
@@ -124,7 +125,7 @@ export function UpcomingVisitInsightsCard() {
       accessibilityLabel={`Prepare for ${appt.provider} on ${shortDateLabel(appt.date)} — ${daysAway} days away`}
     >
       <View style={styles.headerRow}>
-        <Text style={styles.eyebrow}>{'UPCOMING VISIT'}</Text>
+        <SectionEyebrow text="Upcoming visit" tint="caregiverAccent" />
         <Text style={styles.daysAway}>{`${daysAway} days away`}</Text>
       </View>
       <Text style={styles.title}>{`Prepare for ${appt.provider}`}</Text>
@@ -208,12 +209,9 @@ const createStyles = (c: any) => StyleSheet.create({
     alignItems: 'center' as const,
     marginBottom: 4,
   },
-  eyebrow: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    letterSpacing: 0.5,
-    color: c.caregiverAccent,
-  },
+  // Phase 15.12 — local eyebrow style retired; SectionEyebrow with
+  // tint="caregiverAccent" preserves the lavender visit-context
+  // semantic.
   daysAway: {
     fontSize: 11,
     fontWeight: '500' as const,

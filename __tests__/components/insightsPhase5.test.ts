@@ -18,8 +18,13 @@ const understandSrc = readFileSync(join(ROOT, 'app/(tabs)/understand.tsx'), 'utf
 
 describe('Insights Missing Data — gated on 7+ days', () => {
   it('the Missing Data section gate references daysOfData >= 7', () => {
-    // Find the actual section label (not comment-prose mentions).
-    const marker = '<Text style={styles.sectionLabel}>Missing data</Text>';
+    // Phase 15.12 — the marker changed from
+    //   <Text style={styles.sectionLabel}>Missing data</Text>
+    // to
+    //   <SectionEyebrow text="Missing data" />
+    // when the sectionLabel style was retired in favor of the
+    // SectionEyebrow primitive. Locate the new marker.
+    const marker = '<SectionEyebrow text="Missing data" />';
     const idx = understandSrc.indexOf(marker);
     expect(idx).toBeGreaterThan(0);
     // The guard line sits within ~600 chars before the block.

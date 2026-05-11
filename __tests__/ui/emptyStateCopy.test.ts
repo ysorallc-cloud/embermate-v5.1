@@ -22,7 +22,11 @@ describe('Empty state copy warmth', () => {
     const understandSrc = read('app/(tabs)/understand.tsx');
     const previewSrc = read('components/understand/InsightsEmptyStatePreview.tsx');
     expect(understandSrc).toMatch(/<InsightsEmptyStatePreview/);
-    expect(previewSrc).toContain('PATTERNS COMING');
+    // Phase 15.12 — the source literal moved from the all-caps
+    // 'PATTERNS COMING' Text to a SectionEyebrow text="Patterns
+    // coming" prop. SectionEyebrow renders it uppercased at runtime
+    // so the visible text is unchanged. Match the prop value.
+    expect(previewSrc).toMatch(/Patterns coming|PATTERNS COMING/);
     // The "more day(s)" and "then trends appear" pieces sit in separate
     // template literals in the source. Assert each independently.
     expect(previewSrc).toMatch(/more day\$\{remaining === 1 \? '' : 's'\}/);

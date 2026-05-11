@@ -148,9 +148,12 @@ function tapHeader(tree: TestRenderer.ReactTestRenderer): void {
 describe('Phase 15.9 — PatternStack', () => {
   describe('contract 1: collapsed default — summary header only', () => {
     it('renders the "EmberMate noticed" eyebrow', () => {
+      // Phase 15.12 — eyebrow swept onto SectionEyebrow, which
+      // uppercases text at the render layer. Match
+      // case-insensitively so the contract survives both spellings.
       const tree = render({ patterns: samplePatterns });
       const text = flattenText(tree.toJSON());
-      expect(text).toContain('EmberMate noticed');
+      expect(text.toLowerCase()).toContain('embermate noticed');
     });
 
     it('renders "{N} patterns worth mentioning" with N from the array length', () => {

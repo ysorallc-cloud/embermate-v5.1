@@ -14,6 +14,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { SectionEyebrow } from '../SectionEyebrow';
 
 export interface InsightsEmptyStatePreviewProps {
   daysOfData: number;
@@ -99,7 +100,7 @@ export function InsightsEmptyStatePreview({
       >
         {/* Top half — patterns coming countdown */}
         <View style={styles.consolidatedTop}>
-          <Text style={styles.patternsEyebrow}>{'PATTERNS COMING'}</Text>
+          <SectionEyebrow text="Patterns coming" tint="accent" />
           {/* Phase 6.2 — visible progress through the 14-day window. The
               bar fill width caps at 100% defensively; in practice this
               component returns null at daysOfData >= 14. */}
@@ -128,7 +129,7 @@ export function InsightsEmptyStatePreview({
 
         {/* Bottom half — what we'll be watching for */}
         <View style={styles.watchingHeader}>
-          <Text style={styles.watchingEyebrow}>{"WHAT WE'LL BE WATCHING FOR"}</Text>
+          <SectionEyebrow text="What we'll be watching for" />
           <Text style={styles.watchingHeaderSubtitle}>{watchingSubtitle}</Text>
         </View>
 
@@ -186,14 +187,8 @@ const createStyles = (c: any) => StyleSheet.create({
     paddingVertical: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     marginBottom: 14, // allow: off-scale gap (intentional)
   },
-  patternsEyebrow: {
-    fontSize: 8.5,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    color: c.accent,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-  },
+  // Phase 15.12 — patternsEyebrow style retired. SectionEyebrow
+  // with tint="accent" preserves the sage progress-signal semantic.
   // Phase 6.2 — slim progress bar for the 14-day building window. Sage
   // fill matches the eyebrow accent (legitimate progress signal, not
   // competing with another sage element on this surface).
@@ -263,14 +258,8 @@ const createStyles = (c: any) => StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: c.glassBorder,
   },
-  watchingEyebrow: {
-    fontSize: 8.5,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    color: c.textTertiary,
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
+  // Phase 15.12 — watchingEyebrow style retired; SectionEyebrow's
+  // default tint (textTertiary) matches the prior color.
   watchingHeaderSubtitle: {
     fontFamily: 'Georgia',
     fontStyle: 'italic',

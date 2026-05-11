@@ -43,15 +43,16 @@ describe('Insights zero-day empty state teasers (Phase 4)', () => {
   });
 
   it('the consolidated card carries the patterns-coming + 4-row teaser content', () => {
-    // PATTERNS COMING eyebrow + "more days, then trends appear" + the four
-    // pattern preview rows. The wording is in the component now, not in
-    // understand.tsx itself.
-    expect(previewSrc).toContain('PATTERNS COMING');
+    // Phase 15.12 — the eyebrow literals moved from all-caps Text
+    // strings to SectionEyebrow text="..." props. SectionEyebrow
+    // renders them uppercased at runtime so the visible text is
+    // unchanged. Match either the prop value or the rendered form.
+    expect(previewSrc).toMatch(/Patterns coming|PATTERNS COMING/);
     // Source has the count and the rest in separate template literals
     // (`${remaining} more day${...}` then `, then trends appear`), so
     // assert each fragment independently rather than as one regex.
     expect(previewSrc).toMatch(/more day\$\{remaining === 1 \? '' : 's'\}/);
     expect(previewSrc).toContain('then trends appear');
-    expect(previewSrc).toContain("WHAT WE'LL BE WATCHING FOR");
+    expect(previewSrc).toMatch(/[Ww]hat we'll be watching for|WHAT WE'LL BE WATCHING FOR/);
   });
 });

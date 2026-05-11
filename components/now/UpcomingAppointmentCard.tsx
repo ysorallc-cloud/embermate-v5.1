@@ -19,6 +19,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Spacing, Sizing } from '../../theme/theme-tokens';
+import { SectionEyebrow } from '../SectionEyebrow';
 import { navigate } from '../../lib/navigate';
 import {
   getUpcomingAppointments,
@@ -79,7 +80,7 @@ export function UpcomingAppointmentCard() {
       accessibilityRole="summary"
       accessibilityLabel={`Upcoming in ${n} ${n === 1 ? 'day' : 'days'}: ${appt.specialty} with ${appt.provider} on ${shortDateLabel(appt.date)}`}
     >
-      <Text style={styles.eyebrow}>{eyebrowLabel}</Text>
+      <SectionEyebrow text={eyebrowLabel} tint="caregiverAccent" />
       <Text style={styles.title}>{`${appt.specialty} with ${appt.provider}`}</Text>
       <Text style={styles.subtitle}>{shortDateLabel(appt.date)}</Text>
       <TouchableOpacity
@@ -106,13 +107,8 @@ const createStyles = (c: any) => StyleSheet.create({
     borderColor: c.caregiverAccentStrong,
     borderRadius: Sizing.cardRadius,
   },
-  eyebrow: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    letterSpacing: 0.5,
-    color: c.caregiverAccent,
-    marginBottom: 4,
-  },
+  // Phase 15.12 — local eyebrow style retired; SectionEyebrow with
+  // tint="caregiverAccent" preserves the lavender semantic.
   title: {
     fontSize: 14,
     fontWeight: '600' as const,

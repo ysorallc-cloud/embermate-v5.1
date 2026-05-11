@@ -29,6 +29,7 @@ import Svg, { Polyline, Circle as SvgCircle } from 'react-native-svg';
 import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { SectionEyebrow } from '../../components/SectionEyebrow';
 import { UpcomingVisitInsightsCard } from '../../components/insights/UpcomingVisitInsightsCard';
 // Phase 15.9 — pattern stack moved into its own component with an
 // outer collapse so it doesn't dominate vertical real estate.
@@ -680,7 +681,7 @@ export default function UnderstandScreen() {
             if (!summaryText) return null;
             return (
               <View style={styles.aiSummarySection}>
-                <Text style={styles.sectionLabel}>This week's pulse</Text>
+                <SectionEyebrow text="This week's pulse" />
                 <Text style={styles.sectionContext}>
                   An overall read on how {patientName}'s care is going. Higher is better.
                 </Text>
@@ -709,7 +710,7 @@ export default function UnderstandScreen() {
               what they DON'T have to lift their visibility). */}
           {pageData && pageData.daysOfData >= 7 && dataGaps.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Missing data</Text>
+              <SectionEyebrow text="Missing data" />
               <Text style={styles.sectionContext}>
                 What we can't track yet. More data means better insights.
               </Text>
@@ -771,6 +772,7 @@ export default function UnderstandScreen() {
             return (
               <View style={styles.section}>
                 <View style={{ marginTop: Spacing.md }} />
+                <SectionEyebrow text="Reports" />
                 <TouchableOpacity
                   style={styles.shareCtaButton}
                   onPress={() => setShareSheetOpen(true)}
@@ -787,7 +789,7 @@ export default function UnderstandScreen() {
           {/* ═══ SECTION 4: VITALS DASHBOARD ═══ */}
           {vitalTiles.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Vitals this week</Text>
+              <SectionEyebrow text="Vitals this week" />
               <Text style={styles.sectionContext}>
                 Key numbers averaged over the last {timeRange} days.
               </Text>
@@ -833,7 +835,7 @@ export default function UnderstandScreen() {
             return gating.showAdherenceChart;
           })() && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Medication adherence</Text>
+              <SectionEyebrow text="Medication adherence" />
               <Text style={styles.sectionContext}>
                 How consistently meds are being taken as scheduled.
               </Text>
@@ -987,14 +989,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   section: {
     marginBottom: 4,
   },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    color: c.textMuted,
-    // Rule 3: sentence case, not ALL CAPS
-    marginBottom: 6,
-  },
+  // Phase 15.12 — sectionLabel style retired. All 4 understand.tsx
+  // uses were swept onto components/SectionEyebrow.tsx for uniform
+  // eyebrow typography (uppercase, fontSize 8, weight 500) across
+  // Insights surfaces. The "Rule 3: sentence case" comment retired
+  // with the style — the eyebrow primitive forces all caps.
   sectionSublabel: {
     fontSize: 12,
     color: c.textTertiary,

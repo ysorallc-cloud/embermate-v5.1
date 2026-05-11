@@ -101,11 +101,16 @@ describe('IG-5: CarePlanStats expanded', () => {
 });
 
 // ============================================================================
-// IG-6: Section labels use sectionLabel style
+// IG-6: Section labels — Phase 15.12 swept onto SectionEyebrow
+//
+// The local sectionLabel style was retired when all four uses moved
+// onto the shared SectionEyebrow primitive (components/SectionEyebrow.tsx)
+// for uniform eyebrow typography across Insights surfaces.
 // ============================================================================
 describe('IG-6: Section labels', () => {
-  test('sectionLabel style exists', () => {
-    expect(src).toContain('sectionLabel:');
+  test('SectionEyebrow primitive drives the page-level section labels', () => {
+    expect(src).toMatch(/import\s+\{[^}]*\bSectionEyebrow\b[^}]*\}/);
+    expect(src).toMatch(/<SectionEyebrow\b/);
   });
 
   test('Vitals section exists', () => {

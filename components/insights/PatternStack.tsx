@@ -38,6 +38,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, Spacing } from '../../theme/theme-tokens';
+import { SectionEyebrow } from '../SectionEyebrow';
 import type { CorrelationCard } from '../../utils/understandInsights';
 
 const SEVERITY = {
@@ -130,7 +131,7 @@ export function PatternStack({ patterns }: PatternStackProps) {
         accessibilityRole="button"
         accessibilityLabel={`${countLabel}. Tap to ${isOpen ? 'collapse' : 'expand'}.`}
       >
-        <Text style={styles.eyebrow}>{'EmberMate noticed'}</Text>
+        <SectionEyebrow text="EmberMate noticed" />
         <View style={styles.summaryRow}>
           <Text style={styles.summaryCount}>{countLabel}</Text>
           <Text style={styles.summaryChevron}>{isOpen ? '▲' : '▼'}</Text>
@@ -243,15 +244,12 @@ const createStyles = (c: any) => StyleSheet.create({
     borderRadius: 12,
     padding: 14,
   },
-  eyebrow: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: c.textMuted,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-  },
+  // Phase 15.12 — local eyebrow style retired; SectionEyebrow
+  // owns the typography. A small marginBottom on summaryRow keeps
+  // the visual breathing space the old eyebrow's marginBottom 6
+  // used to provide.
   summaryRow: {
+    marginTop: 6,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
