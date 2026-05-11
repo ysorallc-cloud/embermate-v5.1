@@ -23,6 +23,11 @@ jest.mock('react-native', () => {
     Pressable: make('Pressable'),
     RefreshControl: make('RefreshControl'),
     ActivityIndicator: make('ActivityIndicator'),
+    // Phase 15.11 — ShareSheet mounts a Modal; the consolidated
+    // Share CTA routes through Share.share. Both stubbed for the
+    // smoke test.
+    Modal: make('Modal'),
+    Share: { share: jest.fn().mockResolvedValue({ action: 'dismissedAction' }) },
     Alert: { alert: jest.fn() },
     StyleSheet: { create: (s: any) => s, flatten: (s: any) => s },
     Platform: { OS: 'ios', select: (o: any) => o.ios || o.default },
