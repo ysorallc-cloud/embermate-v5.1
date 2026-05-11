@@ -182,7 +182,19 @@ describe('Phase 5.10.a — Section order in rendered HTML', () => {
   const Sharing = require('expo-sharing');
   const FileSystem = require('expo-file-system');
 
-  it('emits sections in the Phase 5.10.a order', async () => {
+  // Phase 16.1 — the Phase 5.10.a section order was revised to a
+  // clinical-standard order validated against nurse input. Two moves:
+  //   • Wellness (Sleep/Mood/Energy) ↔ Symptom progression swap.
+  //     Symptoms (clinical hard signal) precedes Sleep/Mood (soft
+  //     signal) in the new layout.
+  //   • "What changed after medication updates" lifts from the end
+  //     of the body to right after the medications adherence/skipped
+  //     block, grouping all medication-related content together.
+  // The sectionOrder array below is updated to match. A dedicated
+  // 16.1 test file (visitPrepPdfClinicalOrder16_1.test.ts) carries
+  // the broader contracts (content preservation + missing-section
+  // graceful handling).
+  it('emits sections in the Phase 16.1 clinical-standard order (was Phase 5.10.a)', async () => {
     Print.printToFileAsync.mockResolvedValue({ uri: '/tmp/report.pdf' });
     Sharing.isAvailableAsync.mockResolvedValue(true);
     Sharing.shareAsync.mockResolvedValue(undefined);
@@ -229,8 +241,10 @@ describe('Phase 5.10.a — Section order in rendered HTML', () => {
       'Medication adherence',
       'Vitals',
       'Hydration &amp; Nutrition',
-      'Sleep, Energy &amp; Mood Patterns',
+      // Phase 16.1 — swapped relative to Phase 5.10.a:
+      // Symptoms now precedes Sleep, Energy & Mood Patterns.
       'Symptom progression',
+      'Sleep, Energy &amp; Mood Patterns',
       'Functional observations',
       'Caregiver notes',
       'Questions for this visit',

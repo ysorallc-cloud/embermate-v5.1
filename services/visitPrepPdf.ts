@@ -772,6 +772,15 @@ function buildHtml(data: VisitPrepData): string {
   <p style="color:#9a9aa8;">No medications logged in this window.</p>
   `) : ''}
 
+  ${/* Phase 16.1 — medication-correlation content lifted from the end
+       of the body to here, grouping all medication-related sections
+       together (adherence + skipped doses + correlations) per the
+       clinical-standard order. */ ''}
+  ${data.medicationChanges.length > 0 ? `
+  <h2>What changed after medication updates</h2>
+  <ul>${medChangeItems}</ul>
+  ` : ''}
+
   ${data.includes.vitals ? (data.vitals.length > 0 ? `
   <h2>Vitals</h2>
   <table>
@@ -797,6 +806,12 @@ function buildHtml(data: VisitPrepData): string {
   </div>
   `) : ''}
 
+  ${/* Phase 16.1 — Symptom progression lifted above Sleep/Mood/Energy.
+       Clinical-standard order puts hard clinical signals (symptom
+       timeline) above softer pattern signals (sleep/mood/energy). */ ''}
+  <h2>Symptom progression</h2>
+  <ul>${symptomItems}</ul>
+
   ${data.includes.wellness ? ((data.wellnessPatterns.sleep || data.wellnessPatterns.energy || data.wellnessPatterns.mood) ? `
   <div class="callout callout-wellness">
     <h2>Sleep, Energy &amp; Mood Patterns</h2>
@@ -810,9 +825,6 @@ function buildHtml(data: VisitPrepData): string {
     <p style="color:#9a9aa8;">No reflections logged in this window.</p>
   </div>
   `) : ''}
-
-  <h2>Symptom progression</h2>
-  <ul>${symptomItems}</ul>
 
   <h2>Functional observations</h2>
   <ul>${functionalItems}</ul>
@@ -833,10 +845,9 @@ function buildHtml(data: VisitPrepData): string {
   <p style="color:#9a9aa8;">No questions saved for this visit.</p>
   `) : ''}
 
-  ${data.medicationChanges.length > 0 ? `
-  <h2>What changed after medication updates</h2>
-  <ul>${medChangeItems}</ul>
-  ` : ''}
+  ${/* Phase 16.1 — "What changed after medication updates" relocated
+       up under Medications. The original site is intentionally empty
+       here. */ ''}
 
   ${questionsHtml ? `
   <h2 style="font-size:11px; color:#7a7a8a;">Additional questions (this visit)</h2>
