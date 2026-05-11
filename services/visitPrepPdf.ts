@@ -37,6 +37,10 @@ import {
   type SelectedNote,
 } from '../utils/visitPrepNoteCuration';
 import { getVisitPrepDraft } from '../storage/visitPrepDraftRepo';
+import {
+  getCaregiverNotes,
+  type VisitPrepCaregiverNotes,
+} from '../storage/visitPrepCaregiverNotesRepo';
 import { buildRedFlags, type RedFlag } from './redFlags';
 import {
   buildHydrationNutrition,
@@ -77,6 +81,13 @@ export interface VisitPrepConfig {
   questions: string;
   patientName: string;
   caregiverName?: string;
+  /** Phase 16.2 — when present, the assembler reads the caregiver-
+   *  fillable block (3 symptoms / 3 functional / 3 questions / daily
+   *  activities) from visitPrepCaregiverNotesRepo and renders the
+   *  filled values as sub-sections inside Caregiver Notes. Absent →
+   *  no caregiver-block content; the auto-extracted sections still
+   *  render exactly as before. */
+  appointmentId?: string;
 }
 
 export interface AdherenceEntry {
@@ -166,6 +177,12 @@ export interface VisitPrepData {
   journalHighlights: string[];
   /** Legacy free-text questions (pre-Prompt 5 path). Kept for back-compat. */
   questions: string;
+  /** Phase 16.2 — caregiver-fillable block, fetched only when
+   *  config.appointmentId is set. Null when the config didn't anchor
+   *  to an appointment (e.g. caregiver invoked /visit-prep without
+   *  apptId). Filled fields render as sub-sections in Caregiver
+   *  Notes; empty fields omitted entirely. */
+  caregiverFillable: import('../storage/visitPrepCaregiverNotesRepo').VisitPrepCaregiverNotes | null;
   footer: string;
 }
 
@@ -541,6 +558,19 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
     questions: config.includeQuestions,
   };
 
+  // Phase 16.2 — caregiver-fillable block. Only fetched when the
+  // config carries an appointmentId; otherwise null and downstream
+  // renderers skip the sub-sections.
+  let caregiverFillable: VisitPrepCaregiverNotes | null = null;
+  if (config.appointmentId) {
+    try {
+      caregiverFillable = await getCaregiverNotes(config.appointmentId);
+    } catch (err) {
+      logError('visitPrepPdf.caregiverFillable', err);
+      caregiverFillable = null;
+    }
+  }
+
   return {
     header,
     includes,
@@ -560,6 +590,7 @@ export async function assembleVisitPrepData(config: VisitPrepConfig): Promise<Vi
     selectedNotes,
     journalHighlights,
     questions,
+    caregiverFillable,
     footer,
   };
 }
@@ -708,6 +739,35 @@ function buildHtml(data: VisitPrepData): string {
     ? data.questions.split('\n').filter(q => q.trim()).map(q => `<li>${q.trim()}</li>`).join('')
     : '';
 
+  // Phase 16.2 — caregiver-fillable sub-sections. Each 3-field
+  // category renders only when at least one slot is non-empty;
+  // filled fields render as bullets in caregiver entry order, empty
+  // slots are omitted. The daily-activities response renders as its
+  // own labeled sub-section (paragraph, not bulleted) — never
+  // commingled with the symptom/functional/question categories.
+  const cf = data.caregiverFillable;
+  const renderTripleSubsection = (label: string, triple: [string, string, string]): string => {
+    const filled = triple
+      .map((v, i) => ({ v: v.trim(), i }))
+      .filter((x) => x.v.length > 0);
+    if (filled.length === 0) return '';
+    const items = filled.map((x) => `<li>${x.v}</li>`).join('');
+    return `<h3 style="font-size:11px; font-weight:600; color:#7a7a8a; margin:8px 0 4px;">${label}</h3><ul>${items}</ul>`;
+  };
+  const caregiverSymptomsHtml = cf
+    ? renderTripleSubsection('Symptoms changed (caregiver’s view)', cf.symptomsChanged)
+    : '';
+  const caregiverFunctionalHtml = cf
+    ? renderTripleSubsection('Functional changes (caregiver’s view)', cf.functionalChanges)
+    : '';
+  const caregiverQuestionsHtml = cf
+    ? renderTripleSubsection('Questions for the provider', cf.questionsForProvider)
+    : '';
+  const helpProvidedTrimmed = cf?.helpProvidedThisWeek?.trim() ?? '';
+  const helpProvidedHtml = helpProvidedTrimmed.length > 0
+    ? `<h3 style="font-size:11px; font-weight:600; color:#7a7a8a; margin:8px 0 4px;">Help provided this week</h3><p>${helpProvidedTrimmed}</p>`
+    : '';
+
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -844,6 +904,15 @@ function buildHtml(data: VisitPrepData): string {
   <h2>Questions for this visit</h2>
   <p style="color:#9a9aa8;">No questions saved for this visit.</p>
   `) : ''}
+
+  ${/* Phase 16.2 — caregiver-fillable sub-sections inside the
+       Caregiver Notes block (after the auto-extracted sections).
+       Each sub-section emits only when it has filled content; the
+       whole block is silent when no appointmentId was threaded. */ ''}
+  ${caregiverSymptomsHtml}
+  ${caregiverFunctionalHtml}
+  ${caregiverQuestionsHtml}
+  ${helpProvidedHtml}
 
   ${/* Phase 16.1 — "What changed after medication updates" relocated
        up under Medications. The original site is intentionally empty

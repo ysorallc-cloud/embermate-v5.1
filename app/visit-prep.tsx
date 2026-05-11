@@ -35,6 +35,7 @@ import {
   type ProfileField,
 } from '../utils/requireProfileFields';
 import { ProfilePromptSheet } from '../components/ProfilePromptSheet';
+import { CaregiverNotesBlock } from '../components/visitPrep/CaregiverNotesBlock';
 
 // ============================================================================
 // CONSTANTS
@@ -165,6 +166,10 @@ export default function VisitPrepScreen() {
         questions,
         patientName,
         caregiverName,
+        // Phase 16.2 — thread apptId so the PDF assembler can fetch
+        // the caregiver-fillable block's saved values. Absent →
+        // assembler skips the caregiver-notes read entirely.
+        appointmentId: params.apptId,
       };
 
       // Stash the assembled config so the preview screen can pick it up
@@ -262,6 +267,17 @@ export default function VisitPrepScreen() {
               </View>
             ))}
           </View>
+
+          {/* Phase 16.2 — caregiver-fillable Visit Prep prompts. Only
+              surfaced when an appointmentId is in scope (from the
+              query param); the block persists per-appointment and
+              reads/writes only its own repo (no log-driven pre-fill).
+              The block sits at the "before you go" preparation step,
+              between the include toggles and the
+              questions-for-the-doctor handoff. */}
+          {params.apptId && (
+            <CaregiverNotesBlock appointmentId={params.apptId} />
+          )}
 
           {/* Questions for the doctor — running list managed via the
               dedicated entry surface (patient-questions). The free-text box
