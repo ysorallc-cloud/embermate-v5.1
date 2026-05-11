@@ -105,41 +105,23 @@ describe('Phase 4b — ScheduleCard row geometry', () => {
   });
 });
 
-describe('Phase 4c — Journal preview card link', () => {
+// Phase 15.6 — Journal preview card retired from NowFooter (the
+// tile that owned journalPreviewCard / journalPreviewText /
+// journalPreviewLink styles was removed). The Phase 4c contracts
+// that pinned those styles' padding/margin tokens are obsolete;
+// flipped to retirement pins documenting the absence.
+describe('Phase 15.6 — Journal preview card retired (was Phase 4c)', () => {
   const src = read('components/now/NowFooter.tsx');
-  const card = extractStyleBody(src, 'journalPreviewCard');
-  const text = extractStyleBody(src, 'journalPreviewText');
-  const link = extractStyleBody(src, 'journalPreviewLink');
 
-  it('card retains the 12pt symmetric-padding contract (literal or Sizing.cardInternalPadding)', () => {
-    // Phase 4.6 migrated literal `padding: 12` → `Sizing.cardInternalPadding`
-    // (still 12pt). Accept either the literal or the token reference; both
-    // pin the same Phase 2 symmetric-padding contract.
-    const lit = num(card, 'padding');
-    if (lit !== null) {
-      expect(lit).toBe(12);
-    } else {
-      expect(card).toMatch(/padding:\s*Sizing\.cardInternalPadding\b/);
-    }
+  it('journalPreviewCard style entry is gone from NowFooter', () => {
+    expect(src).not.toMatch(/journalPreviewCard:\s*\{/);
   });
 
-  it('"View journal →" link has marginTop: 8 from the line above', () => {
-    // Accept either literal 8 or Spacing.xs (8pt token) — Phase 4.6
-    // could have migrated this in the future.
-    const lit = num(link, 'marginTop');
-    if (lit !== null) {
-      expect(lit).toBe(8);
-    } else {
-      expect(link).toMatch(/marginTop:\s*Spacing\.xs\b/);
-    }
+  it('journalPreviewText style entry is gone from NowFooter', () => {
+    expect(src).not.toMatch(/journalPreviewText:\s*\{/);
   });
 
-  it('the text line above the link does NOT carry a tail marginBottom (gap moved onto the link)', () => {
-    // Either no marginBottom at all, or marginBottom: 0. The 8pt gap
-    // belongs on the link below, not the text above.
-    const mb = num(text, 'marginBottom');
-    if (mb !== null) {
-      expect(mb).toBe(0);
-    }
+  it('journalPreviewLink style entry is gone from NowFooter', () => {
+    expect(src).not.toMatch(/journalPreviewLink:\s*\{/);
   });
 });

@@ -1,24 +1,30 @@
-// File: utils/__tests__/nowFooterTight.test.ts
+// ============================================================================
+// Phase 15.6 — journal preview tile retired from NowFooter.
+//
+// Pre-15.6 this file pinned visual contracts on the Today's Journal
+// preview card (no borderTop / padding ≤ 16pt / fontSize ≤ 13pt).
+// 15.6 retired the entire card + its styles; those contracts are
+// obsolete. Replaced with positive retirement pins so the file
+// documents the absence — a future re-introduction would also have
+// to re-introduce these tests.
+// ============================================================================
+
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-describe('Now footer tightness', () => {
+describe('Phase 15.6 — journal preview tile retired from NowFooter', () => {
   const src = readFileSync(join(__dirname, '../../components/now/NowFooter.tsx'), 'utf8');
 
-  test('journal preview card has no borderTop', () => {
-    const m = src.match(/journalPreviewCard:\s*\{([^}]+)\}/);
-    expect(m![1]).not.toContain('borderTopWidth');
+  test('journalPreviewCard style entry is gone', () => {
+    expect(src).not.toMatch(/journalPreviewCard:\s*\{/);
   });
 
-  test('journal preview card padding <= 16', () => {
-    const m = src.match(/journalPreviewCard:\s*\{([^}]+)\}/);
-    const pv = m![1].match(/padding:\s*(\d+)/);
-    if (pv) expect(parseInt(pv[1])).toBeLessThanOrEqual(16);
+  test('journalPreviewText style entry is gone', () => {
+    expect(src).not.toMatch(/journalPreviewText:\s*\{/);
   });
 
-  test('journal preview text fontSize <= 13', () => {
-    const m = src.match(/journalPreviewText:\s*\{([^}]+)\}/);
-    const fs = m![1].match(/fontSize:\s*(\d+)/);
-    expect(parseInt(fs![1])).toBeLessThanOrEqual(13);
+  test('journalPreviewDimmed / journalPreviewDimmedText style entries are gone', () => {
+    expect(src).not.toMatch(/journalPreviewDimmed:\s*\{/);
+    expect(src).not.toMatch(/journalPreviewDimmedText:\s*\{/);
   });
 });

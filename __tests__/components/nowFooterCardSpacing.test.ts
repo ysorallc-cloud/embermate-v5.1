@@ -50,31 +50,18 @@ function extractStyleBody(src: string, name: string): string {
     .join('\n');
 }
 
-describe('Phase 4.6 — journalPreviewCard margin discipline', () => {
-  const block = extractStyleBody(footerSrc, 'journalPreviewCard');
-
-  it('does NOT carry marginHorizontal (page-edge contract handles horizontal)', () => {
-    expect(block).not.toMatch(/marginHorizontal:/);
+// Phase 15.6 — journalPreviewCard style retired (the tile that
+// owned this style block was removed from NowFooter). The Phase 4.6
+// margin-discipline contracts that pinned its tokens are obsolete;
+// flipped to retirement pins that document the absence so a future
+// re-introduction has to also re-introduce the spacing contracts.
+describe('Phase 15.6 — journalPreviewCard style retired (was Phase 4.6 margin discipline)', () => {
+  it('journalPreviewCard style entry is gone from NowFooter', () => {
+    expect(footerSrc).not.toMatch(/journalPreviewCard:\s*\{/);
   });
 
-  it('marginTop routes through Spacing.md (no hardcoded literal)', () => {
-    expect(block).toMatch(/marginTop:\s*Spacing\.md\b/);
-  });
-
-  it('marginBottom routes through Spacing.xs (8pt sibling-card gap)', () => {
-    expect(block).toMatch(/marginBottom:\s*Spacing\.xs\b/);
-  });
-
-  it('padding routes through Sizing.cardInternalPadding (12pt)', () => {
-    expect(block).toMatch(/padding:\s*Sizing\.cardInternalPadding\b/);
-  });
-
-  it('borderRadius routes through Sizing.cardRadius (no hardcoded literal)', () => {
-    expect(block).toMatch(/borderRadius:\s*Sizing\.cardRadius\b/);
-  });
-
-  it('borderWidth is 0.5 (matches card-edge contract elsewhere)', () => {
-    expect(block).toMatch(/borderWidth:\s*0\.5\b/);
+  it('journalPreviewDimmed style entry is gone from NowFooter', () => {
+    expect(footerSrc).not.toMatch(/journalPreviewDimmed:\s*\{/);
   });
 });
 
@@ -102,14 +89,22 @@ describe('Phase 4.6 — EndOfShiftCard margin discipline', () => {
   });
 });
 
-describe('Phase 4.6 — token imports plumbed', () => {
-  it('NowFooter imports Spacing AND Sizing from theme-tokens', () => {
-    expect(footerSrc).toMatch(
-      /import\s*\{[^}]*\bSpacing\b[^}]*\bSizing\b[^}]*\}\s*from\s*['"][^'"]*theme-tokens['"]|import\s*\{[^}]*\bSizing\b[^}]*\bSpacing\b[^}]*\}\s*from\s*['"][^'"]*theme-tokens['"]/,
+describe('Phase 15.6 — token imports plumbed (NowFooter no longer needs them)', () => {
+  // Phase 15.6 — NowFooter's Spacing/Sizing imports dropped along
+  // with the journalPreviewCard style. Pin the absence so the
+  // imports don't drift back in.
+  it('NowFooter does NOT import Spacing/Sizing from theme-tokens', () => {
+    expect(footerSrc).not.toMatch(
+      /import\s*\{[^}]*\bSpacing\b[^}]*\}\s*from\s*['"][^'"]*theme-tokens['"]/,
+    );
+    expect(footerSrc).not.toMatch(
+      /import\s*\{[^}]*\bSizing\b[^}]*\}\s*from\s*['"][^'"]*theme-tokens['"]/,
     );
   });
 
   it('EndOfShiftCard imports Spacing AND Sizing from theme-tokens', () => {
+    // EndOfShiftCard's contract carries forward — it still uses both
+    // tokens for its margin/padding/radius routing.
     expect(eosSrc).toMatch(
       /import\s*\{[^}]*\bSpacing\b[^}]*\bSizing\b[^}]*\}\s*from\s*['"][^'"]*theme-tokens['"]|import\s*\{[^}]*\bSizing\b[^}]*\bSpacing\b[^}]*\}\s*from\s*['"][^'"]*theme-tokens['"]/,
     );

@@ -99,7 +99,9 @@ import { getUserTenure, type TenurePhase } from '../../services/userTenure';
 import { detectAnomalies } from '../../services/anomalyDetector';
 import { useDataListener, emitDataUpdate } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
-import { buildCareBrief, CareBrief } from '../../utils/careSummaryBuilder';
+// Phase 15.6 — buildCareBrief + CareBrief import retired here.
+// They fed the Today's Journal preview tile in NowFooter, which has
+// been removed; `brief` state + setBrief call below also dropped.
 import { hasSampleData } from '../../utils/sampleDataManager';
 import { useSampleMode } from '../../hooks/useSampleMode';
 import { SampleModeBanner } from '../../components/sample/SampleModeBanner';
@@ -236,8 +238,9 @@ export default function NowScreen() {
   // first, then taps Start / a window to expand its items.
   const [timelineCollapsed, setTimelineCollapsed] = useState(true);
 
-  // Handoff / Patterns / Before Bed (mirrored from Journal)
-  const [brief, setBrief] = useState<CareBrief | null>(null);
+  // Phase 15.6 — `brief` state + setter retired. The Today's Journal
+  // preview tile in NowFooter consumed it; the tile has been removed
+  // (the bottom tab bar already reaches the Journal tab).
 
   // Sample data mode — single source of truth lives in the hook (subscribes
   // to SAMPLE_DATA_CLEARED + PATIENT events so the banner flips immediately
@@ -970,8 +973,9 @@ export default function NowScreen() {
         setUpcomingPrepAppointment(null);
       }
 
-      // Load care brief for handoff/patterns/before-bed
-      buildCareBrief().then(data => setBrief(data)).catch(() => {});
+      // Phase 15.6 — buildCareBrief() call retired. Only consumer
+      // was the Today's Journal preview tile in NowFooter (removed
+      // in 15.6).
 
       // Legacy stats fallback — only used when no regimen instances exist
       const legacyStatsUpdate: TodayStats = {
@@ -1146,7 +1150,6 @@ export default function NowScreen() {
             allPendingCount={allPending.length}
             hasRegimenInstances={!!hasRegimenInstances}
             hasMissed={todayTimeline.completed.some(i => i.status === 'missed')}
-            brief={brief}
             outcomes={todayOutcomes}
           />
 

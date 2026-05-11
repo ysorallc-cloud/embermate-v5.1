@@ -1,14 +1,30 @@
 // ============================================================================
-// NOW FOOTER — Journal preview card + all-done celebration
-// Extracted from now.tsx for maintainability
+// NOW FOOTER — All-done celebration + End of Shift card
+//
+// Phase 15.6 retired the Today's Journal feed-forward tile that
+// previously sat at the top of the footer body. Both ternary
+// branches (dimmed italic line at completedCount < 5, populated
+// card with "📓 Today's Journal" preview + "View journal →" CTA at
+// completedCount ≥ 5 with brief loaded) are gone. The Journal tab
+// is reachable via the bottom tab bar — the in-Now preview was a
+// duplicate navigation surface that competed with End-of-Shift for
+// page-bottom attention.
+//
+// Dropped along with the tile:
+//   • `brief` prop from NowFooterProps (the only consumer)
+//   • `buildJournalPreview` + `CareBrief` imports from
+//     careSummaryBuilder (CareBrief was only used to type the prop)
+//   • 6 styles (journalPreviewCard / journalPreviewDimmed /
+//     journalPreviewDimmedText / journalPreviewTitle /
+//     journalPreviewText / journalPreviewLink)
+//
+// buildJournalPreview filed as dead code (no callers post-15.6;
+// separate cleanup scope per spec).
 // ============================================================================
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Spacing, Sizing } from '../../theme/theme-tokens';
-import { navigate } from '../../lib/navigate';
-import { buildJournalPreview, CareBrief } from '../../utils/careSummaryBuilder';
 import { EndOfShiftCard } from './EndOfShiftCard';
 import type { DailyOutcomes } from '../../utils/text/types';
 import { CareCircleTeaser } from '../CareCircleTeaser';
@@ -44,7 +60,6 @@ export interface NowFooterProps {
   allPendingCount: number;
   hasRegimenInstances: boolean;
   hasMissed: boolean;
-  brief: CareBrief | null;
   /** Structured outcomes for the End of Shift body composer. */
   outcomes?: DailyOutcomes;
 }
@@ -58,7 +73,6 @@ export function NowFooter({
   allPendingCount,
   hasRegimenInstances,
   hasMissed,
-  brief,
   outcomes,
 }: NowFooterProps) {
   const { colors } = useTheme();
@@ -84,27 +98,6 @@ export function NowFooter({
 
   return (
     <>
-      {completedCount < 5 ? (
-        <View style={s.journalPreviewDimmed}>
-          <Text style={s.journalPreviewDimmedText}>
-            Your journal entry builds throughout the day. Review it tonight.
-          </Text>
-        </View>
-      ) : brief ? (
-        <TouchableOpacity
-          style={s.journalPreviewCard}
-          onPress={() => navigate('/(tabs)/journal')}
-          activeOpacity={0.7}
-          accessibilityLabel="View journal"
-          accessibilityRole="button"
-        >
-          <Text style={s.journalPreviewTitle}>{'\uD83D\uDCD3'} Today's Journal</Text>
-          <Text style={s.journalPreviewText} numberOfLines={2}>
-            {buildJournalPreview(brief)}
-          </Text>
-          <Text style={s.journalPreviewLink}>View journal →</Text>
-        </TouchableOpacity>
-      ) : null}
 
       {hasRegimenInstances &&
         allPendingCount === 0 &&
@@ -151,65 +144,6 @@ export function NowFooter({
 // ============================================================================
 
 const createStyles = (c: any) => StyleSheet.create({
-  // v6.7 May 1 sizing pass — Phase 3c: was a dashed-border card with no
-  // parent grouping, which floated awkwardly on the page. Now an inline
-  // serif italic line — atmosphere from typography, not a card.
-  journalPreviewDimmed: {
-    // Phase 3.5 — token-routed so the cascade reaches this dimmed
-    // italic-line alternative to the journal preview card.
-    marginTop: Spacing.md,
-    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    alignItems: 'center' as const,
-  },
-  journalPreviewDimmedText: {
-    fontFamily: 'Georgia',
-    fontStyle: 'italic' as const,
-    fontSize: 12,
-    lineHeight: 18,
-    color: c.textSecondary,
-    textAlign: 'center' as const,
-  },
-  // Phase 4.6 — overlap fix + margin discipline.
-  //   • marginHorizontal removed: the page-edge contract from Phase 3
-  //     (paddingHorizontal: 14 on the screen ScrollView) handles
-  //     horizontal extent; the prior 16pt local override was
-  //     double-padding the card vs sibling End of Shift.
-  //   • marginBottom: Spacing.xs added to give the End of Shift card
-  //     below 8pt of breathing room (sibling marginTop is 0; this
-  //     side carries the gap).
-  //   • marginTop / padding / borderRadius migrated to tokens so the
-  //     Phase 3.7.1 audit guard catches future literal regressions.
-  //   • borderWidth dropped to 0.5 to match the card-edge contract
-  //     elsewhere on the page.
-  journalPreviewCard: {
-    marginTop: Spacing.md,
-    marginBottom: Spacing.xs,
-    padding: Sizing.cardInternalPadding,
-    borderRadius: Sizing.cardRadius,
-    backgroundColor: c.glass,
-    borderWidth: 0.5,
-    borderColor: c.glassBorder,
-  },
-  journalPreviewTitle: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: c.textPrimary,
-    marginBottom: 4,
-  },
-  journalPreviewText: {
-    fontSize: 13,
-    color: c.textSecondary,
-  },
-  journalPreviewLink: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: c.accent,
-    // Phase 4c — 8pt gap moved from the text-above's marginBottom onto
-    // the link's marginTop so the child (link) carries the gap. Cleaner
-    // rhythm; the text above can stack flush when the link isn't
-    // present.
-    marginTop: 8,
-  },
   allDoneMessage: {
     backgroundColor: c.greenTint,
     borderRadius: 12,
