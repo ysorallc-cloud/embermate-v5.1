@@ -61,25 +61,27 @@ describe('Phase 15.11 — Insights ↔ ShareSheet wiring', () => {
     expect(code).not.toMatch(/\breportSubtitle\s*:/);
   });
 
-  it('contract 2: ShareSheet is imported and rendered', () => {
-    expect(code).toMatch(/import\s+\{[^}]*\bShareSheet\b[^}]*\}\s+from\s+['"][^'"]*components\/insights\/ShareSheet['"]/);
-    expect(code).toMatch(/<ShareSheet\b/);
+  it('contract 2: ShareSheet runtime mount retired in 16.4 (was imported and rendered in 15.11)', () => {
+    // Phase 16.4 — runtime ShareSheet mount retired pre-launch
+    // because the Care/Medication report options text-shared with no
+    // visible system sheet on simulator. The component file is left
+    // on disk as orphan source (Phase 21 will restore the mount).
+    // The TS-only type import for ShareOption may remain.
+    expect(code).not.toMatch(/<ShareSheet\b/);
   });
 
-  it('contract 3: a state hook drives the sheet visibility', () => {
-    // The state name itself is implementation detail; pin the
-    // pattern: a useState somewhere passes a boolean into the
-    // ShareSheet `visible` prop. The simplest fingerprint is
-    // `visible={` immediately following the ShareSheet open tag.
-    expect(code).toMatch(/<ShareSheet[\s\S]{0,200}?visible=\{/);
-    expect(code).toMatch(/<ShareSheet[\s\S]{0,400}?onClose=\{/);
-    expect(code).toMatch(/<ShareSheet[\s\S]{0,400}?onSelect=\{/);
+  it('contract 3: ShareSheet visibility state retired in 16.4 (was driven by useState in 15.11)', () => {
+    // shareSheetOpen / setShareSheetOpen retired with the runtime
+    // mount. Direct-button approach has no sheet state to manage.
+    expect(code).not.toMatch(/\bshareSheetOpen\b/);
+    expect(code).not.toMatch(/\bsetShareSheetOpen\b/);
   });
 
-  it('contract 4: the single Share button opens the sheet', () => {
-    // The new button has either "Share with " (when an
-    // appointment is in window) or "Share these insights"
-    // (fallback). Pin both possibilities under one regex.
+  it('contract 4: the single Share button is rendered (post-16.4 routes directly to /visit-prep)', () => {
+    // Phase 16.4 — the button still renders with the same copy
+    // ("Share with {provider}" / "Share these insights"). Its
+    // onPress no longer opens the ShareSheet; it invokes
+    // handleShareSelection('visit-prep') for a direct navigation.
     expect(code).toMatch(/Share with |Share these insights/);
   });
 
@@ -96,20 +98,19 @@ describe('Phase 15.11 — Insights ↔ ShareSheet wiring', () => {
     expect(code).toMatch(/navigate\(['"]\/visit-prep['"]\)/);
   });
 
-  it('contract 7: Share.share calls survive for care + medication payloads', () => {
-    // The inline onPress called Share.share with a text payload.
-    // The new handler keeps that exact mechanism (no PDF
-    // generation introduced — that promise was already not kept
-    // in the pre-15.11 implementation; 15.11 is UI consolidation,
-    // not feature addition).
-    expect(code).toMatch(/Share\.share\(/);
+  it('contract 7: Share.share calls retired in 16.4 (broken text-only payload was unreachable)', () => {
+    // Phase 16.4 — Share.share calls retired with the care/medication
+    // branch bodies. Phase 21 will replace these no-ops with real
+    // generate-and-share calls when the PDF pipeline ships, and the
+    // bodies will return.
+    expect(code).not.toMatch(/Share\.share\(/);
   });
 
-  it('contract 8: ShareToast wiring stays intact', () => {
-    // The toast was triggered before Share.share in the pre-15.11
-    // care/medication branch. Same UX is preserved by handle-
-    // ShareSelection.
-    expect(code).toMatch(/setShareToastVisible/);
+  it('contract 8: ShareToast wiring stays intact (still triggered by other surfaces)', () => {
+    // The toast component itself stays mounted — other share paths
+    // (visit-prep-preview) may still emit it. setShareToastVisible
+    // is no longer called from understand.tsx post-16.4 since the
+    // care/medication handler bodies that fired it are no-ops.
     expect(code).toMatch(/<ShareToast\b/);
   });
 

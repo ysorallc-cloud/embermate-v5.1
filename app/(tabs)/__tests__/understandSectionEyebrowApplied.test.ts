@@ -50,18 +50,26 @@ describe('Phase 15.12 — SectionEyebrow applied uniformly', () => {
       expect(code).toMatch(/import\s+\{[^}]*\bSectionEyebrow\b[^}]*\}\s+from\s+['"][^'"]*components\/SectionEyebrow['"]/);
     });
 
-    it('renders SectionEyebrow for each of the 5 page-level sections', () => {
-      // Pulse / Missing data / Vitals / Medication adherence are
-      // pre-15.12 sectionLabel uses. Reports is new (Share CTA
-      // eyebrow per 15.10's filed observation).
+    it('renders SectionEyebrow for each of the 4 surviving page-level sections', () => {
+      // Phase 15.12 originally applied SectionEyebrow across 5 page-
+      // level sections (Pulse / Missing data / Vitals / Medication
+      // adherence / Reports). Phase 16.4 retired the "Reports"
+      // eyebrow when the multi-option ShareSheet was hidden pre-
+      // launch — a single direct button names its own action, an
+      // eyebrow above it read redundant. Phase 21 will restore both
+      // the eyebrow and the multi-option sheet when real PDF
+      // generation ships.
       const eyebrows = code.match(/<SectionEyebrow\b[^/]*\/>/g) || [];
-      expect(eyebrows.length).toBeGreaterThanOrEqual(5);
+      expect(eyebrows.length).toBeGreaterThanOrEqual(4);
       const joined = eyebrows.join('\n');
       expect(joined).toMatch(/text=["'][Tt]his week.s pulse["']/);
       expect(joined).toMatch(/text=["'][Mm]issing data["']/);
       expect(joined).toMatch(/text=["'][Vv]itals this week["']/);
       expect(joined).toMatch(/text=["'][Mm]edication adherence["']/);
-      expect(joined).toMatch(/text=["'][Rr]eports["']/);
+      // Phase 16.4 — "Reports" eyebrow retired with the ShareSheet
+      // wrapper; explicitly pinned absent so a future drift puts it
+      // back through intent, not accident.
+      expect(joined).not.toMatch(/text=["'][Rr]eports["']/);
     });
 
     it('drops the now-orphaned sectionLabel style entry', () => {
