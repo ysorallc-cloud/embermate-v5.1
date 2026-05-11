@@ -60,6 +60,18 @@ import { TodayStillPending } from '../../components/journal/TodayStillPending';
 // 1-3 (Recap / Notable Moments / Still Pending) cover their roles.
 import { JournalEmptyDay } from '../../components/journal/JournalEmptyDay';
 import { JournalDisclaimer } from '../../components/journal/JournalDisclaimer';
+// Phase 22.1 — handoff-document framing.
+import { JournalIdentityStrip } from '../../components/journal/JournalIdentityStrip';
+import { GestaltSummary } from '../../components/journal/GestaltSummary';
+import { getCaregiverProfile } from '../../storage/caregiverProfileRepo';
+import {
+  getUpcomingAppointments,
+  type Appointment,
+} from '../../utils/appointmentStorage';
+import {
+  withinUpcomingWindow,
+  daysUntilAppointment,
+} from '../../utils/appointmentLookahead';
 import { useDayEvents } from '../../hooks/useDayEvents';
 import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
 import { getHandoffTone } from '../../storage/handoffToneRepo';
@@ -126,6 +138,39 @@ export default function JournalTab() {
   // (2) factual narrative summary, (3) "No record from this day."
   const [handoffTone, setHandoffTone] = useState<string | null>(null);
   const [narrativeSummary, setNarrativeSummary] = useState<string | null>(null);
+  // Phase 22.1 — identity strip + notes-prompt threading. Loaded
+  // once on mount; the values rarely change within a session.
+  const [caregiverName, setCaregiverName] = useState<string | null>(null);
+  const [upcomingAppointment, setUpcomingAppointment] = useState<Appointment | null>(null);
+
+  // Phase 22.1 — caregiver profile load.
+  useEffect(() => {
+    let cancelled = false;
+    getCaregiverProfile().then((profile) => {
+      if (cancelled) return;
+      setCaregiverName(profile?.name ?? null);
+    }).catch(() => {
+      if (!cancelled) setCaregiverName(null);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Phase 22.1 — upcoming-appointment lookup via appointmentLookahead.
+  // Single source of truth shared with the BUILDING TOWARD banner and
+  // the notes prompt provider name (Watch For #2). Refreshes on focus
+  // so a freshly-added appointment surfaces without a manual reload.
+  const refreshUpcomingAppointment = useCallback(() => {
+    getUpcomingAppointments().then((upcoming) => {
+      const next = upcoming.find((a) => withinUpcomingWindow(a.date)) ?? null;
+      setUpcomingAppointment(next);
+    }).catch((err) => {
+      logError('JournalTab.loadUpcomingAppointment', err);
+      setUpcomingAppointment(null);
+    });
+  }, []);
+  useEffect(() => {
+    refreshUpcomingAppointment();
+  }, [refreshUpcomingAppointment]);
 
   // Phase 5.12.e — timeline + cross-section flag linkage. The hooks share
   // the dateKey effect and re-fetch when the user changes day.
@@ -515,20 +560,22 @@ export default function JournalTab() {
   const waterGlasses = brief?.hydration.glasses ?? 0;
 
   // Appointment
-  const daysUntilAppt = brief?.nextAppointment
-    ? Math.max(0, Math.ceil((new Date(brief.nextAppointment.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+  // Phase 22.1 — both the BUILDING TOWARD banner and the notes prompt
+  // provider name now source from `upcomingAppointment` (via
+  // utils/appointmentLookahead). brief.nextAppointment stays in the
+  // brief shape for other consumers but is no longer the canonical
+  // source for these two surfaces.
+  const daysUntilAppt = upcomingAppointment
+    ? daysUntilAppointment(upcomingAppointment.date)
     : null;
-  const showAppointment = brief?.nextAppointment && daysUntilAppt != null && daysUntilAppt <= 7;
+  const upcomingProviderName = upcomingAppointment?.provider?.trim() || null;
 
-  // UX-restructure (Commit 6) — feed-forward banner. Visible when an
-  // appointment is within 14 days. Connects daily logging to the
-  // clinical visit-prep report on Insights.
-  const FEED_LOOKAHEAD_DAYS = 14;
-  const showFeedBanner =
-    isViewingToday &&
-    brief?.nextAppointment &&
-    daysUntilAppt != null &&
-    daysUntilAppt <= FEED_LOOKAHEAD_DAYS;
+  // BUILDING TOWARD feed-forward banner. Visible when an appointment
+  // is within the canonical 14-day upcoming window (the
+  // appointmentLookahead constant; same window Insights uses). Banner
+  // is moved to the bottom of the page in 22.1 — see the post-Notes
+  // render block.
+  const showFeedBanner = isViewingToday && upcomingAppointment !== null;
 
   // ============================================================================
   // BRIEFING NARRATIVE
@@ -590,57 +637,24 @@ export default function JournalTab() {
           }
         >
           {/* ─── HEADER ─── */}
-          {/* Phase 5.12.b — third line is the mood line (caregiver tone
-              first, factual summary fallback, "No record" empty). The
-              page's emotional anchor; serif italic at the small header
-              size keeps it visually weighted as voice, not chrome. */}
+          {/* Phase 22.1 — handoff-document framing. Title-only header;
+              date + mood collapse into the identity strip + gestalt
+              block below. The old sample-mode inline banner was
+              retired here (ManageSampleDataSheet is still reachable
+              from Settings). */}
           <View style={s.headerRow}>
             <View style={s.headerLeft}>
               <Text style={s.headerTitle}>Journal</Text>
-              <Text style={s.headerDate}>{dayName}, {dateStr}</Text>
-              {/* Phase 12 retires this subtitle in favor of headline tiles + narrative bridge. Do not patch independently — see Phase 12 spec. */}
-              <Text style={s.headerMood}>{moodLine}</Text>
             </View>
-            {/* Header actions removed — Share is now exclusively on the
-                bottom HandoffCard. Visit Prep is reachable from Insights. */}
           </View>
 
-          {/* ─── SAMPLE DATA INDICATOR — tap to open the manage sheet ─── */}
-          {isSampleMode && (
-            <TouchableOpacity
-              style={s.sampleIndicator}
-              onPress={() => setManageSampleOpen(true)}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel="Example data — set up your loved one to get started"
-              accessibilityHint="Opens the example data sheet to set up your real profile or remove the example."
-            >
-              <Text style={s.sampleIndicatorText}>
-                {'\u{1F4CA}'} Example data — set up your loved one to get started
-              </Text>
-              <Text style={s.sampleIndicatorChevron}>{'›'}</Text>
-            </TouchableOpacity>
-          )}
+          <JournalIdentityStrip
+            date={`${dayName}, ${dateStr}`}
+            patientName={patientName}
+            caregiverName={caregiverName}
+          />
 
-
-          {/* UX-restructure (Commit 6) — feed-forward banner. Connects
-              daily logging on Journal to the clinical visit-prep report
-              on Insights when an appointment is within 14 days. */}
-          {showFeedBanner && brief?.nextAppointment && (
-            <TouchableOpacity
-              style={s.feedBanner}
-              onPress={() => navigate('/(tabs)/understand')}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel={`Your entries are building ${patientName}'s visit prep for ${brief.nextAppointment.provider}, ${daysUntilAppt} days away`}
-            >
-              <Text style={s.feedBannerIcon}>{'🩺'}</Text>
-              <Text style={s.feedBannerText} numberOfLines={2}>
-                {`Your entries are building ${patientName}'s visit prep for ${brief.nextAppointment.provider} · ${daysUntilAppt} day${daysUntilAppt === 1 ? '' : 's'}`}
-              </Text>
-              <Text style={s.feedBannerArrow}>{'›'}</Text>
-            </TouchableOpacity>
-          )}
+          <GestaltSummary summary={moodLine} />
 
           {/* ═══ DATE TAB STRIP (left fade + Jump popover replace MonthCalendar) ═══ */}
           <DateTabStrip
@@ -729,11 +743,35 @@ export default function JournalTab() {
                   onSave={handleSaveReflection}
                   onDirtyChange={setReflectionDirty}
                   readOnly={isViewingPast}
+                  caregiverName={caregiverName}
+                  providerName={upcomingProviderName}
                 />
               </View>
               </>
             );
           })()}
+
+          {/* Phase 22.1 — BUILDING TOWARD feed-forward banner moved
+              from the top of the scroll to here (between Notes and the
+              disclaimer footer), matching the handoff-document order:
+              identity → gestalt → day picker → narrative → notable →
+              pending → notes → BUILDING TOWARD → footer. Source:
+              utils/appointmentLookahead (same as the notes prompt). */}
+          {showFeedBanner && upcomingAppointment && (
+            <TouchableOpacity
+              style={s.feedBanner}
+              onPress={() => navigate('/(tabs)/understand')}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={`Your entries are building ${patientName}'s visit prep for ${upcomingAppointment.provider}, ${daysUntilAppt} days away`}
+            >
+              <Text style={s.feedBannerIcon}>{'\u{1FA7A}'}</Text>
+              <Text style={s.feedBannerText} numberOfLines={2}>
+                {`Your entries are building ${patientName}'s visit prep for ${upcomingAppointment.provider} · ${daysUntilAppt} day${daysUntilAppt === 1 ? '' : 's'}`}
+              </Text>
+              <Text style={s.feedBannerArrow}>{'›'}</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Phase 5.11 — "This week" pattern card relocated to Insights.
               Now and Journal are today-focused; longitudinal stats live
@@ -745,24 +783,21 @@ export default function JournalTab() {
               "Done for today" affordance from HandoffCard is dropped
               with this commit and may resurface as a Now-tab feature. */}
 
-          {/* Phase 5.12.a — quiet completion footer line (replaces the
-              missed-tasks dashboard). Ambient, not a section header. */}
-          {!isViewingPast && (() => {
-            const total = outcomes.logged.count + outcomes.missed.count + outcomes.pending.count;
-            if (total === 0) return null;
-            const pending = outcomes.pending.count;
+          {/* Phase 22.1 — standalone completion footer line collapsed
+              into the compressed JournalDisclaimer below (its line 1
+              now reads "{n} of {m} logged today"). Persistent on every
+              state; quiet legal hygiene; not dismissable. */}
+          {(() => {
+            const total = !isViewingPast
+              ? outcomes.logged.count + outcomes.missed.count + outcomes.pending.count
+              : 0;
             return (
-              <Text style={s.completionFooter}>
-                {`${outcomes.logged.count} of ${total} logged${pending > 0 ? ` · ${pending} still to do` : ''}`}
-              </Text>
+              <JournalDisclaimer
+                loggedCount={total > 0 ? outcomes.logged.count : undefined}
+                totalCount={total > 0 ? total : undefined}
+              />
             );
           })()}
-
-          {/* Phase 5.12.i — Layer 1 disclaimer. Persistent on every state
-              (populated today, empty today, past day). Quiet legal
-              hygiene; not dismissable. Replaces the previous one-line
-              "Not a medical record" timestamp footer. */}
-          <JournalDisclaimer />
 
         </ScrollView>
       </SafeAreaView>
@@ -937,26 +972,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 16,
     color: c.caregiverAccent,
   },
-  sampleIndicator: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    backgroundColor: c.accentLight,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginBottom: 8,
-  },
-  sampleIndicatorText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: c.caregiverAccentText,
-    flex: 1,
-  },
-  sampleIndicatorChevron: {
-    fontSize: 16,
-    color: c.caregiverAccentText,
-    marginLeft: 8,
-  },
+  // Phase 22.1 — sampleIndicator styles retired with the inline
+  // "Example data — set up your loved one" banner. Sheet entry
+  // still reachable from Settings.
 
   // ─── HEADER ───
   headerRow: {
@@ -981,27 +999,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textPrimary,
     letterSpacing: -0.3,
   },
-  headerDate: {
-    fontSize: 13,
-    color: c.textMuted,
-    marginTop: 4,
-  },
+  // Phase 22.1 — headerDate / headerMood styles retired. The date
+  // moved into JournalIdentityStrip and the mood line into
+  // GestaltSummary, both with their own typography.
   headerPurpose: {
     fontSize: 13,
     color: c.textSecondary,
     marginTop: 8,
     lineHeight: 20,
-  },
-  // Phase 5.12.b — mood line. Serif italic for caregiver-voice register;
-  // sized down (11pt vs the 13pt headerPurpose) to read as breath, not
-  // a section header.
-  headerMood: {
-    fontFamily: 'Georgia',
-    fontStyle: 'italic' as const,
-    fontSize: 11,
-    color: c.textSecondary,
-    marginTop: 6,
-    lineHeight: 16,
   },
   headerActions: {
     flexDirection: 'row' as const,

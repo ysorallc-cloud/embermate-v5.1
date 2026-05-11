@@ -46,37 +46,38 @@ describe('Phase 5.12.c — content sources', () => {
   });
 });
 
-describe('Phase 5.12.c — auto-gen marker visibility', () => {
+describe('Phase 22.1 — auto-gen marker retired (was Phase 5.12.c)', () => {
   const src = readFileSync(SNAPSHOT_PATH, 'utf8');
 
-  it('declares the auto-gen disclaimer copy', () => {
-    expect(src).toMatch(/Auto-generated from your logs/);
-  });
-
-  it('the disclaimer renders only when the snapshot is the auto-recap', () => {
-    // The disclaimer must be inside a conditional that excludes the
-    // tone-present branch — tone is caregiver-authored and needs no
-    // auto-gen marker.
-    const block = src.match(/Auto-generated from your logs[\s\S]{0,200}/);
-    expect(block).toBeTruthy();
+  it('no longer declares the "Auto-generated from your logs" footnote', () => {
+    // Phase 22.1 — the inline footnote + "Edit →" link retired from
+    // NarrativeSnapshot. The Journal page reads as a handoff document
+    // now; editing tone belongs on the canonical HandoffSheet surface,
+    // still reachable via the sticky "Share handoff →" bottom button.
+    expect(src).not.toMatch(/Auto-generated from your logs/);
   });
 });
 
-describe('Phase 5.12.c — Edit affordance', () => {
+describe('Phase 22.1 — Edit affordance retired (was Phase 5.12.c)', () => {
   const src = readFileSync(SNAPSHOT_PATH, 'utf8');
 
-  it('exposes an onEditPress prop so the parent owns the editor wiring', () => {
+  it('still exposes onEditPress prop (kept for parent-owned editor wiring; HandoffSheet still hooks here)', () => {
+    // The prop stays so callers that bind it to setHandoffSheetVisible
+    // keep working. Only the inline UI affordance ("Edit →" link)
+    // is retired — the wrapping TouchableOpacity continues to invoke
+    // onEditPress on tap.
     expect(src).toMatch(/onEditPress\??:\s*\(\)\s*=>\s*void/);
   });
 
-  it('renders the "Edit →" link', () => {
-    // The arrow tail is part of the visual signal — the tap opens an
-    // editor, not a navigation. Match either the literal arrow or its
-    // unicode escape so the audit survives source-encoding changes.
-    expect(src).toMatch(/Edit\s*(?:→|\\u2192)/);
+  it('no longer renders the inline "Edit →" link', () => {
+    // Phase 22.1 — inline affordance retired with the auto-gen
+    // footnote. Sticky "Share handoff →" button at the bottom of
+    // Journal is the surviving entry point to HandoffSheet.
+    expect(src).not.toMatch(/['"]Edit\s*→['"]/);
+    expect(src).not.toMatch(/['"]Edit\s*\\u2192['"]/);
   });
 
-  it('the snapshot text container is tappable (whole-section tap target)', () => {
+  it('the snapshot text container is still tappable (TouchableOpacity wrapper preserved)', () => {
     expect(src).toMatch(/<TouchableOpacity\b/);
   });
 });

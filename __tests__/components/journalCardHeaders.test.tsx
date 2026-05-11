@@ -58,8 +58,13 @@ describe('TodayOutcomes — internal header', () => {
 });
 
 describe('JournalNotesCard — internal header + footer', () => {
-  it('renders an internal "TODAY\'S NOTES" eyebrow inside the card', () => {
-    expect(notesSrc).toMatch(/Today's notes|TODAY'S NOTES/);
+  it('renders an internal notes eyebrow inside the card (Phase 22.1 reframe)', () => {
+    // Phase 22.1 — eyebrow reframed from the static "TODAY'S NOTES"
+    // literal to "NOTES FROM {caregiverName}" (or "NOTES" when no
+    // caregiver profile exists). Either uppercase form passes; the
+    // legacy "TODAY'S NOTES" string is gone.
+    expect(notesSrc).toMatch(/NOTES FROM|['"]NOTES['"]/);
+    expect(notesSrc).not.toMatch(/['"]TODAY['’]S NOTES['"]/);
   });
 
   it('renders a footer row with "Private · on this device" copy', () => {

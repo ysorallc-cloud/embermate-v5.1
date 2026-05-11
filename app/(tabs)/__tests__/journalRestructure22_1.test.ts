@@ -1,0 +1,203 @@
+// ============================================================================
+// Phase 22.1 — Journal page restructured as a handoff document.
+//
+// The Journal page reads as cluttered because it mixes workspace
+// patterns with summary content. Its actual role is a handoff
+// document (caregiver-to-next-caregiver, or caregiver-to-future-self
+// at the next doctor visit). 22.1 restructures section order and
+// adds the identity + gestalt elements that make it read as one.
+//
+// Source-level audit on app/(tabs)/journal.tsx + the affected
+// child components. codeOnly() strips comments before regex
+// matching so retirement prose doesn't false-positive against the
+// absence pins.
+//
+// Sub-phase scope (other Phase 22 sub-phases handle uniform
+// SectionEyebrow application and a narrative builder rewrite):
+//   • Identity strip under the title.
+//   • GestaltSummary block above the day picker.
+//   • Section reorder: identity → gestalt → day picker →
+//     narrative → notable → pending → notes → BUILDING TOWARD →
+//     disclaimer.
+//   • "Example data" sample banner removed from inline scroll.
+//   • Inline "Edit / Tap Edit to refine" affordance removed from
+//     the narrative block.
+//   • Notes section reframed: eyebrow includes caregiver name when
+//     available; prompt names the provider when an upcoming
+//     appointment exists.
+//   • Disclaimer compressed to two lines (logged-stats + "A record
+//     of care, not a medical record").
+// ============================================================================
+
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+function codeOnly(src: string): string {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
+
+const ROOT = join(__dirname, '../../..');
+const journalRaw = readFileSync(join(ROOT, 'app/(tabs)/journal.tsx'), 'utf8');
+const journalCode = codeOnly(journalRaw);
+
+describe('Phase 22.1 — Journal restructured as handoff document', () => {
+  describe('identity strip + gestalt summary (NEW surfaces)', () => {
+    it('contract 1: imports JournalIdentityStrip and GestaltSummary', () => {
+      expect(journalCode).toMatch(/import\s+\{[^}]*\bJournalIdentityStrip\b[^}]*\}\s+from\s+['"][^'"]*JournalIdentityStrip['"]/);
+      expect(journalCode).toMatch(/import\s+\{[^}]*\bGestaltSummary\b[^}]*\}\s+from\s+['"][^'"]*GestaltSummary['"]/);
+    });
+
+    it('contract 2: renders <JournalIdentityStrip /> below the title', () => {
+      expect(journalCode).toMatch(/<JournalIdentityStrip\b/);
+    });
+
+    it('contract 3: renders <GestaltSummary /> above the day picker', () => {
+      // Both must render in the populated path. Their relative
+      // positions are pinned by contract 5 (section order).
+      expect(journalCode).toMatch(/<GestaltSummary\b/);
+    });
+  });
+
+  describe('absence pins — workspace clutter retired', () => {
+    it('contract 4a: no inline "Example data — set up your loved one" banner', () => {
+      // The sample-mode indicator at journal.tsx:608-623 is retired
+      // from the inline scroll. Users with sample data still reach
+      // ManageSampleDataSheet from Settings.
+      expect(journalCode).not.toMatch(/Example data — set up your loved one/);
+      expect(journalCode).not.toMatch(/\bsampleIndicator\s*:/);
+    });
+
+    it('contract 4b: no inline "Edit" or "Tap Edit to refine" affordance on the narrative block', () => {
+      // The NarrativeSnapshot footnote "Auto-generated from your
+      // logs · Tap Edit to refine." and the "Edit →" link are
+      // retired. HandoffSheet is still reachable via the sticky
+      // "Share handoff →" button at the bottom of the page.
+      const narrativeSrc = readFileSync(
+        join(ROOT, 'components/journal/NarrativeSnapshot.tsx'), 'utf8',
+      );
+      const narrativeCode = codeOnly(narrativeSrc);
+      expect(narrativeCode).not.toMatch(/Tap Edit to refine/);
+      expect(narrativeCode).not.toMatch(/Auto-generated from your logs/);
+      expect(narrativeCode).not.toMatch(/['"]Edit →['"]/);
+    });
+  });
+
+  describe('section reorder', () => {
+    it('contract 5: post-22.1 section order has GestaltSummary before DateTabStrip', () => {
+      const gestaltIdx = journalCode.indexOf('<GestaltSummary');
+      const dateStripIdx = journalCode.indexOf('<DateTabStrip');
+      expect(gestaltIdx).toBeGreaterThan(-1);
+      expect(dateStripIdx).toBeGreaterThan(-1);
+      expect(gestaltIdx).toBeLessThan(dateStripIdx);
+    });
+
+    it('contract 6: BUILDING TOWARD feed-forward banner moved AFTER JournalNotesCard', () => {
+      // Pre-22.1 the feed-forward (`s.feedBanner` style ref) sat at
+      // the top of the scroll. Post-22.1 it sits between
+      // JournalNotesCard and the disclaimer.
+      const notesIdx = journalCode.indexOf('<JournalNotesCard');
+      const feedIdx = journalCode.search(/styles?\.feedBanner|feedBanner\s*:/);
+      // feedBanner style may have been renamed or extracted — accept
+      // either the style ref OR the visit-prep banner JSX block. Pin
+      // the BUILDING TOWARD copy text which only appears in this
+      // banner's render.
+      const buildingTowardIdx = journalCode.indexOf("'s visit prep for");
+      expect(notesIdx).toBeGreaterThan(-1);
+      expect(buildingTowardIdx).toBeGreaterThan(-1);
+      expect(buildingTowardIdx).toBeGreaterThan(notesIdx);
+    });
+
+    it('contract 7: identity strip renders before GestaltSummary (anchors the day above the gestalt)', () => {
+      const stripIdx = journalCode.indexOf('<JournalIdentityStrip');
+      const gestaltIdx = journalCode.indexOf('<GestaltSummary');
+      expect(stripIdx).toBeGreaterThan(-1);
+      expect(gestaltIdx).toBeGreaterThan(-1);
+      expect(stripIdx).toBeLessThan(gestaltIdx);
+    });
+  });
+
+  describe('notes section reframed', () => {
+    const notesSrc = readFileSync(
+      join(ROOT, 'components/journal/JournalNotesCard.tsx'), 'utf8',
+    );
+    const notesCode = codeOnly(notesSrc);
+
+    it('contract 8: legacy "TODAY\'S NOTES" eyebrow literal is gone', () => {
+      // The eyebrow is reframed to "NOTES FROM {caregiverName}" (or
+      // "NOTES" when caregiverName is missing). Either is acceptable;
+      // the legacy literal must NOT appear.
+      expect(notesCode).not.toMatch(/['"]TODAY['’]S NOTES['"]/);
+    });
+
+    it('contract 9: legacy "Anything to pass along?" prompt is gone', () => {
+      // Reframed to "Anything to pass to the next caregiver, or to
+      // flag for {provider}?" (provider name resolves via
+      // appointmentLookahead.ts; falls back to "for the next visit").
+      expect(notesCode).not.toMatch(/Anything to pass along\?/);
+    });
+
+    it('contract 10: caregiverName is threaded to the notes card', () => {
+      // Source-level pin: the card accepts a caregiverName prop and
+      // journal.tsx passes it in.
+      expect(notesCode).toMatch(/caregiverName/);
+      expect(journalCode).toMatch(/<JournalNotesCard\b[\s\S]{0,500}?caregiverName=/);
+    });
+
+    it('contract 11: provider name (from appointmentLookahead) is threaded to the notes prompt', () => {
+      // The prompt names the upcoming provider when one exists. The
+      // resolution path is utils/appointmentLookahead — the same
+      // source Insights uses for the visit-anchored subtitle.
+      expect(journalCode).toMatch(/from\s+['"][^'"]*appointmentLookahead['"]/);
+      // Card accepts a providerName / nextProvider prop.
+      expect(journalCode).toMatch(/<JournalNotesCard\b[\s\S]{0,800}?(providerName|nextProvider)=/);
+    });
+
+    it('contract 12: notes prompt copy uses the new framing (pass to next caregiver / flag for provider)', () => {
+      // The card's body copy includes both "next caregiver" and a
+      // provider slot. Specific phrasing is pinned at the substring
+      // level to avoid lock-in on incidental wording.
+      expect(notesCode).toMatch(/pass to the next caregiver/);
+      expect(notesCode).toMatch(/flag for/);
+    });
+  });
+
+  describe('compressed disclaimer footer', () => {
+    const discSrc = readFileSync(
+      join(ROOT, 'components/journal/JournalDisclaimer.tsx'), 'utf8',
+    );
+    const discCode = codeOnly(discSrc);
+
+    it('contract 13: legacy long-disclaimer body is gone', () => {
+      expect(discCode).not.toMatch(/Journal is your record/);
+      expect(discCode).not.toMatch(/Cross-reference with your loved one/);
+    });
+
+    it('contract 14: line 2 reads "A record of care, not a medical record"', () => {
+      expect(discCode).toMatch(/A record of care, not a medical record/);
+    });
+
+    it('contract 15: line 1 carries the logged-stats string when stats are provided', () => {
+      // The disclaimer accepts loggedCount / totalCount props (the
+      // page-level completion footer collapses into this single
+      // disclaimer surface). When stats are present, the first line
+      // reads "{n} of {m} logged today".
+      expect(discCode).toMatch(/\bloggedCount\b/);
+      expect(discCode).toMatch(/\btotalCount\b/);
+      expect(discCode).toMatch(/of \$\{totalCount\} logged today/);
+    });
+  });
+
+  describe('upcoming-appointment single source of truth', () => {
+    it('contract 16: BUILDING TOWARD banner sources via appointmentLookahead (same as notes prompt)', () => {
+      // Pre-22.1 the feed-forward banner read brief.nextAppointment
+      // from careSummaryBuilder. Post-22.1 the page maintains a
+      // single upcoming-appointment state sourced via
+      // getUpcomingAppointments + withinUpcomingWindow (the same
+      // pattern Insights uses in Phase 15.8). Pin the import.
+      expect(journalCode).toMatch(/import\s+\{[^}]*\bgetUpcomingAppointments\b[^}]*\}\s+from/);
+      expect(journalCode).toMatch(/withinUpcomingWindow/);
+    });
+  });
+});

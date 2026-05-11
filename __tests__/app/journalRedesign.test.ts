@@ -36,8 +36,19 @@ describe('Journal — preserved structural pieces', () => {
     expect(src).not.toContain('<DetailedEventLog');
   });
 
-  it('footer says "Not a medical record"', () => {
-    expect(src).toContain('Not a medical record');
+  it('footer says "not a medical record" (Phase 22.1 — copy lives in JournalDisclaimer.tsx)', () => {
+    // Phase 22.1 — the disclaimer compression moved the copy into
+    // JournalDisclaimer.tsx exclusively. The new line 2 reads "A
+    // record of care, not a medical record" — substring "not a
+    // medical record" still appears, just in the disclaimer
+    // component rather than inline in journal.tsx.
+    const fs = require('fs');
+    const path = require('path');
+    const discSrc = fs.readFileSync(
+      path.resolve(__dirname, '../../components/journal/JournalDisclaimer.tsx'),
+      'utf-8',
+    );
+    expect(discSrc).toMatch(/not a medical record/i);
   });
 
   it('headerPurpose style uses the textSecondary token (unified in v6.7)', () => {

@@ -36,11 +36,12 @@ describe('journal.tsx — past-date view wiring', () => {
     expect(journalSrc).toMatch(/journalSubtitle\([^)]*pastDate/s);
   });
 
-  it('hides HandoffCard when viewing a past date', () => {
-    // The HandoffCard render is gated either by removing the JSX for past
-    // dates or by setting dayCompleteFlag/equivalent. Either an explicit
-    // !isViewingPast guard or pulling the section out of the past branch.
-    expect(journalSrc).toMatch(/!isViewingPast[\s\S]{0,400}?<HandoffCard|isViewingPast\s*\?\s*null\s*:\s*<HandoffCard|isViewingPast\s*&&[\s\S]{0,200}?null/);
+  it('HandoffCard is no longer rendered in Journal (retired in Phase 5.12.g, confirmed in 22.1)', () => {
+    // Phase 5.12.g retired the HandoffCard component from Journal —
+    // the sticky "Share handoff →" CTA at the bottom of the page is
+    // the surviving primary action. The original past-date gating
+    // contract becomes moot: nothing to hide.
+    expect(journalSrc).not.toMatch(/<HandoffCard\b/);
   });
 
   it('passes a readOnly flag to JournalNotesCard when viewing a past date', () => {

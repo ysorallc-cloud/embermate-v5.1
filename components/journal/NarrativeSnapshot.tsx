@@ -123,15 +123,13 @@ export function NarrativeSnapshot({
           <Text style={styles.snapshotText}>{summary}</Text>
         )}
 
-        {isAutoGen && (
-          <Text style={styles.autoGenMarker}>
-            {'Auto-generated from your logs · Tap Edit to refine.'}
-          </Text>
-        )}
-
-        <View style={styles.editRow}>
-          <Text style={styles.editLink}>{'Edit →'}</Text>
-        </View>
+        {/* Phase 22.1 — inline auto-gen footnote + inline edit-link
+            affordance retired. The Journal page reads as a handoff
+            document; tone editing lives on the canonical HandoffSheet
+            surface, still reachable via the sticky share-handoff
+            button at the bottom of the page. The TouchableOpacity
+            wrapper stays so the onEditPress contract works for callers
+            that still invoke HandoffSheet from the snapshot tap. */}
       </TouchableOpacity>
     </View>
   );

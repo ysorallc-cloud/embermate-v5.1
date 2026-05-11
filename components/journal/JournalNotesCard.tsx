@@ -2,10 +2,16 @@
 // JOURNAL NOTES CARD
 //
 // Single-card replacement for the floating-eyebrow + ReflectionPrompt pair.
-// Internal header: "TODAY'S NOTES". Body: text input that fills the card.
 // Footer: privacy line + Save pill (outlined → mint when there are unsaved
 // edits → outlined again after save). Owns its own dirty state and forwards
 // to the same saveReflection / onDirtyChange contracts as before.
+//
+// Phase 22.1 — eyebrow + prompt reframed for the handoff-document
+// surface. Eyebrow reads "NOTES FROM {caregiverName}" when a caregiver
+// profile exists, "NOTES" otherwise. Prompt reads "Anything to pass to
+// the next caregiver, or to flag for {provider}?" with the provider
+// name resolved via utils/appointmentLookahead.ts; falls back to "for
+// the next visit" when no upcoming appointment is in window.
 // ============================================================================
 
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
@@ -23,6 +29,13 @@ export interface JournalNotesCardProps {
   readOnly?: boolean;
   /** 24-hour preference for the "last edited" timestamp. Defaults to 12h. */
   use24Hour?: boolean;
+  /** Phase 22.1 — caregiver display name; threads into the eyebrow
+   *  ("NOTES FROM {caregiverName}"). Null/empty falls back to "NOTES". */
+  caregiverName?: string | null;
+  /** Phase 22.1 — provider display name from the upcoming-appointment
+   *  lookup (utils/appointmentLookahead). Null/empty falls back to
+   *  "for the next visit" in the prompt copy. */
+  providerName?: string | null;
 }
 
 export function JournalNotesCard({
@@ -32,6 +45,8 @@ export function JournalNotesCard({
   onDirtyChange,
   readOnly = false,
   use24Hour = false,
+  caregiverName,
+  providerName,
 }: JournalNotesCardProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -104,10 +119,20 @@ export function JournalNotesCard({
     return `last edited ${formatTime(d, { format: use24Hour ? '24h' : '12h' })}`;
   }, [savedAt, use24Hour]);
 
+  // Phase 22.1 — handoff-framed eyebrow + prompt.
+  const trimmedCaregiver = (caregiverName ?? '').trim();
+  const eyebrowText = trimmedCaregiver.length > 0
+    ? `NOTES FROM ${trimmedCaregiver.toUpperCase()}`
+    : 'NOTES';
+  const trimmedProvider = (providerName ?? '').trim();
+  const promptText = trimmedProvider.length > 0
+    ? `Anything to pass to the next caregiver, or to flag for ${trimmedProvider}?`
+    : 'Anything to pass to the next caregiver, or to flag for the next visit?';
+
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.eyebrow}>{"TODAY'S NOTES"}</Text>
+        <Text style={styles.eyebrow}>{eyebrowText}</Text>
         {lastEditedLabel && (
           <Text
             style={styles.lastEdited}
@@ -121,7 +146,7 @@ export function JournalNotesCard({
       <View testID="notes-body" style={styles.body}>
         {!readOnly && (
           <Text testID="notes-prompt" style={styles.prompt}>
-            Anything to pass along?
+            {promptText}
           </Text>
         )}
         <TextInput

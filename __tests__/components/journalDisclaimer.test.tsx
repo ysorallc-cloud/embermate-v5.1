@@ -76,12 +76,24 @@ function textOf(node: any): string {
   return out.join('');
 }
 
-describe('JournalDisclaimer — Layer 1 legal hygiene', () => {
-  it('renders the canonical disclaimer copy', () => {
+describe('JournalDisclaimer — Layer 1 legal hygiene (Phase 22.1 compression)', () => {
+  it('renders the compressed two-line disclaimer copy', () => {
+    // Phase 22.1 — long-form copy ("Journal is your record... Cross-
+    // reference with your loved one's medical history.") collapsed
+    // into a two-line footer:
+    //   Line 1 (when stats supplied): "{n} of {m} logged today"
+    //   Line 2: "A record of care, not a medical record"
+    const tree = JournalDisclaimer({ loggedCount: 3, totalCount: 5 });
+    expect(textOf(tree)).toMatch(/3 of 5 logged today/);
+    expect(textOf(tree)).toMatch(/A record of care, not a medical record/);
+    expect(textOf(tree)).not.toMatch(/Journal is your record/);
+    expect(textOf(tree)).not.toMatch(/Cross-reference/);
+  });
+
+  it('renders only line 2 when stats are omitted (past-day / no-stats path)', () => {
     const tree = JournalDisclaimer();
-    expect(textOf(tree)).toMatch(/Journal is your record/);
-    expect(textOf(tree)).toMatch(/Not a medical record/);
-    expect(textOf(tree)).toMatch(/Cross-reference/);
+    expect(textOf(tree)).toMatch(/A record of care, not a medical record/);
+    expect(textOf(tree)).not.toMatch(/logged today/);
   });
 
   it('renders in textTertiary at calm font size with italic + center alignment', () => {
