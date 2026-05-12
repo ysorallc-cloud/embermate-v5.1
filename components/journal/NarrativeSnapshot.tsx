@@ -114,18 +114,34 @@ export function NarrativeSnapshot({
         {tone ? (
           <Text style={styles.snapshotText}>{tone}</Text>
         ) : recap ? (
-          // Phase 11.8.1 — value-based recap rendered as one line per
-          // section. testID enables the audit/integration tests at
-          // Stage 11.8.5 to verify the per-itemType ordering.
+          // Phase 22.3 — value-based recap rendered as a labeled
+          // two-column grid (was prose-with-inline-bold pre-22.3).
+          // Each section becomes a row with a fixed-width label
+          // column and a flex-1 value column that wraps to a second
+          // line aligned to the value column start. No trailing
+          // colon on the label (was prose punctuation); the column
+          // layout makes the relationship visual. Display-layer
+          // change only — todayRecapBuilder still emits the same
+          // { label, text, itemType } shape.
           recap.sections.map((s) => (
-            <Text
+            <View
               key={s.itemType}
-              style={styles.recapLine}
+              style={styles.recapRow}
               testID={`today-recap-${s.itemType}`}
             >
-              <Text style={styles.recapLabel}>{s.label}: </Text>
-              {s.text}
-            </Text>
+              <Text
+                style={styles.recapLabel}
+                testID={`today-recap-label-${s.itemType}`}
+              >
+                {s.label}
+              </Text>
+              <Text
+                style={styles.recapValue}
+                testID={`today-recap-value-${s.itemType}`}
+              >
+                {s.text}
+              </Text>
+            </View>
           ))
         ) : (
           <Text style={styles.snapshotText}>{summary}</Text>
@@ -164,19 +180,34 @@ const createStyles = (c: any) =>
       lineHeight: 22,
       color: c.textPrimary,
     },
-    // Phase 11.8.1 — value-based recap line. One per section,
-    // stacked. Roman (not italic) so the values read as fact, not
-    // narrative; the italic Georgia treatment stays for tone-only.
-    recapLine: {
+    // Phase 22.3 — labeled two-column grid for the recap. Row =
+    // flexDirection: row + alignItems: flex-start (so the value's
+    // second wrapped line aligns with its first line, not the
+    // label). Label has a fixed width sized to fit "Vitals 1:40p"
+    // on iPhone SE (smallest target width). Value flex-1 so RN
+    // line-wraps inside the value column rather than back to the
+    // row start. Roman (not italic) on values — facts, not
+    // narrative; italic Georgia stays on the tone-only path.
+    recapRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      marginBottom: 10, // allow: gridded row rhythm (22.3 layout target ~10-12pt)
+      gap: 10, // allow: column gutter between label and value
+    },
+    recapLabel: {
+      width: 96, // allow: fixed label-column width (22.3 layout)
+      fontFamily: 'Georgia',
+      fontSize: 14,
+      lineHeight: 22,
+      fontWeight: '600' as const,
+      color: c.textSecondary,
+    },
+    recapValue: {
+      flex: 1,
       fontFamily: 'Georgia',
       fontSize: 14,
       lineHeight: 22,
       color: c.textPrimary,
-      marginBottom: 4,
-    },
-    recapLabel: {
-      fontWeight: '600' as const,
-      color: c.textSecondary,
     },
     autoGenMarker: {
       fontSize: 9.5,
