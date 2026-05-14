@@ -1,6 +1,17 @@
 // ============================================================================
 // TAB LAYOUT - 4 Tabs (Now, Journal, Support, Insights)
 // V5 — Team/Support moved to Settings > Care Team (Premium)
+//
+// Phase 26 — You-tab visual identity:
+//   F1 — The support tab routes its active+inactive tints AND the TabIcon
+//        dot accent through caregiverAccent, so the You lane reads as
+//        caregiver-for-caregiver chrome distinct from the sage operational
+//        tabs. Inactive state uses a muted lavender (NOT the operational
+//        gray) so the lane stays visible at rest.
+//   F2 — tabBarBackground extends from a single BlurView to a wrapping
+//        View that also renders a 1px hairline at left: '75%' — the 3/4
+//        boundary of the 4-tab equal-width layout, visually grouping
+//        You apart from the operational triplet (Now / Journal / Insights).
 // ============================================================================
 
 import { Tabs } from 'expo-router';
@@ -8,6 +19,16 @@ import { View, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+
+// Phase 26 F1 — inactive tint for the support tab. caregiverAccent at
+// half alpha reads as "this lane exists" without competing with the
+// operational tabs' sage active state. Inline rgba (not a new theme
+// token) because the composition is purpose-specific — a foreground
+// icon tint sitting on either a dark BlurView (iOS dark) or near-white
+// BlurView (iOS light); both render the same hue at a softer weight.
+// If a future surface needs a comparable muted lavender, promote to a
+// theme-tokens.ts entry then.
+const CAREGIVER_ACCENT_INACTIVE = 'rgba(170, 138, 220, 0.5)';
 
 type TabName = 'now' | 'journal' | 'support' | 'understand';
 
@@ -67,14 +88,37 @@ export default function TabLayout() {
           height: 80,
           position: 'absolute',
         },
+        // Phase 26 F2 — wrapping View renders both the iOS BlurView
+        // (unchanged) and a 1px hairline at the 3/4 boundary between
+        // Insights (3rd tab) and You (4th tab). top/bottom mirror the
+        // tabBarStyle padding so the line spans the visible content
+        // region only, stopping cleanly at the safe-area cushion.
+        // glassBorder matches the tab bar's existing top hairline so
+        // the marker reads as structural, not decorative.
         tabBarBackground: () => (
-          Platform.OS === 'ios' ? (
-            <BlurView
-              intensity={40}
-              tint={resolvedTheme === 'light' ? 'light' : 'dark'}
-              style={{ flex: 1, backgroundColor: resolvedTheme === 'light' ? 'rgba(248, 255, 254, 0.85)' : 'rgba(0, 0, 0, 0.92)' }}
+          <View style={{ flex: 1 }}>
+            {Platform.OS === 'ios' ? (
+              <BlurView
+                intensity={40}
+                tint={resolvedTheme === 'light' ? 'light' : 'dark'}
+                style={{ flex: 1, backgroundColor: resolvedTheme === 'light' ? 'rgba(248, 255, 254, 0.85)' : 'rgba(0, 0, 0, 0.92)' }}
+              />
+            ) : null}
+            <View
+              testID="tab-bar-divider"
+              accessible={false}
+              importantForAccessibility="no-hide-descendants"
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                left: '75%',
+                top: 8,
+                bottom: 28,
+                width: 1,
+                backgroundColor: colors.glassBorder,
+              }}
             />
-          ) : null
+          </View>
         ),
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textMuted,
@@ -115,7 +159,16 @@ export default function TabLayout() {
         name="support"
         options={{
           title: 'You',
-          tabBarIcon: ({ focused }) => <TabIcon name="support" focused={focused} accent={colors.accent} inactive={colors.textMuted} />,
+          // Phase 26 F1 — per-screen lavender for both states. Active +
+          // dot accent both lavender so a focused You tab telegraphs the
+          // caregiver lane; inactive at the muted-lavender constant so
+          // the lane still reads at rest without dropping to operational
+          // gray. The TabIcon's `accent` prop drives the small dot under
+          // the icon — it stays lavender even though it's only visible
+          // when this tab is the focused one.
+          tabBarActiveTintColor: colors.caregiverAccent,
+          tabBarInactiveTintColor: CAREGIVER_ACCENT_INACTIVE,
+          tabBarIcon: ({ focused }) => <TabIcon name="support" focused={focused} accent={colors.caregiverAccent} inactive={CAREGIVER_ACCENT_INACTIVE} />,
           tabBarAccessibilityLabel: 'You tab. Your wellness and self-care',
           tabBarButtonTestID: 'tab-support',
         }}
