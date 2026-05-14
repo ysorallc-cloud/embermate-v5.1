@@ -15,6 +15,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Spacing } from '../../theme/theme-tokens';
 import { SectionEyebrow } from '../SectionEyebrow';
+import { JournalSection } from './JournalSection';
 import {
   buildNotableMoments,
   NotableMoment,
@@ -25,9 +26,19 @@ import { EVENT } from '../../lib/eventNames';
 
 interface TodayNotableMomentsProps {
   dateKey: string;
+  /**
+   * Phase 27 F5 — render inside the Section 3 (Assessment) chrome:
+   * a JournalSection amber card with eyebrow "Worth flagging". When
+   * true, the component's internal "Worth mentioning" eyebrow + the
+   * hairline divider are dropped — JournalSection owns the chrome.
+   * Empty-gate still applies: when buildNotableMoments returns zero
+   * moments, the entire component (Section 3 chrome and all) returns
+   * null, so no empty assessment card appears on the page.
+   */
+  wrapInSection?: boolean;
 }
 
-export function TodayNotableMoments({ dateKey }: TodayNotableMomentsProps) {
+export function TodayNotableMoments({ dateKey, wrapInSection = false }: TodayNotableMomentsProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -80,6 +91,29 @@ export function TodayNotableMoments({ dateKey }: TodayNotableMomentsProps) {
   if (!loaded) return null;
   if (moments.length === 0) return null;
 
+  const rows = moments.map((m, i) => (
+    <View
+      key={`${m.category}-${i}`}
+      style={styles.row}
+      testID={`today-notable-${m.category}`}
+    >
+      <Text style={styles.dot}>{'·'}</Text>
+      <Text style={styles.text}>{m.text}</Text>
+    </View>
+  ));
+
+  // Phase 27 F5 — Section 3 (Assessment) chrome wraps the rows when
+  // mounted inside Journal's SOAP layout. JournalSection owns the
+  // amber border + 0.06-alpha bg + eyebrow; the internal eyebrow +
+  // hairline divider are stripped so chrome doesn't double-up.
+  if (wrapInSection) {
+    return (
+      <JournalSection eyebrow="Worth flagging" tint="amber">
+        <View testID="today-notable-moments">{rows}</View>
+      </JournalSection>
+    );
+  }
+
   return (
     <View style={styles.section} testID="today-notable-moments">
       {/* Phase 22.2 — uniform SectionEyebrow + section-color encoding.
@@ -88,16 +122,7 @@ export function TodayNotableMoments({ dateKey }: TodayNotableMomentsProps) {
           gates with the section's null-return path. */}
       <View style={styles.sectionDivider} />
       <SectionEyebrow text="Worth mentioning" tint="amber" />
-      {moments.map((m, i) => (
-        <View
-          key={`${m.category}-${i}`}
-          style={styles.row}
-          testID={`today-notable-${m.category}`}
-        >
-          <Text style={styles.dot}>{'·'}</Text>
-          <Text style={styles.text}>{m.text}</Text>
-        </View>
-      ))}
+      {rows}
     </View>
   );
 }

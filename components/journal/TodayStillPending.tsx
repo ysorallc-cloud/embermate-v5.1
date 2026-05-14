@@ -26,9 +26,24 @@ import { EVENT } from '../../lib/eventNames';
 
 interface TodayStillPendingProps {
   dateKey: string;
+  /**
+   * Phase 27 F6 — strip own chrome + internal eyebrow + hairline
+   * divider. Used inside Section 4 (Plan), which renders the inner
+   * "STILL PENDING" sub-eyebrow at its own level. Empty-gate still
+   * applies (renders null when no items).
+   */
+  bare?: boolean;
+  /**
+   * Phase 27 F6 — fires whenever the items count finishes loading or
+   * changes. Lets the parent (journal.tsx Section 4) gate the inner
+   * "STILL PENDING" sub-eyebrow on items.length > 0 — the sub-eyebrow
+   * is rendered by the parent, not by this component, but it must
+   * not orphan when the day has nothing pending.
+   */
+  onLoaded?: (count: number) => void;
 }
 
-export function TodayStillPending({ dateKey }: TodayStillPendingProps) {
+export function TodayStillPending({ dateKey, bare = false, onLoaded }: TodayStillPendingProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [items, setItems] = useState<PendingTonightItem[]>([]);
@@ -37,13 +52,15 @@ export function TodayStillPending({ dateKey }: TodayStillPendingProps) {
   const refresh = useCallback(async () => {
     try {
       const instances = await listDailyInstances(DEFAULT_PATIENT_ID, dateKey);
-      setItems(formatStillPendingTonight(instances));
+      const next = formatStillPendingTonight(instances);
+      setItems(next);
+      onLoaded?.(next.length);
     } catch (err) {
       logError('TodayStillPending.load', err);
     } finally {
       setLoaded(true);
     }
-  }, [dateKey]);
+  }, [dateKey, onLoaded]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -62,6 +79,25 @@ export function TodayStillPending({ dateKey }: TodayStillPendingProps) {
   if (!loaded) return null;
   if (items.length === 0) return null;
 
+  const rows = items.map((p) => (
+    <View
+      key={p.id}
+      style={styles.row}
+      testID={`today-pending-${p.itemType}`}
+    >
+      <Text style={styles.bullet}>{'·'}</Text>
+      <Text style={styles.name}>{p.name}</Text>
+      <Text style={styles.time}>{p.time}</Text>
+    </View>
+  ));
+
+  // Phase 27 F6 — bare mode for Section 4 nesting. No chrome, no
+  // internal eyebrow, no hairline divider — just the rows. Section 4
+  // owns the surrounding "STILL PENDING" sub-eyebrow.
+  if (bare) {
+    return <View testID="today-still-pending">{rows}</View>;
+  }
+
   return (
     <View testID="today-still-pending">
       {/* Phase 22.2 — uniform SectionEyebrow + section-color encoding.
@@ -71,19 +107,7 @@ export function TodayStillPending({ dateKey }: TodayStillPendingProps) {
           the card; auto-gates with the null-return paths. */}
       <View style={styles.sectionDivider} />
       <SectionEyebrow text="Still pending" tint="coral" />
-      <View style={styles.section}>
-      {items.map((p) => (
-        <View
-          key={p.id}
-          style={styles.row}
-          testID={`today-pending-${p.itemType}`}
-        >
-          <Text style={styles.bullet}>{'·'}</Text>
-          <Text style={styles.name}>{p.name}</Text>
-          <Text style={styles.time}>{p.time}</Text>
-        </View>
-      ))}
-      </View>
+      <View style={styles.section}>{rows}</View>
     </View>
   );
 }

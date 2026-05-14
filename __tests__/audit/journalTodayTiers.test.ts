@@ -1,29 +1,38 @@
 // ============================================================================
 // Phase 11.8.5 — Journal Today four-tier audit.
+// PARTIALLY RETIRED in Phase 27 F8.
 //
-// Programmatic regression-pin for the four-tier today layout shipped
-// across 11.8.1 → 11.8.4. Catches drift in three forms:
+// Pre-Phase-27 this file pinned the four-tier today layout (recap →
+// notable → pending → notes) shipped across 11.8.1 → 11.8.4. Phase 27
+// replaced that linear layout with the four SOAP-shaped section cards
+// (Subjective / Objective / Assessment / Plan); the old "<NarrativeSnapshot
+// before TodayNotableMoments" ordering no longer holds, and the
+// NarrativeSnapshot mount itself was retired from the today path
+// (component file is intentional orphan post-27 per audit D6).
 //
-//   • A tier renders out of order (Notable Moments above Recap, etc.).
-//   • A retired legacy surface drifts back into the today path
-//     (WhatChangedToday / EventsTimeline / ForNextCaregiver).
-//   • The value-based recap drifts back to the count-based path
-//     (e.g. NarrativeSnapshot's isToday prop drops).
+// Per the repo's retirement convention (see journalDisclaimer.test.tsx
+// / sampleIndicatorTap.test.tsx / Phase 26 footer pattern), the
+// pre-27 contracts flip to absence pins / are deleted; contracts that
+// still hold (builder constraints — no patient-name interpolation,
+// no interpretive vocabulary) stay green unchanged.
 //
-// Source-level audit because mounting Journal is impractical given
-// its dependency graph; the same pattern other journal*.test.tsx
-// files use.
-//
-// Pinned contracts:
-//   1. The today-populated body imports all four tiers' components /
-//      hooks: NarrativeSnapshot, TodayNotableMoments,
-//      TodayStillPending, JournalNotesCard.
-//   2. Render order is recap → notable → pending → notes.
-//   3. NarrativeSnapshot is wired with isToday set from !isViewingPast.
-//   4. The three retired legacy surfaces are absent from imports +
-//      JSX render sites.
+// Surviving contracts:
+//   4. The three retired legacy surfaces (WhatChangedToday /
+//      EventsTimeline / ForNextCaregiver) stay absent from the today
+//      path. Unchanged.
 //   5. Each builder's source carries no patient-name interpolation.
+//      Unchanged.
 //   6. Each builder's source carries no interpretive vocabulary.
+//      Unchanged.
+//
+// Retired (flipped to absence / deleted, see below):
+//   1. The today-populated body imports all four tiers' components —
+//      Phase 27 retired the NarrativeSnapshot mount; only three of the
+//      four are still imported by journal.tsx as render-site components.
+//   2. Render order recap → notable → pending → notes — Phase 27's
+//      four SOAP cards subsume this ordering; new contracts live in
+//      journalSection2Wiring27 / journalSection4Wiring27 etc.
+//   3. NarrativeSnapshot isToday wiring — no longer mounted on today.
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -62,81 +71,26 @@ function codeOnly(src: string): string {
 }
 
 // ----------------------------------------------------------------------------
-// Contract 1 — all four tier components are imported
+// Contracts 1-3 retired in Phase 27 F8 (see file header). The four-tier
+// linear layout was replaced with the four SOAP-shaped section cards;
+// new structural contracts live in:
+//   __tests__/screens/journalSection1Wiring27.test.ts (Subjective)
+//   __tests__/screens/journalSection2Wiring27.test.ts (Objective)
+//   __tests__/components/todayNotableMomentsWrapInSection27.test.tsx (Assessment wrap)
+//   __tests__/screens/journalSection4Wiring27.test.ts (Plan)
+// The retired contracts flip to a single absence pin defending the
+// retirement direction: the today path no longer renders a standalone
+// <NarrativeSnapshot mount (it's the canonical signal the Phase 27
+// SOAP restructure landed correctly).
 // ----------------------------------------------------------------------------
 
-describe('Phase 11.8.5 — Today four-tier imports', () => {
-  it('contract 1: imports NarrativeSnapshot (Tier 1)', () => {
-    expect(journalSrc).toMatch(
-      /import\s*\{[^}]*\bNarrativeSnapshot\b[^}]*\}\s*from\s*['"][^'"]+\/journal\/NarrativeSnapshot['"]/,
-    );
-  });
-
-  it('contract 1: imports TodayNotableMoments (Tier 2)', () => {
-    expect(journalSrc).toMatch(
-      /import\s*\{[^}]*\bTodayNotableMoments\b[^}]*\}\s*from\s*['"][^'"]+\/journal\/TodayNotableMoments['"]/,
-    );
-  });
-
-  it('contract 1: imports TodayStillPending (Tier 3)', () => {
-    expect(journalSrc).toMatch(
-      /import\s*\{[^}]*\bTodayStillPending\b[^}]*\}\s*from\s*['"][^'"]+\/journal\/TodayStillPending['"]/,
-    );
-  });
-
-  it('contract 1: imports JournalNotesCard (Tier 4)', () => {
-    expect(journalSrc).toMatch(
-      /import\s*\{[^}]*\bJournalNotesCard\b[^}]*\}\s*from\s*['"][^'"]+\/journal\/JournalNotesCard['"]/,
-    );
-  });
-});
-
-// ----------------------------------------------------------------------------
-// Contract 2 — render order is recap → notable → pending → notes
-// ----------------------------------------------------------------------------
-
-describe('Phase 11.8.5 — Today four-tier render order', () => {
-  // Use the lastIndexOf so import-line matches don't pollute the
-  // ordering check (imports declare the components before the JSX
-  // render sites). lastIndexOf points at the JSX site since imports
-  // come first.
-  const recap = journalSrc.lastIndexOf('<NarrativeSnapshot');
-  const notable = journalSrc.lastIndexOf('<TodayNotableMoments');
-  const pending = journalSrc.lastIndexOf('<TodayStillPending');
-  const notes = journalSrc.lastIndexOf('<JournalNotesCard');
-
-  it('all four render sites exist', () => {
-    expect(recap).toBeGreaterThan(-1);
-    expect(notable).toBeGreaterThan(-1);
-    expect(pending).toBeGreaterThan(-1);
-    expect(notes).toBeGreaterThan(-1);
-  });
-
-  it('contract 2: NarrativeSnapshot renders before TodayNotableMoments', () => {
-    expect(recap).toBeLessThan(notable);
-  });
-
-  it('contract 2: TodayNotableMoments renders before TodayStillPending', () => {
-    expect(notable).toBeLessThan(pending);
-  });
-
-  it('contract 2: TodayStillPending renders before JournalNotesCard', () => {
-    expect(pending).toBeLessThan(notes);
-  });
-});
-
-// ----------------------------------------------------------------------------
-// Contract 3 — NarrativeSnapshot wired with isToday
-// ----------------------------------------------------------------------------
-
-describe('Phase 11.8.5 — NarrativeSnapshot isToday wiring', () => {
-  it('contract 3: NarrativeSnapshot is invoked with isToday derived from !isViewingPast', () => {
-    // The today path uses the value-based recap; past days fall back
-    // to buildDayNarrative. Pin the wiring so the prop doesn't drift
-    // back to a hardcoded constant.
-    expect(journalSrc).toMatch(
-      /<NarrativeSnapshot[\s\S]{0,400}isToday=\{\s*!isViewingPast\s*\}/,
-    );
+describe('Phase 11.8.5 — retired today-tier contracts (Phase 27 F8)', () => {
+  it('contract 1-3 retirement: today path no longer renders a standalone <NarrativeSnapshot mount', () => {
+    // Phase 27 F7 retired NarrativeSnapshot from the today path. The
+    // import may still exist in journal.tsx (defensive — past-day path
+    // could revive it via NarrativeView in the future), but the JSX
+    // mount is gone. Pin the absence.
+    expect(journalSrc).not.toMatch(/<NarrativeSnapshot/);
   });
 });
 

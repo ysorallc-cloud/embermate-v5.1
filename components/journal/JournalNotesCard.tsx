@@ -37,6 +37,22 @@ export interface JournalNotesCardProps {
    *  lookup (utils/appointmentLookahead). Null/empty falls back to
    *  "for the next visit" in the prompt copy. */
   providerName?: string | null;
+  /**
+   * Phase 27 F6 — strip own chrome (outer card + headerRow + section
+   * divider + internal SectionEyebrow) for nesting inside Section 4
+   * (Plan). Section 4 renders the inner "NOTES" sub-eyebrow at its
+   * own level. Prompt + textarea + Save pill stay — those are
+   * meaningful inner content. The "last edited" timestamp drops in
+   * bare mode (no headerRow to host it).
+   */
+  bare?: boolean;
+  /**
+   * Phase 27 F6 — passes a ref through to the inner TextInput so the
+   * parent can call .focus() imperatively. Section 1's empty-state
+   * prompt taps into this single mount (audit D7: single input, two
+   * surface tap targets). Optional; standalone consumers don't need it.
+   */
+  inputRef?: React.MutableRefObject<TextInput | null>;
 }
 
 export function JournalNotesCard({
@@ -48,6 +64,8 @@ export function JournalNotesCard({
   use24Hour = false,
   caregiverName,
   providerName,
+  bare = false,
+  inputRef,
 }: JournalNotesCardProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -56,6 +74,20 @@ export function JournalNotesCard({
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const justSavedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Phase 27 F6 — internal ref on the TextInput. When the parent
+  // supplies an inputRef prop, we mirror our internal ref into it so
+  // the parent can call .focus() (Section 1's empty-state prompt taps
+  // into this single mount per audit D7). The internal ref is used
+  // directly by the TextInput; the prop forwarding happens in an
+  // effect below.
+  const textInputRef = useRef<TextInput>(null);
+  useEffect(() => {
+    if (inputRef) inputRef.current = textInputRef.current;
+    return () => {
+      if (inputRef) inputRef.current = null;
+    };
+  }, [inputRef]);
 
   // Sync incoming saved text (e.g. when the parent loads a different day).
   useEffect(() => {
@@ -130,6 +162,84 @@ export function JournalNotesCard({
     ? `Anything to pass to the next caregiver, or to flag for ${trimmedProvider}?`
     : 'Anything to pass to the next caregiver, or to flag for the next visit?';
 
+  // Phase 27 F6 — bare mode for Section 4 (Plan) nesting. Section 4
+  // owns the surrounding lavender card chrome and the "NOTES" sub-
+  // eyebrow at its own level. In bare mode this component drops:
+  //   • The hairline section-divider above.
+  //   • The internal SectionEyebrow ("NOTES FROM …" / "NOTES").
+  //   • The outer card View's backgroundColor + border + radius.
+  //   • The headerRow (last-edited timestamp — Section 4 doesn't host
+  //     this; v1.1 may surface it via a long-press / overflow).
+  //   • The footer's border-top.
+  // The prompt + textarea + Save pill stay — those are meaningful
+  // inner content, not chrome.
+  if (bare) {
+    return (
+      <View>
+        <View testID="notes-body" style={styles.body}>
+          {!readOnly && (
+            <Text testID="notes-prompt" style={styles.prompt}>
+              {promptText}
+            </Text>
+          )}
+          <TextInput
+            ref={textInputRef}
+            style={styles.input}
+            value={text}
+            onChangeText={setText}
+            placeholder={readOnly ? 'Notes from this day' : '…'}
+            placeholderTextColor={colors.textTertiary}
+            multiline
+            textAlignVertical="top"
+            editable={!readOnly}
+            accessibilityLabel={
+              readOnly
+                ? 'Notes from this day (read-only)'
+                : "Today's notes — type anything to pass along to the next caregiver"
+            }
+          />
+        </View>
+        <Text
+          accessibilityLiveRegion="polite"
+          accessibilityElementsHidden={!justSaved}
+          style={styles.liveRegion}
+        >
+          {justSaved ? 'Saved' : ''}
+        </Text>
+        <View style={[styles.footer, { borderTopWidth: 0, paddingHorizontal: 0 }]}>
+          <View style={styles.footerLeft}>
+            <Text style={styles.privacy}>{'🔒 Private · on this device'}</Text>
+          </View>
+          {!readOnly && (
+            <TouchableOpacity
+              style={[
+                styles.saveButton,
+                filled && styles.saveButtonFilled,
+                saveState === 'saved' && styles.saveButtonSaved,
+              ]}
+              onPress={handleSave}
+              disabled={!isDirty || saving}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={saveLabel}
+              accessibilityState={{ selected: a11ySelected, disabled: !isDirty || saving }}
+            >
+              <Text
+                style={[
+                  styles.saveText,
+                  filled && styles.saveTextFilled,
+                  saveState === 'saved' && styles.saveTextSaved,
+                ]}
+              >
+                {saveLabel}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View>
       {/* Phase 22.2 — uniform SectionEyebrow + section-color encoding.
@@ -159,6 +269,7 @@ export function JournalNotesCard({
           </Text>
         )}
         <TextInput
+          ref={textInputRef}
           style={styles.input}
           value={text}
           onChangeText={setText}
@@ -282,9 +393,14 @@ const createStyles = (c: any) =>
       fontSize: 14,
       color: c.textPrimary,
       lineHeight: 20,
-      // v6.7 Phase 3 — compact card. Outcomes is the more important block;
-      // Notes shrinks so the visual weight matches importance.
-      minHeight: 36,
+      // Phase 27 F6 — minHeight raised 36 → 60 (3 lines × 20pt
+      // lineHeight). The pre-27 36pt floor read as too tight for a
+      // free-text handoff prompt once the notes block moved into
+      // Section 4's lavender card; 3 lines gives the caregiver enough
+      // initial canvas to start writing without expanding. RN's
+      // native multiline TextInput auto-grows past this floor as
+      // content grows — no explicit onFocus expansion is needed.
+      minHeight: 60,
       // Deliberately no backgroundColor / borderWidth — the card surface IS
       // the input surface (per the v6.7 internal-header spec).
     },

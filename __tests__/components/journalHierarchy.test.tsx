@@ -146,12 +146,18 @@ describe('JournalNotesCard — compact', () => {
     onSave: jest.fn(),
   };
 
-  it('TextInput uses minHeight <= 36', () => {
+  it('TextInput uses minHeight <= 80 (Phase 27 F6 raised the floor from 36 to 60)', () => {
+    // Pre-Phase-27 the bound was minHeight <= 36 (a Phase 4 compaction).
+    // Phase 27 F6 raised the floor to 60pt (3 lines × 20pt lineHeight)
+    // because the SOAP restructure moved the notes block into Section
+    // 4's lavender card. The ceiling stays under 80pt — the field
+    // should still grow naturally with content past the floor, not
+    // start as a giant block. journalPhase4 carries the exact-60 pin.
     const tree = (JournalNotesCard as any)(notesProps);
     const inputs = findAll(tree, (n) => n.type === 'TextInput');
     expect(inputs.length).toBeGreaterThan(0);
     const merged = styleOf(inputs[0]);
-    expect(merged.minHeight).toBeLessThanOrEqual(36);
+    expect(merged.minHeight).toBeLessThanOrEqual(80);
   });
 
   it('renders a visible serif italic prompt above the input', () => {

@@ -101,13 +101,20 @@ const styleOf = (node: any) => {
 };
 
 // ── 4a — Notes textarea ────────────────────────────────────────────────
-describe('JournalNotesCard — compact textarea (Phase 4a)', () => {
-  it('TextInput minHeight is 36 (no taller than the empty placeholder)', () => {
+// Phase 27 F8 — Phase 4a's compact-textarea contract was a `minHeight: 36`
+// floor (1.8 lines at 20pt lineHeight). Phase 27 F6 raised the floor to
+// 60pt (3 lines × 20pt) because the SOAP restructure moved the notes
+// block into Section 4's lavender card and the 36pt floor read as too
+// tight for a free-text handoff prompt. Contract updated to the new
+// floor; the upper bound is preserved (the field should still grow
+// naturally past the floor, not start as a giant block).
+describe('JournalNotesCard — 3-line textarea (Phase 27 F6 update)', () => {
+  it('TextInput minHeight is 60 (3 lines × 20pt lineHeight)', () => {
     const tree = (JournalNotesCard as any)({ date: '2026-04-30', onSave: jest.fn() });
     const inputs = findAll(tree, (n) => n.type === 'TextInput');
     expect(inputs.length).toBeGreaterThan(0);
     const merged = styleOf(inputs[0]);
-    expect(merged.minHeight).toBe(36);
+    expect(merged.minHeight).toBe(60);
   });
 
   it('TextInput does not declare a height above 80', () => {

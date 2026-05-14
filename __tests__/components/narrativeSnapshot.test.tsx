@@ -82,25 +82,24 @@ describe('Phase 22.1 — Edit affordance retired (was Phase 5.12.c)', () => {
   });
 });
 
-describe('Phase 5.12.c — Journal wiring', () => {
+// Phase 5.12.c — Journal wiring contracts RETIRED in Phase 27 F7.
+// NarrativeSnapshot was the Tier-1 recap on the today path; the SOAP
+// restructure replaces it with Section 2 (Objective)'s per-category
+// rows from buildCareBrief. NarrativeSnapshot is intentional orphan
+// post-Phase-27 (audit D6 — file lives on for Phase 20 dead-code
+// sweep). The retired contracts flip to a single absence pin
+// defending the retirement direction.
+describe('Phase 27 F7 — Journal no longer mounts NarrativeSnapshot on the today path', () => {
   const journalSrc = readFileSync(
     join(ROOT, 'app/(tabs)/journal.tsx'),
     'utf8',
   );
 
-  it('Journal imports and mounts the NarrativeSnapshot component', () => {
-    expect(journalSrc).toMatch(
-      /import\s+\{\s*NarrativeSnapshot\s*\}\s+from\s+['"][^'"]+NarrativeSnapshot['"]/,
-    );
-    expect(journalSrc).toMatch(/<NarrativeSnapshot\b/);
-  });
-
-  it('wires onEditPress to open an editor (HandoffSheet hosts the tone field)', () => {
-    // The tone editor lives inside HandoffSheet today. Wiring onEditPress
-    // to setHandoffSheetVisible(true) reuses the existing canonical tone
-    // input. A future TonePromptSheet extraction can keep this contract.
-    expect(journalSrc).toMatch(
-      /onEditPress=\{[\s\S]{0,120}setHandoffSheetVisible\(\s*true\s*\)/,
-    );
+  it('retirement pin: journal.tsx renders no <NarrativeSnapshot JSX', () => {
+    // Phase 27 F7 retired the today-path mount; the file may still
+    // import the component defensively but the JSX is gone. This
+    // single absence pin replaces the pre-27 "imports and mounts"
+    // contract (which asserted the opposite direction).
+    expect(journalSrc).not.toMatch(/<NarrativeSnapshot\b/);
   });
 });

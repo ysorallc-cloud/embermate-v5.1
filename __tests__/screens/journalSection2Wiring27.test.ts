@@ -122,13 +122,19 @@ describe('Phase 27 F4 — Section 2 (Objective) wired into journal.tsx', () => {
     expect(body).toMatch(/brief[?.]+sleep/);
   });
 
-  it('contract 6: Section 2 renders AFTER Section 1 and BEFORE the legacy NarrativeSnapshot mount', () => {
+  it('contract 6: Section 2 renders AFTER Section 1 and BEFORE Section 3 (TodayNotableMoments wrapInSection)', () => {
+    // Phase 27 F7 retired NarrativeSnapshot from the today path, so
+    // the original "before NarrativeSnapshot" pin became stale. The
+    // new ordering puts Section 2 between Section 1 and Section 3
+    // (TodayNotableMoments wrapInSection, which owns its own
+    // JournalSection chrome internally and renders as a sibling
+    // <TodayNotableMoments tag rather than a numbered <JournalSection).
     const section1 = nthIndexOf(STRIPPED, '<JournalSection', 1);
     const section2 = nthIndexOf(STRIPPED, '<JournalSection', 2);
-    const narrativeSnapshot = STRIPPED.indexOf('<NarrativeSnapshot');
+    const todayNotableMount = STRIPPED.indexOf('<TodayNotableMoments');
     expect(section1).toBeGreaterThan(-1);
     expect(section2).toBeGreaterThan(section1);
-    expect(narrativeSnapshot).toBeGreaterThan(section2);
+    expect(todayNotableMount).toBeGreaterThan(section2);
   });
 
   it('contract 7: Section 2 is gated on brief being non-null', () => {

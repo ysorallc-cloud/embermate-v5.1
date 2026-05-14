@@ -17,6 +17,7 @@ import {
   Alert,
   Animated,
   Easing,
+  TextInput,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, BorderRadius, Spacing } from '../../theme/theme-tokens';
@@ -47,12 +48,12 @@ import { hasSampleData } from '../../utils/sampleDataManager';
 import { ReportData } from '../../utils/pdfExport';
 import { DateTabStrip } from '../../components/journal/DateTabStrip';
 import { JournalNotesCard } from '../../components/journal/JournalNotesCard';
+import { TodayNotableMoments } from '../../components/journal/TodayNotableMoments';
+import { TodayStillPending } from '../../components/journal/TodayStillPending';
 import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataSheet';
 import { HandoffSheet } from '../../components/journal/HandoffSheet';
 import { NarrativeView } from '../../components/journal/NarrativeView';
 import { NarrativeSnapshot } from '../../components/journal/NarrativeSnapshot';
-import { TodayNotableMoments } from '../../components/journal/TodayNotableMoments';
-import { TodayStillPending } from '../../components/journal/TodayStillPending';
 // Phase 11.8.4 — WhatChangedToday / EventsTimeline / ForNextCaregiver
 // imports retired from the today path. The components themselves stay
 // in the codebase (they have their own component-level tests) and may
@@ -139,6 +140,14 @@ export default function JournalTab() {
   // journalEvents removed — DetailedEventLog no longer rendered
   const [reflection, setReflection] = useState<StoredReflection | null>(null);
   const [reflectionDirty, setReflectionDirty] = useState(false);
+  // Phase 27 F6 — ref on JournalNotesCard's internal TextInput so
+  // Section 1's empty-state prompt can focus the textarea on tap
+  // (audit D7: single input, two surface tap targets).
+  const notesInputRef = useRef<TextInput | null>(null);
+  // Phase 27 F6 — fired by TodayStillPending's onLoaded callback so the
+  // STILL PENDING sub-eyebrow inside Section 4 only renders when there
+  // are pending items to anchor it.
+  const [stillPendingCount, setStillPendingCount] = useState(0);
 
   // Phase 5.12.b — mood line is the page's emotional anchor. Resolved
   // in priority: (1) caregiver-authored handoff tone for the day,
@@ -727,9 +736,16 @@ export default function JournalTab() {
                   surface tap targets, never two competing inputs). */}
               <JournalSection eyebrow="How today went" tint="caregiverAccent">
                 {subjectiveEmpty ? (
-                  <Text style={s.section1EmptyPrompt}>
-                    How would you describe today?
-                  </Text>
+                  <TouchableOpacity
+                    onPress={() => notesInputRef.current?.focus()}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add a note to describe today"
+                  >
+                    <Text style={s.section1EmptyPrompt}>
+                      How would you describe today?
+                    </Text>
+                  </TouchableOpacity>
                 ) : (
                   <GestaltSummary summary={moodLine} bare />
                 )}
@@ -801,42 +817,35 @@ export default function JournalTab() {
                 </JournalSection>
               )}
 
-              {/* Phase 5.12.c — narrative snapshot. Caregiver-authored
-                  tone if set, else factual auto-recap with disclaimer.
-                  Tapping the snapshot opens HandoffSheet whose first
-                  field is the canonical TONE input.
-                  Phase 27 — slated for removal in F7 once Section 2
-                  (Objective) covers the factual recap content. */}
-              <NarrativeSnapshot
-                dateKey={selectedDate}
-                onEditPress={() => setHandoffSheetVisible(true)}
-                isToday={!isViewingPast}
-              />
+              {/* Phase 27 F5 — Section 3 (Assessment).
+                  TodayNotableMoments owns the JournalSection amber
+                  chrome ("Worth flagging") when wrapInSection is set.
+                  Returns null when no moments — the entire section
+                  card collapses, no empty assessment chrome appears. */}
+              <TodayNotableMoments dateKey={selectedDate} wrapInSection />
 
-              {/* Phase 11.8.2 — notable moments. Today-only inline
-                  call-outs for day-level deltas (BP / glucose /
-                  refused meal / sleep outlier). Renders nothing when
-                  no moments qualify. */}
-              {!isViewingPast && <TodayNotableMoments dateKey={selectedDate} />}
-
-              {/* Phase 11.8.3 — still-pending card. Closes the
-                  "what's left to handle" gap so the handoff to the
-                  next caregiver is obvious. Today only; renders
-                  nothing when nothing is pending. */}
-              {!isViewingPast && <TodayStillPending dateKey={selectedDate} />}
-
-              {/* Phase 11.8.4 — Tier 4: Today's Notes. Caregiver-
-                  authored handoff. The legacy WhatChangedToday /
-                  EventsTimeline / ForNextCaregiver surfaces have
-                  been retired from the today path — Tiers 1-3 above
-                  cover their roles:
-                    - Notable Moments supersedes WhatChangedToday
-                    - Today Recap supersedes EventsTimeline
-                    - Still Pending supersedes ForNextCaregiver
-                  Past-day path still uses NarrativeView (line ~675)
-                  which keeps the original surfaces. */}
-              <View style={{ marginTop: 12 }}>
+              {/* Phase 27 F6 — Section 4 (Plan).
+                  Lavender bookend, paired with Section 1. Two sub-
+                  blocks separated by inner sub-eyebrows:
+                    (a) STILL PENDING — gated on TodayStillPending's
+                        items count via onLoaded callback. The sub-
+                        eyebrow does not orphan when nothing is pending.
+                    (b) NOTES — JournalNotesCard in bare mode with a
+                        focus ref so Section 1's empty-state prompt
+                        taps into this single mount (audit D7). */}
+              <JournalSection eyebrow="For the next caregiver" tint="caregiverAccent">
+                {stillPendingCount > 0 && (
+                  <Text style={s.section4SubEyebrow}>STILL PENDING</Text>
+                )}
+                <TodayStillPending
+                  dateKey={selectedDate}
+                  bare
+                  onLoaded={setStillPendingCount}
+                />
+                <Text style={[s.section4SubEyebrow, s.section4SubEyebrowNotes]}>NOTES</Text>
                 <JournalNotesCard
+                  inputRef={notesInputRef}
+                  bare
                   date={selectedDate}
                   savedText={reflection?.text}
                   savedAt={reflection?.savedAt}
@@ -846,7 +855,7 @@ export default function JournalTab() {
                   caregiverName={caregiverName}
                   providerName={upcomingProviderName}
                 />
-              </View>
+              </JournalSection>
               </>
             );
           })()}
@@ -1040,6 +1049,24 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     color: c.textSecondary,
+  },
+  // Phase 27 F6 — Section 4 sub-eyebrows. 8pt size matches the global
+  // SectionEyebrow typography; amber at 0.7 alpha is the spec'd weight
+  // for "STILL PENDING" so the sub-block reads as a quieter signal
+  // than the parent JournalSection eyebrow ("For the next caregiver").
+  // NOTES sub-eyebrow uses the neutral textTertiary so the human-voice
+  // notes content owns the visual weight (consistent with Phase 22.2's
+  // notes-tint decision).
+  section4SubEyebrow: {
+    fontSize: 8,
+    fontWeight: '500' as const,
+    letterSpacing: 0.5,
+    color: 'rgba(229, 176, 74, 0.7)',
+    marginBottom: 4,
+  },
+  section4SubEyebrowNotes: {
+    color: c.textTertiary,
+    marginTop: 10, // allow: separation between STILL PENDING block and NOTES block
   },
   scrollView: {
     flex: 1,
