@@ -217,6 +217,17 @@ export default function VisitPrepPreviewScreen() {
                 {data.header.dateRange}
                 {data.header.preparedBy ? ` · Prepared by ${data.header.preparedBy}` : ''}
               </Text>
+              {/* Phase 23.3 — provenance mirror of the PDF cover. The PDF
+                  emits this line directly under the subtitle row so a
+                  clinician reading cold calibrates before the first
+                  clinical section; the preview mirrors so a caregiver
+                  previewing before share sees the same framing. Colour
+                  routes through textWarmMuted instead of the PDF's print
+                  #9a9aa8 (which wouldn't read against the dark preview
+                  surface). */}
+              <Text style={styles.provenance}>
+                {'Caregiver-reported observations · Not a clinical record'}
+              </Text>
 
               {/* Phase 5.10.a — Red Flags & Alerts callout (top of page).
                   Phase 5.10.d — toggle gates the entire section; when ON
@@ -561,6 +572,19 @@ const createStyles = (c: any) => StyleSheet.create({
   subtitle: {
     fontSize: 12,
     color: c.textSecondary,
+    marginBottom: Spacing.md,
+  },
+  // Phase 23.3 — provenance line mirrors the PDF cover. textWarmMuted
+  // (one step quieter than textSecondary) renders on the dark preview
+  // surface; the PDF uses #9a9aa8 instead because that's the right
+  // tone on white print. Italic + 11pt mirrors the PDF's reduced-
+  // emphasis treatment without sub-10pt sizing (preview is read on a
+  // phone screen, not print).
+  provenance: {
+    fontSize: 11,
+    color: c.textWarmMuted,
+    fontStyle: 'italic' as const,
+    marginTop: -Spacing.sm,
     marginBottom: Spacing.md,
   },
   sectionHeaderRow: {

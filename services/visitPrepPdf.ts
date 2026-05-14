@@ -777,6 +777,10 @@ function buildHtml(data: VisitPrepData): string {
     body { font-family: -apple-system, 'Helvetica Neue', sans-serif; color: #1a1a2e; padding: 32px; font-size: 11px; line-height: 1.5; }
     h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 20px; font-weight: 400; color: #1a1a2e; margin-bottom: 4px; }
     .subtitle { font-size: 11px; color: #7a7a8a; margin-bottom: 20px; }
+    /* Phase 23.3 — cover provenance line. Renders flush under .subtitle
+       so the two cover rows read as a unit; one step quieter (10px,
+       #9a9aa8, italic) so it doesn't compete with the dateRange line. */
+    .provenance { font-size: 10px; color: #9a9aa8; font-style: italic; margin-top: -16px; margin-bottom: 20px; }
     h2 { font-size: 13px; font-weight: 600; color: #4a6b5d; margin: 16px 0 6px; border-bottom: 1px solid #e2e4e8; padding-bottom: 4px; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
     th { text-align: left; font-size: 10px; font-weight: 600; color: #7a7a8a; letter-spacing: 0.5px; padding: 4px 8px; border-bottom: 1px solid #e2e4e8; }
@@ -798,6 +802,7 @@ function buildHtml(data: VisitPrepData): string {
   <div class="subtitle">
     ${data.header.dateRange}${data.header.caregiverName ? ' · Prepared by ' + data.header.caregiverName : ''} · ${data.header.generatedAt}
   </div>
+  <div class="provenance">Caregiver-reported observations · Not a clinical record</div>
 
   ${data.includes.redFlags ? (data.redFlags.length > 0 ? `
   <div class="callout callout-redflag">
