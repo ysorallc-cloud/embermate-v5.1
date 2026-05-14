@@ -1,14 +1,21 @@
 // ============================================================================
 // UPCOMING VISIT INSIGHTS CARD — UX-restructure (Commit 5)
 //
-// Promoted on the Insights tab when an appointment is within 7 days.
-// Surfaces:
+// Promoted on the Insights tab when an appointment is within the canonical
+// upcoming window (14 days, see utils/appointmentLookahead). Surfaces:
 //   • Appointment countdown ("6 days away")
 //   • Data coverage progress bar over the visit-prep window (15 days)
 //   • Source-count pills (meds / vitals / meals / notes)
 //   • Direct "Prepare visit prep →" CTA
 //
 // Renders nothing when no appointment is in window.
+//
+// Phase 23.2 F1 — the local UPCOMING_LOOKAHEAD_DAYS = 7 and a duplicate
+// daysUntil() helper were retired in favour of the canonical
+// appointmentLookahead util (already used by Now and Journal since
+// Phase 15.8). Pre-23.2 the divergence meant an appointment 10 days
+// away rendered on Now but disappeared from Insights — same patient
+// state, inconsistent visibility across tabs.
 // ============================================================================
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -30,27 +37,16 @@ import {
   COVERAGE_WINDOW_DAYS,
   type DataCoverage,
 } from '../../utils/visitCoverage';
-
-const UPCOMING_LOOKAHEAD_DAYS = 7;
+import {
+  daysUntilAppointment,
+  withinUpcomingWindow,
+} from '../../utils/appointmentLookahead';
 
 const SHORT_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const SHORT_MONTHS = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
-
-function withinDays(isoDate: string, days: number): boolean {
-  const apptMs = new Date(isoDate).getTime();
-  const nowMs = Date.now();
-  const diff = (apptMs - nowMs) / (1000 * 60 * 60 * 24);
-  return diff >= 0 && diff <= days;
-}
-
-function daysUntil(isoDate: string): number {
-  const apptMs = new Date(isoDate).getTime();
-  const nowMs = Date.now();
-  return Math.max(0, Math.ceil((apptMs - nowMs) / (1000 * 60 * 60 * 24)));
-}
 
 function shortDateLabel(isoDate: string): string {
   const d = new Date(isoDate);
@@ -96,7 +92,7 @@ export function UpcomingVisitInsightsCard() {
       try {
         const upcoming = await getUpcomingAppointments();
         if (cancelled) return;
-        const next = upcoming.find((a) => withinDays(a.date, UPCOMING_LOOKAHEAD_DAYS));
+        const next = upcoming.find((a) => withinUpcomingWindow(a.date));
         setAppt(next ?? null);
         if (next) {
           const cov = await loadDataCoverage();
@@ -111,7 +107,7 @@ export function UpcomingVisitInsightsCard() {
 
   if (!appt) return null;
 
-  const daysAway = daysUntil(appt.date);
+  const daysAway = daysUntilAppointment(appt.date);
   const coveragePct = coverage
     ? Math.min(100, Math.round((coverage.daysLogged / coverage.windowDays) * 100))
     : 0;

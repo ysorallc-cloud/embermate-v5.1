@@ -72,16 +72,21 @@ describe('composeHandoffParagraph', () => {
     ).toBe('Mom’s care today, as of 8:00 PM: Nothing logged yet today.');
   });
 
-  it('falls back to "Your loved one" when name is empty', () => {
+  // Phase 23.2 F3 — fallback consolidated to the canonical lowercase form
+  // (utils/lovedOneFallback). Pre-23.2 these tests asserted the titlecase
+  // string; post-23.2 the opener reads "your loved one's care today" —
+  // mid-sentence register matching the lowercase reading elsewhere in
+  // the app.
+  it('falls back to the canonical lowercase loved-one when name is empty', () => {
     expect(
       composeHandoffParagraph(empty, null, '', at(20, 0)),
-    ).toBe('Your loved one’s care today, as of 8:00 PM: Nothing logged yet today.');
+    ).toBe('your loved one’s care today, as of 8:00 PM: Nothing logged yet today.');
   });
 
-  it('whitespace name falls back', () => {
+  it('whitespace name falls back to the canonical lowercase loved-one', () => {
     expect(
       composeHandoffParagraph(empty, null, '   ', at(20, 0)),
-    ).toBe('Your loved one’s care today, as of 8:00 PM: Nothing logged yet today.');
+    ).toBe('your loved one’s care today, as of 8:00 PM: Nothing logged yet today.');
   });
 
   it('whitespace-only notes are treated as no notes', () => {

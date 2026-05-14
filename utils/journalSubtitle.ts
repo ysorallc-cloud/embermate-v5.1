@@ -15,8 +15,11 @@
 // shouldn't flip the subtitle into the wrap-up copy prematurely.
 // ============================================================================
 
+import { LOVED_ONE_FALLBACK } from './lovedOneFallback';
+
 export interface JournalSubtitleInput {
-  /** Patient display name. Empty / whitespace falls back to "Your loved one". */
+  /** Patient display name. Empty / whitespace falls back to the canonical
+   *  lowercase loved-one fallback (utils/lovedOneFallback). */
   name: string;
   /** Current time. Defaults to `new Date()` so callers can rely on Jest fake timers. */
   now?: Date;
@@ -31,7 +34,11 @@ export interface JournalSubtitleInput {
   pastDate?: Date;
 }
 
-const NAME_FALLBACK = 'Your loved one';
+// Phase 23.2 F3 — was the titlecase literal. Routes through the canonical
+// lowercase constant; the possessive renders as "your loved one's day…"
+// when the patient name is unset (matches the mid-sentence register the
+// loved-one fallback is used in elsewhere).
+const NAME_FALLBACK = LOVED_ONE_FALLBACK;
 
 function formatTimeOfDay(d: Date): string {
   const h24 = d.getHours();

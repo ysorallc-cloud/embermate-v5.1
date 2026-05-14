@@ -37,7 +37,11 @@ import {
 import { ProfilePromptSheet } from '../ProfilePromptSheet';
 
 import { Spacing } from '../../theme/theme-tokens';
-const NAME_FALLBACK = 'Your loved one';
+import { LOVED_ONE_FALLBACK } from '../../utils/lovedOneFallback';
+
+// Phase 23.2 F3 — was `const NAME_FALLBACK = 'Your loved one'` (titlecase).
+// Consolidated to the canonical lowercase form in utils/lovedOneFallback.
+const NAME_FALLBACK = LOVED_ONE_FALLBACK;
 
 // Per-section visual treatment for the structured cards. Each section
 // type gets its own bg + border + icon. Colors derive at render time

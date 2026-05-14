@@ -8,8 +8,13 @@
 import { composeOutcomesSummary } from './outcomesSummary';
 import { formatTime } from '../primitives';
 import type { DailyOutcomes } from '../types';
+import { LOVED_ONE_FALLBACK } from '../../lovedOneFallback';
 
-const NAME_FALLBACK = 'Your loved one';
+// Phase 23.2 F3 — was the titlecase literal. Routes through the canonical
+// lowercase constant. The paragraph opens with "{display}'s care today",
+// so the fallback renders as "your loved one's care today" — mid-sentence
+// register, matches the lowercase reading elsewhere.
+const NAME_FALLBACK = LOVED_ONE_FALLBACK;
 // Curly possessive apostrophe to match other prose surfaces in the app.
 const APOS = '’';
 

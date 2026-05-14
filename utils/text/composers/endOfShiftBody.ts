@@ -16,6 +16,24 @@
 // Math reconciliation: logged + missed + pending continues to equal the
 // Journal footer's total ("X of N logged today"), since the underlying
 // outcomes object is unchanged — only the prose around it softened.
+//
+// Phase 23.2 F2 — orphan count anchor. When the only non-zero outcome is
+// missed (logged === 0 AND pending === 0 AND missed > 0), the 23.1 output
+// "11 not yet logged. Review before handing off." read as an orphan count
+// — 11 of what? The reframe anchors the count with its denominator:
+//
+//   "0 of 11 logged today. Review before handing off."
+//
+// This harmonises structurally with the Journal footer ("X of N logged
+// today") and the gestalt block ("0/5 medications logged"). All three
+// cover surfaces use the same fraction grammar when a day is empty of
+// completions — only the scope differs (full day, total tasks, single
+// bucket). If Phase 22.4 reframes the gestalt away from fractions, this
+// footer follows then.
+//
+// The anchor only fires on the orphan branch. Cases where logged > 0 OR
+// pending > 0 keep their 23.1 witness-voice clauses unchanged — pending
+// is the actionable evening signal in those cases, not the absence count.
 // ============================================================================
 
 import { pluralize } from '../primitives';
@@ -48,6 +66,24 @@ export function composeEndOfShiftBody(
   outcomes: DailyOutcomes,
   _alerts: Alert[],
 ): string {
+  // Phase 23.2 F2 — orphan branch. Fires only when the day is completely
+  // un-logged AND nothing remains pending, leaving missed as the lone
+  // non-zero outcome. We re-introduce the logged count here ONLY because
+  // it's the numerator of a fraction — not as a standalone clause (which
+  // 23.1 banned). The notable-readings clause (if any) appends after.
+  const isOrphan =
+    outcomes.logged.count === 0 &&
+    outcomes.pending.count === 0 &&
+    outcomes.missed.count > 0;
+
+  if (isOrphan) {
+    const total = outcomes.missed.count; // logged + pending = 0 here
+    const clauses: string[] = [`0 of ${total} logged today`];
+    const notable = notableClause(outcomes.notable);
+    if (notable) clauses.push(notable);
+    return `${clauses.join(', ')}. Review before handing off.`;
+  }
+
   const clauses: string[] = [];
 
   if (outcomes.logged.count > 0) {

@@ -113,20 +113,24 @@ describe('journalSubtitle — time-aware variants', () => {
     });
   });
 
-  describe('name fallback — empty string uses "Your loved one"', () => {
-    it('empty name → "Your loved one\'s day, in progress." in the morning', () => {
+  // Phase 23.2 F3 — fallback consolidated to the canonical lowercase form
+  // (utils/lovedOneFallback). Pre-23.2 these tests asserted the titlecase
+  // string; post-23.2 the possessive renders "your loved one's day…" —
+  // mid-sentence register matching the lowercase reading elsewhere.
+  describe('name fallback — empty string uses the canonical lowercase loved-one', () => {
+    it('empty name → "your loved one\'s day, in progress." in the morning', () => {
       expect(journalSubtitle({ name: '', now: at(9, 0) }))
-        .toBe("Your loved one's day, in progress.");
+        .toBe("your loved one's day, in progress.");
     });
 
-    it('empty name → "Your loved one\'s day · wrapping up" in the evening with dayDone', () => {
+    it('empty name → "your loved one\'s day · wrapping up" in the evening with dayDone', () => {
       expect(journalSubtitle({ name: '', now: at(20, 0), dayDone: true }))
-        .toBe("Your loved one's day · wrapping up");
+        .toBe("your loved one's day · wrapping up");
     });
 
-    it('whitespace-only name still falls back', () => {
+    it('whitespace-only name still falls back to the canonical lowercase loved-one', () => {
       expect(journalSubtitle({ name: '   ', now: at(10, 0) }))
-        .toBe("Your loved one's day, in progress.");
+        .toBe("your loved one's day, in progress.");
     });
   });
 
@@ -149,11 +153,11 @@ describe('journalSubtitle — time-aware variants', () => {
       })).toBe("Mom's day · Wednesday, Apr 8");
     });
 
-    it('falls back to "Your loved one" when name is empty in past-date form', () => {
+    it('falls back to the canonical lowercase loved-one when name is empty in past-date form', () => {
       expect(journalSubtitle({
         name: '',
         pastDate: new Date('2026-04-08T12:00:00'),
-      })).toBe("Your loved one's day · Wednesday, Apr 8");
+      })).toBe("your loved one's day · Wednesday, Apr 8");
     });
   });
 
