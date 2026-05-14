@@ -1135,8 +1135,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // ─── SHARE CTA (Phase 15.11) ───
   // Single button replaces the pre-15.11 reportCard / reportShare*
   // trio. Tapping opens ShareSheet.
+  //
+  // Phase 26 F4 — backgroundColor sage (c.accent) → lavender
+  // (c.caregiverAccent). The button bridges caregiver-recorded
+  // observations into clinician hands; that handoff lives in the
+  // caregiver→clinician lane alongside the You tab and Journal's
+  // "Building toward Dr. X" feed-forward banner (already lavender).
+  // Text stays #0a0c0a — pairs ~9.5:1 against #aa8adc lavender (AAA),
+  // same contrast tier the sage version carried.
   shareCtaButton: {
-    backgroundColor: c.accent,
+    backgroundColor: c.caregiverAccent,
     borderRadius: 14,
     paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)

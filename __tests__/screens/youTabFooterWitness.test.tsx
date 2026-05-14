@@ -1,15 +1,23 @@
 // ============================================================================
 // Phase 11.3 — You-tab footer witness wiring + multi-pipeline refresh.
 //
+// Phase 26 F5 RETIRED the footer SURFACE. The witness fetch + multi-
+// pipeline refresh contracts (3–7) still hold; the footer-rendering
+// contracts (1, 2) flipped to absence pins because the entire footer
+// View was removed.
+//
 // support.tsx now owns the single witness fetch and passes the result
-// to both the AffirmationHeader and the footer. Re-fetches fire only
-// when one of the witness builder's read pipelines emits an event;
-// unrelated events stay quiet.
+// to the AffirmationHeader (Phase 11.2 wiring, still in place).
+// Re-fetches fire only when one of the witness builder's read
+// pipelines emits an event; unrelated events stay quiet. The footer
+// rendering it ALSO drove pre-26 is gone, so witness.footerLine is
+// produced by the builder but consumed by no surface on this screen
+// (left intact for v1.1 cleanup, see WitnessSignal.footerLine comment
+// in caregiverWitnessBuilder.ts).
 //
 // Pinned contracts:
-//   1. Witness footer renders when present.
-//   2. Generic footer fallback when builder returns null (preserves
-//      the \n line break exactly).
+//   1. Witness footer does NOT render (retired, Phase 26 F5).
+//   2. Generic footer fallback does NOT render (retired alongside).
 //   3. Single fetch per mount (no double-fetch via the header).
 //   4. Re-fetch on EVENT.DAILY_INSTANCES.
 //   5. Re-fetch on EVENT.LOGS.
@@ -138,8 +146,13 @@ afterEach(() => {
   }
 });
 
-describe('Phase 11.3 — You-tab footer witness wiring', () => {
-  it('contract 1: renders witness.footerLine when builder returns a signal', async () => {
+describe('Phase 11.3 — You-tab footer witness wiring (post-26 F5 retirement)', () => {
+  it('contract 1 (retired): witness.footerLine does NOT render on this screen', async () => {
+    // Phase 26 F5 dropped the footer surface that consumed
+    // witness.footerLine. The builder still emits the field; this
+    // screen no longer renders it. The pin flipped from a positive
+    // contract ("renders X") to an absence contract ("renders no
+    // text containing the footerLine pattern").
     mockBuildCaregiverWitness.mockResolvedValue({
       line: 'You showed up 6 of 7 mornings this week',
       footerLine: '6 mornings this week.\nMost people never see what that takes.',
@@ -149,21 +162,26 @@ describe('Phase 11.3 — You-tab footer witness wiring', () => {
     const allText = findAll(tree.root, (n) => n.type === 'Text')
       .map(flattenText)
       .join(' | ');
-    expect(allText).toContain(
+    expect(allText).not.toContain(
       '6 mornings this week.\nMost people never see what that takes.',
     );
-    // Generic line must be replaced — no trailing copy from the
-    // pre-witness hardcoded fallback.
+    // The pre-witness hardcoded fallback string also must not appear —
+    // it was the same footer's null branch, retired with the rest.
     expect(allText).not.toContain("You're doing something\nmost people never see.");
   });
 
-  it('contract 2: generic footer when builder returns null (preserves \\n)', async () => {
+  it('contract 2 (retired): the generic footer fallback string does NOT render when builder returns null', async () => {
+    // Pre-26 the generic fallback "You're doing something / most
+    // people never see." rendered whenever the builder produced no
+    // witness. Phase 26 F5 retired both the witness footer and the
+    // generic fallback alongside it.
     mockBuildCaregiverWitness.mockResolvedValue(null);
     const tree = await renderAndSettle();
     const allText = findAll(tree.root, (n) => n.type === 'Text')
       .map(flattenText)
       .join(' | ');
-    expect(allText).toContain("You're doing something\nmost people never see.");
+    expect(allText).not.toContain("You're doing something\nmost people never see.");
+    expect(allText).not.toContain("You're doing something");
   });
 
   it('contract 3: single fetch on mount (no double-fetch via header)', async () => {

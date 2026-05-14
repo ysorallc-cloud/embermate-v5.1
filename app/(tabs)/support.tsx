@@ -2,13 +2,26 @@
 // YOU TAB — Reflection space (Option C, v6.7).
 //
 // Composition (top to bottom):
-//   • Standardized 32pt "You" header + subtitle (56pt top / 24pt bottom)
+//   • Standardized 32pt "You" header + caregiver chip (Phase 26 F3) +
+//     subtitle (56pt top / 24pt bottom)
 //   • Daily affirmation header (serif italic ambient line)
 //   • Reflection card (mood + free-text + save — the heart of the redesign)
 //   • Quick reset pills (Breathe / Helpline / Community)
 //   • Compact wellness link row (tappable, routes to /caregiver-wellness)
 //   • Plan ahead section (header + quiet subtitle + ResourcesList)
-//   • Footer affirmation
+//
+// Phase 26 — You-lane visual identity (Commit B):
+//   F3 — Caregiver chip at top-left of the header row, on the same
+//        baseline as the H1 title, mirroring the patient chip pattern
+//        but caregiverAccent-tinted. Reads the caregiver name via
+//        getCaregiverProfile() (same source as Now / Journal). When the
+//        name is empty no chip renders — identity, not a slot.
+//   F5 — Footer affirmation block dropped. AffirmationHeader at the top
+//        of the tab already carries the witness signal (Phase 11.2's
+//        witness.line wiring is unchanged), so the footer was a
+//        duplicate emotional beat. witness.footerLine stays on the
+//        WitnessSignal type for v1.1 cleanup — see comment in
+//        utils/caregiverWitnessBuilder.ts.
 // ============================================================================
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
@@ -36,6 +49,7 @@ import {
 } from '../../utils/caregiverWitnessBuilder';
 import { useDataListener } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
+import { getCaregiverProfile } from '../../storage/caregiverProfileRepo';
 
 // Events that change the data the witness builder reads. Anything else
 // fires the listener but the listener filter ignores it — the builder
@@ -60,6 +74,12 @@ export default function SupportScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [breathingVisible, setBreathingVisible] = useState(false);
   const [witness, setWitness] = useState<WitnessSignal | null>(null);
+  // Phase 26 F3 — caregiver name for the lavender chip. Empty default;
+  // useEffect populates on mount. When still empty after fetch (caregiver
+  // hasn't completed profile) the chip's render-gate keeps it hidden —
+  // no "Caregiver" placeholder appears, matching the no-chip fallback
+  // the audit confirmed.
+  const [caregiverName, setCaregiverName] = useState<string>('');
 
   // Single fetch on mount; re-fetch only when the witness builder's
   // read sources change. The builder is cheap (cached storage reads),
@@ -73,6 +93,12 @@ export default function SupportScreen() {
   useEffect(() => {
     refreshWitness();
   }, [refreshWitness]);
+
+  useEffect(() => {
+    getCaregiverProfile()
+      .then((profile) => setCaregiverName(profile?.name?.trim() ?? ''))
+      .catch(() => {});
+  }, []);
 
   useDataListener((category) => {
     if (WITNESS_EVENTS.has(category)) {
@@ -105,9 +131,30 @@ export default function SupportScreen() {
             />
           }
         >
-          {/* ═══ HEADER ═══ */}
+          {/* ═══ HEADER ═══
+              Phase 26 F3 — chip + title share a row (flexDirection: 'row',
+              alignItems: 'center', gap: 12). Subtitle drops below the row.
+              headerWrap padding unchanged (paddingTop 32 / paddingBottom 24
+              / borderBottomWidth 0.5) so headerStructureContract pins stay
+              green. */}
           <View style={styles.headerWrap}>
-            <Text style={styles.title}>You</Text>
+            <View style={styles.headerTitleRow}>
+              {caregiverName.length > 0 && (
+                <View
+                  style={styles.caregiverChip}
+                  accessibilityLabel={`Caregiver: ${caregiverName}`}
+                  accessibilityRole="text"
+                >
+                  <View style={styles.caregiverChipAvatar}>
+                    <Text style={styles.caregiverChipAvatarText}>
+                      {caregiverName.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={styles.caregiverChipName}>{caregiverName}</Text>
+                </View>
+              )}
+              <Text style={styles.title}>You</Text>
+            </View>
             <Text style={styles.headerMessage}>
               A space for you, not your loved one.
             </Text>
@@ -152,14 +199,11 @@ export default function SupportScreen() {
             </View>
           </View>
 
-          {/* ═══ Footer affirmation — Phase 11.3: witness footer
-                replaces the generic line when a signal qualifies.
-                Generic preserved with its \n line break exactly. ═══ */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              {witness?.footerLine ?? "You're doing something\nmost people never see."}
-            </Text>
-          </View>
+          {/* Phase 26 F5 — footer affirmation block retired. The
+              AffirmationHeader at the top of this tab already carries
+              the witness signal (Phase 11.2 wiring), so the footer line
+              was a duplicate emotional beat. Bottom spacing now relies
+              on scrollContent.paddingBottom + the tab bar's 80pt height. */}
         </ScrollView>
       </SafeAreaView>
 
@@ -190,10 +234,17 @@ function createStyles(c: typeof Colors) {
     // the safe-area without eating ~12% of screen height; scrollContent's
     // 24 stacks above that as the canonical page-edge offset before the
     // header begins.
+    //
+    // Phase 26 F5 — paddingBottom bumped 24 → 96 to compensate for the
+    // retired footer block. The previous footer carried paddingBottom:
+    // 108; dropping it without compensation would let the plan-ahead
+    // card sit too close to the tab bar. 96 = (108 retired footer
+    // padding) - (24 was previously double-counted via scrollContent) +
+    // a small breathing-room buffer.
     scrollContent: {
       paddingTop: 24, // allow: tap-target padding (Apple HIG ≥44pt)
       paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-      paddingBottom: 24, // allow: tap-target padding (Apple HIG ≥44pt)
+      paddingBottom: 96, // allow: tab-bar clearance (Phase 26 F5)
     },
     headerWrap: {
       paddingTop: 32,
@@ -201,6 +252,16 @@ function createStyles(c: typeof Colors) {
       paddingHorizontal: 4,
       borderBottomWidth: 0.5,
       borderBottomColor: c.glassHover,
+    },
+    // Phase 26 F3 — chip + title share a baseline. flexDirection 'row',
+    // alignItems 'center', gap 12 (between the 22pt-tall chip and the
+    // 22pt-tall H1 the spacing matches the gap inside the patient chip
+    // on Now). The row sits inside headerWrap so the outer paddingTop
+    // 32 / paddingBottom 24 contract still owns vertical rhythm.
+    headerTitleRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 12, // allow: tap-target padding (Apple HIG ≥44pt)
     },
     // Phase 3.6.3 — H1 fontSize 32 → 22 with weight 500 + letterSpacing
     // -0.3 to match Now's compressed greeting (Phase 3.6.2).
@@ -216,6 +277,39 @@ function createStyles(c: typeof Colors) {
       color: c.textSecondary,
       lineHeight: 20,
       marginTop: 8,
+    },
+    // Phase 26 F3 — caregiver chip. Mirrors the patient chip pattern in
+    // NowHeader (height 22, borderRadius 11, 16pt avatar, 10pt name)
+    // but tints lavender via caregiverAccent tokens so the You-lane
+    // identity carries across header + tab bar.
+    caregiverChip: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: c.caregiverAccentBg,
+      borderWidth: 0.5,
+      borderColor: c.caregiverAccentStrong,
+      borderRadius: 11,
+      height: 22,
+      paddingHorizontal: 8, // allow: tap-target padding (Apple HIG ≥44pt)
+      gap: 5,
+    },
+    caregiverChipAvatar: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: c.caregiverAccent,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    caregiverChipAvatarText: {
+      fontSize: 9,
+      fontWeight: '600' as const,
+      color: c.textPrimary,
+    },
+    caregiverChipName: {
+      fontSize: 10,
+      color: c.caregiverAccentText,
+      fontWeight: '500' as const,
     },
     // ── Wellness link (compact row) ──
     wellnessLink: {
@@ -270,22 +364,9 @@ function createStyles(c: typeof Colors) {
       paddingHorizontal: 0,
       paddingBottom: 4,
     },
-    // ── Footer affirmation ──
-    // Phase 7.4 — Option B: lift the closing affirmation slightly so it
-    // reads as a deliberate emotional beat rather than chrome. +2pt
-    // type, +1 token of color (textTertiary → textSecondary), +8pt of
-    // vertical breathing room above and below.
-    footer: {
-      alignItems: 'center' as const,
-      paddingTop: 44,
-      paddingBottom: 108,
-    },
-    footerText: {
-      fontSize: 15,
-      color: c.textSecondary,
-      textAlign: 'center' as const,
-      lineHeight: 24,
-      fontStyle: 'italic' as const,
-    },
+    // Phase 26 F5 — footer + footerText style entries retired alongside
+    // the JSX block. The closing emotional beat moved entirely onto
+    // AffirmationHeader (top of tab) so the You tab has one warm-voice
+    // surface, not two.
   });
 }

@@ -65,8 +65,21 @@ export interface WitnessSignal {
   /** Short specific line, sentence-cased, no trailing period.
    *  Example: "You showed up 6 of 7 mornings this week" */
   line: string;
-  /** Short specific footer fragment. May contain full sentences and a
-   *  newline; styling preserves the break. */
+  /**
+   * Short specific footer fragment. May contain full sentences and a
+   * newline; styling preserves the break.
+   *
+   * Phase 26 F5 — INTENTIONALLY UNRENDERED. The field used to drive the
+   * footer affirmation block at the bottom of app/(tabs)/support.tsx
+   * (added by Phase 11.3); Phase 26 retired that footer because the
+   * AffirmationHeader at the top of the You tab already carries the
+   * witness via `line`, so the footer was a duplicate emotional beat.
+   * The builder still emits this field — do not remove it speculatively.
+   * v1.1 cleanup may drop the field + the per-source compositions if
+   * no surface revives it. If you're adding a new surface that wants
+   * a longer witness line, prefer rendering this field over inventing
+   * a new one.
+   */
   footerLine: string;
   /** The signal that won, for instrumentation + tests. */
   source: WitnessSource;
