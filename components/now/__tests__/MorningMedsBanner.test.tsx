@@ -22,11 +22,12 @@ import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 
 const themeColors = {
-  warmSurfaceAlert: '#3a2f1c',
-  warmSurfaceAlertBorder: 'rgba(224, 168, 78, 0.4)',
-  textAlertPrimary: '#fff',
-  textAlertSecondary: '#c4c1b3',
-  textAlertLabel: '#e0a84e',
+  // Phase 23.1 Fix 2 — banner uses lavender witness-voice tokens; the
+  // legacy amber-alert tokens are no longer read by the component.
+  caregiverAccent: '#aa8adc',
+  caregiverAccentBg: 'rgba(170, 138, 220, 0.06)',
+  caregiverAccentStrong: 'rgba(170, 138, 220, 0.25)',
+  textSecondary: '#c4c1b3',
 };
 
 jest.mock('../../../contexts/ThemeContext', () => ({

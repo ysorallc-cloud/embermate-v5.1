@@ -52,11 +52,16 @@ export function EndOfShiftCard({
   if (dismissed) return null;
   if (hiddenForDay) return null;
 
+  // Phase 23.1 Fix 4 — fallback prose softened to match the composer's
+  // witness voice ("Today's care is wrapping up. Review before handing
+  // off."). The legacy "Log anything you missed before bed" framing read
+  // as a chore prompt; "Review before handing off" matches the rest of
+  // the End-of-Shift surface.
   const body = outcomes
     ? composeEndOfShiftBody(outcomes, alerts ?? [])
     : completedCount > 0
-      ? `${completedCount} item${completedCount !== 1 ? 's' : ''} logged today. Review the journal before handing off.`
-      : "Today's care is wrapping up. Log anything you missed before bed.";
+      ? `${completedCount} item${completedCount !== 1 ? 's' : ''} logged today. Review before handing off.`
+      : "Today's care is wrapping up. Review before handing off.";
 
   return (
     <View style={s.card}>

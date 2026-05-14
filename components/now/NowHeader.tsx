@@ -67,10 +67,16 @@ export function NowHeader({
             nextScheduledTime={nextScheduledTime}
           />
         </View>
+        {/* Phase 23.1 Fix 3 \u2014 DEMO badge retired. Sample-mode state is
+            communicated by the SampleModeBanner pill ("Viewing example
+            data") rendered below; the patient-chip badge was a redundant
+            second affordance for the same fact. accessibilityLabel keeps
+            "(example)" so screen readers still announce sample mode on
+            the chip. */}
         <TouchableOpacity
           onPress={() => onShowPatientSwitcher(true)}
-          style={[s.patientChip, isSampleMode && s.patientChipDemo]}
-          accessibilityLabel={`Patient: ${patientName}${isSampleMode ? ' (demo)' : ''}. Tap to switch.`}
+          style={s.patientChip}
+          accessibilityLabel={`Patient: ${patientName}${isSampleMode ? ' (example)' : ''}. Tap to switch.`}
           accessibilityRole="button"
         >
           <View style={s.patientAvatar}>
@@ -79,9 +85,6 @@ export function NowHeader({
             </Text>
           </View>
           <Text style={s.patientChipName}>{patientName}</Text>
-          {isSampleMode && (
-            <Text style={s.demoBadge}>DEMO</Text>
-          )}
           {patients.length > 1 && (
             <Text style={{ fontSize: 10, color: colors.textMuted }}>{'\u25BC'}</Text>
           )}
@@ -177,21 +180,6 @@ const createStyles = (c: any) => StyleSheet.create({
     fontSize: 10,
     color: c.textSecondary,
     fontWeight: '500',
-  },
-  patientChipDemo: {
-    borderColor: c.caregiverAccentText,
-    borderWidth: 1.5,
-  },
-  demoBadge: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: c.caregiverAccentText,
-    backgroundColor: c.caregiverAccentFaint,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 3,
-    overflow: 'hidden',
-    letterSpacing: 0.5,
   },
   hiddenBanner: {
     flexDirection: 'row',

@@ -1,5 +1,12 @@
 // ============================================================================
 // composeEndOfShiftBody — body text for the End of Shift card.
+//
+// Phase 23.1 Fix 4 reframed the prose to witness voice. The composer no
+// longer leads with a zero count, says "not yet logged" instead of "not
+// logged," qualifies the pending clause with "this evening," and falls
+// back to a gentle "Today's care is wrapping up" when there is nothing
+// to report. The total count math (logged + missed + pending) is
+// unchanged; only the surrounding prose softened.
 // ============================================================================
 
 import { composeEndOfShiftBody } from '../../../../utils/text/composers/endOfShiftBody';
@@ -23,7 +30,7 @@ describe('composeEndOfShiftBody', () => {
     ).toBe('9 items logged. Review before handing off.');
   });
 
-  it('day with misses → "N items logged, M missed doses, …. Review before handing off."', () => {
+  it('day with misses → "N items logged, M not yet logged, …. Review before handing off."', () => {
     const result = composeEndOfShiftBody(
       {
         logged: { count: 7 },
@@ -36,11 +43,11 @@ describe('composeEndOfShiftBody', () => {
       noAlerts,
     );
     expect(result).toBe(
-      '7 items logged, 2 not logged, 1 BP reading was high. Review before handing off.',
+      '7 items logged, 2 not yet logged, 1 BP reading was high. Review before handing off.',
     );
   });
 
-  it('day with pending → "N items logged, M still to do. Review before handing off."', () => {
+  it('day with pending → "N items logged, M still to do this evening. Review before handing off."', () => {
     expect(
       composeEndOfShiftBody(
         {
@@ -50,10 +57,10 @@ describe('composeEndOfShiftBody', () => {
         },
         noAlerts,
       ),
-    ).toBe('6 items logged, 2 still to do. Review before handing off.');
+    ).toBe('6 items logged, 2 still to do this evening. Review before handing off.');
   });
 
-  it('day with both pending and missed → both clauses listed', () => {
+  it('day with both pending and missed → pending clause precedes missed', () => {
     expect(
       composeEndOfShiftBody(
         {
@@ -63,7 +70,7 @@ describe('composeEndOfShiftBody', () => {
         },
         noAlerts,
       ),
-    ).toBe('5 items logged, 1 not logged, 1 still to do. Review before handing off.');
+    ).toBe('5 items logged, 1 still to do this evening, 1 not yet logged. Review before handing off.');
   });
 
   it('elevated reading is reported as "elevated" not "high"', () => {
@@ -81,8 +88,31 @@ describe('composeEndOfShiftBody', () => {
     expect(result).toBe('8 items logged, 1 BP reading was elevated. Review before handing off.');
   });
 
-  it('zero logged with nothing else → "0 items logged. Review before handing off."', () => {
-    expect(composeEndOfShiftBody(empty, noAlerts)).toBe('0 items logged. Review before handing off.');
+  it('all-zero day → gentle wrap-up copy, no enumeration', () => {
+    // Fix 4 — the prior "0 items logged" framing was the harshest read.
+    // When there is nothing to report, the card observes that the day
+    // is wrapping up rather than counting failures.
+    expect(composeEndOfShiftBody(empty, noAlerts)).toBe(
+      "Today's care is wrapping up. Review before handing off.",
+    );
+  });
+
+  it('zero logged + pending + missed → leads with pending, never with the zero', () => {
+    // The simulator-screenshot regression case: pre-Fix-4 this rendered
+    // as "0 items logged, 11 not logged, 3 still to do. Review before
+    // handing off." — leading with a zero and using "not logged" judgment.
+    // Post-fix: zero is suppressed, "not logged" → "not yet logged,"
+    // pending leads (it is the actionable evening signal).
+    expect(
+      composeEndOfShiftBody(
+        {
+          logged: { count: 0 },
+          missed: { count: 11, names: [] },
+          pending: { count: 3, names: ['Evening meds', 'Dinner', 'BP check'] },
+        },
+        noAlerts,
+      ),
+    ).toBe('3 still to do this evening, 11 not yet logged. Review before handing off.');
   });
 
   it('singular pluralization on logged count', () => {
@@ -98,7 +128,7 @@ describe('composeEndOfShiftBody', () => {
     ).toBe('1 item logged. Review before handing off.');
   });
 
-  it('singular pluralization on missed dose', () => {
+  it('singular pluralization on the not-yet-logged clause', () => {
     expect(
       composeEndOfShiftBody(
         {
@@ -108,7 +138,7 @@ describe('composeEndOfShiftBody', () => {
         },
         noAlerts,
       ),
-    ).toBe('5 items logged, 1 not logged. Review before handing off.');
+    ).toBe('5 items logged, 1 not yet logged. Review before handing off.');
   });
 
   it('snapshot — clean day', () => {

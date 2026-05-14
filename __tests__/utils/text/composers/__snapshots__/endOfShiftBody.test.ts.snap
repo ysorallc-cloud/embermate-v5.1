@@ -2,6 +2,6 @@
 
 exports[`composeEndOfShiftBody snapshot — clean day 1`] = `"9 items logged. Review before handing off."`;
 
-exports[`composeEndOfShiftBody snapshot — day with misses + high BP 1`] = `"7 items logged, 2 not logged, 1 BP reading was high. Review before handing off."`;
+exports[`composeEndOfShiftBody snapshot — day with misses + high BP 1`] = `"7 items logged, 2 not yet logged, 1 BP reading was high. Review before handing off."`;
 
-exports[`composeEndOfShiftBody snapshot — day with pending 1`] = `"6 items logged, 2 still to do. Review before handing off."`;
+exports[`composeEndOfShiftBody snapshot — day with pending 1`] = `"6 items logged, 2 still to do this evening. Review before handing off."`;

@@ -192,19 +192,21 @@ export function StatRings({ stats, enabledBuckets }: StatRingsProps) {
             >
               <Text style={s.emoji}>{cat.emoji}</Text>
             </View>
-            {/* Phase 15.5 — numberOfLines={1} + ellipsizeMode='tail'
-                defensive against label/value wrap at narrow column
-                widths. At MAX_TRACKED_DIMENSIONS=6 on iPhone SE 320pt
-                the per-column width drops to ~42pt; 8-character
-                labels (WELLNESS / ACTIVITY) and values like
-                "12 of 12" approach that bound. Ellipsis is the
-                graceful failure mode on the narrowest devices;
-                ≥375pt devices have ample room. */}
+            {/* Phase 23.1 Fix 5 — labels allow 2-line wrap and use
+                adjustsFontSizeToFit so 8-character names (WELLNESS,
+                ACTIVITY) don't truncate to "WELLNE…" on iPhone SE.
+                Pre-fix the row used numberOfLines={1} + tail-ellipsis,
+                which clipped the long labels at the ~42pt column width
+                the 6-tile MAX_TRACKED_DIMENSIONS math produces. The
+                value Text (e.g. "12 of 12") keeps its 1-line ellipsis
+                — the count there is short enough to fit and a wrapping
+                count would read as broken. */}
             <Text
               testID={`stat-label-${cat.key}`}
               style={s.label}
-              numberOfLines={1}
-              ellipsizeMode="tail"
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
             >
               {cat.label}
             </Text>
@@ -294,8 +296,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   label: {
     fontSize: 9,
     fontWeight: '500',
-    letterSpacing: 0.5,
+    // Phase 23.1 Fix 5 — letterSpacing 0.5 → 0.2. The wider tracking
+    // pushed WELLNESS / ACTIVITY (8-char labels) past the ~42pt column
+    // bound on iPhone SE. The 0.2 value keeps a subtle small-caps feel
+    // without consuming the width 8-char labels need to fit on one line.
+    letterSpacing: 0.2,
     color: c.textSecondary,
+    textAlign: 'center',
   },
   value: {
     fontSize: 11,

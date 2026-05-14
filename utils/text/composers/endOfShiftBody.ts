@@ -1,7 +1,21 @@
 // ============================================================================
 // composeEndOfShiftBody — body text for the End of Shift card on Now.
 //
-// "[N] items logged. [optional alert clause]. Review before handing off."
+// Phase 23.1 Fix 4 — softened to witness voice. Pre-fix the body led with
+// "0 items logged, 11 not logged, 3 still to do. Review before handing
+// off." — a stark count of failure when the caregiver had logged nothing
+// yet. Post-fix the body:
+//   • Never leads with a zero ("0 items logged" is suppressed; we only
+//     mention logged.count when it's > 0).
+//   • Reframes "not logged" → "not yet logged" — observational, not
+//     judgmental. The day is still open.
+//   • Adds "this evening" qualifier on the pending clause so the card
+//     reads as a handoff prompt, not a final accounting.
+//   • Falls back to a gentle "Today's care is wrapping up" when nothing
+//     has been logged AND nothing else needs attention.
+// Math reconciliation: logged + missed + pending continues to equal the
+// Journal footer's total ("X of N logged today"), since the underlying
+// outcomes object is unchanged — only the prose around it softened.
 // ============================================================================
 
 import { pluralize } from '../primitives';
@@ -34,23 +48,25 @@ export function composeEndOfShiftBody(
   outcomes: DailyOutcomes,
   _alerts: Alert[],
 ): string {
-  const itemsClause = pluralize(outcomes.logged.count, 'item logged', 'items logged');
+  const clauses: string[] = [];
 
-  const detailClauses: string[] = [];
-  if (outcomes.missed.count > 0) {
-    // Caregiver-warm vocabulary on Now (the EndOfShift card lives there).
-    // Clinical "missed dose" stays in services/visitPrepPdf.ts.
-    detailClauses.push(pluralize(outcomes.missed.count, 'not logged', 'not logged'));
+  if (outcomes.logged.count > 0) {
+    clauses.push(pluralize(outcomes.logged.count, 'item logged', 'items logged'));
   }
   if (outcomes.pending.count > 0) {
-    detailClauses.push(`${outcomes.pending.count} still to do`);
+    clauses.push(`${outcomes.pending.count} still to do this evening`);
+  }
+  if (outcomes.missed.count > 0) {
+    clauses.push(pluralize(outcomes.missed.count, 'not yet logged', 'not yet logged'));
   }
   const notable = notableClause(outcomes.notable);
-  if (notable) detailClauses.push(notable);
+  if (notable) clauses.push(notable);
 
-  const head = detailClauses.length > 0
-    ? `${itemsClause}, ${detailClauses.join(', ')}`
-    : itemsClause;
+  if (clauses.length === 0) {
+    // All-zero day — no logged items, no pending, no missed, no notable.
+    // Gentle observational fallback, no enumeration.
+    return "Today's care is wrapping up. Review before handing off.";
+  }
 
-  return `${head}. Review before handing off.`;
+  return `${clauses.join(', ')}. Review before handing off.`;
 }
