@@ -56,9 +56,19 @@ describe('Phase 26 F2 — tab-bar hairline divider', () => {
     expect(body).toMatch(/width:\s*1[,\s}]/);
   });
 
-  it('contract 2: the divider uses colors.glassBorder (structural marker, not accent)', () => {
+  it('contract 2: the divider uses a quiet glass-family token (structural marker, not accent)', () => {
+    // Phase 26 A.1 — initial commit pinned glassBorder (alpha 0.10);
+    // simulator review showed the divider read louder than a structural
+    // marker should, so the value stepped down to glassHover (alpha
+    // 0.06), the next-quieter neighbor in the glass alpha ladder. The
+    // contract pins the family (glass*) and explicitly forbids any
+    // accent token, leaving room for further fine-tuning within the
+    // ladder without re-writing the test.
     const body = tabBarBackgroundBody();
-    expect(body).toMatch(/backgroundColor:\s*colors\.glassBorder/);
+    expect(body).toMatch(/backgroundColor:\s*colors\.glass(?:Hover|Border|Faint)/);
+    // Defensive: must NOT use any caregiverAccent / accent family —
+    // the divider is structural chrome, not a brand signal.
+    expect(body).not.toMatch(/backgroundColor:\s*colors\.(?:accent|caregiverAccent)/);
   });
 
   it('contract 3: the BlurView still renders inside tabBarBackground on iOS (additive change)', () => {

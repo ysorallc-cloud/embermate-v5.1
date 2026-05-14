@@ -21,14 +21,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 
 // Phase 26 F1 — inactive tint for the support tab. caregiverAccent at
-// half alpha reads as "this lane exists" without competing with the
+// reduced alpha reads as "this lane exists" without competing with the
 // operational tabs' sage active state. Inline rgba (not a new theme
 // token) because the composition is purpose-specific — a foreground
 // icon tint sitting on either a dark BlurView (iOS dark) or near-white
 // BlurView (iOS light); both render the same hue at a softer weight.
 // If a future surface needs a comparable muted lavender, promote to a
 // theme-tokens.ts entry then.
-const CAREGIVER_ACCENT_INACTIVE = 'rgba(170, 138, 220, 0.5)';
+//
+// Phase 26 A.1 — alpha 0.5 → 0.4. At 0.5 the inactive You label pulled
+// the eye before the active sage label on operational tabs. 0.4 keeps
+// the lavender lane visible without competing with focus.
+const CAREGIVER_ACCENT_INACTIVE = 'rgba(170, 138, 220, 0.4)';
 
 type TabName = 'now' | 'journal' | 'support' | 'understand';
 
@@ -93,8 +97,13 @@ export default function TabLayout() {
         // Insights (3rd tab) and You (4th tab). top/bottom mirror the
         // tabBarStyle padding so the line spans the visible content
         // region only, stopping cleanly at the safe-area cushion.
-        // glassBorder matches the tab bar's existing top hairline so
-        // the marker reads as structural, not decorative.
+        //
+        // Phase 26 A.1 — divider color glassBorder (0.10) → glassHover
+        // (0.06), the next-quieter alpha in the glass ladder. At 0.10
+        // the line read as visible-without-going-looking-for-it, which
+        // is louder than a structural marker should be. 0.06 keeps the
+        // separation legible up close but lets the divider recede into
+        // the bar chrome from normal scanning distance.
         tabBarBackground: () => (
           <View style={{ flex: 1 }}>
             {Platform.OS === 'ios' ? (
@@ -115,7 +124,7 @@ export default function TabLayout() {
                 top: 8,
                 bottom: 28,
                 width: 1,
-                backgroundColor: colors.glassBorder,
+                backgroundColor: colors.glassHover,
               }}
             />
           </View>
