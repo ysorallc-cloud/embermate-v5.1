@@ -29,17 +29,28 @@ export interface GestaltSummaryProps {
   /** The resolved one-paragraph summary string, or null/whitespace
    *  to render the graceful fallback. */
   summary: string | null;
+  /**
+   * Phase 27 F3 — strip the standalone card chrome (caregiverAccentBg
+   * background + 3px left border + radius + padding). Used when the
+   * component is nested inside a JournalSection wrapper, which carries
+   * the chrome at the section level. Defaults to false so any
+   * standalone consumer keeps the pre-27 visual.
+   */
+  bare?: boolean;
 }
 
 const FALLBACK_TEXT = 'No record from this day.';
 
-export function GestaltSummary({ summary }: GestaltSummaryProps) {
+export function GestaltSummary({ summary, bare = false }: GestaltSummaryProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const trimmed = (summary ?? '').trim();
   const text = trimmed.length > 0 ? trimmed : FALLBACK_TEXT;
 
+  if (bare) {
+    return <Text style={styles.text}>{text}</Text>;
+  }
   return (
     <View style={styles.block}>
       <Text style={styles.text}>{text}</Text>

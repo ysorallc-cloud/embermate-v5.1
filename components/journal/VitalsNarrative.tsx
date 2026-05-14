@@ -7,6 +7,8 @@ import type { VitalsDetail } from '../../utils/careSummaryBuilder';
 interface Props {
   vitals: VitalsDetail;
   baselines?: Record<string, { range: string }> | null;
+  /** Phase 27 F4 — strip outer card chrome. See MedicationsNarrative. */
+  bare?: boolean;
 }
 
 function formatTime(iso: string): string {
@@ -33,7 +35,7 @@ function buildReadingsString(readings: VitalsDetail['readings']): string {
   return parts.join(' \u00B7 ');
 }
 
-export function VitalsNarrative({ vitals, baselines }: Props) {
+export function VitalsNarrative({ vitals, baselines, bare = false }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -82,6 +84,9 @@ export function VitalsNarrative({ vitals, baselines }: Props) {
     );
   }
 
+  if (bare) {
+    return <View>{text}</View>;
+  }
   return (
     <View style={styles.card}>
       {text}

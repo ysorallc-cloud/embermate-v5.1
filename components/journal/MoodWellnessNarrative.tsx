@@ -6,9 +6,11 @@ import type { MoodDetail } from '../../utils/careSummaryBuilder';
 
 interface Props {
   mood: MoodDetail;
+  /** Phase 27 F4 — strip outer card chrome. See MedicationsNarrative. */
+  bare?: boolean;
 }
 
-export function MoodWellnessNarrative({ mood }: Props) {
+export function MoodWellnessNarrative({ mood, bare = false }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -61,6 +63,9 @@ export function MoodWellnessNarrative({ mood }: Props) {
     );
   }
 
+  if (bare) {
+    return <View>{parts}</View>;
+  }
   return (
     <View style={styles.card}>
       {parts}

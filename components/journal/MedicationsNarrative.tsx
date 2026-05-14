@@ -7,6 +7,11 @@ import type { MedicationDetail } from '../../utils/careSummaryBuilder';
 interface Props {
   medications: MedicationDetail[];
   showPurpose?: boolean;
+  /** Phase 27 F4 — strip the outer card chrome (backgroundColor +
+   *  borderWidth + borderRadius + padding). Used when nested inside
+   *  Journal Section 2's neutral card so the chrome doesn't double-up.
+   *  Defaults to false for any standalone consumer. */
+  bare?: boolean;
 }
 
 function formatTime(isoOrHHmm: string): string {
@@ -19,7 +24,7 @@ function formatTime(isoOrHHmm: string): string {
   return isoOrHHmm;
 }
 
-export function MedicationsNarrative({ medications, showPurpose }: Props) {
+export function MedicationsNarrative({ medications, showPurpose, bare = false }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -83,6 +88,9 @@ export function MedicationsNarrative({ medications, showPurpose }: Props) {
     );
   }
 
+  if (bare) {
+    return <View>{parts}</View>;
+  }
   return (
     <View style={styles.card}>
       {parts}

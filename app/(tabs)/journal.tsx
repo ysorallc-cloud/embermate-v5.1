@@ -63,6 +63,11 @@ import { JournalDisclaimer } from '../../components/journal/JournalDisclaimer';
 // Phase 22.1 — handoff-document framing.
 import { JournalIdentityStrip } from '../../components/journal/JournalIdentityStrip';
 import { GestaltSummary } from '../../components/journal/GestaltSummary';
+import { JournalSection } from '../../components/journal/JournalSection';
+import { MedicationsNarrative } from '../../components/journal/MedicationsNarrative';
+import { VitalsNarrative } from '../../components/journal/VitalsNarrative';
+import { MoodWellnessNarrative } from '../../components/journal/MoodWellnessNarrative';
+import { MealsNarrative } from '../../components/journal/MealsNarrative';
 // Phase 22.2 — uniform SectionEyebrow + section-color encoding.
 import { SectionEyebrow } from '../../components/SectionEyebrow';
 import { getCaregiverProfile } from '../../storage/caregiverProfileRepo';
@@ -656,7 +661,10 @@ export default function JournalTab() {
             caregiverName={caregiverName}
           />
 
-          <GestaltSummary summary={moodLine} />
+          {/* Phase 27 F3b — past-day path keeps the standalone GestaltSummary
+              above DateTabStrip (unchanged). Today path skips this mount and
+              routes the gestalt through Section 1 inside the populated body. */}
+          {isViewingPast && <GestaltSummary summary={moodLine} />}
 
           {/* ═══ DATE TAB STRIP (left fade + Jump popover replace MonthCalendar) ═══ */}
           <DateTabStrip
@@ -703,12 +711,102 @@ export default function JournalTab() {
               hasCompletedInstances: outcomes.logged.count > 0,
             });
             if (isEmpty && !addNoteMode) return null;
+            const hasGestalt = (moodLine ?? '').trim().length > 0;
+            const hasNotes = (reflection?.text?.trim().length ?? 0) > 0;
+            const subjectiveEmpty = !hasGestalt && !hasNotes;
             return (
               <>
+              {/* Phase 27 F3 — Section 1 (Subjective).
+                  Lavender card carrying the witness-voice gestalt. The
+                  bare-mode GestaltSummary skips its standalone chrome
+                  because JournalSection owns the card shape. Empty
+                  state (no gestalt AND no caregiver notes yet) renders
+                  the notes-prompt copy inline as static text — F6 will
+                  wire it as a tap-to-focus once JournalNotesCard moves
+                  into Section 4 with a ref (D7 — one input, two
+                  surface tap targets, never two competing inputs). */}
+              <JournalSection eyebrow="How today went" tint="caregiverAccent">
+                {subjectiveEmpty ? (
+                  <Text style={s.section1EmptyPrompt}>
+                    How would you describe today?
+                  </Text>
+                ) : (
+                  <GestaltSummary summary={moodLine} bare />
+                )}
+              </JournalSection>
+
+              {/* Phase 27 F4 — Section 2 (Objective).
+                  Neutral-chrome card listing what was logged today as
+                  label/prose rows. Data source is the same `brief`
+                  state journal.tsx already populates via
+                  buildCareBrief(selectedDate) — single fetch, D5
+                  confirmed. Each row is independently gated; a row
+                  only renders when its slice has data. Section 2 as
+                  a whole is gated on brief !== null so no blank chrome
+                  flashes during the initial load. */}
+              {brief && (
+                <JournalSection eyebrow="What was logged" tint="neutral">
+                  {brief.medications.length > 0 && (
+                    <View style={s.objectiveRow}>
+                      <Text style={s.objectiveLabel}>Medications</Text>
+                      <View style={s.objectiveValue}>
+                        <MedicationsNarrative medications={brief.medications} bare />
+                      </View>
+                    </View>
+                  )}
+                  {(brief.vitals.scheduled || brief.vitals.recorded) && (
+                    <View style={s.objectiveRow}>
+                      <Text style={s.objectiveLabel}>Vitals</Text>
+                      <View style={s.objectiveValue}>
+                        <VitalsNarrative vitals={brief.vitals} bare />
+                      </View>
+                    </View>
+                  )}
+                  {(brief.mood.entries.length > 0 || brief.mood.morningWellness || brief.mood.eveningWellness) && (
+                    <View style={s.objectiveRow}>
+                      <Text style={s.objectiveLabel}>Wellness</Text>
+                      <View style={s.objectiveValue}>
+                        <MoodWellnessNarrative mood={brief.mood} bare />
+                      </View>
+                    </View>
+                  )}
+                  {brief.meals.total > 0 && (
+                    <View style={s.objectiveRow}>
+                      <Text style={s.objectiveLabel}>Meals</Text>
+                      <View style={s.objectiveValue}>
+                        <MealsNarrative meals={brief.meals} bare />
+                      </View>
+                    </View>
+                  )}
+                  {brief.hydration.logged && (
+                    <View style={s.objectiveRow}>
+                      <Text style={s.objectiveLabel}>Hydration</Text>
+                      <Text style={s.objectiveInlineValue}>
+                        {brief.hydration.glasses != null
+                          ? `${brief.hydration.glasses} glass${brief.hydration.glasses === 1 ? '' : 'es'} logged today.`
+                          : 'Hydration logged today.'}
+                      </Text>
+                    </View>
+                  )}
+                  {brief.sleep.logged && (
+                    <View style={s.objectiveRow}>
+                      <Text style={s.objectiveLabel}>Sleep</Text>
+                      <Text style={s.objectiveInlineValue}>
+                        {brief.sleep.hours != null
+                          ? `${brief.sleep.hours} hour${brief.sleep.hours === 1 ? '' : 's'}${brief.sleep.quality != null ? ` · quality ${brief.sleep.quality}/5` : ''}.`
+                          : 'Sleep logged today.'}
+                      </Text>
+                    </View>
+                  )}
+                </JournalSection>
+              )}
+
               {/* Phase 5.12.c — narrative snapshot. Caregiver-authored
                   tone if set, else factual auto-recap with disclaimer.
                   Tapping the snapshot opens HandoffSheet whose first
-                  field is the canonical TONE input. */}
+                  field is the canonical TONE input.
+                  Phase 27 — slated for removal in F7 once Section 2
+                  (Objective) covers the factual recap content. */}
               <NarrativeSnapshot
                 dateKey={selectedDate}
                 onEditPress={() => setHandoffSheetVisible(true)}
@@ -906,6 +1004,42 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: c.background,
+  },
+  // Phase 27 F3 — Section 1 (Subjective) empty-state prompt. Renders
+  // when there is neither a gestalt summary nor any caregiver notes
+  // yet. F3 ships this as static text; F6 will swap it for a tap-to-
+  // focus affordance once JournalNotesCard moves into Section 4 with
+  // a ref (D7 — single input, two surface tap targets).
+  section1EmptyPrompt: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: c.textSecondary,
+    fontStyle: 'italic' as const,
+  },
+  // Phase 27 F4 — Section 2 (Objective) row layout. Label column is
+  // Georgia-serif at fixed 80pt width; value column flexes. Rows stack
+  // vertically with a small gap so the eye can scan top-to-bottom.
+  objectiveRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    paddingVertical: 4, // allow: row breathing room (Apple HIG)
+  },
+  objectiveLabel: {
+    fontFamily: 'Georgia',
+    fontSize: 12,
+    color: c.textTertiary,
+    width: 80,
+    paddingRight: 8, // allow: column gap (Apple HIG)
+    paddingTop: 1,
+  },
+  objectiveValue: {
+    flex: 1,
+  },
+  objectiveInlineValue: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 20,
+    color: c.textSecondary,
   },
   scrollView: {
     flex: 1,
