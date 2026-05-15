@@ -1040,6 +1040,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     width: 80,
     paddingRight: 8, // allow: column gap (Apple HIG)
     paddingTop: 1,
+    // Phase 27 Tuning 2 — explicit top-align. The row container's
+    // alignItems: 'flex-start' is the right intent, but RN's Text
+    // nodes can pick up implicit baseline behavior that defeats it
+    // inside a row when the value column wraps tall (e.g. 5 lines of
+    // medications). alignSelf overrides that — label anchors to the
+    // first line of the value column rather than drifting to the
+    // visual center of the row.
+    alignSelf: 'flex-start' as const,
   },
   objectiveValue: {
     flex: 1,

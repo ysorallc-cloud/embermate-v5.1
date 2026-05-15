@@ -24,6 +24,22 @@ function formatTime(isoOrHHmm: string): string {
   return isoOrHHmm;
 }
 
+// Phase 27 Tuning 1 — dose-stutter dedupe.
+//
+// Sample data (and some production records) carry the dose embedded
+// in `name` ("Warfarin 5mg") AND in the separate `dosage` field
+// ("5mg"). Rendering both unconditionally produced the simulator
+// stutter "Warfarin 5mg 5mg taken at 4:30 PM." Return the dosage
+// only when it's NOT already in the trailing portion of name —
+// otherwise return '' so the prose path can safely concat it.
+function dosageSuffix(name: string, dosage: string | undefined): string {
+  if (!dosage) return '';
+  const trimmedName = name.trim();
+  const trimmedDose = dosage.trim();
+  if (trimmedName.endsWith(trimmedDose)) return '';
+  return ` ${trimmedDose}`;
+}
+
 export function MedicationsNarrative({ medications, showPurpose, bare = false }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -41,7 +57,7 @@ export function MedicationsNarrative({ medications, showPurpose, bare = false }:
   if (allCompleted) {
     const details = completed.map(m => {
       const time = m.takenAt ? formatTime(m.takenAt) : formatTime(m.scheduledTime);
-      return `${m.name}${m.dosage ? ` ${m.dosage}` : ''} at ${time}`;
+      return `${m.name}${dosageSuffix(m.name, m.dosage)} at ${time}`;
     }).join(', ');
     parts.push(
       <Text key="all" style={styles.narrative}>
@@ -54,7 +70,7 @@ export function MedicationsNarrative({ medications, showPurpose, bare = false }:
       parts.push(
         <Text key={`c-${i}-${m.name}`} style={styles.narrative}>
           <Text style={styles.bold}>{m.name}</Text>
-          {m.dosage ? ` ${m.dosage}` : ''} taken at {time}.
+          {dosageSuffix(m.name, m.dosage)} taken at {time}.
         </Text>
       );
     });
@@ -62,7 +78,7 @@ export function MedicationsNarrative({ medications, showPurpose, bare = false }:
       parts.push(
         <Text key={`p-${i}-${m.name}`} style={styles.narrative}>
           <Text style={styles.bold}>{m.name}</Text>
-          {m.dosage ? ` ${m.dosage}` : ''} scheduled for {formatTime(m.scheduledTime)}{' \u2014 '}
+          {dosageSuffix(m.name, m.dosage)} scheduled for {formatTime(m.scheduledTime)}{' \u2014 '}
           <Text style={styles.flagged}>not yet logged.</Text>
         </Text>
       );
@@ -71,7 +87,7 @@ export function MedicationsNarrative({ medications, showPurpose, bare = false }:
       parts.push(
         <Text key={`s-${i}-${m.name}`} style={styles.narrative}>
           <Text style={styles.bold}>{m.name}</Text>
-          {m.dosage ? ` ${m.dosage}` : ''}{' \u2014 '}skipped.
+          {dosageSuffix(m.name, m.dosage)}{' \u2014 '}skipped.
         </Text>
       );
     });
