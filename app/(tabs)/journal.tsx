@@ -87,7 +87,7 @@ import {
 import { useDayEvents } from '../../hooks/useDayEvents';
 import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
 import { getHandoffTone } from '../../storage/handoffToneRepo';
-import { buildDayNarrative } from '../../utils/narrativeSummaryBuilder';
+import { buildShapeOfDay } from '../../utils/buildShapeOfDay';
 import { getDailyOutcomes } from '../../utils/dailyOutcomes';
 import type { DailyOutcomes } from '../../utils/text/types';
 import { isDayComplete, markDayComplete } from '../../utils/dayComplete';
@@ -215,15 +215,22 @@ export default function JournalTab() {
         const tone = await getHandoffTone(selectedDate);
         if (cancelled) return;
         setHandoffTone(tone);
-        // Only build the narrative as a fallback — when no tone exists.
-        // The narrative builder reads several stores, so skipping it when
-        // we already have a tone keeps the load light.
+        // Phase 27.5b F3 — buildDayNarrative({ factualOnly: true })
+        // produced count-only roll-up sentences ("5/5 medications
+        // logged. 1 wellness check recorded.") for the Section 1
+        // gestalt line. Replaced with buildShapeOfDay which produces
+        // observational prose describing what's done, pending, and
+        // standing out — same data shape, same fallback semantics.
+        // The builder is its own module (D5 — preserves factualOnly
+        // for any other consumer of the old path; audit found zero
+        // production consumers post-Phase-27.X, so the legacy path
+        // is on track for the Phase 20 dead-code sweep).
         if (tone && tone.trim().length > 0) {
           setNarrativeSummary(null);
         } else {
-          const narrative = await buildDayNarrative(selectedDate, { factualOnly: true });
+          const shape = await buildShapeOfDay(selectedDate);
           if (cancelled) return;
-          setNarrativeSummary(narrative.hasData ? narrative.summary : null);
+          setNarrativeSummary(shape.hasData ? shape.summary : null);
         }
       } catch (err) {
         logError('JournalTab.loadMoodLine', err);

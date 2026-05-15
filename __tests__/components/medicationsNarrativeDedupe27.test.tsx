@@ -157,10 +157,18 @@ describe('Phase 27 Tuning 1 — MedicationsNarrative dose dedupe', () => {
     expect(prose).not.toMatch(/5mg\s+5mg/);
   });
 
-  it('contract 6: allCompleted shortcut path also dedupes', () => {
-    // When all medications are completed, the component takes a
-    // shorter "All medications taken today." prose path with a
-    // comma-joined details list. The dedupe must apply there too.
+  it('contract 6 (reframed Phase 27.5b F4): dedupe applies to the all-completed list shape', () => {
+    // Pre-27.5b the all-completed branch produced a shortcut prose
+    // sentence ("All medications taken today. {details}.") with a
+    // comma-joined details string. Phase 27.5b F4 replaced the entire
+    // paragraph render with a per-row list — there's no longer a
+    // shortcut "All medications taken today" header phrase, just one
+    // row per medication.
+    //
+    // The contract still defends the Tuning 1 dedupe in the
+    // all-completed configuration: each row's left column carries
+    // "{name} {dose}" with no stutter even when both meds have the
+    // dose embedded in name + a separate dosage field.
     const meds = [
       { name: 'Warfarin 5mg',  dosage: '5mg',  status: 'completed',
         scheduledTime: '08:00', takenAt: '2026-05-14T08:00:00' },
@@ -170,7 +178,8 @@ describe('Phase 27 Tuning 1 — MedicationsNarrative dose dedupe', () => {
     const prose = renderProse(meds);
     expect(prose).not.toMatch(/5mg\s+5mg/);
     expect(prose).not.toMatch(/81mg\s+81mg/);
-    // The shortcut path's header still fires.
-    expect(prose).toMatch(/All medications taken today/);
+    // Both medication names render exactly once each in the list.
+    expect(prose).toMatch(/Warfarin 5mg/);
+    expect(prose).toMatch(/Aspirin 81mg/);
   });
 });
