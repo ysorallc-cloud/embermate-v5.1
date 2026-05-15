@@ -49,10 +49,19 @@ export function MealsNarrative({ meals, fluidTarget, swallowingIssues, hydration
       </Text>
     );
   } else if (noneCompleted) {
+    // Phase 27 closeout — pending may be empty when meals.total > 0
+    // but all meals are skipped/missed (so completed.length === 0
+    // AND pending.length === 0). Pre-fix the JSX template
+    //   "No meals logged yet. {names} scheduled."
+    // rendered as "No meals logged yet.  scheduled." (double space,
+    // orphan "scheduled.") when names was empty. Same render-layer
+    // string-concat shape as Phase 27 Tuning 1's dose dedupe.
     const names = pending.map(m => m.name).join(', ');
     parts.push(
       <Text key="none" style={styles.narrative}>
-        No meals logged yet. {names} scheduled.
+        {names.length > 0
+          ? `No meals logged yet. ${names} scheduled.`
+          : 'No meals logged yet.'}
       </Text>
     );
   } else {
