@@ -16,16 +16,20 @@ describe('Insights tab', () => {
     expect(insightsContent).not.toMatch(/<CareScoreRing\s/);
   });
 
-  it('AI summary renders when daysOfData >= 7', () => {
+  it('AI summary renders when daysOfData >= 7 (or EMPTY_STATE_DAYS_THRESHOLD)', () => {
+    // Phase 28a — the literal 7 was extracted into the named
+    // constant EMPTY_STATE_DAYS_THRESHOLD (utils/insightsState).
+    // Accept either form.
     expect(insightsContent).toContain("SECTION 1: THIS WEEK'S PULSE");
     expect(insightsContent).toContain('generatePlainLanguageSummary');
-    expect(insightsContent).toContain('daysOfData >= 7');
+    expect(insightsContent).toMatch(/daysOfData\s*>=\s*(?:7|EMPTY_STATE_DAYS_THRESHOLD)\b/);
     expect(insightsContent).toContain('aiSummarySection');
   });
 
-  it('AI summary hidden when daysOfData < 7', () => {
-    // The condition gates on >= 7, so < 7 won't render
-    expect(insightsContent).toContain('pageData.daysOfData >= 7');
+  it('AI summary hidden when daysOfData < 7 (or EMPTY_STATE_DAYS_THRESHOLD)', () => {
+    // The condition gates on >= 7, so < 7 won't render. Accept the
+    // named constant or the literal per Phase 28a.
+    expect(insightsContent).toMatch(/pageData\.daysOfData\s*>=\s*(?:7|EMPTY_STATE_DAYS_THRESHOLD)\b/);
   });
 
   it('the consolidated empty-state preview renders for under-14-day windows', () => {

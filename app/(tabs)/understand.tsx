@@ -66,7 +66,7 @@ import { InsightsEmptyStatePreview } from '../../components/understand/InsightsE
 // surface was removed. The card's component file is left in place as
 // orphan source for a separate cleanup scope (15.6
 // buildJournalPreview pattern).
-import { classifyInsightsState, gatingForState } from '../../utils/insightsState';
+import { classifyInsightsState, gatingForState, EMPTY_STATE_DAYS_THRESHOLD } from '../../utils/insightsState';
 import { getVitalsInRange, VitalReading } from '../../utils/vitalsStorage';
 import { listDailyInstancesRange, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 import { getTodayDateString, toLocalDateString } from '../../services/carePlanGenerator';
@@ -641,7 +641,7 @@ export default function UnderstandScreen() {
             })}
             rightAction={
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                {pageData && !pageData.isSampleData && pageData.daysOfData >= 7 && (
+                {pageData && !pageData.isSampleData && pageData.daysOfData >= EMPTY_STATE_DAYS_THRESHOLD && (
                   <TimeRangeToggle value={timeRange} onChange={setTimeRange} />
                 )}
                 <TouchableOpacity
@@ -669,7 +669,19 @@ export default function UnderstandScreen() {
               renders in the empty state. Once the user has logged at
               least one event ('building'), they're already on the
               right track and the tip becomes redundant. */}
-          {pageData && !pageData.isSampleData && (() => {
+          {/* Phase 28a — the daysOfData < EMPTY_STATE_DAYS_THRESHOLD
+              gate is what fixes the co-render bug. Pre-28a the
+              empty-state preview rendered for the entire building
+              state (days 1-13), but the pulse + data-gaps surfaces
+              below independently rendered starting at day 7. The
+              7-13 day window stacked both groups. Now the empty-
+              state preview hides at-or-above day 7, exactly aligned
+              with where the partial-populated surfaces start.
+              !isSampleData stays as defensive documentation that
+              two distinct sample-data paths exist (synthetic-preview
+              via getSampleData() vs seeded data via
+              sampleDataGenerator); the guard protects both. */}
+          {pageData && !pageData.isSampleData && pageData.daysOfData < EMPTY_STATE_DAYS_THRESHOLD && (() => {
             const days = pageData.daysOfData;
             const events = days > 0 ? 1 : 0;
             const state = classifyInsightsState(days, events);
@@ -685,7 +697,7 @@ export default function UnderstandScreen() {
           })()}
 
           {/* ═══ SECTION 1: THIS WEEK'S PULSE (AI SUMMARY) ═══ */}
-          {pageData && pageData.daysOfData >= 7 && (() => {
+          {pageData && pageData.daysOfData >= EMPTY_STATE_DAYS_THRESHOLD && (() => {
             const summaryText = generatePlainLanguageSummary(pageData, timeRange);
             if (!summaryText) return null;
             return (
@@ -717,7 +729,7 @@ export default function UnderstandScreen() {
               it is redundant and reads as scolding. Re-enabled at 7+ days
               when the section adds value (the user has data, this surfaces
               what they DON'T have to lift their visibility). */}
-          {pageData && pageData.daysOfData >= 7 && dataGaps.length > 0 && (
+          {pageData && pageData.daysOfData >= EMPTY_STATE_DAYS_THRESHOLD && dataGaps.length > 0 && (
             <View style={styles.section}>
               <SectionEyebrow text="Missing data" />
               <Text style={styles.sectionContext}>

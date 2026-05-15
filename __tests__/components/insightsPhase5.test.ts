@@ -17,19 +17,21 @@ const ROOT = join(__dirname, '../..');
 const understandSrc = readFileSync(join(ROOT, 'app/(tabs)/understand.tsx'), 'utf8');
 
 describe('Insights Missing Data — gated on 7+ days', () => {
-  it('the Missing Data section gate references daysOfData >= 7', () => {
+  it('the Missing Data section gate references daysOfData >= 7 (or EMPTY_STATE_DAYS_THRESHOLD)', () => {
     // Phase 15.12 — the marker changed from
     //   <Text style={styles.sectionLabel}>Missing data</Text>
     // to
     //   <SectionEyebrow text="Missing data" />
     // when the sectionLabel style was retired in favor of the
-    // SectionEyebrow primitive. Locate the new marker.
+    // SectionEyebrow primitive.
+    // Phase 28a — the literal 7 was extracted into the named
+    // constant EMPTY_STATE_DAYS_THRESHOLD (= 7) defined in
+    // utils/insightsState. Accept either form.
     const marker = '<SectionEyebrow text="Missing data" />';
     const idx = understandSrc.indexOf(marker);
     expect(idx).toBeGreaterThan(0);
-    // The guard line sits within ~600 chars before the block.
     const guardWindow = understandSrc.slice(Math.max(0, idx - 600), idx);
-    expect(guardWindow).toMatch(/daysOfData\s*>=\s*7/);
+    expect(guardWindow).toMatch(/daysOfData\s*>=\s*(?:7|EMPTY_STATE_DAYS_THRESHOLD)\b/);
     expect(guardWindow).toMatch(/dataGaps\.length/);
   });
 

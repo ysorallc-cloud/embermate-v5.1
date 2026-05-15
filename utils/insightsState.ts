@@ -26,6 +26,32 @@ export type InsightsState = 'empty' | 'building' | 'populated';
 export const POPULATED_DAYS_THRESHOLD = 14;
 
 /**
+ * Phase 28a — day-count threshold below which the InsightsEmptyStatePreview
+ * ("Patterns Coming · X of 14 days") renders, and at-or-above which the
+ * partial-populated surfaces (this-week's-pulse summary + data-gaps
+ * section) start rendering inside the building state.
+ *
+ * Pre-28a the empty-state preview was gated on `gating.showPatternsComing`
+ * (true through all of building state, i.e. days 1-13) while the pulse +
+ * data-gaps surfaces gated independently on `daysOfData >= 7`. The 7-13
+ * day window therefore rendered both groups simultaneously. Sample data
+ * seeded 13 days, landing exactly in the overlap and surfacing the bug.
+ *
+ * Phase 28a fix: the empty-state preview's guard now also requires
+ * `daysOfData < EMPTY_STATE_DAYS_THRESHOLD`. Three mutually-exclusive
+ * render groups:
+ *
+ *   • days < 7        → empty-state preview only
+ *   • 7 ≤ days < 14   → pulse + data-gaps only (building with content)
+ *   • days ≥ 14       → full populated (reports + adherence too)
+ *
+ * Naming rationale: parallels POPULATED_DAYS_THRESHOLD's _DAYS_THRESHOLD
+ * suffix. The "EMPTY_STATE" prefix names the surface the threshold
+ * gates — the empty-state preview hides at-or-above this day count.
+ */
+export const EMPTY_STATE_DAYS_THRESHOLD = 7;
+
+/**
  * Classify the Insights tab into one of three states. Pure function so
  * the gating logic is testable without mounting the full screen.
  *
