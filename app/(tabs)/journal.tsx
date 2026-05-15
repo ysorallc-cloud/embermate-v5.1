@@ -864,9 +864,13 @@ export default function JournalTab() {
                       onLoaded={setStillPendingCount}
                     />
                   )}
-                  {!isViewingPast && (
-                    <Text style={[s.section4SubEyebrow, s.section4SubEyebrowNotes]}>NOTES</Text>
-                  )}
+                  {/* Phase 27.5b F5 — inner "NOTES" sub-eyebrow retired.
+                      The TextInput below now carries visible input chrome
+                      (rgba bg + border + radius) and placeholder-as-prompt
+                      copy, so the writing affordance is discoverable on its
+                      own without a separate label. STILL PENDING sub-eyebrow
+                      above stays — it labels the distinct list (TodayStill
+                      Pending) above the notes block. */}
                   <JournalNotesCard
                     inputRef={notesInputRef}
                     bare
@@ -1097,10 +1101,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: 'rgba(229, 176, 74, 0.7)',
     marginBottom: 4,
   },
-  section4SubEyebrowNotes: {
-    color: c.textTertiary,
-    marginTop: 10, // allow: separation between STILL PENDING block and NOTES block
-  },
+  // Phase 27.5b F5 — section4SubEyebrowNotes style retired with the
+  // inner "NOTES" sub-eyebrow. The notes block now relies on the
+  // TextInput's own input chrome (rgba bg + border + radius) for
+  // discoverability rather than a separate label.
   scrollView: {
     flex: 1,
   },

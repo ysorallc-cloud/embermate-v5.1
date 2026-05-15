@@ -116,21 +116,24 @@ describe('Phase 27.5a Bug 2 — JournalNotesCard placeholder debris', () => {
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-  it('contract 2: non-readOnly TextInput placeholder is empty string — no ellipsis debris', () => {
-    // The pre-27.5a shape was:
-    //   placeholder={readOnly ? 'Notes from this day' : '…'}
-    // Post-27.5a:
+  it('contract 2 (reframed Phase 27.5b F5): non-readOnly placeholder is the statement, not empty and not ellipsis', () => {
+    // Phase 27.5b F5 supersedes 27.5a F2. The pre-F5 shape was:
     //   placeholder={readOnly ? 'Notes from this day' : ''}
-    // The ellipsis literal must not appear inside any placeholder
-    // ternary branch anywhere in the file.
+    // F5 fills the bare-mode placeholder with the statement-form
+    // prompt copy so the TextInput becomes the discoverable writing
+    // affordance without a separate Text label above it:
+    //   placeholder={readOnly ? 'Notes from this day' : barePlaceholder}
+    // where barePlaceholder = "A note for the next caregiver or
+    // {provider/the next visit}…". The retirement direction the
+    // original F2 contract defended (no ellipsis-debris literal) is
+    // still in force; only the empty-string decision flipped.
+    //
+    // The non-bare render path keeps its own placeholder convention
+    // (see journalNotesCardBare27 contract 4 for the divergence pin).
+    // Pin: no literal '…' as a placeholder value anywhere; bare-mode
+    // placeholder is sourced from the barePlaceholder identifier.
     expect(stripped).not.toMatch(/placeholder=\{[^}]*['"]…['"]/);
-    // And both placeholder ternaries route the non-readOnly side to
-    // empty string. Two mounts (chrome + bare); pin both.
-    const placeholderTernaries = stripped.match(
-      /placeholder=\{readOnly\s*\?\s*['"]Notes from this day['"]\s*:\s*['"]['"]\}/g,
-    );
-    expect(placeholderTernaries).toBeTruthy();
-    expect(placeholderTernaries!.length).toBeGreaterThanOrEqual(2);
+    expect(stripped).toMatch(/barePlaceholder/);
   });
 
   it('contract 3: readOnly TextInput placeholder remains "Notes from this day" (no copy drift)', () => {

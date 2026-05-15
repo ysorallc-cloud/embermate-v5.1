@@ -143,16 +143,27 @@ describe('Phase 27 F6 — JournalNotesCard bare prop + focus ref', () => {
     expect(flat.backgroundColor).toBeUndefined();
   });
 
-  it('contract 4: prompt copy renders identically in both modes', () => {
+  it('contract 4 (reframed Phase 27.5b F5): the chrome-mode question prompt renders in non-bare; bare uses a placeholder statement instead', () => {
+    // Phase 27.5b F5 — bare mode retires the italic question prompt
+    // above the textarea. The non-bare (chrome / standalone) mode
+    // keeps the original Phase 22.1 prompt. The two modes now
+    // intentionally render DIFFERENT prompt cues:
+    //   • Non-bare: the italic question Text above the textarea
+    //   • Bare:     a statement-form placeholder INSIDE the textarea
+    //               (see journalNotesCleanup27_5b.test.tsx contract 1)
+    // Pin both directions of the divergence.
     const populated = render({ ...baseProps });
     const bare = render({ ...baseProps, bare: true });
-    const promptRe = /Anything to pass to the next caregiver/;
+    const questionPromptRe = /Anything to pass to the next caregiver/;
     const allPop = findAll(populated.root, (n) => n.type === 'Text')
       .map(flattenText).join(' | ');
     const allBare = findAll(bare.root, (n) => n.type === 'Text')
       .map(flattenText).join(' | ');
-    expect(allPop).toMatch(promptRe);
-    expect(allBare).toMatch(promptRe);
+    // Non-bare keeps the question prompt.
+    expect(allPop).toMatch(questionPromptRe);
+    // Bare retires the question prompt — placeholder copy lives on
+    // the TextInput's placeholder prop, not in a separate Text node.
+    expect(allBare).not.toMatch(questionPromptRe);
   });
 
   it('contract 5: accepts an inputRef prop and forwards it to the inner TextInput', () => {

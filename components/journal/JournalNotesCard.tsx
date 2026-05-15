@@ -153,6 +153,12 @@ export function JournalNotesCard({
   }, [savedAt, use24Hour]);
 
   // Phase 22.1 — handoff-framed eyebrow + prompt.
+  // Phase 27.5b F5 — `eyebrowText` and the chrome-mode `promptText`
+  // (italic question form) are preserved for the non-bare render
+  // path. Bare mode (Section 4 inside the SOAP layout) uses the
+  // placeholder-as-prompt copy below instead — observational
+  // invitation, no question mark, displayed inside the TextInput as
+  // its empty-state placeholder.
   const trimmedCaregiver = (caregiverName ?? '').trim();
   const eyebrowText = trimmedCaregiver.length > 0
     ? `NOTES FROM ${trimmedCaregiver.toUpperCase()}`
@@ -161,34 +167,41 @@ export function JournalNotesCard({
   const promptText = trimmedProvider.length > 0
     ? `Anything to pass to the next caregiver, or to flag for ${trimmedProvider}?`
     : 'Anything to pass to the next caregiver, or to flag for the next visit?';
+  // Phase 27.5b F5 — bare-mode placeholder. Observational statement
+  // (no question mark) threaded with the provider name when known.
+  // Trailing ellipsis suggests "fill this in." Sans-serif at the
+  // dim alpha defined in the F5 spec.
+  const barePlaceholder = trimmedProvider.length > 0
+    ? `A note for the next caregiver or ${trimmedProvider}…`
+    : 'A note for the next caregiver or the next visit…';
 
-  // Phase 27 F6 — bare mode for Section 4 (Plan) nesting. Section 4
-  // owns the surrounding lavender card chrome and the "NOTES" sub-
-  // eyebrow at its own level. In bare mode this component drops:
+  // Phase 27 F6 / 27.5b F5 — bare mode for Section 4 (Plan) nesting.
+  // Section 4 owns the lavender card chrome. In bare mode this
+  // component drops:
   //   • The hairline section-divider above.
   //   • The internal SectionEyebrow ("NOTES FROM …" / "NOTES").
   //   • The outer card View's backgroundColor + border + radius.
-  //   • The headerRow (last-edited timestamp — Section 4 doesn't host
-  //     this; v1.1 may surface it via a long-press / overflow).
+  //   • The headerRow (last-edited timestamp).
+  //   • The italic question prompt above the textarea (the prompt
+  //     copy migrates INTO the TextInput as the placeholder).
   //   • The footer's border-top.
-  // The prompt + textarea + Save pill stay — those are meaningful
-  // inner content, not chrome.
+  // The TextInput now carries visible input chrome of its own
+  // (bg + border + radius + padding per F5 spec) so the writing
+  // affordance is discoverable without a separate prompt cue. Voice
+  // switch: sans-serif dim alpha for the placeholder; Georgia italic
+  // for typed content. The two voices distinguish "this is the
+  // invitation copy" from "this is what you wrote."
   if (bare) {
     return (
       <View>
-        <View testID="notes-body" style={styles.body}>
-          {!readOnly && (
-            <Text testID="notes-prompt" style={styles.prompt}>
-              {promptText}
-            </Text>
-          )}
+        <View testID="notes-body" style={styles.bareBody}>
           <TextInput
             ref={textInputRef}
-            style={styles.input}
+            style={styles.bareInput}
             value={text}
             onChangeText={setText}
-            placeholder={readOnly ? 'Notes from this day' : ''}
-            placeholderTextColor={colors.textTertiary}
+            placeholder={readOnly ? 'Notes from this day' : barePlaceholder}
+            placeholderTextColor={readOnly ? colors.textTertiary : 'rgba(255,255,255,0.35)'}
             multiline
             textAlignVertical="top"
             editable={!readOnly}
@@ -378,6 +391,37 @@ const createStyles = (c: any) =>
       paddingTop: 12,
       paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
       paddingBottom: 10,
+    },
+    // Phase 27.5b F5 — bare-mode body + input chrome. Section 4 owns
+    // the outer lavender card; the input gets its own visible chrome
+    // so the writing affordance is discoverable without a separate
+    // prompt label above it. The chrome values come straight from the
+    // F5 spec (rgba(0,0,0,0.18) bg + rgba(255,255,255,0.10) border +
+    // borderRadius 8 + padding 10/11). minHeight 44 is enough for the
+    // placeholder + the first line; the multiline TextInput auto-grows
+    // past it.
+    bareBody: {
+      // No internal padding — the input's own padding handles spacing.
+      paddingBottom: 6, // allow: tap-target padding (Apple HIG ≥44pt)
+    },
+    bareInput: {
+      backgroundColor: 'rgba(0,0,0,0.18)',
+      borderWidth: 0.5,
+      borderColor: 'rgba(255,255,255,0.10)',
+      borderRadius: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 11, // allow: tap-target padding (Apple HIG ≥44pt)
+      minHeight: 44,
+      // Voice switch: Georgia italic for typed content. Empty placeholder
+      // gets sans-serif (default fontFamily) via the placeholderTextColor
+      // alpha alone — the placeholder itself doesn't inherit Georgia
+      // because React Native renders placeholders in the platform default
+      // font when fontFamily applies only to content text.
+      fontFamily: 'Georgia',
+      fontStyle: 'italic',
+      fontSize: 11,
+      lineHeight: 17,
+      color: 'rgba(255,255,255,0.85)',
     },
     // v6.7 Phase 3 — visible serif italic prompt, replaces the rotating
     // placeholder text. Sits above the textarea so the prompt stays read

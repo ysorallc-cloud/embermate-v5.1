@@ -121,14 +121,19 @@ describe('Phase 27 F6 — Section 4 (Plan) wired into journal.tsx', () => {
     expect(section4!.body.toLowerCase()).toContain('still pending');
   });
 
-  it('contract 6: Section 4 references a "Notes" sub-eyebrow string', () => {
+  it('contract 6 (retired Phase 27.5b F5): Section 4 does NOT render an inner "NOTES" sub-eyebrow', () => {
+    // Phase 27.5b F5 retired the inner "NOTES" sub-eyebrow. The notes
+    // block's TextInput now carries visible input chrome (rgba bg +
+    // border + radius) and a placeholder-as-prompt statement, making
+    // the writing affordance discoverable without a separate label.
+    // STILL PENDING (contract 5 above) stays — it labels a distinct
+    // list, not chrome around an input. This contract flips to an
+    // absence pin defending the F5 direction.
     const section4 = findSectionBlockByEyebrow('For the next caregiver');
     expect(section4).toBeTruthy();
-    // The sub-eyebrow may appear as a SectionEyebrow text= attribute,
-    // as inline JSX text inside <Text>...</Text>, or as a quoted
-    // string literal. Accept any. The string must read NOTES (the
-    // canonical sub-eyebrow label per spec).
-    expect(section4!.body).toMatch(/>\s*NOTES\s*<|['"]NOTES['"]|>\s*Notes\s*<|['"]Notes['"]/);
+    // The pre-F5 form was <Text>NOTES</Text> inside Section 4's body;
+    // post-F5 it's gone.
+    expect(section4!.body).not.toMatch(/>\s*NOTES\s*</);
   });
 
   it('contract 7: Section 1 empty-state prompt is a TouchableOpacity that invokes the notes-card focus ref', () => {

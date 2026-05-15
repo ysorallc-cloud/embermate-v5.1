@@ -11,6 +11,20 @@
 // Parent owns the editor state (toggling addNoteMode flips Journal back
 // to the populated composition with JournalNotesCard mounted) and the
 // day-selection state (tapping a nearby card calls onSelectDay).
+//
+// Phase 27.5b F8 — the hero copy is time-aware. JournalEmptyDay only
+// mounts on TODAY (the shouldRenderJournalEmptyDay gate short-circuits
+// past days), so the pre-F8 copy ("A quiet day in the record. No events
+// were logged on this day. That doesn't mean nothing happened — it just
+// means the record is blank.") was retrospective framing applied to an
+// active today — read as broken at noon on an empty day. The fork
+// produces three bucket-specific titles using the smartDefaultsEngine
+// hour convention:
+//   • Morning   (hour < 12)        → "Today is just starting. Nothing logged yet."
+//   • Afternoon (12 ≤ hour < 17)   → "Nothing logged this morning. The day is still open."
+//   • Evening   (hour ≥ 17)        → "Nothing logged yet today."
+// The heroBody Text retires entirely — the title carries the full
+// observation per bucket.
 // ============================================================================
 
 import React, { useMemo } from 'react';
@@ -23,6 +37,15 @@ interface JournalEmptyDayProps {
   dateKey: string;
   onAddNote: () => void;
   onSelectDay: (dateKey: string) => void;
+}
+
+// Phase 27.5b F8 — time-of-day bucket. Bounds match smartDefaultsEngine.
+// Overnight (0-4) falls into morning per Phase 27.5b D3.
+function emptyDayHeroCopy(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Today is just starting. Nothing logged yet.';
+  if (hour < 17) return 'Nothing logged this morning. The day is still open.';
+  return 'Nothing logged yet today.';
 }
 
 const SHORT_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -49,10 +72,13 @@ export function JournalEmptyDay({
     <View style={styles.section}>
       <View style={styles.hero}>
         <Text style={styles.dash}>{'—'}</Text>
-        <Text style={styles.heroTitle}>{'A quiet day in the record.'}</Text>
-        <Text style={styles.heroBody}>
-          {"No events were logged on this day. That doesn't mean nothing happened — it just means the record is blank."}
-        </Text>
+        <Text style={styles.heroTitle}>{emptyDayHeroCopy()}</Text>
+        {/* Phase 27.5b F8 — heroBody retired. The pre-F8 body string
+            ("No events were logged on this day. That doesn't mean
+            nothing happened — it just means the record is blank.")
+            was retrospective framing that read broken on an active
+            mid-day today. The title now carries the full observation
+            per time-of-day bucket. */}
       </View>
 
       {nearby.length > 0 && (

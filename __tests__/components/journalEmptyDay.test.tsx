@@ -101,15 +101,32 @@ beforeEach(() => {
   mockNearbyDays = [];
 });
 
-describe('JournalEmptyDay — restorative hero', () => {
-  it('renders the calm centered hero copy', () => {
+describe('JournalEmptyDay — restorative hero (Phase 27.5b F8 reframe)', () => {
+  it('renders the time-aware hero copy (one of the three buckets)', () => {
+    // Phase 27.5b F8 — the pre-F8 hero copy ("A quiet day in the
+    // record. No events were logged on this day...") was retrospective
+    // framing that read broken on an active mid-day today. F8 forks
+    // the title into one of three time-aware bucket strings; the
+    // heroBody Text retires entirely. journalEmptyDayTimeAware27_5b
+    // pins the per-hour bucket assertions. This contract verifies the
+    // restorative hero still renders SOME bucket copy and the legacy
+    // strings are gone.
     const tree = JournalEmptyDay({
       dateKey: '2026-05-06',
       onAddNote: () => {},
       onSelectDay: () => {},
     });
-    expect(textOf(tree)).toMatch(/A quiet day in the record/);
-    expect(textOf(tree)).toMatch(/No events were logged on this day/);
+    const text = textOf(tree);
+    // One of the three bucket strings is present (which one depends on
+    // when the test runs).
+    const bucketMatched =
+      /Today is just starting\. Nothing logged yet\./.test(text)
+      || /Nothing logged this morning\. The day is still open\./.test(text)
+      || /Nothing logged yet today\./.test(text);
+    expect(bucketMatched).toBe(true);
+    // The retired strings must not appear.
+    expect(text).not.toMatch(/A quiet day in the record/);
+    expect(text).not.toMatch(/No events were logged on this day/);
   });
 });
 
