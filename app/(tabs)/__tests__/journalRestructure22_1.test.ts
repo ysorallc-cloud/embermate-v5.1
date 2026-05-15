@@ -85,12 +85,26 @@ describe('Phase 22.1 — Journal restructured as handoff document', () => {
   });
 
   describe('section reorder', () => {
-    it('contract 5: post-22.1 section order has GestaltSummary before DateTabStrip', () => {
+    it('contract 5 (reframed Phase 27.X): GestaltSummary mounts AFTER DateTabStrip — past mount retired, today path inside SOAP Section 1', () => {
+      // Pre-22.1 → 27.X: GestaltSummary lived standalone above
+      // DateTabStrip (a Phase 22.1 reframe of the legacy mood line).
+      // Phase 27.X retired the standalone mount entirely — today's
+      // gestalt lives inside SOAP Section 1 (Subjective), past day's
+      // does too (same path). The component is no longer above the
+      // date picker.
+      //
+      // The contract's intent was "gestalt above date strip" as a
+      // page-order signal. Post-27.X the page order is:
+      //   IdentityStrip → DateTabStrip → SOAP cards (Section 1 owns
+      //   gestalt) → BUILDING TOWARD → disclaimer.
+      // The reframed pin checks that GestaltSummary now sits AFTER
+      // DateTabStrip in source (inside Section 1's body, well below
+      // the date picker).
       const gestaltIdx = journalCode.indexOf('<GestaltSummary');
       const dateStripIdx = journalCode.indexOf('<DateTabStrip');
       expect(gestaltIdx).toBeGreaterThan(-1);
       expect(dateStripIdx).toBeGreaterThan(-1);
-      expect(gestaltIdx).toBeLessThan(dateStripIdx);
+      expect(gestaltIdx).toBeGreaterThan(dateStripIdx);
     });
 
     it('contract 6: BUILDING TOWARD feed-forward banner moved AFTER JournalNotesCard', () => {

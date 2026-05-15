@@ -41,6 +41,10 @@ const STRIPPED = SRC
   .replace(/(^|[^:])\/\/.*$/gm, '$1');
 
 function findJournalSectionByEyebrow(eyebrow: string): { start: number; tag: string } | null {
+  // Phase 27.X — Section 4's eyebrow turned into a JSX conditional
+  // expression. This matcher accepts both string-literal eyebrows
+  // (Sections 1-3) and expression-embedded ones (Section 4) by
+  // checking the opener tag for the eyebrow substring.
   let cursor = 0;
   while (true) {
     const open = STRIPPED.indexOf('<JournalSection', cursor);
@@ -48,8 +52,7 @@ function findJournalSectionByEyebrow(eyebrow: string): { start: number; tag: str
     const tagEnd = STRIPPED.indexOf('>', open);
     if (tagEnd === -1) return null;
     const tag = STRIPPED.slice(open, tagEnd + 1);
-    const eyebrowRe = new RegExp(`eyebrow=["']${eyebrow.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`);
-    if (eyebrowRe.test(tag)) return { start: open, tag };
+    if (tag.includes(eyebrow)) return { start: open, tag };
     cursor = open + 1;
   }
 }
@@ -85,10 +88,14 @@ describe('Phase 27 F8 — Journal SOAP four-section structure', () => {
     expect(notableIdx).toBeGreaterThan(s2!.start);
   });
 
-  it('contract 5: Section 4 (Plan) — eyebrow "For the next caregiver", tint caregiverAccent, AFTER Section 3', () => {
+  it('contract 5: Section 4 (Plan) — eyebrow conditional today/past, tint caregiverAccent, AFTER Section 3', () => {
+    // Phase 27.X — the eyebrow is now a JSX conditional expression
+    // surfacing "For the next caregiver" on today and "Notes from
+    // that day" on past. Both literals must appear in the opener tag.
     const s4 = findJournalSectionByEyebrow('For the next caregiver');
     expect(s4).toBeTruthy();
     expect(s4!.tag).toMatch(/tint=["']caregiverAccent["']/);
+    expect(s4!.tag).toContain('Notes from that day');
     const notableMount = STRIPPED.match(/<TodayNotableMoments[\s\S]*?\/>/);
     expect(notableMount).toBeTruthy();
     const notableIdx = STRIPPED.indexOf(notableMount![0]);

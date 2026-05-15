@@ -54,8 +54,13 @@ function nthIndexOf(haystack: string, needle: string, n: number): number {
 }
 
 function findSectionBlockByEyebrow(eyebrow: string): { start: number; end: number; body: string } | null {
-  // Scan all <JournalSection ...> openers for the one whose attrs match
-  // the eyebrow. Return its source range.
+  // Scan all <JournalSection ...> openers for the one whose attrs
+  // mention the eyebrow string. Phase 27.X turned Section 4's eyebrow
+  // into a conditional expression — eyebrow={isViewingPast ? 'Notes
+  // from that day' : 'For the next caregiver'} — so this matcher
+  // accepts both the pre-27.X string-literal shape AND the post-27.X
+  // expression shape (any JSX attribute span containing the eyebrow
+  // substring counts).
   let cursor = 0;
   while (true) {
     const open = STRIPPED.indexOf('<JournalSection', cursor);
@@ -63,8 +68,7 @@ function findSectionBlockByEyebrow(eyebrow: string): { start: number; end: numbe
     const tagEnd = STRIPPED.indexOf('>', open);
     if (tagEnd === -1) return null;
     const tag = STRIPPED.slice(open, tagEnd + 1);
-    const eyebrowRe = new RegExp(`eyebrow=["']${eyebrow.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`);
-    if (eyebrowRe.test(tag)) {
+    if (tag.includes(eyebrow)) {
       const close = STRIPPED.indexOf('</JournalSection>', tagEnd);
       if (close === -1) return null;
       return { start: open, end: close, body: STRIPPED.slice(tagEnd + 1, close) };

@@ -67,37 +67,14 @@ describe('Phase 27 F3b — Section 1 (Subjective) wired into journal.tsx', () =>
     expect(block).toMatch(/<GestaltSummary[\s\S]*?bare/);
   });
 
-  it('contract 4: standalone <GestaltSummary at the pre-27 position is gated on isViewingPast', () => {
-    // Find a <GestaltSummary that is OUTSIDE a <JournalSection block.
-    // The pre-27 mount sat above DateTabStrip; post-27 the today path
-    // routes through Section 1 (which contains its own GestaltSummary
-    // in bare mode). The past path keeps the original mount — gated.
-    //
-    // Pin: there's at least one <GestaltSummary reference outside of
-    // Section 1's body, and the gating condition `isViewingPast` is
-    // within the 200 chars preceding it.
-    const sectionStart = STRIPPED.indexOf('<JournalSection');
-    const sectionEnd = STRIPPED.indexOf('</JournalSection>', sectionStart);
-    // Walk all <GestaltSummary occurrences.
-    const occurrences: number[] = [];
-    let idx = 0;
-    while ((idx = STRIPPED.indexOf('<GestaltSummary', idx)) !== -1) {
-      occurrences.push(idx);
-      idx += 1;
-    }
-    // At least 2 occurrences: one inside Section 1 (contract 3) and
-    // one for the past-path standalone mount.
-    expect(occurrences.length).toBeGreaterThanOrEqual(2);
-    // Find an occurrence OUTSIDE Section 1's range.
-    const outside = occurrences.filter(
-      (o) => o < sectionStart || o > sectionEnd,
-    );
-    expect(outside.length).toBeGreaterThanOrEqual(1);
-    // The 200 chars preceding the outside mount must reference
-    // isViewingPast (the gating condition).
-    const standaloneIdx = outside[0];
-    const before = STRIPPED.slice(Math.max(0, standaloneIdx - 200), standaloneIdx);
-    expect(before).toMatch(/isViewingPast/);
+  it('contract 4 (retired Phase 27.X): standalone past-only <GestaltSummary mount above DateTabStrip is gone', () => {
+    // Pre-27.X journal.tsx kept a past-only mount above DateTabStrip:
+    //   {isViewingPast && <GestaltSummary summary={moodLine} />}
+    // Phase 27.X retired it. Past-day gestalt now renders inside
+    // Section 1 (Subjective) of the SOAP layout — same path as today.
+    // This contract flips from a presence pin to an absence pin
+    // defending the retirement direction (the standalone is gone).
+    expect(STRIPPED).not.toMatch(/isViewingPast\s*&&\s*<GestaltSummary/);
   });
 
   it('contract 5: Section 1 empty-state prompt copy "How would you describe today?" exists in source', () => {

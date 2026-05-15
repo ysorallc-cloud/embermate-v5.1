@@ -52,7 +52,11 @@ import { TodayNotableMoments } from '../../components/journal/TodayNotableMoment
 import { TodayStillPending } from '../../components/journal/TodayStillPending';
 import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataSheet';
 import { HandoffSheet } from '../../components/journal/HandoffSheet';
-import { NarrativeView } from '../../components/journal/NarrativeView';
+// Phase 27.X — NarrativeView fully retired to intentional orphan. Past-day
+// view now renders the same SOAP layout as today (with past-specific
+// reframes for Section 1 prompt + Section 4 eyebrow/gating). The
+// component file remains on disk for Phase 20 dead-code sweep, following
+// the NarrativeSnapshot retirement pattern (Phase 27 F7).
 import { NarrativeSnapshot } from '../../components/journal/NarrativeSnapshot';
 // Phase 11.8.4 — WhatChangedToday / EventsTimeline / ForNextCaregiver
 // imports retired from the today path. The components themselves stay
@@ -670,10 +674,9 @@ export default function JournalTab() {
             caregiverName={caregiverName}
           />
 
-          {/* Phase 27 F3b — past-day path keeps the standalone GestaltSummary
-              above DateTabStrip (unchanged). Today path skips this mount and
-              routes the gestalt through Section 1 inside the populated body. */}
-          {isViewingPast && <GestaltSummary summary={moodLine} />}
+          {/* Phase 27.X — standalone above-DateTabStrip GestaltSummary
+              fully retired. Past-day gestalt now renders inside Section 1
+              (Subjective) of the SOAP layout below, same as today. */}
 
           {/* ═══ DATE TAB STRIP (left fade + Jump popover replace MonthCalendar) ═══ */}
           <DateTabStrip
@@ -704,12 +707,13 @@ export default function JournalTab() {
             />
           )}
 
-          {/* Past-day mode: prose recap + notable moments + saved notes,
-              built from local events. Today still uses the live outcomes
-              + notes + handoff layout below. */}
-          {isViewingPast ? (
-            <NarrativeView dateKey={selectedDate} />
-          ) : (() => {
+          {/* Phase 27.X — SOAP layout runs for both today and past-day
+              views. Past-specific reframes apply at the section level
+              (Section 1 prompt gated to today; Section 4 eyebrow + STILL
+              PENDING + gating reframed). The pre-27.X NarrativeView
+              branch is retired; the component file lives on as an
+              intentional orphan. */}
+          {(() => {
             // Hide the populated structure on empty-day mode unless the
             // user opted into addNoteMode (which mounts JournalNotesCard).
             const isEmpty = shouldRenderJournalEmptyDay({
@@ -725,17 +729,18 @@ export default function JournalTab() {
             const subjectiveEmpty = !hasGestalt && !hasNotes;
             return (
               <>
-              {/* Phase 27 F3 — Section 1 (Subjective).
+              {/* Phase 27 F3 / 27.X — Section 1 (Subjective).
                   Lavender card carrying the witness-voice gestalt. The
                   bare-mode GestaltSummary skips its standalone chrome
-                  because JournalSection owns the card shape. Empty
-                  state (no gestalt AND no caregiver notes yet) renders
-                  the notes-prompt copy inline as static text — F6 will
-                  wire it as a tap-to-focus once JournalNotesCard moves
-                  into Section 4 with a ref (D7 — one input, two
-                  surface tap targets, never two competing inputs). */}
+                  because JournalSection owns the card shape. The
+                  empty-state tap-to-focus prompt is today-only per
+                  Phase 27.X D1 — past days are read-only; the prompt's
+                  forward-handoff voice doesn't fit a closed day. Past
+                  with no gestalt falls back to GestaltSummary's
+                  "No record from this day." (the same tuned phrasing
+                  NarrativeView used). */}
               <JournalSection eyebrow="How today went" tint="caregiverAccent">
-                {subjectiveEmpty ? (
+                {!isViewingPast && subjectiveEmpty ? (
                   <TouchableOpacity
                     onPress={() => notesInputRef.current?.focus()}
                     activeOpacity={0.7}
@@ -824,38 +829,51 @@ export default function JournalTab() {
                   card collapses, no empty assessment chrome appears. */}
               <TodayNotableMoments dateKey={selectedDate} wrapInSection />
 
-              {/* Phase 27 F6 — Section 4 (Plan).
-                  Lavender bookend, paired with Section 1. Two sub-
-                  blocks separated by inner sub-eyebrows:
-                    (a) STILL PENDING — gated on TodayStillPending's
-                        items count via onLoaded callback. The sub-
-                        eyebrow does not orphan when nothing is pending.
-                    (b) NOTES — JournalNotesCard in bare mode with a
-                        focus ref so Section 1's empty-state prompt
-                        taps into this single mount (audit D7). */}
-              <JournalSection eyebrow="For the next caregiver" tint="caregiverAccent">
-                {stillPendingCount > 0 && (
-                  <Text style={s.section4SubEyebrow}>STILL PENDING</Text>
-                )}
-                <TodayStillPending
-                  dateKey={selectedDate}
-                  bare
-                  onLoaded={setStillPendingCount}
-                />
-                <Text style={[s.section4SubEyebrow, s.section4SubEyebrowNotes]}>NOTES</Text>
-                <JournalNotesCard
-                  inputRef={notesInputRef}
-                  bare
-                  date={selectedDate}
-                  savedText={reflection?.text}
-                  savedAt={reflection?.savedAt}
-                  onSave={handleSaveReflection}
-                  onDirtyChange={setReflectionDirty}
-                  readOnly={isViewingPast}
-                  caregiverName={caregiverName}
-                  providerName={upcomingProviderName}
-                />
-              </JournalSection>
+              {/* Phase 27 F6 / 27.X — Section 4 (Plan / Notes).
+                  Lavender bookend, paired with Section 1.
+                    • Today: eyebrow "For the next caregiver", with
+                      STILL PENDING + NOTES sub-blocks.
+                    • Past:  eyebrow "Notes from that day", NOTES sub-
+                      block only (no forward-handoff voice retroactively;
+                      no past-tense STILL PENDING formatter — D2 chose
+                      to drop the sub-block rather than build a new
+                      past-day formatter).
+                  D3.1 — past days with no saved reflection skip Section
+                  4 entirely so no hollow chrome renders. Gate is inline
+                  for legibility: today always renders Section 4; past
+                  renders only when reflection notes exist. */}
+              {(!isViewingPast || hasNotes) && (
+                <JournalSection
+                  eyebrow={isViewingPast ? 'Notes from that day' : 'For the next caregiver'}
+                  tint="caregiverAccent"
+                >
+                  {!isViewingPast && stillPendingCount > 0 && (
+                    <Text style={s.section4SubEyebrow}>STILL PENDING</Text>
+                  )}
+                  {!isViewingPast && (
+                    <TodayStillPending
+                      dateKey={selectedDate}
+                      bare
+                      onLoaded={setStillPendingCount}
+                    />
+                  )}
+                  {!isViewingPast && (
+                    <Text style={[s.section4SubEyebrow, s.section4SubEyebrowNotes]}>NOTES</Text>
+                  )}
+                  <JournalNotesCard
+                    inputRef={notesInputRef}
+                    bare
+                    date={selectedDate}
+                    savedText={reflection?.text}
+                    savedAt={reflection?.savedAt}
+                    onSave={handleSaveReflection}
+                    onDirtyChange={setReflectionDirty}
+                    readOnly={isViewingPast}
+                    caregiverName={caregiverName}
+                    providerName={upcomingProviderName}
+                  />
+                </JournalSection>
+              )}
               </>
             );
           })()}

@@ -57,17 +57,23 @@ describe('narrativeSummaryBuilder — shape', () => {
   });
 });
 
-describe('Journal — NarrativeView is gated by isViewingToday', () => {
-  it('imports NarrativeView from components/journal/NarrativeView', () => {
-    expect(journalSrc).toMatch(
+// Phase 27.X — Journal NarrativeView gating contracts RETIRED.
+// Past-day view now renders the same SOAP layout as today (with past-
+// specific reframes in Section 1 + Section 4). NarrativeView is
+// fully retired to intentional orphan per audit D4 + the Phase 27 F7
+// NarrativeSnapshot retirement pattern. The retired contracts flip
+// to absence pins defending the retirement direction; the component
+// file's own export + shape contracts (above) stay green unchanged.
+describe('Phase 27.X — NarrativeView gating retired (was Phase 5.12.c)', () => {
+  it('retirement pin: journal.tsx does not import NarrativeView', () => {
+    expect(journalSrc).not.toMatch(
       /import\s+\{[^}]*\bNarrativeView\b[^}]*\}\s+from\s+['"][^'"]*NarrativeView['"]/,
     );
   });
 
-  it('renders NarrativeView only when not viewing today', () => {
-    // Guarded by the isViewingPast / !isViewingToday flag.
-    expect(journalSrc).toMatch(
-      /(isViewingPast|!isViewingToday)[\s\S]{0,200}<NarrativeView/,
-    );
+  it('retirement pin: journal.tsx does not render <NarrativeView />', () => {
+    // Phase 27.X removed the isViewingPast → <NarrativeView /> ternary;
+    // both today and past now render the four SOAP sections.
+    expect(journalSrc).not.toMatch(/<NarrativeView\b/);
   });
 });
