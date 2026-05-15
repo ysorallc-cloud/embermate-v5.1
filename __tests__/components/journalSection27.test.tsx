@@ -144,12 +144,19 @@ describe('Phase 27 F2 — JournalSection wrapper', () => {
     expect(style.backgroundColor).toBe('rgba(229, 176, 74, 0.06)');
   });
 
-  it('contract 3c: neutral tint — border-left = glassStrong, bg = glassFaint', () => {
+  it('contract 3c: neutral tint — border-left = textTertiary (opaque, Phase 27.5a), bg = glassFaint', () => {
+    // Phase 27.5a Bug 1 — neutral border was c.glassStrong (rgba alpha
+    // 0.18). The 3px stripe was barely perceptible at that alpha
+    // compared to the full-opacity hex borders on the other tints.
+    // The fix routes the neutral border through c.textTertiary
+    // (opaque #9aa0a6, matches the SectionEyebrow's default color so
+    // the border becomes the eyebrow's structural extension). bg
+    // stays glassFaint — the body wash should remain quiet.
     const tree = render({ eyebrow: 'x', tint: 'neutral' }, null);
     const card = tree.root.findByType('View' as any);
     const style = flatStyle(card);
     expect(style.borderLeftWidth).toBe(3);
-    expect(style.borderLeftColor).toBe('rgba(255, 245, 220, 0.18)');
+    expect(style.borderLeftColor).toBe('#9aa0a6');
     expect(style.backgroundColor).toBe('rgba(255, 245, 220, 0.03)');
   });
 

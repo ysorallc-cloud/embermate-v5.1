@@ -77,7 +77,16 @@ function resolveTintColors(
     case 'amber':
       return { border: c.amber, bg: c.amberFaint };
     case 'neutral':
-      return { border: c.glassStrong, bg: c.glassFaint };
+      // Phase 27.5a Bug 1 — neutral border was c.glassStrong (rgba
+      // alpha 0.18). At that alpha the 3px border was barely
+      // perceptible compared to the full-opacity hex borders on the
+      // other two tints. Phase 27 spec said "full color, not muted
+      // alpha"; textTertiary is the opaque-neutral counterpart and
+      // matches the SectionEyebrow's default color (Section 2's
+      // eyebrow has no `tint` prop → falls back to textTertiary),
+      // so the border becomes the eyebrow's structural extension.
+      // bg stays glassFaint — the body wash should remain quiet.
+      return { border: c.textTertiary, bg: c.glassFaint };
   }
 }
 

@@ -187,7 +187,7 @@ export function JournalNotesCard({
             style={styles.input}
             value={text}
             onChangeText={setText}
-            placeholder={readOnly ? 'Notes from this day' : '…'}
+            placeholder={readOnly ? 'Notes from this day' : ''}
             placeholderTextColor={colors.textTertiary}
             multiline
             textAlignVertical="top"
@@ -273,7 +273,7 @@ export function JournalNotesCard({
           style={styles.input}
           value={text}
           onChangeText={setText}
-          placeholder={readOnly ? 'Notes from this day' : '…'}
+          placeholder={readOnly ? 'Notes from this day' : ''}
           placeholderTextColor={colors.textTertiary}
           multiline
           textAlignVertical="top"
