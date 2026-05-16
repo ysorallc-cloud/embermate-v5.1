@@ -12,10 +12,16 @@ import {
   StyleSheet,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import {
+  useSharedValue,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { useTheme } from '../../contexts/ThemeContext';
 import { emitWellnessEvent } from '../../utils/eventEmitter';
 import { updateStreak } from '../../utils/streakStorage';
 import { logError } from '../../utils/devLog';
+import { useReduceMotion } from '../../hooks/useReduceMotion';
 import { OrbRings } from './OrbRings';
 
 import { Spacing } from '../../theme/theme-tokens';
@@ -76,6 +82,25 @@ export function BreathingExercise({ visible, onClose, autoStart }: BreathingExer
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Phase 29 Batch A.2 F3 — breath-synced core scale. The orb's core
+  // grows on inhale and contracts on exhale; the rings hold position
+  // (Q3a — breath fills the orb but rings hold it). Phase machine
+  // already paces the cycle (PHASE_DURATION_MS = 4000 per phase via
+  // setTimeout); withTiming runs an independent 4000ms animation on
+  // the UI thread that completes when the next phase begins. No
+  // chaining, no accumulation — each phase entry re-issues a fresh
+  // withTiming from the current value.
+  const coreScale = useSharedValue(1.0);
+
+  // Phase 29 Batch A.2 F4 — Reduce Motion accessibility preference.
+  // When the user has Reduce Motion enabled in iOS Settings, skip the
+  // scale animation entirely. The countdown digit and phase labels
+  // continue to pace the exercise so users who can't tolerate motion
+  // still get the guided breath, just without the somatic orb cue.
+  // Live-updating — a toggle mid-flow is honored on the next phase
+  // transition via the [phase, reduceMotion] dep array below.
+  const reduceMotion = useReduceMotion();
+
   // Reset state when modal opens. Phase 29 F2: when autoStart is true,
   // skip 'intro' entirely — init to 'ready' and queue the ready→inhale
   // transition that handleBegin would otherwise own.
@@ -101,6 +126,44 @@ export function BreathingExercise({ visible, onClose, autoStart }: BreathingExer
     // the ready timer on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, autoStart]);
+
+  // Phase 29 Batch A.2 F3 — breath-bound scale animation. On entry to
+  // inhale, withTiming runs the core from its current value to 1.3
+  // over PHASE_DURATION_MS with an easeInOutSine curve (the body's
+  // breath isn't linear; the curve approximates the natural pace).
+  // Exhale runs symmetrically back to 1.0. Hold phases issue no
+  // withTiming call so the SharedValue persists at whatever the prior
+  // phase left it (1.3 after inhale; 1.0 after exhale-or-reset). On
+  // intro / ready / complete the scale resets synchronously to 1.0 —
+  // this cancels any in-flight withTiming if the user taps End mid-
+  // cycle (handleEnd sets phase to 'intro').
+  //
+  // Phase 29 Batch A.2 F4 — Reduce Motion guard. When the user has the
+  // preference enabled, force scale to 1.0 unconditionally and skip the
+  // withTiming calls. The reduceMotion dep keeps this live: a toggle
+  // mid-flow snaps the orb back to scale 1.0 on the next render.
+  useEffect(() => {
+    if (reduceMotion) {
+      coreScale.value = 1.0;
+      return;
+    }
+    if (phase === 'inhale') {
+      coreScale.value = withTiming(1.3, {
+        duration: PHASE_DURATION_MS,
+        easing: Easing.inOut(Easing.sin),
+      });
+    } else if (phase === 'exhale') {
+      coreScale.value = withTiming(1.0, {
+        duration: PHASE_DURATION_MS,
+        easing: Easing.inOut(Easing.sin),
+      });
+    } else if (phase === 'intro' || phase === 'ready' || phase === 'complete') {
+      coreScale.value = 1.0;
+    }
+    // 'hold' — no call. SharedValue persists.
+    // coreScale is a stable SharedValue ref; intentionally omitted from deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, reduceMotion]);
 
   const startCount = useCallback((nextPhase: BreathingPhase, nextCycle: number) => {
     setPhase(nextPhase);
@@ -195,9 +258,9 @@ export function BreathingExercise({ visible, onClose, autoStart }: BreathingExer
         )}
 
         <View style={styles.orbWrap}>
-          <OrbRings />
+          <OrbRings coreScale={coreScale} />
           {/* Count digit lives over the orb center. Absolute-positioned
-              so it doesn't shift when the core eventually breathes. */}
+              so it doesn't shift while the core breathes. */}
           {(phase === 'inhale' || phase === 'hold' || phase === 'exhale') && (
             <Text style={styles.orbCount}>{count}</Text>
           )}

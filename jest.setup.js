@@ -412,6 +412,93 @@ jest.mock('expo-linear-gradient', () => ({
 // surface that consumers import here to a string-type component so the
 // test renderer can mount it without parse errors.
 
+// ============================================================================
+// MOCK: react-native-reanimated
+// ============================================================================
+// Reanimated 3 uses worklets that need a UI-thread runtime not available
+// in the Node test environment, so registering worklets during jest
+// module load would throw. Inline mock rather than the official
+// `react-native-reanimated/mock` because the latter ships as ESM
+// (`import type {` syntax in mock.ts) that Jest can't parse under the
+// default transformIgnorePatterns.
+//
+// API surface covered:
+//   • useSharedValue → returns a plain { value } object. Works for both
+//     direct access (`sv.value = X`) and the optional-chain pattern
+//     (`sv?.value ?? fallback`) used by OrbRings.
+//   • useAnimatedProps / useAnimatedStyle → evaluates the worklet once
+//     on each call and returns its props object. Static in tests; no
+//     UI-thread animation runs.
+//   • withTiming / withSpring / etc → returns the target value
+//     synchronously. Optional callback fires with `true` (animation
+//     "completed").
+//   • createAnimatedComponent → identity function. Animated.View etc.
+//     resolve to the wrapped component unchanged, preserving rendered-
+//     tree assertions (e.g. `type === 'Circle'`).
+//   • Easing — every variant returns a no-op fn so curve composition
+//     (`Easing.inOut(Easing.sin)`) doesn't crash.
+//
+// Production app code uses real Reanimated via the babel plugin
+// (`react-native-reanimated/plugin` in babel.config.js); tests use this
+// mock universally.
+
+jest.mock('react-native-reanimated', () => {
+  const noop = () => undefined;
+  const easeFn = () => 0;
+  const Easing = {
+    sin: easeFn,
+    ease: easeFn,
+    linear: easeFn,
+    quad: easeFn,
+    cubic: easeFn,
+    inOut: (_fn) => easeFn,
+    in: (_fn) => easeFn,
+    out: (_fn) => easeFn,
+    bezier: () => easeFn,
+  };
+  const useSharedValue = (initial) => ({ value: initial });
+  const useAnimatedProps = (workletFn) => {
+    try { return workletFn(); } catch { return {}; }
+  };
+  const useAnimatedStyle = useAnimatedProps;
+  const withTiming = (target, _opts, callback) => {
+    if (callback) callback(true);
+    return target;
+  };
+  const withSpring = withTiming;
+  const withRepeat = (anim) => anim;
+  const withSequence = (...anims) => anims[anims.length - 1];
+  const withDelay = (_d, anim) => anim;
+  const cancelAnimation = noop;
+  const runOnJS = (fn) => fn;
+  const runOnUI = (fn) => fn;
+  const createAnimatedComponent = (Component) => Component;
+  const useAnimatedScrollHandler = () => ({});
+  const useAnimatedRef = () => ({ current: null });
+  const useDerivedValue = (fn) => ({ value: fn() });
+
+  return {
+    __esModule: true,
+    default: { createAnimatedComponent, View: 'AnimatedView' },
+    Easing,
+    useSharedValue,
+    useAnimatedProps,
+    useAnimatedStyle,
+    useAnimatedScrollHandler,
+    useAnimatedRef,
+    useDerivedValue,
+    withTiming,
+    withSpring,
+    withRepeat,
+    withSequence,
+    withDelay,
+    cancelAnimation,
+    runOnJS,
+    runOnUI,
+    createAnimatedComponent,
+  };
+});
+
 jest.mock('react-native-svg', () => ({
   __esModule: true,
   default: 'Svg',
@@ -459,6 +546,18 @@ jest.mock('react-native', () => ({
   AppState: {
     currentState: 'active',
     addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+  },
+  // Phase 29 Batch A.2 F4 — AccessibilityInfo is the source of truth
+  // for the Reduce Motion preference. The hooks/useReduceMotion hook
+  // reads isReduceMotionEnabled on mount and subscribes to live changes
+  // via reduceMotionChanged. The mock defaults to false (motion enabled)
+  // — tests that need to exercise the reduced-motion branch can override
+  // via jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').
+  AccessibilityInfo: {
+    isReduceMotionEnabled: jest.fn(() => Promise.resolve(false)),
+    isScreenReaderEnabled: jest.fn(() => Promise.resolve(false)),
+    addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+    announceForAccessibility: jest.fn(),
   },
   Dimensions: {
     get: jest.fn(() => ({ width: 375, height: 812 })),
