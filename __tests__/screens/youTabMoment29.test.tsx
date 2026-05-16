@@ -392,3 +392,30 @@ describe('Phase 29 Batch A.1 — voice absence pins', () => {
     expect(WITNESS_BUILDER_STRIPPED).not.toMatch(/windows\s+hit/i);
   });
 });
+
+// ============================================================================
+// Phase 29 Batch A.2 — lane coherence absence pin.
+//
+// The BreathingExercise modal launches from the lavender You-lane (orb
+// card + chip + greeting). A.2 F2 migrated the modal orb to OrbRings
+// (lavender via caregiverAccent), and the F2 simulator gate surfaced
+// two color orphans missed during the Phase 26 / 23.1 lane migration:
+// the cycle dots and the Begin/Done buttons still used sage `accent`.
+// The recolor (F2 follow-up) swept all four to caregiverAccent.
+//
+// This absence pin defends the lane-coherence outcome — any future
+// reintroduction of a bare `c.accent` or `colors.accent` reference in
+// BreathingExercise.tsx (outside comments) fails. Suffixed accent
+// tokens (`c.accentLight`, `c.accentBorder`, etc.) stay legal — the
+// word boundary in the regex matches only the bare property access.
+// ============================================================================
+
+describe('Phase 29 Batch A.2 — lane coherence absence pin', () => {
+  it('F2 absence pin: BreathingExercise source contains no bare `c.accent` or `colors.accent` references', () => {
+    // BREATHING_STRIPPED has comments removed so changelog commentary
+    // doesn't false-positive. The \b after `accent` ensures
+    // c.accentLight / c.accentBorder / etc. aren't caught — only the
+    // bare property access (sage solid).
+    expect(BREATHING_STRIPPED).not.toMatch(/\b(c|colors)\.accent\b/);
+  });
+});

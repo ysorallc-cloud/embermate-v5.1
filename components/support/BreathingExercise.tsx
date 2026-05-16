@@ -16,8 +16,14 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { emitWellnessEvent } from '../../utils/eventEmitter';
 import { updateStreak } from '../../utils/streakStorage';
 import { logError } from '../../utils/devLog';
+import { OrbRings } from './OrbRings';
 
 import { Spacing } from '../../theme/theme-tokens';
+
+// Phase 29 Batch A.2 F2 — modal orb canvas size matches OrbRings'
+// default (120). Kept local so the wrapper sizing stays in sync with
+// the primitive without coupling through a prop.
+const ORB_CANVAS_SIZE = 120;
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -188,17 +194,10 @@ export function BreathingExercise({ visible, onClose, autoStart }: BreathingExer
           </View>
         )}
 
-        {/* Orb */}
-        <View style={[
-          styles.orb,
-          { borderColor: colors.accent },
-          phase === 'inhale' && styles.orbExpand,
-          phase === 'hold' && styles.orbExpand,
-          phase === 'exhale' && styles.orbContract,
-        ]}>
-          <View style={[styles.orbInner, { backgroundColor: colors.accent }]} />
-          {/* Count digit lives outside orbInner so the disc's 30% opacity
-              doesn't dim it — the digit itself reads at full contrast. */}
+        <View style={styles.orbWrap}>
+          <OrbRings />
+          {/* Count digit lives over the orb center. Absolute-positioned
+              so it doesn't shift when the core eventually breathes. */}
           {(phase === 'inhale' || phase === 'hold' || phase === 'exhale') && (
             <Text style={styles.orbCount}>{count}</Text>
           )}
@@ -210,7 +209,7 @@ export function BreathingExercise({ visible, onClose, autoStart }: BreathingExer
         {/* Intro: Begin button */}
         {phase === 'intro' && (
           <TouchableOpacity
-            style={[styles.beginButton, { backgroundColor: colors.accent }]}
+            style={[styles.beginButton, { backgroundColor: colors.caregiverAccent }]}
             onPress={handleBegin}
             accessibilityLabel="Start breathing exercise, 1 minute"
             accessibilityRole="button"
@@ -222,7 +221,7 @@ export function BreathingExercise({ visible, onClose, autoStart }: BreathingExer
         {/* Complete: Done button */}
         {phase === 'complete' && (
           <TouchableOpacity
-            style={[styles.beginButton, { backgroundColor: colors.accent }]}
+            style={[styles.beginButton, { backgroundColor: colors.caregiverAccent }]}
             onPress={() => { setPhase('intro'); onClose(); }}
             accessibilityLabel="Done"
             accessibilityRole="button"
@@ -273,42 +272,28 @@ function createStyles(c: any) {
       backgroundColor: 'rgba(255, 255, 255, 0.15)',
     },
     dotDone: {
-      backgroundColor: c.accent,
+      backgroundColor: c.caregiverAccent,
     },
     dotActive: {
-      backgroundColor: c.accent,
+      backgroundColor: c.caregiverAccent,
       opacity: 0.6,
     },
-    orb: {
-      width: 160,
-      height: 160,
-      borderRadius: 80,
-      borderWidth: 2,
-      alignItems: 'center',
-      justifyContent: 'center',
+    // Phase 29 Batch A.2 F2 — orb/orbExpand/orbContract/orbInner
+    // styles retired with the View-based orb. The OrbRings SVG
+    // primitive carries the visual structure now; orbWrap below is
+    // the sized container that holds the SVG + absolutely-positioned
+    // count overlay.
+    orbWrap: {
+      width: ORB_CANVAS_SIZE,
+      height: ORB_CANVAS_SIZE,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
       marginBottom: 32,
     },
-    orbExpand: {
-      width: 200,
-      height: 200,
-      borderRadius: 100,
-    },
-    orbContract: {
-      width: 120,
-      height: 120,
-      borderRadius: 60,
-    },
-    orbInner: {
-      width: '70%',
-      height: '70%',
-      borderRadius: 999,
-      opacity: 0.3,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    // Absolutely positioned over the orb so the orbInner's 30% opacity
-    // doesn't multiply down to the digit. The orb container handles the
-    // centering via alignItems/justifyContent.
+    // Absolutely positioned over the orb so it stays centered when the
+    // core eventually breathes via Reanimated scale (F3). The orbWrap
+    // container handles centering via alignItems/justifyContent; the
+    // count sits on top of the SVG.
     orbCount: {
       position: 'absolute',
       fontSize: 36,

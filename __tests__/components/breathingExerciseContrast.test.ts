@@ -34,25 +34,33 @@ describe('BreathingExercise — count digit contrast', () => {
     }
   });
 
-  it('count is NOT rendered inside the 30%-opacity orbInner (would multiply down)', () => {
-    // RN opacity multiplies through the subtree. Rendering the count under
-    // a parent with opacity: 0.3 dims the digit to 0.3 effective opacity
-    // even if the digit's own opacity is 1. The fix renders the count
-    // outside the orbInner so the digit isn't subject to the disc's
-    // transparency. Match either a self-closing <View ... /> or a paired
-    // <View>...</View> form.
-    const innerJsx =
-      src.match(/<View style=\{\[styles\.orbInner[^>]*\/>/) ||
-      src.match(/<View style=\{\[styles\.orbInner[\s\S]*?<\/View>/);
-    expect(innerJsx).toBeTruthy();
-    expect(innerJsx![0]).not.toMatch(/styles\.orbCount/);
+  it('count is NOT rendered inside any opacity-reduced parent (Phase 29 Batch A.2 F2 reframe)', () => {
+    // RN opacity multiplies through the subtree. Pre-A.2 the View-based
+    // orb wrapped the count digit alongside an `orbInner` View at
+    // opacity 0.3 — the original concern was that nesting the count
+    // inside the dimmed inner disc would multiply the digit's effective
+    // opacity to 0.3. A.2 F2 replaced the View orb with the OrbRings
+    // SVG primitive; no opacity-reduced wrapper survives. The count
+    // sits as an absolutely-positioned sibling of <OrbRings /> under
+    // the `orbWrap` container, with no opacity on the wrapper.
+    //
+    // Reframed pin: no parent with opacity < 1 contains the orbCount.
+    // The specific orbInner shape is gone, so we scan for any inline
+    // opacity style anywhere up-tree of styles.orbCount.
+    const opacityWrapAroundCount = src.match(
+      /<View[^>]*opacity:\s*0?\.\d+[^>]*>[\s\S]*?styles\.orbCount/,
+    );
+    expect(opacityWrapAroundCount).toBeNull();
   });
 
-  it('orbInner still keeps an opacity below 1 (the green disc remains tinted)', () => {
-    const block = styleBlock('orbInner');
-    const op = num(block, 'opacity');
-    expect(op).not.toBeNull();
-    expect(op as number).toBeLessThan(1);
+  it('orbInner style block retired (Phase 29 Batch A.2 F2 — absence pin)', () => {
+    // The pre-A.2 View orb had its own `orbInner` style block carrying
+    // opacity 0.3 + backgroundColor accent. A.2 F2 retired the View
+    // orb entirely in favor of OrbRings; the orbInner style block
+    // should no longer exist. A future regression that reintroduces
+    // it would re-introduce the opacity-multiplication risk this
+    // contract guards against.
+    expect(styleBlock('orbInner')).toBe('');
   });
 });
 
