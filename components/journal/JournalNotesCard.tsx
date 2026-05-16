@@ -412,11 +412,11 @@ const createStyles = (c: any) =>
       paddingVertical: 10,
       paddingHorizontal: 11, // allow: tap-target padding (Apple HIG ≥44pt)
       minHeight: 44,
-      // Voice switch: Georgia italic for typed content. Empty placeholder
-      // gets sans-serif (default fontFamily) via the placeholderTextColor
-      // alpha alone — the placeholder itself doesn't inherit Georgia
-      // because React Native renders placeholders in the platform default
-      // font when fontFamily applies only to content text.
+      // Serif italic throughout (placeholder + typed content). RN TextInput
+      // placeholders inherit fontFamily/fontStyle from the style prop; voice
+      // is differentiated by placeholderTextColor alpha (0.35) vs content
+      // alpha (0.85), not by switching families. Matches the surrounding
+      // caregiver-voice register on the Journal Plan card.
       fontFamily: 'Georgia',
       fontStyle: 'italic',
       fontSize: 11,
