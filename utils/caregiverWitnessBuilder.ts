@@ -205,8 +205,16 @@ function evalMedicationVolume(ctx: SignalContext): WitnessSignal | null {
   );
   if (count < THRESHOLDS.MEDICATION_VOLUME_WEEK) return null;
   return {
-    line: `${count} medication windows hit this week`,
-    footerLine: `${count} medication windows this week.\nMost people never see what that takes.`,
+    // Phase 29 Batch A.1 F3 — "medication windows hit this week" →
+    // "medications, on time, this week." The "windows hit" framing
+    // read as operational performance scoring ("hit" specifically
+    // codes as success-rating); the new phrasing is observational
+    // and stays in the witness-voice register the rest of the You-
+    // lane carries. Pinned by
+    // __tests__/utils/caregiverWitnessBuilder.test.ts (existing pin
+    // updated) + youTabMoment29.test.tsx absence pin (Batch A.1 F4).
+    line: `${count} medications, on time, this week.`,
+    footerLine: `${count} medications, on time, this week.\nMost people never see what that takes.`,
     source: 'medication_volume',
   };
 }

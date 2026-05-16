@@ -244,6 +244,39 @@ describe('Phase 29 Batch A — F3 BreathingOrbCard', () => {
     expect(matches).toHaveLength(1);
   });
 
+  it('contract F3.8 (Batch A.1 F1): orb SVG renders 4 stroke-only rings with the alpha progression (0.05, 0.10, 0.18, 0.28) + a filled core', () => {
+    // Phase 29 Batch A.1 F1 — at-rest orb gets visual weight via 4
+    // concentric rings radiating outside the orb core. Outer rings
+    // fade away (alpha 0.05); the innermost ring is brightest
+    // (alpha 0.28). The progression — not the count alone — is what
+    // produces the radiating-out gesture; a future regression that
+    // collapses to one ring or flattens the alpha ladder fails here.
+    const tree = render();
+    const circles = findAll(tree.root, (n: any) => n.type === 'Circle');
+
+    // 4 rings (stroke-only) + 1 core (filled) = 5 Circles at minimum.
+    expect(circles.length).toBeGreaterThanOrEqual(5);
+
+    // Pull the stroke values from every fill="none" Circle. The set
+    // must be exactly the four ring alphas — no missing rings, no
+    // duplicated alphas, no extra stroke-only Circles drifting in.
+    const ringStrokes = circles
+      .filter((c: any) => c.props.fill === 'none')
+      .map((c: any) => c.props.stroke);
+    const expected = new Set([
+      'rgba(170, 138, 220, 0.05)',
+      'rgba(170, 138, 220, 0.10)',
+      'rgba(170, 138, 220, 0.18)',
+      'rgba(170, 138, 220, 0.28)',
+    ]);
+    expect(new Set(ringStrokes)).toEqual(expected);
+
+    // Core defense: there must be exactly one Circle whose fill is
+    // NOT "none" (the gradient-filled core).
+    const filledCircles = circles.filter((c: any) => c.props.fill !== 'none');
+    expect(filledCircles).toHaveLength(1);
+  });
+
   it('contract F3.7 (Batch A.fix lift): support.tsx wires the orb onTap to set autoStart=true; QuickResetPills.onBreathe sets autoStart=false', () => {
     // Both entry points feed the same single BreathingExercise. They
     // differ only in the autoStart value they push onto state. Source-
@@ -319,5 +352,43 @@ describe('Phase 29 Batch A — F1 greeting + chip relocation', () => {
     // statement. Avatar dot still carries the initial, preserved.
     expect(STRIPPED).toMatch(/['"]This is your space['"]/);
     expect(STRIPPED).not.toMatch(/<Text\s+style=\{styles\.caregiverChipName\}\s*>\s*\{caregiverName\}\s*<\/Text>/);
+  });
+});
+
+// ============================================================================
+// Phase 29 Batch A.1 — voice absence pins.
+//
+// Two pieces of praise-coded / operational language retired from the
+// You-lane in A.1:
+//   F2: BreathingExercise PHASE_LABELS.complete: "Well done" → "That's it."
+//   F3: caregiverWitnessBuilder evalMedicationVolume.line:
+//       "{N} medication windows hit this week" → "{N} medications, on
+//       time, this week."
+//
+// Each change has its own positive pin in the source-specific test file
+// (breathingExercise.test.ts, caregiverWitnessBuilder.test.ts). This
+// block adds belt-and-suspenders absence pins on the surrounding source
+// — any reintroduction of the retired phrasings, even at a different
+// code site or as different copy in the same file, fails here.
+// ============================================================================
+
+const WITNESS_BUILDER_SRC = readFileSync(
+  join(ROOT, 'utils/caregiverWitnessBuilder.ts'),
+  'utf8',
+);
+const WITNESS_BUILDER_STRIPPED = WITNESS_BUILDER_SRC
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+describe('Phase 29 Batch A.1 — voice absence pins', () => {
+  it('F2 absence pin: BreathingExercise source contains no "Well done" praise copy', () => {
+    // Case-insensitive — catches re-introduction at any capitalization.
+    // BREATHING_STRIPPED has line + block comments removed, so the
+    // commentary documenting the retirement doesn't false-positive.
+    expect(BREATHING_STRIPPED).not.toMatch(/well\s+done/i);
+  });
+
+  it('F3 absence pin: caregiverWitnessBuilder source contains no "windows hit" operational copy', () => {
+    expect(WITNESS_BUILDER_STRIPPED).not.toMatch(/windows\s+hit/i);
   });
 });

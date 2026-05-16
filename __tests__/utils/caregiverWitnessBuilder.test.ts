@@ -291,7 +291,10 @@ describe('Phase 11.1 — caregiverWitnessBuilder', () => {
       const out = await buildCaregiverWitness('default', TODAY);
       expect(out).not.toBeNull();
       expect(out!.source).toBe('medication_volume');
-      expect(out!.line).toBe('12 medication windows hit this week');
+      // Phase 29 Batch A.1 F3 — "windows hit" framing retired in
+      // favor of "medications, on time, this week." observational
+      // phrasing. See utils/caregiverWitnessBuilder.ts:evalMedicationVolume.
+      expect(out!.line).toBe('12 medications, on time, this week.');
     });
   });
 

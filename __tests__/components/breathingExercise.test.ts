@@ -49,7 +49,10 @@ describe('BreathingExercise', () => {
     expect(PHASE_LABELS.inhale).toBe('Breathe in');
     expect(PHASE_LABELS.hold).toBe('Hold');
     expect(PHASE_LABELS.exhale).toBe('Breathe out');
-    expect(PHASE_LABELS.complete).toBe('Well done');
+    // Phase 29 Batch A.1 F2 — "Well done" → "That's it." Praise-coded
+    // language retired from the breathing-exercise completion screen
+    // to match the witness voice the rest of the You-lane carries.
+    expect(PHASE_LABELS.complete).toBe("That's it.");
   });
 
   it('count increments 1-4 per phase (4 second phases)', () => {

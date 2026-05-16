@@ -34,8 +34,30 @@ export interface BreathingOrbCardProps {
   onTap: () => void;
 }
 
-const ORB_SIZE = 64;
-const ORB_RADIUS = (ORB_SIZE / 2) - 1; // 0.5px stroke fits inside the bounding box
+// Phase 29 Batch A.1 F1 — canvas grows 64 → 100 to fit four concentric
+// rings radiating outside the orb core. The core itself stays at 64
+// diameter (radius 32); rings sit between radius 36 and 45 with a 3px
+// gap between each, leaving a small margin to the canvas edge for the
+// 1.5px ring stroke.
+const CANVAS_SIZE = 100;
+const CORE_RADIUS = 32;
+const RING_STROKE_WIDTH = 1.5;
+
+// Ring alpha progression — outermost faded, innermost brightest. The
+// gradient is the gesture: the rings appear to radiate from the core.
+// Order (outermost first) is the render order: outer rings paint first
+// so the inner / brighter ring lands on top.
+const RINGS: ReadonlyArray<{ radius: number; alpha: number }> = [
+  { radius: 45, alpha: 0.05 }, // outermost
+  { radius: 42, alpha: 0.10 },
+  { radius: 39, alpha: 0.18 },
+  { radius: 36, alpha: 0.28 }, // innermost
+];
+
+function ringStroke(alpha: number): string {
+  // caregiverAccent base — #aa8adc → rgb(170, 138, 220).
+  return `rgba(170, 138, 220, ${alpha.toFixed(2)})`;
+}
 
 export function BreathingOrbCard({ onTap }: BreathingOrbCardProps) {
   const { colors } = useTheme();
@@ -58,10 +80,14 @@ export function BreathingOrbCard({ onTap }: BreathingOrbCardProps) {
           style={styles.card}
         >
           <View style={styles.orbWrap}>
-            <Svg width={ORB_SIZE} height={ORB_SIZE} viewBox={`0 0 ${ORB_SIZE} ${ORB_SIZE}`}>
+            <Svg width={CANVAS_SIZE} height={CANVAS_SIZE} viewBox={`0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}`}>
               <Defs>
-                {/* Radial gradient — lavender wash at center, sage faint at the
-                    edge. Same alpha ladder the rest of the You-lane uses. */}
+                {/* Phase 29 Batch A.1 F1 — gradient strengthened. Center alpha
+                    0.35 → 0.75; edge alpha 0.06 → 0.35. Both stops use the same
+                    caregiverAccent hex; the previous `sageFaint` outer stop was
+                    a misleadingly-named lavender at 0.06, so swapping to
+                    caregiverAccent at 0.35 keeps the gradient monochromatic
+                    while bumping saturation. */}
                 <RadialGradient
                   id="orbGradient"
                   cx="50%"
@@ -71,17 +97,34 @@ export function BreathingOrbCard({ onTap }: BreathingOrbCardProps) {
                   fx="50%"
                   fy="50%"
                 >
-                  <Stop offset="0%" stopColor={colors.caregiverAccent} stopOpacity={0.35} />
-                  <Stop offset="100%" stopColor={colors.sageFaint || colors.caregiverAccentBg} stopOpacity={0.06} />
+                  <Stop offset="0%" stopColor={colors.caregiverAccent} stopOpacity={0.75} />
+                  <Stop offset="100%" stopColor={colors.caregiverAccent} stopOpacity={0.35} />
                 </RadialGradient>
               </Defs>
+              {/* Rings — render outermost first so the brighter inner rings
+                  paint on top. Static at rest; animation is out of scope
+                  per Batch A.1 (filed as v1.1 polish). */}
+              {RINGS.map((r) => (
+                <Circle
+                  key={r.radius}
+                  cx={CANVAS_SIZE / 2}
+                  cy={CANVAS_SIZE / 2}
+                  r={r.radius}
+                  fill="none"
+                  stroke={ringStroke(r.alpha)}
+                  strokeWidth={RING_STROKE_WIDTH}
+                />
+              ))}
+              {/* Core — gradient fill + 1.5px caregiverAccentStrong border
+                  (existing 0.25-alpha token, no new tokens added per Batch
+                  A.1 D1). */}
               <Circle
-                cx={ORB_SIZE / 2}
-                cy={ORB_SIZE / 2}
-                r={ORB_RADIUS}
+                cx={CANVAS_SIZE / 2}
+                cy={CANVAS_SIZE / 2}
+                r={CORE_RADIUS}
                 fill="url(#orbGradient)"
-                stroke={colors.caregiverAccentBorder}
-                strokeWidth={0.5}
+                stroke={colors.caregiverAccentStrong}
+                strokeWidth={1.5}
               />
             </Svg>
           </View>
@@ -106,8 +149,8 @@ const createStyles = (c: any) =>
       alignItems: 'center' as const,
     },
     orbWrap: {
-      width: ORB_SIZE,
-      height: ORB_SIZE,
+      width: CANVAS_SIZE,
+      height: CANVAS_SIZE,
       marginBottom: 10,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,

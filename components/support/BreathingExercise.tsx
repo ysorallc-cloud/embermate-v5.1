@@ -34,7 +34,14 @@ export const PHASE_LABELS: Record<BreathingPhase, string> = {
   inhale: 'Breathe in',
   hold: 'Hold',
   exhale: 'Breathe out',
-  complete: 'Well done',
+  // Phase 29 Batch A.1 F2 — "Well done" → "That's it." Praise-coded
+  // completion language ("Well done") departs from the witness voice
+  // the rest of the You-lane carries (no comparative framing, no
+  // performance rating). "That's it." is observational — names the
+  // moment without scoring it. Pinned by
+  // __tests__/components/breathingExercise.test.ts (existing pin
+  // updated) + youTabMoment29.test.tsx absence pin (Batch A.1 F4).
+  complete: "That's it.",
 };
 
 // ============================================================================
