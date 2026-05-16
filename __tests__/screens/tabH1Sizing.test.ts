@@ -9,7 +9,12 @@
 //   Now         → components/now/NowGreeting.tsx :: title
 //   Journal     → app/(tabs)/journal.tsx :: headerTitle
 //   Insights    → components/ScreenHeader.tsx :: title (used by understand)
-//   You         → app/(tabs)/support.tsx :: title
+//   You         → app/(tabs)/support.tsx :: greeting  (Phase 29 F1 —
+//                                            retired `title`, replaced
+//                                            with Georgia italic
+//                                            `greeting` block; the 22pt
+//                                            cross-tab invariant is
+//                                            preserved.)
 //
 // Note on ScreenHeader: it's also consumed by ~20 sub-screens (log
 // forms, care-report, etc.). Updating its title to 22pt cascades. The
@@ -51,7 +56,7 @@ const SOURCES = [
   { tab: 'Now', file: 'components/now/NowGreeting.tsx', styleName: 'title' },
   { tab: 'Journal', file: 'app/(tabs)/journal.tsx', styleName: 'headerTitle' },
   { tab: 'Insights', file: 'components/ScreenHeader.tsx', styleName: 'title' },
-  { tab: 'You', file: 'app/(tabs)/support.tsx', styleName: 'title' },
+  { tab: 'You', file: 'app/(tabs)/support.tsx', styleName: 'greeting' },
 ];
 
 describe('Phase 3.6.3 — unified H1 sizing across all four tabs', () => {

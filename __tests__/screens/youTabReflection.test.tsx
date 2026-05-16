@@ -110,11 +110,13 @@ describe('You tab — old 2×2 grid components are gone at the screen level', ()
   });
 });
 
-describe('You tab — header structure contract still applies', () => {
-  // Re-asserts the four-tab contract from
-  // __tests__/screens/headerStructureContract.test.ts as a regression guard
-  // local to the You tab. Title 22pt/500, subtitle 13pt/textSecondary,
-  // paddingTop 32 (Phase 5.13.4), paddingBottom 24.
+describe('You tab — header structure contract (post-Phase-29 reframe)', () => {
+  // Phase 29 F1 retired the pre-29 "You" 22pt H1 + "A space for you, not
+  // your loved one" subtitle pair in favor of a time-aware Georgia italic
+  // greeting. The structural headerWrap padding contract (paddingTop 32 /
+  // paddingBottom 24) stays — that's the four-tab pin from
+  // headerStructureContract.test.ts. Title + headerMessage pins flip to
+  // absence pins; a parallel greeting pin defends the new typography.
   function styleBlock(name: string): string {
     const re = new RegExp(`\\b${name}:\\s*\\{([^}]*)\\}`, 's');
     const m = supportSrc.match(re);
@@ -126,28 +128,34 @@ describe('You tab — header structure contract still applies', () => {
     return m ? Number(m[1]) : null;
   }
 
-  it('headerWrap paddingTop: 32', () => {
+  it('headerWrap paddingTop: 32 (unchanged)', () => {
     expect(num(styleBlock('headerWrap'), 'paddingTop')).toBe(32);
   });
 
-  it('headerWrap paddingBottom: 24', () => {
+  it('headerWrap paddingBottom: 24 (unchanged)', () => {
     expect(num(styleBlock('headerWrap'), 'paddingBottom')).toBe(24);
   });
 
-  it('title: 22pt, fontWeight 500 (Phase 3.6.3 unified H1 sizing)', () => {
-    // May 3 compressed all four tab H1s from 32pt/300 to 22pt/500 for
-    // visual consistency across tabs and to free vertical space.
-    const block = styleBlock('title');
-    expect(num(block, 'fontSize')).toBe(22);
-    expect(block).toMatch(/fontWeight:\s*['"]500['"]/);
+  it('absence pin: pre-29 sans-serif title style block retired', () => {
+    // Pre-29 the H1 lived in a `title` style block at 22pt/weight 500
+    // sans-serif. Phase 29 swapped to a `greeting` block in Georgia
+    // italic. The title block is gone; this contract defends against
+    // re-introduction.
+    expect(styleBlock('title')).toBe('');
   });
 
-  it('headerMessage: 13pt, color textSecondary, lineHeight 20, marginTop 8', () => {
-    const block = styleBlock('headerMessage');
-    expect(num(block, 'fontSize')).toBe(13);
-    expect(block).toMatch(/color:\s*c\.textSecondary|color:\s*colors\.textSecondary/);
-    expect(num(block, 'lineHeight')).toBe(20);
-    expect(num(block, 'marginTop')).toBe(8);
+  it('absence pin: pre-29 headerMessage subtitle style block retired', () => {
+    // The "A space for you, not your loved one." subtitle was held in
+    // a `headerMessage` style block. Phase 29 retired the subtitle.
+    expect(styleBlock('headerMessage')).toBe('');
+  });
+
+  it('greeting style: Georgia italic at 22pt (Phase 29 F1 successor to title)', () => {
+    const block = styleBlock('greeting');
+    expect(block).not.toBe('');
+    expect(block).toMatch(/fontFamily:\s*['"]Georgia['"]/);
+    expect(block).toMatch(/fontStyle:\s*['"]italic['"]/);
+    expect(num(block, 'fontSize')).toBe(22);
   });
 });
 

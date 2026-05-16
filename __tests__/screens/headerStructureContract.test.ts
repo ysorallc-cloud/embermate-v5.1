@@ -86,10 +86,21 @@ describe('Header structure contract — title metrics', () => {
     expect(block).toMatch(/fontWeight:\s*['"]500['"]/);
   });
 
-  it('Support title: 22pt, weight 500', () => {
-    const block = titleBlock(read('app/(tabs)/support.tsx'));
+  it('Support greeting: 22pt, Georgia italic 400 (Phase 29 F1 — deliberate You-tab variant)', () => {
+    // Phase 29 F1 retired the pre-29 sans-serif `title` style block at
+    // 22pt/weight 500 and replaced it with a Georgia italic `greeting`
+    // block at 22pt/weight 400. The cross-tab fontSize 22 invariant is
+    // PRESERVED — Phase 29 only diverges on family + style + weight to
+    // give the You tab a warmer voice consistent with the rest of the
+    // caregiver-lane lavender encoding (Phase 26-29 lane work). The
+    // other three tabs (Now, Journal, Insights) keep sans-serif weight
+    // 500; the contract above each pins their unchanged form.
+    const block = styleBlock(read('app/(tabs)/support.tsx'), 'greeting');
+    expect(block).not.toBe('');
     expect(num(block, 'fontSize')).toBe(22);
-    expect(block).toMatch(/fontWeight:\s*['"]500['"]/);
+    expect(block).toMatch(/fontFamily:\s*['"]Georgia['"]/);
+    expect(block).toMatch(/fontStyle:\s*['"]italic['"]/);
+    expect(block).toMatch(/fontWeight:\s*['"]400['"]/);
   });
 });
 
@@ -133,11 +144,16 @@ describe('Header structure contract — subtitle metrics', () => {
     expect(m.color).toBe('textSecondary');
   });
 
-  it('Support headerMessage: 13pt / lineHeight 20 / textSecondary', () => {
-    const m = metricsOf(read('app/(tabs)/support.tsx'), 'headerMessage');
-    expect(m.fontSize).toBe(13);
-    expect(m.lineHeight).toBe(20);
-    expect(m.color).toBe('textSecondary');
+  it('Support headerMessage subtitle retired (Phase 29 F1 — absence pin)', () => {
+    // Phase 29 F1 retired the You-tab subtitle "A space for you, not
+    // your loved one." entirely. There is no successor at the subtitle
+    // position; the caregiver chip's "This is your space" copy carries
+    // identity, not a subtitle. The other three tabs (Now / Journal /
+    // ScreenHeader) keep their subtitle metrics — only Support is
+    // exempt. Sibling absence pin: see
+    // __tests__/copy/headerSubtitlesUpdated.test.ts.
+    const block = styleBlock(read('app/(tabs)/support.tsx'), 'headerMessage');
+    expect(block).toBe('');
   });
 });
 

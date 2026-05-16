@@ -386,6 +386,52 @@ jest.mock('expo-sharing', () => ({
 }));
 
 // ============================================================================
+// MOCK: expo-linear-gradient
+// ============================================================================
+// expo-linear-gradient ships as ESM (`import { Component } from 'react'`) and
+// Jest's default transformIgnorePatterns excludes node_modules from
+// transformation, so any test that transitively imports a component using
+// LinearGradient was failing to parse. Phase 29 F3 (BreathingOrbCard) made
+// this transitive load reach many existing tests via support.tsx → orb
+// card → expo-linear-gradient. Single global mock here unblocks all of
+// them; individual tests that need richer behavior (animation specifics,
+// gradient color assertions) can still override via per-test jest.mock.
+
+jest.mock('expo-linear-gradient', () => ({
+  __esModule: true,
+  LinearGradient: 'LinearGradient',
+}));
+
+// ============================================================================
+// MOCK: react-native-svg
+// ============================================================================
+// react-native-svg ships TypeScript source that Jest's default transform
+// doesn't process under transformIgnorePatterns. Same transitive-load issue
+// as expo-linear-gradient — BreathingOrbCard uses Svg/Circle/Defs/
+// RadialGradient/Stop, Sparkline (Phase 28) uses Svg/Polyline. Map every
+// surface that consumers import here to a string-type component so the
+// test renderer can mount it without parse errors.
+
+jest.mock('react-native-svg', () => ({
+  __esModule: true,
+  default: 'Svg',
+  Svg: 'Svg',
+  Circle: 'Circle',
+  Polyline: 'Polyline',
+  Defs: 'Defs',
+  RadialGradient: 'RadialGradient',
+  LinearGradient: 'SvgLinearGradient',
+  Stop: 'Stop',
+  Path: 'Path',
+  Rect: 'Rect',
+  G: 'G',
+  Text: 'SvgText',
+  Line: 'Line',
+  Ellipse: 'Ellipse',
+  Polygon: 'Polygon',
+}));
+
+// ============================================================================
 // MOCK: expo-document-picker
 // ============================================================================
 

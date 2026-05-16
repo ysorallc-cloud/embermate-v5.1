@@ -62,18 +62,22 @@ describe('Phase 26 F3 — caregiver chip in support.tsx headerWrap', () => {
     expect(STRIPPED).toMatch(/getCaregiverProfile\(\)/);
   });
 
-  it('contract 3: headerWrap contains an inner row (chip + title same baseline)', () => {
-    // A new styles entry — chip-and-title row — must be flexDirection:
-    // 'row' with alignItems: 'center' and gap: 12.
-    // Pin by locating a style block with these three properties together.
-    const headerRowMatch = STRIPPED.match(
-      /\bheaderTitleRow\s*:\s*\{[\s\S]*?\}|\bheaderRow\s*:\s*\{[\s\S]*?\}/,
-    );
-    expect(headerRowMatch).toBeTruthy();
-    const rowBlock = headerRowMatch![0];
-    expect(rowBlock).toMatch(/flexDirection:\s*['"]row['"]/);
-    expect(rowBlock).toMatch(/alignItems:\s*['"]center['"]/);
-    expect(rowBlock).toMatch(/gap:\s*12/);
+  it('contract 3 (Phase 29 reframe): chip lives on its own row below the greeting, NOT inline with a title', () => {
+    // Phase 26 F3's original contract here pinned a chip+title same-
+    // baseline row (headerTitleRow with flexDirection row, gap 12).
+    // Phase 29 F1 retired the H1 title in favor of a Georgia italic
+    // greeting and relocated the chip to its own row below. The chip's
+    // own style block now carries the layout it needs (alignSelf
+    // flex-start + marginTop 10); the headerTitleRow row container
+    // is gone. This contract flips to defend the new shape.
+    expect(STRIPPED).not.toMatch(/\bheaderTitleRow\s*:\s*\{/);
+    // The chip's own style picks up the layout duties: alignSelf
+    // flex-start + a marginTop > 0 puts it on its own line below the
+    // greeting.
+    const chipBlock = STRIPPED.match(/\bcaregiverChip\s*:\s*\{[\s\S]*?\n\s*\}/);
+    expect(chipBlock).toBeTruthy();
+    expect(chipBlock![0]).toMatch(/alignSelf:\s*['"]flex-start['"]/);
+    expect(chipBlock![0]).toMatch(/marginTop:\s*\d+/);
   });
 
   it('contract 4: caregiverChip style routes through caregiverAccent tokens (NOT accent / accentTint)', () => {
@@ -110,15 +114,13 @@ describe('Phase 26 F3 — caregiver chip in support.tsx headerWrap', () => {
     expect(around).toMatch(/caregiverName\s*(?:\?|&&|\.trim|\.length)/);
   });
 
-  it('contract 6: subtitle "A space for you, not your loved one." still renders, AFTER the chip+title row in source order', () => {
-    // Subtitle copy intact (no incidental rewrites).
-    expect(STRIPPED).toMatch(/A space for you, not your loved one\./);
-    // The chip JSX must appear before the subtitle in source order so
-    // the subtitle renders below the row visually.
-    const chipIdx = STRIPPED.indexOf('styles.caregiverChip');
-    const subtitleIdx = STRIPPED.indexOf('A space for you, not your loved one.');
-    expect(chipIdx).toBeGreaterThan(-1);
-    expect(subtitleIdx).toBeGreaterThan(-1);
-    expect(chipIdx).toBeLessThan(subtitleIdx);
+  it('contract 6 (Phase 29 reframe): subtitle "A space for you, not your loved one." retired', () => {
+    // Phase 29 F1 retired the subtitle line. Its meaning is now carried
+    // by the chip's identity-statement copy ("This is your space") which
+    // sits below the time-aware greeting. The pre-29 subtitle literal
+    // should not appear anywhere in source.
+    expect(STRIPPED).not.toMatch(/A space for you, not your loved one/);
+    // The chip's body Text now carries the identity statement directly.
+    expect(STRIPPED).toMatch(/['"]This is your space['"]/);
   });
 });

@@ -41,6 +41,7 @@ import { AffirmationHeader } from '../../components/support/AffirmationHeader';
 import { ReflectionCard } from '../../components/support/ReflectionCard';
 import { QuickResetPills } from '../../components/support/QuickResetPills';
 import { BreathingExercise } from '../../components/support/BreathingExercise';
+import { BreathingOrbCard } from '../../components/support/BreathingOrbCard';
 import { ResourcesList } from '../../components/support/ResourcesList';
 import { Colors, Spacing } from '../../theme/theme-tokens';
 import {
@@ -50,6 +51,7 @@ import {
 import { useDataListener } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
 import { getCaregiverProfile } from '../../storage/caregiverProfileRepo';
+import { composeYouGreeting } from '../../utils/text/composers/youGreeting';
 
 // Events that change the data the witness builder reads. Anything else
 // fires the listener but the listener filter ignores it — the builder
@@ -73,6 +75,13 @@ export default function SupportScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [refreshing, setRefreshing] = useState(false);
   const [breathingVisible, setBreathingVisible] = useState(false);
+  // Phase 29 Batch A.fix — single BreathingExercise mount serves both
+  // entry points (orb card + legacy QuickResetPills.onBreathe). The
+  // autoStart flag tracks which entry fired so the modal opens in the
+  // correct framing. Two batched setState calls in the entry handler
+  // land in one render; BreathingExercise's [visible, autoStart]
+  // effect deps re-read the fresh autoStart on the visible-true edge.
+  const [breathingAutoStart, setBreathingAutoStart] = useState(false);
   const [witness, setWitness] = useState<WitnessSignal | null>(null);
   // Phase 26 F3 — caregiver name for the lavender chip. Empty default;
   // useEffect populates on mount. When still empty after fetch (caregiver
@@ -132,32 +141,30 @@ export default function SupportScreen() {
           }
         >
           {/* ═══ HEADER ═══
-              Phase 26 F3 — chip + title share a row (flexDirection: 'row',
-              alignItems: 'center', gap: 12). Subtitle drops below the row.
-              headerWrap padding unchanged (paddingTop 32 / paddingBottom 24
-              / borderBottomWidth 0.5) so headerStructureContract pins stay
-              green. */}
+              Phase 29 F1 — the pre-29 22pt "You" title + 13pt subtitle
+              pair retired. The top of the tab now leads with a time-
+              aware Georgia italic greeting; the Phase 26 caregiver
+              chip moves to its own row below the greeting and carries
+              identity-statement copy ("This is your space") instead
+              of the bare name. */}
           <View style={styles.headerWrap}>
-            <View style={styles.headerTitleRow}>
-              {caregiverName.length > 0 && (
-                <View
-                  style={styles.caregiverChip}
-                  accessibilityLabel={`Caregiver: ${caregiverName}`}
-                  accessibilityRole="text"
-                >
-                  <View style={styles.caregiverChipAvatar}>
-                    <Text style={styles.caregiverChipAvatarText}>
-                      {caregiverName.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  <Text style={styles.caregiverChipName}>{caregiverName}</Text>
-                </View>
-              )}
-              <Text style={styles.title}>You</Text>
-            </View>
-            <Text style={styles.headerMessage}>
-              A space for you, not your loved one.
+            <Text style={styles.greeting}>
+              {composeYouGreeting({ hour: new Date().getHours(), name: caregiverName })}
             </Text>
+            {caregiverName.length > 0 && (
+              <View
+                style={styles.caregiverChip}
+                accessibilityLabel={`Caregiver: ${caregiverName}. This is your space.`}
+                accessibilityRole="text"
+              >
+                <View style={styles.caregiverChipAvatar}>
+                  <Text style={styles.caregiverChipAvatarText}>
+                    {caregiverName.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={styles.caregiverChipName}>{'This is your space'}</Text>
+              </View>
+            )}
           </View>
 
           {/* ═══ Daily affirmation — Phase 11.2: witness signal
@@ -165,12 +172,30 @@ export default function SupportScreen() {
                 Same styling, same voice. ═══ */}
           <AffirmationHeader witness={witness} />
 
+          {/* ═══ Phase 29 F3 — breathing orb card.
+                Lavender card that frames a 60-second breath. Tap calls
+                onTap, which opens the SHARED BreathingExercise mount
+                (mounted once at the screen root) with autoStart=true.
+                The legacy QuickResetPills Breathe pill below opens the
+                same shared mount with autoStart=false until Batch B
+                retires that pill. One Modal in the tree — eliminates
+                the dual-mount iOS responder-chain bug. ═══ */}
+          <BreathingOrbCard
+            onTap={() => {
+              setBreathingAutoStart(true);
+              setBreathingVisible(true);
+            }}
+          />
+
           {/* ═══ Reflection card (mood + text + save) ═══ */}
           <ReflectionCard />
 
           {/* ═══ Quick reset pills ═══ */}
           <QuickResetPills
-            onBreathe={() => setBreathingVisible(true)}
+            onBreathe={() => {
+              setBreathingAutoStart(false);
+              setBreathingVisible(true);
+            }}
             onHelpline={() => Linking.openURL('tel:18552273640').catch(() => {})}
             onCommunity={() => Linking.openURL('https://caregiveraction.org/').catch(() => {})}
           />
@@ -210,6 +235,7 @@ export default function SupportScreen() {
       <BreathingExercise
         visible={breathingVisible}
         onClose={() => setBreathingVisible(false)}
+        autoStart={breathingAutoStart}
       />
     </View>
   );
@@ -253,38 +279,35 @@ function createStyles(c: typeof Colors) {
       borderBottomWidth: 0.5,
       borderBottomColor: c.glassHover,
     },
-    // Phase 26 F3 — chip + title share a baseline. flexDirection 'row',
-    // alignItems 'center', gap 12 (between the 22pt-tall chip and the
-    // 22pt-tall H1 the spacing matches the gap inside the patient chip
-    // on Now). The row sits inside headerWrap so the outer paddingTop
-    // 32 / paddingBottom 24 contract still owns vertical rhythm.
-    headerTitleRow: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: 12, // allow: tap-target padding (Apple HIG ≥44pt)
-    },
-    // Phase 3.6.3 — H1 fontSize 32 → 22 with weight 500 + letterSpacing
-    // -0.3 to match Now's compressed greeting (Phase 3.6.2).
-    title: {
+    // Phase 29 F1 — time-aware Georgia italic greeting replaces the
+    // pre-29 22pt sans-serif "You" title. Weight 400 keeps the line
+    // warm without competing with the lower AffirmationHeader; 22pt
+    // preserves the vertical rhythm headerStructureContract assumed.
+    greeting: {
+      fontFamily: 'Georgia',
+      fontStyle: 'italic' as const,
       fontSize: 22,
-      fontWeight: '500' as const,
+      fontWeight: '400' as const,
+      lineHeight: 28,
       color: c.textPrimary,
-      letterSpacing: -0.3,
-      marginBottom: 0,
-    },
-    headerMessage: {
-      fontSize: 13,
-      color: c.textSecondary,
-      lineHeight: 20,
-      marginTop: 8,
+      letterSpacing: 0.1,
     },
     // Phase 26 F3 — caregiver chip. Mirrors the patient chip pattern in
     // NowHeader (height 22, borderRadius 11, 16pt avatar, 10pt name)
     // but tints lavender via caregiverAccent tokens so the You-lane
     // identity carries across header + tab bar.
+    //
+    // Phase 29 F1 — chip relocates from inline-with-title to its own
+    // row below the greeting. `alignSelf: 'flex-start'` keeps the chip
+    // tight to its content; `marginTop: 10` carries the breathing room
+    // pre-29 came from the headerTitleRow's gap to the title baseline.
+    // Inner Text copy changes from `{caregiverName}` to "This is your
+    // space" — see render block above.
     caregiverChip: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
+      alignSelf: 'flex-start' as const,
+      marginTop: 10,
       backgroundColor: c.caregiverAccentBg,
       borderWidth: 0.5,
       borderColor: c.caregiverAccentStrong,

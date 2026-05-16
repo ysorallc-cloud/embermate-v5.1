@@ -44,9 +44,18 @@ export const PHASE_LABELS: Record<BreathingPhase, string> = {
 interface BreathingExerciseProps {
   visible: boolean;
   onClose: () => void;
+  /**
+   * Phase 29 F2 — skip the "Let's slow down / Begin" intro gate when the
+   * caller has already framed the entry (e.g. the You-tab orb card's
+   * "Tap to take a breath" copy). When true and `visible` flips on, the
+   * modal opens directly in the ready phase and auto-transitions to
+   * inhale after READY_DURATION_MS. Default false preserves the pre-29
+   * intro path for any other consumer.
+   */
+  autoStart?: boolean;
 }
 
-export function BreathingExercise({ visible, onClose }: BreathingExerciseProps) {
+export function BreathingExercise({ visible, onClose, autoStart }: BreathingExerciseProps) {
   const { colors } = useTheme();
   const [phase, setPhase] = useState<BreathingPhase>('intro');
   const [cycle, setCycle] = useState(0); // 0-based current cycle
@@ -54,18 +63,31 @@ export function BreathingExercise({ visible, onClose }: BreathingExerciseProps) 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Reset state when modal opens
+  // Reset state when modal opens. Phase 29 F2: when autoStart is true,
+  // skip 'intro' entirely — init to 'ready' and queue the ready→inhale
+  // transition that handleBegin would otherwise own.
   useEffect(() => {
     if (visible) {
-      setPhase('intro');
       setCycle(0);
       setCount(1);
+      if (autoStart) {
+        setPhase('ready');
+        timerRef.current = setTimeout(() => {
+          startCount('inhale', 0);
+        }, READY_DURATION_MS);
+      } else {
+        setPhase('intro');
+      }
     }
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       if (countRef.current) clearInterval(countRef.current);
     };
-  }, [visible]);
+    // startCount identity is stable (useCallback with empty deps); it's
+    // safe to omit from the dep list and intentional to avoid re-firing
+    // the ready timer on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, autoStart]);
 
   const startCount = useCallback((nextPhase: BreathingPhase, nextCycle: number) => {
     setPhase(nextPhase);

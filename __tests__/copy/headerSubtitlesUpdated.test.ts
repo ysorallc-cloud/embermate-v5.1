@@ -69,8 +69,17 @@ describe('Header subtitle copy — You / Support', () => {
     expect(supportSrc).not.toContain('Take a moment');
   });
 
-  it('contains the single-line subtitle: "A space for you, not your loved one."', () => {
-    expect(supportSrc).toContain('A space for you, not your loved one.');
+  it('absence pin (Phase 29 F1): no inline subtitle copy on the You tab', () => {
+    // Phase 29 F1 retired the v6.7 subtitle "A space for you, not your
+    // loved one." in favor of the time-aware Georgia italic greeting
+    // (Morning/Afternoon/Evening, {name}.) and the caregiver chip
+    // carrying "This is your space" as an identity statement directly
+    // below. The two earlier absence pins above defend against the
+    // v6.7-era lecture copy ("Caregivers who check in on themselves",
+    // "Take a moment") — this third pin extends the lineage one phase
+    // forward by defending against re-introduction of the v6.7
+    // replacement that Phase 29 in turn retired.
+    expect(supportSrc).not.toContain('A space for you, not your loved one');
   });
 });
 

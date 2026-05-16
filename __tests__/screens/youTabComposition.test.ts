@@ -45,9 +45,14 @@ describe('You tab — JSX render order matches Phase 6 spec', () => {
   const idxWellness    = src.search(/<TouchableOpacity[^>]*\n[\s\S]{0,200}?style=\{styles\.wellnessLink\}/);
   const idxPlanAhead   = src.indexOf('<View style={styles.planAheadCard}');
 
-  it('renders AffirmationHeader after the header copy', () => {
+  it('renders AffirmationHeader after the header block', () => {
     expect(idxAffirmation).toBeGreaterThan(-1);
-    const headerIdx = src.indexOf('A space for you, not your loved one.');
+    // Phase 29 F1 — the anchor flipped from the literal subtitle copy
+    // ("A space for you, not your loved one.") to the greeting helper
+    // call (composeYouGreeting). The header block still owns the top
+    // of the tab and AffirmationHeader still renders after it; only
+    // the anchor we grep for changed.
+    const headerIdx = src.search(/composeYouGreeting\s*\(/);
     expect(headerIdx).toBeGreaterThan(-1);
     expect(idxAffirmation).toBeGreaterThan(headerIdx);
   });
