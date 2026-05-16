@@ -25,7 +25,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { navigate } from '../../lib/navigate';
 import { useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import Svg, { Polyline, Circle as SvgCircle } from 'react-native-svg';
+import Svg, { Circle as SvgCircle } from 'react-native-svg';
+import { Sparkline } from '../../components/insights/Sparkline';
 import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -180,21 +181,8 @@ function CareScoreRing({ score, size = 90 }: { score: number; size?: number }) {
 // SPARKLINE
 // ============================================================================
 
-function Sparkline({ points, color, width = 50, height = 20 }: { points: string; color: string; width?: number; height?: number }) {
-  if (!points) return null;
-  return (
-    <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-      <Polyline
-        points={points}
-        stroke={color}
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </Svg>
-  );
-}
+// Phase 28 F4 — Sparkline relocated to components/insights/Sparkline.tsx
+// so InsightsDataCard can consume the same primitive without duplication.
 
 // ============================================================================
 // HELPERS

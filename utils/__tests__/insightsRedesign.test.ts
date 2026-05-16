@@ -130,8 +130,14 @@ describe('Structural integrity', () => {
     expect(src).toMatch(/function CareScoreRing/);
   });
 
-  test('Sparkline component still exists', () => {
-    expect(src).toMatch(/function Sparkline/);
+  test('Sparkline component is available to understand.tsx (Phase 28 F4 relocation)', () => {
+    // Pre-Phase-28 Sparkline lived as `function Sparkline` inside
+    // app/(tabs)/understand.tsx. Phase 28 F4 relocated it to
+    // components/insights/Sparkline.tsx so InsightsDataCard could
+    // consume it without duplication. understand.tsx now imports it
+    // — the contract this test enforces is "Sparkline is reachable
+    // from understand.tsx", not "Sparkline is defined inline there".
+    expect(src).toMatch(/import\s*\{[^}]*\bSparkline\b[^}]*\}\s*from\s*['"][^'"]*components\/insights\/Sparkline['"]/);
   });
 
   test('generateActionableSuggestions function exists in utils', () => {

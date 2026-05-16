@@ -1152,12 +1152,13 @@ export function getRouteOrFallback(route: string | undefined): string | undefine
 // PLAIN LANGUAGE SUMMARY — Replaces Care Score ring
 // ============================================================================
 
-export function generatePlainLanguageSummary(data: UnderstandPageData, range: TimeRange): string {
-  if (data.daysOfData < 7) return '';
-
+// Phase 28 F2 — sentence-building extracted so both consumers (full
+// paragraph + one-line opener) share a single source of truth and can
+// never drift.
+function buildSummarySentences(data: UnderstandPageData, range: TimeRange): string[] {
   const sentences: string[] = [];
 
-  // Medication adherence
+  // Medication adherence (highest priority — leads the gestalt).
   if (data.dosesScheduled > 0) {
     const rate = Math.round(data.adherenceRate);
     if (rate >= 90) {
@@ -1196,9 +1197,30 @@ export function generatePlainLanguageSummary(data: UnderstandPageData, range: Ti
     sentences.push(`${data.standOutInsights.length} pattern${data.standOutInsights.length !== 1 ? 's' : ''} detected that may be worth discussing with a provider.`);
   }
 
+  return sentences;
+}
+
+export function generatePlainLanguageSummary(data: UnderstandPageData, range: TimeRange): string {
+  if (data.daysOfData < 7) return '';
+
+  const sentences = buildSummarySentences(data, range);
+
   if (sentences.length === 0) {
     return `Over the past ${range} days, care data has been logged but no strong patterns have emerged yet. Continue tracking to build a clearer picture.`;
   }
 
   return sentences.join(' ');
+}
+
+// Phase 28 F2 — one-line gestalt opener for the Insights THE READ card.
+// Returns the highest-priority sentence from the same builder pool the
+// full paragraph consumes; '' when there's nothing observable (signal
+// floor or no-data). The no-signal fallback paragraph from the full
+// builder is intentionally NOT surfaced here — the gestalt slot is
+// meant to lead with an observation OR stay quiet, never to recap that
+// no patterns were found.
+export function generateOneLineGestalt(data: UnderstandPageData, range: TimeRange): string {
+  if (data.daysOfData < 7) return '';
+  const sentences = buildSummarySentences(data, range);
+  return sentences[0] ?? '';
 }
