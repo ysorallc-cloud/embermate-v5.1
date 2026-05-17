@@ -116,6 +116,34 @@ const mockAsyncStorage = (() => {
 jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
 
 // ============================================================================
+// MOCK: expo-font (Phase 33 F3)
+// ============================================================================
+// Tests proceed as if fonts always loaded immediately. useFonts() returns
+// [loaded, error] in production; tests get [true, null] so any consumer
+// gated on `fontsLoaded` proceeds straight through (no splash gate stall
+// in test context).
+
+jest.mock('expo-font', () => ({
+  useFonts: () => [true, null],
+  isLoaded: () => true,
+  loadAsync: () => Promise.resolve(),
+}));
+
+// ============================================================================
+// MOCK: @expo-google-fonts/source-serif-4 (Phase 33 F3)
+// ============================================================================
+// The four weight constants the loader requests. In production these are
+// numeric require() identifiers pointing at font assets. In test context
+// any non-undefined value works — useFonts() returns [true] anyway.
+
+jest.mock('@expo-google-fonts/source-serif-4', () => ({
+  SourceSerif4_400Regular: 'SourceSerif4_400Regular',
+  SourceSerif4_400Regular_Italic: 'SourceSerif4_400Regular_Italic',
+  SourceSerif4_500Medium: 'SourceSerif4_500Medium',
+  SourceSerif4_600SemiBold: 'SourceSerif4_600SemiBold',
+}));
+
+// ============================================================================
 // MOCK: expo-secure-store
 // ============================================================================
 

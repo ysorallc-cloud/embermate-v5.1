@@ -427,6 +427,27 @@ export const Spacing = {
   md: 20,  // was 16 — sibling-card gaps
   lg: 28,  // was 24 — section breaks (eyebrow above card)
   xl: 36,  // was 32 — major section separations
+  // Phase 33 F2 — numeric s1..s12 scale alongside the existing names.
+  // Aligns with the website source-of-truth spacing system (`--s1`
+  // through `--s12`). Coexists with xxs..xl per Q-33.1 lock: both
+  // systems are valid; the Phase 3.5 lift (md=20/lg=28/xl=36) stays
+  // as the deliberate-breathing-room baseline, and new code reaching
+  // for canonical website rungs (16/24/32) can use s4/s5/s6 directly.
+  // Higher steps (s7..s12) are mostly desktop-irrelevant on mobile;
+  // declared for forward use (e.g., tablet layouts, max-width
+  // containers).
+  s1: 4,
+  s2: 8,
+  s3: 12,
+  s4: 16,
+  s5: 24,
+  s6: 32,
+  s7: 48,
+  s8: 64,
+  s9: 96,
+  s10: 128,
+  s11: 160,
+  s12: 200,
 };
 
 // v6.7 sizing tokens (May 1 sizing pass) — locked numeric heights / radii /
@@ -435,7 +456,7 @@ export const Sizing = {
   buttonHeight: 36,        // standard touch target — clears Apple HIG min
   buttonHeightCompact: 28, // secondary inline buttons
   textareaMinHeight: 36,   // empty placeholder height
-  cardRadius: 13,
+  cardRadius: 14, // Phase 33 F2 — aligned to website `--radius: 14` (was 13; 1pt delta, visually undetectable)
   pillRadius: 10,
   buttonRadius: 10,
   ringSize: 30,            // stat tile ring diameter
@@ -523,6 +544,19 @@ export const Typography = {
     fontWeight: '500' as const,
     letterSpacing: 1,
   },
+};
+
+// Phase 33 F2 — font-family token slots aligned to website source-of-truth.
+// `serif` carries Source Serif 4 (the brand serif) with Georgia as fallback
+// for first-paint pre-load (Source Serif 4 is loaded via expo-font in
+// app/_layout.tsx; until fonts resolve, consumers using Fonts.serif render
+// via system Georgia and the swap is invisible at second paint).
+// `sans` keeps the system sans chain — per Q-33.6 lock, Inter is NOT
+// loaded (system sans is internally consistent and the website's --sans
+// includes the same system fallback chain).
+export const Fonts = {
+  serif: 'Source Serif 4, Georgia, serif',
+  sans: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 };
 
 export const Shadows = {

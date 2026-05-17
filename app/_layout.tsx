@@ -8,6 +8,18 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { View, Text, StyleSheet, Platform, useWindowDimensions, AppState, AppStateStatus, TouchableOpacity } from 'react-native';
 import { useEffect, useRef, useState, useCallback } from 'react';
+// Phase 33 F3 — Source Serif 4 is the website source-of-truth serif. Loaded
+// at app startup so all `Fonts.serif` consumers render with the brand font
+// instead of falling back to system Georgia. Splash dismissal is gated on
+// fontsLoaded so the first paint already carries Source Serif 4 metrics —
+// avoids a visible font-swap flash on cold start.
+import { useFonts } from 'expo-font';
+import {
+  SourceSerif4_400Regular,
+  SourceSerif4_400Regular_Italic,
+  SourceSerif4_500Medium,
+  SourceSerif4_600SemiBold,
+} from '@expo-google-fonts/source-serif-4';
 
 // Keep the branded splash visible until the first render is ready —
 // prevents the white-flash-on-cold-start that happens when the JS bundle
@@ -79,6 +91,25 @@ function RootLayout() {
   const lockoutTimerRef = useRef<NodeJS.Timeout | null>(null);
   const appStateRef = useRef(AppState.currentState);
 
+  // Phase 33 F3 — Source Serif 4 loaded before splash dismisses so the
+  // first paint already has the brand serif. Four weights cover the app's
+  // typography needs: 400 regular (headlines), 400 italic (witness voice),
+  // 500 medium (emphasis), 600 semibold (CTAs).
+  const [fontsLoaded] = useFonts({
+    SourceSerif4_400Regular,
+    SourceSerif4_400Regular_Italic,
+    SourceSerif4_500Medium,
+    SourceSerif4_600SemiBold,
+  });
+  // Phase 33 F3 — splash gate. The pre-existing logic dismissed splash
+  // inline once runStartupSequence resolved (or rejected). F3 splits that
+  // into a "startup complete" signal + a separate effect that dismisses
+  // when BOTH startup and fonts are ready. Either source becoming ready
+  // alone is insufficient — premature dismiss would either show the app
+  // before migrations finish OR show it before Source Serif 4 metrics
+  // resolve (visible font-swap flash on first paint).
+  const [startupComplete, setStartupComplete] = useState(false);
+
   const checkSessionLock = useCallback(async () => {
     try {
       const enabled = await isBiometricEnabled();
@@ -130,11 +161,14 @@ function RootLayout() {
       } catch (err) {
         logError('RootLayout.wizardResume', err);
       }
-      SplashScreen.hideAsync().catch(() => {});
+      // Phase 33 F3 — signal startup-done; the font-gate effect below
+      // dismisses splash only when fonts are also loaded.
+      setStartupComplete(true);
     }).catch(() => {
-      // Splash must hide even if startup fails — otherwise the app is
-      // permanently stuck on the splash image with no way to interact.
-      SplashScreen.hideAsync().catch(() => {});
+      // Phase 33 F3 — signal startup-done even on error (splash must
+      // still hide, just gated on fonts so the app doesn't reveal
+      // mid-font-load).
+      setStartupComplete(true);
     });
 
     // Check device integrity (jailbreak/root) — non-blocking warning
@@ -170,6 +204,17 @@ function RootLayout() {
       }
     };
   }, [checkSessionLock]);
+
+  // Phase 33 F3 — dual-gate splash dismissal. Either gate alone is
+  // insufficient: startup-complete-only would reveal the app while
+  // Source Serif 4 is still resolving (visible font-swap flash on
+  // first paint); fonts-loaded-only would reveal the app before
+  // migrations/daily-reset/cleanup finish. Both must be ready.
+  useEffect(() => {
+    if (fontsLoaded && startupComplete) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded, startupComplete]);
 
   async function requestNotificationPermissionsOnStartup() {
     try {

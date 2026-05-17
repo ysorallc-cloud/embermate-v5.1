@@ -32,8 +32,8 @@ describe('Theme sizing tokens', () => {
     expect(Sizing.textareaMinHeight).toBeLessThanOrEqual(40);
   });
 
-  it('cardRadius is 13', () => {
-    expect(Sizing.cardRadius).toBe(13);
+  it('cardRadius is 14 (Phase 33 F2 — aligned to website `--radius: 14`)', () => {
+    expect(Sizing.cardRadius).toBe(14);
   });
 
   it('pillRadius is 10', () => {

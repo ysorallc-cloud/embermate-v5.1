@@ -60,7 +60,7 @@ jest.mock('../../contexts/ThemeContext', () => ({
 jest.mock('../../theme/theme-tokens', () => ({
   Colors: new Proxy({}, { get: () => '#000' }),
   Spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 },
-  Sizing: { cardRadius: 13, cardInternalPadding: 12 },
+  Sizing: { cardRadius: 14, cardInternalPadding: 12 },
   BorderRadius: { sm: 4, md: 8, lg: 12 },
 }));
 
