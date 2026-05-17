@@ -147,10 +147,16 @@ describe('You tab — header structure contract (post-Phase-29 reframe)', () => 
     expect(styleBlock('headerMessage')).toBe('');
   });
 
-  it('greeting style: Georgia italic at 22pt (Phase 29 F1 successor to title)', () => {
+  it('greeting style: Source Serif 4 italic at 22pt via Fonts.serifItalic (Phase 29 F1 + Phase 33 F6)', () => {
+    // Phase 29 F1 — witness-voice italic greeting replaced pre-29 sans
+    // title. Phase 33 F6 — fontFamily 'Georgia' literal migrated to
+    // Fonts.serifItalic so the greeting picks up Source Serif 4 italic
+    // from the F3 useFonts loader. Italic stays reserved for witness
+    // voice per the refined Q-33.5 lock; informational tab labels use
+    // regular-weight serif at 32pt instead.
     const block = styleBlock('greeting');
     expect(block).not.toBe('');
-    expect(block).toMatch(/fontFamily:\s*['"]Georgia['"]/);
+    expect(block).toMatch(/fontFamily:\s*Fonts\.serifItalic\b/);
     expect(block).toMatch(/fontStyle:\s*['"]italic['"]/);
     expect(num(block, 'fontSize')).toBe(22);
   });

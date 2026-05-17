@@ -66,39 +66,60 @@ describe('Header structure contract — title metrics', () => {
 
   // Phase 3.6.2 + 3.6.3 (May 3) compressed all four tab H1s from
   // fontSize 32 / weight 300 / letterSpacing -0.5 down to 22 / 500 / -0.3.
-  // Device review of Phase 3.5 showed the prior larger title eating
-  // too much vertical space for what it communicated.
-  it('Now greeting title: 22pt, weight 500', () => {
+  // Phase 33 F4+F5+F6 (2026-05-17) re-established the brand serif at
+  // headline scale across tab + subscreen headers. The unified-cross-tab
+  // 22pt sans invariant retired in favor of a 32pt Source Serif 4
+  // regular-weight register for informational tab/subscreen labels +
+  // 22pt italic-serif for the You-tab witness-voice greeting.
+  it('Now greeting title: 22pt, weight 500 (NowGreeting unchanged by Phase 33 — header decoration, not tab H1)', () => {
+    // NowGreeting is a sub-component inside the Now hero block, not the
+    // top-of-page tab H1 (Now has no top-of-page H1 — the hero block
+    // leads with patient chip + content directly). Phase 33 left this
+    // sub-component alone; the F4 typography update applies to
+    // ScreenHeader (Journal + Insights) and SubScreenHeader.
     const block = titleBlock(read('components/now/NowGreeting.tsx'));
     expect(num(block, 'fontSize')).toBe(22);
     expect(block).toMatch(/fontWeight:\s*['"]500['"]/);
   });
 
-  it('Journal title: 22pt, weight 500', () => {
-    const block = titleBlock(read('app/(tabs)/journal.tsx'));
-    expect(num(block, 'fontSize')).toBe(22);
-    expect(block).toMatch(/fontWeight:\s*['"]500['"]/);
-  });
-
-  it('ScreenHeader title (Understand): 22pt, weight 500', () => {
+  it('Journal title: 32pt serif weight 400 (Phase 33 F4 — via ScreenHeader)', () => {
+    // Journal renders ScreenHeader; the title style lives in
+    // components/ScreenHeader.tsx. This contract pins the screen-header-
+    // sourced metrics indirectly via the next test (which reads
+    // ScreenHeader directly). Journal's own file no longer declares a
+    // local `title` style — it consumes ScreenHeader. So this contract
+    // becomes a passthrough.
     const block = titleBlock(read('components/ScreenHeader.tsx'));
-    expect(num(block, 'fontSize')).toBe(22);
-    expect(block).toMatch(/fontWeight:\s*['"]500['"]/);
+    expect(num(block, 'fontSize')).toBe(32);
+    expect(block).toMatch(/fontWeight:\s*['"]400['"]/);
   });
 
-  it('Support greeting: 22pt, Georgia italic 400 (Phase 29 F1 — deliberate You-tab variant)', () => {
-    // Phase 29 F1 retired the pre-29 sans-serif `title` style block at
-    // 22pt/weight 500 and replaced it with a Georgia italic `greeting`
-    // block at 22pt/weight 400. The cross-tab fontSize 22 invariant is
-    // PRESERVED — Phase 29 only diverges on family + style + weight to
-    // give the You tab a warmer voice consistent with the rest of the
-    // caregiver-lane lavender encoding (Phase 26-29 lane work). The
-    // other three tabs (Now, Journal, Insights) keep sans-serif weight
-    // 500; the contract above each pins their unchanged form.
+  it('ScreenHeader title (Understand): 32pt serif weight 400 (Phase 33 F4)', () => {
+    // Phase 33 F4 — pre-33 22pt/weight 500 sans replaced with 32pt /
+    // weight 400 / Source Serif 4 / letter-spacing −0.8. Cascades to
+    // Journal + Insights + ~20 sub-screens using ScreenHeader. Q-33.5
+    // lock: informational labels use regular-weight serif.
+    const block = titleBlock(read('components/ScreenHeader.tsx'));
+    expect(num(block, 'fontSize')).toBe(32);
+    expect(block).toMatch(/fontWeight:\s*['"]400['"]/);
+    expect(block).toMatch(/fontFamily:\s*Fonts\.serif\b/);
+    expect(num(block, 'letterSpacing')).toBe(-0.8);
+  });
+
+  it('Support greeting: 22pt, italic-serif via Fonts.serifItalic, weight 400 (Phase 29 F1 + Phase 33 F6)', () => {
+    // Phase 29 F1 — retired the pre-29 sans-serif `title` style block at
+    // 22pt/weight 500 in favor of a witness-voice italic-serif greeting
+    // (then-Georgia-literal, weight 400, 22pt). Phase 33 F6 swapped the
+    // 'Georgia' literal to Fonts.serifItalic so the greeting picks up
+    // Source Serif 4 italic from the F3 useFonts loader. Italic stays
+    // reserved for witness voice (Q-33.5 refined rule) — informational
+    // tab labels (Journal/Insights via ScreenHeader) use regular-weight
+    // serif at 32pt; this greeting stays at 22pt italic for caregiver-
+    // lane voice consistency.
     const block = styleBlock(read('app/(tabs)/support.tsx'), 'greeting');
     expect(block).not.toBe('');
     expect(num(block, 'fontSize')).toBe(22);
-    expect(block).toMatch(/fontFamily:\s*['"]Georgia['"]/);
+    expect(block).toMatch(/fontFamily:\s*Fonts\.serifItalic\b/);
     expect(block).toMatch(/fontStyle:\s*['"]italic['"]/);
     expect(block).toMatch(/fontWeight:\s*['"]400['"]/);
   });

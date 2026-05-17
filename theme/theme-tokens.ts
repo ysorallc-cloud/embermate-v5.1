@@ -546,17 +546,32 @@ export const Typography = {
   },
 };
 
-// Phase 33 F2 — font-family token slots aligned to website source-of-truth.
-// `serif` carries Source Serif 4 (the brand serif) with Georgia as fallback
-// for first-paint pre-load (Source Serif 4 is loaded via expo-font in
-// app/_layout.tsx; until fonts resolve, consumers using Fonts.serif render
-// via system Georgia and the swap is invisible at second paint).
-// `sans` keeps the system sans chain — per Q-33.6 lock, Inter is NOT
-// loaded (system sans is internally consistent and the website's --sans
-// includes the same system fallback chain).
+// Phase 33 F2 (corrected in F4+F5+F6) — font-family token slots aligned to
+// the React Native font-loading model.
+//
+// Initial F2 declared `serif` as a CSS-style stack ('Source Serif 4,
+// Georgia, serif'). That works in web CSS but NOT in React Native — RN's
+// `fontFamily` takes a single font name that must match either a system
+// font or a font registered via expo-font's useFonts(). The first-use
+// audit in F4 caught this before any consumer wired up; the corrected
+// shape below has one token per weight/style combination, each value
+// matching the exact key name registered in `useFonts()` at
+// app/_layout.tsx so consumers get the loaded Source Serif 4 font.
+//
+// Pre-load behavior: until useFonts() resolves, RN renders consumers
+// using these tokens with the default system font. The splash-gate in
+// app/_layout.tsx prevents the app from revealing during that window —
+// users never see the system-fallback paint.
+//
+// Q-33.6 lock: sans tokens NOT declared. RN's default font family is
+// system sans (San Francisco on iOS, Roboto on Android). Consumers
+// wanting system sans simply omit `fontFamily`. The website's --sans
+// includes the same system fallback chain — no visual delta.
 export const Fonts = {
-  serif: 'Source Serif 4, Georgia, serif',
-  sans: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  serif: 'SourceSerif4_400Regular',
+  serifItalic: 'SourceSerif4_400Regular_Italic',
+  serifMedium: 'SourceSerif4_500Medium',
+  serifSemiBold: 'SourceSerif4_600SemiBold',
 };
 
 export const Shadows = {

@@ -42,7 +42,7 @@ import { ActionCardsRow } from '../../components/support/ActionCardsRow';
 import { BreathingExercise } from '../../components/support/BreathingExercise';
 import { BreathingOrbCard } from '../../components/support/BreathingOrbCard';
 import { ResourcesList } from '../../components/support/ResourcesList';
-import { Colors, Spacing } from '../../theme/theme-tokens';
+import { Colors, Spacing, Fonts } from '../../theme/theme-tokens';
 import {
   buildCaregiverWitness,
   WitnessSignal,
@@ -255,12 +255,17 @@ function createStyles(c: typeof Colors) {
       borderBottomWidth: 0.5,
       borderBottomColor: c.glassHover,
     },
-    // Phase 29 F1 — time-aware Georgia italic greeting replaces the
-    // pre-29 22pt sans-serif "You" title. Weight 400 keeps the line
-    // warm without competing with the lower AffirmationHeader; 22pt
-    // preserves the vertical rhythm headerStructureContract assumed.
+    // Phase 29 F1 — time-aware italic-serif greeting replaces the pre-29
+    // 22pt sans-serif "You" title. Weight 400 keeps the line warm without
+    // competing with the lower AffirmationHeader; 22pt preserves the
+    // vertical rhythm headerStructureContract assumed.
+    // Phase 33 F6 — fontFamily 'Georgia' literal swapped to Fonts.serifItalic
+    // token so the greeting picks up Source Serif 4 italic from the F3
+    // useFonts loader. Per the refined Q-33.5 lock: witness-voice tab
+    // greetings (this one) keep italic serif; informational tab labels
+    // (Journal, Insights via ScreenHeader F4) use regular-weight serif.
     greeting: {
-      fontFamily: 'Georgia',
+      fontFamily: Fonts.serifItalic,
       fontStyle: 'italic' as const,
       fontSize: 22,
       fontWeight: '400' as const,

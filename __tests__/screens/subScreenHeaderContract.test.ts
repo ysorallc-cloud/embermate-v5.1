@@ -34,10 +34,16 @@ describe('SubScreenHeader — shape and metrics', () => {
     expect(num(block, 'paddingBottom')).toBe(24);
   });
 
-  it('title style: fontSize 32, fontWeight 300', () => {
+  it('title style: fontSize 32, fontWeight 400, serif (Phase 33 F5)', () => {
+    // Phase 33 F5 — default variant migrated from sans-serif weight 300
+    // to Source Serif 4 weight 400 + letter-spacing −0.8. Q-33.5/Q-33.7
+    // lock: informational subscreen labels carry regular-weight serif;
+    // italic-serif stays the opt-in variant for witness-voice subscreens.
     const block = styleBlock(headerSrc, 'title');
     expect(num(block, 'fontSize')).toBe(32);
-    expect(block).toMatch(/fontWeight:\s*['"]300['"]/);
+    expect(block).toMatch(/fontWeight:\s*['"]400['"]/);
+    expect(block).toMatch(/fontFamily:\s*Fonts\.serif\b/);
+    expect(num(block, 'letterSpacing')).toBe(-0.8);
   });
 
   it('subtitle style: fontSize 13, color textSecondary, lineHeight 20', () => {
@@ -65,10 +71,9 @@ describe('SubScreenHeader — shape and metrics', () => {
 
 describe('SubScreenHeader — Phase 29 Batch C F1 titleVariant prop', () => {
   // Phase 29 Batch C F1 — titleVariant?: 'default' | 'serif' added.
-  // Default preserves the 32pt sans contract (pinned above). Serif
-  // is the witness-voice variant consumed by caregiver-wellness +
-  // /resources so their lavender-lane subscreens read in the same
-  // Georgia italic register as the You-tab greeting that launches them.
+  // Phase 33 F5: both variants now render Source Serif 4. Default is
+  // regular weight (informational subscreens); serif variant is italic
+  // (witness-voice subscreens like /caregiver-wellness and /resources).
   it('props interface declares titleVariant?: "default" | "serif"', () => {
     expect(headerSrc).toMatch(/titleVariant\?:\s*['"]?default['"]?\s*\|\s*['"]?serif['"]?/);
   });
@@ -77,10 +82,14 @@ describe('SubScreenHeader — Phase 29 Batch C F1 titleVariant prop', () => {
     expect(headerSrc).toMatch(/titleVariant\s*=\s*['"]default['"]/);
   });
 
-  it('titleSerif style block: Georgia italic, 20pt, weight 400', () => {
+  it('titleSerif style block: Source Serif 4 italic via Fonts.serifItalic, 20pt, weight 400 (Phase 33 F5)', () => {
+    // Phase 33 F5 — fontFamily literal 'Georgia' migrated to the
+    // Fonts.serifItalic token so the variant picks up Source Serif 4
+    // italic from the F3 useFonts loader. Geometry (20pt, weight 400,
+    // letter-spacing 0.1, italic style) preserved from Batch C F1.
     const block = styleBlock(headerSrc, 'titleSerif');
     expect(block).not.toBe('');
-    expect(block).toMatch(/fontFamily:\s*['"]Georgia['"]/);
+    expect(block).toMatch(/fontFamily:\s*Fonts\.serifItalic\b/);
     expect(block).toMatch(/fontStyle:\s*['"]italic['"]/);
     expect(num(block, 'fontSize')).toBe(20);
     expect(block).toMatch(/fontWeight:\s*['"]400['"]/);

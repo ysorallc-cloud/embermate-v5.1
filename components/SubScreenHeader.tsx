@@ -16,7 +16,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
-import { Colors, Spacing } from '../theme/theme-tokens';
+import { Colors, Spacing, Fonts } from '../theme/theme-tokens';
 import { BackButton } from './common/BackButton';
 
 interface SubScreenHeaderProps {
@@ -57,18 +57,33 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  // Phase 33 F5 — default variant aligned to website source-of-truth.
+  // The pre-Phase-33 default was 32pt sans-serif weight 300 (informational
+  // hairline-light). Phase 33 re-establishes the brand serif at headline
+  // scale: Source Serif 4, weight 400, letter-spacing −0.8 (was −0.5).
+  // Q-33.5/Q-33.7 lock: subscreen labels via SubScreenHeader default
+  // variant carry REGULAR-weight serif — informational, not witness-voice.
+  // The opt-in serif (italic) variant below stays for witness-voice
+  // subscreens (Batch C "Your wellness" pattern).
   title: {
+    fontFamily: Fonts.serif,
     fontSize: 32,
-    fontWeight: '300',
+    fontWeight: '400',
     color: c.textPrimary,
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
   },
-  // Phase 29 Batch C F1 — serif variant. Witness-voice typography for
-  // caregiver-lane subscreens (caregiver-wellness, /resources). 20pt is
-  // smaller than the 22pt You-tab greeting on purpose — subscreen H1
-  // sits below the tab H1 in the visual hierarchy.
+  // Phase 29 Batch C F1 — opt-in italic-serif variant. Witness-voice
+  // typography for caregiver-lane subscreens (caregiver-wellness,
+  // /resources). 20pt is smaller than the 32pt default + tab H1 on
+  // purpose — italic witness-voice subscreen H1 sits below the
+  // informational H1 register.
+  // Phase 33 F5 — fontFamily literal 'Georgia' replaced with
+  // Fonts.serifItalic token so the variant picks up the Source Serif 4
+  // italic from the F3 loader. Pre-loader fallback: RN's font-resolution
+  // falls back to system Georgia if the registered font name doesn't
+  // resolve, preserving the v6.7 rendering during the splash window.
   titleSerif: {
-    fontFamily: 'Georgia',
+    fontFamily: Fonts.serifItalic,
     fontStyle: 'italic' as const,
     fontSize: 20,
     fontWeight: '400' as const,
