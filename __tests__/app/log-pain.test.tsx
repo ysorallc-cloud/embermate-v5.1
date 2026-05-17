@@ -19,7 +19,7 @@ const themeColors = {
   green: '#5fb88a',
   amber: '#e5b04a',
   orange: '#FB923C',
-  red: '#e6776e',
+  coral: '#e6776e',
   rose: '#e6776e',
   textPrimary: '#fff',
   textSecondary: '#c4c1b3',

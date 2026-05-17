@@ -528,7 +528,7 @@ function HandoffView({
             styles.statusDot,
             statusLevel === 'stable' && { backgroundColor: colors.green },
             statusLevel === 'attention' && { backgroundColor: colors.amber },
-            statusLevel === 'concerning' && { backgroundColor: colors.red },
+            statusLevel === 'concerning' && { backgroundColor: colors.coral },
           ]} />
           <View style={{ flex: 1 }}>
             <Text style={styles.statusLabel}>CURRENT STATUS</Text>
@@ -1202,7 +1202,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.green,
   },
   rangeAbnormal: {
-    color: c.red,
+    color: c.coral,
   },
 
   // Notes

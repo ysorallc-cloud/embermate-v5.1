@@ -128,9 +128,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 12,
   },
   stripOverdue: {
-    backgroundColor: c.redFaint,
-    borderColor: c.redBorder,
-    borderLeftColor: c.red,
+    backgroundColor: c.coralFaint,
+    borderColor: c.coralBorder,
+    borderLeftColor: c.coral,
   },
 
   left: {
@@ -165,7 +165,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textMuted,
   },
   deltaTextLate: {
-    color: c.redBright,
+    color: c.coralBright,
   },
   deltaTextSoon: {
     color: c.amber,
@@ -195,6 +195,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.accent,
   },
   logPillTextOverdue: {
-    color: c.redBright,
+    color: c.coralBright,
   },
 });

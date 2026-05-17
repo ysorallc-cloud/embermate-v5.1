@@ -68,7 +68,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ medications }) => {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
-        return colors.red;
+        return colors.coral;
       case 'medium':
         return colors.gold;
       default:
@@ -79,7 +79,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ medications }) => {
   const getBorderColor = (priority: string) => {
     switch (priority) {
       case 'high':
-        return colors.redBorder;
+        return colors.coralBorder;
       case 'medium':
         return colors.goldBorder;
       default:
@@ -90,7 +90,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ medications }) => {
   const getBackgroundColor = (priority: string) => {
     switch (priority) {
       case 'high':
-        return colors.redFaint;
+        return colors.coralFaint;
       case 'medium':
         return colors.goldLight;
       default:

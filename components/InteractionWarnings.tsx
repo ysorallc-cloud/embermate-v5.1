@@ -15,7 +15,7 @@ export default function InteractionWarnings({ interactions }: InteractionWarning
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'high':
-        return colors.red;
+        return colors.coral;
       case 'moderate':
         return colors.amber;
       case 'low':

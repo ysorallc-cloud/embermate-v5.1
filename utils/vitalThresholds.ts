@@ -106,7 +106,7 @@ export const getVitalStatus = (type: VitalType, value: number) => {
   const threshold = getEffectiveThreshold(type);
 
   if (value <= threshold.criticalLow || value >= threshold.criticalHigh) {
-    return { status: 'critical', label: value < threshold.low ? '↓ Critical' : '↑ Critical', color: Colors.red };
+    return { status: 'critical', label: value < threshold.low ? '↓ Critical' : '↑ Critical', color: Colors.coral };
   }
   if (value < threshold.low) {
     return { status: 'low', label: '↓ Low', color: Colors.amber };

@@ -180,7 +180,7 @@ function getDotColor(instance: any): string {
   const itemIsOverdue = isOverdue(instance.scheduledTime);
   if (itemIsOverdue) {
     const urgencyInfo = getUrgencyStatus(instance.scheduledTime, false, instance.itemType);
-    if (urgencyInfo.tone === 'danger') return Colors.red;
+    if (urgencyInfo.tone === 'danger') return Colors.coral;
     return Colors.amber;
   }
 
@@ -868,7 +868,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   categoryContainerOverdue: {
     borderColor: 'rgba(239, 68, 68, 0.4)',
-    backgroundColor: c.redFaint,
+    backgroundColor: c.coralFaint,
   },
   categoryHeader: {
     flexDirection: 'row',
@@ -926,8 +926,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: 'transparent',
   },
   statusCircleOverdue: {
-    borderColor: c.red,
-    backgroundColor: c.redFaint,
+    borderColor: c.coral,
+    backgroundColor: c.coralFaint,
   },
   statusCircleDone: {
     borderColor: c.green,
@@ -978,7 +978,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textMuted,
   },
   categoryItemTimeOverdue: {
-    color: c.red,
+    color: c.coral,
   },
   categoryItemTimeDone: {
     fontSize: 12,
@@ -1004,7 +1004,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: '#0a0c0a',
   },
   logButtonOverdue: {
-    backgroundColor: c.redMuted,
+    backgroundColor: c.coralMuted,
   },
   logButtonText: {
     fontSize: 12,

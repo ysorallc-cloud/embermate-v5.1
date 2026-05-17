@@ -100,9 +100,9 @@ export const SubCardStatusColors = {
     iconBackground: Colors.amberMuted,
   },
   missed: {
-    background: Colors.redLight,
-    border: Colors.redBorder,
-    iconBackground: Colors.redMuted,
+    background: Colors.coralLight,
+    border: Colors.coralBorder,
+    iconBackground: Colors.coralMuted,
   },
 } as const;
 

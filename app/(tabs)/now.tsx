@@ -120,9 +120,9 @@ function buildOverdueCallouts(
 ): { text: string; color: string }[] {
   const callouts: { text: string; color: string }[] = [];
   const categories = [
-    { key: 'meds' as keyof TodayStats, itemType: 'medication', label: 'Meds', color: Colors.red },
-    { key: 'vitals' as keyof TodayStats, itemType: 'vitals', label: 'Vitals', color: Colors.red },
-    { key: 'wellness' as keyof TodayStats, itemType: 'wellness', label: 'Check-ins', color: Colors.red },
+    { key: 'meds' as keyof TodayStats, itemType: 'medication', label: 'Meds', color: Colors.coral },
+    { key: 'vitals' as keyof TodayStats, itemType: 'vitals', label: 'Vitals', color: Colors.coral },
+    { key: 'wellness' as keyof TodayStats, itemType: 'wellness', label: 'Check-ins', color: Colors.coral },
     { key: 'meals' as keyof TodayStats, itemType: 'nutrition', label: 'Meals', color: Colors.amberBright },
   ];
   for (const cat of categories) {
@@ -137,7 +137,7 @@ function buildOverdueCallouts(
 
     if (cat.itemType === 'medication') {
       const names = [...new Set(overdueInstances.map((i: any) => i.itemName))].join(', ');
-      callouts.push({ text: `Meds overdue — ${names}`, color: Colors.red });
+      callouts.push({ text: `Meds overdue — ${names}`, color: Colors.coral });
     } else {
       const stat = todayStats[cat.key];
       const total = stat?.total ?? overdueInstances.length;

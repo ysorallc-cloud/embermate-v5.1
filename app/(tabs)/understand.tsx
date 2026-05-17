@@ -150,7 +150,7 @@ function CareScoreRing({ score, size = 90 }: { score: number; size?: number }) {
   const radius = (size - 10) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
-  const color = score >= 80 ? Colors.green : score >= 60 ? Colors.amberBright : Colors.redBright;
+  const color = score >= 80 ? Colors.green : score >= 60 ? Colors.amberBright : Colors.coralBright;
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -857,7 +857,7 @@ export default function UnderstandScreen() {
                 <View style={styles.adherenceHeader}>
                   <Text style={[
                     styles.adherenceRate,
-                    { color: adherence.rate >= 90 ? colors.green : adherence.rate >= 70 ? colors.amberBright : colors.redBright },
+                    { color: adherence.rate >= 90 ? colors.green : adherence.rate >= 70 ? colors.amberBright : colors.coralBright },
                   ]}>
                     {adherence.rate}%
                   </Text>
@@ -875,7 +875,7 @@ export default function UnderstandScreen() {
                           styles.doseDot,
                           {
                             backgroundColor: isMissed ? 'rgba(239,68,68,0.3)' : 'rgba(74,222,128,0.2)',
-                            borderColor: isMissed ? `${Colors.redBright}40` : `${Colors.green}40`,
+                            borderColor: isMissed ? `${Colors.coralBright}40` : `${Colors.green}40`,
                           },
                         ]}
                       >
@@ -1239,7 +1239,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   doseDotX: {
     fontSize: 7,
-    color: Colors.redBright,
+    color: Colors.coralBright,
   },
   adherenceMissed: {
     fontSize: 11,

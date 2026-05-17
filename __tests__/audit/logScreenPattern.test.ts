@@ -181,7 +181,7 @@ describe('Phase 9.6 — LogScreen pattern audit', () => {
             `${f.path} contains an orange-family hex literal in code.\n` +
             `Decorative orange is forbidden — the 3-accent budget is sage / lavender / criticalAlert. ` +
             `If this is a clinical-severity gradient (rare), route through a token and append it to ` +
-            `the gradient set (Colors.green/amber/red/rose) so the audit recognises semantic use.`,
+            `the gradient set (Colors.green/amber/coral/rose) so the audit recognises semantic use.`,
           );
         }
         expect(f.body).not.toMatch(ORANGE_HEX);
@@ -190,14 +190,18 @@ describe('Phase 9.6 — LogScreen pattern audit', () => {
       it(`${f.path}: orange token use, if any, is part of a clinical severity gradient`, () => {
         if (!ORANGE_TOKEN.test(f.body)) return; // clean — no token reference
         // Token used. Verify it's accompanied by the gradient siblings.
+        // Phase 33 F1b — the `red` color-name token was renamed to `coral`
+        // (matching website source-of-truth `--coral`); semantic alias
+        // `criticalAlert` continues to point at the same hex. Either name
+        // anchors the gradient's high-severity end.
         const hasGradientSet =
           /\b(?:Colors|colors|c)\.green\b/.test(f.body) &&
           /\b(?:Colors|colors|c)\.(amber|warning)\b/.test(f.body) &&
-          /\b(?:Colors|colors|c)\.(red|criticalAlert)\b/.test(f.body);
+          /\b(?:Colors|colors|c)\.(coral|criticalAlert)\b/.test(f.body);
         if (!hasGradientSet) {
           throw new Error(
             `${f.path} references an orange token outside a recognised clinical-severity ` +
-            `gradient (must appear alongside green + amber + red/criticalAlert tokens). ` +
+            `gradient (must appear alongside green + amber + coral/criticalAlert tokens). ` +
             `Either remove the token reference or add the missing gradient siblings.`,
           );
         }

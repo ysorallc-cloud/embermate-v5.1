@@ -83,9 +83,9 @@ export const VitalsGuidance: React.FC<VitalsGuidanceProps> = ({
     medications,
   });
 
-  const statusColor = isCritical ? colors.red : colors.amber;
-  const statusBg = isCritical ? colors.redFaint : colors.amberFaint;
-  const statusBorder = isCritical ? colors.redBorder : colors.amberBorder;
+  const statusColor = isCritical ? colors.coral : colors.amber;
+  const statusBg = isCritical ? colors.coralFaint : colors.amberFaint;
+  const statusBorder = isCritical ? colors.coralBorder : colors.amberBorder;
 
   return (
     <View style={[styles.container, { borderColor: statusBorder, backgroundColor: statusBg }]} testID="vitals-guidance">

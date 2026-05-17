@@ -70,7 +70,7 @@ function gapFooterCopy(gaps: DataGap[]): string | null {
 function adherenceColor(rate: number, c: any): string {
   if (rate >= 90) return c.green;
   if (rate >= 70) return c.amberBright;
-  return c.redBright;
+  return c.coralBright;
 }
 
 export function InsightsDataCard({
@@ -145,7 +145,7 @@ export function InsightsDataCard({
                     styles.doseDot,
                     {
                       backgroundColor: isMissed ? 'rgba(239,68,68,0.3)' : 'rgba(74,222,128,0.2)',
-                      borderColor: isMissed ? `${colors.redBright}40` : `${colors.green}40`,
+                      borderColor: isMissed ? `${colors.coralBright}40` : `${colors.green}40`,
                     },
                   ]}
                 >
@@ -259,7 +259,7 @@ const createStyles = (c: any) =>
     },
     doseDotX: {
       fontSize: 7,
-      color: c.redBright,
+      color: c.coralBright,
     },
     adherenceMissed: {
       fontSize: 10.5,

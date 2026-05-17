@@ -538,7 +538,7 @@ export default function DataPrivacySettingsScreen() {
                 accessibilityHint="Permanently removes all health data from this device. This cannot be undone."
               >
                 {deleting ? (
-                  <ActivityIndicator size="small" color={colors.red} />
+                  <ActivityIndicator size="small" color={colors.coral} />
                 ) : (
                   <>
                     <Text style={styles.deleteAllIcon}>⚠️</Text>
@@ -740,7 +740,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     gap: 8,
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderTopWidth: 1,
-    borderTopColor: c.redHint,
+    borderTopColor: c.coralHint,
     padding: 14,
     marginTop: 0,
   },
@@ -750,7 +750,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   clearButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: c.red,
+    color: c.coral,
   },
   clearNote: {
     fontSize: 11,
@@ -847,7 +847,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     gap: 8,
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderTopWidth: 1,
-    borderTopColor: c.redHint,
+    borderTopColor: c.coralHint,
     padding: 14,
   },
   deleteAllIcon: {
@@ -856,7 +856,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   deleteAllText: {
     fontSize: 15,
     fontWeight: '700',
-    color: c.red,
+    color: c.coral,
   },
   deleteNote: {
     fontSize: 11,

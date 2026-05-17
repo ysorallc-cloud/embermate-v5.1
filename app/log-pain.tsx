@@ -54,7 +54,7 @@ function getSeverityColor(value: number): string {
   if (value <= 2) return Colors.green;
   if (value <= 4) return Colors.amber;
   if (value <= 6) return Colors.orange;
-  if (value <= 8) return Colors.red;
+  if (value <= 8) return Colors.coral;
   return Colors.rose;
 }
 

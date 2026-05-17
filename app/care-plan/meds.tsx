@@ -688,7 +688,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     width: 80,
     alignItems: 'center',
     justifyContent: 'center',
-    // Phase 2.6.4 — c.red (alias for #e6776e) → c.criticalAlert (canonical
+    // Phase 2.6.4 — c.coral (alias for #e6776e) → c.criticalAlert (canonical
     // name). Same hex; the semantic name reads cleanly under the Phase 7
     // 3-accent budget audit.
     backgroundColor: c.criticalAlert,
@@ -782,7 +782,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '500',
   },
   medActionTextDanger: {
-    color: c.red,
+    color: c.coral,
   },
 
   // Empty State

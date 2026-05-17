@@ -113,7 +113,7 @@ export default function InteractionsScreen() {
 
           {/* Summary Cards */}
           <View style={styles.summaryCards}>
-            <View style={[styles.summaryCard, { borderLeftColor: colors.red }]}>
+            <View style={[styles.summaryCard, { borderLeftColor: colors.coral }]}>
               <Text style={styles.summaryValue}>{highRisk.length}</Text>
               <Text style={styles.summaryLabel}>High Risk</Text>
             </View>

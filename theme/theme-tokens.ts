@@ -105,13 +105,19 @@ const DarkColors = {
   amberMuted: 'rgba(229, 176, 74, 0.15)',
   amberBorder: 'rgba(229, 176, 74, 0.20)',
   amberGlow: 'rgba(229, 176, 74, 0.35)',
-  red: '#e6776e',
-  redFaint: 'rgba(230, 119, 110, 0.06)',
-  redLight: 'rgba(230, 119, 110, 0.10)',
-  redHint: 'rgba(230, 119, 110, 0.12)',
-  redMuted: 'rgba(230, 119, 110, 0.15)',
-  redBorder: 'rgba(230, 119, 110, 0.20)',
-  redStrong: 'rgba(230, 119, 110, 0.25)',
+  // Phase 33 F1b — `red*` family renamed to `coral*` to match the
+  // website source-of-truth `--coral` (same hex #e6776e). The pre-rename
+  // `red` name was a hex-derived color-name with no semantic value; the
+  // website (and the actual hue) call it coral. Renamed across 32
+  // consumer files in F1b. Semantic aliases `error` + `criticalAlert`
+  // continue to point at the same hex and are unchanged.
+  coral: '#e6776e',
+  coralFaint: 'rgba(230, 119, 110, 0.06)',
+  coralLight: 'rgba(230, 119, 110, 0.10)',
+  coralHint: 'rgba(230, 119, 110, 0.12)',
+  coralMuted: 'rgba(230, 119, 110, 0.15)',
+  coralBorder: 'rgba(230, 119, 110, 0.20)',
+  coralStrong: 'rgba(230, 119, 110, 0.25)',
   rose: '#FB7185',
   roseLight: 'rgba(251, 113, 133, 0.10)',
   roseBorder: 'rgba(251, 113, 133, 0.20)',
@@ -147,25 +153,65 @@ const DarkColors = {
   cyan: '#67E8F9',
   cyanLight: 'rgba(103, 232, 249, 0.10)',
   cyanBorder: 'rgba(103, 232, 249, 0.20)',
-  sage: '#C4B5FD',
-  sageHint: 'rgba(196, 181, 253, 0.04)',
-  sageTint: 'rgba(196, 181, 253, 0.05)',
-  sageFaint: 'rgba(196, 181, 253, 0.06)',
-  sageLight: 'rgba(196, 181, 253, 0.08)',
-  sageSubtle: 'rgba(196, 181, 253, 0.10)',
-  sageBorder: 'rgba(196, 181, 253, 0.12)',
-  sageWash: 'rgba(196, 181, 253, 0.15)',
-  sageGlow: 'rgba(196, 181, 253, 0.22)',
-  sageMuted: 'rgba(196, 181, 253, 0.35)',
-  sageSoft: 'rgba(196, 181, 253, 0.55)',
-  sageStrong: 'rgba(196, 181, 253, 0.70)',
-  sageBright: 'rgba(196, 181, 253, 0.85)',
-  sageDim: 'rgba(95, 184, 138, 0.06)',
+  // ── @deprecated sage* alias ladder (Phase 33 F1b) ───────────────────────
+  // The `sage*` family in the v6.7 palette was MISNAMED — every token
+  // except sageDim carried lavender hex (#C4B5FD-derived rgba) despite
+  // the "sage" name. Phase 33 F1b retires the misleading declarations
+  // and replaces them with aliased re-exports pointing at the
+  // corresponding caregiverAccent* (lavender) values. Visual rendering
+  // for the 69 consumer sites is preserved (or shifted at most by a
+  // small alpha delta where the original sage* ladder had finer-grained
+  // alpha rungs than caregiverAccent's).
+  //
+  // Each alias is @deprecated — new code should use the caregiverAccent*
+  // form directly. Consumer migration (69 sites) deferred to a backlog
+  // phase per Q-33.3 (component-level migrations defer to their own
+  // scoped phases).
+  //
+  // sageSoft (0.55) and sageBright (0.85) had 0 consumers and are
+  // deleted entirely.
+  //
+  // sageMuted (0.35) and sageStrong (0.70) had no caregiverAccent
+  // equivalent at their alpha rung — F1b added caregiverAccentMid
+  // (0.35) and caregiverAccentBold (0.70) to the lavender ladder so
+  // the aliases preserve visual weight (Option C per audit F1b-1).
+  // Mid/Bold naming preferred over Solid/Text because the existing
+  // `caregiverAccentText: '#d4baff'` token already claimed the Text
+  // suffix for a different semantic (brighter-lavender text color).
+  //
+  // sageDim (the only correctly-sage RGB in the family, alpha 0.06) is
+  // aliased to accentDim per user instruction. Alpha shift +0.04
+  // (sageDim 0.06 → accentDim 0.10) — slight visual lift on 1 consumer.
+
+  /** @deprecated Phase 33 F1b — misnamed (carries LAVENDER hex). Use `caregiverAccent` directly. */
+  sage: '#aa8adc', // alias to caregiverAccent (1.00 solid, ✓ exact)
+  /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentBg`. Alpha shift +0.02 from 0.04 → 0.06. */
+  sageHint: 'rgba(170, 138, 220, 0.06)', // alias to caregiverAccentBg
+  /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentBg`. Alpha shift +0.01 from 0.05 → 0.06. */
+  sageTint: 'rgba(170, 138, 220, 0.06)', // alias to caregiverAccentBg
+  /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentBg` (alpha 0.06, ✓ exact). */
+  sageFaint: 'rgba(170, 138, 220, 0.06)', // alias to caregiverAccentBg
+  /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentMuted` (alpha 0.08, ✓ exact). */
+  sageLight: 'rgba(170, 138, 220, 0.08)', // alias to caregiverAccentMuted
+  /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentLight` (alpha 0.10, ✓ exact). */
+  sageSubtle: 'rgba(170, 138, 220, 0.10)', // alias to caregiverAccentLight
+  /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentHint` (alpha 0.12, ✓ exact). */
+  sageBorder: 'rgba(170, 138, 220, 0.12)', // alias to caregiverAccentHint
+  /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentWash` (alpha 0.15, ✓ exact). */
+  sageWash: 'rgba(170, 138, 220, 0.15)', // alias to caregiverAccentWash
+  /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentStrong`. Alpha shift +0.03 from 0.22 → 0.25. */
+  sageGlow: 'rgba(170, 138, 220, 0.25)', // alias to caregiverAccentStrong
+  /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentMid` (NEW, alpha 0.35, ✓ exact). */
+  sageMuted: 'rgba(170, 138, 220, 0.35)', // alias to caregiverAccentMid (NEW)
+  /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentBold` (NEW, alpha 0.70, ✓ exact). */
+  sageStrong: 'rgba(170, 138, 220, 0.70)', // alias to caregiverAccentBold (NEW)
+  /** @deprecated Phase 33 F1b — correctly-sage RGB (only sage* token that was). Use `accentDim`. Alpha shift +0.04 from 0.06 → 0.10 (per user instruction). */
+  sageDim: 'rgba(95, 184, 138, 0.10)', // alias to accentDim
   amberBright: '#e5b04a',
   amberBrightTint: 'rgba(229, 176, 74, 0.08)',
   amberBrightStrong: 'rgba(229, 176, 74, 0.75)',
   greenBright: '#5fb88a',
-  redBright: '#e6776e',
+  coralBright: '#e6776e', // Phase 33 F1b — renamed from redBright
   blueBright: '#93C5FD',
   skyBright: '#7DD3FC',
   success: '#5fb88a',
@@ -177,18 +223,17 @@ const DarkColors = {
   // so existing call sites continue working while new code can prefer the
   // semantic name.
   criticalAlert: '#e6776e',
-  // Coral — v7-reserved.
-  // Phase 7 of the v6.7 May 1 sizing pass enforces a strict 3-accent
-  // budget (sage / lavender / criticalAlert). Coral was the 4th accent,
-  // formerly carrying the Meals tile ring (Phase 3a neutralized) and the
-  // Helpline pill (Phase 6 neutralized). The token stays declared so a
-  // future v7 design pass can re-introduce it deliberately without
-  // re-establishing the hex value, but it is NOT in the current budget
-  // and must not be referenced from app/ or components/. See
-  // __tests__/colorBudgetPhase7.test.ts for the source-level guard.
-  coral: '#e89a7a',
-  coralLight: 'rgba(232, 154, 122, 0.10)',
-  coralBorder: 'rgba(232, 154, 122, 0.25)',
+  // Phase 33 F1b — v7-reserved coral (#e89a7a) deleted. The reservation
+  // was a Phase 7 hold for a future 4th-accent design pass that never
+  // came. Phase 33 instead renames the `red` family (color-named at the
+  // canonical #e6776e — which the website calls `--coral`) to `coral*`,
+  // claiming the name for the actual coral hue in active use. Three
+  // declarations retired here:
+  //   coral: '#e89a7a'                     (0 consumers)
+  //   coralLight: 'rgba(232,154,122,0.10)' (0 consumers)
+  //   coralBorder: 'rgba(232,154,122,0.25)' (0 consumers)
+  // The new coral* family declarations live in the red→coral rename
+  // block above (search for "coral: '#e6776e'").
   // Phase 33 F1a — primary text aligned to website source-of-truth
   // `--text: #f4ddb8` (warm cream). The pure-white #FFFFFF carried over
   // from the v6.7 palette was the single largest source of brand drift —
@@ -226,6 +271,26 @@ const DarkColors = {
   caregiverAccentWash: 'rgba(170, 138, 220, 0.15)',
   caregiverAccentBorder: 'rgba(170, 138, 220, 0.20)',
   caregiverAccentStrong: 'rgba(170, 138, 220, 0.25)',
+  // Phase 33 F1b — Option C ladder extensions (audit F1b-1). The
+  // pre-Phase-33 sage* lavender-alias ladder had high-alpha rungs at
+  // 0.35 and 0.70 with no corresponding caregiverAccent value. F1b
+  // adds these so sage* aliases preserve visual weight at brand-
+  // canonical lavender hue.
+  //
+  // Naming note: preferred semantic names were caregiverAccentSolid /
+  // caregiverAccentText, but `caregiverAccentText: '#d4baff'` already
+  // exists above as a brighter-lavender text token with different
+  // semantic. Falling back to the audit's Mid/Bold naming per the
+  // locked plan (both names are defensible).
+  caregiverAccentMid: 'rgba(170, 138, 220, 0.35)',
+  caregiverAccentBold: 'rgba(170, 138, 220, 0.70)',
+  // ── Ember (Phase 33 F1b adds) ─────────────────────────────────────────
+  // Website source-of-truth `--ember: #ff8c42` and `--ember-deep: #e8642a`.
+  // Warm-glow accents used by the website for atmospheric layers and
+  // emphasis moments. No app consumers yet — declared for forward use
+  // (atmospheric glow is Phase 33 Surface 4 / v1.1 backlog per Q-33.2).
+  ember: '#ff8c42',
+  emberDeep: '#e8642a',
   // ── You tab — slightly warmer card surface for content warmth (Prompt 2) ──
   // Lifted in lockstep with bg (Phase 0): L* 22.09 vs bg L* 12.01 = delta
   // 10.08, restoring "warm card sitting on a surface" affordance.
@@ -296,7 +361,20 @@ const DarkColors = {
   // Phase 0's audit because it's consumed mainly by sub-screens (Care Plan,
   // log forms, medication form), not the four main tabs. If on device this
   // reads too prominent for back-button purposes, drop one step to #2e2f29.
+  // Phase 33 F1b — PRESERVED at #363830 per audit F1-1 decision. The
+  // website's `--bg-elevated: #221d18` is one-step-from-bg (L* delta ~2);
+  // the app's `backgroundElevated` is interactive-card-surface (L* delta
+  // ~12 against new bg #1a1612). Different semantics; F1b adds bgRaised
+  // below for the website semantic without flattening the 7 care-plan/
+  // medication-form consumers that depend on this lift.
   backgroundElevated: '#363830',
+  // Phase 33 F1b — website source-of-truth `--bg-elevated: #221d18`
+  // (one-step-from-bg elevation, L* delta ~2 over the new #1a1612 bg).
+  // Different semantic from `backgroundElevated` above which is
+  // substantially lifted (~L* 12) interactive-card surface. No app
+  // consumers yet — declared for forward use (Batch B Section 3 chrome
+  // candidate; subtle-tier card backgrounds; etc.).
+  bgRaised: '#221d18',
   switchThumbOn: '#FFFFFF',
   switchThumbOff: '#F4F3F4',
   switchThumb: '#F4F3F4',

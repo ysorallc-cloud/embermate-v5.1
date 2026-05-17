@@ -141,11 +141,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   allergyLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: c.redBright,
+    color: c.coralBright,
   },
   allergyText: {
     fontSize: 12,
-    color: c.redBright,
+    color: c.coralBright,
     flex: 1,
   },
   clinicalRow: {

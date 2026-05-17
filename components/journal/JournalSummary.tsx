@@ -131,7 +131,7 @@ export function JournalSummary({ brief, selectedDate, enabledBuckets }: JournalS
               : medsDone === medsTotal
                 ? colors.accent
                 : medsDone === 0
-                  ? colors.red
+                  ? colors.coral
                   : colors.amberBright,
           }]}>
             {medsTotal > 0 ? `${medsDone}/${medsTotal}` : '\u2014'}

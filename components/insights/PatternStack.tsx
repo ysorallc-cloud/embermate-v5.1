@@ -42,7 +42,7 @@ import { SectionEyebrow } from '../SectionEyebrow';
 import type { CorrelationCard } from '../../utils/understandInsights';
 
 const SEVERITY = {
-  high: { bg: 'rgba(239,68,68,0.06)', border: Colors.redBright, badge: 'rgba(239,68,68,0.15)', badgeText: '#FCA5A5' },
+  high: { bg: 'rgba(239,68,68,0.06)', border: Colors.coralBright, badge: 'rgba(239,68,68,0.15)', badgeText: '#FCA5A5' },
   medium: { bg: 'rgba(245,158,11,0.06)', border: Colors.amberBright, badge: 'rgba(245,158,11,0.15)', badgeText: '#FCD34D' },
   low: { bg: 'rgba(96,165,250,0.06)', border: '#60A5FA', badge: 'rgba(96,165,250,0.15)', badgeText: '#93C5FD' },
 };

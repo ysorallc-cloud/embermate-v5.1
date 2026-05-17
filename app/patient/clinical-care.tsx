@@ -165,7 +165,7 @@ export default function ClinicalCareScreen() {
                     value={settings.fallRisk ?? false}
                     onValueChange={(v) => update({ fallRisk: v })}
                     trackColor={{ false: colors.border, true: 'rgba(248, 113, 113, 0.4)' }}
-                    thumbColor={settings.fallRisk ? colors.redBright : colors.textMuted}
+                    thumbColor={settings.fallRisk ? colors.coralBright : colors.textMuted}
                     accessibilityLabel="Fall risk toggle"
                   />
                 </View>
@@ -179,7 +179,7 @@ export default function ClinicalCareScreen() {
                     value={settings.dnr ?? false}
                     onValueChange={(v) => update({ dnr: v })}
                     trackColor={{ false: colors.border, true: 'rgba(248, 113, 113, 0.4)' }}
-                    thumbColor={settings.dnr ? colors.redBright : colors.textMuted}
+                    thumbColor={settings.dnr ? colors.coralBright : colors.textMuted}
                     accessibilityLabel="DNR order toggle"
                   />
                 </View>
@@ -193,7 +193,7 @@ export default function ClinicalCareScreen() {
                     value={settings.wanderingRisk ?? false}
                     onValueChange={(v) => update({ wanderingRisk: v })}
                     trackColor={{ false: colors.border, true: 'rgba(248, 113, 113, 0.4)' }}
-                    thumbColor={settings.wanderingRisk ? colors.redBright : colors.textMuted}
+                    thumbColor={settings.wanderingRisk ? colors.coralBright : colors.textMuted}
                     accessibilityLabel="Wandering risk toggle"
                   />
                 </View>

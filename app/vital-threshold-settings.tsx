@@ -299,10 +299,10 @@ export default function VitalThresholdSettings() {
         </View>
 
         <View style={styles.fieldsGrid}>
-          {renderThresholdField(vitalKey, 'criticalLow', 'Critical Low', colors.red)}
+          {renderThresholdField(vitalKey, 'criticalLow', 'Critical Low', colors.coral)}
           {renderThresholdField(vitalKey, 'low', 'Low', colors.amber)}
           {renderThresholdField(vitalKey, 'high', 'High', colors.amber)}
-          {renderThresholdField(vitalKey, 'criticalHigh', 'Critical High', colors.red)}
+          {renderThresholdField(vitalKey, 'criticalHigh', 'Critical High', colors.coral)}
         </View>
 
         <Text style={styles.rangePreview}>

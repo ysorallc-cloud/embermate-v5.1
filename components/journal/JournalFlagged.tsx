@@ -114,7 +114,7 @@ export function JournalFlagged({ items }: JournalFlaggedProps) {
 
   function borderColor(type: HandoffType): string {
     switch (type) {
-      case 'flag': return colors.redBright;
+      case 'flag': return colors.coralBright;
       case 'watch': return colors.amberBright;
       case 'done': return colors.green;
     }

@@ -245,9 +245,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: c.glassBorder,
   },
   containerOverdue: {
-    backgroundColor: c.redFaint,
+    backgroundColor: c.coralFaint,
     borderWidth: 1,
-    borderColor: c.redBorder,
+    borderColor: c.coralBorder,
   },
   header: {
     flexDirection: 'row',
@@ -315,7 +315,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginTop: 2,
   },
   medMetaOverdue: {
-    color: c.red,
+    color: c.coral,
   },
   // allow: tap-target shape for inline button (10pt × 6pt) — not a card surface.
   detailsButton: {

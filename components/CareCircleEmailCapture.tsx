@@ -221,7 +221,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   errorText: {
     fontSize: 12,
-    color: c.red,
+    color: c.coral,
     marginBottom: 8,
   },
   privacyLine: {

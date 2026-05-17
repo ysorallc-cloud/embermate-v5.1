@@ -79,8 +79,14 @@ describe('Theme tokens — semantic accents', () => {
     expect(dark.criticalAlert).toBe('#e6776e');
   });
 
-  it('coral is added as a v6.7 named token (Helpline + Meals tile ring)', () => {
-    expect(dark.coral).toBe('#e89a7a');
+  it('coral is the canonical coral hue (Phase 33 F1b realignment to website --coral)', () => {
+    // Pre-Phase-33 this token was the v7-reserved 4th-accent placeholder
+    // (#e89a7a) per Phase 7's 3-accent budget. Phase 33 F1b retired the
+    // reservation entirely and renamed the `red*` color-name family
+    // (#e6776e — the actual coral hue the website calls --coral) to
+    // claim the `coral*` namespace. Semantic aliases `error` +
+    // `criticalAlert` continue to point at the same hex.
+    expect(dark.coral).toBe('#e6776e');
   });
 });
 

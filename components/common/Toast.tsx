@@ -38,9 +38,9 @@ const getToastConfig = (c: typeof Colors): Record<ToastType, { icon: string; col
   },
   error: {
     icon: '!',
-    color: c.red,
-    bgColor: c.redLight,
-    borderColor: c.redBorder,
+    color: c.coral,
+    bgColor: c.coralLight,
+    borderColor: c.coralBorder,
   },
   warning: {
     icon: '⚠',

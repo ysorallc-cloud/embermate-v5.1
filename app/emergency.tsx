@@ -328,7 +328,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
-    backgroundColor: c.redMuted,
+    backgroundColor: c.coralMuted,
     borderWidth: 2,
     borderColor: c.error,
     borderRadius: BorderRadius.md,
@@ -344,7 +344,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.error,
   },
   emergencyModeActive: {
-    backgroundColor: c.redStrong,
+    backgroundColor: c.coralStrong,
     borderWidth: 2,
     borderColor: c.error,
     borderRadius: BorderRadius.md,

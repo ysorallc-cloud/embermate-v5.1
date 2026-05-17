@@ -239,8 +239,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: 'rgba(251, 191, 36, 0.25)',
   },
   bannerError: {
-    backgroundColor: c.redFaint,
-    borderColor: c.redBorder,
+    backgroundColor: c.coralFaint,
+    borderColor: c.coralBorder,
   },
   bannerInfo: {
     backgroundColor: c.blueFaint,
@@ -307,8 +307,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: 'rgba(251, 191, 36, 0.3)',
   },
   actionButtonError: {
-    backgroundColor: c.redHint,
-    borderColor: c.redStrong,
+    backgroundColor: c.coralHint,
+    borderColor: c.coralStrong,
   },
   actionButtonText: {
     fontSize: 13,
@@ -319,7 +319,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.amberBright,
   },
   actionButtonTextError: {
-    color: c.red,
+    color: c.coral,
   },
 
   secondaryButton: {

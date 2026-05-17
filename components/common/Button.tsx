@@ -181,7 +181,7 @@ const getVariantStyles = (variant: ButtonVariant, disabled: boolean, c: typeof C
 
     case 'danger':
       styles.container = {
-        backgroundColor: disabled ? `${c.red}60` : c.red,
+        backgroundColor: disabled ? `${c.coral}60` : c.coral,
         borderWidth: 0,
       };
       styles.text = {

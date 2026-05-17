@@ -27,7 +27,7 @@ interface MedReport {
 const getAdherenceColor = (adherence: number) => {
   if (adherence >= 95) return Colors.green;
   if (adherence >= 85) return Colors.amber;
-  return Colors.red;
+  return Colors.coral;
 };
 
 const getTimeSlotLabel = (slot: string) => {

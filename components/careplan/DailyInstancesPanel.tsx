@@ -742,7 +742,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.green,
   },
   instanceStatusMissed: {
-    color: c.red,
+    color: c.coral,
   },
   instanceChevron: {
     fontSize: 12,

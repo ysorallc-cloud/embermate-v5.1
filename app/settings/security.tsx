@@ -637,7 +637,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.accentLight,
   },
   severityCritical: {
-    backgroundColor: c.redHint,
+    backgroundColor: c.coralHint,
   },
   severityWarning: {
     backgroundColor: c.amberHint,

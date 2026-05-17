@@ -1,5 +1,5 @@
 // ============================================================================
-// 3-accent budget — May 1 sizing pass Phase 7.
+// 3-accent budget — May 1 sizing pass Phase 7 → Phase 33 F1b reframe.
 //
 // The May 1 screenshots showed too many competing accent tones across the
 // surface (sage / lavender / criticalAlert / coral / amber-warning) and
@@ -10,16 +10,28 @@
 //   • #aa8adc  caregiverAccent   (lavender — caregiver-facing surfaces)
 //   • #e6776e  criticalAlert     (genuine emergencies / destructive)
 //
-// Coral (#e89a7a) was the 4th accent — used for the Helpline pill and
-// Meals ring. Both have been neutralized (Phase 3a + Phase 6). This test
-// pins:
+// Pre-Phase-33, the 4th-accent coral (#e89a7a) was held as a v7-reserved
+// token (Helpline pill + Meals ring neutralized in Phase 3a + 6). Phase
+// 33 F1b retired the v7 reservation entirely and renamed the `red*`
+// color-name family (#e6776e — the actual coral hue, same as
+// criticalAlert) to claim the `coral*` namespace. The 3-budget intent
+// survives — `coral` and `criticalAlert` now both resolve to #e6776e
+// (the third budget color); the v7-reserved #e89a7a hex is gone from
+// source AND tokens.
+//
+// What this test pins post-F1b:
 //
 //   1. The 3 budget colors are defined in theme-tokens (palette intact).
-//   2. The coral hex literal does NOT appear in any app/ or components/
-//      source file. The token declaration in theme-tokens.ts is allowed
-//      so the value isn't lost (it's marked v7-reserved in source).
-//   3. `colors.coral` / `(colors as any).coral` references are gone from
-//      the runtime source (semantic uses retired alongside the literal).
+//   2. The retired v7-reserved coral hex (#e89a7a) does NOT appear in
+//      app/ or components/ — defends against legacy reintroduction.
+//
+// Retired (Phase 33 F1b):
+//
+//   • `colors.coral` absence pin — coral is now the SANCTIONED color
+//     name for the 3rd budget hex (renamed from `red`). 76 consumer
+//     sites legitimately use it.
+//   • v7-reserved declaration pin — the reservation was retired; the
+//     `coral: '#e89a7a'` declaration was removed from theme-tokens.
 //
 // Note on `colors.warning` (amber): warning is a SEMANTIC status color
 // (partial completion, concerning vitals) — distinct from a decorative
@@ -61,7 +73,11 @@ describe('Phase 7 — 3-accent budget enforced', () => {
     expect(src).toMatch(/criticalAlert:\s*['"]#e6776e['"]/);
   });
 
-  it('coral hex literal (#e89a7a) does NOT appear in app/ or components/', () => {
+  it('retired v7-reserved coral hex (#e89a7a) does NOT appear in app/ or components/', () => {
+    // Defends against re-introduction of the retired 4th-accent hex.
+    // Phase 33 F1b deleted the token AND the source-file pin (no
+    // consumers historically existed), so this absence pin survives
+    // as a "do not re-introduce" guard.
     const offenders: string[] = [];
     for (const file of SOURCE_FILES) {
       const src = readFileSync(file, 'utf8');
@@ -70,33 +86,5 @@ describe('Phase 7 — 3-accent budget enforced', () => {
       }
     }
     expect(offenders).toEqual([]);
-  });
-
-  it('colors.coral / (colors as any).coral references are gone from source', () => {
-    const offenders: string[] = [];
-    for (const file of SOURCE_FILES) {
-      const src = readFileSync(file, 'utf8');
-      if (
-        /\bcolors\.coral\b/.test(src) ||
-        /\(colors as any\)\.coral\b/.test(src) ||
-        /\bc\.coral\b/.test(src) ||
-        /\(c as any\)\.coral\b/.test(src)
-      ) {
-        offenders.push(file.replace(ROOT, ''));
-      }
-    }
-    expect(offenders).toEqual([]);
-  });
-
-  it('coral is marked v7-reserved in theme-tokens (not deleted, not active)', () => {
-    // The token stays in the palette so a future v7 design pass can opt
-    // it back in without re-establishing the value, but the comment must
-    // signal "not in current budget."
-    const src = readFileSync(join(ROOT, 'theme/theme-tokens.ts'), 'utf8');
-    // Find the coral declaration line and a comment on the lines above it.
-    const idx = src.indexOf("coral: '#e89a7a'");
-    expect(idx).toBeGreaterThan(0);
-    const window = src.slice(Math.max(0, idx - 800), idx);
-    expect(window).toMatch(/v7-reserved/);
   });
 });

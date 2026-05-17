@@ -143,9 +143,9 @@ export function NextUpCard({
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Overdue strip — red tint
   stripOverdue: {
-    backgroundColor: c.redFaint,
+    backgroundColor: c.coralFaint,
     borderWidth: 1,
-    borderColor: c.redBorder,
+    borderColor: c.coralBorder,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
@@ -164,7 +164,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: c.red,
+    backgroundColor: c.coral,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -179,7 +179,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   overdueLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: c.red,
+    color: c.coral,
   },
   overdueHint: {
     fontSize: 12,

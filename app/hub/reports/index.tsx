@@ -57,7 +57,7 @@ const REPORT_CATEGORIES: ReportCategory[] = [
     title: 'Care Reports',
     description: 'For visits & family',
     reports: [
-      { id: 'redflags', icon: '🚨', name: 'Red Flags & Alerts', badge: 'Coming soon', color: Colors.red, route: '' }, // Always show
+      { id: 'redflags', icon: '🚨', name: 'Red Flags & Alerts', badge: 'Coming soon', color: Colors.coral, route: '' }, // Always show
       { id: 'visitprep', icon: '📋', name: 'Visit Prep Report', badge: 'Coming soon', color: Colors.accent, route: '' }, // Always show
     ],
   },

@@ -768,7 +768,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   removeButton: {
     fontSize: 16,
-    color: c.red,
+    color: c.coral,
     paddingHorizontal: 4,
   },
 
@@ -818,7 +818,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: c.redBright,
+    color: c.coralBright,
   },
 
   // EDIT BUTTON

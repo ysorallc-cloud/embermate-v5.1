@@ -1020,7 +1020,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginTop: 12,
   },
   deleteButtonText: {
-    color: c.red,
+    color: c.coral,
     fontSize: 15,
     fontWeight: '500',
   },
