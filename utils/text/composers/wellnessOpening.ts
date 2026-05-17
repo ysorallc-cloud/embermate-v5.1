@@ -2,7 +2,26 @@
 // composeWellnessOpening
 //
 // First-line reflection on the Your Wellness page. Friend-tone — never
-// coach, never doctor. Branches by check-in count + mood mix.
+// coach, never doctor. Phase 29 Batch C F6 retired the five evaluative
+// branches (Path B) and collapsed the count-fork (Q-F6.3 Option B):
+// every output is now observational (describes state) or invitational
+// (forward-looking, no past evaluation). No verdicts on caregiver
+// behavior, however soft.
+//
+// Pre-F6 the composer rendered praise-frame copy at five branches —
+// "That counts" / "It's been a stretch — that's clear" / "Looks like
+// a lighter stretch" / "A glimpse, but enough to reflect on" / "You've
+// been showing up for yourself" — soft verdicts that read as scoring
+// regardless of specific word choice. The witness voice work across
+// the You tab + wellness subscreen is structurally
+// observational/invitational; shipping v1.0 with this composer as the
+// one praise-coded outlier would be visible inconsistency on the
+// surface most users hit.
+//
+// Forbidden-vocab guard in the dedicated test extended with the
+// retired phrase fragments ("that counts" / "showing up" / "lighter
+// stretch" / "enough to reflect" / "for yourself") so the regression
+// guard catches the praise FRAME, not just specific words.
 // ============================================================================
 
 import { pluralize } from '../primitives';
@@ -53,33 +72,28 @@ export function composeWellnessOpening(input: WellnessOpeningInput): string {
   }
 
   if (checkInsCount === 1) {
-    return 'You checked in once. That counts.';
+    return `You checked in once ${range}.`;
   }
 
+  // count >= 2: single mix-switch ladder. The pre-F6 count >= 4 vs
+  // count 2-3 fork retired with Path B — every mix branch returned
+  // the same observational copy regardless of count tier, so the
+  // conditional split was confusion debt. Q-F6.3 Option B locked
+  // the full collapse.
   const mix = classifyMix(moodValues);
+  const timesLabel = pluralize(checkInsCount, 'time');
 
-  if (checkInsCount >= 4) {
-    if (mix === 'all-tough') {
-      return `You checked in ${pluralize(checkInsCount, 'time')}. It’s been a stretch — that’s clear.`;
-    }
-    if (mix === 'all-okay') {
-      return `You checked in ${pluralize(checkInsCount, 'time')}. Looks like a lighter stretch.`;
-    }
-    if (mix === 'mixed') {
-      return `You checked in ${pluralize(checkInsCount, 'time')}. Some harder days, some lighter.`;
-    }
-    return 'You’ve been showing up for yourself ' + range + '.';
-  }
-
-  // 2-3 check-ins
   if (mix === 'all-tough') {
-    return `You checked in ${pluralize(checkInsCount, 'time')}. It’s been a stretch — that’s clear.`;
+    return `You checked in ${timesLabel} ${range}. It’s been a stretch.`;
   }
   if (mix === 'all-okay') {
-    return `You checked in ${pluralize(checkInsCount, 'time')}. Looks like a lighter stretch.`;
+    return `You checked in ${timesLabel} ${range}. Steady.`;
   }
   if (mix === 'mixed') {
-    return `You checked in ${pluralize(checkInsCount, 'time')}. Some harder days, some lighter.`;
+    return `You checked in ${timesLabel} ${range}. Some harder days, some lighter.`;
   }
-  return `You checked in ${pluralize(checkInsCount, 'time')}. A glimpse, but enough to reflect on.`;
+  // unknown — no mood values recorded for the check-ins, or no values in
+  // the 1-5 range. Bare observational form: the user did the action;
+  // no characterization of the data follows.
+  return `You checked in ${timesLabel} ${range}.`;
 }
