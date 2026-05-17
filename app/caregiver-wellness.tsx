@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { AuroraBackground } from '../components/aurora/AuroraBackground';
 import { SubScreenHeader } from '../components/SubScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
@@ -202,7 +203,7 @@ export default function CaregiverWellnessScreen() {
       <AuroraBackground variant="support" />
 
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <SubScreenHeader title="Your Wellness" />
+        <SubScreenHeader title="Your wellness" titleVariant="serif" />
 
         <ScrollView
           style={styles.scroll}
@@ -212,12 +213,16 @@ export default function CaregiverWellnessScreen() {
           {/* Page subtitle (Phase 1) */}
           <Text style={styles.pageSubtitle}>A look at how you’ve been.</Text>
 
-          {/* Range toggle */}
+          {/* Range toggle — Phase 29 Batch C F4 — selected state recolors
+              from sage (colors.accent) to caregiverAccent. This subscreen
+              is fully caregiver-lane; the sage active state was a
+              within-surface lane orphan (Tier 1 rule). White text on
+              lavender preserves the contrast tier the recolor inherited. */}
           <View style={styles.rangeRow}>
             {([7, 14, 30] as const).map(r => (
               <TouchableOpacity
                 key={r}
-                style={[styles.rangeBtn, range === r && { backgroundColor: colors.accent }]}
+                style={[styles.rangeBtn, range === r && { backgroundColor: colors.caregiverAccent }]}
                 onPress={() => setRange(r)}
                 accessibilityLabel={`${r} days`}
                 accessibilityRole="button"
@@ -247,9 +252,14 @@ export default function CaregiverWellnessScreen() {
             </TouchableOpacity>
           ) : null}
 
-          {/* Mood timeline card (Phase 3) — shows when at least one check-in exists */}
+          {/* Mood timeline card — Phase 29 Batch C F5. Primary lane card
+              chrome (Tier 3 rule): full-hex caregiverAccent left border +
+              caregiverAccentBg body + caregiverAccentWash hairline border.
+              Matches ReflectionCard + Phase 27/28 JournalSection — the
+              wellness subscreen's headline surface reads as a peer of the
+              other caregiver-lane primary cards across the app. */}
           {!loading && hasAnyCheckIn && (
-            <View style={styles.card}>
+            <View style={styles.cardWeekFelt}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardEyebrow}>{'HOW THE WEEK FELT'}</Text>
                 <Text style={styles.cardSubtitle}>
@@ -290,9 +300,14 @@ export default function CaregiverWellnessScreen() {
             </View>
           )}
 
-          {/* Your rhythm card (Phase 4) — only when there's enough check-in data */}
+          {/* Your rhythm card — Phase 29 Batch C F5. Auxiliary data card
+              with quiet neutral chrome (whisper white-rgba bg + thin left
+              border at 0.20 alpha). Lavender enters only via the Noticed
+              callout border and the per-tile stat color — the rhythm
+              card itself recedes so the WEEK FELT card above stays the
+              visual lead on the subscreen. */}
           {!loading && hasAnyCheckIn && (
-            <View style={styles.card}>
+            <View style={styles.cardRhythm}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardEyebrow}>{'YOUR RHYTHM'}</Text>
                 <Text style={styles.cardSubtitle}>
@@ -302,7 +317,7 @@ export default function CaregiverWellnessScreen() {
               <View style={styles.cardBody}>
                 <View style={styles.rhythmRow}>
                   <View style={styles.rhythmCell}>
-                    <Text style={[styles.rhythmValue, { color: colors.accent }]}>
+                    <Text style={[styles.rhythmValue, { color: colors.caregiverAccent }]}>
                       {lastCheckInLabel}
                     </Text>
                     <Text style={styles.rhythmLabel}>since last check-in</Text>
@@ -322,15 +337,24 @@ export default function CaregiverWellnessScreen() {
             </View>
           )}
 
-          {/* A gentle nudge (Phase 5) — only fires under specific signals */}
+          {/* A gentle nudge — Phase 29 Batch C F5. Lavender gradient body
+              (caregiverAccentLight 0.10 → caregiverAccentBg 0.06 vertical)
+              with primary CTA recolored to solid caregiverAccent + dark
+              text per spec 2.7. Pre-C sage chrome retired (within-surface
+              Tier 1 lane orphan inside a now-lavender subscreen). */}
           {!loading && nudge && !nudgeDismissed && (
-            <View style={styles.nudgeCard}>
+            <LinearGradient
+              colors={[colors.caregiverAccentLight, colors.caregiverAccentBg]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.nudgeCard}
+            >
               <Text style={styles.nudgeEyebrow}>{'A GENTLE NUDGE'}</Text>
               <Text style={styles.nudgeHeadline}>{nudge.headline}</Text>
               <Text style={styles.nudgeBody}>{nudge.body}</Text>
               <View style={styles.nudgeActions}>
                 <TouchableOpacity
-                  style={[styles.nudgePrimary, { backgroundColor: colors.accent }]}
+                  style={[styles.nudgePrimary, { backgroundColor: colors.caregiverAccent }]}
                   accessibilityRole="button"
                   accessibilityLabel="Try 2 minutes of breathing"
                 >
@@ -345,7 +369,7 @@ export default function CaregiverWellnessScreen() {
                   <Text style={styles.nudgeSecondaryText}>{'Maybe later'}</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </LinearGradient>
           )}
 
           {/* Bottom padding */}
@@ -399,11 +423,25 @@ function createStyles(c: typeof Colors) {
       marginTop: 20,
       marginBottom: 10,
     },
-    card: {
-      backgroundColor: c.glass,
-      borderWidth: 1,
-      borderColor: c.glassBorder,
-      borderRadius: 14,
+    // Phase 29 Batch C F5 — `card` split into two lane-coded variants.
+    // The shared `card` retired with the lane migration; cardWeekFelt
+    // carries Tier 3 primary lane chrome (matches ReflectionCard +
+    // JournalSection's caregiverAccent tint), cardRhythm carries
+    // neutral auxiliary chrome per spec 2.6.
+    cardWeekFelt: {
+      backgroundColor: c.caregiverAccentBg,
+      borderWidth: 0.5,
+      borderColor: c.caregiverAccentWash,
+      borderLeftWidth: 3,
+      borderLeftColor: c.caregiverAccent,
+      borderRadius: 11,
+      padding: 16,
+    },
+    cardRhythm: {
+      backgroundColor: 'rgba(255,255,255,0.035)',
+      borderLeftWidth: 3,
+      borderLeftColor: 'rgba(255,255,255,0.20)',
+      borderRadius: 11,
       padding: 16,
     },
     statRow: {
@@ -477,13 +515,17 @@ function createStyles(c: typeof Colors) {
       paddingBottom: 16,
       paddingHorizontal: 6,
     },
+    // Phase 29 Batch C F5 — cream-strip header chrome retired. Pre-C
+    // the cardHeader carried a warm-cream rgba(255,235,205,0.025) bg
+    // and a youCardBorder bottom border, inherited from the You-tab
+    // warm card pattern. Both read as cross-tone orphans inside the
+    // now-lavender (cardWeekFelt) and neutral (cardRhythm) lane
+    // chrome. Strip the strip; let the card's own chrome carry the
+    // visual separation. Spacing rhythm preserved.
     cardHeader: {
       paddingTop: 11,
       paddingBottom: 8,
       paddingHorizontal: 14,
-      backgroundColor: 'rgba(255, 235, 205, 0.025)',
-      borderBottomWidth: 0.5,
-      borderBottomColor: (c as any).youCardBorder || c.glassBorder,
     },
     cardEyebrow: {
       fontSize: 9,
@@ -538,8 +580,16 @@ function createStyles(c: typeof Colors) {
       gap: 16,
       marginBottom: 12,
     },
+    // Phase 29 Batch C F5 — stat tile wrappers per spec 2.6. Dark
+    // inset blocks (rgba(0,0,0,0.18)) make numeric values land as
+    // scannable peers; without the wrapper the values floated against
+    // the now-neutral card body without anchor.
     rhythmCell: {
       flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.18)',
+      borderRadius: 7,
+      paddingVertical: 7,
+      paddingHorizontal: 4,
     },
     rhythmValue: {
       fontSize: 17,
@@ -551,9 +601,13 @@ function createStyles(c: typeof Colors) {
       color: c.textTertiary,
       marginTop: 2,
     },
+    // Phase 29 Batch C F5 — fallback to c.accent retired; caregiverAccent
+    // is the canonical token. The pre-C fallback was defensive for an
+    // earlier theme-loading order; lavender lane work has made the token
+    // a stable dependency. Drop the fallback for clarity.
     noticedCallout: {
       borderLeftWidth: 2,
-      borderLeftColor: (c as any).caregiverAccent || c.accent,
+      borderLeftColor: c.caregiverAccent,
       backgroundColor: 'rgba(170, 138, 220, 0.06)',
       paddingVertical: 10,
       paddingHorizontal: 12,
@@ -564,7 +618,7 @@ function createStyles(c: typeof Colors) {
       fontSize: 9,
       fontWeight: '500' as const,
       letterSpacing: 0.5,
-      color: (c as any).caregiverAccent || c.accent,
+      color: c.caregiverAccent,
       marginBottom: 4,
     },
     noticedBody: {
@@ -572,11 +626,17 @@ function createStyles(c: typeof Colors) {
       color: c.textSecondary,
       lineHeight: 17,
     },
+    // Phase 29 Batch C F5 — nudge card chrome migrated from sage
+    // rgba(95,184,138,*) to lavender lane. Card body is now a
+    // LinearGradient (lavender 0.10 → 0.06) wrapped in this style for
+    // border/radius/padding; the bg color stops applied on the gradient
+    // override any backgroundColor here, but kept the property removed
+    // to avoid mixed sources of truth. Border + radius unchanged shape;
+    // border color is the caregiverAccentStrong (0.25) per spec 2.7.
     nudgeCard: {
-      backgroundColor: 'rgba(95, 184, 138, 0.07)',
       borderWidth: 0.5,
-      borderColor: 'rgba(95, 184, 138, 0.22)',
-      borderRadius: 10,
+      borderColor: c.caregiverAccentStrong,
+      borderRadius: 11,
       padding: 13,
       marginTop: 16,
     },
@@ -584,7 +644,7 @@ function createStyles(c: typeof Colors) {
       fontSize: 9,
       fontWeight: '500' as const,
       letterSpacing: 0.5,
-      color: c.accent,
+      color: c.caregiverAccent,
     },
     nudgeHeadline: {
       fontSize: 14,
@@ -608,10 +668,13 @@ function createStyles(c: typeof Colors) {
       paddingHorizontal: 14,
       borderRadius: 8,
     },
+    // Phase 29 Batch C F5 — primary CTA dark-text-on-lavender per spec
+    // 2.7. Pre-C white text on sage; post-C near-black text on lavender
+    // (~9.5:1 contrast, AAA — same pattern Phase 26 share CTA used).
     nudgePrimaryText: {
       fontSize: 12,
       fontWeight: '600' as const,
-      color: c.textPrimary,
+      color: '#0a0c0a',
     },
     nudgeSecondary: {
       paddingVertical: 8,
@@ -628,9 +691,12 @@ function createStyles(c: typeof Colors) {
       paddingVertical: 14,
       alignItems: 'center' as const,
     },
+    // Phase 29 Batch C F5 — Tier 1 sweep: emptyCtaText sage → lavender.
+    // The "Take a moment →" empty-state link sits inside a fully lavender
+    // subscreen; sage would be a within-surface lane orphan.
     emptyCtaText: {
       fontSize: 13,
-      color: c.accent,
+      color: c.caregiverAccent,
       fontWeight: '500' as const,
     },
   });

@@ -39,9 +39,16 @@ describe('Caregiver Wellness sub-page', () => {
     expect(screenContent).toContain('30');
   });
 
-  it('uses SubScreenHeader with back button', () => {
+  it('uses SubScreenHeader with serif variant (Phase 29 Batch C F3 — lowercase witness voice)', () => {
+    // Phase 29 Batch C F3 — title "Your Wellness" → "Your wellness"
+    // (sentence case) + titleVariant="serif" (Georgia italic 20pt,
+    // matching the You-tab greeting voice the rest of the lavender
+    // lane carries).
     expect(screenContent).toContain('SubScreenHeader');
-    expect(screenContent).toContain("title=\"Your Wellness\"");
+    expect(screenContent).toContain('title="Your wellness"');
+    expect(screenContent).toContain('titleVariant="serif"');
+    // Absence pin: pre-C capitalized title retired.
+    expect(screenContent).not.toContain('title="Your Wellness"');
   });
 
   it('queries mood_logged events from event store', async () => {

@@ -25,6 +25,17 @@ interface SubScreenHeaderProps {
   /** @deprecated emoji is no longer rendered — kept for back-compat with older callers. */
   emoji?: string;
   rightAction?: React.ReactNode;
+  /**
+   * Phase 29 Batch C F1 — title typography variant. Defaults to
+   * 'default' (32pt sans-serif weight 300, the structural shape every
+   * sub-screen has used since the four-tab unification). 'serif'
+   * renders Georgia italic 20pt weight 400 — the witness-voice
+   * register the You-lane carries on the greeting + ReflectionCard +
+   * orb card. Used by the caregiver-wellness subscreen and the
+   * /resources subscreen so their lavender-lane subscreens read in
+   * the same voice as the You tab that launches them.
+   */
+  titleVariant?: 'default' | 'serif';
 }
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
@@ -52,6 +63,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textPrimary,
     letterSpacing: -0.5,
   },
+  // Phase 29 Batch C F1 — serif variant. Witness-voice typography for
+  // caregiver-lane subscreens (caregiver-wellness, /resources). 20pt is
+  // smaller than the 22pt You-tab greeting on purpose — subscreen H1
+  // sits below the tab H1 in the visual hierarchy.
+  titleSerif: {
+    fontFamily: 'Georgia',
+    fontStyle: 'italic' as const,
+    fontSize: 20,
+    fontWeight: '400' as const,
+    color: c.textPrimary,
+    letterSpacing: 0.1,
+    lineHeight: 26,
+  },
   subtitle: {
     fontSize: 13,
     color: c.textSecondary,
@@ -64,9 +88,11 @@ export const SubScreenHeader: React.FC<SubScreenHeaderProps> = ({
   title,
   subtitle,
   rightAction,
+  titleVariant = 'default',
 }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const titleStyle = titleVariant === 'serif' ? styles.titleSerif : styles.title;
 
   return (
     <View style={styles.container} accessibilityRole="header">
@@ -74,7 +100,7 @@ export const SubScreenHeader: React.FC<SubScreenHeaderProps> = ({
         <BackButton variant="icon" />
         {rightAction ? <View style={styles.rightAction}>{rightAction}</View> : null}
       </View>
-      <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit>{title}</Text>
+      <Text style={titleStyle} numberOfLines={2} adjustsFontSizeToFit>{title}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );

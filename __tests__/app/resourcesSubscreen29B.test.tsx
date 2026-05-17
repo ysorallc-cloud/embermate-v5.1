@@ -6,16 +6,11 @@
 // variant (full inline expand-on-tap) wrapped in a SubScreenHeader, mirroring
 // the caregiver-wellness sibling-subscreen pattern.
 //
-// Title shipped in Batch B: "Resources" (neutral admin copy matching
-// SubScreenHeader's default 32pt sans-serif weight 300 typography).
-// Batch C will retitle to "For when you need it" SIMULTANEOUSLY with
-// SubScreenHeader's titleVariant='serif' addition — the witness-voice
-// copy + serif italic typography land together to avoid the
-// admin-shout-over-whisper-copy mismatch Option A (Batch B typography
-// decision) was explicitly designed to prevent.
-//
-// Tracker: memory/project_batch_c_scope_tracker.md pairs the title flip
-// + titleVariant work as must-land-together.
+// Title shipped in Batch C: "For when you need it" + titleVariant='serif'
+// — the witness-voice copy + Georgia italic typography landing together
+// as Batch C Pair 1 promised. Pre-C the title was "Resources" (neutral
+// admin copy) to match SubScreenHeader's default sans typography until
+// the serif variant was ready.
 // ============================================================================
 
 import { readFileSync, existsSync } from 'fs';
@@ -43,11 +38,12 @@ describe('Phase 29 Batch B F1 — /resources subscreen scaffold', () => {
     );
   });
 
-  it('contract S4: SubScreenHeader title is "Resources" (Batch B interim — Batch C retitles)', () => {
+  it('contract S4: SubScreenHeader title is "For when you need it" with titleVariant="serif" (Batch C retitle)', () => {
     const src = readFileSync(SUBSCREEN_PATH, 'utf8');
-    // Match either a string-literal title prop or a JSX expression
-    // resolving to the literal "Resources".
-    expect(src).toMatch(/<SubScreenHeader[^>]*title=\{?['"]Resources['"]\}?/);
+    expect(src).toMatch(/<SubScreenHeader[^>]*title=['"]For when you need it['"]/);
+    expect(src).toMatch(/<SubScreenHeader[^>]*titleVariant=['"]serif['"]/);
+    // Absence pin: pre-C neutral admin title retired.
+    expect(src).not.toMatch(/<SubScreenHeader[^>]*title=['"]Resources['"]/);
   });
 
   it('contract S5: subscreen mounts ResourcesList in default variant (no variant prop passed)', () => {

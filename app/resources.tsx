@@ -10,12 +10,12 @@
 // Shell mirrors app/caregiver-wellness.tsx (the sibling subscreen pattern):
 // AuroraBackground + SafeAreaView + SubScreenHeader + ScrollView.
 //
-// Title shipped in Batch B: "Resources" — neutral admin copy matching
-// SubScreenHeader's default 32pt sans-serif weight 300 typography. Batch C
-// will retitle to "For when you need it" SIMULTANEOUSLY with
-// SubScreenHeader's titleVariant='serif' addition so the witness-voice
-// copy and the Georgia italic typography land together. See memory tracker
-// project_batch_c_scope_tracker.md for the paired work.
+// Phase 29 Batch C — title "For when you need it" + titleVariant='serif'.
+// Witness-voice copy + Georgia italic 20pt landing together as the
+// scope-tracker pair promised. The phrase acknowledges resources are
+// situational (not a checklist to work through) and the typography
+// carries the same caregiver-lane voice as the You tab that launches
+// this screen.
 // ============================================================================
 
 import React, { useMemo } from 'react';
@@ -35,7 +35,7 @@ export default function ResourcesScreen() {
       <AuroraBackground variant="support" />
 
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <SubScreenHeader title="Resources" />
+        <SubScreenHeader title="For when you need it" titleVariant="serif" />
 
         <ScrollView
           style={styles.scroll}

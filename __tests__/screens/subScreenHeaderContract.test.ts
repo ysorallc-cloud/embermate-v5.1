@@ -63,6 +63,37 @@ describe('SubScreenHeader — shape and metrics', () => {
   });
 });
 
+describe('SubScreenHeader — Phase 29 Batch C F1 titleVariant prop', () => {
+  // Phase 29 Batch C F1 — titleVariant?: 'default' | 'serif' added.
+  // Default preserves the 32pt sans contract (pinned above). Serif
+  // is the witness-voice variant consumed by caregiver-wellness +
+  // /resources so their lavender-lane subscreens read in the same
+  // Georgia italic register as the You-tab greeting that launches them.
+  it('props interface declares titleVariant?: "default" | "serif"', () => {
+    expect(headerSrc).toMatch(/titleVariant\?:\s*['"]?default['"]?\s*\|\s*['"]?serif['"]?/);
+  });
+
+  it('component destructures titleVariant with "default" fallback', () => {
+    expect(headerSrc).toMatch(/titleVariant\s*=\s*['"]default['"]/);
+  });
+
+  it('titleSerif style block: Georgia italic, 20pt, weight 400', () => {
+    const block = styleBlock(headerSrc, 'titleSerif');
+    expect(block).not.toBe('');
+    expect(block).toMatch(/fontFamily:\s*['"]Georgia['"]/);
+    expect(block).toMatch(/fontStyle:\s*['"]italic['"]/);
+    expect(num(block, 'fontSize')).toBe(20);
+    expect(block).toMatch(/fontWeight:\s*['"]400['"]/);
+  });
+
+  it('JSX selects titleSerif vs title based on titleVariant', () => {
+    // Conditional pattern: titleVariant === 'serif' ? styles.titleSerif : styles.title
+    expect(headerSrc).toMatch(
+      /titleVariant\s*===\s*['"]serif['"]\s*\?\s*styles\.titleSerif\s*:\s*styles\.title/,
+    );
+  });
+});
+
 // ────────────────────────────────────────────────────────────────────────────
 // Per-screen migration: each target uses <SubScreenHeader> and drops the
 // tiny-caps headerLabel banner that was the previous title.
