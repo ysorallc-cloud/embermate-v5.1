@@ -19,9 +19,14 @@ const DarkColors = {
   // pass; only the hue rotates from cool blue-black to warm sage-cream.
   // Phase 0 of the v6.7 May 1 sizing pass lifted the page bg from the prior
   // very-dark #141612 to #1f201c — calibrated half-step toward charcoal that
-  // holds the warm cast without reading washed-out on device. Fallback if
-  // device check fails: drop to #1c1d1a.
-  background: '#1f201c',
+  // holds the warm cast without reading washed-out on device.
+  // Phase 33 F1a (2026-05-17) aligns to the website source-of-truth
+  // `--bg: #1a1612` — deeper warm-brown than the Phase-0 sage-charcoal.
+  // The L* drop from ~8.6 to ~6.1 widens the glass→bg delta (now ~11.5)
+  // and reads with more "warmth in the dark" than the prior cooler tone.
+  // Verified non-regression on cardContrast L* ≥ 8 + WCAG AA contrast
+  // tests (textSecondary on bg now ~10.3:1, textTertiary ~5.5:1).
+  background: '#1a1612',
   backgroundAlt: '#050505',
   // Phase 0 lockstep lift — when bg moved from #141612 (L* 6.92) to #1f201c
   // (L* 12.01), the prior glass #2a2c25 (L* 17.59) only lifted L* 5.57 above
@@ -45,7 +50,10 @@ const DarkColors = {
   glassDim: '#2a2c25',
   glassFaint: 'rgba(255, 245, 220, 0.03)',
   glassSubtle: 'rgba(255, 245, 220, 0.12)',
-  glassStrong: 'rgba(255, 245, 220, 0.18)',
+  // Phase 33 F1a — RGB aligned to website's --border-strong source-of-truth
+  // (245,220 → 240,215). Alpha 0.18 unchanged. Perceptually identical
+  // (≤5/5 RGB step) but pins us to the canonical brand color base.
+  glassStrong: 'rgba(255, 240, 215, 0.18)',
   glassBold: 'rgba(255, 245, 220, 0.25)',
   surface: '#363830',
   surfaceElevated: '#3e3a31',
@@ -181,15 +189,25 @@ const DarkColors = {
   coral: '#e89a7a',
   coralLight: 'rgba(232, 154, 122, 0.10)',
   coralBorder: 'rgba(232, 154, 122, 0.25)',
-  textPrimary: '#FFFFFF',
+  // Phase 33 F1a — primary text aligned to website source-of-truth
+  // `--text: #f4ddb8` (warm cream). The pure-white #FFFFFF carried over
+  // from the v6.7 palette was the single largest source of brand drift —
+  // pure white on warm-dark reads clinical, the cream reads warm. This
+  // single token flip cascades to ~480 c.textPrimary consumer sites in
+  // one line; per-site adjustments stay in F1b/F9 for sites that bypass
+  // the token (sage CTAs that should carry near-black, etc.).
+  textPrimary: '#f4ddb8',
   // v6.7 visual-consistency lock: text colors moved from rgba-on-white to
   // solid hex so the apparent color stays constant across page-bg / glass
   // / youCardSurface and contrast is deterministic. textSecondary doubles
-  // as the eyebrow color (>= 4.5:1 on both #1f201c and #2a2c25).
+  // as the eyebrow color (>= 4.5:1 on both #1a1612 and #2a2c25).
   textSecondary: '#c4c1b3',
   textTertiary: '#8a8a82',
   textSoft: 'rgba(255, 255, 255, 0.42)',
-  textMuted: 'rgba(255, 255, 255, 0.48)',
+  // Phase 33 F1a — flipped from rgba(255,255,255,0.48) to website's solid
+  // `--text-muted: #6a6a64`. The alpha-on-white form blended with surface
+  // hue (subtly cooler on warm bg); the solid hex is hue-stable.
+  textMuted: '#6a6a64',
   textDisabled: 'rgba(255, 255, 255, 0.28)',
   textHalf: 'rgba(255, 255, 255, 0.42)',
   textPlaceholder: 'rgba(255, 255, 255, 0.35)',
@@ -229,7 +247,13 @@ const DarkColors = {
   textAlertPrimary: '#e0d8c8',
   textAlertSecondary: '#a09880',
   textAlertHint: '#8a7a5a',
-  textBright: 'rgba(255, 255, 255, 0.88)',
+  // Phase 33 F1a — flipped to website's `--text-bright: #fff4d6`
+  // (emphasis cream, slightly brighter than the #f4ddb8 base text).
+  // Q-33.11 lock: the alpha-on-white shape was an accident of the old
+  // palette — the semantic ("brighter emphasis") is what 15 consumer
+  // sites want. All 15 audited as clean `color:` references with no
+  // rgba-shape dependency for layering.
+  textBright: '#fff4d6',
   textAlmostFull: 'rgba(255, 255, 255, 0.92)',
   textNearFull: 'rgba(255, 255, 255, 0.96)',
   textHighContrast: '#FFFFFF',
@@ -238,8 +262,9 @@ const DarkColors = {
   borderMedium: 'rgba(95, 184, 138, 0.22)',
   borderStrong: 'rgba(95, 184, 138, 0.35)',
   // Mirrors the page background (Phase 0 lifted both in lockstep so the
-  // tab strip stays seamless with the surface above it).
-  tabBarBackground: '#1f201c',
+  // tab strip stays seamless with the surface above it; Phase 33 F1a
+  // moved both to #1a1612 in lockstep).
+  tabBarBackground: '#1a1612',
   tabBarBorder: 'rgba(95, 184, 138, 0.15)',
   tabBarActive: '#5fb88a',
   tabBarInactive: 'rgba(255, 255, 255, 0.40)',
@@ -253,13 +278,17 @@ const DarkColors = {
   // were '#000000' / '#050505', and every sub-screen (Care Plan flow,
   // log forms, settings, etc.) wraps its SafeAreaView in a
   // <LinearGradient> reading from these tokens — so the near-black
-  // gradient covered the lifted #1f201c page bg before reaching the
+  // gradient covered the lifted page bg before reaching the
   // device. Flat lift to the same value as `background` so the gradient
   // overlay produces no visible color delta vs the SafeAreaView
-  // underneath. The gradient JSX surface itself is preserved (40+
-  // screens) for a future deliberate design call that wants depth back.
-  backgroundGradientStart: '#1f201c',
-  backgroundGradientEnd: '#1f201c',
+  // underneath. The gradient JSX surface itself is preserved (35
+  // consumer sites today) for a future deliberate design call that
+  // wants depth back.
+  // Phase 33 F1a — both moved to #1a1612 in lockstep with `background`.
+  // The lockstep is enforced by care-plan-page-background.test.tsx
+  // (gradient-stops-equal-bg pin).
+  backgroundGradientStart: '#1a1612',
+  backgroundGradientEnd: '#1a1612',
   // Phase 2.6.2 — lifted to the Phase 0 glass-tier value (#363830). Pre-lift
   // was '#1A1A1A', which sat L* 2.7 BELOW the new warm-charcoal bg — making
   // buttons read darker than the page they sat on. Same root cause as the

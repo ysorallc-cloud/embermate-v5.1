@@ -1,17 +1,20 @@
 // ============================================================================
-// Page background contract — flat #1f201c on every tab (Phase 0 lift).
+// Page background contract — flat warm-dark on every tab (Phase 0 lift,
+// Phase 33 F1a realignment to website source-of-truth #1a1612).
 //
 // May 1 screenshots showed 4 visibly different page backgrounds because each
 // tab was applying its own AuroraBackground variant (gradient stops in
 // sage / lavender / amber). Phase 2 of the May 1 sizing pass: every tab's
-// outermost container is the flat warm Sage near-black, no per-tab
-// gradient. Atmosphere comes from typography (serif italic affirmations),
-// not coloured gradients.
+// outermost container is the flat warm near-black, no per-tab gradient.
+// Atmosphere comes from typography (serif italic affirmations), not
+// coloured gradients.
 //
 // Source-level test rather than mount-based: the 4 tab files import dozens
 // of dependencies that would all need to be stubbed for a per-tab mount
 // pass; checking the source for the absence of <AuroraBackground / and
-// <LinearGradient is just as authoritative for this contract.
+// <LinearGradient is just as authoritative for this contract. The literal
+// hex value is pinned by phase0PageBackground.test.ts (this file pins the
+// no-gradient structural contract, not the hex value).
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -29,7 +32,7 @@ const TAB_LAYOUT = 'app/(tabs)/_layout.tsx';
 const ROOT = join(__dirname, '..');
 const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 
-describe('Page background — flat #1f201c on every tab', () => {
+describe('Page background — flat warm-dark on every tab (no per-tab gradient)', () => {
   for (const file of TABS) {
     describe(file, () => {
       const src = read(file);

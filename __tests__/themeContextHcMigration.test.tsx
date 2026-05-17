@@ -88,7 +88,7 @@ describe('Phase 2.5 — HC override migration', () => {
     tree?.unmount();
   });
 
-  it('renders colors.background as the lifted #1f201c, NOT the HC #000', async () => {
+  it('renders colors.background as the website source-of-truth #1a1612, NOT the HC #000', async () => {
     storage.set(HC_KEY, 'true');
 
     let resolved = '';
@@ -102,8 +102,9 @@ describe('Phase 2.5 — HC override migration', () => {
     });
     await flushHydrate();
 
-    // The HC override must NOT win — page bg is the Phase 0 lifted charcoal.
-    expect(resolved).toBe('#1f201c');
+    // The HC override must NOT win — page bg is the Phase 33 F1a value
+    // (website source-of-truth #1a1612, realigned from Phase 0's #1f201c).
+    expect(resolved).toBe('#1a1612');
     expect(resolved).not.toBe('#000000');
 
     tree?.unmount();

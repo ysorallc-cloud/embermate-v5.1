@@ -13,11 +13,15 @@ const dark = getDarkColors() as unknown as Record<string, string>;
 // ── Locked tokens ─────────────────────────────────────────────────────────
 
 describe('Theme tokens — locked dark surfaces', () => {
-  it('background (page) is the warm Sage near-black', () => {
+  it('background (page) is the warm-brown near-black (website source-of-truth)', () => {
     // Phase 0 of the v6.7 May 1 sizing pass lifted the page bg from
     // #141612 to #1f201c — calibrated half-step toward charcoal that
-    // holds the warm cast without reading washed-out on device.
-    expect(dark.background).toBe('#1f201c');
+    // held the warm cast without reading washed-out on device.
+    // Phase 33 F1a (2026-05-17) realigned to the website's
+    // `--bg: #1a1612` source-of-truth — deeper warm-brown than the
+    // Phase-0 sage-charcoal. Wider glass→bg L* delta (~11.5), text
+    // contrast IMPROVES on the darker surface.
+    expect(dark.background).toBe('#1a1612');
   });
 
   it('glass (default card surface) is the warm Sage card', () => {

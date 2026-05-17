@@ -1,5 +1,5 @@
 // ============================================================================
-// Care Plan flow page-bg contract — Phase 2.6.1.
+// Care Plan flow page-bg contract — Phase 2.6.1 (→ Phase 33 F1a realignment).
 //
 // Phase 2.5 fixed the high-contrast override that was forcing the four
 // main tabs to read near-black. Device review of 2.5 surfaced a second
@@ -7,19 +7,24 @@
 // SafeAreaView in a <LinearGradient> reading from
 // `colors.backgroundGradientStart` / `colors.backgroundGradientEnd` —
 // tokens hardcoded at '#000000' / '#050505'. The gradient overlay
-// covered the SafeAreaView's `c.background` (lifted to #1f201c by
-// Phase 0), so the warm charcoal never reached the device.
+// covered the SafeAreaView's `c.background` (lifted by Phase 0),
+// so the warm bg never reached the device.
 //
-// 2.6.1 fix: lift both gradient tokens to '#1f201c' so the LinearGradient
-// renders flat at the page-bg color. The gradient JSX stays in place —
-// retiring the gradient JSX outright would touch 40+ screens and is a
-// larger structural change. Flat-lifting the tokens preserves that JSX
-// surface for a future deliberate design call.
+// 2.6.1 fix: lift both gradient tokens to equal `background` so the
+// LinearGradient renders flat at the page-bg color. The gradient JSX
+// stays in place — retiring the JSX outright would touch 35 screens and
+// is a larger structural change. Flat-lifting the tokens preserves that
+// JSX surface for a future deliberate design call.
+//
+// Phase 33 F1a (2026-05-17) moved `background` to '#1a1612' (website
+// source-of-truth); both gradient tokens flipped in lockstep so the
+// gradient-equals-bg contract holds.
 //
 // Pins:
-//   1. Both gradient tokens equal #1f201c (token-level contract).
+//   1. Both gradient tokens equal #1a1612 (Phase 33 F1a target).
 //   2. Both gradient tokens equal `colors.background` so the overlay
-//      produces no visible color delta vs the SafeAreaView underneath.
+//      produces no visible color delta vs the SafeAreaView underneath
+//      (lockstep contract — survives future bg value changes).
 //   3. Every Care Plan screen's <LinearGradient> reads from those tokens
 //      (not from a hardcoded color array) — pins the wiring.
 // ============================================================================
@@ -30,16 +35,17 @@ import { getDarkColors } from '../theme/theme-tokens';
 
 const dark = getDarkColors() as unknown as Record<string, string>;
 
-describe('Phase 2.6.1 — gradient tokens flat-lifted', () => {
-  it('backgroundGradientStart equals #1f201c (page-bg lockstep)', () => {
-    expect(dark.backgroundGradientStart).toBe('#1f201c');
+describe('Gradient tokens flat-lifted (Phase 2.6.1 lockstep → Phase 33 F1a value)', () => {
+  it('backgroundGradientStart equals #1a1612 (Phase 33 F1a page-bg lockstep)', () => {
+    expect(dark.backgroundGradientStart).toBe('#1a1612');
   });
 
-  it('backgroundGradientEnd equals #1f201c (page-bg lockstep)', () => {
-    expect(dark.backgroundGradientEnd).toBe('#1f201c');
+  it('backgroundGradientEnd equals #1a1612 (Phase 33 F1a page-bg lockstep)', () => {
+    expect(dark.backgroundGradientEnd).toBe('#1a1612');
   });
 
   it('both gradient stops equal colors.background — gradient renders flat', () => {
+    // The structural lockstep — survives any future bg value change.
     expect(dark.backgroundGradientStart).toBe(dark.background);
     expect(dark.backgroundGradientEnd).toBe(dark.background);
   });

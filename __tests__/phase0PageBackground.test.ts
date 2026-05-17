@@ -1,19 +1,24 @@
 // ============================================================================
-// Phase 0 — Lift page background from #141612 to #1f201c.
+// Page background lockstep — Phase 0 → Phase 33 migration chain.
 //
-// The May 1 device-side check on the prior pass showed the warm-dark base
-// reading slightly washed-out; #1f201c is a calibrated half-step toward
-// charcoal that holds the warm cast without losing depth. Phase 0 is the
-// foundational flip — everything in Phases 1–7 sat on top of #141612, so
-// the value gets lifted before any further visual work lands on top of it.
+// Phase 0 (v6.7 May 1) lifted the page bg from #141612 → #1f201c — a
+// calibrated half-step toward charcoal to hold the warm cast without
+// reading washed-out on device.
+//
+// Phase 33 F1a (2026-05-17) realigned to the website source-of-truth
+// `--bg: #1a1612` — deeper warm-brown than the Phase-0 sage-charcoal. The
+// migration chain (#141612 → #1f201c → #1a1612) lands at a value close to
+// the original v6.7 starting hex but with the brand-canonical warm-brown
+// hue. WCAG contrast on textSecondary/textTertiary improves; cardContrast
+// L* delta widens; gradient + tab-bar lockstep preserved.
 //
 // This is a TOKEN-LEVEL contract: the dark theme's `background` value is
 // the canonical page-bg, and `tabBarBackground` mirrors it. Both must
 // flip in lockstep so the tab strip and page surface stay seamless.
 //
 // Pins:
-//   • DarkColors.background       === '#1f201c'
-//   • DarkColors.tabBarBackground === '#1f201c'
+//   • DarkColors.background       === '#1a1612'   (Phase 33 F1a)
+//   • DarkColors.tabBarBackground === '#1a1612'   (Phase 33 F1a)
 //   • The old #141612 literal does NOT appear as an active value in
 //     theme-tokens (comments are allowed for migration narrative).
 // ============================================================================
@@ -27,13 +32,13 @@ const DarkColors = getDarkColors();
 const ROOT = join(__dirname, '..');
 const tokensSrc = readFileSync(join(ROOT, 'theme/theme-tokens.ts'), 'utf8');
 
-describe('Phase 0 — page background lifted to #1f201c', () => {
-  it('DarkColors.background is #1f201c', () => {
-    expect(DarkColors.background).toBe('#1f201c');
+describe('Page background lockstep — Phase 33 F1a target #1a1612', () => {
+  it('DarkColors.background is #1a1612 (website source-of-truth --bg)', () => {
+    expect(DarkColors.background).toBe('#1a1612');
   });
 
-  it('DarkColors.tabBarBackground mirrors the page bg (#1f201c)', () => {
-    expect(DarkColors.tabBarBackground).toBe('#1f201c');
+  it('DarkColors.tabBarBackground mirrors the page bg (#1a1612)', () => {
+    expect(DarkColors.tabBarBackground).toBe('#1a1612');
   });
 
   it('the old #141612 hex does NOT appear as an active token value', () => {
