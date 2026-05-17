@@ -499,6 +499,39 @@ jest.mock('react-native-reanimated', () => {
   };
 });
 
+// ============================================================================
+// MOCK: @expo/vector-icons
+// ============================================================================
+// The icon-set families (AntDesign, Ionicons, MaterialIcons, etc.) ship as
+// ESM that Jest can't parse under default transformIgnorePatterns. Phase
+// 29 Batch B F1 added Ionicons to ResourcesList — any test that
+// transitively loads ResourcesList (or any of the 4 existing Ionicons
+// consumers: medication-form, emergency, medication-interactions,
+// settings/security) would otherwise crash on import.
+//
+// Each family resolves to a string-named "component" so rendered-tree
+// assertions can find it by type + read its props (name / size / color).
+// Mirrors the react-native-svg mock pattern below.
+
+jest.mock('@expo/vector-icons', () => ({
+  __esModule: true,
+  AntDesign: 'AntDesign',
+  Entypo: 'Entypo',
+  EvilIcons: 'EvilIcons',
+  Feather: 'Feather',
+  FontAwesome: 'FontAwesome',
+  FontAwesome5: 'FontAwesome5',
+  FontAwesome6: 'FontAwesome6',
+  Fontisto: 'Fontisto',
+  Foundation: 'Foundation',
+  Ionicons: 'Ionicons',
+  MaterialCommunityIcons: 'MaterialCommunityIcons',
+  MaterialIcons: 'MaterialIcons',
+  Octicons: 'Octicons',
+  SimpleLineIcons: 'SimpleLineIcons',
+  Zocial: 'Zocial',
+}));
+
 jest.mock('react-native-svg', () => ({
   __esModule: true,
   default: 'Svg',

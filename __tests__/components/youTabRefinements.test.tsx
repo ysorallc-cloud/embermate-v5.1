@@ -23,6 +23,11 @@ const themeColors = {
   hairlineInset: 'rgba(255, 240, 215, 0.06)',
   accent: '#5fb88a',
   caregiverAccent: '#aa8adc',
+  // Phase 29 Batch B F3 — ReflectionCard chrome migrated to caregiver
+  // lane tokens. Mock needs the alpha tiers F3 consumes so render-tree
+  // assertions resolve to the same rgba strings the production tokens do.
+  caregiverAccentBg: 'rgba(170, 138, 220, 0.06)',
+  caregiverAccentWash: 'rgba(170, 138, 220, 0.15)',
   warning: '#e5b04a',
   criticalAlert: '#e6776e',
   error: '#e6776e',
@@ -78,7 +83,11 @@ jest.mock('../shared/InlineSaveToast', () => ({
 }), { virtual: true });
 
 import { ReflectionCard } from '../../components/support/ReflectionCard';
-import { QuickResetPills } from '../../components/support/QuickResetPills';
+// Phase 29 Batch B F4 — QuickResetPills retired. The "equal flex with
+// category colors" describe block below is reframed as an absence pin
+// (the file no longer exists in the codebase). ActionCardsRow's
+// successor contracts live in actionCardsRow29B.test.tsx (size/icon
+// per card + accessibilityHint preservation).
 
 function flattenChildren(kids: any): any[] {
   if (kids == null) return [];
@@ -106,19 +115,28 @@ const styleOf = (node: any) => {
   return Object.assign({}, ...styles.filter(Boolean));
 };
 
-describe('ReflectionCard — locked warm capture surface', () => {
-  it('card uses youCardSurface (#383528), not glass', () => {
-    // Phase 0 lockstep lift: youCardSurface lifted from #2c2a23 → #383528
-    // and glass lifted from #2a2c25 → #363830. The contract — that the
-    // You-tab capture surface differs from the default glass — is preserved.
+describe('ReflectionCard — Phase 29 Batch B F3 lavender lane chrome', () => {
+  it('card uses caregiverAccentBg (lavender lane chrome) — youCardSurface retired', () => {
+    // Phase 29 Batch B F3 — primary lane-coded card chrome matching the
+    // Phase 27/28 JournalSection pattern. The pre-F3 youCardSurface
+    // warm-cream bg retired with the broader You-lane lavender
+    // migration; ReflectionCard now reads as a peer of Journal SOAP
+    // cards across surfaces (Tier 3 of the lane-coherence rule).
     const tree = (ReflectionCard as any)({});
     const root = tree;
     const merged = styleOf(root);
-    expect(merged.backgroundColor).toBe('#383528');
-    expect(merged.backgroundColor).not.toBe('#363830');
+    expect(merged.backgroundColor).toBe('rgba(170, 138, 220, 0.06)');
+    expect(merged.backgroundColor).not.toBe('#383528');
   });
 
-  it('Save button is the filled-sage primary', () => {
+  it('card has 3px full-hex caregiverAccent left border (matches JournalSection primary-card chrome)', () => {
+    const tree = (ReflectionCard as any)({});
+    const merged = styleOf(tree);
+    expect(merged.borderLeftWidth).toBe(3);
+    expect(merged.borderLeftColor).toBe('#aa8adc');
+  });
+
+  it('Save button is filled caregiverAccent (Phase 29 Batch B F3 — lane recolor from sage)', () => {
     const tree = (ReflectionCard as any)({});
     const save = findAll(tree, (n) =>
       n.type === 'TouchableOpacity' &&
@@ -127,13 +145,14 @@ describe('ReflectionCard — locked warm capture surface', () => {
     )[0];
     expect(save).toBeDefined();
     const merged = styleOf(save);
-    expect(merged.backgroundColor).toBe('#5fb88a');
+    expect(merged.backgroundColor).toBe('#aa8adc');
+    expect(merged.backgroundColor).not.toBe('#5fb88a');
     // Locked padding: 6pt vertical / 16pt horizontal.
     expect(merged.paddingVertical).toBe(6);
     expect(merged.paddingHorizontal).toBe(16);
   });
 
-  it('Save button text is dark on the filled sage (#0a1510)', () => {
+  it('Save button text is white on the filled lavender (Phase 29 Batch B F3 — lane recolor)', () => {
     const tree = (ReflectionCard as any)({});
     const saveText = findAll(tree, (n) =>
       n.type === 'Text' &&
@@ -142,67 +161,30 @@ describe('ReflectionCard — locked warm capture surface', () => {
     )[0];
     expect(saveText).toBeDefined();
     const merged = styleOf(saveText);
-    expect(merged.color).toBe('#0a1510');
+    expect(merged.color).toBe('#fff');
+    expect(merged.color).not.toBe('#0a1510');
     expect(merged.fontSize).toBe(11.5);
   });
 });
 
-describe('QuickResetPills — equal flex with category colors', () => {
-  const baseProps = () => ({
-    onBreathe: jest.fn(),
-    onHelpline: jest.fn(),
-    onCommunity: jest.fn(),
-  });
+describe('QuickResetPills — retired in Phase 29 Batch B F4 (absence pin)', () => {
+  // Pre-B QuickResetPills was a 3-pill row (Breathe / Helpline /
+  // Community) with per-pill category colors and a Breathe entry into
+  // the breathing exercise. Phase 29 Batch A.2 folded Breathe into the
+  // orb card; Phase 29 Batch B F4 retired Helpline + Community pills
+  // into the new ActionCardsRow (with Wellness as the third card,
+  // replacing the also-retired wellnessLink row). QuickResetPills.tsx
+  // + its 2 dedicated test files deleted.
+  //
+  // The original presence contracts (3 equal-flex pills, per-pill
+  // colors, subtitle labels) survive on the successor surface — see
+  // __tests__/components/actionCardsRow29B.test.tsx contracts 1-7 for
+  // the ActionCardsRow pins covering the same intent.
+  const { existsSync } = require('fs');
+  const { join: pathJoin } = require('path');
 
-  it('renders 3 pills as equal-flex children of a row container', () => {
-    const tree = (QuickResetPills as any)(baseProps());
-    const pills = findAll(tree, (n) =>
-      n.type === 'TouchableOpacity' &&
-      ['Breathe', 'Helpline', 'Community'].includes(n.props?.accessibilityLabel),
-    );
-    expect(pills.length).toBe(3);
-    for (const p of pills) {
-      const merged = styleOf(p);
-      expect(merged.flex).toBe(1);
-    }
-  });
-
-  it('Breathe label uses sage (accent)', () => {
-    const tree = (QuickResetPills as any)(baseProps());
-    const label = findAll(tree, (n) => n.props?.testID === 'quick-reset-label-breathe')[0];
-    expect(label).toBeDefined();
-    expect(styleOf(label).color).toBe('#5fb88a');
-  });
-
-  it('Helpline label paints in textPrimary (May 1 sizing pass — Phase 6)', () => {
-    // v6.7 May 1 sizing pass — Phase 6 supersedes the prior coral spec.
-    // Coral is reserved for genuine emergency cues (Phase 7); the helpline
-    // CTA reverts to neutral textPrimary so the three-pill row reads as
-    // peers rather than one alert + two neutrals.
-    const tree = (QuickResetPills as any)(baseProps());
-    const label = findAll(tree, (n) => n.props?.testID === 'quick-reset-label-helpline')[0];
-    expect(label).toBeDefined();
-    // textPrimary in dark theme = #fff (Sage warm-dark palette).
-    expect(styleOf(label).color).toBe('#fff');
-  });
-
-  it('Community label uses lavender (caregiverAccent)', () => {
-    const tree = (QuickResetPills as any)(baseProps());
-    const label = findAll(tree, (n) => n.props?.testID === 'quick-reset-label-community')[0];
-    expect(label).toBeDefined();
-    expect(styleOf(label).color).toBe('#aa8adc');
-  });
-
-  it('each pill has a tertiary subtitle below the label', () => {
-    const tree = (QuickResetPills as any)(baseProps());
-    const subtitles = findAll(tree, (n) =>
-      typeof n.props?.testID === 'string' && /^quick-reset-subtitle-/.test(n.props.testID),
-    );
-    expect(subtitles.length).toBe(3);
-    const labels = subtitles.map((s) => s.props.children);
-    expect(labels).toContain('60 sec');
-    expect(labels).toContain('24/7');
-    expect(labels).toContain('Read');
+  it('absence pin: components/support/QuickResetPills.tsx no longer exists', () => {
+    expect(existsSync(pathJoin(__dirname, '../../components/support/QuickResetPills.tsx'))).toBe(false);
   });
 });
 
@@ -211,20 +193,21 @@ describe('QuickResetPills — equal flex with category colors', () => {
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-describe('You tab — Plan-ahead grouped card (Phase 7.3 reframe)', () => {
+describe('You tab — Plan-ahead header (Phase 29 Batch B F4 reframe)', () => {
   const supportSrc = readFileSync(
     join(__dirname, '../../app/(tabs)/support.tsx'),
     'utf8',
   );
 
-  it('serif-italic header lives above the card, not inside it', () => {
+  it('"When you have a moment" header lives above the compact ResourcesList', () => {
     // Phase 7.3 collapsed the prior eyebrow + subtitle pair into a single
-    // "When you have a moment" header, sized to match the affirmation
-    // bump. The header still sits above the planAheadCard JSX.
-    const cardIdx = supportSrc.indexOf('styles.planAheadCard');
+    // serif-italic header. Phase 29 Batch B F4 retired the planAheadCard
+    // wrapper (compact ResourcesList chevron rows ARE the chrome now);
+    // the header still sits above the ResourcesList JSX in source order.
+    const listIdx = supportSrc.indexOf('<ResourcesList');
     const headerIdx = supportSrc.indexOf('When you have a moment');
     expect(headerIdx).toBeGreaterThan(0);
-    expect(cardIdx).toBeGreaterThan(0);
-    expect(headerIdx).toBeLessThan(cardIdx);
+    expect(listIdx).toBeGreaterThan(0);
+    expect(headerIdx).toBeLessThan(listIdx);
   });
 });

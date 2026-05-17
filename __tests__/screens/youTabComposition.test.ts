@@ -31,40 +31,45 @@ describe('You tab — imports the three new components', () => {
     expect(src).toMatch(/import\s*\{\s*ReflectionCard\s*\}\s*from\s*['"][^'"]*ReflectionCard['"]/);
   });
 
-  it('imports QuickResetPills from components/support', () => {
-    expect(src).toMatch(/import\s*\{\s*QuickResetPills\s*\}\s*from\s*['"][^'"]*QuickResetPills['"]/);
+  it('imports ActionCardsRow from components/support (Phase 29 Batch B F4 — QuickResetPills successor)', () => {
+    expect(src).toMatch(/import\s*\{\s*ActionCardsRow\s*\}\s*from\s*['"][^'"]*ActionCardsRow['"]/);
   });
 });
 
-describe('You tab — JSX render order matches Phase 6 spec', () => {
-  // Index of each anchor JSX. We assert strictly increasing offsets so the
-  // composition lands in the spec'd order.
-  const idxAffirmation = src.indexOf('<AffirmationHeader');
-  const idxReflection  = src.indexOf('<ReflectionCard');
-  const idxPills       = src.indexOf('<QuickResetPills');
-  const idxWellness    = src.search(/<TouchableOpacity[^>]*\n[\s\S]{0,200}?style=\{styles\.wellnessLink\}/);
-  const idxPlanAhead   = src.indexOf('<View style={styles.planAheadCard}');
+describe('You tab — JSX render order (post-Phase-29-Batch-B composition)', () => {
+  // Phase 29 Batch B F4 — composition reframed:
+  //   AffirmationHeader → BreathingOrbCard → ReflectionCard → ActionCardsRow
+  //   → planAheadHeader → ResourcesList (compact)
+  // QuickResetPills + wellnessLink + planAheadCard all retired in F4.
+  const idxAffirmation     = src.indexOf('<AffirmationHeader');
+  const idxOrb             = src.indexOf('<BreathingOrbCard');
+  const idxReflection      = src.indexOf('<ReflectionCard');
+  const idxActionCards     = src.indexOf('<ActionCardsRow');
+  const idxPlanAheadHeader = src.indexOf('When you have a moment');
+  const idxResources       = src.indexOf('<ResourcesList');
 
   it('renders AffirmationHeader after the header block', () => {
     expect(idxAffirmation).toBeGreaterThan(-1);
-    // Phase 29 F1 — the anchor flipped from the literal subtitle copy
-    // ("A space for you, not your loved one.") to the greeting helper
-    // call (composeYouGreeting). The header block still owns the top
-    // of the tab and AffirmationHeader still renders after it; only
-    // the anchor we grep for changed.
     const headerIdx = src.search(/composeYouGreeting\s*\(/);
     expect(headerIdx).toBeGreaterThan(-1);
     expect(idxAffirmation).toBeGreaterThan(headerIdx);
   });
 
-  it('AffirmationHeader → ReflectionCard → QuickResetPills (strict order)', () => {
-    expect(idxReflection).toBeGreaterThan(idxAffirmation);
-    expect(idxPills).toBeGreaterThan(idxReflection);
+  it('AffirmationHeader → BreathingOrbCard → ReflectionCard → ActionCardsRow (strict order)', () => {
+    expect(idxOrb).toBeGreaterThan(idxAffirmation);
+    expect(idxReflection).toBeGreaterThan(idxOrb);
+    expect(idxActionCards).toBeGreaterThan(idxReflection);
   });
 
-  it('QuickResetPills → wellness link → Plan ahead (strict order)', () => {
-    expect(idxWellness).toBeGreaterThan(idxPills);
-    expect(idxPlanAhead).toBeGreaterThan(idxWellness);
+  it('ActionCardsRow → "When you have a moment" header → ResourcesList (strict order)', () => {
+    expect(idxPlanAheadHeader).toBeGreaterThan(idxActionCards);
+    expect(idxResources).toBeGreaterThan(idxPlanAheadHeader);
+  });
+
+  it('absence pin: QuickResetPills + wellnessLink + planAheadCard retired', () => {
+    expect(src).not.toMatch(/<QuickResetPills\b/);
+    expect(src).not.toMatch(/style=\{styles\.wellnessLink\}/);
+    expect(src).not.toMatch(/style=\{styles\.planAheadCard\}/);
   });
 });
 
@@ -78,27 +83,25 @@ describe('You tab — old mood + contact-tile blocks removed', () => {
     expect(src).not.toMatch(/style=\{\[styles\.primaryCard,\s*styles\.primaryCardLeft\]\}/);
   });
 
-  it('does not render the Helpline + Community contact-tile row (replaced by QuickResetPills)', () => {
+  it('does not render the legacy Helpline + Community contact-tile row', () => {
     expect(src).not.toMatch(/style=\{styles\.contactTilesRow\}/);
   });
 });
 
-describe('You tab — QuickResetPills handlers wired', () => {
-  it('onBreathe opens the breathing exercise modal', () => {
-    expect(src).toMatch(/onBreathe=\{[\s\S]{0,200}?setBreathingVisible\(true\)/);
-  });
-
-  it('onHelpline dials the caregiver helpline', () => {
+describe('You tab — ActionCardsRow handlers wired (Phase 29 Batch B F4)', () => {
+  it('onHelpline dials the caregiver helpline (tel: link preserved across QuickResetPills retirement)', () => {
     expect(src).toMatch(/onHelpline=\{[\s\S]{0,200}?Linking\.openURL\(['"]tel:/);
   });
 
-  it('onCommunity routes to a community destination', () => {
-    // Either Linking.openURL to a known community URL, or a navigate() to
-    // an in-app community surface. Some handler must be present.
-    expect(src).toMatch(/onCommunity=\{[\s\S]{0,300}?(Linking\.openURL|navigate\()/);
+  it('onCommunity opens caregiveraction.org (Linking.openURL preserved)', () => {
+    expect(src).toMatch(/onCommunity=\{[\s\S]{0,300}?Linking\.openURL/);
   });
 
-  it('BreathingExercise modal is still mounted in the tree', () => {
+  it('onWellness navigates to /caregiver-wellness (folds the retired wellnessLink destination)', () => {
+    expect(src).toMatch(/onWellness=\{[\s\S]{0,200}?navigate\(['"]\/caregiver-wellness['"]\)/);
+  });
+
+  it('BreathingExercise modal is still mounted in the tree (single mount preserved)', () => {
     expect(src).toMatch(/<BreathingExercise/);
   });
 });

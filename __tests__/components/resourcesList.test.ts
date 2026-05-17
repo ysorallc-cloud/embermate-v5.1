@@ -2,6 +2,14 @@
 // ResourcesList — Category and link data tests
 // ============================================================================
 
+// Phase 29 Batch B F1 — the ResourcesList component picked up an
+// expo-router dependency via lib/navigate (the compact-variant tap
+// handler calls navigate('/resources')). This data-only test never
+// renders the component, but Jest evaluates the whole module on
+// import. Stub the navigate wrapper so the expo-router import chain
+// (which ships TSX Jest can't transform) doesn't crash the load.
+jest.mock('../../lib/navigate', () => ({ navigate: jest.fn() }));
+
 import { RESOURCE_CATEGORIES } from '../../components/support/ResourcesList';
 
 describe('ResourcesList', () => {

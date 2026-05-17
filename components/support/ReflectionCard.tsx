@@ -183,11 +183,18 @@ export function ReflectionCard() {
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   card: {
-    // You-tab card surface — tinted slightly warmer than the global glass.
-    backgroundColor: (c as any).youCardSurface || c.glass,
-    borderWidth: 1,
-    borderColor: (c as any).youCardBorder || c.glassBorder,
-    borderRadius: 14,
+    // Phase 29 Batch B F3 — primary lane-coded card chrome. Matches the
+    // Phase 27/28 JournalSection caregiverAccent-tint pattern (full-hex
+    // left border at 3px + caregiverAccentBg body) so ReflectionCard
+    // reads as a peer of Journal's SOAP cards across surfaces (Tier 3
+    // of the lane-coherence rule). The pre-F3 youCardSurface chrome
+    // retired with the broader You-lane lavender migration.
+    backgroundColor: c.caregiverAccentBg,
+    borderWidth: 0.5,
+    borderColor: c.caregiverAccentWash,
+    borderLeftWidth: 3,
+    borderLeftColor: c.caregiverAccent,
+    borderRadius: 9,
     padding: 16,
     marginBottom: 12,
   },
@@ -216,7 +223,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   moodButtonSelected: {
     borderWidth: 1.5,
-    borderColor: c.accent,
+    // Phase 29 Batch B F3 — sage ring inside lavender card was a
+    // within-surface lane orphan (Tier 1 rule). Ring now tracks the
+    // card's lane.
+    borderColor: c.caregiverAccent,
   },
   moodEmoji: {
     fontSize: 22,
@@ -238,10 +248,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderColor: c.glassBorder,
     borderRadius: 10,
     padding: 12,
-    // v6.7 May 1 sizing pass — Phase 6: previously 60pt, which felt
-    // disproportionately tall when empty. Drops to the shared sizing
-    // token; multiline still expands naturally up to maxHeight.
-    minHeight: Sizing.textareaMinHeight,
+    // Phase 29 Batch B F3 — 3-line minHeight (fontSize 13 × lineHeight
+    // ~1.3 × 3 ≈ 51px). Hardcoded literal rather than a new Sizing
+    // token; no other consumer needs 3-line specifically. Multiline
+    // auto-expands on focus via RN default behavior up to maxHeight 200.
+    minHeight: 51,
     maxHeight: 200,
     fontSize: 13,
     color: c.textPrimary,
@@ -258,11 +269,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
-  // v6.7 Phase 5 — locked filled-sage primary. The button reads as a
-  // real button (vs the prior low-contrast teal pill), with dark text on
-  // sage so the affordance is unambiguous.
+  // Phase 29 Batch B F3 — Save pill lane recolor. Pre-F3 sage solid
+  // (#5fb88a) + near-black text retired; now solid caregiverAccent +
+  // white text. Matches the lane identity the wrapping card now carries.
+  // Padding + radius + fontSize unchanged from the v6.7 Phase 5 layout.
   saveButton: {
-    backgroundColor: '#5fb88a',
+    backgroundColor: c.caregiverAccent,
     borderRadius: 16,
     paddingVertical: 6,
     paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
@@ -273,6 +285,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   saveButtonText: {
     fontSize: 11.5,
     fontWeight: '600',
-    color: '#0a1510',
+    color: '#fff',
   },
 });

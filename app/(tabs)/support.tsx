@@ -31,7 +31,6 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
-  TouchableOpacity,
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,7 +38,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { navigate } from '../../lib/navigate';
 import { AffirmationHeader } from '../../components/support/AffirmationHeader';
 import { ReflectionCard } from '../../components/support/ReflectionCard';
-import { QuickResetPills } from '../../components/support/QuickResetPills';
+import { ActionCardsRow } from '../../components/support/ActionCardsRow';
 import { BreathingExercise } from '../../components/support/BreathingExercise';
 import { BreathingOrbCard } from '../../components/support/BreathingOrbCard';
 import { ResourcesList } from '../../components/support/ResourcesList';
@@ -75,13 +74,11 @@ export default function SupportScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [refreshing, setRefreshing] = useState(false);
   const [breathingVisible, setBreathingVisible] = useState(false);
-  // Phase 29 Batch A.fix — single BreathingExercise mount serves both
-  // entry points (orb card + legacy QuickResetPills.onBreathe). The
-  // autoStart flag tracks which entry fired so the modal opens in the
-  // correct framing. Two batched setState calls in the entry handler
-  // land in one render; BreathingExercise's [visible, autoStart]
-  // effect deps re-read the fresh autoStart on the visible-true edge.
-  const [breathingAutoStart, setBreathingAutoStart] = useState(false);
+  // Phase 29 Batch B F4 — `breathingAutoStart` state retired alongside
+  // QuickResetPills. Pre-B the state arbitrated two entry points (orb →
+  // autoStart=true, QuickResetPills.onBreathe → autoStart=false). After
+  // B the orb is the sole entry; autoStart is always true. The single
+  // BreathingExercise mount survives — only the per-entry flag drops.
   const [witness, setWitness] = useState<WitnessSignal | null>(null);
   // Phase 26 F3 — caregiver name for the lavender chip. Empty default;
   // useEffect populates on mount. When still empty after fetch (caregiver
@@ -172,57 +169,36 @@ export default function SupportScreen() {
                 Same styling, same voice. ═══ */}
           <AffirmationHeader witness={witness} />
 
-          {/* ═══ Phase 29 F3 — breathing orb card.
-                Lavender card that frames a 60-second breath. Tap calls
-                onTap, which opens the SHARED BreathingExercise mount
-                (mounted once at the screen root) with autoStart=true.
-                The legacy QuickResetPills Breathe pill below opens the
-                same shared mount with autoStart=false until Batch B
-                retires that pill. One Modal in the tree — eliminates
-                the dual-mount iOS responder-chain bug. ═══ */}
+          {/* ═══ Phase 29 Batch A F3 — breathing orb card.
+                Lavender card that frames a 60-second breath. Tap opens
+                the shared BreathingExercise mount with autoStart=true. ═══ */}
           <BreathingOrbCard
-            onTap={() => {
-              setBreathingAutoStart(true);
-              setBreathingVisible(true);
-            }}
+            onTap={() => setBreathingVisible(true)}
           />
 
           {/* ═══ Reflection card (mood + text + save) ═══ */}
           <ReflectionCard />
 
-          {/* ═══ Quick reset pills ═══ */}
-          <QuickResetPills
-            onBreathe={() => {
-              setBreathingAutoStart(false);
-              setBreathingVisible(true);
-            }}
+          {/* ═══ Phase 29 Batch B F4 — Action cards row.
+                Replaces QuickResetPills (Breathe folded into the orb
+                card above; Helpline + Community preserved as cards;
+                Wellness added, folding the retired wellnessLink row).
+                Pure presentational — handlers wire Linking + navigate
+                here in the parent. ═══ */}
+          <ActionCardsRow
             onHelpline={() => Linking.openURL('tel:18552273640').catch(() => {})}
             onCommunity={() => Linking.openURL('https://caregiveraction.org/').catch(() => {})}
+            onWellness={() => navigate('/caregiver-wellness')}
           />
-
-          {/* ═══ Compact wellness link ═══ */}
-          <TouchableOpacity
-            style={styles.wellnessLink}
-            onPress={() => navigate('/caregiver-wellness')}
-            activeOpacity={0.7}
-            accessibilityLabel="View your wellness history"
-            accessibilityRole="button"
-          >
-            <Text style={styles.wellnessLabel}>YOUR WELLNESS OVER TIME</Text>
-            <Text style={styles.wellnessChevron}>{'›'}</Text>
-          </TouchableOpacity>
 
           {/* ═══ Plan ahead — Phase 7.3 reframe: the prior admin
                 eyebrow + serif subtitle pair was retired in favour of a
                 single caregiver-voice header sized to match the
-                affirmation bump. The list below carries the meaning.
-                ═══ */}
+                affirmation bump. Phase 29 Batch B F4 — planAheadCard
+                wrapper retired alongside the ResourcesList compact
+                variant; chevron rows are the chrome now. ═══ */}
           <Text style={styles.planAheadHeader}>When you have a moment</Text>
-          <View style={styles.planAheadCard}>
-            <View style={styles.planAheadBody}>
-              <ResourcesList />
-            </View>
-          </View>
+          <ResourcesList variant="compact" />
 
           {/* Phase 26 F5 — footer affirmation block retired. The
               AffirmationHeader at the top of this tab already carries
@@ -235,7 +211,7 @@ export default function SupportScreen() {
       <BreathingExercise
         visible={breathingVisible}
         onClose={() => setBreathingVisible(false)}
-        autoStart={breathingAutoStart}
+        autoStart
       />
     </View>
   );
@@ -334,44 +310,15 @@ function createStyles(c: typeof Colors) {
       color: c.caregiverAccentText,
       fontWeight: '500' as const,
     },
-    // ── Wellness link (compact row) ──
-    wellnessLink: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'space-between' as const,
-      backgroundColor: c.glassDim,
-      borderWidth: 0.5,
-      borderColor: c.glassBorder,
-      borderRadius: 8,
-      paddingVertical: 10,
-      paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    },
-    wellnessLabel: {
-      fontSize: 10,
-      fontWeight: '600' as const,
-      color: c.textTertiary,
-      letterSpacing: 0.3,
-    },
-    wellnessChevron: {
-      fontSize: 14,
-      color: c.textTertiary,
-    },
-    // ── Plan ahead — contained card with an internal eyebrow header
-    //    Surface tinted slightly warmer than
-    //    the global glass via the youCardSurface token. ──
-    // v6.7 Phase 5 — single grouped card; no internal header (the eyebrow
-    // sits above via planAheadHeader). marginTop folded into planAheadHeader.
-    planAheadCard: {
-      backgroundColor: (c as any).youCardSurface || c.glass,
-      borderWidth: 0.5,
-      borderColor: (c as any).youCardBorder || c.glassBorder,
-      borderRadius: 10,
-      overflow: 'hidden' as const,
-    },
-    // v6.7 Phase 5 — eyebrow + subtitle now live ABOVE the card. No
-    // Phase 7.3 — single serif-italic header replaces the prior eyebrow +
-    // subtitle pair. Sized to match the affirmation header (18pt) so
-    // the "warm voice" lines of the You tab read at the same volume.
+    // Phase 29 Batch B F4 — wellnessLink / wellnessLabel / wellnessChevron
+    // style entries retired alongside the wellnessLink JSX row. The
+    // Wellness action card in ActionCardsRow now carries the route to
+    // /caregiver-wellness; per-card accessibilityHint preserves the
+    // pre-B "View your wellness history" screen-reader text.
+    //
+    // planAheadCard / planAheadBody also retired — the ResourcesList
+    // compact variant renders chevron rows that ARE the chrome, so the
+    // outer card wrapper became redundant (per Batch B R2).
     planAheadHeader: {
       fontFamily: 'Georgia',
       fontStyle: 'italic' as const,
@@ -381,11 +328,6 @@ function createStyles(c: typeof Colors) {
       marginTop: Spacing.lg,
       marginBottom: 12, // allow: tap-target padding (Apple HIG ≥44pt)
       paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    },
-    planAheadBody: {
-      paddingTop: 4,
-      paddingHorizontal: 0,
-      paddingBottom: 4,
     },
     // Phase 26 F5 — footer + footerText style entries retired alongside
     // the JSX block. The closing emotional beat moved entirely onto

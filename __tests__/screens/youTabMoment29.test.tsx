@@ -277,27 +277,32 @@ describe('Phase 29 Batch A — F3 BreathingOrbCard', () => {
     expect(filledCircles).toHaveLength(1);
   });
 
-  it('contract F3.7 (Batch A.fix lift): support.tsx wires the orb onTap to set autoStart=true; QuickResetPills.onBreathe sets autoStart=false', () => {
-    // Both entry points feed the same single BreathingExercise. They
-    // differ only in the autoStart value they push onto state. Source-
-    // level pins keep the two paths legible without coupling to a
-    // specific state-variable name (accept any of the conventional
-    // identifiers).
+  it('contract F3.7 (Phase 29 Batch B F4 reframe): orb is the sole BreathingExercise entry; autoStart is hardcoded true', () => {
+    // Pre-B the autoStart prop bound to a `breathingAutoStart` state
+    // arbitrating two entry points (orb → true, QuickResetPills.onBreathe
+    // → false). Batch B F4 retired QuickResetPills entirely; the orb is
+    // now the sole entry. The state binding flattens to a hardcoded
+    // `autoStart` literal. The dual-mount regression guard from the
+    // Batch A.fix lift survives — there's still exactly ONE
+    // <BreathingExercise> mount in support.tsx (was contract F3.6's
+    // singleton pin; reaffirmed here).
     //
-    // Pattern: the orb's onTap handler sets the autoStart-tracking
-    // state to true, then sets visible to true. The pill's
-    // onBreathe handler sets the same autoStart state to false, then
-    // sets visible to true.
-    //
-    // We pin (a) BreathingOrbCard receives an onTap prop in JSX, and
-    // (b) BreathingExercise's autoStart prop is wired to a state
-    // identifier (not the literal true/false), and (c) the orb +
-    // pill handlers both set that state identifier with their
-    // respective values.
+    // Pin shape (post-Batch-B):
+    //   • BreathingOrbCard receives an onTap prop (unchanged)
+    //   • BreathingExercise renders exactly once in support.tsx
+    //   • autoStart is hardcoded (literal `autoStart` or `autoStart={true}`)
+    //     — NOT bound to a state identifier (that arbitration is gone)
     expect(STRIPPED).toMatch(/<BreathingOrbCard\s+onTap=\{/);
-    // BreathingExercise's autoStart binds to a state identifier
-    // (curly-brace expression), not a literal.
-    expect(STRIPPED).toMatch(/<BreathingExercise[\s\S]*?autoStart=\{(?!true\}|false\})[^}]+\}/);
+
+    // Singleton — preserves the dual-mount regression guard.
+    const breathingMounts = STRIPPED.match(/<BreathingExercise\b/g) ?? [];
+    expect(breathingMounts).toHaveLength(1);
+
+    // autoStart is hardcoded. Accept either the JSX boolean-shorthand
+    // (`autoStart` alone) or the explicit `autoStart={true}` form.
+    // Reject any state-identifier binding (e.g. `autoStart={breathingAutoStart}`).
+    expect(STRIPPED).toMatch(/<BreathingExercise[\s\S]*?\bautoStart(?:\s*=\s*\{\s*true\s*\})?[\s\S]*?\/>/);
+    expect(STRIPPED).not.toMatch(/<BreathingExercise[\s\S]*?autoStart=\{breathingAutoStart\}/);
   });
 
   it('contract F3.5: integration — support.tsx mounts BreathingOrbCard BETWEEN AffirmationHeader and ReflectionCard', () => {

@@ -70,8 +70,14 @@ jest.mock('../../lib/navigate', () => ({ navigate: jest.fn() }));
 jest.mock('../../components/support/ReflectionCard', () => ({
   ReflectionCard: () => null,
 }));
-jest.mock('../../components/support/QuickResetPills', () => ({
-  QuickResetPills: () => null,
+// Phase 29 Batch B F4 — QuickResetPills retired; ActionCardsRow took
+// its slot. Mock the successor (and the new BreathingOrbCard from
+// A.2) to keep this test focused on footer witness wiring.
+jest.mock('../../components/support/ActionCardsRow', () => ({
+  ActionCardsRow: () => null,
+}));
+jest.mock('../../components/support/BreathingOrbCard', () => ({
+  BreathingOrbCard: () => null,
 }));
 jest.mock('../../components/support/BreathingExercise', () => ({
   BreathingExercise: () => null,

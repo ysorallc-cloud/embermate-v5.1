@@ -1,19 +1,24 @@
 // ============================================================================
-// You tab — May 1 sizing pass Phase 6.
+// You tab — May 1 sizing pass Phase 6 (Batch B F4 reframes).
 //
-// Three contracts for the You tab:
-//   • ReflectionCard textarea minHeight ≤ 40 (was 60, too tall when empty;
-//     drops to the Sizing.textareaMinHeight token).
-//   • ReflectionCard Save pill is FILLED with the sage accent (already
-//     locked in Phase 5; pinned here so a future refactor doesn't revert
-//     to a low-contrast outlined pill).
-//   • QuickResetPills "Helpline" no longer paints in coral/criticalAlert.
-//     Coral is reserved (Phase 7) for genuine emergency cues — a routine
-//     CTA shouldn't grab the same affordance. Helpline reverts to
-//     textPrimary so the row reads as three peers.
-//   • Plan ahead remains a single grouped surface (header outside, card
-//     wrapping ResourcesList — pinning the Phase 5 grouping so it doesn't
-//     get re-split into separate items).
+// Original Phase 6 pinned four contracts:
+//   • ReflectionCard textarea minHeight ≤ 40 — REFRAMED in Phase 29 B F3
+//     to the 3-line range (48-56). Old contract was a regression guard
+//     against a legacy 60pt floor; F3's deliberate 3-line floor (~51px)
+//     is a larger intentional value.
+//   • ReflectionCard Save pill filled with sage — REFRAMED in Phase 29 B
+//     F3 to caregiverAccent solid + white text (lane recolor).
+//   • QuickResetPills "Helpline neutralized" — RETIRED in Phase 29 B F4.
+//     QuickResetPills retired entirely; the Helpline action card's icon
+//     color is pinned by actionCardsRow29B.test.tsx contract 2 (size 13,
+//     caregiverAccent — lavender, not coral). The "no coral" intent is
+//     preserved on the new surface; the source-grep on the old file is
+//     obsolete (file deleted).
+//   • Plan ahead grouped surface — RETIRED in Phase 29 B F4. The
+//     planAheadCard wrapper retired; <ResourcesList variant="compact" />
+//     renders chevron rows directly. The "single grouped surface" intent
+//     is now expressed by the compact variant's chevron-row chrome
+//     (pinned by resourcesListCompact29B.test.tsx).
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -21,80 +26,52 @@ import { join } from 'path';
 
 const ROOT = join(__dirname, '../..');
 const reflectionSrc = readFileSync(join(ROOT, 'components/support/ReflectionCard.tsx'), 'utf8');
-const pillsSrc = readFileSync(join(ROOT, 'components/support/QuickResetPills.tsx'), 'utf8');
-const supportSrc = readFileSync(join(ROOT, 'app/(tabs)/support.tsx'), 'utf8');
 
-describe('You tab Phase 6 — sizing + neutralized helpline', () => {
+describe('You tab Phase 6 — sizing + neutralized helpline (post-Batch-B reframes)', () => {
   describe('ReflectionCard textarea', () => {
-    it('the input minHeight is ≤ 40pt (sizing-token aligned)', () => {
-      // Accept either a literal digit (legacy) or the Sizing.textareaMinHeight
-      // token reference (preferred). Both routes pin the contract: input
-      // height must not balloon back to the old 60pt.
-      const m = reflectionSrc.match(
-        /input:\s*\{[^}]*minHeight:\s*(\d+|Sizing\.textareaMinHeight)/s,
-      );
+    it('the input minHeight is in the 3-line range (Phase 29 Batch B F3)', () => {
+      // Phase 29 Batch B F3 retired the Sizing.textareaMinHeight token
+      // path in favor of a hardcoded 3-line literal (~51px). The pre-F3
+      // ≤40pt contract was a regression guard against the legacy 60pt
+      // floor; F3's 3-line floor is a deliberate larger value (~51px).
+      // Pin the new 3-line range (48-56) — the contract intent flips
+      // from "not too big" to "exactly 3 lines for the writing prompt".
+      const m = reflectionSrc.match(/input:\s*\{[^}]*minHeight:\s*(\d+)/s);
       expect(m).not.toBeNull();
-      const v = m![1];
-      if (/^\d+$/.test(v)) {
-        expect(Number(v)).toBeLessThanOrEqual(40);
-      } else {
-        expect(v).toBe('Sizing.textareaMinHeight');
-      }
+      const v = Number(m![1]);
+      expect(v).toBeGreaterThanOrEqual(48);
+      expect(v).toBeLessThanOrEqual(56);
     });
   });
 
   describe('ReflectionCard Save pill', () => {
-    it('is filled with the sage accent (#5fb88a)', () => {
-      // saveButton style block carries an explicit sage backgroundColor.
+    it('is filled with caregiverAccent (Phase 29 Batch B F3 — lane recolor from sage)', () => {
+      // Phase 29 Batch B F3 — Save pill backgroundColor flipped from
+      // sage solid (#5fb88a) to c.caregiverAccent (lane-coherent with
+      // the new lavender card chrome).
       expect(reflectionSrc).toMatch(
-        /saveButton:\s*\{[^}]*backgroundColor:\s*['"]#5fb88a['"]/s,
+        /saveButton:\s*\{[^}]*backgroundColor:\s*(c|colors)\.caregiverAccent\b/s,
       );
     });
 
-    it('uses dark text on the filled pill (high-contrast)', () => {
+    it('uses white text on the filled pill (Phase 29 Batch B F3 — lane recolor)', () => {
+      // Phase 29 Batch B F3 — saveButtonText color flipped from
+      // near-black (#0a1510) on sage to white (#fff) on lavender.
+      // High contrast preserved; tone flips warm → cool.
       expect(reflectionSrc).toMatch(
-        /saveButtonText:\s*\{[^}]*color:\s*['"]#0a1510['"]/s,
+        /saveButtonText:\s*\{[^}]*color:\s*['"]#(?:fff|FFF|ffffff|FFFFFF)['"]/s,
       );
     });
   });
 
-  describe('QuickResetPills — Helpline neutralized', () => {
-    it('Helpline icon does NOT use coral/error', () => {
-      // The Helpline pill's icon style must not pick up a coral/error
-      // color override. Find the helpline block and assert.
-      const helplineIdx = pillsSrc.indexOf('onPress={onHelpline}');
-      expect(helplineIdx).toBeGreaterThan(0);
-      // ~400 chars below covers the icon + label + subtitle for that pill.
-      const block = pillsSrc.slice(helplineIdx, helplineIdx + 600);
-      expect(block).not.toMatch(/colors\.coral/);
-      expect(block).not.toMatch(/colors\.error/);
-      expect(block).not.toMatch(/\(colors as any\)\.coral/);
-    });
+  // QuickResetPills "Helpline neutralized" describe block retired —
+  // QuickResetPills.tsx deleted in Phase 29 Batch B F4. The successor
+  // assertions live in __tests__/components/actionCardsRow29B.test.tsx
+  // (contract 2 pins the Helpline icon at caregiverAccent — lavender,
+  // not coral — preserving the original Phase 6 anti-coral intent).
 
-    it('Helpline label and icon paint in textPrimary', () => {
-      const helplineIdx = pillsSrc.indexOf('onPress={onHelpline}');
-      // Wider window to clear any inline rationale comments above the
-      // first <Text /> element.
-      const block = pillsSrc.slice(helplineIdx, helplineIdx + 1400);
-      expect(block).toMatch(/colors\.textPrimary/);
-    });
-  });
-
-  describe('Plan ahead — single grouped surface', () => {
-    it('the eyebrow + subtitle live OUTSIDE the planAheadCard wrapper', () => {
-      // Header must precede the card in the source. Both must exist.
-      const headerIdx = supportSrc.indexOf('planAheadHeader');
-      const cardIdx = supportSrc.indexOf('planAheadCard');
-      expect(headerIdx).toBeGreaterThan(0);
-      expect(cardIdx).toBeGreaterThan(0);
-      expect(headerIdx).toBeLessThan(cardIdx);
-    });
-
-    it('ResourcesList is wrapped by exactly one planAheadBody view', () => {
-      // The card has a single body container, not multiple split sections.
-      const matches = supportSrc.match(/planAheadBody/g) ?? [];
-      // 1 in JSX (the View), 1 in styles (the style block). Total = 2.
-      expect(matches.length).toBe(2);
-    });
-  });
+  // Plan ahead "single grouped surface" describe block retired —
+  // planAheadCard wrapper retired in Phase 29 Batch B F4. The
+  // compact ResourcesList variant's chevron-row chrome is now the
+  // grouping (pinned by resourcesListCompact29B.test.tsx).
 });

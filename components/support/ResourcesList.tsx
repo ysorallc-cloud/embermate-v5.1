@@ -1,6 +1,18 @@
 // ============================================================================
-// RESOURCES LIST — Flat expandable caregiver resource categories
-// No bordered cards, no emoji — title + subtitle + chevron rows
+// RESOURCES LIST — Flat expandable caregiver resource categories.
+//
+// Two variants (Phase 29 Batch B F1):
+//   • default — the original expanded category cards with descriptions
+//     and inline expand-on-tap revealing link lists. Shipped on the new
+//     /resources subscreen as the full reference surface.
+//   • compact — title + chevron-forward Ionicons only, no descriptions,
+//     no inline expand. Per-row tap calls navigate('/resources'). Shipped
+//     on the You tab so the resources surface stays quiet relative to the
+//     reflection / breath / action affordances above it.
+//
+// Per Phase 29 Batch B D1, every compact row routes to the same /resources
+// subscreen — future scope may anchor-scroll to the tapped category, but
+// v1.0 lands on the subscreen with all categories visible.
 // ============================================================================
 
 import React, { useState, useMemo } from 'react';
@@ -11,7 +23,9 @@ import {
   StyleSheet,
   Linking,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { navigate } from '../../lib/navigate';
 
 // ============================================================================
 // RESOURCE DATA
@@ -96,7 +110,14 @@ export const RESOURCE_CATEGORIES: ResourceCategory[] = [
 // COMPONENT
 // ============================================================================
 
-export function ResourcesList() {
+export interface ResourcesListProps {
+  /** Rendering variant. Defaults to 'default' (full expanded cards with
+   *  descriptions + inline link expansion). 'compact' renders title +
+   *  chevron-forward only and routes every row tap to /resources. */
+  variant?: 'default' | 'compact';
+}
+
+export function ResourcesList({ variant = 'default' }: ResourcesListProps = {}) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -104,6 +125,27 @@ export function ResourcesList() {
   const toggleCategory = (id: string) => {
     setExpandedId(prev => prev === id ? null : id);
   };
+
+  if (variant === 'compact') {
+    return (
+      <View style={styles.container}>
+        {RESOURCE_CATEGORIES.map((cat, index) => (
+          <TouchableOpacity
+            key={cat.id}
+            style={[styles.compactRow, index === 0 && styles.compactRowFirst]}
+            onPress={() => navigate('/resources')}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={cat.title}
+            accessibilityHint="Opens the full resources page"
+          >
+            <Text style={styles.compactTitle}>{cat.title}</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -126,7 +168,7 @@ export function ResourcesList() {
                 <Text style={styles.categoryTitle}>{cat.title}</Text>
                 <Text style={styles.categoryDesc} numberOfLines={1}>{cat.description}</Text>
               </View>
-              <Text style={styles.chevron}>{isExpanded ? '\u25BE' : '\u203A'}</Text>
+              <Text style={styles.chevron}>{isExpanded ? '▾' : '›'}</Text>
             </TouchableOpacity>
 
             {isExpanded && (
@@ -211,6 +253,27 @@ function createStyles(c: any) {
     linkDesc: {
       fontSize: 11,
       color: c.textTertiary,
+    },
+    // Phase 29 Batch B F1 — compact variant. Title + chevron only. Hairline
+    // top borders separate rows (matches the default variant's row
+    // separators); first row drops its top border so the list reads as a
+    // single contiguous block instead of starting with a stray line.
+    compactRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 13,
+      paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+      borderTopWidth: 0.5,
+      borderTopColor: c.glassBorder,
+    },
+    compactRowFirst: {
+      borderTopWidth: 0,
+    },
+    compactTitle: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: c.textPrimary,
     },
   });
 }

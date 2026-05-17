@@ -55,23 +55,20 @@ describe('You tab — required components all render', () => {
     expect(supportSrc).toMatch(/import\s*\{\s*ReflectionCard\s*\}\s*from\s*['"][^'"]*ReflectionCard['"]/);
   });
 
-  it('QuickResetPills renders with all three handlers wired', () => {
-    expect(supportSrc).toMatch(/<QuickResetPills[\s\S]*?onBreathe=\{[\s\S]*?onHelpline=\{[\s\S]*?onCommunity=\{/);
+  it('ActionCardsRow renders with all three handlers wired (Phase 29 Batch B F4 — successor to QuickResetPills)', () => {
+    expect(supportSrc).toMatch(/<ActionCardsRow[\s\S]*?onHelpline=\{[\s\S]*?onCommunity=\{[\s\S]*?onWellness=\{/);
   });
 
-  it('Compact wellness link renders and routes to /caregiver-wellness', () => {
-    expect(supportSrc).toMatch(/style=\{styles\.wellnessLink\}/);
-    expect(supportSrc).toMatch(/navigate\(['"]\/caregiver-wellness['"]\)/);
-    expect(supportSrc).toContain('YOUR WELLNESS OVER TIME');
-  });
-
-  it('Plan ahead section renders ResourcesList under the Phase 7.3 header', () => {
-    expect(supportSrc).toMatch(/<View style=\{styles\.planAheadCard\}/);
+  it('Plan ahead — compact ResourcesList renders under the "When you have a moment" header (Phase 29 Batch B F4 reframe)', () => {
+    // F4 retired the planAheadCard wrapper — compact ResourcesList
+    // chevron rows ARE the chrome. Header still sits above the list.
     expect(supportSrc).toContain('When you have a moment');
-    expect(supportSrc).toMatch(/<ResourcesList\b/);
+    expect(supportSrc).toMatch(/<ResourcesList\s+variant=['"]compact['"]/);
+    // Absence pin: planAheadCard wrapper retired.
+    expect(supportSrc).not.toMatch(/<View style=\{styles\.planAheadCard\}/);
   });
 
-  it('BreathingExercise modal stays mounted (the breath pill calls into it)', () => {
+  it('BreathingExercise modal stays mounted (the orb opens it via the single shared mount)', () => {
     expect(supportSrc).toMatch(/<BreathingExercise/);
   });
 });
@@ -162,11 +159,14 @@ describe('You tab — header structure contract (post-Phase-29 reframe)', () => 
 describe('You tab — required-component files still exist on disk', () => {
   // Belt-and-suspenders: if any of the new components got deleted by an
   // overzealous future cleanup, this catches it before the imports break.
+  // Phase 29 Batch B F4 — QuickResetPills.tsx retired; ActionCardsRow
+  // and BreathingOrbCard added to the dependency list.
   const required = [
     'components/support/AffirmationHeader.tsx',
     'components/support/ReflectionCard.tsx',
-    'components/support/QuickResetPills.tsx',
+    'components/support/ActionCardsRow.tsx',
     'components/support/BreathingExercise.tsx',
+    'components/support/BreathingOrbCard.tsx',
     'components/support/ResourcesList.tsx',
   ];
   for (const rel of required) {

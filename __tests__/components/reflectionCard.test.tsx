@@ -39,11 +39,34 @@ describe('ReflectionCard — file + exports', () => {
   });
 });
 
-describe('ReflectionCard — card surface', () => {
-  it('uses the You-tab warm card surface (youCardSurface, falling back to glass)', () => {
+describe('ReflectionCard — card surface (Phase 29 Batch B F3 lavender chrome)', () => {
+  // Phase 29 Batch B F3 — ReflectionCard wraps in caregiver-lane primary
+  // chrome matching the Phase 27/28 JournalSection pattern (full-hex
+  // caregiverAccent left border + caregiverAccentBg body tint).
+  // ReflectionCard is the You tab's writing primary, directly analogous
+  // to a Journal SOAP card; same chrome treatment = cross-surface
+  // primary-card consistency (Tier 3 of the lane-coherence rule).
+  it('card backgroundColor uses caregiverAccentBg (lavender lane chrome)', () => {
     const block = styleBlock('card');
     expect(block).not.toBe('');
-    expect(block).toMatch(/backgroundColor:[\s\S]{0,200}?(youCardSurface|c\.glass|colors\.glass)/);
+    expect(block).toMatch(/backgroundColor:\s*(c|colors)\.caregiverAccentBg\b/);
+  });
+
+  it('card border: 0.5px caregiverAccentWash (0.15 alpha)', () => {
+    const block = styleBlock('card');
+    expect(num(block, 'borderWidth')).toBe(0.5);
+    expect(block).toMatch(/borderColor:\s*(c|colors)\.caregiverAccentWash\b/);
+  });
+
+  it('card left border: 3px caregiverAccent full hex (matches JournalSection primary-card chrome)', () => {
+    const block = styleBlock('card');
+    expect(num(block, 'borderLeftWidth')).toBe(3);
+    expect(block).toMatch(/borderLeftColor:\s*(c|colors)\.caregiverAccent\b(?!\w)/);
+  });
+
+  it('card borderRadius: 9', () => {
+    const block = styleBlock('card');
+    expect(num(block, 'borderRadius')).toBe(9);
   });
 });
 
@@ -83,10 +106,14 @@ describe('ReflectionCard — Section 2: 5-emoji mood selector', () => {
     expect(num(block, 'height')).toBe(36);
   });
 
-  it('selected mood button gets a 1.5px accent ring with 2pt padding', () => {
+  it('selected mood button gets a 1.5px caregiverAccent ring (Phase 29 Batch B F3 — lane coherence inside lavender card)', () => {
+    // Pre-F3 the ring used c.accent (sage). After F3 wraps ReflectionCard
+    // in lavender chrome, a sage ring inside a lavender card is exactly
+    // the within-surface lane-orphan pattern Tier 1 of the lane-coherence
+    // rule forbids. Reframed: ring tracks the card's lane (caregiverAccent).
     const block = styleBlock('moodButtonSelected');
     expect(num(block, 'borderWidth')).toBe(1.5);
-    expect(block).toMatch(/borderColor:\s*c\.accent|borderColor:\s*colors\.accent/);
+    expect(block).toMatch(/borderColor:\s*(c|colors)\.caregiverAccent\b(?!\w)/);
   });
 
   it('unselected emoji renders at 0.4 opacity; selected at 1.0', () => {
@@ -130,18 +157,19 @@ describe('ReflectionCard — Section 4: text input', () => {
     expect(num(block, 'fontSize')).toBe(13);
   });
 
-  it('input min-height token-aligned (≤ 40), max-height 200', () => {
-    // v6.7 May 1 sizing pass — Phase 6 dropped the literal 60pt floor
-    // (felt disproportionately tall when the field was empty) and routed
-    // through the Sizing.textareaMinHeight token instead. Accept either a
-    // literal ≤ 40 or the token reference; both pin the new contract.
+  it('input min-height: 3-line range (~51), max-height 200 (Phase 29 Batch B F3)', () => {
+    // Phase 29 Batch B F3 — the spec wants 3-line minHeight at rest with
+    // auto-expand on focus up to maxHeight 200. fontSize 13 × default
+    // lineHeight 1.3 × 3 lines ≈ 51px. Hardcoded literal (no new Sizing
+    // token; no other consumer needs a 3-line specifically). Accept any
+    // value in the 3-line range (48-56) to allow for minor lineHeight
+    // tuning without breaking the contract. Auto-expand on focus is
+    // RN's default multiline behavior — no focus-handler code needed.
     const block = styleBlock('input');
     const lit = num(block, 'minHeight');
-    if (lit !== null) {
-      expect(lit).toBeLessThanOrEqual(40);
-    } else {
-      expect(block).toMatch(/minHeight:\s*Sizing\.textareaMinHeight/);
-    }
+    expect(lit).not.toBeNull();
+    expect(lit as number).toBeGreaterThanOrEqual(48);
+    expect(lit as number).toBeLessThanOrEqual(56);
     expect(num(block, 'maxHeight')).toBe(200);
   });
 
@@ -160,18 +188,24 @@ describe('ReflectionCard — Section 5: footer (privacy note + Save pill)', () =
     expect(block).toMatch(/color:\s*c\.textTertiary|color:\s*colors\.textTertiary/);
   });
 
-  it('Save pill: filled-sage primary, padding 6/16, border-radius 16, text 11.5pt dark', () => {
-    // v6.7 visual-consistency Phase 5 locked the Save pill: dark text on
-    // sage so it reads as a real button, with tighter vertical padding.
+  it('Save pill: solid caregiverAccent + white text (Phase 29 Batch B F3 lane recolor)', () => {
+    // Phase 29 Batch B F3 — Save pill flips from sage (#5fb88a) outline-y
+    // primary to solid caregiverAccent + white text. Matches the lane
+    // identity the wrapper card now carries; the button reads as the
+    // primary action surface of a lavender lane card. Padding + radius +
+    // fontSize unchanged from the v6.7 visual-consistency Phase 5 layout
+    // — only the colors flip.
     const button = styleBlock('saveButton');
-    expect(button).toMatch(/backgroundColor:\s*['"]#5fb88a['"]/);
+    expect(button).toMatch(/backgroundColor:\s*(c|colors)\.caregiverAccent\b(?!\w)/);
     expect(num(button, 'paddingVertical')).toBe(6);
     expect(num(button, 'paddingHorizontal')).toBe(16);
     expect(num(button, 'borderRadius')).toBe(16);
     const buttonText = styleBlock('saveButtonText');
     // fontSize 11.5 is a fractional float — match the literal text.
     expect(buttonText).toMatch(/fontSize:\s*11\.5/);
-    expect(buttonText).toMatch(/color:\s*['"]#0a1510['"]/);
+    // White text on solid lavender — contrast inversion from the pre-F3
+    // dark-text-on-sage shape.
+    expect(buttonText).toMatch(/color:\s*['"]#(?:fff|FFF|ffffff|FFFFFF)['"]/);
   });
 
   it('footer row has marginTop 12', () => {
