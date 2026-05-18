@@ -85,16 +85,24 @@ describe('Header structure contract — title metrics', () => {
     expect(num(block, 'fontSize')).toBe(22);
   });
 
-  it('Journal title: 32pt serif weight 400 (Phase 33 F4 — via ScreenHeader)', () => {
-    // Journal renders ScreenHeader; the title style lives in
-    // components/ScreenHeader.tsx. This contract pins the screen-header-
-    // sourced metrics indirectly via the next test (which reads
-    // ScreenHeader directly). Journal's own file no longer declares a
-    // local `title` style — it consumes ScreenHeader. So this contract
-    // becomes a passthrough.
-    const block = titleBlock(read('components/ScreenHeader.tsx'));
+  it('Journal headerTitle: 32pt serif weight 400 (Phase 33 F4.1 — inline header, Phase 22.1 wrapper preserved)', () => {
+    // Phase 33 F4 audit-drift correction (Phase 33 F4.1, 2026-05-18).
+    // F4 recorded Journal as "via ScreenHeader" because the consumer
+    // grep matched line 558 (error-fallback branch). The main render
+    // path (line 654+) bypasses ScreenHeader and renders an inline
+    // <View style={s.headerRow}><Text style={s.headerTitle}>Journal</Text>
+    // </View></View> — the Phase 22.1 handoff-document framing block.
+    // F4.1 aligned the inline `headerTitle` style to the Phase 33 F4
+    // spec (32pt Source Serif 4 weight 400 + −0.8 tracking) without
+    // restoring ScreenHeader wrapping (preserves Phase 22.1 intent:
+    // no subtitle / purpose; date stays in JournalIdentityStrip, mood
+    // stays in GestaltSummary). This contract pins the corrected
+    // inline source, not ScreenHeader.
+    const block = titleBlock(read('app/(tabs)/journal.tsx'));
     expect(num(block, 'fontSize')).toBe(32);
     expect(block).toMatch(/fontWeight:\s*['"]400['"]/);
+    expect(block).toMatch(/fontFamily:\s*Fonts\.serif\b/);
+    expect(num(block, 'letterSpacing')).toBe(-0.8);
   });
 
   it('ScreenHeader title (Understand): 32pt serif weight 400 (Phase 33 F4)', () => {

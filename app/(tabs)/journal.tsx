@@ -1213,11 +1213,22 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Phase 3.6.3 — H1 fontSize 32 → 22 with weight 500 + letterSpacing
   // -0.3 to match Now's compressed greeting (Phase 3.6.2). Visual
   // consistency across all four tabs.
+  // Phase 33 F4.1 (2026-05-18) — F4 audit-drift correction. F4
+  // migrated ScreenHeader to 32pt Source Serif 4 weight 400 + −0.8
+  // tracking but missed that Journal's main render path bypasses
+  // ScreenHeader (Phase 22.1 handoff-document framing retired the
+  // ScreenHeader wrapper in favor of this inline title-only block;
+  // F4's `grep <ScreenHeader` consumer audit caught only the
+  // error-fallback branch at line 558). This commit aligns the inline
+  // typography to F4's spec without restoring ScreenHeader wrapping —
+  // preserves Phase 22.1 intent (no subtitle/purpose; date stays in
+  // JournalIdentityStrip, mood stays in GestaltSummary).
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '500' as const,
+    fontFamily: Fonts.serif,
+    fontSize: 32,
+    fontWeight: '400' as const,
     color: c.textPrimary,
-    letterSpacing: -0.3,
+    letterSpacing: -0.8,
   },
   // Phase 22.1 — headerDate / headerMood styles retired. The date
   // moved into JournalIdentityStrip and the mood line into
