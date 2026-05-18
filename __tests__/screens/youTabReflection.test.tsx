@@ -147,18 +147,19 @@ describe('You tab — header structure contract (post-Phase-29 reframe)', () => 
     expect(styleBlock('headerMessage')).toBe('');
   });
 
-  it('greeting style: Source Serif 4 italic at 22pt via Fonts.serifItalic (Phase 29 F1 + Phase 33 F6)', () => {
-    // Phase 29 F1 — witness-voice italic greeting replaced pre-29 sans
-    // title. Phase 33 F6 — fontFamily 'Georgia' literal migrated to
-    // Fonts.serifItalic so the greeting picks up Source Serif 4 italic
-    // from the F3 useFonts loader. Italic stays reserved for witness
-    // voice per the refined Q-33.5 lock; informational tab labels use
-    // regular-weight serif at 32pt instead.
+  it('greeting style: Source Serif 4 regular at 26pt (Phase 33b Scope 1 — canonical block, symmetric with Now)', () => {
+    // Phase 33b Scope 1 — greeting canonical block per
+    // project_brand_alignment_canon.md `.phone-greeting`. Both Now +
+    // You tabs render the same canonical greeting (regular serif,
+    // 26pt, weight 400, letterSpacing -0.5). F6's italic-serif
+    // greeting retired here — italic moved to the separate Subhead
+    // component (Phase 33b Scope 1; ships empty/null in v1.0 per
+    // Path A).
     const block = styleBlock('greeting');
     expect(block).not.toBe('');
-    expect(block).toMatch(/fontFamily:\s*Fonts\.serifItalic\b/);
-    expect(block).toMatch(/fontStyle:\s*['"]italic['"]/);
-    expect(num(block, 'fontSize')).toBe(22);
+    expect(block).toMatch(/fontFamily:\s*Fonts\.serif\b/);
+    expect(num(block, 'fontSize')).toBe(26);
+    expect(block).toMatch(/fontWeight:\s*['"]400['"]/);
   });
 });
 

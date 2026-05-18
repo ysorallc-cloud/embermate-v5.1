@@ -255,23 +255,24 @@ function createStyles(c: typeof Colors) {
       borderBottomWidth: 0.5,
       borderBottomColor: c.glassHover,
     },
-    // Phase 29 F1 — time-aware italic-serif greeting replaces the pre-29
-    // 22pt sans-serif "You" title. Weight 400 keeps the line warm without
-    // competing with the lower AffirmationHeader; 22pt preserves the
-    // vertical rhythm headerStructureContract assumed.
-    // Phase 33 F6 — fontFamily 'Georgia' literal swapped to Fonts.serifItalic
-    // token so the greeting picks up Source Serif 4 italic from the F3
-    // useFonts loader. Per the refined Q-33.5 lock: witness-voice tab
-    // greetings (this one) keep italic serif; informational tab labels
-    // (Journal, Insights via ScreenHeader F4) use regular-weight serif.
+    // Phase 33b Scope 1 — greeting canonical block per
+    // project_brand_alignment_canon.md `.phone-greeting`. Symmetric with
+    // the Now-tab greeting at `components/now/NowGreeting.tsx` — both
+    // tabs now render the same canonical greeting (regular serif, not
+    // italic). Italic stays reserved for the subhead's witness-voice
+    // register per Path 2 lock that superseded Q-33.5's italic-greeting
+    // interpretation. F6's italic-serif greeting retired here.
+    //
+    // The Subhead component (Phase 33b Scope 1) lands below this
+    // greeting in v1.1 via rewritten caregiverWitnessBuilder per
+    // Path A. AffirmationHeader retires in v1.1 with subhead absorbing
+    // its role. v1.0 ships subhead empty/null; integration deferred.
     greeting: {
-      fontFamily: Fonts.serifItalic,
-      fontStyle: 'italic' as const,
-      fontSize: 22,
+      fontFamily: Fonts.serif,
+      fontSize: 26,
       fontWeight: '400' as const,
-      lineHeight: 28,
       color: c.textPrimary,
-      letterSpacing: 0.1,
+      letterSpacing: -0.5,
     },
     // Phase 26 F3 — caregiver chip. Mirrors the patient chip pattern in
     // NowHeader (height 22, borderRadius 11, 16pt avatar, 10pt name)

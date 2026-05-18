@@ -41,21 +41,20 @@ describe('NowGreeting — compressed header (Phase 3.6.2)', () => {
     expect(greetingSrc).not.toMatch(/timeChip:\s*\{[^}]*backgroundColor/);
   });
 
-  it('title block exists at 22pt', () => {
-    // TODO(phase-33b): re-pin once the greeting style block relocks
-    // per website canon. Phase 33 F7 dropped the fontWeight 500
-    // assertion because Phase 33b's greeting+subhead architecture
-    // supersedes Q-33.5's italic-greeting interpretation — the new
-    // style block has not yet been locked, and pinning against an
-    // unfinished spec would re-litigate the contract every iteration.
-    // The 22pt fontSize survives (it's a separate compression-pass
-    // invariant from Phase 3.6.2 unrelated to the greeting voice
-    // question). Weight + family + style + lineHeight + letterSpacing
-    // assertions land in F11's screenHeaderTypography33 contract
-    // against the post-Phase-33b shape.
+  it('title block uses the canonical greeting register (Phase 33b Scope 1)', () => {
+    // Phase 33b Scope 1 — greeting canonical block per
+    // project_brand_alignment_canon.md `.phone-greeting`. Phase 33 F7
+    // placed a TODO(phase-33b) marker here pending the architecture
+    // reframe; 33b locks the canonical block (regular serif, 26pt,
+    // weight 400, letterSpacing -0.5). Italic register moved to the
+    // separate Subhead component (Phase 33b Scope 1; ships empty/null
+    // in v1.0 per Path A).
     const titleBlock = styleBlock(greetingSrc, 'title');
     expect(titleBlock).not.toBe('');
-    expect(readNumberProp(titleBlock, 'fontSize')).toBe(22);
+    expect(readNumberProp(titleBlock, 'fontSize')).toBe(26);
+    expect(titleBlock).toMatch(/fontWeight:\s*['"]400['"]/);
+    expect(titleBlock).toMatch(/fontFamily:\s*Fonts\.serif\b/);
+    expect(readNumberProp(titleBlock, 'letterSpacing')).toBe(-0.5);
   });
 
   it('renders a single inline subtitle (not a multi-element metadata row)', () => {

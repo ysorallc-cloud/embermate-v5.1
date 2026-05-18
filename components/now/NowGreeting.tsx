@@ -23,7 +23,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { format } from 'date-fns';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Fonts } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { buildGreeting } from '../../utils/contextualGreeting';
 import type { TodayStats } from '../../utils/nowHelpers';
@@ -76,11 +76,23 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     paddingHorizontal: 4,
   },
+  // Phase 33b Scope 1 — greeting canonical block per
+  // project_brand_alignment_canon.md `.phone-greeting`. Regular-weight
+  // serif at headline scale (no italic — italic stays reserved for the
+  // subhead's witness-voice register per Path 2 lock that superseded
+  // Q-33.5's italic-greeting interpretation).
+  //
+  // Symmetric with the You-tab greeting at `app/(tabs)/support.tsx` —
+  // both tabs now render the same canonical greeting block. Subhead
+  // component lands below this title block IN v1.1 via rewritten
+  // caregiverWitnessBuilder per Path A (subhead ships empty/null in
+  // 33b; v1.1 fills + retires AffirmationHeader in the same phase).
   title: {
-    fontSize: 22,
-    fontWeight: '500',
+    fontFamily: Fonts.serif,
+    fontSize: 26,
+    fontWeight: '400',
     color: c.textPrimary,
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 12,

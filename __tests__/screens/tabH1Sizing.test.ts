@@ -1,27 +1,24 @@
 // ============================================================================
-// Tab H1 sizing — Phase 3.6.3 → Phase 33 F4+F5+F6 reframe.
+// Tab H1 sizing — Phase 3.6.3 → Phase 33 F4+F5+F6 → Phase 33b Scope 1.
 //
 // Phase 3.6.3 (May 3) compressed all four tab H1s to a unified 22pt
 // register. Phase 33 F4+F5+F6 (2026-05-17) retired that uniform
-// invariant in favor of a register split aligned to the website
-// source-of-truth:
+// invariant in favor of a register split. Phase 33b Scope 1
+// (2026-05-18) further reframed greeting blocks to website canon
+// per `.phone-greeting` — 26pt regular-serif, symmetric across
+// Now + You:
 //
-//   • Informational tab labels via ScreenHeader (Journal, Insights):
-//     32pt regular-weight Source Serif 4.
-//   • Witness-voice tab greeting (You/Support): 22pt italic Source
-//     Serif 4 — size unchanged from Phase 29 F1, just the font-family
-//     token swap.
-//   • NowGreeting sub-component: 22pt sans (Phase 33 did NOT touch
-//     this — it's a Now-hero sub-element, not the page-level H1; Now
-//     has no top-of-page H1 since the hero block leads with content).
+//   • Informational tab labels via ScreenHeader (Insights) +
+//     Journal inline header (post-F4.1): 32pt regular serif.
+//   • Greeting blocks (Now + You/Support): 26pt regular serif,
+//     letterSpacing -0.5 per website `.phone-greeting` canon. F6's
+//     italic-serif greeting retired in Phase 33b Scope 1 — italic
+//     register moved to the separate Subhead component (ships
+//     empty/null in v1.0 per Path A).
 //
-// Q-33.5 refined rule: informational labels carry regular-weight
-// serif; italic stays reserved for witness voice. The size split (32pt
-// label vs 22pt greeting) makes the hierarchy clear.
-//
-// Per-source pins below replace the prior "all four = 22pt"
-// invariant. Safety net intact — each H1 has a defined expected size
-// so random sizes can't sneak in.
+// Per-source pins below replace the prior register-split table.
+// Safety net intact — each H1 has a defined expected size so random
+// sizes can't sneak in.
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -53,13 +50,13 @@ function num(body: string, prop: string): number | null {
 }
 
 const SOURCES = [
-  { tab: 'Now (NowGreeting sub-component)', file: 'components/now/NowGreeting.tsx', styleName: 'title', expectedSize: 22 },
-  { tab: 'Journal (via ScreenHeader)', file: 'components/ScreenHeader.tsx', styleName: 'title', expectedSize: 32 },
+  { tab: 'Now greeting (Phase 33b Scope 1)', file: 'components/now/NowGreeting.tsx', styleName: 'title', expectedSize: 26 },
+  { tab: 'Journal headerTitle (F4.1 inline)', file: 'app/(tabs)/journal.tsx', styleName: 'headerTitle', expectedSize: 32 },
   { tab: 'Insights (via ScreenHeader)', file: 'components/ScreenHeader.tsx', styleName: 'title', expectedSize: 32 },
-  { tab: 'You (Support greeting)', file: 'app/(tabs)/support.tsx', styleName: 'greeting', expectedSize: 22 },
+  { tab: 'You (Support greeting, Phase 33b Scope 1)', file: 'app/(tabs)/support.tsx', styleName: 'greeting', expectedSize: 26 },
 ];
 
-describe('Phase 33 F4+F5+F6 — tab H1 sizing per register split', () => {
+describe('Phase 33b Scope 1 — tab H1 sizing (greeting 26 / informational 32)', () => {
   describe.each(SOURCES)('$tab', ({ file, styleName, expectedSize }) => {
     const src = read(file);
     const body = extractStyleBody(src, styleName);
@@ -68,18 +65,18 @@ describe('Phase 33 F4+F5+F6 — tab H1 sizing per register split', () => {
       expect(body.length).toBeGreaterThan(0);
     });
 
-    it(`fontSize is ${expectedSize} (Phase 33 register split)`, () => {
+    it(`fontSize is ${expectedSize} (Phase 33b register)`, () => {
       expect(num(body, 'fontSize')).toBe(expectedSize);
     });
   });
 
-  it('every tab H1 sits in the 22-32 range (no random sizes sneak in)', () => {
+  it('every tab H1 sits in the 26-32 range (no random sizes sneak in)', () => {
     for (const { file, styleName } of SOURCES) {
       const src = read(file);
       const body = extractStyleBody(src, styleName);
       const fs = num(body, 'fontSize');
       expect(fs).not.toBeNull();
-      expect(fs as number).toBeGreaterThanOrEqual(22);
+      expect(fs as number).toBeGreaterThanOrEqual(26);
       expect(fs as number).toBeLessThanOrEqual(32);
     }
   });

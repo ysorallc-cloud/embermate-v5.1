@@ -6,17 +6,14 @@
 //   • ScreenHeader (Journal + Insights tab headers + ~20 sub-screens)
 //   • SubScreenHeader default + serif-italic variants
 //
-// EXCLUDED from this contract (Phase 33b carve-out per locked plan):
-//   • NowGreeting style — Phase 33b Scope 1 architecture reframe will
-//     replace F6's 22pt italic-serif with a regular-serif 26pt greeting
-//     line + separate italic-serif subhead component. Pinning the
-//     current state would create a contract Phase 33b immediately
-//     violates. TODO(phase-33b) markers in nowGreeting.test.tsx and
-//     headerStructureContract.test.ts continue to hold the open reframe.
-//   • Support (You-tab) greeting — same carve-out: Phase 33b Scope 1
-//     reverts F6's italic greeting to regular serif at 26pt as part
-//     of the same coordinated greeting+subhead reframe. F6 italic
-//     greeting holds in-app until 33b ships the corrected pattern.
+// Greeting blocks INCLUDED (Phase 33b Scope 1 — carve-out closed):
+//   • NowGreeting (components/now/NowGreeting.tsx) — canonical 26pt
+//     regular-serif block per `.phone-greeting` website canon
+//   • Support / You-tab greeting (app/(tabs)/support.tsx) — same
+//     canonical block; symmetric with NowGreeting
+//   • Subhead component (components/shared/Subhead.tsx) — italic-serif
+//     14pt witness-voice register; ships empty/null in v1.0 per
+//     Path A; v1.1 fills via rewritten caregiverWitnessBuilder
 //
 // EXCLUDED from this contract (Phase 33b Lock 4 carve-out):
 //   • SectionEyebrow letterSpacing — Phase 33 F8 shipped at
@@ -34,6 +31,9 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 
 const screenHeaderSrc = read('components/ScreenHeader.tsx');
 const subScreenHeaderSrc = read('components/SubScreenHeader.tsx');
+const nowGreetingSrc = read('components/now/NowGreeting.tsx');
+const supportSrc = read('app/(tabs)/support.tsx');
+const subheadSrc = read('components/shared/Subhead.tsx');
 
 function styleBlock(src: string, name: string): string {
   // Brace-counter walk so style blocks with nested objects don't close early.
@@ -179,5 +179,116 @@ describe('screenHeaderTypography33 — SubScreenHeader.titleVariant prop wiring'
     expect(subScreenHeaderSrc).toMatch(
       /titleVariant\s*===\s*['"]serif['"]\s*\?\s*styles\.titleSerif\s*:\s*styles\.title/,
     );
+  });
+});
+
+// ── NowGreeting + Support greeting (Phase 33b Scope 1) ───────────────────
+
+describe('screenHeaderTypography33 — NowGreeting canonical greeting block (Phase 33b Scope 1)', () => {
+  it('fontFamily routes through Fonts.serif token (regular, not italic)', () => {
+    const block = styleBlock(nowGreetingSrc, 'title');
+    expect(block).toMatch(/fontFamily:\s*Fonts\.serif\b(?!Italic|Medium|SemiBold)/);
+  });
+
+  it('fontSize is 26 (website `.phone-greeting` canon)', () => {
+    const block = styleBlock(nowGreetingSrc, 'title');
+    expect(num(block, 'fontSize')).toBe(26);
+  });
+
+  it('fontWeight is 400 (regular-weight serif; italic register moves to Subhead)', () => {
+    const block = styleBlock(nowGreetingSrc, 'title');
+    expect(block).toMatch(/fontWeight:\s*['"]400['"]/);
+  });
+
+  it('letterSpacing is -0.5 (website canon)', () => {
+    const block = styleBlock(nowGreetingSrc, 'title');
+    expect(num(block, 'letterSpacing')).toBe(-0.5);
+  });
+
+  it('color routes through c.textPrimary', () => {
+    const block = styleBlock(nowGreetingSrc, 'title');
+    expect(block).toMatch(/color:\s*c\.textPrimary|color:\s*colors\.textPrimary/);
+  });
+});
+
+describe('screenHeaderTypography33 — Support greeting canonical block (Phase 33b Scope 1)', () => {
+  // Symmetric with NowGreeting — both tabs render the same canonical
+  // greeting per the Path 2 lock that superseded Q-33.5's italic-greeting
+  // interpretation. F6's italic-serif greeting retired here.
+  it('fontFamily routes through Fonts.serif token (regular, not italic; F6 retired)', () => {
+    const block = styleBlock(supportSrc, 'greeting');
+    expect(block).toMatch(/fontFamily:\s*Fonts\.serif\b(?!Italic|Medium|SemiBold)/);
+  });
+
+  it('fontSize is 26', () => {
+    const block = styleBlock(supportSrc, 'greeting');
+    expect(num(block, 'fontSize')).toBe(26);
+  });
+
+  it('fontWeight is 400', () => {
+    const block = styleBlock(supportSrc, 'greeting');
+    expect(block).toMatch(/fontWeight:\s*['"]400['"]/);
+  });
+
+  it('letterSpacing is -0.5', () => {
+    const block = styleBlock(supportSrc, 'greeting');
+    expect(num(block, 'letterSpacing')).toBe(-0.5);
+  });
+
+  it('no fontStyle: italic (italic register moved to Subhead component)', () => {
+    const block = styleBlock(supportSrc, 'greeting');
+    expect(block).not.toMatch(/fontStyle:\s*['"]italic['"]/);
+  });
+});
+
+// ── Subhead component (Phase 33b Scope 1) ────────────────────────────────
+
+describe('screenHeaderTypography33 — Subhead component canonical block (Phase 33b Scope 1)', () => {
+  // The italic-serif witness-voice register moved here from F6's greeting.
+  // Ships empty/null in v1.0 per Path A; v1.1 fills via rewritten
+  // caregiverWitnessBuilder + retires AffirmationHeader in the same phase.
+  it('fontFamily routes through Fonts.serifItalic token', () => {
+    const block = styleBlock(subheadSrc, 'text');
+    expect(block).toMatch(/fontFamily:\s*Fonts\.serifItalic\b/);
+  });
+
+  it('fontStyle is italic (witness-voice register)', () => {
+    const block = styleBlock(subheadSrc, 'text');
+    expect(block).toMatch(/fontStyle:\s*['"]italic['"]/);
+  });
+
+  it('fontSize is 14 (website `.phone-greeting-sub` canon)', () => {
+    const block = styleBlock(subheadSrc, 'text');
+    expect(num(block, 'fontSize')).toBe(14);
+  });
+
+  it('fontWeight is 400', () => {
+    const block = styleBlock(subheadSrc, 'text');
+    expect(block).toMatch(/fontWeight:\s*['"]400['"]/);
+  });
+
+  it('lineHeight is 21 (1.5 × fontSize per website canon)', () => {
+    const block = styleBlock(subheadSrc, 'text');
+    expect(num(block, 'lineHeight')).toBe(21);
+  });
+
+  it('marginTop routes through Spacing.s2 (8pt — canonical greeting → subhead gap)', () => {
+    const block = styleBlock(subheadSrc, 'text');
+    expect(block).toMatch(/marginTop:\s*Spacing\.s2\b/);
+  });
+
+  it('color routes through c.textSecondary (cream-tan, dimmer than greeting textPrimary)', () => {
+    const block = styleBlock(subheadSrc, 'text');
+    expect(block).toMatch(/color:\s*c\.textSecondary/);
+  });
+
+  it('renders null when children is falsy (no phantom whitespace)', () => {
+    // Source-level contract: the component's render path must explicitly
+    // return null for falsy children before reaching the Text render.
+    // Defends the consumer pattern `<Subhead>{maybeText}</Subhead>` /
+    // `{maybeText ? <Subhead>{maybeText}</Subhead> : null}` against
+    // accidental phantom marginTop allocation.
+    expect(subheadSrc).toMatch(/if\s*\(\s*!children/);
+    expect(subheadSrc).toMatch(/return\s+null/);
   });
 });

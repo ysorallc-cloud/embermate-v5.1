@@ -53,10 +53,16 @@ function num(body: string, prop: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-describe('Phase 3.6.2 — Now greeting compressed', () => {
-  it('greeting title fontSize is 22 (was 32)', () => {
+describe('Phase 3.6.2 — Now greeting compressed (Phase 33b Scope 1 relock)', () => {
+  it('greeting title fontSize is 26 (Phase 33b Scope 1 canonical block; was 22 post-3.6.2 / 32 pre-3.6.2)', () => {
+    // Phase 3.6.2 (May 3) compressed greeting from 32 → 22pt sans.
+    // Phase 33b Scope 1 (2026-05-18) relocked to canonical block per
+    // `.phone-greeting` website canon — 26pt regular serif weight 400
+    // letterSpacing -0.5. The compression intent survives (greeting
+    // stays smaller than the page-header 32pt register on Insights/
+    // Journal); the exact value moves to canon.
     const body = extractStyleBody(greetingSrc, 'title');
-    expect(num(body, 'fontSize')).toBe(22);
+    expect(num(body, 'fontSize')).toBe(26);
   });
 
   it('no element in NowGreeting uses fontSize ≥ 28 (heroes capped)', () => {

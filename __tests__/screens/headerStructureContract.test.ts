@@ -71,18 +71,18 @@ describe('Header structure contract — title metrics', () => {
   // 22pt sans invariant retired in favor of a 32pt Source Serif 4
   // regular-weight register for informational tab/subscreen labels +
   // 22pt italic-serif for the You-tab witness-voice greeting.
-  it('Now greeting title: 22pt (Phase 33b greeting+subhead reframe pending)', () => {
-    // TODO(phase-33b): re-pin once the greeting style block relocks
-    // per website canon. Phase 33 F7 dropped the "NowGreeting unchanged
-    // by Phase 33" narrative and the fontWeight 500 pin because Phase
-    // 33b's coordinated greeting+subhead architecture supersedes
-    // Q-33.5's italic-greeting interpretation. The 22pt fontSize
-    // survives (Phase 3.6.2 compression invariant; independent of the
-    // greeting voice question). Weight + family + style assertions
-    // land in F11's screenHeaderTypography33 contract against the
-    // post-Phase-33b shape.
+  it('Now greeting title: 26pt serif weight 400 (Phase 33b Scope 1 — canonical greeting block)', () => {
+    // Phase 33b Scope 1 — greeting canonical block per
+    // project_brand_alignment_canon.md `.phone-greeting`. Symmetric
+    // with You-tab greeting (both tabs render the same canonical
+    // block). Italic register moved to the separate Subhead component
+    // (ships empty/null in v1.0 per Path A; v1.1 fills via rewritten
+    // caregiverWitnessBuilder).
     const block = titleBlock(read('components/now/NowGreeting.tsx'));
-    expect(num(block, 'fontSize')).toBe(22);
+    expect(num(block, 'fontSize')).toBe(26);
+    expect(block).toMatch(/fontWeight:\s*['"]400['"]/);
+    expect(block).toMatch(/fontFamily:\s*Fonts\.serif\b/);
+    expect(num(block, 'letterSpacing')).toBe(-0.5);
   });
 
   it('Journal headerTitle: 32pt serif weight 400 (Phase 33 F4.1 — inline header, Phase 22.1 wrapper preserved)', () => {
@@ -117,22 +117,20 @@ describe('Header structure contract — title metrics', () => {
     expect(num(block, 'letterSpacing')).toBe(-0.8);
   });
 
-  it('Support greeting: 22pt, italic-serif via Fonts.serifItalic, weight 400 (Phase 29 F1 + Phase 33 F6)', () => {
-    // Phase 29 F1 — retired the pre-29 sans-serif `title` style block at
-    // 22pt/weight 500 in favor of a witness-voice italic-serif greeting
-    // (then-Georgia-literal, weight 400, 22pt). Phase 33 F6 swapped the
-    // 'Georgia' literal to Fonts.serifItalic so the greeting picks up
-    // Source Serif 4 italic from the F3 useFonts loader. Italic stays
-    // reserved for witness voice (Q-33.5 refined rule) — informational
-    // tab labels (Journal/Insights via ScreenHeader) use regular-weight
-    // serif at 32pt; this greeting stays at 22pt italic for caregiver-
-    // lane voice consistency.
+  it('Support greeting: 26pt serif weight 400 (Phase 33b Scope 1 — canonical greeting block, symmetric with Now)', () => {
+    // Phase 33b Scope 1 — greeting canonical block per
+    // project_brand_alignment_canon.md `.phone-greeting`. Both tabs
+    // now render the same canonical block (regular serif, 26pt,
+    // weight 400, letterSpacing -0.5). F6's italic-serif greeting
+    // retired here — italic moved to the separate Subhead component
+    // per the Path 2 lock that superseded Q-33.5's italic-greeting
+    // interpretation.
     const block = styleBlock(read('app/(tabs)/support.tsx'), 'greeting');
     expect(block).not.toBe('');
-    expect(num(block, 'fontSize')).toBe(22);
-    expect(block).toMatch(/fontFamily:\s*Fonts\.serifItalic\b/);
-    expect(block).toMatch(/fontStyle:\s*['"]italic['"]/);
+    expect(num(block, 'fontSize')).toBe(26);
+    expect(block).toMatch(/fontFamily:\s*Fonts\.serif\b/);
     expect(block).toMatch(/fontWeight:\s*['"]400['"]/);
+    expect(num(block, 'letterSpacing')).toBe(-0.5);
   });
 });
 
