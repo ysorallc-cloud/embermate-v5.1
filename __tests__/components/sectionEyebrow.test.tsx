@@ -55,13 +55,32 @@ describe('SectionEyebrow', () => {
     expect(text.props.children).toBe("TODAY'S OUTCOMES");
   });
 
-  it('uses the spec typography (8pt, weight 500, letter-spacing 0.5)', () => {
+  it('uses the brand-aligned spec typography (11pt, weight 600 default, letter-spacing 2)', () => {
     const tree = SectionEyebrow({ text: 'Anything' });
     const text = findAll(tree, (n) => n.type === 'Text')[0];
     const style = flatStyle(text);
-    expect(style.fontSize).toBe(8);
+    expect(style.fontSize).toBe(11);
+    expect(style.fontWeight).toBe('600');
+    expect(style.letterSpacing).toBe(2);
+  });
+
+  it('variant="hero" renders weight 500 (lighter opt-in for dense eyebrow stacks)', () => {
+    const tree = SectionEyebrow({ text: 'Anything', variant: 'hero' });
+    const text = findAll(tree, (n) => n.type === 'Text')[0];
+    const style = flatStyle(text);
     expect(style.fontWeight).toBe('500');
-    expect(style.letterSpacing).toBe(0.5);
+    // fontSize + letterSpacing stay shared across variants.
+    expect(style.fontSize).toBe(11);
+    expect(style.letterSpacing).toBe(2);
+  });
+
+  it('explicit variant="feature" matches default rendering', () => {
+    const treeDefault = SectionEyebrow({ text: 'Anything' });
+    const treeFeature = SectionEyebrow({ text: 'Anything', variant: 'feature' });
+    const styleDefault = flatStyle(findAll(treeDefault, (n) => n.type === 'Text')[0]);
+    const styleFeature = flatStyle(findAll(treeFeature, (n) => n.type === 'Text')[0]);
+    expect(styleDefault.fontWeight).toBe('600');
+    expect(styleFeature.fontWeight).toBe('600');
   });
 
   it('defaults to textTertiary colour', () => {

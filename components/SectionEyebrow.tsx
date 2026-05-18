@@ -13,14 +13,23 @@ export interface SectionEyebrowProps {
   text: string;
   /** Theme colour key — defaults to textTertiary. */
   tint?: string;
+  /**
+   * Weight variant. `'feature'` (600) is the default informational
+   * register — confident, brand-aligned eyebrow that holds against
+   * the warm-dark surface. `'hero'` (500) is a lighter opt-in for
+   * surfaces where the heavier weight reads loud (e.g., dense
+   * eyebrow stacks). Q-33.8 lock: default `'feature'`.
+   */
+  variant?: 'hero' | 'feature';
 }
 
-export function SectionEyebrow({ text, tint }: SectionEyebrowProps) {
+export function SectionEyebrow({ text, tint, variant = 'feature' }: SectionEyebrowProps) {
   const { colors } = useTheme();
   const colour = (tint && (colors as any)[tint]) || colors.textTertiary;
+  const weight: '500' | '600' = variant === 'hero' ? '500' : '600';
   const style = useMemo(
-    () => StyleSheet.flatten([baseStyle.eyebrow, { color: colour }]),
-    [colour],
+    () => StyleSheet.flatten([baseStyle.eyebrow, { color: colour, fontWeight: weight }]),
+    [colour, weight],
   );
   return (
     <Text style={style} accessibilityRole="header">
@@ -29,11 +38,23 @@ export function SectionEyebrow({ text, tint }: SectionEyebrowProps) {
   );
 }
 
+// Phase 33 F8 — fontSize 8 → 11, letterSpacing 0.5 → 2 per Q-33.8 lock.
+// Aligns eyebrow scale with the website source-of-truth register so
+// section labels read as confident-but-quiet markers rather than
+// near-invisible hairlines.
+//
+// letterSpacing 2 vs website canon 1.5 — Q-33.8 lock takes precedence
+// over canon for this commit. Phase 33b eyebrow canon reconciliation
+// revisits with SectionEyebrow + 32A section eyebrows + 32C
+// "WHERE THINGS STAND" all in view and may relock to canon 1.5.
+//
+// fontWeight removed from the static block — `'600'` (feature) and
+// `'500'` (hero) variants are applied at render time via the merged
+// style above.
 const baseStyle = StyleSheet.create({
   eyebrow: {
-    fontSize: 8,
-    fontWeight: '500',
-    letterSpacing: 0.5,
+    fontSize: 11,
+    letterSpacing: 2,
   },
 });
 
