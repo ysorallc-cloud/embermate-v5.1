@@ -191,7 +191,9 @@ describe('Phase 29 Batch A — F3 BreathingOrbCard', () => {
     expect(allText).toContain('stays on this screen');
   });
 
-  it('contract F3.2: prompt text uses Georgia italic', () => {
+  it('contract F3.2: prompt text uses Source Serif 4 italic via Fonts.serifItalic (Phase 33 F7)', () => {
+    // Phase 33 F7 — Georgia literal swept to Fonts.serifItalic token,
+    // which resolves at runtime to 'SourceSerif4_400Regular_Italic'.
     const tree = render();
     const promptNode = findAll(tree.root, (n: any) =>
       n.type === 'Text' && flatText(n).includes('Tap to take a breath'),
@@ -199,7 +201,7 @@ describe('Phase 29 Batch A — F3 BreathingOrbCard', () => {
     expect(promptNode).toBeDefined();
     const style = promptNode.props.style;
     const flat = Array.isArray(style) ? Object.assign({}, ...style) : style;
-    expect(flat.fontFamily).toBe('Georgia');
+    expect(flat.fontFamily).toBe('SourceSerif4_400Regular_Italic');
     expect(flat.fontStyle).toBe('italic');
   });
 

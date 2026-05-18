@@ -14,6 +14,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Fonts } from '../../theme/theme-tokens';
 import { SectionEyebrow } from '../SectionEyebrow';
 
 export interface InsightsEmptyStatePreviewProps {
@@ -261,7 +262,7 @@ const createStyles = (c: any) => StyleSheet.create({
   // Phase 15.12 — watchingEyebrow style retired; SectionEyebrow's
   // default tint (textTertiary) matches the prior color.
   watchingHeaderSubtitle: {
-    fontFamily: 'Georgia',
+    fontFamily: Fonts.serifItalic,
     fontStyle: 'italic',
     fontSize: 11,
     lineHeight: 15.4,

@@ -11,6 +11,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { Fonts } from '../../../theme/theme-tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -113,7 +114,7 @@ const createStyles = (c: any) => StyleSheet.create({
     marginBottom: 4,
   },
   opening: {
-    fontFamily: 'Georgia',
+    fontFamily: Fonts.serifItalic,
     fontStyle: 'italic',
     fontSize: 12,
     lineHeight: 19.2,

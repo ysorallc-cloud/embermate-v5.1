@@ -43,8 +43,9 @@ describe('Phase 7.1 — affirmation header presence bump', () => {
     expect(text).toMatch(/youAffirmationText[\s\S]{0,40}\|\|[\s\S]{0,40}c\.textPrimary/);
   });
 
-  it('still serif italic (Georgia + italic)', () => {
-    expect(text).toMatch(/fontFamily:\s*['"]Georgia['"]/);
+  it('still serif italic (Fonts.serifItalic + italic, post-Phase-33 F7)', () => {
+    // Phase 33 F7 — Georgia literal swept to Fonts.serifItalic token.
+    expect(text).toMatch(/fontFamily:\s*Fonts\.serifItalic\b/);
     expect(text).toMatch(/fontStyle:\s*['"]italic['"]/);
   });
 

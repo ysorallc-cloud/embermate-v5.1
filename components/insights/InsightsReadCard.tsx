@@ -27,6 +27,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Fonts } from '../../theme/theme-tokens';
 import { JournalSection } from '../journal/JournalSection';
 import {
   generateOneLineGestalt,
@@ -194,7 +195,7 @@ export function InsightsReadCard({ timeRange, pageData, patterns }: InsightsRead
 const createStyles = (c: any) =>
   StyleSheet.create({
     gestalt: {
-      fontFamily: 'Georgia',
+      fontFamily: Fonts.serifItalic,
       fontStyle: 'italic' as const,
       fontSize: 12,
       lineHeight: 18,

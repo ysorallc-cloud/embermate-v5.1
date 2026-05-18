@@ -36,7 +36,7 @@ import {
 } from '../../utils/handoffSectionParser';
 import { ProfilePromptSheet } from '../ProfilePromptSheet';
 
-import { Spacing } from '../../theme/theme-tokens';
+import { Spacing, Fonts } from '../../theme/theme-tokens';
 import { LOVED_ONE_FALLBACK } from '../../utils/lovedOneFallback';
 
 // Phase 23.2 F3 — was `const NAME_FALLBACK = 'Your loved one'` (titlecase).
@@ -488,7 +488,7 @@ const createStyles = (c: any) => StyleSheet.create({
     fontSize: 14,
     color: c.textPrimary,
     paddingVertical: 6,
-    fontFamily: 'Georgia',
+    fontFamily: Fonts.serifItalic,
     fontStyle: 'italic',
     marginTop: 6,
   },

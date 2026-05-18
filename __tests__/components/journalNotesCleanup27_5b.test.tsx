@@ -204,12 +204,14 @@ describe('Phase 27.5b F5 — JournalNotesCard notes cleanup', () => {
     expect(ti.props.placeholderTextColor).toBe('rgba(255,255,255,0.35)');
   });
 
-  it('contract 7: TextInput fontStyle for typed content is italic Georgia', () => {
+  it('contract 7: TextInput fontStyle for typed content is italic Source Serif 4 (Phase 33 F7)', () => {
+    // Phase 33 F7 — Georgia literal swept to Fonts.serifItalic token,
+    // which resolves at runtime to 'SourceSerif4_400Regular_Italic'.
     const tree = render({ ...baseProps, bare: true });
     const ti = tree.root.findByType('TextInput' as any);
     const s = flatStyle(ti);
     expect(s.fontStyle).toBe('italic');
-    expect(s.fontFamily).toBe('Georgia');
+    expect(s.fontFamily).toBe('SourceSerif4_400Regular_Italic');
   });
 });
 

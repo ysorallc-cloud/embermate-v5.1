@@ -30,7 +30,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Spacing, Sizing } from '../../theme/theme-tokens';
+import { Spacing, Sizing, Fonts } from '../../theme/theme-tokens';
 import { useNearbyDaysWithRecords } from '../../hooks/useNearbyDaysWithRecords';
 
 interface JournalEmptyDayProps {
@@ -138,7 +138,7 @@ const createStyles = (c: any) =>
       marginBottom: Spacing.md,
     },
     heroTitle: {
-      fontFamily: 'Georgia',
+      fontFamily: Fonts.serifItalic,
       fontStyle: 'italic' as const,
       fontSize: 13,
       color: c.textSecondary,

@@ -54,10 +54,11 @@ describe('You tab — Plan ahead block sits on the page (no card wrapper)', () =
 });
 
 describe('You tab — Plan ahead typography (Phase 7.3 single header)', () => {
-  it('planAheadHeader: 18pt serif italic, sized to match the affirmation bump', () => {
+  it('planAheadHeader: 18pt serif italic, sized to match the affirmation bump (Phase 33 F7 token)', () => {
+    // Phase 33 F7 — Georgia literal swept to Fonts.serifItalic token.
     const block = styleBlock(supportSrc, 'planAheadHeader');
     expect(num(block, 'fontSize')).toBe(18);
-    expect(block).toMatch(/fontFamily:\s*['"]Georgia['"]/);
+    expect(block).toMatch(/fontFamily:\s*Fonts\.serifItalic\b/);
     expect(block).toMatch(/fontStyle:\s*['"]italic['"]/);
     expect(block).toMatch(/color:\s*c\.textPrimary|color:\s*colors\.textPrimary/);
   });

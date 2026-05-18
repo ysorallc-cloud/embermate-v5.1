@@ -71,15 +71,18 @@ describe('Header structure contract — title metrics', () => {
   // 22pt sans invariant retired in favor of a 32pt Source Serif 4
   // regular-weight register for informational tab/subscreen labels +
   // 22pt italic-serif for the You-tab witness-voice greeting.
-  it('Now greeting title: 22pt, weight 500 (NowGreeting unchanged by Phase 33 — header decoration, not tab H1)', () => {
-    // NowGreeting is a sub-component inside the Now hero block, not the
-    // top-of-page tab H1 (Now has no top-of-page H1 — the hero block
-    // leads with patient chip + content directly). Phase 33 left this
-    // sub-component alone; the F4 typography update applies to
-    // ScreenHeader (Journal + Insights) and SubScreenHeader.
+  it('Now greeting title: 22pt (Phase 33b greeting+subhead reframe pending)', () => {
+    // TODO(phase-33b): re-pin once the greeting style block relocks
+    // per website canon. Phase 33 F7 dropped the "NowGreeting unchanged
+    // by Phase 33" narrative and the fontWeight 500 pin because Phase
+    // 33b's coordinated greeting+subhead architecture supersedes
+    // Q-33.5's italic-greeting interpretation. The 22pt fontSize
+    // survives (Phase 3.6.2 compression invariant; independent of the
+    // greeting voice question). Weight + family + style assertions
+    // land in F11's screenHeaderTypography33 contract against the
+    // post-Phase-33b shape.
     const block = titleBlock(read('components/now/NowGreeting.tsx'));
     expect(num(block, 'fontSize')).toBe(22);
-    expect(block).toMatch(/fontWeight:\s*['"]500['"]/);
   });
 
   it('Journal title: 32pt serif weight 400 (Phase 33 F4 — via ScreenHeader)', () => {

@@ -41,11 +41,21 @@ describe('NowGreeting — compressed header (Phase 3.6.2)', () => {
     expect(greetingSrc).not.toMatch(/timeChip:\s*\{[^}]*backgroundColor/);
   });
 
-  it('title is 22pt with weight 500 (compressed H1 contract)', () => {
+  it('title block exists at 22pt', () => {
+    // TODO(phase-33b): re-pin once the greeting style block relocks
+    // per website canon. Phase 33 F7 dropped the fontWeight 500
+    // assertion because Phase 33b's greeting+subhead architecture
+    // supersedes Q-33.5's italic-greeting interpretation — the new
+    // style block has not yet been locked, and pinning against an
+    // unfinished spec would re-litigate the contract every iteration.
+    // The 22pt fontSize survives (it's a separate compression-pass
+    // invariant from Phase 3.6.2 unrelated to the greeting voice
+    // question). Weight + family + style + lineHeight + letterSpacing
+    // assertions land in F11's screenHeaderTypography33 contract
+    // against the post-Phase-33b shape.
     const titleBlock = styleBlock(greetingSrc, 'title');
     expect(titleBlock).not.toBe('');
     expect(readNumberProp(titleBlock, 'fontSize')).toBe(22);
-    expect(titleBlock).toMatch(/fontWeight:\s*['"]500['"]/);
   });
 
   it('renders a single inline subtitle (not a multi-element metadata row)', () => {

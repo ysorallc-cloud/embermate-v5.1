@@ -13,7 +13,7 @@
 
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Fonts } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getDailyAffirmation } from '../../utils/dailyAffirmation';
 import type { WitnessSignal } from '../../utils/caregiverWitnessBuilder';
@@ -55,7 +55,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     alignItems: 'center',
   },
   text: {
-    fontFamily: 'Georgia',
+    fontFamily: Fonts.serifItalic,
     fontStyle: 'italic',
     // Phase 7.1 — bump to 18pt / 30 line-height so the affirmation has
     // presence proportional to its emotional weight on the You tab.

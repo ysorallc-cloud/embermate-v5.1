@@ -20,7 +20,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { SectionEyebrow } from '../SectionEyebrow';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Spacing } from '../../theme/theme-tokens';
+import { Spacing, Fonts } from '../../theme/theme-tokens';
 import { getHandoffTone } from '../../storage/handoffToneRepo';
 import { buildDayNarrative } from '../../utils/narrativeSummaryBuilder';
 import { buildTodayRecap, TodayRecap } from '../../utils/todayRecapBuilder';
@@ -174,7 +174,7 @@ const createStyles = (c: any) =>
       marginHorizontal: -16,
     },
     snapshotText: {
-      fontFamily: 'Georgia',
+      fontFamily: Fonts.serifItalic,
       fontStyle: 'italic' as const,
       fontSize: 14,
       lineHeight: 22,
@@ -196,15 +196,20 @@ const createStyles = (c: any) =>
     },
     recapLabel: {
       width: 96, // allow: fixed label-column width (22.3 layout)
-      fontFamily: 'Georgia',
+      // Phase 33 F7 (Lock B) — Source Serif 4 SemiBold preserves the
+      // pre-Phase-33 Georgia + fontWeight 600 visual register. RN does
+      // not auto-select weights among loaded font faces; the 600 weight
+      // is carried by the font-face name itself (SourceSerif4_600SemiBold
+      // via Fonts.serifSemiBold). The prior fontWeight: '600' declaration
+      // becomes dead code and is removed.
+      fontFamily: Fonts.serifSemiBold,
       fontSize: 14,
       lineHeight: 22,
-      fontWeight: '600' as const,
       color: c.textSecondary,
     },
     recapValue: {
       flex: 1,
-      fontFamily: 'Georgia',
+      fontFamily: Fonts.serif,
       fontSize: 14,
       lineHeight: 22,
       color: c.textPrimary,

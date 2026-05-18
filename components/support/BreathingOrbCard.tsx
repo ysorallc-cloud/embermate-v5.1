@@ -27,6 +27,7 @@ import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Fonts } from '../../theme/theme-tokens';
 import { OrbRings } from './OrbRings';
 
 export interface BreathingOrbCardProps {
@@ -91,7 +92,7 @@ const createStyles = (c: any) =>
       justifyContent: 'center' as const,
     },
     prompt: {
-      fontFamily: 'Georgia',
+      fontFamily: Fonts.serifItalic,
       fontStyle: 'italic' as const,
       fontSize: 13,
       color: c.textPrimary,

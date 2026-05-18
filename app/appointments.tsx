@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors } from '../theme/theme-tokens';
+import { Colors, Fonts } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
 import { navigate } from '../lib/navigate';
 import { getUpcomingAppointments, Appointment } from '../utils/appointmentStorage';
@@ -211,7 +211,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 28,
   },
   title: {
-    fontFamily: 'Georgia',
+    fontFamily: Fonts.serif,
     fontSize: 28,
     color: '#e8f0e8',
     marginBottom: 4,

@@ -7,7 +7,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
-import { Colors } from '../theme/theme-tokens';
+import { Colors, Fonts } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
 
 export default function AppointmentConfirmation() {
@@ -106,7 +106,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: '#5fb88a',
   },
   title: {
-    fontFamily: 'Georgia',
+    fontFamily: Fonts.serif,
     fontSize: 24,
     color: '#e8f0e8',
     marginBottom: 8,

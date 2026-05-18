@@ -80,6 +80,7 @@ jest.mock('../../theme/theme-tokens', () => ({
   Colors: new Proxy({}, { get: () => '#000' }),
   Spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 },
   Sizing: { cardRadius: 14, cardInternalPadding: 12 },
+  Fonts: { serif: 'SourceSerif4_400Regular', serifItalic: 'SourceSerif4_400Regular_Italic', serifMedium: 'SourceSerif4_500Medium', serifSemiBold: 'SourceSerif4_600SemiBold' },
   BorderRadius: { sm: 4, md: 8, lg: 12 },
 }));
 

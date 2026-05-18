@@ -15,7 +15,7 @@
 import React, { useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Spacing, Sizing } from '../../theme/theme-tokens';
+import { Spacing, Sizing, Fonts } from '../../theme/theme-tokens';
 import { useFirstRealMode } from '../../hooks/useFirstRealMode';
 import { navigate } from '../../lib/navigate';
 
@@ -162,7 +162,7 @@ const createStyles = (c: any) =>
       marginBottom: 6,
     },
     body: {
-      fontFamily: 'Georgia',
+      fontFamily: Fonts.serifItalic,
       fontStyle: 'italic' as const,
       fontSize: 13,
       lineHeight: 20,
@@ -170,7 +170,7 @@ const createStyles = (c: any) =>
       marginBottom: 6,
     },
     bullet: {
-      fontFamily: 'Georgia',
+      fontFamily: Fonts.serifItalic,
       fontStyle: 'italic' as const,
       fontSize: 13,
       lineHeight: 20,

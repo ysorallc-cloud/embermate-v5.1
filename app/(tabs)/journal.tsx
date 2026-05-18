@@ -20,7 +20,7 @@ import {
   TextInput,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Colors, BorderRadius, Spacing } from '../../theme/theme-tokens';
+import { Colors, BorderRadius, Spacing, Fonts } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   buildCareBrief,
@@ -1063,7 +1063,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingVertical: 4, // allow: row breathing room (Apple HIG)
   },
   objectiveLabel: {
-    fontFamily: 'Georgia',
+    fontFamily: Fonts.serif,
     fontSize: 12,
     color: c.textTertiary,
     width: 80,

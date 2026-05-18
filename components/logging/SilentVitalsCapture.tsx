@@ -32,7 +32,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Spacing } from '../../theme/theme-tokens';
+import { Spacing, Fonts } from '../../theme/theme-tokens';
 import type { ReflectionScore } from '../../storage/dailyReflectionRepo';
 
 export interface SilentVitalsValues {
@@ -238,7 +238,7 @@ const createStyles = (c: any) =>
       fontWeight: '500',
     },
     reflectionInput: {
-      fontFamily: 'Georgia',
+      fontFamily: Fonts.serifItalic,
       fontStyle: 'italic',
       minHeight: 44,
       backgroundColor: c.menuSurface ?? c.glass,

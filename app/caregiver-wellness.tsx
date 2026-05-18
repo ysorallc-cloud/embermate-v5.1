@@ -18,7 +18,7 @@ import { SubScreenHeader } from '../components/SubScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
 import { getEventsByDateRange } from '../storage/eventRepo';
 import { logError } from '../utils/devLog';
-import { Colors } from '../theme/theme-tokens';
+import { Colors, Fonts } from '../theme/theme-tokens';
 import type { CareEvent } from '../types/event';
 import { composeWellnessOpening, type MoodLevel } from '../utils/text/composers/wellnessOpening';
 import { composeWeekRecap, type WeekRecapDay } from '../utils/text/composers/weekRecap';
@@ -506,7 +506,7 @@ function createStyles(c: typeof Colors) {
       marginBottom: 12,
     },
     opening: {
-      fontFamily: 'Georgia',
+      fontFamily: Fonts.serifItalic,
       fontStyle: 'italic' as const,
       fontSize: 14,
       lineHeight: 22,
@@ -534,7 +534,7 @@ function createStyles(c: typeof Colors) {
       color: c.textTertiary,
     },
     cardSubtitle: {
-      fontFamily: 'Georgia',
+      fontFamily: Fonts.serifItalic,
       fontStyle: 'italic' as const,
       fontSize: 11,
       lineHeight: 15,

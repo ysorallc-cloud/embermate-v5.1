@@ -41,9 +41,12 @@ describe('AffirmationHeader — typography contract', () => {
   it('text uses a serif font family', () => {
     const block = styleBlock('text');
     expect(block).not.toBe('');
-    // Either the literal 'serif' or a serif token (Georgia is the iOS
-    // serif fallback used elsewhere in this codebase).
-    expect(block).toMatch(/fontFamily:\s*['"](?:serif|Georgia|Times New Roman)['"]/i);
+    // Phase 33 F7 — Georgia literal swept to Fonts.serifItalic token.
+    // Accept either the literal forms (legacy) or the Fonts.serif*
+    // identifier (post-F7 form) so the assertion is robust to either.
+    expect(block).toMatch(
+      /fontFamily:\s*(?:['"](?:serif|Georgia|Times New Roman)['"]|Fonts\.serif(?:Italic|Medium|SemiBold)?\b)/i,
+    );
   });
 
   it('text is italic', () => {

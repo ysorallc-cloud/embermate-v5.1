@@ -325,7 +325,7 @@ function createStyles(c: typeof Colors) {
     // compact variant renders chevron rows that ARE the chrome, so the
     // outer card wrapper became redundant (per Batch B R2).
     planAheadHeader: {
-      fontFamily: 'Georgia',
+      fontFamily: Fonts.serifItalic,
       fontStyle: 'italic' as const,
       fontSize: 18,
       lineHeight: 30,

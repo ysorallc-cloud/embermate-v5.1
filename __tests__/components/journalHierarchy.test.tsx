@@ -161,12 +161,14 @@ describe('JournalNotesCard — compact', () => {
   });
 
   it('renders a visible serif italic prompt above the input', () => {
+    // Phase 33 F7 — Georgia literal swept to Fonts.serifItalic token,
+    // which resolves at runtime to 'SourceSerif4_400Regular_Italic'.
     const tree = (JournalNotesCard as any)(notesProps);
     const prompt = findAll(tree, (n) => n.props?.testID === 'notes-prompt')[0];
     expect(prompt).toBeDefined();
     const merged = styleOf(prompt);
     expect(merged.fontStyle).toBe('italic');
-    expect(merged.fontFamily).toBe('Georgia');
+    expect(merged.fontFamily).toBe('SourceSerif4_400Regular_Italic');
   });
 
   it('Save button (saved/idle) uses outlined sage border at 0.5 opacity, sage text', () => {

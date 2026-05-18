@@ -17,6 +17,7 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Fonts } from '../../theme/theme-tokens';
 import { SectionEyebrow } from '../SectionEyebrow';
 import { formatTime } from '../../utils/text/primitives';
 
@@ -417,7 +418,7 @@ const createStyles = (c: any) =>
       // is differentiated by placeholderTextColor alpha (0.35) vs content
       // alpha (0.85), not by switching families. Matches the surrounding
       // caregiver-voice register on the Journal Plan card.
-      fontFamily: 'Georgia',
+      fontFamily: Fonts.serifItalic,
       fontStyle: 'italic',
       fontSize: 11,
       lineHeight: 17,
@@ -427,7 +428,7 @@ const createStyles = (c: any) =>
     // placeholder text. Sits above the textarea so the prompt stays read
     // even when the input has user-typed content.
     prompt: {
-      fontFamily: 'Georgia',
+      fontFamily: Fonts.serifItalic,
       fontStyle: 'italic',
       fontSize: 12,
       color: c.textSecondary,

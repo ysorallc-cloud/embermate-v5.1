@@ -11,7 +11,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Fonts } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
 
@@ -114,7 +114,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   root: { flex: 1, backgroundColor: c.background },
   content: { padding: 20, paddingBottom: 60 },
   opening: {
-    fontFamily: 'Georgia',
+    fontFamily: Fonts.serifItalic,
     fontStyle: 'italic',
     fontSize: 12,
     lineHeight: 19.2,

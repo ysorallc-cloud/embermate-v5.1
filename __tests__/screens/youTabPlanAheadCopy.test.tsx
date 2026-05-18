@@ -46,7 +46,8 @@ describe('Phase 7.3 — Plan Ahead caregiver-voice header', () => {
     expect(block).toBeTruthy();
     const body = block![1];
     expect(body).toMatch(/fontSize:\s*18\b/);
-    expect(body).toMatch(/fontFamily:\s*['"]Georgia['"]/);
+    // Phase 33 F7 — Georgia literal swept to Fonts.serifItalic token.
+    expect(body).toMatch(/fontFamily:\s*Fonts\.serifItalic\b/);
     expect(body).toMatch(/fontStyle:\s*['"]italic['"]/);
   });
 });
