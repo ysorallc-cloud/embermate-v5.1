@@ -880,7 +880,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingVertical: 6, paddingHorizontal: 14,
   },
   saveBtnDisabled: { opacity: 0.4 },
-  saveBtnText: { fontSize: 12, fontWeight: '600', color: '#fff' },
+  saveBtnText: { fontSize: 12, fontWeight: '600', color: '#0a0c0a' },
 
   // ── Meds ──
   medsSection: {},

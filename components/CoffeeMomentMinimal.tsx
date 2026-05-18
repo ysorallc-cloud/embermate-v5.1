@@ -209,7 +209,7 @@ export const CoffeeMomentMinimal: React.FC<CoffeeMomentMinimalProps> = ({
             accessibilityRole="button"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>{'\u2715'}</Text>
+            <Text style={{ fontSize: 14, color: c.textMuted }}>{'\u2715'}</Text>
           </TouchableOpacity>
 
           {/* Microcopy — permission, not invitation */}
@@ -291,7 +291,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   microcopy: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.5)',
+    color: c.textMuted,
     textAlign: 'center',
     marginBottom: 40,
   },
@@ -323,7 +323,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   phaseText: {
     fontSize: 15,
     fontWeight: '400',
-    color: 'rgba(255,255,255,0.8)',
+    color: c.textSecondary,
     marginBottom: 4,
   },
   phaseTimer: {
@@ -335,14 +335,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // Overall timer
   timer: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.3)',
+    color: c.textMuted,
     marginBottom: Spacing.lg,
   },
 
   // Affirmation
   affirmation: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
+    color: c.textMuted,
     textAlign: 'center',
     lineHeight: 22,
     fontStyle: 'italic',
@@ -355,7 +355,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     position: 'absolute',
     bottom: 50,
     fontSize: 12,
-    color: 'rgba(255,255,255,0.45)',
+    color: c.textMuted,
     paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
     paddingVertical: 6,
     borderRadius: 8,

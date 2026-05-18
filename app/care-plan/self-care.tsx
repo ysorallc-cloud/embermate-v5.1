@@ -168,7 +168,7 @@ export default function SelfCareConfigScreen() {
                 accessibilityLabel={`When: ${opt.label}`}
                 accessibilityState={{ selected: newTime === opt.value }}
               >
-                <Text style={[styles.chipText, newTime === opt.value && { color: '#fff' }]}>{opt.label}</Text>
+                <Text style={[styles.chipText, newTime === opt.value && { color: '#0a0c0a' }]}>{opt.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -225,7 +225,7 @@ function createStyles(c: typeof Colors) {
     chipText: { fontSize: 13, fontWeight: '500', color: c.textSecondary },
     formButtons: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 8 },
     saveBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
-    saveBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+    saveBtnText: { fontSize: 14, fontWeight: '600', color: '#0a0c0a' },
     cancelText: { fontSize: 14, color: c.textMuted },
     addButton: { alignItems: 'center', paddingVertical: 14 },
     addButtonText: { fontSize: 15, fontWeight: '600', color: c.accent },

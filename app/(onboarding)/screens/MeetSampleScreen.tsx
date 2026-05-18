@@ -158,7 +158,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   avatarLetter: {
     fontSize: 26,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: '#0a0c0a',
   },
   metaLine: {
     fontSize: 12,

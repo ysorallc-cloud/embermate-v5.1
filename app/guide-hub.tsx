@@ -500,11 +500,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   quickStartTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: c.textSecondary,
   },
   quickStartCount: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: c.textMuted,
   },
   progressTrack: {
     height: 4,
@@ -547,13 +547,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   quickStartCheckmark: {
     fontSize: 12,
-    color: '#fff',
+    color: '#0a0c0a',
     fontWeight: '700',
   },
   quickStartLabel: {
     flex: 1,
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: c.textSecondary,
   },
   quickStartLabelDone: {
     textDecorationLine: 'line-through',
@@ -667,7 +667,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   guideStepTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: c.textSecondary,
     marginBottom: 2,
   },
   guideStepDesc: {

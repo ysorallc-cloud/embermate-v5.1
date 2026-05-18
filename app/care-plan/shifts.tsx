@@ -137,7 +137,7 @@ export default function ShiftsConfigScreen() {
                 accessibilityLabel={`Toggle ${day}`}
                 accessibilityState={{ selected: newDays.includes(day) }}
               >
-                <Text style={[styles.dayChipText, newDays.includes(day) && { color: '#fff' }]}>{day}</Text>
+                <Text style={[styles.dayChipText, newDays.includes(day) && { color: '#0a0c0a' }]}>{day}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -188,7 +188,7 @@ function createStyles(c: typeof Colors) {
     dayChipText: { fontSize: 12, fontWeight: '500', color: c.textSecondary },
     formButtons: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 8 },
     saveBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
-    saveBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+    saveBtnText: { fontSize: 14, fontWeight: '600', color: '#0a0c0a' },
     cancelText: { fontSize: 14, color: c.textMuted },
     addButton: { alignItems: 'center', paddingVertical: 14 },
     addButtonText: { fontSize: 15, fontWeight: '600', color: c.accent },

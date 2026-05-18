@@ -285,6 +285,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   saveButtonText: {
     fontSize: 11.5,
     fontWeight: '600',
-    color: '#fff',
+    color: '#0a0c0a',
   },
 });

@@ -45,13 +45,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   icon: {
-    color: '#FFFFFF',
+    color: '#0a0c0a',
     fontSize: 22,
     fontWeight: '300',
     lineHeight: 24,
   },
   label: {
-    color: '#FFFFFF',
+    color: '#0a0c0a',
     fontSize: 14,
     fontWeight: '600',
   },

@@ -1260,7 +1260,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   checkmark: {
     fontSize: 13,
-    color: '#fff',
+    color: '#0a0c0a',
     fontWeight: '700',
   },
   questionText: {

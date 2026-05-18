@@ -171,7 +171,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   overdueBadgeText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#fff',
+    color: '#0a0c0a',
   },
   stripTextContainer: {
     flex: 1,

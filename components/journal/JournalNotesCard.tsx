@@ -422,7 +422,7 @@ const createStyles = (c: any) =>
       fontStyle: 'italic',
       fontSize: 11,
       lineHeight: 17,
-      color: 'rgba(255,255,255,0.85)',
+      color: c.textPrimary,
     },
     // v6.7 Phase 3 — visible serif italic prompt, replaces the rotating
     // placeholder text. Sits above the textarea so the prompt stays read

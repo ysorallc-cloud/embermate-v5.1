@@ -54,12 +54,14 @@ describe('You tab Phase 6 — sizing + neutralized helpline (post-Batch-B refram
       );
     });
 
-    it('uses white text on the filled pill (Phase 29 Batch B F3 — lane recolor)', () => {
+    it('uses near-black text on the filled pill (Phase 29 Batch B F3 lane recolor + Phase 33 F9 Phase-26 precedent)', () => {
       // Phase 29 Batch B F3 — saveButtonText color flipped from
-      // near-black (#0a1510) on sage to white (#fff) on lavender.
-      // High contrast preserved; tone flips warm → cool.
+      // near-black (#0a1510) on sage to white on lavender.
+      // Phase 33 F9 — migrated again to '#0a0c0a' near-black per the
+      // Phase 26 F4 sage/lavender-CTA precedent. AAA contrast against
+      // lavender (~9.5:1).
       expect(reflectionSrc).toMatch(
-        /saveButtonText:\s*\{[^}]*color:\s*['"]#(?:fff|FFF|ffffff|FFFFFF)['"]/s,
+        /saveButtonText:\s*\{[^}]*color:\s*['"]#0a0c0a['"]/s,
       );
     });
   });

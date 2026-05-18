@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-import { Spacing } from '../../theme/theme-tokens';
+import { Spacing, Colors } from '../../theme/theme-tokens';
 interface DaySignalBannerProps {
   emoji: string;
   label: string;
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textSecondary,
     lineHeight: 18,
   },
 });

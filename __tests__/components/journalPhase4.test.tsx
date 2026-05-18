@@ -20,7 +20,7 @@ const themeColors = {
   criticalAlert: '#e6776e',
   error: '#e6776e',
   coral: '#e89a7a',
-  textPrimary: '#fff',
+  textPrimary: '#f4ddb8', // Phase 33 F1a — cream replaced pure white
   textSecondary: '#c4c1b3',
   textTertiary: '#8a8a82',
   textMuted: '#9aa0a6',
@@ -205,7 +205,7 @@ describe('TodayOutcomes — dual row, pending count uses textPrimary (Phase 4c)'
     })[0];
     expect(eight).toBeDefined();
     const merged = styleOf(eight);
-    expect(merged.color).toBe('#fff'); // textPrimary
+    expect(merged.color).toBe('#f4ddb8'); // textPrimary (cream, Phase 33 F1a)
     expect(merged.color).not.toBe('#e6776e'); // criticalAlert
   });
 

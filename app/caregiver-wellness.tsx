@@ -228,7 +228,7 @@ export default function CaregiverWellnessScreen() {
                 accessibilityRole="button"
                 accessibilityState={{ selected: range === r }}
               >
-                <Text style={[styles.rangeBtnText, range === r && { color: '#fff' }]}>
+                <Text style={[styles.rangeBtnText, range === r && { color: '#0a0c0a' }]}>
                   {r}d
                 </Text>
               </TouchableOpacity>

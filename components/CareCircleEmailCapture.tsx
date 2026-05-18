@@ -242,7 +242,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   submitButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
+    color: '#0a0c0a',
   },
   confirmationContainer: {
     flex: 1,

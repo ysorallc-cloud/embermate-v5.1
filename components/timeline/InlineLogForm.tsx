@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   formSubtitle: { fontSize: 12, marginBottom: 8 },
   buttonRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   confirmBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }, // allow: tap-target padding (Apple HIG ≥44pt)
-  confirmBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  confirmBtnText: { fontSize: 13, fontWeight: '600', color: '#0a0c0a' },
   skipBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, borderWidth: 1 }, // allow: tap-target padding (Apple HIG ≥44pt)
   skipBtnText: { fontSize: 13, fontWeight: '500' },
   closeBtn: { marginLeft: 'auto', padding: 6 },

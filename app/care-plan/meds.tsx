@@ -843,7 +843,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   toastIconText: {
     fontSize: 14,
-    color: '#fff',
+    // Phase 33 F9 — sits on c.accent sage-filled toast-icon circle
+    // (line 840 backgroundColor: c.accent). Phase 26 precedent: text
+    // on sage CTA chrome reads as #0a0c0a near-black.
+    color: '#0a0c0a',
     fontWeight: '700',
   },
   toastText: {

@@ -217,7 +217,7 @@ const stepperStyles = () => StyleSheet.create({
   },
   stepButton: { paddingHorizontal: 16, paddingVertical: 8 },
   stepText: { fontSize: 22, color: '#5fb88a' },
-  stepValue: { fontSize: 18, color: '#fff', minWidth: 100, textAlign: 'center' as const },
+  stepValue: { fontSize: 18, color: Colors.textPrimary, minWidth: 100, textAlign: 'center' as const },
 });
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({

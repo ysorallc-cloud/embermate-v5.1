@@ -32,7 +32,7 @@ const themeColors = {
   criticalAlert: '#e6776e',
   error: '#e6776e',
   coral: '#e89a7a',
-  textPrimary: '#fff',
+  textPrimary: '#f4ddb8', // Phase 33 F1a — cream replaced pure white
   textSecondary: '#c4c1b3',
   textTertiary: '#8a8a82',
   textMuted: '#9aa0a6',
@@ -152,7 +152,11 @@ describe('ReflectionCard — Phase 29 Batch B F3 lavender lane chrome', () => {
     expect(merged.paddingHorizontal).toBe(16);
   });
 
-  it('Save button text is white on the filled lavender (Phase 29 Batch B F3 — lane recolor)', () => {
+  it('Save button text is near-black on the filled lavender (Phase 29 Batch B F3 lane recolor + Phase 33 F9 Phase-26 precedent)', () => {
+    // Phase 29 Batch B F3 — Save button bg migrated from sage to lavender.
+    // Phase 33 F9 — text color migrated from '#fff' to '#0a0c0a' per the
+    // Phase 26 F4 sage/lavender-CTA near-black precedent. AAA contrast
+    // against lavender (~9.5:1).
     const tree = (ReflectionCard as any)({});
     const saveText = findAll(tree, (n) =>
       n.type === 'Text' &&
@@ -161,8 +165,7 @@ describe('ReflectionCard — Phase 29 Batch B F3 lavender lane chrome', () => {
     )[0];
     expect(saveText).toBeDefined();
     const merged = styleOf(saveText);
-    expect(merged.color).toBe('#fff');
-    expect(merged.color).not.toBe('#0a1510');
+    expect(merged.color).toBe('#0a0c0a');
     expect(merged.fontSize).toBe(11.5);
   });
 });

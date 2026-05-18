@@ -342,7 +342,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   subscribeButtonText: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0a0c0a',
   },
 
   // Secondary Actions
@@ -388,7 +388,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   promoButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#0a0c0a',
   },
 
   // Privacy Note

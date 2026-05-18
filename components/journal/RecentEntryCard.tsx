@@ -72,7 +72,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   detail: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.55)',
+    color: c.textTertiary,
   },
   time: {
     fontSize: 12,

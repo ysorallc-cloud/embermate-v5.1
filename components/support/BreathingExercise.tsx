@@ -379,7 +379,13 @@ function createStyles(c: any) {
     beginButtonText: {
       fontSize: 17,
       fontWeight: '600',
-      color: '#fff',
+      // Phase 33 F9 — beginButton sits on caregiverAccent (lavender)
+      // bg per Phase 26 F4 precedent for sage/lavender CTAs. Near-black
+      // text reads AAA against lavender. The other two modal text sites
+      // (countdown + phaseLabel, plus the endLink alpha-white below)
+      // stay pure white per Q-F9.3 Option B whitelist — they're
+      // intentional dim-lit breathing-scene palette per Phase 29 A.2.
+      color: '#0a0c0a',
     },
     endLink: {
       position: 'absolute',

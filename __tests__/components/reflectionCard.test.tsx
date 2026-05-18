@@ -188,13 +188,12 @@ describe('ReflectionCard — Section 5: footer (privacy note + Save pill)', () =
     expect(block).toMatch(/color:\s*c\.textTertiary|color:\s*colors\.textTertiary/);
   });
 
-  it('Save pill: solid caregiverAccent + white text (Phase 29 Batch B F3 lane recolor)', () => {
-    // Phase 29 Batch B F3 — Save pill flips from sage (#5fb88a) outline-y
-    // primary to solid caregiverAccent + white text. Matches the lane
-    // identity the wrapper card now carries; the button reads as the
-    // primary action surface of a lavender lane card. Padding + radius +
-    // fontSize unchanged from the v6.7 visual-consistency Phase 5 layout
-    // — only the colors flip.
+  it('Save pill: solid caregiverAccent + near-black text (Phase 29 Batch B F3 lane recolor + Phase 33 F9 Phase-26 precedent)', () => {
+    // Phase 29 Batch B F3 — Save pill flips from sage outline-y primary
+    // to solid caregiverAccent. Phase 33 F9 — text color migrated from
+    // '#fff' to '#0a0c0a' per the Phase 26 F4 sage/lavender-CTA
+    // near-black precedent. AAA contrast against lavender (~9.5:1).
+    // Padding + radius + fontSize unchanged.
     const button = styleBlock('saveButton');
     expect(button).toMatch(/backgroundColor:\s*(c|colors)\.caregiverAccent\b(?!\w)/);
     expect(num(button, 'paddingVertical')).toBe(6);
@@ -203,9 +202,8 @@ describe('ReflectionCard — Section 5: footer (privacy note + Save pill)', () =
     const buttonText = styleBlock('saveButtonText');
     // fontSize 11.5 is a fractional float — match the literal text.
     expect(buttonText).toMatch(/fontSize:\s*11\.5/);
-    // White text on solid lavender — contrast inversion from the pre-F3
-    // dark-text-on-sage shape.
-    expect(buttonText).toMatch(/color:\s*['"]#(?:fff|FFF|ffffff|FFFFFF)['"]/);
+    // Near-black text on solid lavender per Phase 26 F4 precedent.
+    expect(buttonText).toMatch(/color:\s*['"]#0a0c0a['"]/);
   });
 
   it('footer row has marginTop 12', () => {

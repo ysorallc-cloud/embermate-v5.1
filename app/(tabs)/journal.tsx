@@ -1151,7 +1151,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   authGateTitle: { fontSize: 20, fontWeight: '600', color: c.textPrimary, marginBottom: 8 },
   authGateSubtitle: { fontSize: 14, color: c.textSecondary, textAlign: 'center', marginBottom: Spacing.lg, lineHeight: 20 },
   authGateButton: { backgroundColor: c.accent, paddingHorizontal: 32, paddingVertical: 14, borderRadius: BorderRadius.lg }, // allow: tap-target padding (Apple HIG ≥44pt)
-  authGateButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+  authGateButtonText: { fontSize: 16, fontWeight: '600', color: '#0a0c0a' },
 
   // Phase 22.2 — hairline divider for the page-level BUILDING TOWARD
   // section (the banner has no internal eyebrow container). Matches
