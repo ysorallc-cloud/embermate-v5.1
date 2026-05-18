@@ -361,7 +361,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     backgroundColor: c.caregiverAccentBg,
     borderLeftWidth: 3,
     borderLeftColor: c.caregiverAccentStrong,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 6,
     marginBottom: 12,
@@ -387,7 +387,7 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   rangePill: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     borderRadius: 20,
     backgroundColor: c.warmSurface,
     borderWidth: 1,

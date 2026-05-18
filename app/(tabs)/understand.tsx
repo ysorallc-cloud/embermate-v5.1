@@ -999,8 +999,16 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // with the duplicate "This Week" callout that consumed them.
 
   // Section
+  // Phase 33 F10 — marginBottom 4 → Spacing.s4 (= 16). The Phase 33
+  // audit's Target 2 description named `marginVertical: Spacing.sm`
+  // which no longer exists in this file (refactor-drift since
+  // audit-time). Fix applied to the closest semantically-equivalent
+  // current property — the section wrapper's own marginBottom — to
+  // provide breathing room before the next section's content. Dividers
+  // between sections continue to add their own marginVertical
+  // Spacing.md (20pt) on top.
   section: {
-    marginBottom: 4,
+    marginBottom: Spacing.s4,
   },
   // Phase 15.12 — sectionLabel style retired. All 4 understand.tsx
   // uses were swept onto components/SectionEyebrow.tsx for uniform

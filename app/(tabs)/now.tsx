@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { navigate } from '../../lib/navigate';
 import { useFocusEffect } from '@react-navigation/native';
-import { Colors } from '../../theme/theme-tokens';
+import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getMedications, Medication } from '../../utils/medicationStorage';
 import { getUpcomingAppointments, Appointment } from '../../utils/appointmentStorage';
@@ -1231,18 +1231,28 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
 
   // Section header (used by Upcoming This Week)
+  // Phase 33 F10 — eyebrow positioning inverted per "eyebrow belongs
+  // to what FOLLOWS" convention: more breathing above (separating from
+  // preceding content), less below (close to following content). Pre-
+  // F10 had paddingTop 8 / paddingBottom 10 — inverted, eyebrow felt
+  // stranded against what preceded it.
   sectionHeaderRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 8, paddingBottom: 10,
+    paddingTop: 12, paddingBottom: 6,
   },
   sectionHeaderTitle: {
     fontSize: 9, fontWeight: '600', letterSpacing: 2, color: c.textTertiary, textTransform: 'uppercase',
   },
 
   // Section card (used by Upcoming This Week)
+  // Phase 33 F10 — marginBottom 12 → Spacing.s4 (= 16). First
+  // deliberate consumer of the s1–s12 numeric scale F2 introduced.
+  // Token-routed, hits website canon exactly. Establishes precedent
+  // for future spacing migrations to reach for the s-scale rather
+  // than literal pixel values.
   sectionCard: {
     backgroundColor: c.glass, borderWidth: 1, borderColor: c.glassBorder,
-    borderRadius: 16, padding: 12, marginBottom: 12,
+    borderRadius: 16, padding: 12, marginBottom: Spacing.s4,
   },
 
   // Phase 15.7 — appointmentPrep* styles retired with the inline block.
