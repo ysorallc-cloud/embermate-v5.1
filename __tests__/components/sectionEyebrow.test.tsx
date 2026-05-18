@@ -55,13 +55,17 @@ describe('SectionEyebrow', () => {
     expect(text.props.children).toBe("TODAY'S OUTCOMES");
   });
 
-  it('uses the brand-aligned spec typography (11pt, weight 600 default, letter-spacing 2)', () => {
+  it('uses the brand-aligned spec typography (11pt, weight 600 default, letter-spacing 1.5)', () => {
+    // Phase 33 F8 shipped at letterSpacing 2 per Q-33.8 lock.
+    // Phase 33b Scope 3 relocked to 1.5 per website canon
+    // `.phone-section-label` (Q-Scope3.1 lock). Path A: 32A and 32C
+    // eyebrow surfaces inherit by spec via the SectionEyebrow primitive.
     const tree = SectionEyebrow({ text: 'Anything' });
     const text = findAll(tree, (n) => n.type === 'Text')[0];
     const style = flatStyle(text);
     expect(style.fontSize).toBe(11);
     expect(style.fontWeight).toBe('600');
-    expect(style.letterSpacing).toBe(2);
+    expect(style.letterSpacing).toBe(1.5);
   });
 
   it('variant="hero" renders weight 500 (lighter opt-in for dense eyebrow stacks)', () => {
@@ -71,7 +75,7 @@ describe('SectionEyebrow', () => {
     expect(style.fontWeight).toBe('500');
     // fontSize + letterSpacing stay shared across variants.
     expect(style.fontSize).toBe(11);
-    expect(style.letterSpacing).toBe(2);
+    expect(style.letterSpacing).toBe(1.5);
   });
 
   it('explicit variant="feature" matches default rendering', () => {

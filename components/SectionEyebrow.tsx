@@ -39,14 +39,13 @@ export function SectionEyebrow({ text, tint, variant = 'feature' }: SectionEyebr
 }
 
 // Phase 33 F8 — fontSize 8 → 11, letterSpacing 0.5 → 2 per Q-33.8 lock.
-// Aligns eyebrow scale with the website source-of-truth register so
-// section labels read as confident-but-quiet markers rather than
-// near-invisible hairlines.
-//
-// letterSpacing 2 vs website canon 1.5 — Q-33.8 lock takes precedence
-// over canon for this commit. Phase 33b eyebrow canon reconciliation
-// revisits with SectionEyebrow + 32A section eyebrows + 32C
-// "WHERE THINGS STAND" all in view and may relock to canon 1.5.
+// Phase 33b Scope 3 — letterSpacing 2 → 1.5 per website canon
+// `.phone-section-label` (Q-Scope3.1 lock). Path A: locks canon during
+// 33b; 32A section eyebrows + 32C "WHERE THINGS STAND" inherit by spec
+// (both consume SectionEyebrow primitive, picking up the canon value
+// automatically). The Q-33.8 lock at 2 took precedence during F8 to
+// avoid mid-phase re-litigation; 33b reconciles now that all three
+// eyebrow surface families are simultaneously visible in the audit.
 //
 // fontWeight removed from the static block — `'600'` (feature) and
 // `'500'` (hero) variants are applied at render time via the merged
@@ -54,7 +53,7 @@ export function SectionEyebrow({ text, tint, variant = 'feature' }: SectionEyebr
 const baseStyle = StyleSheet.create({
   eyebrow: {
     fontSize: 11,
-    letterSpacing: 2,
+    letterSpacing: 1.5,
   },
 });
 
