@@ -97,18 +97,18 @@ export function UpcomingAppointmentCard() {
 }
 
 const createStyles = (c: any) => StyleSheet.create({
+  // Phase 33b Scope 2 — Surface 2 lavender scale reduction. Pre-33b
+  // card had full lavender chrome (border + bg + link); 33b retires
+  // chrome entirely. Eyebrow + cream body sit on page bg; link
+  // migrates from lavender to sage (canon "cream or sage link" target).
   card: {
     marginTop: Spacing.md,
     marginBottom: Spacing.sm,
-    paddingHorizontal: Sizing.cardInternalPadding,
-    paddingVertical: Spacing.sm,
-    backgroundColor: c.caregiverAccentBg,
-    borderWidth: 0.5,
-    borderColor: c.caregiverAccentStrong,
-    borderRadius: Sizing.cardRadius,
+    paddingHorizontal: 4,
   },
   // Phase 15.12 — local eyebrow style retired; SectionEyebrow with
-  // tint="caregiverAccent" preserves the lavender semantic.
+  // tint="caregiverAccent" preserves the lavender garnish at canon
+  // eyebrow scale.
   title: {
     fontSize: 14,
     fontWeight: '600' as const,
@@ -128,7 +128,7 @@ const createStyles = (c: any) => StyleSheet.create({
   prepareLinkText: {
     fontSize: 11,
     fontWeight: '500' as const,
-    color: c.caregiverAccent,
+    color: c.accent,
   },
 });
 

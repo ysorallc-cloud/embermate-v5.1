@@ -1,28 +1,27 @@
 // ============================================================================
-// Phase 26 F1 — You-tab visual identity, tab-bar wiring.
+// Phase 26 F1 → Phase 33b Scope 2 reframe — bottom nav uniform sage-active.
 //
-// Pre-26 every Tabs.Screen passed colors.accent (sage) to its TabIcon and
-// the global tabBarActiveTintColor / tabBarInactiveTintColor were the only
-// per-tab tint controls. Result: the You tab read as a fourth operational
-// tab rather than a separate caregiver lane.
+// Phase 26 F1 routed the support tab through caregiverAccent (lavender)
+// at active + inactive states so the You lane read distinct from the
+// operational sage triplet. Phase 33b Scope 2 (Q-33b.6 lock (a)) retired
+// that override per the website canon — nav is structural navigation,
+// not content-chrome; canon nav uses cream-default-no-color. All 4 tabs
+// now inherit the global colors.accent active / colors.textMuted
+// inactive tint, including support.
 //
-// Phase 26 F1 routes the support tab — and only the support tab — through
-// caregiverAccent at both states:
-//   • Active tint + dot accent: colors.caregiverAccent (lavender).
-//   • Inactive tint: a muted lavender so the lane stays visible at rest
-//     ("exists but not current") rather than dropping to the operational
-//     gray (colors.textMuted) used by the global default.
+// The Phase 26 F2 boundary hairline at left: '75%' survives — it's
+// structural grouping (operational triplet + You), not lane-chrome.
 //
-// Pinned contracts:
-//   1. The support Tabs.Screen sets its own tabBarActiveTintColor to
-//      colors.caregiverAccent (overriding the global sage).
-//   2. The support Tabs.Screen sets its own tabBarInactiveTintColor to
-//      a lavender — NOT the global colors.textMuted gray.
-//   3. The support Tabs.Screen passes caregiverAccent (not colors.accent)
-//      as the TabIcon accent prop, so the active dot lavenders.
-//   4. The operational tabs (now / journal / understand) do NOT carry
-//      per-screen tint overrides — they inherit the global sage.
-//   5. The operational tabs continue to pass colors.accent to TabIcon.
+// Pinned contracts (Phase 33b Scope 2):
+//   1. The support Tabs.Screen does NOT override tabBarActiveTintColor.
+//   2. The support Tabs.Screen does NOT override tabBarInactiveTintColor.
+//   3. The support TabIcon passes colors.accent (sage) as the accent
+//      prop — uniform with the operational tabs.
+//   4. All 4 operational tabs (now / journal / understand / support)
+//      inherit the global sage-active / cream-muted-inactive pattern.
+//   5. No bare colors.caregiverAccent reference remains in this file
+//      (nav lavender retired entirely; defends against Phase 26 F1
+//      style drift back).
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -55,44 +54,41 @@ function tabsScreenBlock(name: string): string {
   return STRIPPED.slice(startIdx, endIdx);
 }
 
-describe('Phase 26 F1 — You-tab caregiverAccent wiring', () => {
-  it('contract 1: the support Tabs.Screen overrides tabBarActiveTintColor to caregiverAccent', () => {
+describe('Phase 33b Scope 2 — bottom nav uniform sage-active (Phase 26 F1 lavender retired)', () => {
+  it('contract 1: the support Tabs.Screen does NOT override tabBarActiveTintColor', () => {
+    // Phase 26 F1 set this to colors.caregiverAccent; Phase 33b Scope 2
+    // retired the override. Support tab inherits the global sage-active
+    // tint set in screenOptions.
     const block = tabsScreenBlock('support');
     expect(block).toBeTruthy();
-    expect(block).toMatch(/tabBarActiveTintColor:\s*colors\.caregiverAccent/);
+    expect(block).not.toMatch(/tabBarActiveTintColor:/);
   });
 
-  it('contract 2: the support Tabs.Screen tabBarInactiveTintColor is a lavender — NOT colors.textMuted', () => {
+  it('contract 2: the support Tabs.Screen does NOT override tabBarInactiveTintColor', () => {
+    // Phase 26 F1 set this to a muted lavender; Phase 33b Scope 2 retired
+    // the override. Support tab inherits the global colors.textMuted
+    // inactive tint set in screenOptions.
     const block = tabsScreenBlock('support');
     expect(block).toBeTruthy();
-    // Must NOT inherit the operational gray.
-    expect(block).not.toMatch(/tabBarInactiveTintColor:\s*colors\.textMuted/);
-    // Must route through a lavender. Three acceptable shapes for a
-    // "muted caregiverAccent":
-    //   (a) the canonical theme token: colors.caregiverAccent (and the
-    //       variants — caregiverAccentText, caregiverAccentHint, etc.)
-    //   (b) a file-local constant whose name advertises lavender intent
-    //       (CAREGIVER_ACCENT_INACTIVE, CAREGIVER_ACCENT_DIM, etc.)
-    //   (c) an inline rgba expressed against the canonical hue
-    //       (170, 138, 220) so a code reader sees lavender at-a-glance.
-    // The test pins the semantic intent, not any single mechanism.
-    const tintValue = block.match(/tabBarInactiveTintColor:\s*([^,]+?)\s*,/);
-    expect(tintValue).toBeTruthy();
-    const v = tintValue![1];
-    expect(v).toMatch(/caregiverAccent|CAREGIVER_ACCENT|rgba\(\s*170,\s*138,\s*220/i);
+    expect(block).not.toMatch(/tabBarInactiveTintColor:/);
   });
 
-  it('contract 3: the support TabIcon receives caregiverAccent as the accent prop (drives the active dot)', () => {
+  it('contract 3: the support TabIcon passes colors.accent (sage) as the accent prop', () => {
+    // Phase 26 F1 passed colors.caregiverAccent for the active dot;
+    // Phase 33b Scope 2 unified all 4 TabIcons on colors.accent. The
+    // active dot under the icon now sages along with the operational
+    // tabs.
     const block = tabsScreenBlock('support');
-    expect(block).toMatch(/accent=\{colors\.caregiverAccent\}/);
-    // Negative pin: must not still hardcode the sage accent.
-    expect(block).not.toMatch(/accent=\{colors\.accent\}/);
+    expect(block).toMatch(/accent=\{colors\.accent\}/);
+    // Negative pin: must not still hardcode lavender accent.
+    expect(block).not.toMatch(/accent=\{colors\.caregiverAccent\}/);
   });
 
-  it('contract 4: operational tabs (now / journal / understand) do NOT override the global tint', () => {
-    // Inheriting the global colors.accent active tint is what keeps the
-    // operational triplet visually unified as one lane.
-    for (const name of ['now', 'journal', 'understand']) {
+  it('contract 4: all 4 tabs (including support) inherit the global tint pattern', () => {
+    // Phase 26 F1 split the support tab off; Phase 33b Scope 2 brought
+    // it back under the uniform inheritance pattern. No per-screen tint
+    // overrides on any tab.
+    for (const name of ['now', 'journal', 'understand', 'support']) {
       const block = tabsScreenBlock(name);
       expect(block).toBeTruthy();
       expect(block).not.toMatch(/tabBarActiveTintColor:/);
@@ -100,12 +96,18 @@ describe('Phase 26 F1 — You-tab caregiverAccent wiring', () => {
     }
   });
 
-  it('contract 5: operational tabs continue to pass colors.accent to TabIcon', () => {
-    for (const name of ['now', 'journal', 'understand']) {
+  it('contract 5: all 4 tabs pass colors.accent (sage) to TabIcon — no lavender-leak in nav', () => {
+    for (const name of ['now', 'journal', 'understand', 'support']) {
       const block = tabsScreenBlock(name);
       expect(block).toMatch(/accent=\{colors\.accent\}/);
-      // And do NOT lavender-leak.
       expect(block).not.toMatch(/accent=\{colors\.caregiverAccent\}/);
     }
+  });
+
+  it('contract 6 (NEW): no bare colors.caregiverAccent reference remains in the tab-layout source', () => {
+    // Cross-axis pin defending against Phase 26 F1 style drift back.
+    // The lavender garnish on the You lane lives at content-chrome
+    // scale (caregiver chip, eyebrows) — not nav-chrome scale.
+    expect(STRIPPED).not.toMatch(/colors\.caregiverAccent\b/);
   });
 });

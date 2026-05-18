@@ -67,11 +67,23 @@ describe('Phase 23.1 Fix 2 — MorningMedsBanner non-alert palette', () => {
     expect(stripped).not.toMatch(/rgba\(224,\s*168,\s*78/);
   });
 
-  it('routes the surface through the caregiverAccent (lavender) tokens', () => {
-    // Same palette family EndOfShiftCard uses — matches the witness-voice
-    // handoff treatment already established on Now.
-    expect(stripped).toMatch(/caregiverAccentBg\b/);
-    expect(stripped).toMatch(/caregiverAccentStrong\b/);
-    expect(stripped).toMatch(/caregiverAccent\b/);
+  it('Phase 33b Scope 2 — surface chrome retired in favor of canon eyebrow garnish', () => {
+    // Phase 23.1 Fix 2 routed the banner through caregiverAccent chrome
+    // (border + bg + body + CTA all lavender). Phase 33b Scope 2 retired
+    // the chrome entirely per the website canon "lavender at eyebrow
+    // scale only" rule. The migration:
+    //   • caregiverAccentBg + caregiverAccentStrong (bg + border) → no chrome
+    //   • title color caregiverAccent → c.textPrimary (cream)
+    //   • CTA text color caregiverAccent → c.accent (sage)
+    //   • New "READY TO LOG" eyebrow via SectionEyebrow tint="caregiverAccent"
+    //     carries the lavender garnish at canon eyebrow scale
+    //
+    // The witness-voice register (observational copy, ghost-text CTA) is
+    // preserved from Phase 23.1; only the visual weight rebalances per
+    // canon. See lavenderScaleRestraint33b.test.ts for the cross-app
+    // canon contract.
+    expect(stripped).not.toMatch(/caregiverAccentBg\b/);
+    expect(stripped).not.toMatch(/caregiverAccentStrong\b/);
+    expect(stripped).toMatch(/SectionEyebrow\b[\s\S]{0,80}tint=['"]caregiverAccent['"]/);
   });
 });

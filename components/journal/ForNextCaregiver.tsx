@@ -21,6 +21,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Spacing } from '../../theme/theme-tokens';
+import { SectionEyebrow } from '../SectionEyebrow';
 import type { DayLevelChange } from '../../services/dayLevelChanges';
 
 interface ForNextCaregiverProps {
@@ -125,7 +126,13 @@ export function ForNextCaregiver({
 
   return (
     <View style={styles.section}>
-      <Text style={styles.eyebrow}>{'FOR NEXT CAREGIVER'}</Text>
+      {/* Phase 33b Scope 2 — Surface 8 inline eyebrow style retired
+          in favor of the SectionEyebrow primitive (canon-scale 11pt
+          via component, lavender garnish via tint="caregiverAccent").
+          Bullets + overflow already canon-compliant (no border / bg
+          chrome; coral / textSecondary / textTertiary bullet colors
+          per existing semantic). */}
+      <SectionEyebrow text="For next caregiver" tint="caregiverAccent" />
       {visible.map((b, i) => (
         <Text
           key={`bullet-${i}`}
@@ -152,13 +159,7 @@ const createStyles = (c: any) =>
     section: {
       marginVertical: Spacing.sm,
       paddingHorizontal: 2,
-    },
-    eyebrow: {
-      fontSize: 10,
-      fontWeight: '600' as const,
-      letterSpacing: 0.5,
-      color: c.caregiverAccent,
-      marginBottom: 8,
+      gap: 4,
     },
     bullet: {
       fontSize: 12,

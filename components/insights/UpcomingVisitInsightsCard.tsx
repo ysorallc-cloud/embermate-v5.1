@@ -162,6 +162,10 @@ export function UpcomingVisitInsightsCard() {
 }
 
 function SourcePill({ label, active, c }: { label: string; active: boolean; c: any }) {
+  // Phase 33b Scope 2 — Surface 3 lavender chrome retired on pills.
+  // Active state now reads as cream with a quiet glass-border hairline;
+  // inactive stays at the original lower-alpha glass border. Active
+  // text shifts from lavender to cream.
   return (
     <View
       style={[
@@ -172,7 +176,7 @@ function SourcePill({ label, active, c }: { label: string; active: boolean; c: a
           borderWidth: 0.5,
         },
         active
-          ? { backgroundColor: c.caregiverAccentBg, borderColor: c.caregiverAccentStrong }
+          ? { backgroundColor: 'transparent', borderColor: c.glassStrong }
           : { backgroundColor: 'transparent', borderColor: c.glassBorder },
       ]}
     >
@@ -180,7 +184,7 @@ function SourcePill({ label, active, c }: { label: string; active: boolean; c: a
         style={{
           fontSize: 10,
           fontWeight: '500',
-          color: active ? c.caregiverAccent : c.textTertiary,
+          color: active ? c.textPrimary : c.textTertiary,
         }}
       >
         {label}
@@ -190,14 +194,18 @@ function SourcePill({ label, active, c }: { label: string; active: boolean; c: a
 }
 
 const createStyles = (c: any) => StyleSheet.create({
+  // Phase 33b Scope 2 — Surface 3 lavender scale reduction. Pre-33b
+  // the card had full lavender chrome (border + bg + progress fill +
+  // pill borders + CTA link, ~70% footprint). 33b retires chrome
+  // entirely. Eyebrow + cream body + sage progress fill + cream pills +
+  // sage CTA. Eyebrow scale lavender (canon garnish) preserved via
+  // SectionEyebrow tint="caregiverAccent". The "daysAway" accent
+  // shifts from lavender body to textSecondary cream-muted (metadata,
+  // not signal).
   card: {
     marginVertical: Spacing.sm,
-    paddingHorizontal: Sizing.cardInternalPadding,
+    paddingHorizontal: 4,
     paddingVertical: Spacing.sm,
-    backgroundColor: c.caregiverAccentBg,
-    borderWidth: 0.5,
-    borderColor: c.caregiverAccentStrong,
-    borderRadius: Sizing.cardRadius,
   },
   headerRow: {
     flexDirection: 'row' as const,
@@ -207,11 +215,11 @@ const createStyles = (c: any) => StyleSheet.create({
   },
   // Phase 15.12 — local eyebrow style retired; SectionEyebrow with
   // tint="caregiverAccent" preserves the lavender visit-context
-  // semantic.
+  // semantic at canon eyebrow scale.
   daysAway: {
     fontSize: 11,
     fontWeight: '500' as const,
-    color: c.caregiverAccent,
+    color: c.textSecondary,
   },
   title: {
     fontSize: 14,
@@ -232,9 +240,11 @@ const createStyles = (c: any) => StyleSheet.create({
     borderRadius: 2,
     overflow: 'hidden' as const,
   },
+  // Phase 33b Scope 2 — progress fill sage (matches completion semantics
+  // across the app — sage = progress / done).
   coverageBarFill: {
     height: 4,
-    backgroundColor: c.caregiverAccent,
+    backgroundColor: c.accent,
     borderRadius: 2,
   },
   coverageLabel: {
@@ -252,12 +262,13 @@ const createStyles = (c: any) => StyleSheet.create({
     marginTop: Spacing.sm,
     paddingTop: 6,
     borderTopWidth: 0.5,
-    borderTopColor: c.caregiverAccentStrong,
+    borderTopColor: c.glassBorder,
   },
+  // Phase 33b Scope 2 — CTA link sage (canon "cream or sage link").
   ctaText: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: c.caregiverAccent,
+    color: c.accent,
   },
 });
 

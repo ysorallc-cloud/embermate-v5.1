@@ -17,10 +17,9 @@ jest.mock('../../contexts/ThemeContext', () => ({
   useTheme: () => ({
     colors: {
       caregiverAccent: '#aa8adc',
-      caregiverAccentBg: 'rgba(139, 92, 246, 0.06)',
-      caregiverAccentStrong: 'rgba(139, 92, 246, 0.25)',
-      caregiverAccentText: '#d4baff',
-      textSecondary: '#9aa0a6',
+      glass: '#363830',
+      textPrimary: '#f4ddb8',
+      textTertiary: '#8a8a82',
     },
   }),
 }));
@@ -87,12 +86,20 @@ describe('SampleModeBanner', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('uses caregiverAccent surface tokens, not the legacy purple banner palette', () => {
+  it('renders a cream pill (Phase 33b Scope 2 — Q-33b.7 chrome retired, sparkle garnish only)', () => {
+    // Phase 33b Scope 2 reframed the pill per Q-33b.7 lock: cream pill,
+    // optional small lavender sparkle icon, no border. Pre-33b carried
+    // full lavender chrome (border + bg + label + chevron); 33b retains
+    // only the ✦ glyph as a lavender wayfinding garnish.
     const tree = SampleModeBanner({ isSampleMode: true, onPress: () => {} });
     const button = findAll(tree, (n) => n.type === 'TouchableOpacity')[0];
     const flatStyle = Object.assign({}, ...(Array.isArray(button.props.style) ? button.props.style : [button.props.style]));
-    expect(flatStyle.backgroundColor).toBe('rgba(139, 92, 246, 0.06)');
-    expect(flatStyle.borderColor).toBe('rgba(139, 92, 246, 0.25)');
+    // Cream pill background (glass token) — warm-dark subtle pill,
+    // not lavender chrome.
+    expect(flatStyle.backgroundColor).toBe('#363830');
+    // No border — pre-33b had borderWidth 0.5 + lavender borderColor.
+    expect(flatStyle.borderWidth).toBeUndefined();
+    expect(flatStyle.borderColor).toBeUndefined();
   });
 
   it('shows the ✦ glyph and a chevron affordance', () => {

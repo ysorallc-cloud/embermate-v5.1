@@ -2,16 +2,20 @@
 // TAB LAYOUT - 4 Tabs (Now, Journal, Support, Insights)
 // V5 — Team/Support moved to Settings > Care Team (Premium)
 //
-// Phase 26 — You-tab visual identity:
-//   F1 — The support tab routes its active+inactive tints AND the TabIcon
-//        dot accent through caregiverAccent, so the You lane reads as
-//        caregiver-for-caregiver chrome distinct from the sage operational
-//        tabs. Inactive state uses a muted lavender (NOT the operational
-//        gray) so the lane stays visible at rest.
-//   F2 — tabBarBackground extends from a single BlurView to a wrapping
-//        View that also renders a 1px hairline at left: '75%' — the 3/4
-//        boundary of the 4-tab equal-width layout, visually grouping
-//        You apart from the operational triplet (Now / Journal / Insights).
+// Phase 33b Scope 2 (2026-05-18) — Surface 6 lavender scale reduction.
+// Per Q-33b.6 lock (a), the bottom nav is now uniformly cream-default
+// + sage-active across all 4 tabs. The Phase 26 F1 narrative
+// (lavender-active on the Support tab to telegraph the caregiver lane)
+// was superseded by website canon — nav is structural navigation, not
+// content-chrome, and the canon nav uses cream-default-no-color. The
+// Support tab no longer overrides tint; it inherits the screenOptions
+// default (sage active / cream-muted inactive) like the other 3 tabs.
+//
+// Phase 26 F2 — tabBarBackground extends from a single BlurView to a
+// wrapping View that also renders a 1px hairline at left: '75%' — the
+// 3/4 boundary of the 4-tab equal-width layout, visually grouping You
+// apart from the operational triplet (Now / Journal / Insights).
+// Survives Phase 33b — structural grouping, not lane-chrome.
 // ============================================================================
 
 import { Tabs } from 'expo-router';
@@ -19,20 +23,6 @@ import { View, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
-
-// Phase 26 F1 — inactive tint for the support tab. caregiverAccent at
-// reduced alpha reads as "this lane exists" without competing with the
-// operational tabs' sage active state. Inline rgba (not a new theme
-// token) because the composition is purpose-specific — a foreground
-// icon tint sitting on either a dark BlurView (iOS dark) or near-white
-// BlurView (iOS light); both render the same hue at a softer weight.
-// If a future surface needs a comparable muted lavender, promote to a
-// theme-tokens.ts entry then.
-//
-// Phase 26 A.1 — alpha 0.5 → 0.4. At 0.5 the inactive You label pulled
-// the eye before the active sage label on operational tabs. 0.4 keeps
-// the lavender lane visible without competing with focus.
-const CAREGIVER_ACCENT_INACTIVE = 'rgba(170, 138, 220, 0.4)';
 
 type TabName = 'now' | 'journal' | 'support' | 'understand';
 
@@ -168,16 +158,11 @@ export default function TabLayout() {
         name="support"
         options={{
           title: 'You',
-          // Phase 26 F1 — per-screen lavender for both states. Active +
-          // dot accent both lavender so a focused You tab telegraphs the
-          // caregiver lane; inactive at the muted-lavender constant so
-          // the lane still reads at rest without dropping to operational
-          // gray. The TabIcon's `accent` prop drives the small dot under
-          // the icon — it stays lavender even though it's only visible
-          // when this tab is the focused one.
-          tabBarActiveTintColor: colors.caregiverAccent,
-          tabBarInactiveTintColor: CAREGIVER_ACCENT_INACTIVE,
-          tabBarIcon: ({ focused }) => <TabIcon name="support" focused={focused} accent={colors.caregiverAccent} inactive={CAREGIVER_ACCENT_INACTIVE} />,
+          // Phase 33b Scope 2 — Support tab no longer overrides nav
+          // tints. Inherits screenOptions default (sage active /
+          // cream-muted inactive) like the other 3 tabs. Phase 26 F1
+          // lavender-active override retired per Q-33b.6 lock (a).
+          tabBarIcon: ({ focused }) => <TabIcon name="support" focused={focused} accent={colors.accent} inactive={colors.textMuted} />,
           tabBarAccessibilityLabel: 'You tab. Your wellness and self-care',
           tabBarButtonTestID: 'tab-support',
         }}

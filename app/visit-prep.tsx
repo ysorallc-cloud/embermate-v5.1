@@ -25,6 +25,7 @@ import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePatient } from '../contexts/PatientContext';
 import { SubScreenHeader } from '../components/SubScreenHeader';
+import { SectionEyebrow } from '../components/SectionEyebrow';
 import type { VisitPrepConfig } from '../services/visitPrepPdf';
 import { getTodayDateString } from '../services/carePlanGenerator';
 import { logError } from '../utils/devLog';
@@ -94,7 +95,10 @@ export default function VisitPrepScreen() {
         const label = d.toLocaleDateString('en-US', {
           weekday: 'short', month: 'short', day: 'numeric',
         });
-        setContextLine(`Preparing for ${appt.provider} on ${label}`);
+        // Phase 33b Scope 2 — value drops the "Preparing for " prefix;
+        // JSX renders the prefix as a small lavender eyebrow + the
+        // provider/date as cream body per the canon eyebrow-vs-chrome split.
+        setContextLine(`${appt.provider} on ${label}`);
       });
     }
     if (params.days === '7' || params.days === '14' || params.days === '30') {
@@ -207,11 +211,19 @@ export default function VisitPrepScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={90}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-          {/* Context */}
+          {/* Phase 33b Scope 2 — Surface 4 lavender scale reduction.
+              Pre-33b rendered as a full-chrome highlight (lavender border
+              + bg + body text). Now decomposes into a small lavender
+              eyebrow + cream body — canon eyebrow-as-garnish pattern. */}
           {contextLine && (
-            <Text style={styles.contextHighlight} accessibilityLabel={contextLine}>
-              {contextLine}
-            </Text>
+            <View
+              style={styles.contextBlock}
+              accessible
+              accessibilityLabel={`Preparing for ${contextLine}`}
+            >
+              <SectionEyebrow text="Preparing" tint="caregiverAccent" />
+              <Text style={styles.contextBody}>{contextLine}</Text>
+            </View>
           )}
 
           <Text style={styles.context}>
@@ -354,17 +366,17 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   gradient: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: { padding: 20 },
-  contextHighlight: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: c.caregiverAccent,
-    backgroundColor: c.caregiverAccentBg,
-    borderLeftWidth: 3,
-    borderLeftColor: c.caregiverAccentStrong,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 6,
+  // Phase 33b Scope 2 — Surface 4: contextHighlight chrome retired.
+  // Replaced with contextBlock (eyebrow wrapper) + contextBody (cream
+  // serif body) per canon eyebrow-as-garnish pattern.
+  contextBlock: {
     marginBottom: 12,
+    gap: 4,
+  },
+  contextBody: {
+    fontSize: 14,
+    color: c.textPrimary,
+    lineHeight: 20,
   },
   context: {
     fontSize: 13,

@@ -1163,18 +1163,18 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginHorizontal: -16,
   },
 
-  // ─── SAMPLE DATA INDICATOR ───
-  // UX-restructure (Commit 6) — feed-forward banner. Lavender tint
-  // signals the clinical lane (visit prep on Insights).
+  // Phase 33b Scope 2 — Surface 7 lavender scale reduction. Pre-33b
+  // the BUILDING TOWARD banner had full lavender chrome (border + bg
+  // + body + arrow). 33b retires chrome entirely. The "Building
+  // toward" SectionEyebrow (rendered at the JSX site) carries the
+  // lavender garnish at canon eyebrow scale; the banner body migrates
+  // to cream-on-no-chrome with a sage arrow per the canon "cream body
+  // + sage or cream arrow + no border chrome" target.
   feedBanner: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: 10,
-    backgroundColor: c.caregiverAccentBg,
-    borderWidth: 0.5,
-    borderColor: c.caregiverAccentStrong,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 4,
     paddingVertical: 8,
     marginBottom: 10,
   },
@@ -1184,13 +1184,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   feedBannerText: {
     flex: 1,
     fontSize: 12,
-    color: c.caregiverAccent,
+    color: c.textPrimary,
     fontWeight: '500' as const,
     lineHeight: 16,
   },
   feedBannerArrow: {
     fontSize: 16,
-    color: c.caregiverAccent,
+    color: c.accent,
   },
   // Phase 22.1 — sampleIndicator styles retired with the inline
   // "Example data — set up your loved one" banner. Sheet entry

@@ -1,19 +1,19 @@
 // ============================================================================
 // MORNING MEDS BANNER — batch-confirm affordance for pending medications.
 //
-// Phase 23.1 Fix 2 — softened from amber-alert treatment to witness-voice
-// lavender. Pre-23.1 this rendered as a warmSurfaceAlert card with an
-// amber-tinted "Confirm All" button and "X meds due now" copy that read
-// as urgent/judgmental — fighting the rest of the Now tab's observational
-// register. Post-23.1 the card uses the caregiverAccentBg / caregiverAccent
-// palette (matches EndOfShiftCard's lavender handoff voice) and the CTA is
-// a ghost text link rather than a filled pill. Copy reframed from "due now"
-// to "ready to log together" — observational, not commanding. Handler logic
-// (onConfirmAll, one-shot dismiss, instanceIds) is unchanged.
+// Phase 23.1 Fix 2 — softened from amber-alert to witness-voice lavender
+// chrome. Phase 33b Scope 2 — Surface 1 lavender scale reduction: full
+// lavender chrome (~80% footprint — border + bg + headline + body + CTA)
+// decomposes to small "READY TO LOG" lavender eyebrow + cream serif
+// headline + cream body + sage CTA + no border chrome. Canon eyebrow-as-
+// garnish pattern. Observational register preserved; only the visual
+// weight rebalances. Handler logic (onConfirmAll, one-shot dismiss,
+// instanceIds) is unchanged.
 // ============================================================================
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { SectionEyebrow } from '../SectionEyebrow';
 
 interface MorningMedsBannerProps {
   pendingCount: number;
@@ -43,14 +43,12 @@ export function MorningMedsBanner({
   };
 
   return (
-    <View
-      testID="morning-meds-banner"
-      style={[styles.container, { backgroundColor: colors.caregiverAccentBg, borderColor: colors.caregiverAccentStrong }]}
-    >
+    <View testID="morning-meds-banner" style={styles.container}>
+      <SectionEyebrow text="Ready to log" tint="caregiverAccent" />
       <View style={styles.content}>
         <Text style={[styles.emoji]}>💊</Text>
         <View style={styles.textContainer}>
-          <Text style={[styles.title, { color: colors.caregiverAccent }]}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>
             {pendingCount} medication{pendingCount !== 1 ? 's' : ''} ready
           </Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
@@ -65,7 +63,7 @@ export function MorningMedsBanner({
           accessibilityLabel={`Confirm all ${pendingCount} medications`}
           accessibilityRole="button"
         >
-          <Text style={[styles.buttonText, { color: colors.caregiverAccent }]}>
+          <Text style={[styles.buttonText, { color: colors.accent }]}>
             {confirming ? '…' : 'Confirm all →'}
           </Text>
         </TouchableOpacity>
@@ -75,16 +73,16 @@ export function MorningMedsBanner({
 }
 
 const styles = StyleSheet.create({
+  // Phase 33b Scope 2 — no chrome (border + bg retired). Eyebrow +
+  // cream content sit on the page bg directly.
   container: {
     marginBottom: 12,
-    borderRadius: 12,
-    borderWidth: 0.5,
-    overflow: 'hidden',
+    gap: 6,
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
+    paddingHorizontal: 4,
     gap: 12,
   },
   emoji: {
