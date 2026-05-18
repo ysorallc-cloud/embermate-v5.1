@@ -58,7 +58,11 @@ import { computeDataGaps, DataGap } from '../../utils/insightsDataGaps';
 import { logError } from '../../utils/devLog';
 import { useDataListener } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
-import { buildProviderPrep, ProviderPrepData } from '../../utils/providerPrepBuilder';
+// Phase 28 Batch B F5 — buildProviderPrep + ProviderPrepData import
+// retired with the visit-context note's removal. The util + type
+// continue to serve app/care-report.tsx and
+// components/understand/ProviderPrepCard.tsx — only understand.tsx's
+// consumption retires.
 import { ShareToast } from '../../components/shared/ShareToast';
 import { InsightsEmptyStatePreview } from '../../components/understand/InsightsEmptyStatePreview';
 // Phase 15.10 — recent-window card import + insight-aggregator
@@ -427,7 +431,9 @@ export default function UnderstandScreen() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>(14);
   const [pageData, setPageData] = useState<UnderstandPageData | null>(null);
-  const [providerPrep, setProviderPrep] = useState<ProviderPrepData | null>(null);
+  // Phase 28 Batch B F5 — providerPrep state retired with the
+  // visit-context note. The note duplicated UpcomingVisitInsightsCard's
+  // appointment context; one entry point per surface.
   const [vitalTiles, setVitalTiles] = useState<VitalTile[]>([]);
   const [shareToastVisible, setShareToastVisible] = useState(false);
   const [adherence, setAdherence] = useState<AdherenceData | null>(null);
@@ -492,19 +498,11 @@ export default function UnderstandScreen() {
         setAdherence(null);
       }
 
-      // Provider prep
-      try {
-        const prep = await buildProviderPrep(
-          data.standOutInsights.map(i => ({
-            category: i.relatedTo || 'general',
-            summary: i.text,
-          }))
-        );
-        setProviderPrep(prep);
-      } catch (err) {
-        logError('UnderstandScreen.loadProviderPrep', err);
-        setProviderPrep(null);
-      }
+      // Phase 28 Batch B F5 — provider-prep useEffect retired alongside
+      // the visit-context note. UpcomingVisitInsightsCard remains the
+      // sole appointment-context surface on Insights (it consumes
+      // appointmentStorage + visitCoverage independently; no shared
+      // state needed here).
 
       // Phase 15.10 — top-ranked pattern load retired with the "This
       // Week" callout. The insight-aggregator selector had no other
@@ -896,14 +894,10 @@ export default function UnderstandScreen() {
             </View>
           )}
 
-          {/* ═══ VISIT CONTEXT NOTE ═══ */}
-          {providerPrep && (
-            <View style={styles.visitContextNote}>
-              <Text style={styles.visitContextText}>
-                {'\uD83D\uDCCA'} Insights reflect trends relevant to your {providerPrep.appointment.provider} visit in {providerPrep.appointment.daysUntil} days
-              </Text>
-            </View>
-          )}
+          {/* Phase 28 Batch B F5 — VISIT CONTEXT NOTE retired.
+              The note duplicated UpcomingVisitInsightsCard's
+              appointment context above. Q-B-F5.3 lock: retire
+              entirely; one entry point per surface. */}
 
           {/* Phase 6.1 — gate the disclaimer to the populated state. On
               empty/building (days < 14) there is nothing to disclaim;
@@ -1254,18 +1248,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textMuted,
   },
 
-  // ─── VISIT PREP ───
-  visitContextNote: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    marginBottom: 8,
-  },
-  visitContextText: {
-    fontSize: 12,
-    color: c.textTertiary,
-    fontStyle: 'italic',
-    textAlign: 'center',
-  },
+  // Phase 28 Batch B F5 — visitContextNote + visitContextText style
+  // blocks retired with the JSX block. UpcomingVisitInsightsCard
+  // remains the sole appointment-context surface on Insights.
 
   // Settings gear
   // allow: 32×32 fixed-dimension icon button — not a card surface.
