@@ -36,10 +36,6 @@ const VALUE_POINTS = [
 export const WelcomeScreen: React.FC = () => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  // DIAG-ONBOARDING: confirms WelcomeScreen function body executes (so the
-  // blank-middle issue is NOT a "renderItem returned null" routing problem
-  // and IS a style/layout/opacity problem)
-  console.log('[DIAG-ONBOARDING] WelcomeScreen render — colors.background=', colors?.background, 'colors.textPrimary=', colors?.textPrimary, 'SCREEN_WIDTH=', SCREEN_WIDTH);
   return (
     <View style={styles.container}>
       <StaticAuroraBackground variant="welcome" />
