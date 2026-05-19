@@ -5,11 +5,9 @@
 
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { AuroraBackground } from '../components/AuroraBackground';
+import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Spacing, BorderRadius } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { useReduceMotion } from '../../../hooks/useReduceMotion';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -19,26 +17,20 @@ interface Props {
 
 export const WhoIsThisForScreen: React.FC<Props> = ({ onSelectMode }) => {
   const { colors } = useTheme();
-  const reduceMotion = useReduceMotion();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  // Phase 28 Batch B sidecar — reduce-motion guard, see WelcomeScreen. Fix
-  // applied even though screen is currently orphaned from the active flow
-  // (Phase 16.3 cut), so a v1.1+ re-introduction doesn't need re-instrumentation.
-  const entering = (delay: number) =>
-    reduceMotion ? undefined : FadeInDown.delay(delay).duration(300);
   return (
     <View style={styles.container}>
-      <AuroraBackground variant="welcome" />
+      <StaticAuroraBackground variant="welcome" />
       <View style={styles.content}>
-        <Animated.Text entering={entering(100)} style={styles.title}>
+        <Text style={styles.title}>
           Who are you caring for?
-        </Animated.Text>
-        <Animated.Text entering={entering(200)} style={styles.subtitle}>
+        </Text>
+        <Text style={styles.subtitle}>
           We'll set things up to fit your situation.
-        </Animated.Text>
+        </Text>
 
         <View style={styles.cardsContainer}>
-          <Animated.View entering={entering(300)}>
+          <View>
             <TouchableOpacity
               style={styles.card}
               onPress={() => onSelectMode('caregiver')}
@@ -50,9 +42,9 @@ export const WhoIsThisForScreen: React.FC<Props> = ({ onSelectMode }) => {
               <Text style={styles.cardTitle}>Someone I care for</Text>
               <Text style={styles.cardDesc}>A parent, partner, or loved one</Text>
             </TouchableOpacity>
-          </Animated.View>
+          </View>
 
-          <Animated.View entering={entering(400)}>
+          <View>
             <TouchableOpacity
               style={styles.card}
               onPress={() => onSelectMode('self')}
@@ -64,12 +56,12 @@ export const WhoIsThisForScreen: React.FC<Props> = ({ onSelectMode }) => {
               <Text style={styles.cardTitle}>Myself</Text>
               <Text style={styles.cardDesc}>I'm tracking my own health</Text>
             </TouchableOpacity>
-          </Animated.View>
+          </View>
         </View>
 
-        <Animated.Text entering={entering(500)} style={styles.footer}>
+        <Text style={styles.footer}>
           You can change this anytime in Settings.
-        </Animated.Text>
+        </Text>
       </View>
     </View>
   );

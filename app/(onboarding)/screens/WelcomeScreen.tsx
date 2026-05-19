@@ -2,21 +2,25 @@
 // WELCOME SCREEN - Empathy-first introduction
 // Screen 1 of 4: Lead with emotional connection, then value points
 //
-// Phase 28 Batch B sidecar — PATH A SPIKE (single-screen). Reanimated's
-// Animated.View / Animated.Text components were rendering blank in Expo
-// Go SDK 52 + Reanimated 3.16.7 regardless of `entering` prop value;
-// AsYouUseScreen renders correctly because it never used Animated.* at
-// all. This spike replaces Animated.View / Animated.Text with plain
-// View / Text on WelcomeScreen only, drops AuroraBackground (also uses
-// Animated.View internally), and removes the useReduceMotion + entering
-// helper from the sidecar fix b41faa92. If the simulator confirms
-// WelcomeScreen renders content after this spike, the same pattern
-// rolls out across the other 4 onboarding screens in a Path B commit.
-// If it stays blank, the bug lives below the Reanimated layer.
+// Phase 28 Batch B sidecar — Animated.View / Animated.Text from
+// `react-native-reanimated` were rendering blank in Expo Go SDK 52 +
+// Reanimated 3.16.7 (same runtime layer as the BreathingExercise
+// EXC_CRASH already memo'd for pre-launch QA). All onboarding screens
+// using Animated.* stayed blank; AsYouUseScreen (which never used
+// Animated.*) rendered correctly — the distinguishing variable, per
+// the Path A spike confirmation. Workaround: replace Animated.View /
+// Animated.Text with plain View / Text + swap AuroraBackground for
+// StaticAuroraBackground (LinearGradient only, no Animated.View).
+// Static visual cost: no fade-in entrance polish, no aurora translate
+// loop — acceptable for pre-launch. Re-introduce animations
+// selectively once Reanimated stabilizes in this runtime or once the
+// app moves to a dev-build / production binary where Reanimated
+// renders correctly.
 // ============================================================================
 
 import React, { useMemo } from 'react';
 import { View, Text, Image, StyleSheet, Dimensions } from 'react-native';
+import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Spacing } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
 
@@ -38,6 +42,7 @@ export const WelcomeScreen: React.FC = () => {
   console.log('[DIAG-ONBOARDING] WelcomeScreen render — colors.background=', colors?.background, 'colors.textPrimary=', colors?.textPrimary, 'SCREEN_WIDTH=', SCREEN_WIDTH);
   return (
     <View style={styles.container}>
+      <StaticAuroraBackground variant="welcome" />
       <View style={styles.content}>
         <View>
           <Image

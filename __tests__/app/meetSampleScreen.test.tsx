@@ -22,17 +22,8 @@ jest.mock('react-native-reanimated', () => {
   };
 });
 
-jest.mock('../../app/(onboarding)/components/AuroraBackground', () => ({
-  AuroraBackground: 'AuroraBackground',
-}));
-
-// Phase 28 Batch B sidecar — MeetSampleScreen now calls the useReduceMotion
-// hook (AccessibilityInfo-backed). The test direct-invokes the component
-// as a plain function, which would otherwise hit `useState` outside a render
-// phase. Mock the hook to return false (animations on) — matches the prior
-// test behavior where PassThrough rendered all Animated.* children.
-jest.mock('../../hooks/useReduceMotion', () => ({
-  useReduceMotion: () => false,
+jest.mock('../../app/(onboarding)/components/StaticAuroraBackground', () => ({
+  StaticAuroraBackground: 'StaticAuroraBackground',
 }));
 
 jest.mock('react', () => {

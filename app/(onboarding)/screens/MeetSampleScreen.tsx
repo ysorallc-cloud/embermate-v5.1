@@ -7,11 +7,9 @@
 
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { AuroraBackground } from '../components/AuroraBackground';
+import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Spacing, BorderRadius } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { useReduceMotion } from '../../../hooks/useReduceMotion';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -41,12 +39,8 @@ const SELF_INSIGHT =
 
 export const MeetSampleScreen: React.FC<Props> = ({ careMode }) => {
   const { colors } = useTheme();
-  const reduceMotion = useReduceMotion();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const isCaregiver = careMode === 'caregiver';
-  // Phase 28 Batch B sidecar — reduce-motion guard, see WelcomeScreen.
-  const entering = (delay: number) =>
-    reduceMotion ? undefined : FadeInDown.delay(delay).duration(300);
 
   // Per-day dot colors. Tuesday flags an elevated reading (warning amber);
   // Thursday flags a missed dose (criticalAlert red — `error` token in this
@@ -59,43 +53,32 @@ export const MeetSampleScreen: React.FC<Props> = ({ careMode }) => {
 
   return (
     <View style={styles.container}>
-      <AuroraBackground variant="welcome" />
+      <StaticAuroraBackground variant="welcome" />
       <View style={styles.content}>
-        <Animated.Text
-          entering={entering(100)}
-          style={styles.title}
-        >
+        <Text style={styles.title}>
           {isCaregiver ? 'Meet Dad.' : "Here's what a week looks like."}
-        </Animated.Text>
+        </Text>
 
         {isCaregiver && (
           <>
-            <Animated.View
-              entering={entering(180)}
+            <View
               style={styles.avatar}
               accessibilityLabel="Dad, 72, sample patient"
               accessibilityRole="image"
             >
               <Text style={styles.avatarLetter}>D</Text>
-            </Animated.View>
-            <Animated.Text
-              entering={entering(220)}
-              style={styles.metaLine}
-            >
+            </View>
+            <Text style={styles.metaLine}>
               72 · takes meds for blood pressure
-            </Animated.Text>
+            </Text>
           </>
         )}
 
-        <Animated.Text
-          entering={entering(280)}
-          style={styles.body}
-        >
+        <Text style={styles.body}>
           {isCaregiver ? CAREGIVER_BODY : SELF_BODY}
-        </Animated.Text>
+        </Text>
 
-        <Animated.View
-          entering={entering(360)}
+        <View
           style={styles.weekCard}
           accessibilityLabel="Sample week: 5 on-track days, 1 elevated reading, 1 missed dose"
           accessibilityRole="summary"
@@ -125,7 +108,7 @@ export const MeetSampleScreen: React.FC<Props> = ({ careMode }) => {
               {isCaregiver ? CAREGIVER_INSIGHT : SELF_INSIGHT}
             </Text>
           </View>
-        </Animated.View>
+        </View>
       </View>
     </View>
   );

@@ -5,11 +5,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Linking, ScrollView } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { AuroraBackground } from '../components/AuroraBackground';
+import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Spacing, BorderRadius } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { useReduceMotion } from '../../../hooks/useReduceMotion';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -26,12 +24,8 @@ const PRIVACY_POINTS = [
 
 export const PrivacyDisclaimerScreen: React.FC<Props> = ({ onDisclaimerAccepted }) => {
   const { colors } = useTheme();
-  const reduceMotion = useReduceMotion();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [accepted, setAccepted] = useState(false);
-  // Phase 28 Batch B sidecar — reduce-motion guard, see WelcomeScreen.
-  const entering = (delay: number) =>
-    reduceMotion ? undefined : FadeInDown.delay(delay).duration(300);
 
   const toggleAccepted = () => {
     const newValue = !accepted;
@@ -41,24 +35,23 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({ onDisclaimerAccepted 
 
   return (
     <View style={styles.container}>
-      <AuroraBackground variant="welcome" />
+      <StaticAuroraBackground variant="welcome" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Animated.Text entering={entering(100)} style={styles.emoji}>
+        <Text style={styles.emoji}>
           {'\u{1F512}'}
-        </Animated.Text>
-        <Animated.Text entering={entering(200)} style={styles.title}>
+        </Text>
+        <Text style={styles.title}>
           Your family's health{'\n'}data is safe here.
-        </Animated.Text>
-        <Animated.Text entering={entering(250)} style={styles.subtitle}>
+        </Text>
+        <Text style={styles.subtitle}>
           Here's how we protect it.
-        </Animated.Text>
+        </Text>
 
         {/* Privacy points */}
         <View style={styles.privacyContainer}>
           {PRIVACY_POINTS.map((point, index) => (
-            <Animated.View
+            <View
               key={index}
-              entering={entering(300 + index * 80)}
               style={styles.privacyRow}
             >
               <Text style={styles.privacyIcon}>{point.icon}</Text>
@@ -66,19 +59,19 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({ onDisclaimerAccepted 
                 <Text style={styles.privacyLabel}>{point.label}</Text>
                 <Text style={styles.privacyDesc}>{point.desc}</Text>
               </View>
-            </Animated.View>
+            </View>
           ))}
         </View>
 
         {/* Medical disclaimer \u2014 softened in v6.7. Notice, not alarm. */}
-        <Animated.View entering={entering(650)} style={styles.disclaimerCard}>
+        <View style={styles.disclaimerCard}>
           <Text style={styles.disclaimerText}>
             EmberMate is a personal tracking tool to help you stay organized {'\u2014'} not a substitute for your doctor's advice.
           </Text>
-        </Animated.View>
+        </View>
 
         {/* Checkbox */}
-        <Animated.View entering={entering(750)} style={styles.checkboxContainer}>
+        <View style={styles.checkboxContainer}>
           <TouchableOpacity
             style={styles.checkboxRow}
             onPress={toggleAccepted}
@@ -100,7 +93,7 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({ onDisclaimerAccepted 
               </Text>
             </Text>
           </TouchableOpacity>
-        </Animated.View>
+        </View>
       </ScrollView>
     </View>
   );

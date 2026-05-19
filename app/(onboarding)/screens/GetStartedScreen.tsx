@@ -25,11 +25,9 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { AuroraBackground } from '../components/AuroraBackground';
+import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Spacing, BorderRadius } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { useReduceMotion } from '../../../hooks/useReduceMotion';
 import { writePatientName } from '../../../utils/patientNameWriter';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -40,15 +38,11 @@ interface Props {
 
 export const GetStartedScreen: React.FC<Props> = ({ onComplete }) => {
   const { colors } = useTheme();
-  const reduceMotion = useReduceMotion();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [patientName, setPatientName] = useState('');
   const [expanded, setExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
-  // Phase 28 Batch B sidecar — reduce-motion guard, see WelcomeScreen.
-  const entering = (delay: number) =>
-    reduceMotion ? undefined : FadeInDown.delay(delay).duration(300);
 
   // Phase 16.3 — careMode hardcoded; copy is unconditional caregiver-mode.
   const primaryTitle = 'Set up my loved one';
@@ -81,7 +75,7 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete }) => {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <AuroraBackground variant="welcome" />
+        <StaticAuroraBackground variant="welcome" />
         <View style={styles.loadingOverlay}>
           <Image
             source={require('../../../assets/images/embermate-icon.png')}
@@ -97,14 +91,14 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete }) => {
 
   return (
     <View style={styles.container}>
-      <AuroraBackground variant="welcome" />
+      <StaticAuroraBackground variant="welcome" />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Animated.Text entering={entering(100)} style={styles.title}>
+        <Text style={styles.title}>
           Your turn.
-        </Animated.Text>
+        </Text>
 
         {/* Primary — set up the user's own profile */}
-        <Animated.View entering={entering(200)}>
+        <View>
           <TouchableOpacity
             style={styles.primaryCard}
             activeOpacity={0.85}
@@ -142,10 +136,10 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete }) => {
               </TouchableOpacity>
             </View>
           )}
-        </Animated.View>
+        </View>
 
         {/* Secondary — explore with sample data */}
-        <Animated.View entering={entering(280)}>
+        <View>
           <TouchableOpacity
             style={styles.secondaryCard}
             activeOpacity={0.85}
@@ -156,14 +150,14 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete }) => {
             <Text style={styles.secondaryCardTitle}>{secondaryTitle}</Text>
             <Text style={styles.secondaryCardSubtitle}>{secondarySubtitle}</Text>
           </TouchableOpacity>
-        </Animated.View>
+        </View>
 
         {/* Backup tip */}
-        <Animated.View entering={entering(360)}>
+        <View>
           <Text style={styles.backupTip}>
             Your data stays on this device. Use Settings {'›'} Backup & Restore to create encrypted backups before switching phones.
           </Text>
-        </Animated.View>
+        </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
