@@ -9,6 +9,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { Colors, Spacing } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useReduceMotion } from '../../../hooks/useReduceMotion';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -21,29 +22,36 @@ const VALUE_POINTS = [
 
 export const WelcomeScreen: React.FC = () => {
   const { colors } = useTheme();
+  const reduceMotion = useReduceMotion();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  // Phase 28 Batch B sidecar — when Reduce Motion is on, return `undefined`
+  // so the entering animation is skipped entirely (content renders at its
+  // natural opacity 1). Bypasses Reanimated's own reduce-motion handling,
+  // which has shown stuck-at-opacity-0 behavior in 3.16.x + Expo Go.
+  const entering = (delay: number) =>
+    reduceMotion ? undefined : FadeInDown.delay(delay).duration(300);
   return (
     <View style={styles.container}>
       <AuroraBackground variant="welcome" />
       <View style={styles.content}>
-        <Animated.View entering={FadeInDown.delay(100).duration(300)}>
+        <Animated.View entering={entering(100)}>
           <Image
             source={require('../../../assets/images/embermate-icon.png')}
             style={styles.appIcon}
             accessibilityLabel="EmberMate"
           />
         </Animated.View>
-        <Animated.Text entering={FadeInDown.delay(200).duration(300)} style={styles.title}>
+        <Animated.Text entering={entering(200)} style={styles.title}>
           Caring for someone{'\n'}is a lot to carry.
         </Animated.Text>
-        <Animated.Text entering={FadeInDown.delay(250).duration(300)} style={styles.subtitle}>
+        <Animated.Text entering={entering(250)} style={styles.subtitle}>
           A quiet companion to help you keep track — gently — and see the patterns that matter.
         </Animated.Text>
         <View style={styles.pointsContainer}>
           {VALUE_POINTS.map((point, index) => (
             <Animated.View
               key={index}
-              entering={FadeInDown.delay(300 + index * 100).duration(300)}
+              entering={entering(300 + index * 100)}
               style={styles.pointRow}
             >
               <Text style={styles.pointIcon}>{point.icon}</Text>

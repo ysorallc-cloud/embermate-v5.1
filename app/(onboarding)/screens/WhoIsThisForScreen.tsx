@@ -9,6 +9,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { Colors, Spacing, BorderRadius } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useReduceMotion } from '../../../hooks/useReduceMotion';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -18,20 +19,26 @@ interface Props {
 
 export const WhoIsThisForScreen: React.FC<Props> = ({ onSelectMode }) => {
   const { colors } = useTheme();
+  const reduceMotion = useReduceMotion();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  // Phase 28 Batch B sidecar — reduce-motion guard, see WelcomeScreen. Fix
+  // applied even though screen is currently orphaned from the active flow
+  // (Phase 16.3 cut), so a v1.1+ re-introduction doesn't need re-instrumentation.
+  const entering = (delay: number) =>
+    reduceMotion ? undefined : FadeInDown.delay(delay).duration(300);
   return (
     <View style={styles.container}>
       <AuroraBackground variant="welcome" />
       <View style={styles.content}>
-        <Animated.Text entering={FadeInDown.delay(100).duration(300)} style={styles.title}>
+        <Animated.Text entering={entering(100)} style={styles.title}>
           Who are you caring for?
         </Animated.Text>
-        <Animated.Text entering={FadeInDown.delay(200).duration(300)} style={styles.subtitle}>
+        <Animated.Text entering={entering(200)} style={styles.subtitle}>
           We'll set things up to fit your situation.
         </Animated.Text>
 
         <View style={styles.cardsContainer}>
-          <Animated.View entering={FadeInDown.delay(300).duration(300)}>
+          <Animated.View entering={entering(300)}>
             <TouchableOpacity
               style={styles.card}
               onPress={() => onSelectMode('caregiver')}
@@ -45,7 +52,7 @@ export const WhoIsThisForScreen: React.FC<Props> = ({ onSelectMode }) => {
             </TouchableOpacity>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(400).duration(300)}>
+          <Animated.View entering={entering(400)}>
             <TouchableOpacity
               style={styles.card}
               onPress={() => onSelectMode('self')}
@@ -60,7 +67,7 @@ export const WhoIsThisForScreen: React.FC<Props> = ({ onSelectMode }) => {
           </Animated.View>
         </View>
 
-        <Animated.Text entering={FadeInDown.delay(500).duration(300)} style={styles.footer}>
+        <Animated.Text entering={entering(500)} style={styles.footer}>
           You can change this anytime in Settings.
         </Animated.Text>
       </View>

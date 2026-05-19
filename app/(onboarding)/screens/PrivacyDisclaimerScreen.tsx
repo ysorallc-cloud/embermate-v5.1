@@ -9,6 +9,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { Colors, Spacing, BorderRadius } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useReduceMotion } from '../../../hooks/useReduceMotion';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -25,8 +26,12 @@ const PRIVACY_POINTS = [
 
 export const PrivacyDisclaimerScreen: React.FC<Props> = ({ onDisclaimerAccepted }) => {
   const { colors } = useTheme();
+  const reduceMotion = useReduceMotion();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [accepted, setAccepted] = useState(false);
+  // Phase 28 Batch B sidecar — reduce-motion guard, see WelcomeScreen.
+  const entering = (delay: number) =>
+    reduceMotion ? undefined : FadeInDown.delay(delay).duration(300);
 
   const toggleAccepted = () => {
     const newValue = !accepted;
@@ -38,13 +43,13 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({ onDisclaimerAccepted 
     <View style={styles.container}>
       <AuroraBackground variant="welcome" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Animated.Text entering={FadeInDown.delay(100).duration(300)} style={styles.emoji}>
+        <Animated.Text entering={entering(100)} style={styles.emoji}>
           {'\u{1F512}'}
         </Animated.Text>
-        <Animated.Text entering={FadeInDown.delay(200).duration(300)} style={styles.title}>
+        <Animated.Text entering={entering(200)} style={styles.title}>
           Your family's health{'\n'}data is safe here.
         </Animated.Text>
-        <Animated.Text entering={FadeInDown.delay(250).duration(300)} style={styles.subtitle}>
+        <Animated.Text entering={entering(250)} style={styles.subtitle}>
           Here's how we protect it.
         </Animated.Text>
 
@@ -53,7 +58,7 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({ onDisclaimerAccepted 
           {PRIVACY_POINTS.map((point, index) => (
             <Animated.View
               key={index}
-              entering={FadeInDown.delay(300 + index * 80).duration(300)}
+              entering={entering(300 + index * 80)}
               style={styles.privacyRow}
             >
               <Text style={styles.privacyIcon}>{point.icon}</Text>
@@ -66,14 +71,14 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({ onDisclaimerAccepted 
         </View>
 
         {/* Medical disclaimer \u2014 softened in v6.7. Notice, not alarm. */}
-        <Animated.View entering={FadeInDown.delay(650).duration(300)} style={styles.disclaimerCard}>
+        <Animated.View entering={entering(650)} style={styles.disclaimerCard}>
           <Text style={styles.disclaimerText}>
             EmberMate is a personal tracking tool to help you stay organized {'\u2014'} not a substitute for your doctor's advice.
           </Text>
         </Animated.View>
 
         {/* Checkbox */}
-        <Animated.View entering={FadeInDown.delay(750).duration(300)} style={styles.checkboxContainer}>
+        <Animated.View entering={entering(750)} style={styles.checkboxContainer}>
           <TouchableOpacity
             style={styles.checkboxRow}
             onPress={toggleAccepted}

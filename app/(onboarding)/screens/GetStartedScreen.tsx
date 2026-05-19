@@ -29,6 +29,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { Colors, Spacing, BorderRadius } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useReduceMotion } from '../../../hooks/useReduceMotion';
 import { writePatientName } from '../../../utils/patientNameWriter';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -39,11 +40,15 @@ interface Props {
 
 export const GetStartedScreen: React.FC<Props> = ({ onComplete }) => {
   const { colors } = useTheme();
+  const reduceMotion = useReduceMotion();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [patientName, setPatientName] = useState('');
   const [expanded, setExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
+  // Phase 28 Batch B sidecar — reduce-motion guard, see WelcomeScreen.
+  const entering = (delay: number) =>
+    reduceMotion ? undefined : FadeInDown.delay(delay).duration(300);
 
   // Phase 16.3 — careMode hardcoded; copy is unconditional caregiver-mode.
   const primaryTitle = 'Set up my loved one';
@@ -94,12 +99,12 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete }) => {
     <View style={styles.container}>
       <AuroraBackground variant="welcome" />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Animated.Text entering={FadeInDown.delay(100).duration(300)} style={styles.title}>
+        <Animated.Text entering={entering(100)} style={styles.title}>
           Your turn.
         </Animated.Text>
 
         {/* Primary — set up the user's own profile */}
-        <Animated.View entering={FadeInDown.delay(200).duration(300)}>
+        <Animated.View entering={entering(200)}>
           <TouchableOpacity
             style={styles.primaryCard}
             activeOpacity={0.85}
@@ -140,7 +145,7 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete }) => {
         </Animated.View>
 
         {/* Secondary — explore with sample data */}
-        <Animated.View entering={FadeInDown.delay(280).duration(300)}>
+        <Animated.View entering={entering(280)}>
           <TouchableOpacity
             style={styles.secondaryCard}
             activeOpacity={0.85}
@@ -154,7 +159,7 @@ export const GetStartedScreen: React.FC<Props> = ({ onComplete }) => {
         </Animated.View>
 
         {/* Backup tip */}
-        <Animated.View entering={FadeInDown.delay(360).duration(300)}>
+        <Animated.View entering={entering(360)}>
           <Text style={styles.backupTip}>
             Your data stays on this device. Use Settings {'›'} Backup & Restore to create encrypted backups before switching phones.
           </Text>
