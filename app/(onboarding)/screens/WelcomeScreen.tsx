@@ -1,15 +1,24 @@
 // ============================================================================
 // WELCOME SCREEN - Empathy-first introduction
 // Screen 1 of 4: Lead with emotional connection, then value points
+//
+// Phase 28 Batch B sidecar — PATH A SPIKE (single-screen). Reanimated's
+// Animated.View / Animated.Text components were rendering blank in Expo
+// Go SDK 52 + Reanimated 3.16.7 regardless of `entering` prop value;
+// AsYouUseScreen renders correctly because it never used Animated.* at
+// all. This spike replaces Animated.View / Animated.Text with plain
+// View / Text on WelcomeScreen only, drops AuroraBackground (also uses
+// Animated.View internally), and removes the useReduceMotion + entering
+// helper from the sidecar fix b41faa92. If the simulator confirms
+// WelcomeScreen renders content after this spike, the same pattern
+// rolls out across the other 4 onboarding screens in a Path B commit.
+// If it stays blank, the bug lives below the Reanimated layer.
 // ============================================================================
 
 import React, { useMemo } from 'react';
 import { View, Text, Image, StyleSheet, Dimensions } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { AuroraBackground } from '../components/AuroraBackground';
 import { Colors, Spacing } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { useReduceMotion } from '../../../hooks/useReduceMotion';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -22,41 +31,36 @@ const VALUE_POINTS = [
 
 export const WelcomeScreen: React.FC = () => {
   const { colors } = useTheme();
-  const reduceMotion = useReduceMotion();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  // Phase 28 Batch B sidecar — when Reduce Motion is on, return `undefined`
-  // so the entering animation is skipped entirely (content renders at its
-  // natural opacity 1). Bypasses Reanimated's own reduce-motion handling,
-  // which has shown stuck-at-opacity-0 behavior in 3.16.x + Expo Go.
-  const entering = (delay: number) =>
-    reduceMotion ? undefined : FadeInDown.delay(delay).duration(300);
+  // DIAG-ONBOARDING: confirms WelcomeScreen function body executes (so the
+  // blank-middle issue is NOT a "renderItem returned null" routing problem
+  // and IS a style/layout/opacity problem)
+  console.log('[DIAG-ONBOARDING] WelcomeScreen render — colors.background=', colors?.background, 'colors.textPrimary=', colors?.textPrimary, 'SCREEN_WIDTH=', SCREEN_WIDTH);
   return (
     <View style={styles.container}>
-      <AuroraBackground variant="welcome" />
       <View style={styles.content}>
-        <Animated.View entering={entering(100)}>
+        <View>
           <Image
             source={require('../../../assets/images/embermate-icon.png')}
             style={styles.appIcon}
             accessibilityLabel="EmberMate"
           />
-        </Animated.View>
-        <Animated.Text entering={entering(200)} style={styles.title}>
+        </View>
+        <Text style={styles.title}>
           Caring for someone{'\n'}is a lot to carry.
-        </Animated.Text>
-        <Animated.Text entering={entering(250)} style={styles.subtitle}>
+        </Text>
+        <Text style={styles.subtitle}>
           A quiet companion to help you keep track — gently — and see the patterns that matter.
-        </Animated.Text>
+        </Text>
         <View style={styles.pointsContainer}>
           {VALUE_POINTS.map((point, index) => (
-            <Animated.View
+            <View
               key={index}
-              entering={entering(300 + index * 100)}
               style={styles.pointRow}
             >
               <Text style={styles.pointIcon}>{point.icon}</Text>
               <Text style={styles.pointText}>{point.text}</Text>
-            </Animated.View>
+            </View>
           ))}
         </View>
       </View>
