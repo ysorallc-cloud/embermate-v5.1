@@ -76,14 +76,16 @@ describe('InsightsEmptyStatePreview — visibility gating', () => {
     expect(tree).toBeNull();
   });
 
-  it('renders the consolidated card + tip card when fewer than 14 days exist', () => {
+  it('renders the empty-state preview wrapper + tip card when fewer than 14 days exist', () => {
     const tree = (InsightsEmptyStatePreview as any)({ daysOfData: 4, patientName: 'Mom' });
-    // Phase 4 consolidation: single consolidated card replaces the prior
-    // split. The legacy split testIDs (insights-patterns-coming-card +
-    // insights-watching-card) are now the single insights-consolidated-card.
-    const consolidated = findAll(tree, (n) => n.props?.testID === 'insights-consolidated-card')[0];
+    // Phase 33b extension Lock 4: the prior consolidated container
+    // (insights-consolidated-card testID) was split into three
+    // separate JournalSection cards. The outer wrapper carries
+    // insights-empty-state-preview, and the tip card retains its
+    // insights-tip-card testID inside the third JournalSection.
+    const wrapper = findAll(tree, (n) => n.props?.testID === 'insights-empty-state-preview')[0];
     const tip = findAll(tree, (n) => n.props?.testID === 'insights-tip-card')[0];
-    expect(consolidated).toBeDefined();
+    expect(wrapper).toBeDefined();
     expect(tip).toBeDefined();
   });
 });

@@ -2,20 +2,39 @@
 // INSIGHTS EMPTY-STATE PREVIEW
 //
 // Shown on the Insights tab when the patient has fewer than 14 days of
-// tracked data. Two cards:
-//   1. "Patterns coming" — countdown to 14 days, sage-tinted card.
-//   2. "What we'll be watching for" — four pattern previews + reassuring
-//      footer that nothing requires waiting.
+// tracked data. Three JournalSection cards per Phase 33b extension Lock 4:
+//
+//   1. "Patterns coming"           — sage tint. Countdown to 14 days
+//                                    (progress bar + remaining days
+//                                    label).
+//   2. "What we'll be watching for" — neutral tint. Four pattern previews
+//                                    + reassuring italic footer.
+//   3. "Tip"                       — neutral tint, conditionally rendered
+//                                    via showTipCard. Redirect to start
+//                                    logging from Now.
 //
 // Returns null when daysOfData >= 14 so the screen falls through to the
 // real Insights content.
+//
+// Phase 33b extension Lock 4 changes (Phase 28 Batch B → 33b extension):
+//   • Pre-fix: single watchingCard wrapped both halves with a hairline
+//     divider — read as one container, no demarcation. Patterns Coming
+//     and What We'll Be Watching For collapsed into a shared chrome.
+//   • Post-fix: each section is its own JournalSection card with its
+//     own tint. Matches the populated-state card model
+//     (InsightsReadCard sage + InsightsDataCard neutral).
+//   • Hardcoded spacings (13/14/11/10/4) → Spacing.s* canon tokens.
+//   • Sub-canon font sizes (9.5/8.5/10.5) → canon scale (11/10/12).
+//   • tipCard's bespoke border-only chrome → JournalSection tint="neutral"
+//     primitive (same chrome as the watching card; all three cards
+//     consistent).
 // ============================================================================
 
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Fonts } from '../../theme/theme-tokens';
-import { SectionEyebrow } from '../SectionEyebrow';
+import { Fonts, Spacing } from '../../theme/theme-tokens';
+import { JournalSection } from '../journal/JournalSection';
 
 export interface InsightsEmptyStatePreviewProps {
   daysOfData: number;
@@ -88,51 +107,32 @@ export function InsightsEmptyStatePreview({
     : 'Once data is steady.';
 
   return (
-    <View>
-      {/* ── Consolidated empty-state card ──
-          Patterns Coming countdown + What we'll be watching for, separated
-          by a hairline. Phase 4 visual-consistency: collapses what used to
-          be three stacked empty-state cards (with overlapping copy) into
-          one. */}
-      <View
-        testID="insights-consolidated-card"
-        style={styles.watchingCard}
-        accessibilityLabel={`${remainingLabel}, then we'll show you trends.`}
-      >
-        {/* Top half — patterns coming countdown */}
-        <View style={styles.consolidatedTop}>
-          <SectionEyebrow text="Patterns coming" tint="accent" />
-          {/* Phase 6.2 — visible progress through the 14-day window. The
-              bar fill width caps at 100% defensively; in practice this
-              component returns null at daysOfData >= 14. */}
-          <View testID="insights-progress-track" style={styles.progressBar}>
-            <View
-              testID="insights-progress-fill"
-              style={[
-                styles.progressFill,
-                { width: `${Math.min(100, (daysOfData / 14) * 100)}%` },
-              ]}
-            />
-          </View>
-          <Text testID="insights-progress-label" style={styles.progressLabel}>
-            {`${daysOfData} of 14 days`}
-          </Text>
-          <Text style={styles.patternsHeadline}>
-            {`${remainingLabel}, then trends appear.`}
-          </Text>
-          <Text style={styles.patternsSubtitle}>
-            {'~2 weeks of tracking before patterns emerge.'}
-          </Text>
+    <View testID="insights-empty-state-preview">
+      {/* ─── Card 1: Patterns coming (sage) ─── */}
+      <JournalSection eyebrow="Patterns coming" tint="sage">
+        <View testID="insights-progress-track" style={styles.progressBar}>
+          <View
+            testID="insights-progress-fill"
+            style={[
+              styles.progressFill,
+              { width: `${Math.min(100, (daysOfData / 14) * 100)}%` },
+            ]}
+          />
         </View>
+        <Text testID="insights-progress-label" style={styles.progressLabel}>
+          {`${daysOfData} of 14 days`}
+        </Text>
+        <Text style={styles.patternsHeadline}>
+          {`${remainingLabel}, then trends appear.`}
+        </Text>
+        <Text style={styles.patternsSubtitle}>
+          {'~2 weeks of tracking before patterns emerge.'}
+        </Text>
+      </JournalSection>
 
-        {/* Hairline divider between halves */}
-        <View style={styles.hairlineDivider} />
-
-        {/* Bottom half — what we'll be watching for */}
-        <View style={styles.watchingHeader}>
-          <SectionEyebrow text="What we'll be watching for" />
-          <Text style={styles.watchingHeaderSubtitle}>{watchingSubtitle}</Text>
-        </View>
+      {/* ─── Card 2: What we'll be watching for (neutral) ─── */}
+      <JournalSection eyebrow="What we'll be watching for" tint="neutral">
+        <Text style={styles.watchingHeaderSubtitle}>{watchingSubtitle}</Text>
 
         <View style={styles.watchingBody}>
           {PATTERN_PREVIEWS.map((p, i) => {
@@ -157,12 +157,12 @@ export function InsightsEmptyStatePreview({
             {'These appear as you go. No need to wait.'}
           </Text>
         </View>
-      </View>
+      </JournalSection>
 
-      {/* ── Tip card (border-only, redirect not placeholder) ── */}
+      {/* ─── Card 3: Tip (neutral) — redirect to start logging ─── */}
       {showTipCard && (
-        <View testID="insights-tip-card" style={styles.tipCard}>
-          <View style={styles.tipRow}>
+        <JournalSection eyebrow="Tip" tint="neutral">
+          <View testID="insights-tip-card" style={styles.tipRow}>
             <Text style={styles.tipIcon}>{'💡'}</Text>
             <View style={{ flex: 1 }}>
               <Text style={styles.tipHeadline}>Start logging from Now</Text>
@@ -171,28 +171,17 @@ export function InsightsEmptyStatePreview({
               </Text>
             </View>
           </View>
-        </View>
+        </JournalSection>
       )}
     </View>
   );
 }
 
 const createStyles = (c: any) => StyleSheet.create({
-  // ── Patterns coming card ──
-  patternsCard: {
-    backgroundColor: 'rgba(95, 184, 138, 0.05)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(95, 184, 138, 0.22)',
-    borderRadius: 11,
-    paddingHorizontal: 13,
-    paddingVertical: 16, // allow: tap-target padding (Apple HIG ≥44pt)
-    marginBottom: 14, // allow: off-scale gap (intentional)
-  },
-  // Phase 15.12 — patternsEyebrow style retired. SectionEyebrow
-  // with tint="accent" preserves the sage progress-signal semantic.
-  // Phase 6.2 — slim progress bar for the 14-day building window. Sage
-  // fill matches the eyebrow accent (legitimate progress signal, not
-  // competing with another sage element on this surface).
+  // ── Card 1: Patterns coming ──
+  // Slim progress bar + countdown. Sage progress fill matches the
+  // JournalSection's sage tint outer border — legitimate progress
+  // signal, not competing chrome.
   progressBar: {
     height: 4,
     backgroundColor: 'rgba(255, 240, 215, 0.06)',
@@ -205,146 +194,102 @@ const createStyles = (c: any) => StyleSheet.create({
     borderRadius: 2,
   },
   progressLabel: {
-    fontSize: 9.5,
+    fontSize: 11,
     color: c.textTertiary,
-    marginTop: 4,
-    marginBottom: 8,
+    marginTop: Spacing.s1,
+    marginBottom: Spacing.s2,
   },
   patternsHeadline: {
     fontSize: 13,
     fontWeight: '500',
     color: c.textPrimary,
-    marginBottom: 4,
+    marginBottom: Spacing.s1,
     lineHeight: 18,
   },
   patternsSubtitle: {
-    fontSize: 10.5,
+    fontSize: 12,
     color: c.textSecondary,
-    lineHeight: 15.75,
+    lineHeight: 18,
   },
 
-  // ── Consolidated card halves ──
-  // Top half — patterns coming countdown. Sage-tinted background like the
-  // legacy patternsCard so the countdown still reads as a sage block,
-  // even sitting inside the unified card.
-  consolidatedTop: {
-    backgroundColor: 'rgba(95, 184, 138, 0.05)',
-    paddingHorizontal: 13,
-    paddingVertical: 16, // allow: tap-target padding (Apple HIG ≥44pt)
-  },
-  // Hairline divider between the halves of the consolidated card.
-  hairlineDivider: {
-    height: 0.5,
-    backgroundColor: c.hairlineInset,
-  },
-
-  // ── What we'll be watching card ──
-  // Used as the consolidated container in Phase 4. Outer border + radius
-  // wraps both halves; the patterns top inherits this card surface.
-  watchingCard: {
-    backgroundColor: c.glass,
-    borderWidth: 0.5,
-    borderColor: c.glassBorder,
-    borderRadius: 11,
-    overflow: 'hidden',
-    marginBottom: 14, // allow: off-scale gap (intentional)
-    // Card holds rows with their own padding; symmetric per Phase 2 contract.
-    padding: 0,
-  },
-  watchingHeader: {
-    paddingTop: 11,
-    paddingBottom: 10,
-    paddingHorizontal: 13,
-    backgroundColor: 'rgba(255, 235, 205, 0.025)',
-    borderBottomWidth: 0.5,
-    borderBottomColor: c.glassBorder,
-  },
-  // Phase 15.12 — watchingEyebrow style retired; SectionEyebrow's
-  // default tint (textTertiary) matches the prior color.
+  // ── Card 2: What we'll be watching for ──
   watchingHeaderSubtitle: {
     fontFamily: Fonts.serifItalic,
     fontStyle: 'italic',
-    fontSize: 11,
-    lineHeight: 15.4,
+    fontSize: 12,
+    lineHeight: 18,
     color: c.textSecondary,
+    marginBottom: Spacing.s2,
   },
   watchingBody: {
-    paddingHorizontal: 13,
-    paddingVertical: 4,
+    paddingVertical: Spacing.s2,
   },
   watchingRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 11,
-    gap: 10,
+    paddingVertical: Spacing.s4, // Lock 4 key breathing-room fix (was 11)
+    gap: Spacing.s3,
   },
   watchingRowDivider: {
     borderBottomWidth: 0.5,
     borderBottomColor: c.glassBorder,
   },
   watchingIcon: {
-    fontSize: 12,
+    fontSize: 14,
     opacity: 0.7,
     paddingTop: 1,
-    width: 18,
+    width: 20,
   },
   watchingDescription: {
     flex: 1,
-    fontSize: 10.5,
+    fontSize: 12,
     color: c.textSecondary,
-    lineHeight: 14.7,
+    lineHeight: 17,
   },
-  // Phase 6.4 — demote from sage to neutral. Future-time estimates are
-  // informational, not progress. Sage is reserved for the eyebrow + the
-  // 14-day progress fill on this surface.
+  // Phase 6.4 — neutral colour, not sage. Future-time estimates are
+  // informational, not progress; sage stays reserved for the
+  // JournalSection card-1 tint + progress fill.
   watchingWhen: {
-    fontSize: 8.5,
+    fontSize: 10,
     fontWeight: '500',
     color: c.textSecondary,
     flexShrink: 0,
     paddingTop: 2,
   },
   watchingFooter: {
-    paddingVertical: 11,
-    paddingHorizontal: 13,
+    paddingTop: Spacing.s3,
     borderTopWidth: 0.5,
     borderTopColor: c.glassBorder,
   },
   watchingFooterText: {
-    fontSize: 10,
+    fontSize: 11,
     color: c.textTertiary,
     fontStyle: 'italic',
-    lineHeight: 14,
+    lineHeight: 16,
   },
 
-  // ── Tip card — border-only, no fill (redirect not placeholder) ──
-  tipCard: {
-    borderWidth: 0.5,
-    borderColor: c.glassBorder,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 13,
-    marginBottom: 14, // allow: off-scale gap (intentional)
-  },
+  // ── Card 3: Tip (redirect) ──
+  // Chrome now lives in JournalSection tint="neutral"; this style block
+  // only carries the inner row layout + typography.
   tipRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
+    gap: Spacing.s3,
   },
   tipIcon: {
-    fontSize: 16,
+    fontSize: 18,
     paddingTop: 1,
   },
   tipHeadline: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '500',
     color: c.textPrimary,
     marginBottom: 2,
   },
   tipSubtitle: {
-    fontSize: 10.5,
+    fontSize: 12,
     color: c.textSecondary,
-    lineHeight: 14.7,
+    lineHeight: 17,
   },
 });
 
