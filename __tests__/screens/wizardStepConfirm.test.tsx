@@ -49,12 +49,23 @@ describe('Phase 5.13.d — header + progress', () => {
 describe('Phase 5.13.d — bucket sections', () => {
   const src = existsSync(STEP_PATH) ? readFileSync(STEP_PATH, 'utf8') : '';
 
-  it('renders a CORE — ALWAYS ON section', () => {
-    expect(src).toMatch(/CORE.*ALWAYS ON|ALWAYS ON/);
+  // Phase 33b extension Lock 2 — reframed: the prior "OPTIONAL" section
+  // split into "These show on your Now tab" + "These show on your Care
+  // Plan" so caregivers can tell which 5 of 9 toggles surface on the
+  // Now-tab daily scan and which 4 live on dedicated Care Plan screens.
+  // CORE section copy also softened (lowercase via SectionEyebrow's
+  // uppercase render at the primitive layer).
+
+  it('renders a Core section (canon-cased "Core — always on")', () => {
+    expect(src).toMatch(/Core\s*—\s*always on|CORE.*ALWAYS ON/);
   });
 
-  it('renders an OPTIONAL section', () => {
-    expect(src).toMatch(/OPTIONAL/);
+  it('renders the "These show on your Now tab" section', () => {
+    expect(src).toMatch(/These show on your Now tab/);
+  });
+
+  it('renders the "These show on your Care Plan" section', () => {
+    expect(src).toMatch(/These show on your Care Plan/);
   });
 
   it('reads the current care plan config', () => {

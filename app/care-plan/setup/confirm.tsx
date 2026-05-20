@@ -38,6 +38,9 @@ import { useActivePatientName } from '../../../hooks/useActivePatientName';
 import {
   BUCKET_TYPES,
   BUCKET_META,
+  PRIMARY_BUCKETS,
+  SECONDARY_BUCKETS,
+  OPTIONAL_BUCKETS,
   type BucketType,
   type CarePlanConfig,
 } from '../../../types/carePlanConfig';
@@ -47,6 +50,7 @@ import {
 } from '../../../storage/carePlanConfigRepo';
 import { clearWizardProgress } from '../../../storage/wizardProgressRepo';
 import { logError } from '../../../utils/devLog';
+import { SectionEyebrow } from '../../../components/SectionEyebrow';
 
 const FIRST_REAL_MODE_KEY = '@embermate_first_real_mode_landed';
 const PATIENT_ID = 'default';
@@ -54,6 +58,28 @@ const PATIENT_ID = 'default';
 // CORE buckets — always-on for v1. The wizard surfaces them as required,
 // not toggleable; the user sees the bucket but cannot disable it.
 const CORE_BUCKETS: ReadonlySet<BucketType> = new Set(['meds', 'vitals']);
+
+// Phase 33b extension Lock 2 — three-section split.
+//
+// Pre-fix the OPTIONAL section listed all 9 toggles in one block. A
+// first-time caregiver had no signal that 4 of those 9 (appointments,
+// errands, shifts, self_care) wouldn't appear on the Now-tab daily
+// scan even though they'd write to the same setBucketEnabled.
+//
+// Post-fix the OPTIONAL block splits into two:
+//   • NOW_TAB_BUCKETS  — primary + secondary, minus CORE. These render
+//                        as tiles on the Now tab's stats row (per
+//                        StatRings RENDERABLE_KEYS).
+//   • CARE_PLAN_BUCKETS — OPTIONAL_BUCKETS from types/carePlanConfig.
+//                        Calendar/list items that live on Care Plan
+//                        screens, not on Now.
+//
+// Persistence unchanged — toggling any of the 9 still writes to
+// setBucketEnabled. UX-only fix.
+const NOW_TAB_BUCKETS: ReadonlySet<BucketType> = new Set(
+  [...PRIMARY_BUCKETS, ...SECONDARY_BUCKETS].filter((b) => !CORE_BUCKETS.has(b)),
+);
+const CARE_PLAN_BUCKETS: ReadonlySet<BucketType> = new Set(OPTIONAL_BUCKETS);
 
 interface BucketRow {
   type: BucketType;
@@ -97,7 +123,8 @@ export default function WizardStepConfirm() {
   }, [config]);
 
   const coreRows = rows.filter((r) => CORE_BUCKETS.has(r.type));
-  const optionalRows = rows.filter((r) => !CORE_BUCKETS.has(r.type));
+  const nowTabRows = rows.filter((r) => NOW_TAB_BUCKETS.has(r.type));
+  const carePlanRows = rows.filter((r) => CARE_PLAN_BUCKETS.has(r.type));
 
   const handleToggle = useCallback(async (type: BucketType, next: boolean) => {
     setConfig((prev) =>
@@ -145,9 +172,14 @@ export default function WizardStepConfirm() {
             {'Tap any to adjust. You can always change later.'}
           </Text>
 
+          {/* All three section eyebrows route through SectionEyebrow at
+              canon scale + letterSpacing 1.5 (Phase 33b Scope 3) +
+              tint="caregiverAccent" for lane-coherence across the
+              wizard's three steps. */}
+
           {coreRows.some((r) => r.enabled) && (
             <View style={styles.section}>
-              <Text style={styles.eyebrow}>{'CORE — ALWAYS ON'}</Text>
+              <SectionEyebrow text="Core — always on" tint="caregiverAccent" />
               {coreRows
                 .filter((r) => r.enabled)
                 .map((r) => (
@@ -165,11 +197,32 @@ export default function WizardStepConfirm() {
           )}
 
           <View style={styles.section}>
-            <Text style={styles.eyebrow}>{'OPTIONAL'}</Text>
-            {optionalRows.map((r) => (
+            <SectionEyebrow text="These show on your Now tab" tint="caregiverAccent" />
+            {nowTabRows.map((r) => (
               <View
                 key={r.type}
-                testID={`wizard-confirm-optional-${r.type}`}
+                testID={`wizard-confirm-now-${r.type}`}
+                style={styles.row}
+              >
+                <Text style={styles.rowEmoji}>{r.emoji}</Text>
+                <Text style={styles.rowName}>{r.name}</Text>
+                <Switch
+                  value={r.enabled}
+                  onValueChange={(v) => handleToggle(r.type, v)}
+                  trackColor={{ false: colors.glassBorder, true: colors.accent }}
+                  thumbColor={'#ffffff'}
+                  accessibilityLabel={`${r.name} — ${r.enabled ? 'enabled' : 'disabled'}`}
+                />
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.section}>
+            <SectionEyebrow text="These show on your Care Plan" tint="caregiverAccent" />
+            {carePlanRows.map((r) => (
+              <View
+                key={r.type}
+                testID={`wizard-confirm-careplan-${r.type}`}
                 style={styles.row}
               >
                 <Text style={styles.rowEmoji}>{r.emoji}</Text>
@@ -266,13 +319,8 @@ const createStyles = (c: any) =>
     section: {
       marginBottom: Spacing.lg,
     },
-    eyebrow: {
-      fontSize: 10,
-      fontWeight: '600' as const,
-      letterSpacing: 0.5,
-      color: c.textTertiary,
-      marginBottom: 8,
-    },
+    // Lock 2 — local `eyebrow` style retired; all three section eyebrows
+    // now route through SectionEyebrow (canon 11pt + letterSpacing 1.5).
     row: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,

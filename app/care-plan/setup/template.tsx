@@ -304,8 +304,13 @@ const createStyles = (c: any) =>
       paddingTop: Spacing.sm,
       gap: 8,
     },
+    // Phase 33b extension Lock 2 — wizard CTA lane assignment.
+    // Step 2 (template.tsx) "Next →" is forward-progress between
+    // wizard steps (not a commit) → sage (c.accent). Lane reasoning
+    // matches step 1; lavender stays reserved for the step-3 commit
+    // ("Done — let's start" on confirm.tsx).
     primary: {
-      backgroundColor: c.caregiverAccent,
+      backgroundColor: c.accent,
       borderRadius: 11,
       paddingVertical: 14, // allow: primary CTA tap-target (Apple HIG)
       alignItems: 'center' as const,
