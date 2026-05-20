@@ -42,8 +42,30 @@ export const BUCKET_TYPES: BucketType[] = [
 // Primary buckets shown by default
 export const PRIMARY_BUCKETS: BucketType[] = ['meds', 'vitals', 'meals', 'water'];
 
-// Secondary buckets hidden behind "More" initially
-export const SECONDARY_BUCKETS: BucketType[] = ['sleep', 'activity'];
+// Secondary buckets hidden behind "More" initially.
+//
+// Phase 33b extension Lock 2 follow-up — `wellness` added here. The
+// set-orphan audit (project_pre_launch_qa_items.md "Lock 2 wellness
+// follow-up") surfaced that wellness was a member of NONE of the
+// three exported sets (PRIMARY/SECONDARY/OPTIONAL) despite being a
+// valid BucketType with full BUCKET_META and a /care-plan/wellness
+// route. The wizard's "Now tab" section derivation
+// (`[...PRIMARY, ...SECONDARY].filter(!CORE)`) silently dropped
+// wellness — caregivers couldn't toggle it from the wizard.
+//
+// Consumer audit confirmed UX-unchanged for the set mutation:
+//   • StatRings (Now stat-row tiles) uses its OWN PRIORITY_ORDER
+//     which already includes 'wellness' — independent of these sets.
+//   • app/care-plan/index.tsx (Care Plan screen) renders via its
+//     own local CORE_BUCKETS + BUCKET_TYPES.filter() — already
+//     includes wellness.
+//   • allBuckets at care-plan/index.tsx:222 is dead code.
+//   • confirm.tsx Lock 2 derivation IS the intended fix surface —
+//     wellness becomes the canonical 5th Now-tab row.
+//
+// Wellness fits SECONDARY (tracked dimension, like sleep/activity)
+// rather than PRIMARY (essential clinical: meds/vitals/meals/water).
+export const SECONDARY_BUCKETS: BucketType[] = ['sleep', 'activity', 'wellness'];
 
 // Optional buckets — toggled on when ready
 export const OPTIONAL_BUCKETS: BucketType[] = ['appointments', 'errands', 'shifts', 'self_care'];
