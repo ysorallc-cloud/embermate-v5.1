@@ -206,20 +206,33 @@ describe('Phase 28 F3 — InsightsReadCard', () => {
     expect(flatText(tiles[2])).toMatch(/6\.0/);
   });
 
-  it('contract 4b: card-level "Daily averages" label renders above the metric grid + Sleep unit reads "h/night"', () => {
-    // Phase 28 Batch B — averages labeling (Item 1, locked Option 3 hybrid).
-    // Pre-fix the 4 tiles read ambiguously as totals: Adherence/Sleep/
-    // Hydration carried no per-unit suffix; only Meals had "/day". The
-    // card-level "Daily averages" label above the grid covers
-    // Adherence/Hydration/Meals; Sleep gets the "h/night" suffix
-    // because its denominator is tracked-nights (β special-case per
-    // MEALS Commit B Lock 1), not range days.
-    const tree = render({ timeRange: 14, pageData: FULL_DATA, patterns: [] });
-    const allTextNodes = findAll(tree.root, (n) => n.type === 'Text');
-    const allText = allTextNodes.map(flatText).join(' | ');
-    expect(allText).toMatch(/Daily averages/i);
+  it('contract 4b: card-level "{N}-day summary" label renders above the metric grid + Sleep unit reads "h/night"', () => {
+    // Phase 28 Batch B THE READ Item 1 labeling — final shape.
+    // The first cut used "Daily averages" but that miscategorized
+    // the Adherence tile (adherenceRate is a cumulative period rate,
+    // not a daily average). "{N}-day summary" is accurate for all
+    // four tiles: a 14-day rate and three 14-day daily averages are
+    // all fair to summarize at the period level. Dynamic on
+    // `timeRange` so the label stays truthful across the 7d/14d/30d
+    // selector — matches the eyebrow above ("THE READ · {N} DAYS").
+    // Sleep gets the "h/night" suffix because its denominator is
+    // tracked-nights (β special-case per MEALS Commit B Lock 1).
+    const tree14 = render({ timeRange: 14, pageData: FULL_DATA, patterns: [] });
+    const text14 = findAll(tree14.root, (n) => n.type === 'Text')
+      .map(flatText)
+      .join(' | ');
+    expect(text14).toMatch(/14-day summary/i);
+    // Pin dynamic behavior — different range produces different label.
+    const tree7 = render({ timeRange: 7, pageData: FULL_DATA, patterns: [] });
+    const text7 = findAll(tree7.root, (n) => n.type === 'Text')
+      .map(flatText)
+      .join(' | ');
+    expect(text7).toMatch(/7-day summary/i);
+    expect(text7).not.toMatch(/14-day summary/i);
+    // Negative: the retired "Daily averages" wording is gone.
+    expect(text14).not.toMatch(/Daily averages/i);
     // Sleep tile shows the per-night suffix.
-    const sleepTile = findAll(tree.root, (n) =>
+    const sleepTile = findAll(tree14.root, (n) =>
       typeof n.props?.testID === 'string' && n.props.testID === 'read-metric-1',
     )[0];
     expect(sleepTile).toBeDefined();

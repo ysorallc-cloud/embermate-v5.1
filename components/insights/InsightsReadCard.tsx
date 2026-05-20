@@ -66,7 +66,7 @@ function buildMetrics(data: UnderstandPageData): Metric[] {
       value: sleepAvailable ? data.avgSleepHours.toFixed(1) : '—',
       // 'h/night' rather than the bare 'h' — sleep's natural basis is
       // per-night, which is how caregivers read it. The card-level
-      // "Daily averages" label above the grid covers the other three
+      // "{N}-day summary" label above the grid covers the other three
       // tiles; sleep needs the per-unit suffix because its denominator
       // is tracked-nights (β special-case per MEALS Commit B Lock 1),
       // not range days like the other metrics.
@@ -120,14 +120,22 @@ export function InsightsReadCard({ timeRange, pageData, patterns }: InsightsRead
         <Text style={styles.gestalt}>{gestalt}</Text>
       )}
 
-      {/* Card-level "Daily averages" label above the 4-tile grid.
-          Pre-fix the tiles read ambiguously as totals — Adherence/Sleep/
-          Hydration carried no per-unit suffix; only Meals had "/day".
-          A single recessed eyebrow above the grid covers Adherence/
-          Hydration/Meals; Sleep's "h/night" suffix carries its own
-          per-unit signal (tracked-nights denominator per MEALS Commit B
-          Lock 1). Same scale + treatment as the in-tile metricLabel. */}
-      <Text style={styles.metricsGridLabel}>Daily averages</Text>
+      {/* Card-level "{N}-day summary" label above the 4-tile grid.
+          Pre-fix the tiles read ambiguously as totals; the original
+          fix labeled them "Daily averages" but that miscategorized
+          the Adherence tile — adherenceRate is a cumulative period
+          rate (handled / total across the range), NOT a per-day
+          average like Sleep/Hydration/Meals. Telling a caregiver a
+          clinical-adjacent rate is a daily average is wrong.
+          "{N}-day summary" is accurate for all four: the rate AND
+          the three daily averages are fair to summarize at the
+          period level. Dynamic on `timeRange` so the label stays
+          truthful when the user switches the 7d/14d/30d selector —
+          matches the eyebrow above which already shows
+          "THE READ · {N} DAYS". Sleep tile keeps its own "h/night"
+          suffix because its denominator is tracked-nights (β
+          special-case per MEALS Commit B Lock 1). */}
+      <Text style={styles.metricsGridLabel}>{`${timeRange}-day summary`}</Text>
       <View style={styles.metricsGrid}>
         {metrics.map((m, i) => (
           <View
