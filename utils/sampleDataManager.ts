@@ -287,6 +287,32 @@ export async function clearSampleData(): Promise<{
       clearedCount += removed;
     }
 
+    // 10b. Clear sample carePlanLogs (LOGS_V2 LogEntry store).
+    //
+    // The aggregator at utils/understandInsights.ts (`listLogsInRange`)
+    // reads avgHydrationPerDay / avgMealsPerDay / avgWellnessPerDay
+    // from LOGS_V2. Pre-fix this prefix was declared in
+    // SAMPLE_DATA_KEYS.prefixes.carePlanLogs but the function body
+    // never iterated it — accumulated sample-mode LogEntries from
+    // prior SAMPLE_SEED_SHAPE_VERSION runs survived clearSampleData()
+    // and inflated the hydration tile (see MEALS audit Item 2).
+    //
+    // Filter contract: filterSampleFromArray keeps items with
+    // `origin === 'user'` and removes items with `origin === 'sample'`.
+    // LogEntries don't currently carry an `origin` field (LogEntry's
+    // `source` enum is 'record'|'journal'|'now'|'notification'|'widget'|
+    // 'auto' — no 'sample'), so this iteration is defensive — a no-op
+    // today, effective once the historical seed loop or any future
+    // write path tags LogEntries with origin='sample'. The actual
+    // migration-time wipe of accumulated logs is handled separately
+    // in migrateSampleSeedShape (sampleDataGenerator.ts) via an
+    // unconditional removeItem of LOGS_V2: keys.
+    const logKeys = allKeys.filter(k => k.startsWith(SAMPLE_DATA_KEYS.prefixes.carePlanLogs));
+    for (const key of logKeys) {
+      const removed = await filterSampleFromArray(key);
+      clearedCount += removed;
+    }
+
     // 11. Clear sample CarePlanConfig
     await AsyncStorage.removeItem(SAMPLE_DATA_KEYS.carePlanConfig);
     clearedCount++;

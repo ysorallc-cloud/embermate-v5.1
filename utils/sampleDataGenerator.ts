@@ -16,7 +16,7 @@ import { safeGetItem, safeSetItem, encryptedSetRaw } from './safeStorage';
 import { scopedKey } from './storageKeys';
 import { Medication } from './medicationStorage';
 import { DataOrigin } from './sampleDataManager';
-import { StorageKeys } from './storageKeys';
+import { StorageKeys, StorageKeyPrefixes } from './storageKeys';
 import {
   CarePlan,
   CarePlanItem,
@@ -70,7 +70,15 @@ const SAMPLE_DATA_INITIALIZED_KEY = StorageKeys.SAMPLE_DATA_INITIALIZED;
 // when this commit ships, refreshing already-seeded testers under
 // 11.6's medication-instance shape.
 //
-export const SAMPLE_SEED_SHAPE_VERSION = 3;
+// Phase 28 Batch B MEALS post-audit (THE READ Item 2) — bumped 3 → 4.
+// Pre-4 the migration cleared SAMPLE_DATA_INITIALIZED + SAMPLE_CORRELATION_
+// GENERATED but left existing LOGS_V2 LogEntries in place. Subsequent
+// initializeSampleData() runs created new instances + logs on top of stale
+// log accumulators, inflating avgHydrationPerDay (observed at 13.7 vs the
+// intended ~7.5). Version 4 migration adds an unconditional wipe of
+// LOGS_V2:* + a clearSampleData() call before re-seeding so the next
+// sample-data init starts from a genuinely clean store.
+export const SAMPLE_SEED_SHAPE_VERSION = 4;
 
 export interface SampleSeedShapeMigrationResult {
   migrated: boolean;
@@ -99,6 +107,33 @@ export async function migrateSampleSeedShape(): Promise<SampleSeedShapeMigration
         fromVersion: stored,
         toVersion: SAMPLE_SEED_SHAPE_VERSION,
       };
+    }
+    // Phase 28 Batch B MEALS post-audit (THE READ Item 2) — wipe accumulated
+    // sample-mode state before re-seeding under the new shape.
+    //
+    // 1) clearSampleData() removes origin-tagged sample records across the
+    //    storage categories that consume the origin / sample-id-prefix
+    //    convention (medications, vitals, mood logs, daily tracking,
+    //    sample-* CarePlan items, sample-* instances, patient profile, …).
+    //
+    // 2) Unconditional removal of LOGS_V2:* keys covers the gap where
+    //    LogEntries lack an `origin` field — filterSampleFromArray's
+    //    origin-based filter doesn't catch them. This is a one-shot
+    //    migration-time wipe; safe because the migration only fires when
+    //    the persisted version is behind (i.e., the user is between seed
+    //    shapes and any LogEntries reflect a stale shape anyway).
+    //
+    // Together these prevent the avgHydrationPerDay accumulation bug where
+    // each version bump's re-seed added new hydration LogEntries on top of
+    // prior ones, inflating the tile from the intended ~7.5 to 13.7+
+    // glasses/day.
+    const { clearSampleData } = await import('./sampleDataManager');
+    await clearSampleData();
+    const allKeys = await AsyncStorage.getAllKeys();
+    const logEntryKeys = allKeys.filter(k => k.startsWith(StorageKeyPrefixes.LOGS_V2));
+    if (logEntryKeys.length > 0) {
+      await AsyncStorage.multiRemove(logEntryKeys);
+      devLog(`[migrateSampleSeedShape] Wiped ${logEntryKeys.length} LOGS_V2 keys before re-seed`);
     }
     // Clear both seed-init flags so the next initializeSampleData() and
     // generateSampleCorrelationData() runs from scratch.
