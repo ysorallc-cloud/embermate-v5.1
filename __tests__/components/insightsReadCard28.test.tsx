@@ -237,6 +237,14 @@ describe('Phase 28 F3 — InsightsReadCard', () => {
     )[0];
     expect(sleepTile).toBeDefined();
     expect(flatText(sleepTile)).toContain('h/night');
+    // Hydration tile shows the per-day basis for unit-consistency
+    // with Sleep's 'h/night' and Meals' '/day'. Pre-fix Hydration
+    // alone showed bare 'glasses'.
+    const hydrationTile = findAll(tree14.root, (n) =>
+      typeof n.props?.testID === 'string' && n.props.testID === 'read-metric-2',
+    )[0];
+    expect(hydrationTile).toBeDefined();
+    expect(flatText(hydrationTile)).toContain('glasses/day');
   });
 
   it('contract 5: pattern callout renders with N count and pattern lines', () => {

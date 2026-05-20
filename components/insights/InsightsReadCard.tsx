@@ -76,7 +76,12 @@ function buildMetrics(data: UnderstandPageData): Metric[] {
     {
       label: 'Hydration',
       value: hydrationAvailable ? data.avgHydrationPerDay.toFixed(1) : '—',
-      unit: hydrationAvailable ? 'glasses' : '',
+      // 'glasses/day' for unit-basis consistency with Sleep's
+      // 'h/night' and Meals' '/day'. Pre-fix Hydration alone showed
+      // a bare 'glasses' unit while the other two daily averages
+      // stated their per-period basis inline. Adherence stays '%'
+      // (a rate, no daily basis).
+      unit: hydrationAvailable ? 'glasses/day' : '',
       available: hydrationAvailable,
     },
     {
