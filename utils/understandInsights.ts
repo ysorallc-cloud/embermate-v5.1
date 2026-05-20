@@ -659,10 +659,32 @@ async function getCarePlanStatsForRange(timeRange: TimeRange): Promise<CarePlanS
       adherenceRate,
       uniqueDays: uniqueDays.size,
       carePlanItems: items,
-      avgMealsPerDay: mealDays.length > 0 ? mealDays.reduce((a, b) => a + b, 0) / mealDays.length : 0,
-      avgHydrationPerDay: hydrationDays.length > 0 ? hydrationDays.reduce((a, b) => a + b, 0) / hydrationDays.length : 0,
+      // Phase 28 Batch B MEALS Commit B — denominator fix.
+      //
+      // Pre-fix all four metrics divided by `*.length` (days that had
+      // ≥1 log of that category). The conditional denominator quietly
+      // turned "1 meal logged on day 7 of a 14-day window" into
+      // "Meals 1.0 /day" — interpretation (A) intent ("X per day over
+      // the period") with interpretation (B) computation ("avg on
+      // logged days"). Insights tile + gestalt both surfaced the
+      // hallucinated rate as a real signal.
+      //
+      // Per Commit B Lock 1 + 2:
+      //   • Meals / Hydration / Wellness → range-denominator (α).
+      //     Event counts where a zero-day is a real zero. Sparse-log
+      //     real-data caregivers see a lower average that reflects
+      //     actual logging consistency; the gestalt floor (Commit B
+      //     Lock 3) gates whether that lower average gets headlined.
+      //   • Sleep → KEEP sleepDays.length denominator (β special-case).
+      //     Sleep is a duration reading, not an event count.
+      //     range-denominator math would dilute 7 healthy 7hr nights
+      //     to 3.5hr avg — worse than the original bug. Honest
+      //     "average on tracked nights"; the gestalt 4hr floor keeps
+      //     sparse-night noise out of the headline.
+      avgMealsPerDay: timeRange > 0 ? mealDays.reduce((a, b) => a + b, 0) / timeRange : 0,
+      avgHydrationPerDay: timeRange > 0 ? hydrationDays.reduce((a, b) => a + b, 0) / timeRange : 0,
       avgSleepHours: sleepDays.length > 0 ? sleepDays.reduce((a, b) => a + b, 0) / sleepDays.length : 0,
-      avgWellnessPerDay: wellnessDays.length > 0 ? wellnessDays.reduce((a, b) => a + b, 0) / wellnessDays.length : 0,
+      avgWellnessPerDay: timeRange > 0 ? wellnessDays.reduce((a, b) => a + b, 0) / timeRange : 0,
       lunchSkipRate: lunchCount > 0 ? lunchSkipped / lunchCount : 0,
     };
   } catch (error) {
@@ -1171,13 +1193,20 @@ function buildSummarySentences(data: UnderstandPageData, range: TimeRange): stri
   }
 
   // Nutrition
-  if (data.avgMealsPerDay > 0) {
+  // Phase 28 Batch B MEALS Commit B Lock 3 — gestalt signal floor.
+  // Below 1.5 meals/day the metric is sparse-logging noise, not a
+  // "feeding pattern" worth headlining. Sentence omitted from the
+  // priority list; the Meals tile still displays the real number.
+  if (data.avgMealsPerDay >= 1.5) {
     const meals = data.avgMealsPerDay.toFixed(1);
     sentences.push(`Averaging ${meals} meals per day.`);
   }
 
   // Sleep
-  if (data.avgSleepHours > 0) {
+  // Commit B Lock 3 — floor at 4hr/night. Below 4hr is sparse-tracking
+  // noise (real sleep is 4-9hr). Existing 7hr conditional copy preserved
+  // for >= 4hr range: at [4, 7) → "below recommended", at >= 7 → "adequate".
+  if (data.avgSleepHours >= 4) {
     const sleep = data.avgSleepHours.toFixed(1);
     if (data.avgSleepHours >= 7) {
       sentences.push(`Sleep has been adequate at ${sleep} hours per night.`);
@@ -1187,7 +1216,10 @@ function buildSummarySentences(data: UnderstandPageData, range: TimeRange): stri
   }
 
   // Hydration
-  if (data.avgHydrationPerDay > 0) {
+  // Commit B Lock 2 — floor at 4 glasses/day. Below 4 is sparse-tracking
+  // noise; the headline sentence at low values reads punitive without
+  // adding clinical signal. Tile still shows the real number.
+  if (data.avgHydrationPerDay >= 4) {
     const water = data.avgHydrationPerDay.toFixed(1);
     sentences.push(`Hydration averages ${water} glasses per day.`);
   }
