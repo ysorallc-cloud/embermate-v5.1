@@ -93,6 +93,39 @@ describe('Phase 11.6 — decideHistoricalSeedStatus', () => {
       },
     );
   });
+
+  // Phase 28 Batch B — MEALS Commit A. Pre-fix: nutrition fell through
+  // to the `return null` branch, so the historical loop never seeded
+  // past-day meal completions. THE READ tile + gestalt sourced from
+  // the lone pre-completed breakfast at sampleDataGenerator.ts:813,
+  // producing the misleading "Meals 1.0/day" reading on the demo path.
+  describe('Contract 5: past-day nutrition instances seed at the medication rate', () => {
+    it('itemType=nutrition returns "completed" or "skipped" — never null', () => {
+      const decisions = new Set<HistoricalSeedDecision>();
+      for (let i = 0; i < 200; i++) {
+        const fakeRandom = () => i / 200;
+        decisions.add(decideHistoricalSeedStatus('nutrition', fakeRandom));
+      }
+      expect(decisions.has('completed')).toBe(true);
+      expect(decisions.has('skipped')).toBe(true);
+      expect(decisions.has(null)).toBe(false);
+    });
+
+    it('nutrition status distribution is ~90% completed (matches medication)', () => {
+      let completed = 0;
+      let skipped = 0;
+      for (let i = 0; i < 200; i++) {
+        const fakeRandom = () => i / 200;
+        const d = decideHistoricalSeedStatus('nutrition', fakeRandom);
+        if (d === 'completed') completed++;
+        else if (d === 'skipped') skipped++;
+      }
+      const completedPct = (completed / 200) * 100;
+      expect(completedPct).toBeGreaterThanOrEqual(85);
+      expect(completedPct).toBeLessThanOrEqual(95);
+      expect(completed + skipped).toBe(200);
+    });
+  });
 });
 
 // ----------------------------------------------------------------------------

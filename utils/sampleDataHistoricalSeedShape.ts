@@ -58,6 +58,29 @@ export function decideHistoricalSeedStatus(
     // rate so the two seeded layers tell a consistent story.
     return random() > 0.1 ? 'completed' : 'skipped';
   }
+  if (itemType === 'nutrition') {
+    // Pre-Phase-28-Batch-B (MEALS Commit A): nutrition fell through to
+    // the `return null` below, so the historical loop skipped every
+    // past-day meal instance. With the general-wellness template (3
+    // meal slots/day: Breakfast/Lunch/Dinner) that meant 39 created
+    // instances and 0 logs across 14 days. The Insights tile + gestalt
+    // surfaced "Meals 1.0/day" sourced from the lone pre-completed
+    // breakfast at sampleDataGenerator.ts:813 — misleading for both
+    // the App Store screenshot path and any real-data low-log state.
+    //
+    // ~90% completion mirrors the medication pattern: realistic
+    // adherence with a small skip rate. 'skipped' (not 'missed') so
+    // the aggregator's handled = completed + skipped formula treats
+    // the deliberate-skip as caregiver-acted, not a gap.
+    //
+    // Payload is undefined for nutrition (no mealType set), so the
+    // aggregator's lunchSkipRate stays 0 in sample-mode — same as
+    // pre-fix behavior, just no longer the only-1-meal-today
+    // hallucination. Wiring mealType into the payload (via passing
+    // the instance to historicalSeedDataPayload) is a separate
+    // follow-up if Insights ever surfaces lunchSkipRate.
+    return random() > 0.1 ? 'completed' : 'skipped';
+  }
   return null;
 }
 
