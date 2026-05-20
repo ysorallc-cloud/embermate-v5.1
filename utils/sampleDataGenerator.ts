@@ -70,15 +70,34 @@ const SAMPLE_DATA_INITIALIZED_KEY = StorageKeys.SAMPLE_DATA_INITIALIZED;
 // when this commit ships, refreshing already-seeded testers under
 // 11.6's medication-instance shape.
 //
-// Phase 28 Batch B MEALS post-audit (THE READ Item 2) — bumped 3 → 4.
-// Pre-4 the migration cleared SAMPLE_DATA_INITIALIZED + SAMPLE_CORRELATION_
-// GENERATED but left existing LOGS_V2 LogEntries in place. Subsequent
-// initializeSampleData() runs created new instances + logs on top of stale
-// log accumulators, inflating avgHydrationPerDay (observed at 13.7 vs the
-// intended ~7.5). Version 4 migration adds an unconditional wipe of
-// LOGS_V2:* + a clearSampleData() call before re-seeding so the next
-// sample-data init starts from a genuinely clean store.
-export const SAMPLE_SEED_SHAPE_VERSION = 4;
+// Phase 28 Batch B MEALS post-audit (THE READ Item 2) — bumped 3 → 4 → 5.
+//
+// v3 → v4 (commit 8ae797ce, sim + repo only — never reached TestFlight/
+// App Store):
+//   Added clearSampleData() + LOGS_V2:* wipe before re-seed. Two flaws
+//   surfaced on simulator gate:
+//     (a) wipes ran UNCONDITIONALLY when stored < code, so a real-mode
+//         user on first launch (stored=0, code=4) would have lost their
+//         care plan data. Latent destructive bug.
+//     (b) INSTANCES_V2:* entries survived clearSampleData() because
+//         their auto-UUID IDs don't match the 'sample-' prefix filter
+//         (filterSampleFromArray's only LogEntry-style fallback). Re-
+//         seed's ensureDailyInstances matched the surviving v3 instances
+//         via existingMap key `${itemId}:${windowId}`, status='completed'
+//         from v3 → loop's `inst.status !== 'pending' continue` skipped
+//         every instance → no fresh LogEntries written → THE READ tiles
+//         all showed "—" while THE DATA (instance-sourced) read fine.
+//
+// v5 fixes both:
+//   (a) `sample_data_seeded === 'true'` guard around the heavy wipes.
+//       Real-mode users skip the entire destructive block; only the
+//       original SAMPLE_DATA_INITIALIZED + SAMPLE_CORRELATION_GENERATED
+//       flag clears (harmless) run.
+//   (b) INSTANCES_V2:* wipe alongside LOGS_V2:*. Fresh re-seed starts
+//       with no carryover instances, ensureDailyInstances creates
+//       pending instances, historical loop logs them, listLogsInRange
+//       reads the new daily buckets, THE READ populates correctly.
+export const SAMPLE_SEED_SHAPE_VERSION = 5;
 
 export interface SampleSeedShapeMigrationResult {
   migrated: boolean;
@@ -108,35 +127,63 @@ export async function migrateSampleSeedShape(): Promise<SampleSeedShapeMigration
         toVersion: SAMPLE_SEED_SHAPE_VERSION,
       };
     }
-    // Phase 28 Batch B MEALS post-audit (THE READ Item 2) — wipe accumulated
-    // sample-mode state before re-seeding under the new shape.
-    //
-    // 1) clearSampleData() removes origin-tagged sample records across the
-    //    storage categories that consume the origin / sample-id-prefix
-    //    convention (medications, vitals, mood logs, daily tracking,
-    //    sample-* CarePlan items, sample-* instances, patient profile, …).
-    //
-    // 2) Unconditional removal of LOGS_V2:* keys covers the gap where
-    //    LogEntries lack an `origin` field — filterSampleFromArray's
-    //    origin-based filter doesn't catch them. This is a one-shot
-    //    migration-time wipe; safe because the migration only fires when
-    //    the persisted version is behind (i.e., the user is between seed
-    //    shapes and any LogEntries reflect a stale shape anyway).
-    //
-    // Together these prevent the avgHydrationPerDay accumulation bug where
-    // each version bump's re-seed added new hydration LogEntries on top of
-    // prior ones, inflating the tile from the intended ~7.5 to 13.7+
-    // glasses/day.
-    const { clearSampleData } = await import('./sampleDataManager');
-    await clearSampleData();
-    const allKeys = await AsyncStorage.getAllKeys();
-    const logEntryKeys = allKeys.filter(k => k.startsWith(StorageKeyPrefixes.LOGS_V2));
-    if (logEntryKeys.length > 0) {
-      await AsyncStorage.multiRemove(logEntryKeys);
-      devLog(`[migrateSampleSeedShape] Wiped ${logEntryKeys.length} LOGS_V2 keys before re-seed`);
+
+    // Phase 28 Batch B MEALS post-audit (THE READ Item 2) — sample-mode
+    // guard. v4 ran the wipes unconditionally, which would have wiped
+    // real-mode users' care plan on first launch (stored=0 < code=4 →
+    // migration fires regardless of mode). v5 gates the heavy wipes on
+    // `sample_data_seeded === 'true'` — the same flag the appStartup
+    // sampleData phase checks before calling initializeSampleData. Real-
+    // mode users (no sample_data_seeded flag) skip the destructive block
+    // entirely; only the harmless init-flag clears below run.
+    const sampleSeeded = await safeGetItem<string | null>(
+      'sample_data_seeded',
+      null,
+    );
+
+    if (sampleSeeded === 'true') {
+      // Sample-mode user — wipe accumulated sample state before re-seed:
+      //
+      // 1) clearSampleData() — origin-tagged records (medications, vitals,
+      //    mood logs, daily tracking, sample-* CarePlan items, sample-*
+      //    instances, patient profile, …).
+      //
+      // 2) LOGS_V2:* wipe — covers the gap where LogEntries lack an
+      //    `origin` field (LogSource enum excludes 'sample'), so
+      //    clearSampleData's filterSampleFromArray can't catch them.
+      //
+      // 3) INSTANCES_V2:* wipe — DailyCareInstance IDs are auto-UUIDs
+      //    (not 'sample-' prefixed), so clearSampleData's filter ALSO
+      //    can't catch them. Without this wipe, v3/v4 instances with
+      //    status='completed' survived and ensureDailyInstances reused
+      //    them via existingMap matching; the historical seed loop's
+      //    `inst.status !== 'pending' continue` then skipped them and
+      //    no fresh LogEntries got written. THE READ went empty while
+      //    THE DATA (instance-sourced) read the surviving instance
+      //    counts.
+      //
+      // Together these prevent both the avgHydrationPerDay accumulation
+      // bug (logs from prior shape adding to current) AND the empty-
+      // THE-READ regression (surviving instances blocking fresh logs).
+      const { clearSampleData } = await import('./sampleDataManager');
+      await clearSampleData();
+
+      const allKeys = await AsyncStorage.getAllKeys();
+      const logEntryKeys = allKeys.filter(k => k.startsWith(StorageKeyPrefixes.LOGS_V2));
+      const instanceKeys = allKeys.filter(k => k.startsWith(StorageKeyPrefixes.INSTANCES_V2));
+      const toRemove = [...logEntryKeys, ...instanceKeys];
+      if (toRemove.length > 0) {
+        await AsyncStorage.multiRemove(toRemove);
+        devLog(`[migrateSampleSeedShape] Wiped ${logEntryKeys.length} LOGS_V2 + ${instanceKeys.length} INSTANCES_V2 keys before re-seed`);
+      }
+    } else {
+      devLog('[migrateSampleSeedShape] Skipping heavy wipes — sample_data_seeded not set (real-mode user)');
     }
+
     // Clear both seed-init flags so the next initializeSampleData() and
-    // generateSampleCorrelationData() runs from scratch.
+    // generateSampleCorrelationData() runs from scratch. Safe for both
+    // modes — initializeSampleData has its own guards and the sampleData
+    // appStartup phase guards on sample_data_seeded.
     await AsyncStorage.removeItem(SAMPLE_DATA_INITIALIZED_KEY);
     await AsyncStorage.removeItem(StorageKeys.SAMPLE_CORRELATION_GENERATED);
     // Persist the new version so subsequent launches don't re-migrate.
