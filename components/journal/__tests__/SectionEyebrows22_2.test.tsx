@@ -204,16 +204,10 @@ describe('Phase 22.2 — uniform divider treatment', () => {
   });
 });
 
-describe('Phase 22.2 — Insights tab unchanged (15.12 still passes)', () => {
-  // Adding new tint values (amber, coral) to the variant set must
-  // not regress Insights — its existing eyebrows continue to use
-  // their original tints. Pin a quick sanity check.
-  const insightsCode = read('app/(tabs)/understand.tsx');
-  it('Insights still imports SectionEyebrow', () => {
-    expect(insightsCode).toMatch(/import\s+\{[^}]*\bSectionEyebrow\b[^}]*\}\s+from\s+['"][^'"]*\/SectionEyebrow['"]/);
-  });
-  it('Insights renders at least 4 SectionEyebrow components (Phase 15.12 count)', () => {
-    const eyebrows = insightsCode.match(/<SectionEyebrow\b[^/]*\/>/g) || [];
-    expect(eyebrows.length).toBeGreaterThanOrEqual(4);
-  });
-});
+// Phase 22.2's "Insights tab unchanged (15.12 still passes)" describe
+// retired by Phase 28 Batch B F6 (audit-revised cadence). F6 swapped
+// understand.tsx's inline eyebrow consumers for `<InsightsReadCard>` +
+// `<InsightsDataCard>`, which carry SectionEyebrow internally via the
+// JournalSection primitive. The page-level eyebrow count is no longer
+// the structural contract — the three-card mount is, pinned in
+// `__tests__/screens/insightsThreeCardStructure28.test.ts`.

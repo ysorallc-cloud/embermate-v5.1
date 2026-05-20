@@ -78,15 +78,17 @@ describe('Phase 15.10 — "This Week" RecentWindowCard retired from Insights', (
     expect(code).not.toMatch(/\bInsightData\b/);
   });
 
-  it('contract 5: BP / Vitals canonical surface preserved', () => {
-    // computeVitalTiles + the Vitals render block + the systolic
-    // averaging arithmetic must all still be present. The
-    // duplicate surface is gone; the canonical one is not.
+  it('contract 5: BP / Vitals canonical data pipeline preserved', () => {
+    // Phase 28 Batch B F6 (audit-revised) reframed this contract:
+    // pre-F6 the "Vitals this week" string lived inline in understand.tsx
+    // as the SECTION 4 eyebrow text. F6 folded the Vitals render into
+    // `<InsightsDataCard>`, which now owns the eyebrow text. The
+    // canonical data pipeline (computeVitalTiles + setVitalTiles +
+    // systolic-by-type slice) is what still must live in understand.tsx —
+    // it feeds the card. The eyebrow text moved with the render and is
+    // contracted at the card layer (components/insights/InsightsDataCard).
     expect(code).toMatch(/function computeVitalTiles\b/);
     expect(code).toMatch(/setVitalTiles\b/);
-    expect(code).toMatch(/Vitals this week/);
-    // Pin the systolic-by-type slice — this is the BP aggregator
-    // entry point. Phase 17 will revisit its math; 15.10 must not.
     expect(code).toMatch(/byType\[['"]systolic['"]\]/);
   });
 

@@ -2,17 +2,22 @@
 // Insights data-state gating — Phase 3.7.3 source-level guards.
 //
 // Mounting the Insights tab requires stubbing dozens of transitive imports
-// (vitals storage, care-plan repo, providerPrepBuilder, navigation, ...).
-// The unit-tested classifier (`__tests__/utils/insightsState.test.ts`) pins
-// the spec table directly. THIS test pins the wiring at the call site:
-// `app/(tabs)/understand.tsx` consumes `classifyInsightsState` and gates
-// each section through `gatingForState`.
+// (vitals storage, care-plan repo, navigation, ...). The unit-tested
+// classifier (`__tests__/utils/insightsState.test.ts`) pins the spec
+// table directly. THIS test pins the wiring at the call site:
+// `app/(tabs)/understand.tsx` consumes `classifyInsightsState` /
+// `gatingForState` for the page-level disclaimer + empty-state gates.
 //
-// The source-level contract:
-//   1. Imports `classifyInsightsState` and `gatingForState`.
-//   2. Reports section is wrapped in `gating.showReports`.
-//   3. Adherence chart is wrapped in `gating.showAdherenceChart`.
-//   4. Empty preview's tip card is gated via the new `showTipCard` prop.
+// Phase 28 Batch B F6 (audit-revised cadence) reframed this file:
+//   • The old "Reports section gated by gating.showReports" pinned the
+//     `═══ REPORTS ═══` marker + the Share CTA gate. F6 retired the
+//     standalone Share CTA + Reports section entirely.
+//   • The old "Medication adherence chart gated by gating.showAdherenceChart"
+//     pinned the `═══ SECTION 5: MEDICATION ADHERENCE` marker + the inline
+//     adherence gate. F6 folded adherence into `<InsightsDataCard>`, which
+//     handles its own data-state filtering internally.
+//   • Adherence-chart hard floor pin moved to inspect `insightsState.ts`
+//     helper directly (unchanged by F6).
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -35,24 +40,6 @@ describe('Phase 3.7.3 — Insights data-state gating wired into understand.tsx',
     );
   });
 
-  it('Reports section is gated by gating.showReports', () => {
-    // The wrapper IIFE must mention `gating.showReports` near the
-    // Reports section. Window widened to 2000 chars after Phase 5.11
-    // inserted the THIS WEEK + UPCOMING VISIT cards between the marker
-    // and the gating IIFE.
-    const reportsIdx = understandSrc.indexOf('═══ REPORTS ═══');
-    expect(reportsIdx).toBeGreaterThan(0);
-    const window = understandSrc.slice(reportsIdx, reportsIdx + 2000);
-    expect(window).toMatch(/gating\.showReports\b/);
-  });
-
-  it('Medication adherence chart is gated by gating.showAdherenceChart', () => {
-    const adherenceIdx = understandSrc.indexOf('═══ SECTION 5: MEDICATION ADHERENCE');
-    expect(adherenceIdx).toBeGreaterThan(0);
-    const window = understandSrc.slice(adherenceIdx, adherenceIdx + 800);
-    expect(window).toMatch(/gating\.showAdherenceChart\b/);
-  });
-
   it('passes showTipCard through to InsightsEmptyStatePreview', () => {
     expect(understandSrc).toMatch(
       /<InsightsEmptyStatePreview[\s\S]*?showTipCard=\{gating\.showTipCard\}/,
@@ -70,6 +57,9 @@ describe('Phase 3.7.3 — Insights data-state gating wired into understand.tsx',
     // gatingForState enforces daysOfData >= POPULATED_DAYS_THRESHOLD before
     // showAdherenceChart can be true. Pin it at the helper's source so a
     // future classifier weakening doesn't silently lower the floor.
+    // Post-F6: the consumer of `showAdherenceChart` moved into
+    // InsightsDataCard's internal gating logic, but the helper-level
+    // hard-floor pin still guards the threshold definition.
     const helperSrc = readFileSync(join(ROOT, 'utils/insightsState.ts'), 'utf8');
     expect(helperSrc).toMatch(
       /adherenceFloor\s*=\s*daysOfData\s*>=\s*POPULATED_DAYS_THRESHOLD/,

@@ -1,13 +1,26 @@
 // ============================================================================
 // UNDERSTAND PAGE - "Insights" — the correlation layer
 //
-// Layout (per mockup):
-// 1. Care Score — synthesized ring + factor bars
-// 2. Correlations Found — expandable severity-tagged cards
-// 3. Data Gaps — what we don't know
-// 4. Vitals Dashboard — 2×2 grid with sparklines
-// 5. Medication Adherence — percentage + dose grid
-// 6. Visit Prep Link — appointment card
+// Phase 28 Batch B F6 (audit-revised cadence — absorbs F7+F8+F9 atomic):
+// the page collapses into the three-card structure locked by the Batch B
+// audit:
+//   1. <InsightsReadCard>          — THE READ (sage). Subsumes the prior
+//                                     "This week's pulse" prose summary +
+//                                     PatternStack "EmberMate noticed".
+//   2. <InsightsDataCard>          — THE DATA (neutral). Subsumes the prior
+//                                     Vitals Dashboard + Medication
+//                                     Adherence + Missing Data (now folded
+//                                     to a single footer line).
+//   3. <UpcomingVisitInsightsCard> — Section 3 (caregiver→clinician handoff
+//                                     lane). Mounted post-F5 at 35c5441b.
+//
+// Retired in this commit (per Q-B-F6.1–F6.7 locks):
+//   • generatePlainLanguageSummary import + Section 1 PULSE render block
+//   • standalone Share CTA + handleShareSelection + ShareToast wiring
+//   • inline Vitals / Adherence / Data Gaps render blocks + their styles
+//   • PatternStack mount (subsumed by InsightsReadCard's pattern callout)
+//   • pre-existing orphan code — CareScoreRing, computeHealthScore,
+//     healthScore/periodLabel consts, Svg/SvgCircle/CareScoreFactor refs
 // ============================================================================
 
 import React, { useState, useCallback, useMemo, useRef } from 'react';
@@ -19,51 +32,27 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { navigate } from '../../lib/navigate';
 import { useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import Svg, { Circle as SvgCircle } from 'react-native-svg';
-import { Sparkline } from '../../components/insights/Sparkline';
 import { Colors, Spacing } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { SectionEyebrow } from '../../components/SectionEyebrow';
+import { InsightsReadCard } from '../../components/insights/InsightsReadCard';
+import { InsightsDataCard } from '../../components/insights/InsightsDataCard';
 import { UpcomingVisitInsightsCard } from '../../components/insights/UpcomingVisitInsightsCard';
-// Phase 15.9 — pattern stack moved into its own component with an
-// outer collapse so it doesn't dominate vertical real estate.
-import { PatternStack } from '../../components/insights/PatternStack';
-// Phase 15.11 — the three reportCards consolidated into a single
-// Share CTA + action sheet. Routing handler stays in this screen
-// so the navigate/Share.share/toast wiring keeps living next to
-// the rest of the screen's state.
-// Phase 16.4 — ShareSheet runtime mount retired pre-launch (Care
-// report / Medication report options text-shared with no visible
-// system sheet on simulator). Insights now uses a direct button to
-// /visit-prep. ShareSheet.tsx remains in the codebase as intentional
-// orphan; Phase 21 will re-mount it once real PDF generation ships.
-// ShareOption type kept as TS-only import so handleShareSelection's
-// signature (preserved for Phase 21) still type-checks.
-import type { ShareOption } from '../../components/insights/ShareSheet';
 import { usePatient } from '../../contexts/PatientContext';
 import {
   loadUnderstandPageData,
-  generatePlainLanguageSummary,
   TimeRange,
   UnderstandPageData,
 } from '../../utils/understandInsights';
-import { computeDataGaps, DataGap } from '../../utils/insightsDataGaps';
+import { computeDataGaps } from '../../utils/insightsDataGaps';
 import { logError } from '../../utils/devLog';
 import { useDataListener } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
-// Phase 28 Batch B F5 — buildProviderPrep + ProviderPrepData import
-// retired with the visit-context note's removal. The util + type
-// continue to serve app/care-report.tsx and
-// components/understand/ProviderPrepCard.tsx — only understand.tsx's
-// consumption retires.
-import { ShareToast } from '../../components/shared/ShareToast';
 import { InsightsEmptyStatePreview } from '../../components/understand/InsightsEmptyStatePreview';
 // Phase 15.10 — recent-window card import + insight-aggregator
 // selector + pattern-headline type imports retired. The "This Week"
@@ -94,12 +83,6 @@ interface VitalTile {
   trendDir: 'up' | 'down' | 'stable';
   color: string;
   sparkPoints: string;
-}
-
-interface CareScoreFactor {
-  label: string;
-  score: number;
-  status: string;
 }
 
 // Phase 11.9.3 — DataGap + computeDataGaps moved to utils/insightsDataGaps
@@ -147,48 +130,6 @@ function TimeRangeToggle({ value, onChange }: { value: TimeRange; onChange: (r: 
 }
 
 // ============================================================================
-// CARE SCORE RING (SVG)
-// ============================================================================
-
-function CareScoreRing({ score, size = 90 }: { score: number; size?: number }) {
-  const radius = (size - 10) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
-  const color = score >= 80 ? Colors.green : score >= 60 ? Colors.amberBright : Colors.coralBright;
-
-  return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <SvgCircle
-          cx={size / 2} cy={size / 2} r={radius}
-          fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={6}
-        />
-        <SvgCircle
-          cx={size / 2} cy={size / 2} r={radius}
-          fill="none" stroke={color} strokeWidth={6}
-          strokeLinecap="round"
-          strokeDasharray={`${circumference}`}
-          strokeDashoffset={offset}
-          rotation={-90}
-          origin={`${size / 2}, ${size / 2}`}
-        />
-      </Svg>
-      <View style={{ position: 'absolute', alignItems: 'center' }}>
-        <Text style={{ fontSize: 26, fontWeight: '300', color: Colors.textPrimary }}>{score}</Text>
-        <Text style={{ fontSize: 9, fontWeight: '600', color: Colors.textMuted, letterSpacing: 0.5, textTransform: 'uppercase' }}>Care Score</Text>
-      </View>
-    </View>
-  );
-}
-
-// ============================================================================
-// SPARKLINE
-// ============================================================================
-
-// Phase 28 F4 — Sparkline relocated to components/insights/Sparkline.tsx
-// so InsightsDataCard can consume the same primitive without duplication.
-
-// ============================================================================
 // HELPERS
 // ============================================================================
 
@@ -203,70 +144,6 @@ function generateSparkPoints(values: number[], w = 50, h = 20): string {
     const y = (h - 3) - ((v - min) / range) * (h - 6);
     return `${x.toFixed(0)},${y.toFixed(0)}`;
   }).join(' ');
-}
-
-function computeHealthScore(pageData: UnderstandPageData): { score: number; previous: number; factors: CareScoreFactor[] } {
-  const factors: CareScoreFactor[] = [];
-  let totalWeight = 0;
-  let weightedSum = 0;
-
-  // Medication adherence (high weight)
-  const medScore = Math.round(pageData.adherenceRate);
-  factors.push({
-    label: 'Medication adherence',
-    score: medScore,
-    status: medScore >= 90 ? 'strong' : medScore >= 70 ? 'fair' : 'needs attention',
-  });
-  weightedSum += medScore * 3;
-  totalWeight += 3;
-
-  // Nutrition (high weight)
-  const mealScore = Math.min(100, Math.round((pageData.avgMealsPerDay / 3) * 100));
-  factors.push({
-    label: 'Nutrition consistency',
-    score: mealScore,
-    status: mealScore >= 80 ? 'strong' : mealScore >= 50 ? 'watch' : 'needs attention',
-  });
-  weightedSum += mealScore * 3;
-  totalWeight += 3;
-
-  // Hydration (medium weight)
-  const hydrationScore = Math.min(100, Math.round((pageData.avgHydrationPerDay / 8) * 100));
-  factors.push({
-    label: 'Hydration',
-    score: hydrationScore,
-    status: hydrationScore >= 75 ? 'good' : hydrationScore >= 50 ? 'fair' : 'needs attention',
-  });
-  weightedSum += hydrationScore * 2;
-  totalWeight += 2;
-
-  // Wellness engagement (medium weight)
-  const wellnessScore = Math.min(100, Math.round((pageData.avgWellnessPerDay / 2) * 100));
-  factors.push({
-    label: 'Wellness engagement',
-    score: wellnessScore,
-    status: wellnessScore >= 80 ? 'good' : wellnessScore >= 40 ? 'fair' : 'needs attention',
-  });
-  weightedSum += wellnessScore * 2;
-  totalWeight += 2;
-
-  // Sleep tracking (medium weight)
-  const sleepScore = pageData.avgSleepHours > 0
-    ? Math.min(100, Math.round((pageData.avgSleepHours / 8) * 100))
-    : 0;
-  factors.push({
-    label: 'Sleep tracking',
-    score: sleepScore,
-    status: sleepScore === 0 ? 'no data' : sleepScore >= 75 ? 'good' : 'fair',
-  });
-  weightedSum += sleepScore * 2;
-  totalWeight += 2;
-
-  const score = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
-  // Estimate previous as slightly higher (simplified — real impl would compare periods)
-  const previous = Math.min(100, score + Math.floor(Math.random() * 6));
-
-  return { score, previous, factors };
 }
 
 // Phase 11.9.3 — computeDataGaps moved to utils/insightsDataGaps.
@@ -435,7 +312,6 @@ export default function UnderstandScreen() {
   // visit-context note. The note duplicated UpcomingVisitInsightsCard's
   // appointment context; one entry point per surface.
   const [vitalTiles, setVitalTiles] = useState<VitalTile[]>([]);
-  const [shareToastVisible, setShareToastVisible] = useState(false);
   const [adherence, setAdherence] = useState<AdherenceData | null>(null);
   // Phase 15.10 — top-ranked pattern state retired with the "This
   // Week" callout that consumed it.
@@ -534,42 +410,9 @@ export default function UnderstandScreen() {
     setRefreshing(false);
   }, [timeRange]);
 
-  // Phase 15.9 — chevron anim ref + toggleCorrelation moved into
-  // PatternStack. understand.tsx only sources the array now.
+  // Phase 28 Batch B F6 — `patternStackData` feeds InsightsReadCard's
+  // pattern callout (subsumed from the prior PatternStack mount).
   const patternStackData = pageData?.correlationCards ?? [];
-
-  // Phase 15.11 — dispatch table for the consolidated ShareSheet.
-  // Mirrors the pre-15.11 inline onPress branch verbatim:
-  //   • visit-prep → navigate to the visit-prep config screen.
-  //   • care-report / medication-report → fire ShareToast + the
-  //     existing Share.share text payload.
-  // No PDF generation is introduced — the pre-15.11 behavior only
-  // shared text, and 15.11 is UI consolidation, not feature
-  // expansion. The PDF promise stays a Phase 17+ scope.
-  //
-  // Phase 16.4 — only the 'visit-prep' branch is reachable from UI
-  // pre-launch (direct button replaces the multi-option ShareSheet).
-  // The care-report and medication-report branches are preserved as
-  // Phase 21 scaffolding — when real PDF generation ships, ShareSheet
-  // returns and these branches re-wire to UI without re-deriving the
-  // routing logic. Dead-code lint warnings on the unreachable
-  // branches are intentional.
-  const handleShareSelection = async (option: ShareOption) => {
-    if (option === 'visit-prep') {
-      navigate('/visit-prep');
-      return;
-    }
-    // Phase 16.4 — care-report and medication-report branches kept
-    // as dispatch hooks for Phase 21 (real PDF generation). The
-    // pre-16.4 bodies (Share.share with plain-text payload + toast)
-    // produced no visible system sheet on simulator, so the options
-    // were retired from UI pre-launch. Phase 21 will replace these
-    // no-ops with real generate-and-share calls when the PDF
-    // pipeline ships.
-    if (option === 'care-report' || option === 'medication-report') {
-      return;
-    }
-  };
 
   // Loading state
   if (loading && !pageData) {
@@ -584,22 +427,10 @@ export default function UnderstandScreen() {
   }
 
   // Compute derived data
-  const healthScore = pageData ? computeHealthScore(pageData) : { score: 0, previous: 0, factors: [] };
   const dataGaps = pageData ? computeDataGaps(pageData, timeRange) : [];
-
-  const periodEnd = new Date();
-  const periodStart = new Date();
-  periodStart.setDate(periodEnd.getDate() - timeRange);
-  const periodLabel = `${periodStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} \u2013 ${periodEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 
   return (
     <View style={styles.container}>
-      <ShareToast visible={shareToastVisible} onDismiss={() => setShareToastVisible(false)} />
-      {/* Phase 16.4 — share-sheet mount retired pre-launch. The two
-          broken option bodies text-shared with no visible system sheet
-          on simulator. Direct Visit Prep button below replaces the
-          intermediate sheet step. Phase 21 will restore. */}
-
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView
           style={styles.scrollView}
@@ -682,222 +513,39 @@ export default function UnderstandScreen() {
             );
           })()}
 
-          {/* ═══ SECTION 1: THIS WEEK'S PULSE (AI SUMMARY) ═══ */}
-          {pageData && pageData.daysOfData >= EMPTY_STATE_DAYS_THRESHOLD && (() => {
-            const summaryText = generatePlainLanguageSummary(pageData, timeRange);
-            if (!summaryText) return null;
-            return (
-              <View style={styles.aiSummarySection}>
-                <SectionEyebrow text="This week's pulse" />
-                <Text style={styles.sectionContext}>
-                  An overall read on how {patientName}'s care is going. Higher is better.
-                </Text>
-                <Text style={styles.aiSummaryLabel}>{'\u2728'} {timeRange}-day summary</Text>
-                <Text style={styles.aiSummaryText}>{summaryText}</Text>
-                <Text style={styles.aiSummaryDisclaimer}>For informational purposes only · Not a diagnosis</Text>
-              </View>
-            );
-          })()}
-
-          <View style={styles.divider} />
-
-          {/* ═══ SECTION 2: EMBERMATE NOTICED (pattern stack) ═══
-              Phase 15.9 — wrapped in PatternStack so the section
-              collapses by default and doesn't dominate vertical
-              real estate. Inner per-card expand behavior is
-              preserved inside the stack. */}
-          <PatternStack patterns={patternStackData} />
-
-          {/* ═══ SECTION 3: DATA GAPS ═══
-              v6.7 May 1 sizing pass — Phase 5: suppressed for under-7-day
-              windows. The InsightsEmptyStatePreview card above already
-              explains the data state — surfacing "Missing data" alongside
-              it is redundant and reads as scolding. Re-enabled at 7+ days
-              when the section adds value (the user has data, this surfaces
-              what they DON'T have to lift their visibility). */}
-          {pageData && pageData.daysOfData >= EMPTY_STATE_DAYS_THRESHOLD && dataGaps.length > 0 && (
-            <View style={styles.section}>
-              <SectionEyebrow text="Missing data" />
-              <Text style={styles.sectionContext}>
-                What we can't track yet. More data means better insights.
-              </Text>
-
-              {dataGaps.map((gap, i) => (
-                <View key={i} style={styles.dataGapCard}>
-                  <Text style={styles.dataGapIcon}>{gap.icon}</Text>
-                  <View style={styles.dataGapInfo}>
-                    <View style={styles.dataGapHeader}>
-                      <Text style={styles.dataGapMetric}>{gap.metric}</Text>
-                      <Text style={styles.dataGapDays}>{'\u00B7'} {gap.daysMissing} days missing</Text>
-                    </View>
-                    <Text style={styles.dataGapImpact}>{gap.impact}</Text>
-                  </View>
-                </View>
-              ))}
-
-              <View style={styles.divider} />
-            </View>
+          {/* ═══ SECTION 1: THE READ (sage) ═══
+              Phase 28 Batch B F6 — subsumes the prior Section 1 "This
+              week's pulse" prose summary AND the Section 2 PatternStack
+              "EmberMate noticed" surface into a single sage-encoded
+              observation card. Card decides for itself when to return
+              null (no gestalt, all four metric tiles unavailable AND
+              no patterns) — parent does not gate. */}
+          {pageData && (
+            <InsightsReadCard
+              timeRange={timeRange}
+              pageData={pageData}
+              patterns={patternStackData}
+            />
           )}
 
-          {/* ═══ REPORTS ═══
-              Phase 3.7.3 — gated to populated state only (≥ 14 days of
-              data with events). Visit prep, Care report, and Medication
-              report all read sparse and judgment-y at fresh-install
-              state; hiding them until there's enough data prevents
-              first-impression damage. Default per spec — Visit prep
-              follows the same gate as the other reports. */}
+          {/* ═══ SECTION 2: THE DATA (neutral) ═══
+              Phase 28 Batch B F6 — subsumes the prior Section 4 Vitals
+              Dashboard + Section 5 Medication Adherence + Section 3
+              Data Gaps (now demoted to a single footer line inside the
+              card). Card returns null when there's nothing to surface;
+              parent does not gate. */}
+          <InsightsDataCard
+            timeRange={timeRange}
+            vitalTiles={vitalTiles}
+            adherence={adherence}
+            dataGaps={dataGaps}
+          />
 
-          {/* Phase 15.10 — "THIS WEEK" RecentWindowCard retired. It
-              duplicated the Vitals BP tile (canonical BP surface lives
-              in the Vitals 4-tile grid below). Visual rhythm between
-              the patterns section and the Upcoming Visit / Visit Prep
-              block may want a SectionEyebrow or divider — filed for
-              Phase 15.12 (uniform eyebrow pass). */}
-
-          {/* Phase 5.10.b — UPCOMING VISIT card. Renders OUTSIDE the
-              data-state gating so a 5-day-out appointment surfaces even
-              in empty/building states. */}
+          {/* ═══ SECTION 3: UPCOMING VISIT (caregiver→clinician handoff lane) ═══
+              Phase 28 Batch B F5 (35c5441b) — moved to Section 3 position.
+              Renders outside the data-state gating so a 5-day-out
+              appointment surfaces even in empty/building states. */}
           <UpcomingVisitInsightsCard />
-
-          {/* ═══ SHARE CTA ═══
-              Phase 15.11 — three reportCards consolidated into one
-              button + ShareSheet. Same data-state gate (gating.show
-              Reports) applies. Button copy anchors to the upcoming
-              provider when one is in the canonical 14-day window;
-              falls back to a neutral label otherwise (no provider
-              name is dangled when no appointment is known). */}
-          {pageData && (() => {
-            const days = pageData.daysOfData;
-            const events = days > 0 ? 1 : 0;
-            const state = classifyInsightsState(days, events);
-            const gating = gatingForState(state, days);
-            if (!gating.showReports) return null;
-            const provider = upcomingAppointment?.provider?.trim();
-            const buttonLabel = provider && provider.length >= 2
-              ? `Share with ${provider}`
-              : 'Share these insights';
-            return (
-              <View style={styles.section}>
-                <View style={{ marginTop: Spacing.md }} />
-                {/* Phase 16.4 — "Reports" eyebrow retired with the
-                    three-option ShareSheet. Single direct button names
-                    its own action; an eyebrow above it read redundant.
-                    Phase 21 will reintroduce both when the multi-option
-                    sheet returns. */}
-                <TouchableOpacity
-                  style={styles.shareCtaButton}
-                  onPress={() => handleShareSelection('visit-prep')}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${buttonLabel}. Opens visit prep.`}
-                >
-                  <Text style={styles.shareCtaButtonText}>{buttonLabel}</Text>
-                </TouchableOpacity>
-              </View>
-            );
-          })()}
-
-          {/* ═══ SECTION 4: VITALS DASHBOARD ═══ */}
-          {vitalTiles.length > 0 && (
-            <View style={styles.section}>
-              <SectionEyebrow text="Vitals this week" />
-              <Text style={styles.sectionContext}>
-                Key numbers averaged over the last {timeRange} days.
-              </Text>
-
-              <View style={styles.vitalsGrid}>
-                {vitalTiles.map((v, i) => (
-                  <View key={i} style={styles.vitalTile}>
-                    <View style={styles.vitalTileHeader}>
-                      <Text style={styles.vitalTileLabel}>{v.label}</Text>
-                      <Text style={[
-                        styles.vitalTileTrend,
-                        { color: v.trendDir === 'stable' ? colors.green : colors.amberBright },
-                      ]}>
-                        {v.trendVal}
-                      </Text>
-                    </View>
-                    <View style={styles.vitalTileBottom}>
-                      <View>
-                        <Text style={[styles.vitalTileValue, { color: v.color }]}>{v.value}</Text>
-                        <Text style={styles.vitalTileUnit}>{v.unit}</Text>
-                      </View>
-                      <Sparkline points={v.sparkPoints} color={v.color} />
-                    </View>
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.divider} />
-            </View>
-          )}
-
-          {/* ═══ SECTION 5: MEDICATION ADHERENCE ═══
-              Phase 3.7.3 — adherence chart NEVER renders below
-              POPULATED_DAYS_THRESHOLD (14 days). A 9% reading with sparse
-              data reads as judgment to a caregiver and damages trust on
-              first impression. Hard-floor gate enforced via
-              gatingForState's adherence rule. */}
-          {adherence && adherence.total > 0 && pageData && (() => {
-            const days = pageData.daysOfData;
-            const events = days > 0 ? 1 : 0;
-            const state = classifyInsightsState(days, events);
-            const gating = gatingForState(state, days);
-            return gating.showAdherenceChart;
-          })() && (
-            <View style={styles.section}>
-              <SectionEyebrow text="Medication adherence" />
-              <Text style={styles.sectionContext}>
-                How consistently meds are being taken as scheduled.
-              </Text>
-
-              <View style={styles.adherenceCard}>
-                <View style={styles.adherenceHeader}>
-                  <Text style={[
-                    styles.adherenceRate,
-                    { color: adherence.rate >= 90 ? colors.green : adherence.rate >= 70 ? colors.amberBright : colors.coralBright },
-                  ]}>
-                    {adherence.rate}%
-                  </Text>
-                  <Text style={styles.adherenceDoses}>{adherence.taken}/{adherence.total} doses</Text>
-                </View>
-
-                {/* Dose grid */}
-                <View style={styles.doseGrid}>
-                  {adherence.doseStatuses.map((status, i) => {
-                    const isMissed = status === 'missed';
-                    return (
-                      <View
-                        key={i}
-                        style={[
-                          styles.doseDot,
-                          {
-                            backgroundColor: isMissed ? 'rgba(239,68,68,0.3)' : 'rgba(74,222,128,0.2)',
-                            borderColor: isMissed ? `${Colors.coralBright}40` : `${Colors.green}40`,
-                          },
-                        ]}
-                      >
-                        {isMissed && <Text style={styles.doseDotX}>{'\u2715'}</Text>}
-                      </View>
-                    );
-                  })}
-                </View>
-
-                {adherence.missedDates.length > 0 && (
-                  <Text style={styles.adherenceMissed}>
-                    Missed: {adherence.missedDates.join(', ')}
-                  </Text>
-                )}
-              </View>
-
-              <View style={styles.divider} />
-            </View>
-          )}
-
-          {/* Phase 28 Batch B F5 — VISIT CONTEXT NOTE retired.
-              The note duplicated UpcomingVisitInsightsCard's
-              appointment context above. Q-B-F5.3 lock: retire
-              entirely; one entry point per surface. */}
 
           {/* Phase 6.1 — gate the disclaimer to the populated state. On
               empty/building (days < 14) there is nothing to disclaim;
@@ -1021,236 +669,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 10,
   },
 
-  // ─── CARE SCORE ───
-  // ─── AI SUMMARY (replaces Care Score) ───
-  aiSummarySection: {
-    borderLeftWidth: 2,
-    borderLeftColor: c.caregiverAccentLight || '#A78BFA',
-    paddingLeft: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    paddingVertical: 8,
-    marginBottom: 8,
-  },
-  aiSummaryLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: c.caregiverAccentLight || '#A78BFA',
-    marginBottom: 6,
-  },
-  aiSummaryText: {
-    fontSize: 14,
-    color: c.textSecondary,
-    lineHeight: 21,
-    marginBottom: 8,
-  },
-  aiSummaryDisclaimer: {
-    fontSize: 11,
-    color: c.textMuted,
-    fontStyle: 'italic' as const,
-  },
-  careScoreSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 20,
-    paddingVertical: 8,
-  },
-  careScoreRight: {
-    flex: 1,
-  },
-  careScoreTrendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 8,
-  },
-  careScoreTrendText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  careScoreTrendSub: {
-    fontSize: 11,
-    color: c.textTertiary,
-  },
-  factorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 5,
-  },
-  factorBar: {
-    width: 60,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    overflow: 'hidden',
-  },
-  factorBarFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  factorLabel: {
-    fontSize: 11,
-    color: c.textSecondary,
-    flex: 1,
-  },
-
-
-  // ─── DATA GAPS ───
-  dataGapCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    padding: 12,
-    backgroundColor: 'rgba(107,114,128,0.06)',
-    borderLeftWidth: 2,
-    borderLeftColor: '#6B7280',
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
-    marginBottom: 8,
-  },
-  dataGapIcon: {
-    fontSize: 18,
-  },
-  dataGapInfo: {
-    flex: 1,
-  },
-  dataGapHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  dataGapMetric: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: c.textPrimary,
-  },
-  dataGapDays: {
-    fontSize: 11,
-    color: '#6B7280',
-  },
-  dataGapImpact: {
-    fontSize: 12,
-    color: c.textMuted,
-    lineHeight: 17,
-    marginTop: 3,
-  },
-
-  // ─── SHARE CTA (Phase 15.11) ───
-  // Single button replaces the pre-15.11 reportCard / reportShare*
-  // trio. Tapping opens ShareSheet.
-  //
-  // Phase 26 F4 — backgroundColor sage (c.accent) → lavender
-  // (c.caregiverAccent). The button bridges caregiver-recorded
-  // observations into clinician hands; that handoff lives in the
-  // caregiver→clinician lane alongside the You tab and Journal's
-  // "Building toward Dr. X" feed-forward banner (already lavender).
-  // Text stays #0a0c0a — pairs ~9.5:1 against #aa8adc lavender (AAA),
-  // same contrast tier the sage version carried.
-  shareCtaButton: {
-    backgroundColor: c.caregiverAccent,
-    borderRadius: 14,
-    paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  shareCtaButtonText: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#0a0c0a',
-  },
-
-  // ─── VITALS GRID ───
-  vitalsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  vitalTile: {
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderColor: c.glassBorder,
-    borderRadius: 10,
-    padding: 12,
-    width: '48.5%' as any,
-  },
-  vitalTileHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  vitalTileLabel: {
-    fontSize: 11,
-    color: c.textMuted,
-    fontWeight: '500',
-  },
-  vitalTileTrend: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  vitalTileBottom: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-  },
-  vitalTileValue: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  vitalTileUnit: {
-    fontSize: 10,
-    color: c.textTertiary,
-    marginTop: 2,
-  },
-
-  // ─── MEDICATION ADHERENCE ───
-  adherenceCard: {
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderColor: c.glassBorder,
-    borderRadius: 10,
-    padding: 16,
-  },
-  adherenceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  adherenceRate: {
-    fontSize: 28,
-    fontWeight: '300',
-  },
-  adherenceDoses: {
-    fontSize: 12,
-    color: c.textMuted,
-    marginLeft: 8,
-  },
-  doseGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-    marginBottom: 10,
-  },
-  doseDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 3,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  doseDotX: {
-    fontSize: 7,
-    color: Colors.coralBright,
-  },
-  adherenceMissed: {
-    fontSize: 11,
-    color: c.textMuted,
-  },
-
-  // Phase 28 Batch B F5 — visitContextNote + visitContextText style
-  // blocks retired with the JSX block. UpcomingVisitInsightsCard
-  // remains the sole appointment-context surface on Insights.
 
   // Settings gear
   // allow: 32×32 fixed-dimension icon button — not a card surface.

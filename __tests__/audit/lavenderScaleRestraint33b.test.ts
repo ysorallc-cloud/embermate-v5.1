@@ -143,7 +143,6 @@ const WHITELIST: Array<{ path: string; rationale: string }> = [
   // surfaces. Each is allowed to continue consuming bare caregiverAccent
   // until a per-file audit decides migration vs preservation.
   { path: 'app/(onboarding)/screens/MeetSampleScreen.tsx', rationale: 'onboarding affordance — small lavender accent, low footprint' },
-  { path: 'app/(tabs)/understand.tsx', rationale: 'lane-coded surfaces (ScreenHeader Share CTA Phase 26 F4) — interactive state' },
   { path: 'app/appointments.tsx', rationale: 'appointment list chrome — pre-Phase-33 lane treatment, low cumulative footprint' },
   { path: 'app/care-plan/setup/confirm.tsx', rationale: 'care-plan setup flow — small lavender accents' },
   { path: 'app/care-plan/setup/template.tsx', rationale: 'care-plan setup flow' },

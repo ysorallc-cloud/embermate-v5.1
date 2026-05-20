@@ -10,8 +10,16 @@ describe('Visit Prep navigation wiring', () => {
   });
 
   it('Insights tab has a Visit Prep navigation target', () => {
-    const src = read('app/(tabs)/understand.tsx');
-    expect(src).toMatch(/visit-prep/);
+    // Phase 28 Batch B F6: the inline Share CTA on understand.tsx
+    // (which carried `navigate('/visit-prep')`) was retired. Visit
+    // Prep is now reachable from Insights via the UpcomingVisit
+    // InsightsCard mounted as Section 3. Pin both: the card is
+    // mounted in understand.tsx, AND the navigation lives in the
+    // card source.
+    const understandSrc = read('app/(tabs)/understand.tsx');
+    expect(understandSrc).toMatch(/<UpcomingVisitInsightsCard\b/);
+    const cardSrc = read('components/insights/UpcomingVisitInsightsCard.tsx');
+    expect(cardSrc).toMatch(/visit-prep/);
   });
 
   it('services/visitPrepPdf.ts exists and exports assembleVisitPrepData', () => {

@@ -140,6 +140,17 @@ jest.mock('../../components/insights/UpcomingVisitInsightsCard', () => ({
   UpcomingVisitInsightsCard: () => null,
 }));
 
+// Phase 28 Batch B F6 — the new three-card structure adds two more
+// section components that pull substantial transitive deps; stub them
+// here so the smoke render stays focused on the empty-state surfaces
+// the test asserts against.
+jest.mock('../../components/insights/InsightsReadCard', () => ({
+  InsightsReadCard: () => null,
+}));
+jest.mock('../../components/insights/InsightsDataCard', () => ({
+  InsightsDataCard: () => null,
+}));
+
 // ── Insights data layer: returns the empty-data shape ─────────────────────
 jest.mock('../../utils/understandInsights', () => ({
   loadUnderstandPageData: jest.fn().mockResolvedValue({

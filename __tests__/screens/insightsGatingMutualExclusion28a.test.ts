@@ -159,15 +159,22 @@ describe('Phase 28a — source-level guard pins', () => {
     );
   });
 
-  it('contract 7: pulse + data-gaps guards still use the same threshold (>= 7) so the boundary is exactly aligned', () => {
-    // The This-week's-pulse section (line ~688) and Missing-data
-    // section (line ~720) both gate on >= 7. Pin both — if either
-    // drifts to a different threshold, the mutual exclusion cliff
-    // moves and the bug returns.
-    const guards = SRC.match(/pageData\.daysOfData\s*>=\s*(?:EMPTY_STATE_DAYS_THRESHOLD|7)\b/g) ?? [];
-    // At least two: pulse + data-gaps. Three is acceptable if a future
-    // section also uses the same threshold.
-    expect(guards.length).toBeGreaterThanOrEqual(2);
+  it('contract 7: page-level mutual-exclusion gate (< threshold) remains intact post-F6', () => {
+    // Phase 28 Batch B F6 reframed this contract. Pre-F6: the inline
+    // "This week's pulse" + "Missing data" sections each carried a
+    // `daysOfData >= 7` guard at the page level, making the boundary
+    // double-pinned in understand.tsx. F6 folded both surfaces into
+    // InsightsReadCard + InsightsDataCard, which now carry the
+    // populated-data filtering internally. The page-level guard that
+    // remains is the empty-state preview's `< 7` (mutual exclusion
+    // CLIFF). That guard is what contract 6 pins. As long as the
+    // empty-state preview gate uses the canonical threshold, the
+    // mutual exclusion contract holds — the cards' internal gating
+    // is contracted in their own component test files.
+    const emptyStateGuards = SRC.match(
+      /pageData\.daysOfData\s*<\s*(?:EMPTY_STATE_DAYS_THRESHOLD|7)\b/g,
+    ) ?? [];
+    expect(emptyStateGuards.length).toBeGreaterThanOrEqual(1);
   });
 });
 
