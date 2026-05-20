@@ -206,6 +206,26 @@ describe('Phase 28 F3 — InsightsReadCard', () => {
     expect(flatText(tiles[2])).toMatch(/6\.0/);
   });
 
+  it('contract 4b: card-level "Daily averages" label renders above the metric grid + Sleep unit reads "h/night"', () => {
+    // Phase 28 Batch B — averages labeling (Item 1, locked Option 3 hybrid).
+    // Pre-fix the 4 tiles read ambiguously as totals: Adherence/Sleep/
+    // Hydration carried no per-unit suffix; only Meals had "/day". The
+    // card-level "Daily averages" label above the grid covers
+    // Adherence/Hydration/Meals; Sleep gets the "h/night" suffix
+    // because its denominator is tracked-nights (β special-case per
+    // MEALS Commit B Lock 1), not range days.
+    const tree = render({ timeRange: 14, pageData: FULL_DATA, patterns: [] });
+    const allTextNodes = findAll(tree.root, (n) => n.type === 'Text');
+    const allText = allTextNodes.map(flatText).join(' | ');
+    expect(allText).toMatch(/Daily averages/i);
+    // Sleep tile shows the per-night suffix.
+    const sleepTile = findAll(tree.root, (n) =>
+      typeof n.props?.testID === 'string' && n.props.testID === 'read-metric-1',
+    )[0];
+    expect(sleepTile).toBeDefined();
+    expect(flatText(sleepTile)).toContain('h/night');
+  });
+
   it('contract 5: pattern callout renders with N count and pattern lines', () => {
     const tree = render({ timeRange: 14, pageData: FULL_DATA, patterns: TWO_PATTERNS });
     const allText = findAll(tree.root, (n) => n.type === 'Text').map(flatText).join(' | ');

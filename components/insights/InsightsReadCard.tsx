@@ -64,7 +64,13 @@ function buildMetrics(data: UnderstandPageData): Metric[] {
     {
       label: 'Sleep',
       value: sleepAvailable ? data.avgSleepHours.toFixed(1) : '—',
-      unit: sleepAvailable ? 'h' : '',
+      // 'h/night' rather than the bare 'h' — sleep's natural basis is
+      // per-night, which is how caregivers read it. The card-level
+      // "Daily averages" label above the grid covers the other three
+      // tiles; sleep needs the per-unit suffix because its denominator
+      // is tracked-nights (β special-case per MEALS Commit B Lock 1),
+      // not range days like the other metrics.
+      unit: sleepAvailable ? 'h/night' : '',
       available: sleepAvailable,
     },
     {
@@ -114,6 +120,14 @@ export function InsightsReadCard({ timeRange, pageData, patterns }: InsightsRead
         <Text style={styles.gestalt}>{gestalt}</Text>
       )}
 
+      {/* Card-level "Daily averages" label above the 4-tile grid.
+          Pre-fix the tiles read ambiguously as totals — Adherence/Sleep/
+          Hydration carried no per-unit suffix; only Meals had "/day".
+          A single recessed eyebrow above the grid covers Adherence/
+          Hydration/Meals; Sleep's "h/night" suffix carries its own
+          per-unit signal (tracked-nights denominator per MEALS Commit B
+          Lock 1). Same scale + treatment as the in-tile metricLabel. */}
+      <Text style={styles.metricsGridLabel}>Daily averages</Text>
       <View style={styles.metricsGrid}>
         {metrics.map((m, i) => (
           <View
@@ -201,6 +215,13 @@ const createStyles = (c: any) =>
       lineHeight: 18,
       color: c.textSecondary,
       marginBottom: 10,
+    },
+    metricsGridLabel: {
+      fontSize: 9,
+      color: c.textTertiary,
+      letterSpacing: 0.3,
+      textTransform: 'uppercase' as const,
+      marginBottom: 4,
     },
     metricsGrid: {
       flexDirection: 'row' as const,
