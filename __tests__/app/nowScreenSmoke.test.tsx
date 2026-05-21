@@ -264,9 +264,17 @@ describe('NowScreen — render smoke test', () => {
     expect(getByText(/\[NowHeader\]/)).toBeTruthy();
   });
 
-  it('renders the StatRings region', () => {
-    const { getByText } = render(<NowScreen />);
-    expect(getByText('[StatRings]')).toBeTruthy();
+  it('does NOT render the StatRings region (orb row hidden per Phase 33b extension pre-Lock-3 Item A)', () => {
+    // The orb row created the 7-into-6 cap conflict (Activity, 7th in
+    // PRIORITY_ORDER, dropped). Resolved by hide-don't-delete: the
+    // StatRings.tsx component + its component tests are preserved as
+    // the post-launch restore path; the mount on Now is gone. Wizard-
+    // designated Now buckets surface via NowTimeline instead.
+    //
+    // Mirrors `wizardToNowAlignment.test.ts` contract 5a at the
+    // smoke-render layer.
+    const { queryByText } = render(<NowScreen />);
+    expect(queryByText('[StatRings]')).toBeNull();
   });
 
   it('renders the NowTimeline region with the empty-state copy when no care plan', () => {

@@ -1067,16 +1067,20 @@ export default function NowScreen() {
             );
           })()}
 
-          {/* ═══ PROGRESS RINGS ═══ */}
-          <StatRings stats={todayStats} enabledBuckets={enabledBuckets} />
-
-          {/* Phase 15.4 — HydrationTodayRow retired. Hydration folded
-              into StatRings as the 5th ring (when 'water' is in
-              enabledBuckets). The standalone row's tap-to-/log-water
-              affordance moved to the water ring's onPress; inline +1
-              cup is filed for v1.1 ("extend StatRings API to support
-              per-ring inline quick-actions, primary use case =
-              hydration +1"). */}
+          {/* Phase 33b extension pre-Lock-3 Item A — StatRings orb row
+              hidden for launch. The 7-into-6 cap conflict
+              (PRIORITY_ORDER sliced at MAX_TRACKED_DIMENSIONS=6 → the
+              7th, Activity, never rendered as an orb even when the
+              wizard enabled it) is resolved by removal rather than by
+              lifting the cap and re-architecting the row.
+              Wizard-designated Now buckets (Meals/Water/Sleep/Activity/
+              Wellness + core meds/vitals when their CarePlanItems exist)
+              now surface exclusively through NowTimeline below.
+              StatRings.tsx + its component tests (StatRingsCapAt6,
+              statRingsHairlineGrouping, etc.) are PRESERVED for the
+              post-launch restore path. The import + todayStats compute
+              also stay — todayStats is consumed by useNowPrompts and by
+              the NowTimeline mount. */}
 
           {/* ═══ ZONE 2: TODAY'S SCHEDULE ═══ */}
           <NowTimeline

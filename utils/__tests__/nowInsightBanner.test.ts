@@ -13,13 +13,24 @@ const insightSrc = readFileSync(join(__dirname, '../../utils/careInsights.ts'), 
 // ============================================================================
 // INS-1: InsightBanner component
 // ============================================================================
-describe('INS-1: InsightBanner replaced by StatRings', () => {
-  test('InsightBanner removed — StatRings replaces it', () => {
-    expect(nowSrc).toContain('StatRings');
-    expect(nowRender).toContain('<StatRings');
+describe('INS-1: InsightBanner removed (StatRings mount hidden post-Item-A)', () => {
+  // Original contract: pre-INS-1 a contextual InsightBanner sat between
+  // header and Today's Progress; INS-1 retired it and replaced with
+  // StatRings. Phase 33b extension pre-Lock-3 Item A then hid the
+  // StatRings mount too (7-into-6 cap conflict; hide-don't-delete with
+  // restore path preserved). Both InsightBanner and StatRings render
+  // calls are absent from now.tsx. The StatRings import is preserved
+  // for the post-launch restore path.
+
+  test('InsightBanner is NOT rendered on Now', () => {
+    expect(nowRender).not.toMatch(/<InsightBanner\b/);
   });
 
-  test('StatRings is imported from the now components', () => {
+  test('StatRings render call is NOT in now.tsx (Item A hide-don\'t-delete)', () => {
+    expect(nowRender).not.toMatch(/<StatRings\b/);
+  });
+
+  test('StatRings import is preserved for the post-launch restore path', () => {
     expect(nowSrc).toContain("import { StatRings }");
   });
 
@@ -106,13 +117,15 @@ describe('INS-4: Footer simplified', () => {
 // ============================================================================
 // INS-5: Unified insight output
 // ============================================================================
-describe('INS-5: Unified insight replaced by StatRings', () => {
+describe('INS-5: Unified insight removed (post Item-A)', () => {
   test('useNowInsights hook still exists for potential reuse', () => {
     expect(hookSrc).toMatch(/return\s*\{[^}]*insight[^}]*\}/);
   });
 
-  test('now.tsx renders StatRings', () => {
-    expect(nowSrc).toContain('StatRings');
+  test('now.tsx retains the StatRings import (post-launch restore path) but does NOT render <StatRings>', () => {
+    // Both signals: import preserved for restore, mount absent post-Item-A.
+    expect(nowSrc).toContain("import { StatRings }");
+    expect(nowSrc).not.toMatch(/<StatRings\b/);
   });
 });
 

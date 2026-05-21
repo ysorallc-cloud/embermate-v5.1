@@ -66,19 +66,33 @@ describe('Phase 5.13.2 — orb update chain (wizard config → orb re-render)', 
     expect(listenerBlock![0]).toMatch(/loadInstances\(/);
   });
 
-  it('Now passes todayStats into StatRings (the "orb" component)', () => {
-    expect(nowSrc).toMatch(/<StatRings\s+stats=\{todayStats\}/);
+  it('todayStats is still computed by now.tsx (consumed by useNowPrompts + NowTimeline post-Item-A)', () => {
+    // Phase 33b extension pre-Lock-3 Item A — StatRings orb mount hidden;
+    // the original "Now passes todayStats into StatRings" assertion is
+    // reframed. todayStats is still computed because two consumers remain
+    // on Now: useNowPrompts(todayStats, ...) and NowTimeline's
+    // todayStats prop. The orb-update wiring chain (instancesState →
+    // todayStats memo → consumers) stays intact; only the orb
+    // RENDER target was removed.
+    expect(nowSrc).toMatch(/const\s+todayStats\s*=\s*useMemo/);
+    expect(nowSrc).toMatch(/useNowPrompts\s*\(\s*todayStats\b/);
   });
 
   it('todayStats derives from instancesState (not from a static fallback)', () => {
     // The memo inspects instancesState first; only when it has zero items
     // does it fall back to legacyStats. A wizard-fresh user with newly
     // enabled buckets gets totals as soon as ensureDailyInstances runs.
+    // (Unchanged by Item A — todayStats memo still drives the consumers
+    // that survived the orb-mount removal.)
     expect(nowSrc).toMatch(/instancesState\s*&&\s*instancesState\.instances\.length\s*>\s*0/);
   });
 
-  it('StatRings shows an em-dash empty state when total === 0', () => {
-    // Confirms the by-design rendering for an enabled-but-empty bucket.
+  it('StatRings shows an em-dash empty state when total === 0 (preserved for post-launch restore)', () => {
+    // Item A is hide-don't-delete: the StatRings.tsx component +
+    // em-dash empty-state are preserved as the post-launch restore path
+    // once the 7-into-6 cap conflict is resolved. Pin the empty-state
+    // behavior at the component layer so a future restore doesn't have
+    // to rebuild this from scratch.
     expect(statRingsSrc).toMatch(/isEmpty\s*=\s*stat\.total\s*===\s*0/);
   });
 });

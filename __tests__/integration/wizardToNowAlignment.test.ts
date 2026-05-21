@@ -150,4 +150,74 @@ describe('Phase 5.13.3 — wizard → Now alignment (reproduction)', () => {
       expect(statRingsSrc).toMatch(/enabledBuckets\s*\??:\s*BucketType\[\]/);
     });
   });
+
+  // --------------------------------------------------------------------------
+  // Contract 5 — Pre-Lock-3 cleanup Item A: StatRings orb row is hidden on
+  // Now; wizard-designated buckets surface via the schedule/timeline.
+  //
+  // The orb row created the 7-into-6 cap conflict (StatRings slices
+  // PRIORITY_ORDER at MAX_TRACKED_DIMENSIONS=6 → Activity, the 7th in
+  // priority order, never rendered as an orb even when the wizard enabled
+  // it). Rather than lift the cap and re-architect the row, we hide the
+  // row for launch and let the schedule/timeline carry the bucket-surface
+  // promise instead. Each wizard-designated bucket (Meals/Water/Sleep/
+  // Activity/Wellness + core meds/vitals) produces DailyCareInstances via
+  // ensureDailyInstances (already contracted in Contract 2) which
+  // NowTimeline renders.
+  //
+  // Restore path: components/now/StatRings.tsx + its component tests
+  // (StatRingsCapAt6, StatRingsHydrationRing, etc.) are preserved intact
+  // for post-launch re-introduction once the cap question is resolved.
+  // --------------------------------------------------------------------------
+  describe('Contract 5: pre-Lock-3 Item A — StatRings orb row hidden; buckets surface via schedule', () => {
+    const nowSrc = readFileSync(join(ROOT, 'app/(tabs)/now.tsx'), 'utf8');
+
+    it('contract 5a: now.tsx does NOT render <StatRings> (orb row hidden)', () => {
+      // Pin the absence of the JSX mount. The import of StatRings + the
+      // component file itself stay (preservation; post-launch restore
+      // path), but the render call must not appear.
+      expect(nowSrc).not.toMatch(/<StatRings\b/);
+    });
+
+    it('contract 5b: now.tsx still mounts <NowTimeline> as the bucket-surface carrier', () => {
+      // The schedule/timeline is what surfaces the wizard-designated
+      // buckets in the post-orb world. Pin its mount so a future refactor
+      // removing both StatRings and NowTimeline can't quietly leave the
+      // Now tab with no bucket-surface.
+      expect(nowSrc).toMatch(/<NowTimeline\b/);
+    });
+
+    it('contract 5c: ensureDailyInstances produces instances for the wizard-Now bucket set — meals/water/sleep/activity/wellness', async () => {
+      // The orb-removal contract is "buckets surface through the schedule,
+      // not orbs." Contract 2 covers sleep + activity; broaden here to the
+      // full wizard-Now section (PRIMARY+SECONDARY minus CORE per the Lock 2
+      // section split) so the schedule promise is pinned end-to-end.
+      //
+      // Core meds/vitals require explicit CarePlanItems (medication
+      // entries), which the wizard's step-2 TemplateMedSeedingModal path
+      // creates separately — out of scope for the bucket-surface contract.
+      await applyCarePlanTemplate(generalWellness, PATIENT_ID);
+
+      const instances = await ensureDailyInstances(PATIENT_ID, TEST_DATE);
+      const types = new Set(instances.map((i) => i.itemType));
+
+      // Now-tab wizard section (the 5 buckets the user sees in the
+      // "These show on your Now tab" wizard section).
+      expect(types.has('nutrition')).toBe(true); // meals
+      expect(types.has('hydration')).toBe(true); // water
+      expect(types.has('sleep')).toBe(true);
+      expect(types.has('activity')).toBe(true);
+      expect(types.has('wellness')).toBe(true);
+    });
+
+    it('contract 5d: StatRings.tsx file is preserved (post-launch restore path)', () => {
+      // Hide-don't-delete contract. Removing the file would break the
+      // bundled component tests (StatRingsCapAt6, statRingsHairlineGrouping,
+      // statRingsFlattened, etc.) and lose the work it represents. Keep
+      // the file + tests intact; remove only the mount on Now.
+      expect(() =>
+        readFileSync(join(ROOT, 'components/now/StatRings.tsx'), 'utf8'),
+      ).not.toThrow();
+    });
+  });
 });

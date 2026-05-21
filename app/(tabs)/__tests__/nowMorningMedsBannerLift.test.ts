@@ -38,14 +38,21 @@ describe('Phase 15.3 — MorningMedsBanner lift to now.tsx', () => {
     );
   });
 
-  it('contract 2: now.tsx renders <MorningMedsBanner before <StatRings', () => {
+  it('contract 2: now.tsx renders <MorningMedsBanner before <NowTimeline', () => {
+    // Phase 33b extension pre-Lock-3 Item A reframed the ordering pin:
+    // pre-Item-A the banner sat above <StatRings> (the highest-priority
+    // affordance above the orb row). Item A hid the StatRings mount, so
+    // the next major section below the banner is now <NowTimeline>. The
+    // contract intent — banner sits above the schedule, not nested in
+    // it — is preserved with NowTimeline as the new downstream anchor.
+    //
     // Use lastIndexOf so the JSX render site dominates over import-line
     // matches (imports appear first in the file).
     const banner = nowSrc.lastIndexOf('<MorningMedsBanner');
-    const rings = nowSrc.lastIndexOf('<StatRings');
+    const timeline = nowSrc.lastIndexOf('<NowTimeline');
     expect(banner).toBeGreaterThan(-1);
-    expect(rings).toBeGreaterThan(-1);
-    expect(banner).toBeLessThan(rings);
+    expect(timeline).toBeGreaterThan(-1);
+    expect(banner).toBeLessThan(timeline);
   });
 
   it('contract 2: the banner render derives pendingMeds from allPending', () => {
