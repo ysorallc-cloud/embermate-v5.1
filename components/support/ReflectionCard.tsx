@@ -269,12 +269,17 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
-  // Phase 29 Batch B F3 — Save pill lane recolor. Pre-F3 sage solid
-  // (#5fb88a) + near-black text retired; now solid caregiverAccent +
-  // white text. Matches the lane identity the wrapping card now carries.
+  // Phase 33b extension lavender no-fill canon — site #14. Phase 29 Batch B
+  // F3 had recolored this pill from sage to lavender as a Tier-1
+  // within-surface coherence move (wrapping card carries lavender lane
+  // identity). The new no-fill canon restricts lavender to eyebrow-scale
+  // text + thin accents, so the Save pill returns to sage — action-affirmative
+  // is the correct lane for "save reflection" regardless. Near-black text
+  // (#0a0c0a) reads on sage as it did on lavender. The wrapping card's
+  // lavender lane identity now lives in its eyebrow + tint, not in the CTA.
   // Padding + radius + fontSize unchanged from the v6.7 Phase 5 layout.
   saveButton: {
-    backgroundColor: c.caregiverAccent,
+    backgroundColor: c.accent,
     borderRadius: 16,
     paddingVertical: 6,
     paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)

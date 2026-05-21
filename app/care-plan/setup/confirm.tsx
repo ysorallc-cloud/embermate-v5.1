@@ -292,8 +292,13 @@ const createStyles = (c: any) =>
       borderRadius: 3,
       backgroundColor: c.caregiverAccentLight,
     },
+    // Phase 33b extension lavender no-fill canon — site #2. Wizard
+    // pagination dot is a progress indicator (action-affirmative lane,
+    // not handoff). Flipped from lavender fill to sage `c.accent` so the
+    // dot matches the dominant "this step is active" semantics used
+    // elsewhere in the app.
     dotActive: {
-      backgroundColor: c.caregiverAccent,
+      backgroundColor: c.accent,
     },
     stepLabel: {
       fontSize: 10,
@@ -355,8 +360,19 @@ const createStyles = (c: any) =>
       paddingTop: Spacing.sm,
       gap: 8,
     },
+    // Phase 33b extension lavender no-fill canon — site #3. "Done — let's
+    // start" is the wizard's handoff-lane finalize button (caregiver →
+    // care-plan-as-handoff-document, Lock 2 lane progression: sage who →
+    // sage template → lavender confirm). Pre-cleanup it carried a
+    // saturated `c.caregiverAccent` fill. Under the new canon lavender
+    // is restricted to eyebrow-scale text + thin accents, so the lane
+    // signal moves into the chrome: dark/glass fill + 1pt lavender
+    // border + lavender label. Keeps the button visually distinct from
+    // sage-affirmative CTAs while satisfying the no-fill rule.
     primary: {
-      backgroundColor: c.caregiverAccent,
+      backgroundColor: c.background,
+      borderWidth: 1,
+      borderColor: c.caregiverAccent,
       borderRadius: 11,
       paddingVertical: 14, // allow: primary CTA tap-target (Apple HIG)
       alignItems: 'center' as const,
@@ -367,7 +383,7 @@ const createStyles = (c: any) =>
     primaryText: {
       fontSize: 15,
       fontWeight: '600' as const,
-      color: c.textPrimary,
+      color: c.caregiverAccent,
     },
     back: {
       paddingVertical: 12,

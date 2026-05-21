@@ -269,10 +269,13 @@ export function BreathingExercise({ visible, onClose, autoStart }: BreathingExer
         {/* Phase label */}
         <Text style={styles.phaseLabel}>{PHASE_LABELS[phase]}</Text>
 
-        {/* Intro: Begin button */}
+        {/* Intro: Begin button. Phase 33b extension lavender no-fill canon
+            — site #10. Action-affirmative (start an exercise) flipped from
+            lavender fill to sage `colors.accent`; near-black `beginButtonText`
+            (#0a0c0a) reads on sage unchanged. */}
         {phase === 'intro' && (
           <TouchableOpacity
-            style={[styles.beginButton, { backgroundColor: colors.caregiverAccent }]}
+            style={[styles.beginButton, { backgroundColor: colors.accent }]}
             onPress={handleBegin}
             accessibilityLabel="Start breathing exercise, 1 minute"
             accessibilityRole="button"
@@ -281,10 +284,12 @@ export function BreathingExercise({ visible, onClose, autoStart }: BreathingExer
           </TouchableOpacity>
         )}
 
-        {/* Complete: Done button */}
+        {/* Complete: Done button. Phase 33b extension lavender no-fill
+            canon — site #11. Action-affirmative (close the modal) flipped
+            from lavender to sage to match site #10 above. */}
         {phase === 'complete' && (
           <TouchableOpacity
-            style={[styles.beginButton, { backgroundColor: colors.caregiverAccent }]}
+            style={[styles.beginButton, { backgroundColor: colors.accent }]}
             onPress={() => { setPhase('intro'); onClose(); }}
             accessibilityLabel="Done"
             accessibilityRole="button"
@@ -334,11 +339,16 @@ function createStyles(c: any) {
       borderRadius: 5,
       backgroundColor: 'rgba(255, 255, 255, 0.15)',
     },
+    // Phase 33b extension lavender no-fill canon — sites #12 + #13. The
+    // phase-progress dots are progress indicators (action-affirmative
+    // lane). Flipped from lavender to sage `c.accent`. The 0.6 opacity on
+    // dotActive is preserved — it differentiates "current phase" from
+    // "completed phase" via brightness, not hue.
     dotDone: {
-      backgroundColor: c.caregiverAccent,
+      backgroundColor: c.accent,
     },
     dotActive: {
-      backgroundColor: c.caregiverAccent,
+      backgroundColor: c.accent,
       opacity: 0.6,
     },
     // Phase 29 Batch A.2 F2 — orb/orbExpand/orbContract/orbInner
@@ -379,12 +389,14 @@ function createStyles(c: any) {
     beginButtonText: {
       fontSize: 17,
       fontWeight: '600',
-      // Phase 33 F9 — beginButton sits on caregiverAccent (lavender)
-      // bg per Phase 26 F4 precedent for sage/lavender CTAs. Near-black
-      // text reads AAA against lavender. The other two modal text sites
-      // (countdown + phaseLabel, plus the endLink alpha-white below)
-      // stay pure white per Q-F9.3 Option B whitelist — they're
-      // intentional dim-lit breathing-scene palette per Phase 29 A.2.
+      // Phase 33b extension lavender no-fill canon — sites #10 + #11 flipped
+      // beginButton fill from lavender to sage `c.accent`. Near-black text
+      // continues to read AAA against the new sage fill (same near-black on
+      // sage pattern used by editorSave + nudgePrimary + ReflectionCard
+      // saveButton). The other two modal text sites (countdown + phaseLabel,
+      // plus the endLink alpha-white below) stay pure white per Q-F9.3
+      // Option B whitelist — they're intentional dim-lit breathing-scene
+      // palette per Phase 29 A.2.
       color: '#0a0c0a',
     },
     endLink: {

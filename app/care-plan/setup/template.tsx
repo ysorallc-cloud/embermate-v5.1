@@ -233,8 +233,12 @@ const createStyles = (c: any) =>
       borderRadius: 3,
       backgroundColor: c.caregiverAccentLight,
     },
+    // Phase 33b extension lavender no-fill canon — site #4. Wizard
+    // pagination dot lands on sage (action-affirmative progress
+    // indicator) per the no-fill canon, matching the matching dot in
+    // confirm.tsx / who.tsx.
     dotActive: {
-      backgroundColor: c.caregiverAccent,
+      backgroundColor: c.accent,
     },
     stepLabel: {
       fontSize: 10,

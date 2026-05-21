@@ -45,21 +45,24 @@ describe('You tab Phase 6 — sizing + neutralized helpline (post-Batch-B refram
   });
 
   describe('ReflectionCard Save pill', () => {
-    it('is filled with caregiverAccent (Phase 29 Batch B F3 — lane recolor from sage)', () => {
-      // Phase 29 Batch B F3 — Save pill backgroundColor flipped from
-      // sage solid (#5fb88a) to c.caregiverAccent (lane-coherent with
-      // the new lavender card chrome).
+    it('is filled with sage `c.accent` (Phase 33b extension lavender no-fill canon — reframed from Phase 29 Batch B F3 lavender recolor)', () => {
+      // Phase 29 Batch B F3 had migrated this pill from sage to lavender
+      // as a Tier-1 within-surface coherence move. Phase 33b extension
+      // lavender no-fill canon (site #14) reversed that flip — lavender
+      // is now restricted to eyebrow-scale text + thin accents, never
+      // fills. The Save pill returns to sage; the wrapping card's
+      // lavender lane identity now lives in its eyebrow + tint.
       expect(reflectionSrc).toMatch(
-        /saveButton:\s*\{[^}]*backgroundColor:\s*(c|colors)\.caregiverAccent\b/s,
+        /saveButton:\s*\{[^}]*backgroundColor:\s*(c|colors)\.accent\b(?!\w)/s,
       );
     });
 
-    it('uses near-black text on the filled pill (Phase 29 Batch B F3 lane recolor + Phase 33 F9 Phase-26 precedent)', () => {
-      // Phase 29 Batch B F3 — saveButtonText color flipped from
-      // near-black (#0a1510) on sage to white on lavender.
-      // Phase 33 F9 — migrated again to '#0a0c0a' near-black per the
-      // Phase 26 F4 sage/lavender-CTA precedent. AAA contrast against
-      // lavender (~9.5:1).
+    it('uses near-black text on the filled pill (Phase 26 F4 / Q-F9.3 sage CTA contrast precedent — unchanged across the lane reframe)', () => {
+      // Pre-cleanup the near-black text sat on lavender (Phase 33 F9
+      // migrated it from white to #0a0c0a). After Phase 33b extension
+      // flipped the pill back to sage (site #14), the same near-black
+      // text reads on sage as it did on lavender. The text color is
+      // unchanged; only the wrapping fill flipped.
       expect(reflectionSrc).toMatch(
         /saveButtonText:\s*\{[^}]*color:\s*['"]#0a0c0a['"]/s,
       );

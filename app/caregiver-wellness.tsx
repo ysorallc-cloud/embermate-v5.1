@@ -213,16 +213,21 @@ export default function CaregiverWellnessScreen() {
           {/* Page subtitle (Phase 1) */}
           <Text style={styles.pageSubtitle}>A look at how you’ve been.</Text>
 
-          {/* Range toggle — Phase 29 Batch C F4 — selected state recolors
-              from sage (colors.accent) to caregiverAccent. This subscreen
-              is fully caregiver-lane; the sage active state was a
-              within-surface lane orphan (Tier 1 rule). White text on
-              lavender preserves the contrast tier the recolor inherited. */}
+          {/* Range toggle — Phase 29 Batch C F4 recolored this from sage
+              to lavender as a Tier-1 within-surface coherence move. Phase
+              33b extension lavender no-fill canon (site #6) reverses that
+              flip: the new canon restricts lavender to eyebrow-scale text +
+              thin accents, never fills. The selector returns to sage
+              (colors.accent) — action-affirmative is the correct lane for a
+              "selected range" toggle anyway. Near-black text reads on sage
+              the same way it reads on lavender (Q-F9.3 / Phase 26 F4
+              precedent). The subscreen's caregiver-lane identity now lives
+              in the eyebrow + header chrome, not in this control. */}
           <View style={styles.rangeRow}>
             {([7, 14, 30] as const).map(r => (
               <TouchableOpacity
                 key={r}
-                style={[styles.rangeBtn, range === r && { backgroundColor: colors.caregiverAccent }]}
+                style={[styles.rangeBtn, range === r && { backgroundColor: colors.accent }]}
                 onPress={() => setRange(r)}
                 accessibilityLabel={`${r} days`}
                 accessibilityRole="button"
@@ -353,8 +358,15 @@ export default function CaregiverWellnessScreen() {
               <Text style={styles.nudgeHeadline}>{nudge.headline}</Text>
               <Text style={styles.nudgeBody}>{nudge.body}</Text>
               <View style={styles.nudgeActions}>
+                {/* Phase 33b extension lavender no-fill canon — site #7.
+                    "Try 2 minutes of breathing" is an action-affirmative CTA
+                    (start a breathing exercise) — flipped from lavender fill
+                    to sage `colors.accent`. The nudgeCard around it still
+                    carries lavender lane identity via its gradient
+                    background; the inner CTA now reads as a clear sage
+                    "begin" beat per the no-fill canon. */}
                 <TouchableOpacity
-                  style={[styles.nudgePrimary, { backgroundColor: colors.caregiverAccent }]}
+                  style={[styles.nudgePrimary, { backgroundColor: colors.accent }]}
                   accessibilityRole="button"
                   accessibilityLabel="Try 2 minutes of breathing"
                 >

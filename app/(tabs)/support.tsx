@@ -298,18 +298,28 @@ function createStyles(c: typeof Colors) {
       paddingHorizontal: 8, // allow: tap-target padding (Apple HIG ≥44pt)
       gap: 5,
     },
+    // Phase 33b extension lavender no-fill canon — site #1. Pre-cleanup
+    // the 16×16 avatar carried a saturated `c.caregiverAccent` fill with
+    // a cream initial on top. Under the new canon, lavender is permitted
+    // only on eyebrow-scale text and thin accents — never as a fill. The
+    // chip preserves its caregiver-lane identity via a dark fill + 1pt
+    // lavender border, and the initial flips to lavender so the chip
+    // remains visible (cream-on-dark without the fill would be a silent
+    // invisible-text regression).
     caregiverChipAvatar: {
       width: 16,
       height: 16,
       borderRadius: 8,
-      backgroundColor: c.caregiverAccent,
+      backgroundColor: c.background,
+      borderWidth: 1,
+      borderColor: c.caregiverAccent,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
     caregiverChipAvatarText: {
       fontSize: 9,
       fontWeight: '600' as const,
-      color: c.textPrimary,
+      color: c.caregiverAccent,
     },
     caregiverChipName: {
       fontSize: 10,

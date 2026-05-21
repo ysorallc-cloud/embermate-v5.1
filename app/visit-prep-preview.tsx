@@ -714,10 +714,14 @@ const createStyles = (c: any) => StyleSheet.create({
     fontSize: 13,
     color: c.textTertiary,
   },
+  // Phase 33b extension lavender no-fill canon — site #8. In-editor Save
+  // button is action-affirmative (commit an edit). Flipped from lavender
+  // fill to sage `c.accent`; near-black `editorSaveText` reads on sage
+  // unchanged.
   editorSave: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: c.caregiverAccent,
+    backgroundColor: c.accent,
     borderRadius: 8,
   },
   editorSaveText: {
@@ -742,8 +746,17 @@ const createStyles = (c: any) => StyleSheet.create({
     borderTopColor: c.glassBorder,
     backgroundColor: c.background,
   },
+  // Phase 33b extension lavender no-fill canon — site #9. "Generate &
+  // share PDF" is a handoff-lane CTA (caregiver → clinician share), the
+  // same lane semantics as confirm.tsx's "Done — let's start". Pre-cleanup
+  // it carried a saturated `c.caregiverAccent` fill; under the new canon
+  // the lane signal moves into the chrome: dark/glass fill + 1pt lavender
+  // border + lavender label. Distinguishes the handoff CTA from sage
+  // action-affirmative CTAs without the saturated fill.
   primaryButton: {
-    backgroundColor: c.caregiverAccent,
+    backgroundColor: c.background,
+    borderWidth: 1,
+    borderColor: c.caregiverAccent,
     borderRadius: Sizing.cardRadius,
     paddingVertical: 14,
     alignItems: 'center',
@@ -754,7 +767,7 @@ const createStyles = (c: any) => StyleSheet.create({
   primaryButtonText: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: '#0a0c0a',
+    color: c.caregiverAccent,
   },
   secondaryRow: {
     flexDirection: 'row',

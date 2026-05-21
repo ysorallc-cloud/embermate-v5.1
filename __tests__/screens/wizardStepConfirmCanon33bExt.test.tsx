@@ -102,15 +102,33 @@ describe('Phase 33b extension Lock 2 — confirm.tsx three-section split + Secti
   });
 
   // --------------------------------------------------------------------------
-  // 3. CTA lane assignment — "Done — let's start" stays lavender
+  // 3. CTA lane assignment — "Done — let's start" handoff-lane chrome
   // --------------------------------------------------------------------------
 
-  it('primary "Done — let\'s start" CTA stays lavender (caregiver→clinician handoff lane, Phase 26 F4)', () => {
-    // The wizard's step-3 finalize action commits the caregiver-
-    // configured plan that becomes the patient's actual care plan —
-    // Tier 3 handoff intent. Sage CTAs on steps 1+2 (action-
-    // affirmative) progress into lavender at step 3 (commit).
-    expect(SRC).toMatch(/primary:\s*\{[\s\S]{0,200}backgroundColor:\s*c\.caregiverAccent\b/);
+  it('primary "Done — let\'s start" CTA preserves the handoff lane via dark fill + lavender border + lavender text (Phase 33b extension lavender no-fill canon — reframed from Phase 26 F4 lavender fill)', () => {
+    // Lock 2's per-CTA assignment had given step 3 a saturated
+    // `c.caregiverAccent` fill so the wizard's lane progression read as
+    // sage → sage → lavender (action-affirmative → commit/handoff).
+    // Phase 33b extension lavender no-fill canon (site #3) restricts
+    // lavender to eyebrow-scale text + thin accents, never fills. The
+    // lane signal moves into the chrome: dark/glass fill + 1pt lavender
+    // border + lavender label text. The button stays visibly distinct
+    // from a sage action-affirmative CTA without violating the no-fill
+    // canon. Steps 1 (who) + 2 (template) stay sage per their separate
+    // contracts.
+    const primaryBlock = SRC.match(/primary:\s*\{[\s\S]{0,400}?\n\s{4}\},/);
+    expect(primaryBlock).not.toBeNull();
+    const block = primaryBlock![0];
+    // Dark / glass fill (the background canvas itself).
+    expect(block).toMatch(/backgroundColor:\s*c\.background\b/);
+    // 1pt lavender border carries the lane signal.
+    expect(block).toMatch(/borderWidth:\s*1\b/);
+    expect(block).toMatch(/borderColor:\s*c\.caregiverAccent\b/);
+    // No saturated lavender fill (regression defense against the pre-cleanup
+    // chrome silently returning).
+    expect(block).not.toMatch(/backgroundColor:\s*c\.caregiverAccent\b/);
+    // Paired text color flips to lavender so the label reads on the dark fill.
+    expect(SRC).toMatch(/primaryText:\s*\{[\s\S]{0,200}?color:\s*c\.caregiverAccent\b/);
   });
 
   it('"Done — let\'s start" CTA copy preserved', () => {

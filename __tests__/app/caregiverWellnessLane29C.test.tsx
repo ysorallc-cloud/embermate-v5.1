@@ -133,13 +133,22 @@ describe('Phase 29 Batch C F5 — caregiver-wellness card chrome migration', () 
     expect(block).not.toMatch(/rgba\(95,\s*184,\s*138/);
   });
 
-  it('nudgePrimary CTA: caregiverAccent bg + near-black text (dark on lavender, Phase 26 share CTA contrast tier)', () => {
-    // Inline backgroundColor on the TouchableOpacity flips from
-    // colors.accent (sage) → colors.caregiverAccent (lavender).
+  it('nudgePrimary CTA: sage `colors.accent` bg + near-black text (Phase 33b extension lavender no-fill canon — reframed from Phase 29 Batch C F5 lavender flip)', () => {
+    // Phase 29 Batch C F5 had flipped this inline backgroundColor from
+    // colors.accent (sage) → colors.caregiverAccent (lavender) for Tier-1
+    // within-surface coherence (the entire subscreen reads caregiver-lane).
+    // Phase 33b extension lavender no-fill canon (site #7) reversed that
+    // flip — lavender is now restricted to eyebrow-scale text + thin
+    // accents, never fills. "Try 2 minutes of breathing" is an
+    // action-affirmative CTA (start a breathing exercise); sage is the
+    // correct lane regardless of the surrounding caregiver-wellness
+    // chrome. The nudgeCard's LinearGradient still carries the lavender
+    // lane identity; the inner CTA now reads as a clear sage begin beat.
     expect(STRIPPED).toMatch(
-      /style=\{\[styles\.nudgePrimary,\s*\{\s*backgroundColor:\s*colors\.caregiverAccent\s*\}/,
+      /style=\{\[styles\.nudgePrimary,\s*\{\s*backgroundColor:\s*colors\.accent\s*\}/,
     );
-    // Text color flips white → near-black for AAA contrast on lavender.
+    // Text color (near-black) unchanged across the lane reframe — same
+    // Phase 26 F4 sage/lavender-CTA contrast precedent applies on sage.
     const textBlock = styleBlock('nudgePrimaryText');
     expect(textBlock).toMatch(/color:\s*['"]#0a0c0a['"]/);
     expect(textBlock).not.toMatch(/color:\s*c\.textPrimary/);
@@ -147,13 +156,18 @@ describe('Phase 29 Batch C F5 — caregiver-wellness card chrome migration', () 
 });
 
 describe('Phase 29 Batch C F5 — Tier 1 sweep (lane-coherence absence pin)', () => {
-  it('caregiver-wellness source contains no bare `c.accent` / `colors.accent` references', () => {
-    // Same pattern as Batch A.2 BreathingExercise lane-coherence pin.
-    // Stripped source skips changelog commentary that mentions the
-    // pre-C sage tokens by name. Word boundary preserves suffixed
-    // accent tokens (accentLight, accentBorder, etc.) as legal —
-    // only the bare property access (sage solid) is forbidden.
-    expect(STRIPPED).not.toMatch(/\b(c|colors)\.accent\b/);
+  it('caregiver-wellness consumes bare `c.accent` / `colors.accent` (Phase 33b extension lavender no-fill canon — reframed from Phase 29 Batch C F5 absence pin)', () => {
+    // Pre-cleanup this was a Tier-1 absence pin matching the BreathingExercise
+    // lane-coherence pattern — caregiver-wellness was fully lavender-laned
+    // with no sage tokens permitted. Phase 33b extension lavender no-fill
+    // canon (sites #6 + #7) flipped two saturated lavender fills (rangeBtn
+    // active state + nudgePrimary CTA) back to sage, since action-affirmative
+    // is the correct lane for selectors + start-exercise CTAs regardless of
+    // surrounding chrome. The absence pin is reframed as a presence pin to
+    // catch silent regression to a third color (e.g., a hardcoded hex). The
+    // subscreen's caregiver-lane identity now lives in the eyebrow + header +
+    // card chrome, not in these controls.
+    expect(STRIPPED).toMatch(/\b(c|colors)\.accent\b/);
   });
 
   it('Tier 1: noticedCallout + noticedEyebrow drop pre-C c.accent fallback', () => {
@@ -186,11 +200,17 @@ describe('Phase 29 Batch C F5 — Tier 1 sweep (lane-coherence absence pin)', ()
     );
   });
 
-  it('Tier 1: range toggle selected state = caregiverAccent (F4 reaffirmed)', () => {
-    // F4 swap pinned here too as part of the Batch C coherence pin —
-    // the range toggle is part of the same Tier 1 sweep concern.
+  it('Tier 1: range toggle selected state = sage `colors.accent` (Phase 33b extension lavender no-fill canon — reframed from Phase 29 Batch C F4 lavender flip)', () => {
+    // Phase 29 Batch C F4 had flipped this selected state from sage to
+    // lavender as a Tier-1 within-surface coherence move. Phase 33b
+    // extension lavender no-fill canon (site #6) reversed that flip —
+    // lavender is now restricted to eyebrow-scale text + thin accents,
+    // never fills. The range toggle is a selection control —
+    // action-affirmative is the correct lane regardless of surrounding
+    // chrome. The subscreen's caregiver-lane identity now lives in the
+    // eyebrow + header + card chrome.
     expect(STRIPPED).toMatch(
-      /range === r && \{\s*backgroundColor:\s*colors\.caregiverAccent\s*\}/,
+      /range === r && \{\s*backgroundColor:\s*colors\.accent\s*\}/,
     );
   });
 });

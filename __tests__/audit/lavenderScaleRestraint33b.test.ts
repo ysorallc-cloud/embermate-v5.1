@@ -105,10 +105,13 @@ const WHITELIST: Array<{ path: string; rationale: string }> = [
     path: 'components/support/OrbRings.tsx',
     rationale: 'breathing-orb SVG concentric-rings — decorative meditation chrome',
   },
-  {
-    path: 'components/support/BreathingExercise.tsx',
-    rationale: 'breathing-moment modal — lavender on dim-lit dark overlay; Option B BE whitelist analog',
-  },
+  // BreathingExercise.tsx removed from the whitelist in Phase 33b extension
+  // lavender no-fill canon. The cleanup flipped its 4 bare-lavender sites
+  // (dotDone / dotActive / two beginButton inline fills) to sage `c.accent`
+  // — sites #10 / #11 / #12 / #13. The remaining lavender lane identity
+  // for the modal lives in OrbRings (already whitelisted above) + the
+  // SectionEyebrow tint, neither of which consumes bare `c.caregiverAccent`
+  // inside BreathingExercise itself.
   // (3) Caregiver chip identity surfaces
   {
     path: 'app/(tabs)/support.tsx',

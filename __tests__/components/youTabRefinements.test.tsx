@@ -136,7 +136,15 @@ describe('ReflectionCard — Phase 29 Batch B F3 lavender lane chrome', () => {
     expect(merged.borderLeftColor).toBe('#aa8adc');
   });
 
-  it('Save button is filled caregiverAccent (Phase 29 Batch B F3 — lane recolor from sage)', () => {
+  it('Save button is filled sage `c.accent` (Phase 33b extension lavender no-fill canon — reframed from Phase 29 Batch B F3 lavender recolor)', () => {
+    // Phase 29 Batch B F3 had migrated this pill from sage to lavender
+    // as a Tier-1 within-surface coherence move (wrapping card carries
+    // lavender lane identity). Phase 33b extension lavender no-fill
+    // canon (site #14) reversed that flip — lavender is now restricted
+    // to eyebrow-scale text + thin accents, never fills. The Save pill
+    // returns to sage; the wrapping card's lavender lane identity now
+    // lives in its eyebrow + tint, not in the CTA. Padding (6pt vertical
+    // / 16pt horizontal) unchanged from the v6.7 Phase 5 layout.
     const tree = (ReflectionCard as any)({});
     const save = findAll(tree, (n) =>
       n.type === 'TouchableOpacity' &&
@@ -145,18 +153,19 @@ describe('ReflectionCard — Phase 29 Batch B F3 lavender lane chrome', () => {
     )[0];
     expect(save).toBeDefined();
     const merged = styleOf(save);
-    expect(merged.backgroundColor).toBe('#aa8adc');
-    expect(merged.backgroundColor).not.toBe('#5fb88a');
+    expect(merged.backgroundColor).toBe('#5fb88a');
+    expect(merged.backgroundColor).not.toBe('#aa8adc');
     // Locked padding: 6pt vertical / 16pt horizontal.
     expect(merged.paddingVertical).toBe(6);
     expect(merged.paddingHorizontal).toBe(16);
   });
 
-  it('Save button text is near-black on the filled lavender (Phase 29 Batch B F3 lane recolor + Phase 33 F9 Phase-26 precedent)', () => {
-    // Phase 29 Batch B F3 — Save button bg migrated from sage to lavender.
-    // Phase 33 F9 — text color migrated from '#fff' to '#0a0c0a' per the
-    // Phase 26 F4 sage/lavender-CTA near-black precedent. AAA contrast
-    // against lavender (~9.5:1).
+  it('Save button text is near-black on the sage fill (Phase 26 F4 / Q-F9.3 sage CTA contrast precedent — unchanged across the lane reframe)', () => {
+    // Pre-cleanup the near-black text sat on lavender. After Phase 33b
+    // extension lavender no-fill canon flipped the pill back to sage
+    // (site #14), the same near-black text reads on sage as it did on
+    // lavender per the Phase 26 F4 sage/lavender-CTA contrast precedent.
+    // The text color is unchanged; only the wrapping fill flipped.
     const tree = (ReflectionCard as any)({});
     const saveText = findAll(tree, (n) =>
       n.type === 'Text' &&

@@ -188,21 +188,26 @@ describe('ReflectionCard — Section 5: footer (privacy note + Save pill)', () =
     expect(block).toMatch(/color:\s*c\.textTertiary|color:\s*colors\.textTertiary/);
   });
 
-  it('Save pill: solid caregiverAccent + near-black text (Phase 29 Batch B F3 lane recolor + Phase 33 F9 Phase-26 precedent)', () => {
-    // Phase 29 Batch B F3 — Save pill flips from sage outline-y primary
-    // to solid caregiverAccent. Phase 33 F9 — text color migrated from
-    // '#fff' to '#0a0c0a' per the Phase 26 F4 sage/lavender-CTA
-    // near-black precedent. AAA contrast against lavender (~9.5:1).
-    // Padding + radius + fontSize unchanged.
+  it('Save pill: solid sage + near-black text (Phase 33b extension lavender no-fill canon — reframed from Phase 29 Batch B F3 lavender recolor)', () => {
+    // Phase 29 Batch B F3 had migrated this pill from sage to lavender
+    // as a Tier-1 within-surface coherence move. Phase 33b extension
+    // lavender no-fill canon (site #14) reversed that flip — lavender
+    // is now restricted to eyebrow-scale text + thin accents, never
+    // fills. The Save pill returns to sage `c.accent`; near-black text
+    // reads on sage the same way it read on lavender per the Phase 26
+    // F4 sage/lavender-CTA contrast precedent. Padding + radius +
+    // fontSize unchanged.
     const button = styleBlock('saveButton');
-    expect(button).toMatch(/backgroundColor:\s*(c|colors)\.caregiverAccent\b(?!\w)/);
+    expect(button).toMatch(/backgroundColor:\s*(c|colors)\.accent\b(?!\w)/);
     expect(num(button, 'paddingVertical')).toBe(6);
     expect(num(button, 'paddingHorizontal')).toBe(16);
     expect(num(button, 'borderRadius')).toBe(16);
     const buttonText = styleBlock('saveButtonText');
     // fontSize 11.5 is a fractional float — match the literal text.
     expect(buttonText).toMatch(/fontSize:\s*11\.5/);
-    // Near-black text on solid lavender per Phase 26 F4 precedent.
+    // Near-black text on solid sage per Phase 26 F4 precedent (unchanged
+    // across the lane reframe — the text color was set to serve both
+    // lanes equivalently).
     expect(buttonText).toMatch(/color:\s*['"]#0a0c0a['"]/);
   });
 

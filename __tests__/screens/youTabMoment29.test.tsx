@@ -401,28 +401,35 @@ describe('Phase 29 Batch A.1 — voice absence pins', () => {
 });
 
 // ============================================================================
-// Phase 29 Batch A.2 — lane coherence absence pin.
+// Phase 29 Batch A.2 — lane coherence absence pin (RETIRED by Phase 33b
+// extension lavender no-fill canon).
 //
-// The BreathingExercise modal launches from the lavender You-lane (orb
-// card + chip + greeting). A.2 F2 migrated the modal orb to OrbRings
-// (lavender via caregiverAccent), and the F2 simulator gate surfaced
-// two color orphans missed during the Phase 26 / 23.1 lane migration:
-// the cycle dots and the Begin/Done buttons still used sage `accent`.
-// The recolor (F2 follow-up) swept all four to caregiverAccent.
+// HISTORY: A.2 F2 migrated the modal orb to OrbRings (lavender via
+// caregiverAccent), then swept the cycle dots + Begin/Done buttons from
+// sage `c.accent` to lavender for Tier-1 within-surface lane coherence.
+// This absence pin defended that outcome.
 //
-// This absence pin defends the lane-coherence outcome — any future
-// reintroduction of a bare `c.accent` or `colors.accent` reference in
-// BreathingExercise.tsx (outside comments) fails. Suffixed accent
-// tokens (`c.accentLight`, `c.accentBorder`, etc.) stay legal — the
-// word boundary in the regex matches only the bare property access.
+// CHANGE: Phase 33b extension lavender no-fill canon supersedes the
+// Tier-1 coherence directive. Lavender is now restricted to eyebrow-scale
+// text + thin accents; never a fill. The four lavender-fill sites in
+// BreathingExercise (dotDone / dotActive / two beginButtons) flipped
+// back to sage `c.accent`. The lavender lane identity now lives in the
+// orb itself (OrbRings via caregiverAccent), the phaseLabel + endLink
+// text colors, and the modal eyebrow.
+//
+// The absence pin is preserved as a reframed pin: BreathingExercise IS
+// expected to consume `c.accent` going forward (sites #10-#13 of the
+// no-fill canon cleanup). The reframed version asserts the expected
+// presence rather than the retired absence.
 // ============================================================================
 
-describe('Phase 29 Batch A.2 — lane coherence absence pin', () => {
-  it('F2 absence pin: BreathingExercise source contains no bare `c.accent` or `colors.accent` references', () => {
-    // BREATHING_STRIPPED has comments removed so changelog commentary
-    // doesn't false-positive. The \b after `accent` ensures
-    // c.accentLight / c.accentBorder / etc. aren't caught — only the
-    // bare property access (sage solid).
-    expect(BREATHING_STRIPPED).not.toMatch(/\b(c|colors)\.accent\b/);
+describe('Phase 33b extension lavender no-fill canon — BreathingExercise lane reframe (was Phase 29 A.2 lane-coherence absence pin)', () => {
+  it('post-no-fill-canon: BreathingExercise consumes `c.accent` for progress dots + action-affirmative CTAs', () => {
+    // The cleanup pass flipped four lavender-fill sites to sage
+    // `c.accent`. Re-introducing a saturated lavender fill on any of
+    // them would fail the canon contract; this pin requires the sage
+    // token to actually be present so the reframe doesn't silently
+    // regress to a third color (e.g., a hardcoded hex).
+    expect(BREATHING_STRIPPED).toMatch(/\b(c|colors)\.accent\b/);
   });
 });

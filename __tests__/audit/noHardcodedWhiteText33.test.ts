@@ -6,11 +6,16 @@
 // 4 lines where pure white is intentional perceptual work:
 //
 //   • app/_layout.tsx:398 lockButtonText (Q-33.9 — lockscreen)
-//   • components/support/BreathingExercise.tsx:364 countdown (BE modal,
+//   • components/support/BreathingExercise.tsx:374 countdown (BE modal,
 //     dim-lit breathing scene)
-//   • components/support/BreathingExercise.tsx:370 phaseLabel (BE modal)
-//   • components/support/BreathingExercise.tsx:397 endLinkText (BE modal,
+//   • components/support/BreathingExercise.tsx:380 phaseLabel (BE modal)
+//   • components/support/BreathingExercise.tsx:409 endLinkText (BE modal,
 //     alpha 0.5)
+//
+// Phase 33b extension lavender no-fill canon shifted the BE line numbers
+// (was 364/370/397 → 374/380/409) when added JSX-inline lane-canon
+// comments + expanded beginButtonText's commentary. The whitelist
+// tracks the moving target.
 //
 // All other text-color literals must route through the cream/secondary/
 // tertiary/muted token ladder, or use #0a0c0a near-black on sage/lavender/
@@ -64,17 +69,17 @@ const WHITELIST: Array<{ path: string; line: number; rationale: string }> = [
   },
   {
     path: 'components/support/BreathingExercise.tsx',
-    line: 364,
+    line: 374,
     rationale: 'BE modal countdown (36pt) — Option B dim-lit breathing scene',
   },
   {
     path: 'components/support/BreathingExercise.tsx',
-    line: 370,
+    line: 380,
     rationale: 'BE modal phaseLabel (22pt) — Option B dim-lit breathing scene',
   },
   {
     path: 'components/support/BreathingExercise.tsx',
-    line: 397,
+    line: 409,
     rationale: 'BE modal endLinkText (rgba 0.5) — Option B dim-lit breathing scene',
   },
 ];
