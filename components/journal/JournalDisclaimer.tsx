@@ -30,9 +30,17 @@ export interface JournalDisclaimerProps {
   /** Phase 22.1 — total items expected today. Pass undefined or 0
    *  to omit the stats line entirely. */
   totalCount?: number;
+  /** Phase 27 F4 — when true, drop the standalone wrap chrome
+   *  (paddingVertical + paddingHorizontal + center alignment) so the
+   *  disclaimer reads as one of several lines in a parent merged
+   *  footer block rather than a self-contained centered footer
+   *  region. Text styling (textTertiary italic 9.5pt) preserved.
+   *  Defaults to false to keep the existing standalone-centered
+   *  behavior for any non-Journal future consumer. */
+  inline?: boolean;
 }
 
-export function JournalDisclaimer({ loggedCount, totalCount }: JournalDisclaimerProps = {}) {
+export function JournalDisclaimer({ loggedCount, totalCount, inline = false }: JournalDisclaimerProps = {}) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -44,10 +52,12 @@ export function JournalDisclaimer({ loggedCount, totalCount }: JournalDisclaimer
     ? `${loggedCount} of ${totalCount} logged today`
     : null;
 
+  const textStyle = inline ? styles.textInline : styles.text;
+
   return (
-    <View style={styles.wrap}>
-      {statsLine && <Text style={styles.text}>{statsLine}</Text>}
-      <Text style={styles.text}>
+    <View style={inline ? styles.wrapInline : styles.wrap}>
+      {statsLine && <Text style={textStyle}>{statsLine}</Text>}
+      <Text style={textStyle}>
         {'A record of care, not a medical record'}
       </Text>
     </View>
@@ -61,11 +71,25 @@ const createStyles = (c: any) =>
       paddingHorizontal: 14, // allow: page-rhythm horizontal inset
       alignItems: 'center',
     },
+    wrapInline: {
+      // Phase 27 F4 — inline mode strips the standalone wrap chrome
+      // so the disclaimer text lines flow naturally with the rest of
+      // the merged footer block. Outer footer container in journal.tsx
+      // owns the horizontal/vertical padding for the merged unit.
+    },
     text: {
       fontSize: 9.5,
       color: c.textTertiary,
       fontStyle: 'italic' as const,
       textAlign: 'center' as const,
+      lineHeight: 15,
+    },
+    textInline: {
+      // Phase 27 F4 — same type + color as `text` but left-aligned to
+      // sit in line with the eyebrow + building-toward line above.
+      fontSize: 9.5,
+      color: c.textTertiary,
+      fontStyle: 'italic' as const,
       lineHeight: 15,
     },
   });

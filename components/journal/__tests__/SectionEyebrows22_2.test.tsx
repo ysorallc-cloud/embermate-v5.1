@@ -145,33 +145,43 @@ describe('Phase 22.2 — SectionEyebrow applied uniformly to Journal sections', 
     });
   });
 
-  describe('BUILDING TOWARD (journal.tsx page-level, lavender)', () => {
-    it('renders SectionEyebrow with text "Building toward" and lavender tint above the feed-forward banner', () => {
-      // The banner has no internal eyebrow container, so the eyebrow
-      // lives at page level inside the same conditional as the banner.
+  describe('Merged footer page-level eyebrow (Phase 27 F4 reframe — was BUILDING TOWARD)', () => {
+    // Phase 22.2 added a dedicated <SectionEyebrow text="Building toward"
+    // tint="caregiverAccent" /> at page level above the lavender-tinted
+    // BUILDING TOWARD banner. Phase 27 F4 (2026-05-21) collapsed
+    // BUILDING TOWARD into the merged footer block — the dedicated
+    // eyebrow + banner chrome + sectionDivider retire, replaced by a
+    // single "For the record" eyebrow at the top of the merged footer
+    // (Q-27.3 single-eyebrow-block lock). Original Phase 22.2 contracts
+    // reframed to assert the NEW shape; the BUILDING TOWARD eyebrow
+    // absence is defended by journalMergedFooter27 contract 3.
+
+    it('renders SectionEyebrow with text "For the record" for the merged footer block (reframed from Building toward)', () => {
       expect(journalCode).toMatch(
+        /<SectionEyebrow\b[\s\S]{0,200}?text=["']For the record["']/,
+      );
+      // The "Building toward" eyebrow is retired.
+      expect(journalCode).not.toMatch(
         /<SectionEyebrow\b[\s\S]{0,200}?text=["']Building toward["']/,
       );
-      expect(journalCode).toMatch(
-        /<SectionEyebrow\b[\s\S]{0,400}?tint=["']caregiverAccent["']/,
-      );
     });
 
-    it('renders a hairline divider above the BUILDING TOWARD section', () => {
-      // Page-level divider — gated by the same showFeedBanner /
-      // upcomingAppointment conditional as the eyebrow + banner so no
-      // orphan divider appears when the banner is absent.
-      expect(journalCode).toMatch(/\bsectionDivider\b/);
+    it('hairline divider above BUILDING TOWARD section is retired (absorbed into merged footer)', () => {
+      // Pre-F4 the BUILDING TOWARD area had its own sectionDivider
+      // above. The merged footer (Phase 27 F4) drops the divider
+      // because the footer reads as one continuous quiet block below
+      // the SOAP sections — no inter-section separator needed.
+      expect(journalCode).not.toMatch(/\bsectionDivider\b/);
     });
 
-    it('the new BUILDING TOWARD eyebrow renders inside the showFeedBanner conditional', () => {
-      // Pin the gating: the eyebrow must NOT render when no upcoming
-      // appointment is in window (otherwise it sits orphaned above
-      // empty space).
-      const idx = journalCode.indexOf('Building toward');
+    it('the merged-footer building-toward affordance stays gated on showFeedBanner', () => {
+      // The dedicated eyebrow is gone, but the building-toward LINE
+      // (now a quiet text link inside the footer) is still gated on
+      // the same condition so no orphan text renders when there's no
+      // upcoming appointment. Anchor on the footerLink style usage
+      // and verify showFeedBanner appears in the lookback window.
+      const idx = journalCode.indexOf('s.footerLink');
       expect(idx).toBeGreaterThan(-1);
-      // Look ~600 chars before the eyebrow for the gating expression
-      // (the conditional opens with `{showFeedBanner && upcomingAppointment && (`).
       const before = journalCode.slice(Math.max(0, idx - 600), idx);
       expect(before).toMatch(/showFeedBanner/);
     });
@@ -199,8 +209,14 @@ describe('Phase 22.2 — uniform divider treatment', () => {
     expect(notesCode).toMatch(/\bsectionDivider\b|^\s*divider\s*:/m);
   });
 
-  it('journal.tsx declares a sectionDivider style for the BUILDING TOWARD divider', () => {
-    expect(journalCode).toMatch(/\bsectionDivider\b/);
+  it('journal.tsx no longer declares a sectionDivider style (Phase 27 F4 retired with the BUILDING TOWARD banner)', () => {
+    // Reframed Phase 22.2 contract. The sectionDivider style was only
+    // consumed by the pre-F4 BUILDING TOWARD area's hairline-above-
+    // banner pattern. F4's merged footer drops that divider, and the
+    // style declaration is retired alongside. Per-component dividers
+    // (NarrativeSnapshot / TodayNotableMoments / etc.) remain as
+    // pinned above; this assertion is page-level only.
+    expect(journalCode).not.toMatch(/\bsectionDivider\b/);
   });
 });
 

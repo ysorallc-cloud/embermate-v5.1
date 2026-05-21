@@ -914,63 +914,57 @@ export default function JournalTab() {
             );
           })()}
 
-          {/* Phase 22.1 — BUILDING TOWARD feed-forward banner moved
-              from the top of the scroll to here (between Notes and the
-              disclaimer footer), matching the handoff-document order:
-              identity → gestalt → day picker → narrative → notable →
-              pending → notes → BUILDING TOWARD → footer. Source:
-              utils/appointmentLookahead (same as the notes prompt).
-              Phase 22.2 — eyebrow + hairline divider added at page
-              level (banner has no internal eyebrow container).
-              Lavender tint matches the visit-prep semantic used by
-              the banner's existing accent color. Gated by
-              showFeedBanner so no orphan eyebrow/divider above empty
-              space. */}
-          {showFeedBanner && upcomingAppointment && (
-            <>
-              <View style={s.sectionDivider} />
-              <SectionEyebrow text="Building toward" tint="caregiverAccent" />
+          {/* Phase 27 F4 — merged footer (Q-27.3: single eyebrow block).
+              Pre-F4 the page bottom was two structurally separate units:
+              the BUILDING TOWARD banner (lavender-tinted touchable with
+              hairline divider + dedicated eyebrow + emoji + arrow) and
+              the JournalDisclaimer (centered logged-count + privacy
+              line). F4 collapses them into one quiet footer block under
+              a single "FOR THE RECORD" eyebrow. Lavender no-fill canon
+              compliant: the building-toward affordance becomes a quiet
+              text link with a sage chevron — no banner chrome.
+
+              Gating:
+                • Building-toward line — conditional on showFeedBanner
+                  AND upcomingAppointment; absent on past days, on days
+                  without an upcoming visit, and when dismissed.
+                • Logged-count line — conditional on isViewingToday AND
+                  outcomes.total > 0 (drives JournalDisclaimer's stats
+                  line). Past days omit it.
+                • Disclaimer copy line — always present.
+
+              The eyebrow renders always so the footer reads as a
+              distinct page-level region even on past-day-empty + no-
+              upcoming-visit (when only the disclaimer line is below). */}
+          <View style={s.footer}>
+            <SectionEyebrow text="For the record" />
+            {showFeedBanner && upcomingAppointment && (
               <TouchableOpacity
-                style={s.feedBanner}
+                style={s.footerLink}
                 onPress={() => navigate('/(tabs)/understand')}
-                activeOpacity={0.85}
+                activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel={`Your entries are building ${patientName}'s visit prep for ${upcomingAppointment.provider}, ${daysUntilAppt} days away`}
               >
-                <Text style={s.feedBannerIcon}>{'\u{1FA7A}'}</Text>
-                <Text style={s.feedBannerText} numberOfLines={2}>
-                  {`Your entries are building ${patientName}'s visit prep for ${upcomingAppointment.provider} · ${daysUntilAppt} day${daysUntilAppt === 1 ? '' : 's'}`}
+                <Text style={s.footerLinkText}>
+                  {`Building toward ${patientName}'s visit prep for ${upcomingAppointment.provider} · ${daysUntilAppt} day${daysUntilAppt === 1 ? '' : 's'}`}
                 </Text>
-                <Text style={s.feedBannerArrow}>{'›'}</Text>
+                <Text style={s.footerLinkArrow}>{'›'}</Text>
               </TouchableOpacity>
-            </>
-          )}
-
-          {/* Phase 5.11 — "This week" pattern card relocated to Insights.
-              Now and Journal are today-focused; longitudinal stats live
-              on the Insights tab. */}
-
-          {/* Phase 5.12.g — HandoffCard removed. The sticky "Share
-              handoff" CTA below is the page's only primary action;
-              competing share affordances were retired here. The
-              "Done for today" affordance from HandoffCard is dropped
-              with this commit and may resurface as a Now-tab feature. */}
-
-          {/* Phase 22.1 — standalone completion footer line collapsed
-              into the compressed JournalDisclaimer below (its line 1
-              now reads "{n} of {m} logged today"). Persistent on every
-              state; quiet legal hygiene; not dismissable. */}
-          {(() => {
-            const total = !isViewingPast
-              ? outcomes.logged.count + outcomes.missed.count + outcomes.pending.count
-              : 0;
-            return (
-              <JournalDisclaimer
-                loggedCount={total > 0 ? outcomes.logged.count : undefined}
-                totalCount={total > 0 ? total : undefined}
-              />
-            );
-          })()}
+            )}
+            {(() => {
+              const total = !isViewingPast
+                ? outcomes.logged.count + outcomes.missed.count + outcomes.pending.count
+                : 0;
+              return (
+                <JournalDisclaimer
+                  loggedCount={total > 0 ? outcomes.logged.count : undefined}
+                  totalCount={total > 0 ? total : undefined}
+                  inline
+                />
+              );
+            })()}
+          </View>
 
         </ScrollView>
       </SafeAreaView>
@@ -1176,42 +1170,37 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   authGateButton: { backgroundColor: c.accent, paddingHorizontal: 32, paddingVertical: 14, borderRadius: BorderRadius.lg }, // allow: tap-target padding (Apple HIG ≥44pt)
   authGateButtonText: { fontSize: 16, fontWeight: '600', color: '#0a0c0a' },
 
-  // Phase 22.2 — hairline divider for the page-level BUILDING TOWARD
-  // section (the banner has no internal eyebrow container). Matches
-  // the 15.12 Insights divider visual.
-  sectionDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    marginVertical: Spacing.md,
-    marginHorizontal: -16,
+  // Phase 27 F4 — merged footer (Q-27.3 single-eyebrow-block lock).
+  // Replaces the pre-F4 BUILDING TOWARD banner + standalone centered
+  // JournalDisclaimer with a single quiet footer region beneath one
+  // SectionEyebrow ("FOR THE RECORD"). The lavender-tinted banner
+  // chrome retires entirely (lavender no-fill canon compliant); the
+  // building-toward affordance becomes a quiet text link with a sage
+  // chevron, and the disclaimer flows inline beneath it.
+  //
+  // Retired with F4: sectionDivider / feedBanner / feedBannerIcon /
+  // feedBannerText / feedBannerArrow. They were only consumed by the
+  // pre-F4 BUILDING TOWARD section, now collapsed into this block.
+  footer: {
+    marginTop: Spacing.md, // separates footer from the last SOAP section above
+    paddingHorizontal: 14, // allow: page-rhythm horizontal inset
+    paddingBottom: Spacing.md,
   },
-
-  // Phase 33b Scope 2 — Surface 7 lavender scale reduction. Pre-33b
-  // the BUILDING TOWARD banner had full lavender chrome (border + bg
-  // + body + arrow). 33b retires chrome entirely. The "Building
-  // toward" SectionEyebrow (rendered at the JSX site) carries the
-  // lavender garnish at canon eyebrow scale; the banner body migrates
-  // to cream-on-no-chrome with a sage arrow per the canon "cream body
-  // + sage or cream arrow + no border chrome" target.
-  feedBanner: {
+  footerLink: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 10,
-    paddingHorizontal: 4,
-    paddingVertical: 8,
-    marginBottom: 10,
+    gap: 8,
+    paddingVertical: 4,
+    marginBottom: Spacing.sm,
   },
-  feedBannerIcon: {
-    fontSize: 14,
-  },
-  feedBannerText: {
+  footerLinkText: {
     flex: 1,
     fontSize: 12,
     color: c.textPrimary,
     fontWeight: '500' as const,
     lineHeight: 16,
   },
-  feedBannerArrow: {
+  footerLinkArrow: {
     fontSize: 16,
     color: c.accent,
   },

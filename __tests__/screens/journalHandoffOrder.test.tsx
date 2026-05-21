@@ -114,20 +114,26 @@ describe('Journal — deprecated sections removed', () => {
     expect(src).not.toMatch(/getDailyPrompt\(/);
   });
 
-  it('Phase 22.2 — page-level SectionEyebrow allowed for BUILDING TOWARD (banner has no child container)', () => {
-    // Pre-22.2 eyebrows lived only INSIDE the section components
-    // (NarrativeSnapshot / TodayNotableMoments / TodayStillPending /
-    // JournalNotesCard). 22.2 added a single page-level SectionEyebrow
-    // for the BUILDING TOWARD feed-forward banner — that banner is a
-    // TouchableOpacity at the page scope, not a child component, so
-    // its eyebrow lives in journal.tsx itself.
+  it('Phase 27 F4 — page-level SectionEyebrow for the merged footer "For the record" (reframed from Phase 22.2 BUILDING TOWARD pin)', () => {
+    // Pre-22.2 eyebrows lived only INSIDE the section components.
+    // Phase 22.2 added a single page-level <SectionEyebrow text="Building
+    // toward" tint="caregiverAccent" /> above the lavender-tinted feed-
+    // forward banner.
     //
-    // Pin the post-22.2 reality: exactly one <SectionEyebrow> at
-    // page level, with the "Building toward" text and the lavender
-    // (caregiverAccent) tint that matches the banner's accent color.
+    // Phase 27 F4 (2026-05-21) collapses BUILDING TOWARD into the
+    // merged footer. The dedicated "Building toward" eyebrow retires;
+    // its function is absorbed by a single "For the record" eyebrow
+    // at the top of the merged footer block (Q-27.3 single-eyebrow-
+    // block lock). The building-toward affordance becomes a quiet
+    // text link beneath that eyebrow — no dedicated section eyebrow.
+    //
+    // Pin the post-F4 reality: exactly one page-level <SectionEyebrow>
+    // and its text is "For the record" (no tint — neutral fallback).
+    // The "Building toward" eyebrow is absent (defended by
+    // journalMergedFooter27 contract 3).
     const eyebrows = src.match(/<SectionEyebrow\b[\s\S]*?\/>/g) || [];
     expect(eyebrows.length).toBe(1);
-    expect(eyebrows[0]).toMatch(/text=["']Building toward["']/);
-    expect(eyebrows[0]).toMatch(/tint=["']caregiverAccent["']/);
+    expect(eyebrows[0]).toMatch(/text=["']For the record["']/);
+    expect(eyebrows[0]).not.toMatch(/text=["']Building toward["']/);
   });
 });
