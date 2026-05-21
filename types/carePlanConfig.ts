@@ -39,6 +39,28 @@ export const BUCKET_TYPES: BucketType[] = [
   'self_care',
 ];
 
+// CORE buckets — always-on for v1. Required, not toggleable; the wizard's
+// confirm step surfaces them as read-only "always on" rows and the Care
+// Plan management screen renders them as tappable cards (no toggle).
+//
+// Canonical single-source-of-truth definition. Pre-canonicalization
+// (pre-2026-05-21) confirm.tsx and care-plan/index.tsx each carried their
+// own local CORE_BUCKETS const with DIFFERENT contents (wizard had 2
+// buckets, management had 4 including meals + wellness). The drift
+// surfaced as a device-visible bug: the wizard grouped meals + wellness
+// under "These show on your Now tab" while the management screen grouped
+// them under "CORE — ALWAYS ON". See
+// __tests__/audit/carePlanGroupingCoherence.test.ts for the reproduction
+// + forward-looking pin that both screens consume this export.
+//
+// Membership pick: {meds, vitals} only. Matches Phase 32A's planned Care
+// Plan grouping (ALWAYS ON = meds/vitals; meals/wellness become toggles
+// under DAILY TRACKING) and fixes the UX bug — meals + wellness were
+// buried as always-on cards while activity (enabled the same way) was a
+// toggle. With CORE = {meds, vitals}, meals + wellness join the toggle
+// list, so the wizard and management screen tell the same story.
+export const CORE_BUCKETS: BucketType[] = ['meds', 'vitals'];
+
 // Primary buckets shown by default
 export const PRIMARY_BUCKETS: BucketType[] = ['meds', 'vitals', 'meals', 'water'];
 

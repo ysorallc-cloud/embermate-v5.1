@@ -25,6 +25,7 @@ import {
   BucketConfig,
   BUCKET_META,
   BUCKET_TYPES,
+  CORE_BUCKETS,
   PRIMARY_BUCKETS,
   SECONDARY_BUCKETS,
   OPTIONAL_BUCKETS,
@@ -36,10 +37,19 @@ import { CARE_PLAN_TEMPLATES, CarePlanTemplate, TemplateMedSuggestion } from '..
 import { TemplateMedSeedingModal } from '../../components/careplan/TemplateMedSeedingModal';
 import { AddItemSheet } from '../../components/careplan/AddItemSheet';
 
-// Core buckets — always on, shown as tappable cards (no toggle)
-const CORE_BUCKETS: BucketType[] = ['meds', 'vitals', 'wellness', 'meals'];
-
-// Optional buckets — all non-core, shown with toggle
+// CORE_BUCKETS imported from carePlanConfig canon (2026-05-21
+// canonicalization — see carePlanGroupingCoherence.test.ts trace).
+// Pre-canonicalization this file declared its own local
+// `CORE_BUCKETS: BucketType[] = ['meds', 'vitals', 'wellness', 'meals']`
+// which disagreed with the wizard's local 2-bucket version. Membership
+// settled on {meds, vitals} per the device-visible UX bug (meals +
+// wellness were buried as always-on cards while activity, enabled the
+// same way in the wizard, was a toggle). Aligning here matches Phase
+// 32A's planned Care Plan grouping.
+//
+// Optional buckets — all non-core, shown with toggle. The derivation is
+// unchanged; only the input set shrank from 4 buckets to 2, so this
+// list grew from 7 to 9 entries (meals + wellness moved in).
 const OPTIONAL_TOGGLE_BUCKETS: BucketType[] = BUCKET_TYPES.filter(
   b => !CORE_BUCKETS.includes(b)
 );

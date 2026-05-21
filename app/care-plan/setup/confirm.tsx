@@ -38,6 +38,7 @@ import { useActivePatientName } from '../../../hooks/useActivePatientName';
 import {
   BUCKET_TYPES,
   BUCKET_META,
+  CORE_BUCKETS,
   PRIMARY_BUCKETS,
   SECONDARY_BUCKETS,
   OPTIONAL_BUCKETS,
@@ -55,10 +56,13 @@ import { SectionEyebrow } from '../../../components/SectionEyebrow';
 const FIRST_REAL_MODE_KEY = '@embermate_first_real_mode_landed';
 const PATIENT_ID = 'default';
 
-// CORE buckets — always-on for v1. The wizard surfaces them as required,
-// not toggleable; the user sees the bucket but cannot disable it.
-const CORE_BUCKETS: ReadonlySet<BucketType> = new Set(['meds', 'vitals']);
-
+// CORE_BUCKETS imported from carePlanConfig canon (2026-05-21
+// canonicalization — see carePlanGroupingCoherence.test.ts trace).
+// Pre-canonicalization this file declared its own local
+// `CORE_BUCKETS = new Set(['meds', 'vitals'])` which disagreed with
+// the management screen's local 4-bucket version. Both now consume
+// the single export.
+//
 // Phase 33b extension Lock 2 — three-section split.
 //
 // Pre-fix the OPTIONAL section listed all 9 toggles in one block. A
@@ -77,7 +81,7 @@ const CORE_BUCKETS: ReadonlySet<BucketType> = new Set(['meds', 'vitals']);
 // Persistence unchanged — toggling any of the 9 still writes to
 // setBucketEnabled. UX-only fix.
 const NOW_TAB_BUCKETS: ReadonlySet<BucketType> = new Set(
-  [...PRIMARY_BUCKETS, ...SECONDARY_BUCKETS].filter((b) => !CORE_BUCKETS.has(b)),
+  [...PRIMARY_BUCKETS, ...SECONDARY_BUCKETS].filter((b) => !CORE_BUCKETS.includes(b)),
 );
 const CARE_PLAN_BUCKETS: ReadonlySet<BucketType> = new Set(OPTIONAL_BUCKETS);
 
@@ -122,7 +126,7 @@ export default function WizardStepConfirm() {
     }));
   }, [config]);
 
-  const coreRows = rows.filter((r) => CORE_BUCKETS.has(r.type));
+  const coreRows = rows.filter((r) => CORE_BUCKETS.includes(r.type));
   const nowTabRows = rows.filter((r) => NOW_TAB_BUCKETS.has(r.type));
   const carePlanRows = rows.filter((r) => CARE_PLAN_BUCKETS.has(r.type));
 
