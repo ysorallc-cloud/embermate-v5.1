@@ -110,9 +110,17 @@ function createStyles(c: any, tint: JournalSectionTint) {
       paddingHorizontal: 12,
       marginBottom: 10,
     },
-    body: {
-      marginTop: 7,
-    },
+    // Phase 33b extension pre-Lock-3 Item B — `body.marginTop: 7` retired.
+    // Pre-Item-B the gap between the SectionEyebrow and the card body
+    // came from this 7pt spacer. Item B moved the eyebrow→content gap
+    // to the SectionEyebrow primitive itself (marginBottom Spacing.sm =
+    // 12pt) so all 14+ consumer sites get a consistent canon gap. Keeping
+    // this block would compound to 12+7=19pt inside JournalSection
+    // consumers — louder than the 12pt canon elsewhere. body is now an
+    // empty pass-through; left in place for future use (e.g., if a
+    // surface needs to override the inner layout) and to keep the
+    // styles.body reference at the render site stable.
+    body: {},
   });
 }
 

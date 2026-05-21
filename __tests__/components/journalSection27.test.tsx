@@ -113,9 +113,14 @@ describe('Phase 27 F2 — JournalSection wrapper', () => {
     // The child must appear in the rendered tree somewhere.
     const childNode = findAll(tree.root, (n) => n.props?.testID === 'child-content')[0];
     expect(childNode).toBeDefined();
-    // The body wrapper should carry a top-margin to separate from the
-    // eyebrow. Pin the 7pt gap.
-    // Find the View that directly wraps the child.
+    // Phase 33b extension pre-Lock-3 Item B reframed the gap pin: the
+    // 7pt `body.marginTop` retired when SectionEyebrow gained a
+    // primitive `marginBottom: Spacing.sm` (= 12pt). Keeping the body
+    // top-margin would compound to 19pt+ inside JournalSection
+    // consumers; the eyebrow→body gap now lives entirely in the
+    // primitive. The body wrapper is preserved (empty styles block)
+    // for future surface-level layout overrides — pin its presence,
+    // not its margin.
     const childParent = findAll(tree.root, (n) => {
       if (n.type !== 'View') return false;
       const kids = n.props?.children;
@@ -123,7 +128,10 @@ describe('Phase 27 F2 — JournalSection wrapper', () => {
       return kids?.props?.testID === 'child-content';
     })[0];
     expect(childParent).toBeDefined();
-    expect(flatStyle(childParent).marginTop).toBe(7);
+    // body wrapper exists; gap is contributed by SectionEyebrow's
+    // marginBottom, not by body.marginTop.
+    const style = flatStyle(childParent);
+    expect(style.marginTop).toBeUndefined();
   });
 
   it('contract 3a: caregiverAccent tint — border-left = #aa8adc, bg = caregiverAccentBg', () => {

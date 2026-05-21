@@ -8,6 +8,7 @@
 import React, { useMemo } from 'react';
 import { Text, StyleSheet } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
+import { Spacing } from '../theme/theme-tokens';
 
 export interface SectionEyebrowProps {
   text: string;
@@ -50,10 +51,20 @@ export function SectionEyebrow({ text, tint, variant = 'feature' }: SectionEyebr
 // fontWeight removed from the static block — `'600'` (feature) and
 // `'500'` (hero) variants are applied at render time via the merged
 // style above.
+//
+// Phase 33b extension pre-Lock-3 Item B — primitive marginBottom
+// Spacing.sm. Lock 2 retired confirm.tsx's local `eyebrow:` style
+// which carried `marginBottom: 8`; the migration onto SectionEyebrow
+// left eyebrows flush against their next sibling on all 14+ consumer
+// sites. Adding the default at the primitive layer gives every
+// consumer a consistent canon gap. JournalSection's redundant
+// `body: { marginTop: 7 }` is dropped in the same commit so the gap
+// doesn't compound for JournalSection-wrapped consumers.
 const baseStyle = StyleSheet.create({
   eyebrow: {
     fontSize: 11,
     letterSpacing: 1.5,
+    marginBottom: Spacing.sm,
   },
 });
 
