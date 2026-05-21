@@ -42,18 +42,35 @@ function walkSrc(dir: string, acc: string[] = []): string[] {
   return acc;
 }
 
-// Find lines matching `backgroundColor:\s*(c|colors)\.caregiverAccent\b`
-// — the EXACT token only. Negative-lookahead excludes the Faint / Wash /
-// Muted / Bg / Light / Text / Mid / Strong / Border suffixes which form
-// the low-alpha tier banked for a separate on-device review.
+// Find lines that route a SATURATED lavender into `backgroundColor`.
+//
+// Catches two patterns:
+//   • Direct token: `backgroundColor: c.caregiverAccent` /
+//     `backgroundColor: colors.caregiverAccent`
+//   • Template-literal alpha-byte form: `` backgroundColor: `${c.caregiverAccent}NN` ``
+//     where NN is a hex alpha byte (e.g. `08`, `1A`). This pattern was a
+//     contract blind spot until 2026-05-21 — hub/reports/index.tsx used it
+//     for a 3% alpha lavender wash that escaped the original regex.
+//
+// Excluded — the explicit faint-tint family (Faint / Wash / Muted / Bg /
+// Light / Text / Mid / Strong / Border), which is a separate low-alpha
+// tier banked for a separate on-device review.
+//
+// For template-literal alpha forms: a low alpha (<= 0x20 ≈ 12%) reads as
+// a faint-tint equivalent and is excluded. Higher alphas (or the bare
+// token with no alpha byte appended) read as saturated and trigger.
 function findSaturatedFillSites(): Array<{ file: string; line: number; text: string }> {
   const srcRoots = [join(ROOT, 'app'), join(ROOT, 'components')];
   const violations: Array<{ file: string; line: number; text: string }> = [];
 
-  // Token suffixes to EXCLUDE (the faint-tint family).
   const FAINT_SUFFIXES = [
     'Faint', 'Wash', 'Muted', 'Bg', 'Light', 'Text', 'Mid', 'Strong', 'Border',
   ];
+
+  // Threshold for the template-literal alpha-byte form. 0x20 = 32/255 ≈ 12.5%.
+  // Anything at or below reads as a faint-tint equivalent (caregiverAccentBg
+  // is rgba 0.06 ≈ 0x0F; caregiverAccentLight is rgba 0.12 ≈ 0x1F).
+  const FAINT_ALPHA_THRESHOLD = 0x20;
 
   for (const root of srcRoots) {
     const files = walkSrc(root);
@@ -61,20 +78,47 @@ function findSaturatedFillSites(): Array<{ file: string; line: number; text: str
       const src = readFileSync(file, 'utf8');
       const lines = src.split('\n');
       lines.forEach((line, idx) => {
-        // Match `backgroundColor: c.caregiverAccent` or `backgroundColor: colors.caregiverAccent`
-        const m = line.match(/backgroundColor:\s*(?:c|colors)\.caregiverAccent(\w*)/);
-        if (!m) return;
-        const suffix = m[1];
-        // Skip the faint-tint family.
-        if (FAINT_SUFFIXES.some((s) => suffix === s)) return;
-        // Skip if any suffix at all is present and not in the EXACT
-        // token form. The exact saturated token has empty suffix.
-        if (suffix !== '') return;
-        violations.push({
-          file: file.replace(ROOT + '/', ''),
-          line: idx + 1,
-          text: line.trim(),
-        });
+        // Pattern 1: direct token access.
+        const direct = line.match(/backgroundColor:\s*(?:c|colors)\.caregiverAccent(\w*)/);
+        if (direct) {
+          const suffix = direct[1];
+          if (FAINT_SUFFIXES.some((s) => suffix === s)) return;
+          if (suffix !== '') return;
+          violations.push({
+            file: file.replace(ROOT + '/', ''),
+            line: idx + 1,
+            text: line.trim(),
+          });
+          return;
+        }
+        // Pattern 2: template-literal alpha-byte form.
+        // backgroundColor: `${c.caregiverAccent}NN` (optionally with
+        // additional template content). NN captured as a 2-hex-digit
+        // alpha. The hex value gates faint-tint equivalence — only
+        // alphas ABOVE the threshold count as saturated fills.
+        const tmpl = line.match(
+          /backgroundColor:\s*`[^`]*\$\{\s*(?:c|colors)\.caregiverAccent\s*\}([0-9a-fA-F]{2})?[^`]*`/,
+        );
+        if (tmpl) {
+          const alphaByte = tmpl[1];
+          // No alpha byte appended = saturated lavender wrapped in a
+          // template literal — same as the direct token, always flag.
+          if (!alphaByte) {
+            violations.push({
+              file: file.replace(ROOT + '/', ''),
+              line: idx + 1,
+              text: line.trim(),
+            });
+            return;
+          }
+          // Below the faint-tint threshold = effectively a wash; skip.
+          if (parseInt(alphaByte, 16) <= FAINT_ALPHA_THRESHOLD) return;
+          violations.push({
+            file: file.replace(ROOT + '/', ''),
+            line: idx + 1,
+            text: line.trim(),
+          });
+        }
       });
     }
   }
