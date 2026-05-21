@@ -771,71 +771,88 @@ export default function JournalTab() {
                 )}
               </SoapSectionFrame>
 
-              {/* Phase 27 F4 — Section 2 (Objective).
-                  Neutral-chrome card listing what was logged today as
-                  label/prose rows. Data source is the same `brief`
-                  state journal.tsx already populates via
-                  buildCareBrief(selectedDate) — single fetch, D5
-                  confirmed. Each row is independently gated; a row
-                  only renders when its slice has data. Section 2 as
-                  a whole is gated on brief !== null so no blank chrome
-                  flashes during the initial load. */}
-              {brief && (
-                <SoapSectionFrame eyebrow="What was logged" tint="neutral">
-                  {brief.medications.length > 0 && (
-                    <View style={s.objectiveRow}>
-                      <Text style={s.objectiveLabel}>Medications</Text>
-                      <View style={s.objectiveValue}>
-                        <MedicationsNarrative medications={brief.medications} bare />
+              {/* Phase 27 F2/F3 — Section 2 (Objective).
+                  Hybrid gutter layout per Q-27.2c: bucket header above,
+                  name|time sub-rows beneath. Pre-filter logic in this
+                  IIFE drives the per-bucket gates (pending dedup —
+                  pending content surfaces only in Section 4's STILL
+                  PENDING list) and the section-level all-pending empty
+                  state (Q-27.9 — warm "Nothing logged yet today" line
+                  rather than a collapsed blank section). loggedOnly
+                  prop on each narrative does the in-component pending
+                  suppression for the rendered rows. Section as a whole
+                  is still gated on brief !== null so no chrome flashes
+                  during the initial load. */}
+              {brief && (() => {
+                const loggedMeds = brief.medications.filter(m => m.status !== 'pending');
+                const hasMedsLogged = loggedMeds.length > 0;
+                const hasVitalsLogged = brief.vitals.recorded;
+                const hasWellnessLogged =
+                  brief.mood.entries.length > 0
+                  || brief.mood.morningWellness != null
+                  || brief.mood.eveningWellness != null;
+                const hasMealsLogged = brief.meals.meals.some(m => m.status === 'completed');
+                const hasHydrationLogged = brief.hydration.logged;
+                const hasSleepLogged = brief.sleep.logged;
+                const hasAnyLogged =
+                  hasMedsLogged
+                  || hasVitalsLogged
+                  || hasWellnessLogged
+                  || hasMealsLogged
+                  || hasHydrationLogged
+                  || hasSleepLogged;
+                return (
+                  <SoapSectionFrame eyebrow="What was logged" tint="neutral">
+                    {!hasAnyLogged && (
+                      <Text style={s.section2Empty}>Nothing logged yet today.</Text>
+                    )}
+                    {hasMedsLogged && (
+                      <View style={s.bucketGroup}>
+                        <Text style={s.bucketHeader}>Medications</Text>
+                        <MedicationsNarrative medications={brief.medications} bare loggedOnly />
                       </View>
-                    </View>
-                  )}
-                  {(brief.vitals.scheduled || brief.vitals.recorded) && (
-                    <View style={s.objectiveRow}>
-                      <Text style={s.objectiveLabel}>Vitals</Text>
-                      <View style={s.objectiveValue}>
-                        <VitalsNarrative vitals={brief.vitals} bare />
+                    )}
+                    {hasVitalsLogged && (
+                      <View style={s.bucketGroup}>
+                        <Text style={s.bucketHeader}>Vitals</Text>
+                        <VitalsNarrative vitals={brief.vitals} bare loggedOnly />
                       </View>
-                    </View>
-                  )}
-                  {(brief.mood.entries.length > 0 || brief.mood.morningWellness || brief.mood.eveningWellness) && (
-                    <View style={s.objectiveRow}>
-                      <Text style={s.objectiveLabel}>Wellness</Text>
-                      <View style={s.objectiveValue}>
+                    )}
+                    {hasWellnessLogged && (
+                      <View style={s.bucketGroup}>
+                        <Text style={s.bucketHeader}>Wellness</Text>
                         <MoodWellnessNarrative mood={brief.mood} bare />
                       </View>
-                    </View>
-                  )}
-                  {brief.meals.total > 0 && (
-                    <View style={s.objectiveRow}>
-                      <Text style={s.objectiveLabel}>Meals</Text>
-                      <View style={s.objectiveValue}>
-                        <MealsNarrative meals={brief.meals} bare />
+                    )}
+                    {hasMealsLogged && (
+                      <View style={s.bucketGroup}>
+                        <Text style={s.bucketHeader}>Meals</Text>
+                        <MealsNarrative meals={brief.meals} bare loggedOnly />
                       </View>
-                    </View>
-                  )}
-                  {brief.hydration.logged && (
-                    <View style={s.objectiveRow}>
-                      <Text style={s.objectiveLabel}>Hydration</Text>
-                      <Text style={s.objectiveInlineValue}>
-                        {brief.hydration.glasses != null
-                          ? `${brief.hydration.glasses} glass${brief.hydration.glasses === 1 ? '' : 'es'} logged today.`
-                          : 'Hydration logged today.'}
-                      </Text>
-                    </View>
-                  )}
-                  {brief.sleep.logged && (
-                    <View style={s.objectiveRow}>
-                      <Text style={s.objectiveLabel}>Sleep</Text>
-                      <Text style={s.objectiveInlineValue}>
-                        {brief.sleep.hours != null
-                          ? `${brief.sleep.hours} hour${brief.sleep.hours === 1 ? '' : 's'}${brief.sleep.quality != null ? ` · quality ${brief.sleep.quality}/5` : ''}.`
-                          : 'Sleep logged today.'}
-                      </Text>
-                    </View>
-                  )}
-                </SoapSectionFrame>
-              )}
+                    )}
+                    {hasHydrationLogged && (
+                      <View style={s.bucketGroup}>
+                        <Text style={s.bucketHeader}>Hydration</Text>
+                        <Text style={s.bucketInlineValue}>
+                          {brief.hydration.glasses != null
+                            ? `${brief.hydration.glasses} glass${brief.hydration.glasses === 1 ? '' : 'es'} logged today.`
+                            : 'Hydration logged today.'}
+                        </Text>
+                      </View>
+                    )}
+                    {hasSleepLogged && (
+                      <View style={s.bucketGroup}>
+                        <Text style={s.bucketHeader}>Sleep</Text>
+                        <Text style={s.bucketInlineValue}>
+                          {brief.sleep.hours != null
+                            ? `${brief.sleep.hours} hour${brief.sleep.hours === 1 ? '' : 's'}${brief.sleep.quality != null ? ` · quality ${brief.sleep.quality}/5` : ''}.`
+                            : 'Sleep logged today.'}
+                        </Text>
+                      </View>
+                    )}
+                  </SoapSectionFrame>
+                );
+              })()}
 
               {/* Phase 27 F5 — Section 3 (Assessment).
                   TodayNotableMoments owns the JournalSection amber
@@ -1062,38 +1079,36 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.textSecondary,
     fontStyle: 'italic' as const,
   },
-  // Phase 27 F4 — Section 2 (Objective) row layout. Label column is
-  // Georgia-serif at fixed 80pt width; value column flexes. Rows stack
-  // vertically with a small gap so the eye can scan top-to-bottom.
-  objectiveRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'flex-start' as const,
-    paddingVertical: 4, // allow: row breathing room (Apple HIG)
+  // Phase 27 F2 — Section 2 (Objective) hybrid gutter layout (Q-27.2c).
+  // Pre-F2 the layout was horizontal: 80pt label column + flex-1 value
+  // column. F2 restructures to vertical: serif bucket header on its own
+  // line above the name|time sub-rows beneath. Scans top-to-bottom
+  // cleanly on busy days and keeps the bucket-group rhythm without the
+  // narrow label-column boxing the prose. objectiveRow/Label/Value/
+  // InlineValue retired with this commit — replaced by bucketGroup +
+  // bucketHeader + bucketInlineValue below.
+  bucketGroup: {
+    marginBottom: Spacing.sm, // gap between bucket groups
   },
-  objectiveLabel: {
+  bucketHeader: {
     fontFamily: Fonts.serif,
     fontSize: 12,
     color: c.textTertiary,
-    width: 80,
-    paddingRight: 8, // allow: column gap (Apple HIG)
-    paddingTop: 1,
-    // Phase 27 Tuning 2 — explicit top-align. The row container's
-    // alignItems: 'flex-start' is the right intent, but RN's Text
-    // nodes can pick up implicit baseline behavior that defeats it
-    // inside a row when the value column wraps tall (e.g. 5 lines of
-    // medications). alignSelf overrides that — label anchors to the
-    // first line of the value column rather than drifting to the
-    // visual center of the row.
-    alignSelf: 'flex-start' as const,
+    marginBottom: 4, // small gap to the sub-rows beneath
   },
-  objectiveValue: {
-    flex: 1,
-  },
-  objectiveInlineValue: {
-    flex: 1,
+  bucketInlineValue: {
     fontSize: 13,
     lineHeight: 20,
     color: c.textSecondary,
+  },
+  // Section 2 empty-state copy (Q-27.9). Renders when nothing is logged
+  // yet today (all bucket gates resolve false after pending dedup).
+  // Witness-voice italic line matches Section 1's empty-state register.
+  section2Empty: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: c.textSecondary,
+    fontStyle: 'italic' as const,
   },
   // Phase 27 F6 — Section 4 sub-eyebrows. 8pt size matches the global
   // SectionEyebrow typography; amber at 0.7 alpha is the spec'd weight

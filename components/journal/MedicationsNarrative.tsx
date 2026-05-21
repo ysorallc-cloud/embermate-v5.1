@@ -35,6 +35,13 @@ interface Props {
    *  Journal Section 2's neutral card so the chrome doesn't double-up.
    *  Defaults to false for any standalone consumer. */
   bare?: boolean;
+  /** Phase 27 F3 — pending dedup. When true, medications with
+   *  `status === 'pending'` are filtered out before rendering. Section
+   *  2 (Objective / "What was logged") passes this so pending content
+   *  surfaces only once — in Section 4's "Still pending" list.
+   *  Defaults to false so standalone consumers (visit prep, etc.)
+   *  see the full status set. */
+  loggedOnly?: boolean;
 }
 
 function formatTime(isoOrHHmm: string): string {
@@ -84,13 +91,21 @@ function rightColumnText(m: MedicationDetail): { text: string; flagged: boolean 
   return { text: formatTime(m.scheduledTime), flagged: false };
 }
 
-export function MedicationsNarrative({ medications, bare = false }: Props) {
+export function MedicationsNarrative({ medications, bare = false, loggedOnly = false }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  if (medications.length === 0) return null;
+  // Phase 27 F3 — pending dedup. When loggedOnly, skip pending rows so
+  // the same item doesn't double-render (Section 2 "What was logged"
+  // + Section 4 "Still pending"). Filter applied before the row map so
+  // sideEffects + zero-length guard below see the visible set only.
+  const visible = loggedOnly
+    ? medications.filter((m) => m.status !== 'pending')
+    : medications;
 
-  const rows = medications.map((m, i) => {
+  if (visible.length === 0) return null;
+
+  const rows = visible.map((m, i) => {
     const leftText = `${m.name}${dosageSuffix(m.name, m.dosage)}`;
     const right = rightColumnText(m);
     return (
@@ -111,7 +126,9 @@ export function MedicationsNarrative({ medications, bare = false }: Props) {
   // Side effects, when present, render as a trailing element below
   // the list (preserved behavior — the visit-prep / handoff reader
   // wants to see flagged side effects without scanning each row).
-  const withSideEffects = medications.filter((m) => m.sideEffects && m.sideEffects.length > 0);
+  // Reads from `visible` so loggedOnly mode doesn't surface side-
+  // effects from pending meds the section is deliberately hiding.
+  const withSideEffects = visible.filter((m) => m.sideEffects && m.sideEffects.length > 0);
   const sideEffectsNode =
     withSideEffects.length > 0 ? (
       <Text key="side-effects" style={styles.sideEffects}>

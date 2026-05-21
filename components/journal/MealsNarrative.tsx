@@ -11,6 +11,11 @@ interface Props {
   hydrationGlasses?: number | null;
   /** Phase 27 F4 — strip outer card chrome. See MedicationsNarrative. */
   bare?: boolean;
+  /** Phase 27 F3 — pending dedup. When true, suppress pending-meal copy
+   *  (the "{names} scheduled." line + the per-meal "scheduled for {time}
+   *  — not yet logged." rows) so pending meals surface only in Section
+   *  4's STILL PENDING list. Defaults to false. */
+  loggedOnly?: boolean;
 }
 
 function formatTime(isoOrHHmm: string): string {
@@ -23,7 +28,7 @@ function formatTime(isoOrHHmm: string): string {
   return isoOrHHmm;
 }
 
-export function MealsNarrative({ meals, fluidTarget, swallowingIssues, hydrationGlasses, bare = false }: Props) {
+export function MealsNarrative({ meals, fluidTarget, swallowingIssues, hydrationGlasses, bare = false, loggedOnly = false }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -34,6 +39,16 @@ export function MealsNarrative({ meals, fluidTarget, swallowingIssues, hydration
   const pending = meals.meals.filter(m => m.status === 'pending');
   const allCompleted = completed.length === meals.total;
   const noneCompleted = completed.length === 0;
+
+  // Phase 27 F3 — pending dedup. Under loggedOnly, the component must
+  // not surface pending-meal copy: drop the "{names} scheduled." tail
+  // in the noneCompleted branch and skip the per-meal "scheduled for
+  // {time} — not yet logged." rows in the partial-completed branch.
+  // Both move into Section 4's STILL PENDING list. When loggedOnly +
+  // noneCompleted + no hydration, the whole component returns null;
+  // Section 2's bucket gate handles the empty-state copy at the
+  // section level.
+  if (loggedOnly && noneCompleted && !hasHydration) return null;
 
   const parts: React.ReactNode[] = [];
 
@@ -59,7 +74,7 @@ export function MealsNarrative({ meals, fluidTarget, swallowingIssues, hydration
     const names = pending.map(m => m.name).join(', ');
     parts.push(
       <Text key="none" style={styles.narrative}>
-        {names.length > 0
+        {names.length > 0 && !loggedOnly
           ? `No meals logged yet. ${names} scheduled.`
           : 'No meals logged yet.'}
       </Text>
@@ -75,7 +90,7 @@ export function MealsNarrative({ meals, fluidTarget, swallowingIssues, hydration
         </Text>
       );
     }
-    for (const m of pending) {
+    if (!loggedOnly) for (const m of pending) {
       const timeStr = m.scheduledTime ? formatTime(m.scheduledTime) : 'today';
       parts.push(
         <Text key={`p-${m.name}`} style={styles.narrative}>

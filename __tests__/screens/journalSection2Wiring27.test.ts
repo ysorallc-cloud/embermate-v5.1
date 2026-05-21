@@ -138,10 +138,15 @@ describe('Phase 27 F4 — Section 2 (Objective) wired into journal.tsx', () => {
   });
 
   it('contract 7: Section 2 is gated on brief being non-null', () => {
-    // The gating shape is `brief && <SoapSectionFrame eyebrow="What was logged"...`
-    // or a `&&` immediately before the open tag, within 200 chars.
+    // The gating shape is `brief && ... <SoapSectionFrame eyebrow="What was
+    // logged"...`. Phase 27 F2 (2026-05-21) wraps the section render in an
+    // IIFE that pre-computes per-bucket gates for the hybrid gutter +
+    // empty-state — pushing the `brief &&` further from the open tag than
+    // the original 200-char window. Window widened to 1500 chars to
+    // accommodate the IIFE pre-computation block without losing the
+    // intent (Section 2 still requires brief to render).
     const secondOpen = nthIndexOf(STRIPPED, '<SoapSectionFrame', 2);
-    const before = STRIPPED.slice(Math.max(0, secondOpen - 200), secondOpen);
+    const before = STRIPPED.slice(Math.max(0, secondOpen - 1500), secondOpen);
     expect(before).toMatch(/\bbrief\b[^.]*&&|\bbrief\s*\?/);
   });
 });

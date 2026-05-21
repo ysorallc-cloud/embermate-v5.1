@@ -9,6 +9,11 @@ interface Props {
   baselines?: Record<string, { range: string }> | null;
   /** Phase 27 F4 — strip outer card chrome. See MedicationsNarrative. */
   bare?: boolean;
+  /** Phase 27 F3 — pending dedup. When true, suppress the
+   *  "Check vitals scheduled for {time} — not yet recorded." branch so
+   *  scheduled-not-recorded vitals don't double-render across Section 2
+   *  + Section 4. Defaults to false. */
+  loggedOnly?: boolean;
 }
 
 function formatTime(iso: string): string {
@@ -35,9 +40,15 @@ function buildReadingsString(readings: VitalsDetail['readings']): string {
   return parts.join(' \u00B7 ');
 }
 
-export function VitalsNarrative({ vitals, baselines, bare = false }: Props) {
+export function VitalsNarrative({ vitals, baselines, bare = false, loggedOnly = false }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  // Phase 27 F3 — pending dedup. The scheduled-but-not-recorded branch
+  // is the pending case for vitals; under loggedOnly, return null so
+  // Section 2 doesn't surface what Section 4's STILL PENDING list
+  // already covers.
+  if (loggedOnly && !vitals.recorded) return null;
 
   if (!vitals.scheduled && !vitals.recorded) return null;
 
