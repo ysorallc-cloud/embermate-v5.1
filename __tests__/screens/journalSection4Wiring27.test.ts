@@ -20,7 +20,7 @@
 // Pinned contracts:
 //   1. journal.tsx imports useRef + uses a notesCardRef (or similar
 //      identifier carrying a focus-able imperative handle).
-//   2. A <JournalSection has eyebrow "For the next caregiver" and
+//   2. A <SoapSectionFrame has eyebrow "For the next caregiver" and
 //      tint "caregiverAccent" — this is Section 4.
 //   3. Section 4 body contains <TodayStillPending bare ... /> and
 //      <JournalNotesCard bare ... />.
@@ -54,7 +54,7 @@ function nthIndexOf(haystack: string, needle: string, n: number): number {
 }
 
 function findSectionBlockByEyebrow(eyebrow: string): { start: number; end: number; body: string } | null {
-  // Scan all <JournalSection ...> openers for the one whose attrs
+  // Scan all <SoapSectionFrame ...> openers for the one whose attrs
   // mention the eyebrow string. Phase 27.X turned Section 4's eyebrow
   // into a conditional expression — eyebrow={isViewingPast ? 'Notes
   // from that day' : 'For the next caregiver'} — so this matcher
@@ -63,13 +63,13 @@ function findSectionBlockByEyebrow(eyebrow: string): { start: number; end: numbe
   // substring counts).
   let cursor = 0;
   while (true) {
-    const open = STRIPPED.indexOf('<JournalSection', cursor);
+    const open = STRIPPED.indexOf('<SoapSectionFrame', cursor);
     if (open === -1) return null;
     const tagEnd = STRIPPED.indexOf('>', open);
     if (tagEnd === -1) return null;
     const tag = STRIPPED.slice(open, tagEnd + 1);
     if (tag.includes(eyebrow)) {
-      const close = STRIPPED.indexOf('</JournalSection>', tagEnd);
+      const close = STRIPPED.indexOf('</SoapSectionFrame>', tagEnd);
       if (close === -1) return null;
       return { start: open, end: close, body: STRIPPED.slice(tagEnd + 1, close) };
     }
@@ -86,7 +86,7 @@ describe('Phase 27 F6 — Section 4 (Plan) wired into journal.tsx', () => {
     expect(STRIPPED).toMatch(/useRef[^(]*\(/);
   });
 
-  it('contract 2: a <JournalSection has eyebrow "For the next caregiver" + tint "caregiverAccent"', () => {
+  it('contract 2: a <SoapSectionFrame has eyebrow "For the next caregiver" + tint "caregiverAccent"', () => {
     const section4 = findSectionBlockByEyebrow('For the next caregiver');
     expect(section4).toBeTruthy();
     const tag = STRIPPED.slice(section4!.start, STRIPPED.indexOf('>', section4!.start) + 1);

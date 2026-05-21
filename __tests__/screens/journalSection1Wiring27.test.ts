@@ -5,7 +5,7 @@
 // directly under JournalIdentityStrip, on BOTH today and past paths.
 // Phase 27 keeps that standalone mount for the past-day path (spec says
 // past-day path is unchanged) but routes the today path through a new
-// JournalSection container — Section 1 — that wraps GestaltSummary in
+// SoapSectionFrame container — Section 1 — that wraps GestaltSummary in
 // bare mode inside a lavender card.
 //
 // Phase 27 D7 (audit-confirmed) — Section 1's empty-state must NOT mount
@@ -14,8 +14,8 @@
 // interaction once JournalNotesCard moves into Section 4 with a ref.
 //
 // Pinned contracts:
-//   1. journal.tsx imports JournalSection from components/journal.
-//   2. The first <JournalSection block in source has eyebrow text
+//   1. journal.tsx imports SoapSectionFrame from components/journal.
+//   2. The first <SoapSectionFrame block in source has eyebrow text
 //      "How today went" and tint "caregiverAccent" (Section 1).
 //   3. Section 1 contains a <GestaltSummary block passing bare={true}
 //      (when summary or notes have content).
@@ -40,15 +40,15 @@ const STRIPPED = SRC
   .replace(/(^|[^:])\/\/.*$/gm, '$1');
 
 describe('Phase 27 F3b — Section 1 (Subjective) wired into journal.tsx', () => {
-  it('contract 1: imports JournalSection from components/journal', () => {
+  it('contract 1: imports SoapSectionFrame from components/journal', () => {
     expect(STRIPPED).toMatch(
-      /import\s*\{[^}]*\bJournalSection\b[^}]*\}\s*from\s*['"][^'"]*\/journal\/JournalSection['"]/,
+      /import\s*\{[^}]*\bSoapSectionFrame\b[^}]*\}\s*from\s*['"][^'"]*\/journal\/SoapSectionFrame['"]/,
     );
   });
 
-  it('contract 2: first <JournalSection has eyebrow "How today went" and tint "caregiverAccent"', () => {
-    // Locate the first <JournalSection ... > tag.
-    const m = STRIPPED.match(/<JournalSection[\s\S]*?>/);
+  it('contract 2: first <SoapSectionFrame has eyebrow "How today went" and tint "caregiverAccent"', () => {
+    // Locate the first <SoapSectionFrame ... > tag.
+    const m = STRIPPED.match(/<SoapSectionFrame[\s\S]*?>/);
     expect(m).toBeTruthy();
     const tag = m![0];
     expect(tag).toMatch(/eyebrow=["']How today went["']/);
@@ -56,12 +56,12 @@ describe('Phase 27 F3b — Section 1 (Subjective) wired into journal.tsx', () =>
   });
 
   it('contract 3: Section 1 contains <GestaltSummary ... bare={true}', () => {
-    // Locate the first <JournalSection block including its children up
-    // to the matching </JournalSection> close (or self-close — for F3b
+    // Locate the first <SoapSectionFrame block including its children up
+    // to the matching </SoapSectionFrame> close (or self-close — for F3b
     // we expect children, so the open form).
-    const start = STRIPPED.indexOf('<JournalSection');
+    const start = STRIPPED.indexOf('<SoapSectionFrame');
     expect(start).toBeGreaterThan(-1);
-    const end = STRIPPED.indexOf('</JournalSection>', start);
+    const end = STRIPPED.indexOf('</SoapSectionFrame>', start);
     expect(end).toBeGreaterThan(start);
     const block = STRIPPED.slice(start, end);
     expect(block).toMatch(/<GestaltSummary[\s\S]*?bare/);

@@ -16,6 +16,12 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Spacing } from '../../theme/theme-tokens';
 import { SectionEyebrow } from '../SectionEyebrow';
 import { JournalSection } from './JournalSection';
+// Phase 27 F1 — Section 3 (Assessment) wrapInSection path migrates to
+// SoapSectionFrame (left-rule chrome, no card outline, no bg tint). The
+// standalone non-wrapInSection path (Phase 22.2 "Worth mentioning" surface
+// below the recap) still renders the original SectionEyebrow + hairline
+// shape — it's outside the SOAP-section scope and unchanged in Phase 27.
+import { SoapSectionFrame } from './SoapSectionFrame';
 import {
   buildNotableMoments,
   NotableMoment,
@@ -103,14 +109,18 @@ export function TodayNotableMoments({ dateKey, wrapInSection = false }: TodayNot
   ));
 
   // Phase 27 F5 — Section 3 (Assessment) chrome wraps the rows when
-  // mounted inside Journal's SOAP layout. JournalSection owns the
-  // amber border + 0.06-alpha bg + eyebrow; the internal eyebrow +
-  // hairline divider are stripped so chrome doesn't double-up.
+  // mounted inside Journal's SOAP layout. Phase 27 F1 (2026-05-21)
+  // migrated the chrome from JournalSection (3px border + radius + bg
+  // tint card) to SoapSectionFrame (2px left rule + flat, no card
+  // outline) per the banked Journal-cleanup design. Amber tint role +
+  // eyebrow text preserved; the internal "Worth mentioning" eyebrow +
+  // hairline divider in the non-wrapInSection branch below stays as
+  // legacy chrome for that standalone surface.
   if (wrapInSection) {
     return (
-      <JournalSection eyebrow="Worth flagging" tint="amber">
+      <SoapSectionFrame eyebrow="Worth flagging" tint="amber">
         <View testID="today-notable-moments">{rows}</View>
-      </JournalSection>
+      </SoapSectionFrame>
     );
   }
 

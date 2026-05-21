@@ -3,7 +3,7 @@
 //
 // Section 2 sits directly under Section 1 in the today-populated branch
 // and renders six conditional rows of "what was logged today" in a
-// neutral-chrome JournalSection card. The four narrative components
+// neutral-chrome SoapSectionFrame card. The four narrative components
 // (Medications / Vitals / Mood-Wellness / Meals) render in bare mode;
 // Hydration and Sleep render as inline label/prose pairs because no
 // dedicated narrative component exists for them.
@@ -21,7 +21,7 @@
 // contract 7 for the gate).
 //
 // Pinned contracts:
-//   1. journal.tsx contains a SECOND <JournalSection block after the
+//   1. journal.tsx contains a SECOND <SoapSectionFrame block after the
 //      first one (which is Section 1 per F3b), with eyebrow "What was
 //      logged" and tint "neutral".
 //   2. Section 2 references the four narrative components by name
@@ -56,8 +56,8 @@ function nthIndexOf(haystack: string, needle: string, n: number): number {
 }
 
 describe('Phase 27 F4 — Section 2 (Objective) wired into journal.tsx', () => {
-  it('contract 1: a second <JournalSection has eyebrow "What was logged" and tint "neutral"', () => {
-    const secondOpen = nthIndexOf(STRIPPED, '<JournalSection', 2);
+  it('contract 1: a second <SoapSectionFrame has eyebrow "What was logged" and tint "neutral"', () => {
+    const secondOpen = nthIndexOf(STRIPPED, '<SoapSectionFrame', 2);
     expect(secondOpen).toBeGreaterThan(-1);
     // Slice from the second opener to the next '>' to capture the tag's attribute span.
     const tagEnd = STRIPPED.indexOf('>', secondOpen);
@@ -67,11 +67,11 @@ describe('Phase 27 F4 — Section 2 (Objective) wired into journal.tsx', () => {
   });
 
   it('contract 2: Section 2 body references all four narrative components', () => {
-    // Locate Section 2 (the second <JournalSection block) by scanning
+    // Locate Section 2 (the second <SoapSectionFrame block) by scanning
     // from the second opener to its matching close tag.
-    const secondOpen = nthIndexOf(STRIPPED, '<JournalSection', 2);
+    const secondOpen = nthIndexOf(STRIPPED, '<SoapSectionFrame', 2);
     expect(secondOpen).toBeGreaterThan(-1);
-    const secondClose = STRIPPED.indexOf('</JournalSection>', secondOpen);
+    const secondClose = STRIPPED.indexOf('</SoapSectionFrame>', secondOpen);
     expect(secondClose).toBeGreaterThan(secondOpen);
     const body = STRIPPED.slice(secondOpen, secondClose);
     expect(body).toMatch(/<MedicationsNarrative/);
@@ -95,8 +95,8 @@ describe('Phase 27 F4 — Section 2 (Objective) wired into journal.tsx', () => {
   });
 
   it('contract 4: each narrative is mounted with bare prop (no card-in-card)', () => {
-    const secondOpen = nthIndexOf(STRIPPED, '<JournalSection', 2);
-    const secondClose = STRIPPED.indexOf('</JournalSection>', secondOpen);
+    const secondOpen = nthIndexOf(STRIPPED, '<SoapSectionFrame', 2);
+    const secondClose = STRIPPED.indexOf('</SoapSectionFrame>', secondOpen);
     const body = STRIPPED.slice(secondOpen, secondClose);
     for (const name of [
       'MedicationsNarrative',
@@ -115,8 +115,8 @@ describe('Phase 27 F4 — Section 2 (Objective) wired into journal.tsx', () => {
   });
 
   it('contract 5: Section 2 body references brief.hydration and brief.sleep for the inline rows', () => {
-    const secondOpen = nthIndexOf(STRIPPED, '<JournalSection', 2);
-    const secondClose = STRIPPED.indexOf('</JournalSection>', secondOpen);
+    const secondOpen = nthIndexOf(STRIPPED, '<SoapSectionFrame', 2);
+    const secondClose = STRIPPED.indexOf('</SoapSectionFrame>', secondOpen);
     const body = STRIPPED.slice(secondOpen, secondClose);
     expect(body).toMatch(/brief[?.]+hydration/);
     expect(body).toMatch(/brief[?.]+sleep/);
@@ -127,10 +127,10 @@ describe('Phase 27 F4 — Section 2 (Objective) wired into journal.tsx', () => {
     // the original "before NarrativeSnapshot" pin became stale. The
     // new ordering puts Section 2 between Section 1 and Section 3
     // (TodayNotableMoments wrapInSection, which owns its own
-    // JournalSection chrome internally and renders as a sibling
-    // <TodayNotableMoments tag rather than a numbered <JournalSection).
-    const section1 = nthIndexOf(STRIPPED, '<JournalSection', 1);
-    const section2 = nthIndexOf(STRIPPED, '<JournalSection', 2);
+    // SoapSectionFrame chrome internally and renders as a sibling
+    // <TodayNotableMoments tag rather than a numbered <SoapSectionFrame).
+    const section1 = nthIndexOf(STRIPPED, '<SoapSectionFrame', 1);
+    const section2 = nthIndexOf(STRIPPED, '<SoapSectionFrame', 2);
     const todayNotableMount = STRIPPED.indexOf('<TodayNotableMoments');
     expect(section1).toBeGreaterThan(-1);
     expect(section2).toBeGreaterThan(section1);
@@ -138,9 +138,9 @@ describe('Phase 27 F4 — Section 2 (Objective) wired into journal.tsx', () => {
   });
 
   it('contract 7: Section 2 is gated on brief being non-null', () => {
-    // The gating shape is `brief && <JournalSection eyebrow="What was logged"...`
+    // The gating shape is `brief && <SoapSectionFrame eyebrow="What was logged"...`
     // or a `&&` immediately before the open tag, within 200 chars.
-    const secondOpen = nthIndexOf(STRIPPED, '<JournalSection', 2);
+    const secondOpen = nthIndexOf(STRIPPED, '<SoapSectionFrame', 2);
     const before = STRIPPED.slice(Math.max(0, secondOpen - 200), secondOpen);
     expect(before).toMatch(/\bbrief\b[^.]*&&|\bbrief\s*\?/);
   });

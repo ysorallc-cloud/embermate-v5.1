@@ -131,6 +131,10 @@ const WHITELIST: Array<{ path: string; rationale: string }> = [
     path: 'components/journal/JournalSection.tsx',
     rationale: 'lane-coded primitive — caregiverAccent tint variant renders eyebrow scale only',
   },
+  {
+    path: 'components/journal/SoapSectionFrame.tsx',
+    rationale: 'Phase 27 SOAP-only chrome — caregiverAccent renders as 2px left rule on Sections 1+4 (thin accent, no fill; lavender no-fill canon compliant)',
+  },
   // (6) DateTab / Date-popover — interactive-state pill chrome
   {
     path: 'components/journal/DateTabStrip.tsx',

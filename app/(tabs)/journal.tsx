@@ -68,7 +68,15 @@ import { JournalDisclaimer } from '../../components/journal/JournalDisclaimer';
 // Phase 22.1 — handoff-document framing.
 import { JournalIdentityStrip } from '../../components/journal/JournalIdentityStrip';
 import { GestaltSummary } from '../../components/journal/GestaltSummary';
+// Phase 27 F1 — SOAP sections render with the new left-rule chrome via
+// SoapSectionFrame (SOAP-only; does NOT cascade into other JournalSection
+// consumers like Insights — Q-27.6 lock). JournalSection import retained
+// because non-SOAP surfaces on this screen (BUILDING TOWARD banner area,
+// past-day fallbacks routed through GestaltSummary, etc.) still consume
+// the original primitive. See SoapSectionFrame.tsx header for full scope
+// rules.
 import { JournalSection } from '../../components/journal/JournalSection';
+import { SoapSectionFrame } from '../../components/journal/SoapSectionFrame';
 import { MedicationsNarrative } from '../../components/journal/MedicationsNarrative';
 import { VitalsNarrative } from '../../components/journal/VitalsNarrative';
 import { MoodWellnessNarrative } from '../../components/journal/MoodWellnessNarrative';
@@ -746,7 +754,7 @@ export default function JournalTab() {
                   with no gestalt falls back to GestaltSummary's
                   "No record from this day." (the same tuned phrasing
                   NarrativeView used). */}
-              <JournalSection eyebrow="How today went" tint="caregiverAccent">
+              <SoapSectionFrame eyebrow="How today went" tint="caregiverAccent">
                 {!isViewingPast && subjectiveEmpty ? (
                   <TouchableOpacity
                     onPress={() => notesInputRef.current?.focus()}
@@ -761,7 +769,7 @@ export default function JournalTab() {
                 ) : (
                   <GestaltSummary summary={moodLine} bare />
                 )}
-              </JournalSection>
+              </SoapSectionFrame>
 
               {/* Phase 27 F4 — Section 2 (Objective).
                   Neutral-chrome card listing what was logged today as
@@ -773,7 +781,7 @@ export default function JournalTab() {
                   a whole is gated on brief !== null so no blank chrome
                   flashes during the initial load. */}
               {brief && (
-                <JournalSection eyebrow="What was logged" tint="neutral">
+                <SoapSectionFrame eyebrow="What was logged" tint="neutral">
                   {brief.medications.length > 0 && (
                     <View style={s.objectiveRow}>
                       <Text style={s.objectiveLabel}>Medications</Text>
@@ -826,7 +834,7 @@ export default function JournalTab() {
                       </Text>
                     </View>
                   )}
-                </JournalSection>
+                </SoapSectionFrame>
               )}
 
               {/* Phase 27 F5 — Section 3 (Assessment).
@@ -850,7 +858,7 @@ export default function JournalTab() {
                   for legibility: today always renders Section 4; past
                   renders only when reflection notes exist. */}
               {(!isViewingPast || hasNotes) && (
-                <JournalSection
+                <SoapSectionFrame
                   eyebrow={isViewingPast ? 'Notes from that day' : 'For the next caregiver'}
                   tint="caregiverAccent"
                 >
@@ -883,7 +891,7 @@ export default function JournalTab() {
                     caregiverName={caregiverName}
                     providerName={upcomingProviderName}
                   />
-                </JournalSection>
+                </SoapSectionFrame>
               )}
               </>
             );

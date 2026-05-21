@@ -68,13 +68,13 @@ function findSectionBlockByEyebrow(eyebrow: string): { start: number; end: numbe
   // the opening tag.
   let cursor = 0;
   while (true) {
-    const open = STRIPPED.indexOf('<JournalSection', cursor);
+    const open = STRIPPED.indexOf('<SoapSectionFrame', cursor);
     if (open === -1) return null;
     const tagEnd = STRIPPED.indexOf('>', open);
     if (tagEnd === -1) return null;
     const tag = STRIPPED.slice(open, tagEnd + 1);
     if (tag.includes(eyebrow)) {
-      const close = STRIPPED.indexOf('</JournalSection>', tagEnd);
+      const close = STRIPPED.indexOf('</SoapSectionFrame>', tagEnd);
       if (close === -1) return null;
       return { start: open, end: close, body: STRIPPED.slice(tagEnd + 1, close) };
     }
@@ -143,11 +143,11 @@ describe('Phase 27.X — past-day SOAP layout', () => {
   });
 
   it('contract 6: Section 4 as a whole is gated so past days with no notes do NOT render hollow chrome (D3.1)', () => {
-    // The Section 4 JournalSection must be wrapped in a condition that,
+    // The Section 4 SoapSectionFrame must be wrapped in a condition that,
     // when isViewingPast, also requires saved reflection text. Today
     // always renders (Section 4's NOTES sub-block is the always-on
     // surface). Acceptable shapes:
-    //   (!isViewingPast || (reflection?.text?.trim().length ?? 0) > 0) && <JournalSection
+    //   (!isViewingPast || (reflection?.text?.trim().length ?? 0) > 0) && <SoapSectionFrame
     //   !isViewingPast || hasNotes — etc.
     //
     // Pin: locate the Section 4 opener and check the 300 chars before

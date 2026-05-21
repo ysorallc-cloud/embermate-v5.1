@@ -15,14 +15,14 @@
 // journal*27 tests use.
 //
 // Pinned contracts:
-//   1. journal.tsx imports JournalSection from components/journal.
+//   1. journal.tsx imports SoapSectionFrame from components/journal.
 //   2. Section 1 (Subjective) — eyebrow "How today went", tint
 //      caregiverAccent.
 //   3. Section 2 (Objective) — eyebrow "What was logged", tint
 //      neutral. Renders AFTER Section 1.
 //   4. Section 3 (Assessment) — mounted as
 //      <TodayNotableMoments wrapInSection />; TodayNotableMoments
-//      owns the JournalSection amber chrome internally and returns
+//      owns the SoapSectionFrame amber chrome internally and returns
 //      null when no moments fire. Renders AFTER Section 2.
 //   5. Section 4 (Plan) — eyebrow "For the next caregiver", tint
 //      caregiverAccent. Renders AFTER Section 3 (TodayNotableMoments).
@@ -40,14 +40,14 @@ const STRIPPED = SRC
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-function findJournalSectionByEyebrow(eyebrow: string): { start: number; tag: string } | null {
+function findSoapSectionFrameByEyebrow(eyebrow: string): { start: number; tag: string } | null {
   // Phase 27.X — Section 4's eyebrow turned into a JSX conditional
   // expression. This matcher accepts both string-literal eyebrows
   // (Sections 1-3) and expression-embedded ones (Section 4) by
   // checking the opener tag for the eyebrow substring.
   let cursor = 0;
   while (true) {
-    const open = STRIPPED.indexOf('<JournalSection', cursor);
+    const open = STRIPPED.indexOf('<SoapSectionFrame', cursor);
     if (open === -1) return null;
     const tagEnd = STRIPPED.indexOf('>', open);
     if (tagEnd === -1) return null;
@@ -58,28 +58,28 @@ function findJournalSectionByEyebrow(eyebrow: string): { start: number; tag: str
 }
 
 describe('Phase 27 F8 — Journal SOAP four-section structure', () => {
-  it('contract 1: journal.tsx imports JournalSection from components/journal', () => {
+  it('contract 1: journal.tsx imports SoapSectionFrame from components/journal', () => {
     expect(STRIPPED).toMatch(
-      /import\s*\{[^}]*\bJournalSection\b[^}]*\}\s*from\s*['"][^'"]*\/journal\/JournalSection['"]/,
+      /import\s*\{[^}]*\bSoapSectionFrame\b[^}]*\}\s*from\s*['"][^'"]*\/journal\/SoapSectionFrame['"]/,
     );
   });
 
   it('contract 2: Section 1 (Subjective) — eyebrow "How today went", tint caregiverAccent', () => {
-    const s1 = findJournalSectionByEyebrow('How today went');
+    const s1 = findSoapSectionFrameByEyebrow('How today went');
     expect(s1).toBeTruthy();
     expect(s1!.tag).toMatch(/tint=["']caregiverAccent["']/);
   });
 
   it('contract 3: Section 2 (Objective) — eyebrow "What was logged", tint neutral, AFTER Section 1', () => {
-    const s1 = findJournalSectionByEyebrow('How today went');
-    const s2 = findJournalSectionByEyebrow('What was logged');
+    const s1 = findSoapSectionFrameByEyebrow('How today went');
+    const s2 = findSoapSectionFrameByEyebrow('What was logged');
     expect(s1 && s2).toBeTruthy();
     expect(s2!.tag).toMatch(/tint=["']neutral["']/);
     expect(s2!.start).toBeGreaterThan(s1!.start);
   });
 
   it('contract 4: Section 3 (Assessment) — mounted as <TodayNotableMoments wrapInSection />, AFTER Section 2', () => {
-    const s2 = findJournalSectionByEyebrow('What was logged');
+    const s2 = findSoapSectionFrameByEyebrow('What was logged');
     expect(s2).toBeTruthy();
     const notableMount = STRIPPED.match(/<TodayNotableMoments[\s\S]*?\/>/);
     expect(notableMount).toBeTruthy();
@@ -92,7 +92,7 @@ describe('Phase 27 F8 — Journal SOAP four-section structure', () => {
     // Phase 27.X — the eyebrow is now a JSX conditional expression
     // surfacing "For the next caregiver" on today and "Notes from
     // that day" on past. Both literals must appear in the opener tag.
-    const s4 = findJournalSectionByEyebrow('For the next caregiver');
+    const s4 = findSoapSectionFrameByEyebrow('For the next caregiver');
     expect(s4).toBeTruthy();
     expect(s4!.tag).toMatch(/tint=["']caregiverAccent["']/);
     expect(s4!.tag).toContain('Notes from that day');
@@ -103,8 +103,8 @@ describe('Phase 27 F8 — Journal SOAP four-section structure', () => {
   });
 
   it('contract 6: lavender bookend rhythm — Sections 1 and 4 are both caregiverAccent', () => {
-    const s1 = findJournalSectionByEyebrow('How today went');
-    const s4 = findJournalSectionByEyebrow('For the next caregiver');
+    const s1 = findSoapSectionFrameByEyebrow('How today went');
+    const s4 = findSoapSectionFrameByEyebrow('For the next caregiver');
     expect(s1!.tag).toMatch(/tint=["']caregiverAccent["']/);
     expect(s4!.tag).toMatch(/tint=["']caregiverAccent["']/);
     // Section 2 is neutral; Section 3 is amber (rendered by
@@ -112,7 +112,7 @@ describe('Phase 27 F8 — Journal SOAP four-section structure', () => {
     // component, not in journal.tsx). Pin the inner-bookend
     // distinction: Sections 2 and 4 are NOT the same tint as each
     // other (4 is lavender, 2 is neutral).
-    const s2 = findJournalSectionByEyebrow('What was logged');
+    const s2 = findSoapSectionFrameByEyebrow('What was logged');
     expect(s2!.tag).not.toMatch(/tint=["']caregiverAccent["']/);
   });
 
