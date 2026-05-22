@@ -85,6 +85,22 @@ describe('Phase 11.7.1 — Journal outcomes refresh listener', () => {
     // Mirror Phase 11.3's support.tsx pattern: a Set of relevant
     // event categories acts as the listener filter. Pin that the
     // five event categories are listened for.
+    //
+    // Phase 27 closeout (2026-05-21) — the file gained a SECOND
+    // useDataListener for refreshMoodLine BEFORE the refreshOutcomes
+    // listener in source order. The original unbounded regex
+    // `useDataListener\([\s\S]*?refreshOutcomes\s*\(\s*\)` started
+    // matching from the moodLine listener (first) and extended until
+    // the next `refreshOutcomes()` call it could find — which is the
+    // initial-load `useEffect(() => { refreshOutcomes(); ... })` call,
+    // NOT the refreshOutcomes listener. The matched span never
+    // reached the actual refreshOutcomes listener body, so the
+    // SAMPLE_DATA_CLEARED assertion failed.
+    //
+    // Reframe: anchor the search on `useDataListener(useCallback(`
+    // and require `refreshOutcomes()` within a bounded window so
+    // the match is forced into one listener block at a time. Then
+    // pick the block that actually wires refreshOutcomes.
     const RELEVANT_EVENTS = [
       'DAILY_INSTANCES',
       'LOGS',
@@ -92,13 +108,16 @@ describe('Phase 11.7.1 — Journal outcomes refresh listener', () => {
       'WELLNESS',
       'SAMPLE_DATA_CLEARED',
     ];
-    // Find the listener block that calls refreshOutcomes.
-    const listenerBlock = CODE.match(
-      /useDataListener\([\s\S]*?refreshOutcomes\s*\(\s*\)[\s\S]*?\)\s*;?/,
+    const blocks = CODE.match(
+      /useDataListener\(useCallback\(\(category[^]*?\}\s*,\s*\[[^\]]*\]\)\)/g,
     );
-    expect(listenerBlock).not.toBeNull();
+    expect(blocks).not.toBeNull();
+    const refreshOutcomesBlock = (blocks ?? []).find((b) =>
+      /\brefreshOutcomes\s*\(\s*\)/.test(b),
+    );
+    expect(refreshOutcomesBlock).toBeDefined();
     for (const ev of RELEVANT_EVENTS) {
-      expect(listenerBlock![0]).toMatch(new RegExp(`EVENT\\.${ev}\\b`));
+      expect(refreshOutcomesBlock!).toMatch(new RegExp(`EVENT\\.${ev}\\b`));
     }
   });
 

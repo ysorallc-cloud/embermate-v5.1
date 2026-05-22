@@ -215,37 +215,74 @@ export default function JournalTab() {
     getReflection(selectedDate).then(setReflection);
   }, [selectedDate]);
 
-  // Load tone + factual narrative summary for the mood line.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const tone = await getHandoffTone(selectedDate);
-        if (cancelled) return;
-        setHandoffTone(tone);
-        // Phase 27.5b F3 — buildDayNarrative({ factualOnly: true })
-        // produced count-only roll-up sentences ("5/5 medications
-        // logged. 1 wellness check recorded.") for the Section 1
-        // gestalt line. Replaced with buildShapeOfDay which produces
-        // observational prose describing what's done, pending, and
-        // standing out — same data shape, same fallback semantics.
-        // The builder is its own module (D5 — preserves factualOnly
-        // for any other consumer of the old path; audit found zero
-        // production consumers post-Phase-27.X, so the legacy path
-        // is on track for the Phase 20 dead-code sweep).
-        if (tone && tone.trim().length > 0) {
-          setNarrativeSummary(null);
-        } else {
-          const shape = await buildShapeOfDay(selectedDate);
-          if (cancelled) return;
-          setNarrativeSummary(shape.hasData ? shape.summary : null);
-        }
-      } catch (err) {
-        logError('JournalTab.loadMoodLine', err);
+  // Phase 27 closeout — gestalt refresh on log events. Pre-closeout
+  // the moodLine load lived inline inside a [selectedDate]-deps
+  // useEffect with no event subscription, so logging vitals/meds/
+  // wellness/etc. would update Section 2 (via loadReport on the L427
+  // listener) but leave Section 1's gestalt sentence frozen on its
+  // pre-log value until the user navigated to a different date.
+  // Device-confirmed bug: "Vitals reading not yet recorded" in
+  // Section 1 while Section 2 showed BP 158/95 logged the same day.
+  // Diagnosis: stale-closure refresh bug, not a data-source bug.
+  //
+  // Fix shape mirrors the refreshOutcomes pattern (~L265): extract
+  // the load into a useCallback so both the initial-mount useEffect
+  // AND a useDataListener can invoke it. The listener subscribes to
+  // the FULL event set that can change a day's shape — every bucket,
+  // not just vitals — because the same stale-summary class affects
+  // every bucket (log a med → "X meds still scheduled" stays stale;
+  // log a wellness check → wellness clause stays stale; etc.).
+  //
+  // Pinned by journalGestaltRefreshOnLog27.test.ts Contracts A.1–A.3.
+  const refreshMoodLine = useCallback(async () => {
+    try {
+      const tone = await getHandoffTone(selectedDate);
+      setHandoffTone(tone);
+      // Phase 27.5b F3 — buildDayNarrative({ factualOnly: true })
+      // produced count-only roll-up sentences ("5/5 medications
+      // logged. 1 wellness check recorded.") for the Section 1
+      // gestalt line. Replaced with buildShapeOfDay which produces
+      // observational prose describing what's done, pending, and
+      // standing out — same data shape, same fallback semantics.
+      if (tone && tone.trim().length > 0) {
+        setNarrativeSummary(null);
+      } else {
+        const shape = await buildShapeOfDay(selectedDate);
+        setNarrativeSummary(shape.hasData ? shape.summary : null);
       }
-    })();
-    return () => { cancelled = true; };
+    } catch (err) {
+      logError('JournalTab.refreshMoodLine', err);
+    }
   }, [selectedDate]);
+
+  useEffect(() => {
+    refreshMoodLine();
+  }, [refreshMoodLine]);
+
+  // Event-driven refresh — fires whenever a log lands. The 6-event set
+  // covers every signal that can change buildShapeOfDay's output for
+  // the current day:
+  //   • DAILY_INSTANCES — instance status pending → completed flips
+  //   • LOGS            — generic log write
+  //   • VITALS          — vitals log
+  //   • MEDICATION      — medication log
+  //   • WELLNESS        — wellness check log
+  //   • MOOD            — mood log
+  // Without this listener, refreshMoodLine only runs once on mount
+  // via the [selectedDate]-deps useEffect above and stays stale for
+  // the rest of the session on that date.
+  useDataListener(useCallback((category) => {
+    if (
+      category === EVENT.DAILY_INSTANCES
+      || category === EVENT.LOGS
+      || category === EVENT.VITALS
+      || category === EVENT.MEDICATION
+      || category === EVENT.WELLNESS
+      || category === EVENT.MOOD
+    ) {
+      refreshMoodLine();
+    }
+  }, [refreshMoodLine]));
 
   // Resolution: tone → narrative summary → empty-day fallback.
   const moodLine: string =
