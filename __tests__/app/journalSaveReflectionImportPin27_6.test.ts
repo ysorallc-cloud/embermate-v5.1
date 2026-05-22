@@ -5,8 +5,11 @@
 //
 //   • storage/reflectionStorage    key prefix:  reflection_
 //     - Patient-facing notes written by JournalNotesCard (via journal.tsx's
-//       onSave handler). Read by visitPrepPdf, handoffReportBuilder,
-//       narrativeSummaryBuilder. Content IS part of the patient record.
+//       onSave handler, which now routes through saveConsolidatedNotes per
+//       Phase 31 F2). Read by visitPrepPdf, handoffDayBuilder (indirectly
+//       via getConsolidatedNotes), narrativeSummaryBuilder. Content IS
+//       part of the patient record. (Phase 31 retired handoffReportBuilder
+//       as a direct reader.)
 //
 //   • services/reflectionRepo      key prefix:  reflection_card_
 //     - Caregiver-private wellness reflections written by the You-tab

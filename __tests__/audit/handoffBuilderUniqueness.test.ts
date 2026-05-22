@@ -1,17 +1,29 @@
 // ============================================================================
-// Phase 5.8.e — handoff builder uniqueness audit
+// Handoff builder uniqueness audit (Phase 5.8.e — Phase 31 reframe).
 //
-// Pins the post-consolidation invariant: only utils/handoffReportBuilder.ts
-// produces today's handoff text. New builders that drift this rule will
-// be caught here.
+// Pins the post-consolidation invariant: only ONE module produces the
+// canonical handoff-text-or-payload. Pre-Phase-31 the canonical was
+// utils/handoffReportBuilder.ts :: buildHandoffReport (today-hardcoded
+// curated template). Phase 31 retires that path entirely and promotes
+// utils/handoffDayBuilder.ts :: buildHandoffDay as the canonical
+// single-day handoff bundler, fed to services/handoffPdf.ts for
+// rendering. This audit pins the new canonical so a future drift
+// (a second bundler / a parallel template) gets caught here at PR
+// time.
 //
 // Whitelist:
-//   • utils/handoffReportBuilder.ts :: buildHandoffReport — canonical text
-//   • services/handoffPdf.ts :: generateAndShareHandoff — renders canonical
-//     to PDF (NOT a content builder; reads canonical bodyText input)
+//   • utils/handoffDayBuilder.ts :: buildHandoffDay       — canonical bundler
+//   • services/handoffPdf.ts     :: generateAndShareHandoff — renders bundled
+//     payload to PDF (NOT a content builder; consumes the canonical payload)
+//
+// Phase 31 retired buildPreviewText (HandoffSheet.tsx file deleted) and
+// buildHandoffReport (utils/handoffReportBuilder.ts deleted). The
+// regex sweep below still catches future near-clone names (Builder /
+// assemble*Handoff / build*Handoff*) so the pattern this audit was
+// designed for — a second canonical sneaking in — stays defended.
 // ============================================================================
 
-import { readFileSync, readdirSync, statSync } from 'fs';
+import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
 import { join } from 'path';
 
 const ROOT = join(__dirname, '../..');
@@ -49,31 +61,36 @@ function listSourceFiles(): string[] {
   return all;
 }
 
-describe('Phase 5.8.e — handoff builder uniqueness', () => {
+describe('Handoff builder uniqueness (Phase 5.8.e — Phase 31 reframe)', () => {
   const files = listSourceFiles();
 
-  it('only utils/handoffReportBuilder.ts defines buildHandoffReport', () => {
+  it('only utils/handoffDayBuilder.ts defines buildHandoffDay (the canonical bundler)', () => {
     const offenders: string[] = [];
     for (const f of files) {
       const src = readFileSync(f, 'utf8');
-      if (!/\bfunction\s+buildHandoffReport\b/.test(src) &&
-          !/\bbuildHandoffReport\s*=\s*(?:async\s+)?\(/.test(src)) {
+      if (!/\bfunction\s+buildHandoffDay\b/.test(src) &&
+          !/\bbuildHandoffDay\s*=\s*(?:async\s+)?\(/.test(src)) {
         continue;
       }
       const rel = f.replace(ROOT + '/', '');
-      if (rel !== 'utils/handoffReportBuilder.ts') offenders.push(rel);
+      if (rel !== 'utils/handoffDayBuilder.ts') offenders.push(rel);
     }
     expect(offenders).toEqual([]);
   });
 
-  it('no other module declares a function whose name produces handoff text', () => {
+  it('no other module declares a function whose name produces handoff text (near-clone guard)', () => {
     // Catch obvious near-clones: build*Handoff* / handoff*Builder* /
-    // assemble*Handoff*. The canonical file is whitelisted.
+    // assemble*Handoff*. The canonical bundler is whitelisted.
+    //
+    // The regex deliberately requires the literal "Handoff" substring AFTER
+    // an initial uppercase letter, which means it does NOT match
+    // `buildHandoffDay` itself (verified). It also catches the retired
+    // legacy helper buildPreviewText so any re-introduction is flagged.
     const offenders: { file: string; match: string }[] = [];
     const RE = /\bfunction\s+(build[A-Z]\w*Handoff\w*|handoff[A-Z]\w*Builder\w*|assemble[A-Z]\w*Handoff\w*|buildPreviewText)\b/;
     for (const f of files) {
       const rel = f.replace(ROOT + '/', '');
-      if (rel === 'utils/handoffReportBuilder.ts') continue;
+      if (rel === 'utils/handoffDayBuilder.ts') continue;
       const src = readFileSync(f, 'utf8');
       const m = src.match(RE);
       if (m) offenders.push({ file: rel, match: m[1] });
@@ -89,15 +106,21 @@ describe('Phase 5.8.e — handoff builder uniqueness', () => {
     // the data, and Share fires generateAndShareHandoff directly
     // without an intermediate modal. The retirement subsumes the
     // 5.8.e helper-removal pin.
-    const { existsSync } = require('fs');
     expect(existsSync(join(ROOT, 'components/journal/HandoffSheet.tsx'))).toBe(false);
   });
 
-  it('the canonical builder is exported and importable from utils/handoffReportBuilder.ts', () => {
+  it('the canonical bundler is exported and importable from utils/handoffDayBuilder.ts', () => {
     const src = readFileSync(
-      join(ROOT, 'utils/handoffReportBuilder.ts'),
+      join(ROOT, 'utils/handoffDayBuilder.ts'),
       'utf8',
     );
-    expect(src).toMatch(/export\s+async\s+function\s+buildHandoffReport\b/);
+    expect(src).toMatch(/export\s+async\s+function\s+buildHandoffDay\b/);
+  });
+
+  it('Phase 31 — the retired buildHandoffReport canonical is GONE from the source tree (utils/handoffReportBuilder.ts deleted)', () => {
+    // Defense-in-depth: ensure the pre-31 canonical does not silently
+    // come back as a sibling builder. The file was deleted as part of
+    // Phase 31's cleanup; this pin catches any future re-introduction.
+    expect(existsSync(join(ROOT, 'utils/handoffReportBuilder.ts'))).toBe(false);
   });
 });
