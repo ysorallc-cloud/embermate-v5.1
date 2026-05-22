@@ -15,12 +15,13 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Spacing } from '../../theme/theme-tokens';
 import { SectionEyebrow } from '../SectionEyebrow';
-import { JournalSection } from './JournalSection';
-// Phase 27 F1 — Section 3 (Assessment) wrapInSection path migrates to
+// Phase 27 F1 — Section 3 (Assessment) wrapInSection path migrated to
 // SoapSectionFrame (left-rule chrome, no card outline, no bg tint). The
 // standalone non-wrapInSection path (Phase 22.2 "Worth mentioning" surface
 // below the recap) still renders the original SectionEyebrow + hairline
 // shape — it's outside the SOAP-section scope and unchanged in Phase 27.
+// The pre-F1 JournalSection import retired with that migration (F7
+// cleanup) — no other code path in this component consumes it.
 import { SoapSectionFrame } from './SoapSectionFrame';
 import {
   buildNotableMoments,
@@ -33,13 +34,17 @@ import { EVENT } from '../../lib/eventNames';
 interface TodayNotableMomentsProps {
   dateKey: string;
   /**
-   * Phase 27 F5 — render inside the Section 3 (Assessment) chrome:
-   * a JournalSection amber card with eyebrow "Worth flagging". When
-   * true, the component's internal "Worth mentioning" eyebrow + the
-   * hairline divider are dropped — JournalSection owns the chrome.
-   * Empty-gate still applies: when buildNotableMoments returns zero
-   * moments, the entire component (Section 3 chrome and all) returns
-   * null, so no empty assessment card appears on the page.
+   * Phase 27 F5 — render inside the Section 3 (Assessment) chrome.
+   * Phase 27 F1 (2026-05-21) migrated the chrome from JournalSection
+   * (3px border + radius + bg tint card) to SoapSectionFrame (2px left
+   * rule + flat, no card outline) per the banked Journal-cleanup
+   * design. When wrapInSection is true the SoapSectionFrame amber
+   * chrome wraps the rows with eyebrow "Worth flagging"; the
+   * component's internal "Worth mentioning" eyebrow + hairline divider
+   * are dropped (the SoapSectionFrame owns the chrome). Empty-gate
+   * still applies: when buildNotableMoments returns zero moments, the
+   * entire component (Section 3 chrome and all) returns null, so no
+   * empty assessment surface appears on the page.
    */
   wrapInSection?: boolean;
 }
