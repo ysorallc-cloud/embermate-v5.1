@@ -3,8 +3,15 @@
 //
 // • Header subtitle becomes static "[Name]'s day · [Day], [Date]".
 // • HandoffCard hides (only meaningful for today).
-// • JournalNotesCard switches to read-only with the "Notes from this day"
-//   placeholder.
+// • JournalNotesCard accepts a readOnly prop (the NON-bare path uses it
+//   to switch to a "Notes from this day" placeholder + hide the Save
+//   pill, for any non-bare consumer). The bare-mode path used by
+//   journal.tsx Section 4 (Phase 27 F6 + Phase 31 F3) STRUCTURALLY
+//   IGNORES readOnly: past-day bare-mode notes are editable AND
+//   saveable, so caregivers can amend past days when they recall
+//   things later. The pinned source-level assertions below are the
+//   non-bare contract; the bare-mode override is pinned by
+//   journalNotesCardBare27.test.tsx + journalNotesCardPastDaySave31.test.tsx.
 // • Pattern link card stays (weekly pattern, not date-specific).
 // ============================================================================
 
@@ -56,16 +63,23 @@ describe('journal.tsx — past-date view wiring', () => {
   });
 });
 
-describe('JournalNotesCard — readOnly mode', () => {
+describe('JournalNotesCard — readOnly mode (non-bare path)', () => {
   it('accepts a readOnly prop', () => {
     expect(notesSrc).toMatch(/readOnly\??:\s*boolean/);
   });
 
-  it('uses "Notes from this day" placeholder when readOnly', () => {
+  it('uses "Notes from this day" placeholder when readOnly (non-bare branch)', () => {
+    // The literal copy lives in the non-bare render branch; bare mode
+    // uses the Q-31 placeholder instead (pinned in
+    // journalNotesCleanup27_5b.test.tsx).
     expect(notesSrc).toMatch(/Notes from this day/);
   });
 
-  it('disables the TextInput / hides the Save pill when readOnly', () => {
+  it('non-bare TextInput respects readOnly via editable={!readOnly}', () => {
+    // Phase 31 F3 — bare mode dropped this gate (past-day notes are
+    // editable in bare). The non-bare branch keeps it for any future
+    // non-bare consumer; this pin just asserts the gate still exists
+    // in the source (it lives on line ~305 in the non-bare render).
     expect(notesSrc).toMatch(/editable=\{!readOnly\}|editable=\{!\s*readOnly\s*\}/);
   });
 });

@@ -235,31 +235,36 @@ export function JournalNotesCard({
           <View style={styles.footerLeft}>
             <Text style={styles.privacy}>{'🔒 Private · on this device'}</Text>
           </View>
-          {!readOnly && (
-            <TouchableOpacity
+          {/* Phase 31 F3 follow-up — Save pill always renders in bare mode.
+              Pre-fix the pill was gated by !readOnly, which paired with
+              F3's "TextInput is always editable in bare mode" produced
+              an unsavable past-day input. Bare mode is the journal.tsx
+              Section 4 consumer; readOnly is structurally ignored here
+              for both input and save affordance. Non-bare consumers
+              keep the read-only Save-pill suppression below. */}
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              filled && styles.saveButtonFilled,
+              saveState === 'saved' && styles.saveButtonSaved,
+            ]}
+            onPress={handleSave}
+            disabled={!isDirty || saving}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={saveLabel}
+            accessibilityState={{ selected: a11ySelected, disabled: !isDirty || saving }}
+          >
+            <Text
               style={[
-                styles.saveButton,
-                filled && styles.saveButtonFilled,
-                saveState === 'saved' && styles.saveButtonSaved,
+                styles.saveText,
+                filled && styles.saveTextFilled,
+                saveState === 'saved' && styles.saveTextSaved,
               ]}
-              onPress={handleSave}
-              disabled={!isDirty || saving}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel={saveLabel}
-              accessibilityState={{ selected: a11ySelected, disabled: !isDirty || saving }}
             >
-              <Text
-                style={[
-                  styles.saveText,
-                  filled && styles.saveTextFilled,
-                  saveState === 'saved' && styles.saveTextSaved,
-                ]}
-              >
-                {saveLabel}
-              </Text>
-            </TouchableOpacity>
-          )}
+              {saveLabel}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
