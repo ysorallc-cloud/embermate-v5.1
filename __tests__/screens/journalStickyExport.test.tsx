@@ -26,13 +26,16 @@ describe('Phase 5.12.g — sticky export CTA', () => {
     expect(journalSrc).toMatch(/Share handoff/);
   });
 
-  it('the CTA opens the existing HandoffSheet (single canonical share surface)', () => {
-    // Stale-spec note: the original 5.12.g referenced ExportChooserSheet,
-    // which the v6 UX restructure retired. The CTA must wire to
-    // HandoffSheet via setHandoffSheetVisible(true) — the same primary
-    // editor that the narrative snapshot's Edit affordance opens.
+  it('Phase 31 F3 — the CTA fires handleShareDaily directly (reframed from "opens HandoffSheet" pin)', () => {
+    // Pre-F3 the CTA opened HandoffSheet via setHandoffSheetVisible(true)
+    // — a 638-line preview modal that wrapped generateAndShareHandoff.
+    // Phase 31 F3 (2026-05-21) retired HandoffSheet entirely; the
+    // Journal page already shows all the data, so the modal was
+    // redundant. The CTA now wires onPress directly to
+    // handleShareDaily, which calls generateAndShareHandoff (PDF +
+    // OS share sheet) without an intermediate modal.
     expect(journalSrc).toMatch(
-      /testID=['"]journal-share-cta['"][\s\S]{0,300}setHandoffSheetVisible\(\s*true\s*\)/,
+      /testID=['"]journal-share-cta['"][\s\S]{0,300}onPress=\{handleShareDaily\}/,
     );
   });
 
@@ -54,22 +57,18 @@ describe('Phase 5.12.g — sticky export CTA', () => {
     );
   });
 
-  it('the CTA hides on empty days (no events, no notes, no tone)', () => {
-    // The same guard must check for at least one of dayEvents / reflection
-    // text / handoffTone so an empty day does not surface a "share what?"
-    // button.
-    const guardWindow = journalSrc.match(
-      /testID=['"]journal-share-cta['"][\s\S]{0,800}/,
-    );
-    expect(guardWindow).toBeTruthy();
-    // Look back ~600 chars — the conditional that wraps the CTA should
-    // contain at least one of the relevant signals.
+  it('the CTA hides on empty days (no events, no notes — tone retired in F3)', () => {
+    // The guard must check for at least one of dayEvents / reflection
+    // text so an empty day does not surface a "share what?" button.
+    // Phase 31 F3 — handoffTone retired from the predicate (the legacy
+    // tone is folded into reflection text via consolidatedNotes, so it
+    // shows up through that channel).
     const ctaIdx = journalSrc.indexOf("testID='journal-share-cta'");
     const ctaIdxAlt = journalSrc.indexOf('testID="journal-share-cta"');
     const idx = ctaIdx > 0 ? ctaIdx : ctaIdxAlt;
     expect(idx).toBeGreaterThan(0);
     const before = journalSrc.slice(Math.max(0, idx - 800), idx);
-    expect(before).toMatch(/dayEvents|reflection|handoffTone|hasShareableContent/);
+    expect(before).toMatch(/dayEvents|reflection|hasShareableContent/);
   });
 });
 

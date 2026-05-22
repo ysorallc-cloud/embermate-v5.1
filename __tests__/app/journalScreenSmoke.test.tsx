@@ -126,10 +126,19 @@ jest.mock('../../components/journal/JournalNotesCard', () => ({
 jest.mock('../../components/journal/HandoffCard', () => ({
   HandoffCard: () => null,
 }));
-jest.mock('../../components/journal/HandoffSheet', () => ({
-  HandoffSheet: () => null,
-}));
+// Phase 31 F3 — HandoffSheet mock retired alongside the component
+// (component file deleted; no longer importable).
 // ExportChooserSheet was removed in the chooser-removal commit.
+
+// Phase 31 F3 — generateAndShareHandoff is now fired directly by the
+// Share CTA. The smoke render doesn't tap the CTA, so a no-op mock is
+// enough to satisfy the import.
+jest.mock('../../services/handoffPdf', () => ({
+  generateAndShareHandoff: jest.fn().mockResolvedValue(true),
+}));
+jest.mock('../../utils/handoffReportBuilder', () => ({
+  buildHandoffReport: jest.fn().mockResolvedValue(''),
+}));
 jest.mock('../../utils/dailyOutcomes', () => ({
   getDailyOutcomes: jest.fn().mockResolvedValue({
     logged: { count: 0 },
@@ -309,10 +318,19 @@ jest.mock('../../components/journal/TodayOutcomes', () => ({
 jest.mock('../../components/journal/HandoffCard', () => ({
   HandoffCard: () => null,
 }));
-jest.mock('../../components/journal/HandoffSheet', () => ({
-  HandoffSheet: () => null,
-}));
+// Phase 31 F3 — HandoffSheet mock retired alongside the component
+// (component file deleted; no longer importable).
 // ExportChooserSheet was removed in the chooser-removal commit.
+
+// Phase 31 F3 — generateAndShareHandoff is now fired directly by the
+// Share CTA. The smoke render doesn't tap the CTA, so a no-op mock is
+// enough to satisfy the import.
+jest.mock('../../services/handoffPdf', () => ({
+  generateAndShareHandoff: jest.fn().mockResolvedValue(true),
+}));
+jest.mock('../../utils/handoffReportBuilder', () => ({
+  buildHandoffReport: jest.fn().mockResolvedValue(''),
+}));
 jest.mock('../../components/SectionEyebrow', () => ({
   SectionEyebrow: ({ text }: any) => {
     const React = require('react');

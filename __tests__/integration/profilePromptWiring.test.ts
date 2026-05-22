@@ -9,19 +9,19 @@ import { join } from 'path';
 
 const ROOT = join(__dirname, '../..');
 
-describe('Phase 5.8.c — HandoffSheet wiring', () => {
-  const src = readFileSync(join(ROOT, 'components/journal/HandoffSheet.tsx'), 'utf8');
+// Phase 5.8.c — HandoffSheet wiring describe block RETIRED by Phase 31
+// F3 (2026-05-21). HandoffSheet was retired entirely; its
+// requireProfileFields / ProfilePromptSheet wiring no longer exists
+// because the share path skips the modal and fires
+// generateAndShareHandoff directly. The profile-fields prompt for
+// share-time only ever surfaced inside HandoffSheet, so it retires
+// alongside. The Visit Prep wiring block below stays — that path's
+// profile gate is independent of HandoffSheet and remains valid.
 
-  it('imports requireProfileFields', () => {
-    expect(src).toMatch(/from\s+['"][^'"]+requireProfileFields['"]/);
-  });
-
-  it('imports ProfilePromptSheet', () => {
-    expect(src).toMatch(/from\s+['"][^'"]+ProfilePromptSheet['"]/);
-  });
-
-  it('renders ProfilePromptSheet conditionally on missing-fields state', () => {
-    expect(src).toMatch(/<ProfilePromptSheet\b/);
+describe('Phase 31 F3 — HandoffSheet retired (was Phase 5.8.c wiring)', () => {
+  it('HandoffSheet.tsx is deleted; its profile-prompt wiring retires alongside', () => {
+    const { existsSync } = require('fs');
+    expect(existsSync(join(ROOT, 'components/journal/HandoffSheet.tsx'))).toBe(false);
   });
 });
 

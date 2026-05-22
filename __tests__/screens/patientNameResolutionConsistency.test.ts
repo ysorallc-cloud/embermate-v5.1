@@ -49,18 +49,16 @@ describe('Tab consumers filter the legacy "Patient" sentinel', () => {
   });
 });
 
-describe('HandoffSheet shares the same resolution as the tab consumers', () => {
-  const sheetSrc = read('components/journal/HandoffSheet.tsx');
-
-  it('does not render the literal "Patient" string anywhere', () => {
-    // The old Daily Summary preview rendered "Patient: Patient" when the
-    // raw activePatient.name leaked through. The new sheet must not.
-    expect(sheetSrc).not.toMatch(/'Patient'/);
-    expect(sheetSrc).not.toMatch(/"Patient"/);
-  });
-
-  it('falls back to a non-empty display string when name is empty', () => {
-    expect(sheetSrc).toMatch(/Your loved one/);
+// Phase 31 F3 — HandoffSheet name-resolution describe block RETIRED.
+// HandoffSheet was deleted entirely; its resolveName helper retires
+// with the component. The patient-name resolution consistency concern
+// (no "Patient: Patient" leak, non-empty display fallback) is now
+// enforced by the surviving tab + builder consumers above + by
+// utils/lovedOneFallback23_2 fallback consolidation.
+describe('Phase 31 F3 — HandoffSheet retired (was patient-name resolution consumer)', () => {
+  it('HandoffSheet.tsx is deleted; its name-resolution code retires alongside', () => {
+    const { existsSync } = require('fs');
+    expect(existsSync(join(ROOT, 'components/journal/HandoffSheet.tsx'))).toBe(false);
   });
 });
 

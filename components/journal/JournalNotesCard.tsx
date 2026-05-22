@@ -197,43 +197,17 @@ export function JournalNotesCard({
   // for typed content. The two voices distinguish "this is the
   // invitation copy" from "this is what you wrote."
   if (bare) {
-    // Phase 31 F2 fix — past-day (readOnly) branch renders as static
-    // prose, not as a styled-but-dead TextInput. Pre-fix the input
-    // chrome (border + bg + padding) made past-day Section 4 look
-    // editable while ignoring keystrokes — the user perceived it as
-    // a dead input box. Fix: in readOnly mode, render saved content
-    // as a plain <Text> with the typed-content typography (serif
-    // italic), and render quiet textTertiary copy "No notes from
-    // this day." when nothing is stored. The TextInput chrome
-    // appears only when the input is actually writable (today path).
-    if (readOnly) {
-      const trimmed = (savedText ?? '').trim();
-      return (
-        <View>
-          <View testID="notes-body" style={styles.bareBody}>
-            {trimmed.length > 0 ? (
-              <Text
-                style={styles.bareReadOnlyText}
-                accessibilityRole="text"
-                accessibilityLabel="Notes from this day (read-only)"
-              >
-                {trimmed}
-              </Text>
-            ) : (
-              <Text
-                style={styles.bareReadOnlyEmpty}
-                accessibilityRole="text"
-                accessibilityLabel="No notes from this day"
-              >
-                No notes from this day.
-              </Text>
-            )}
-          </View>
-          {/* Past-day branch — privacy footer + Save pill don't render
-              (they belong to the writable today path). */}
-        </View>
-      );
-    }
+    // Phase 31 F3 (2026-05-21) — past-day notes are EDITABLE. Caregivers
+    // remember things later ("Dad was off this morning" recalled at
+    // night) and need to add or amend notes on the day they belong to.
+    // The pre-F3 read-only static-prose branch retires — past-day bare
+    // mode now renders the same editable TextInput as today. The
+    // saved-at timestamp records WHEN the note was written; no
+    // "added later" marker is needed.
+    //
+    // The readOnly prop stays in the API surface for non-bare future
+    // consumers but is ignored inside bare mode — both today and past
+    // get an editable input here.
     return (
       <View>
         <View testID="notes-body" style={styles.bareBody}>
@@ -247,7 +221,7 @@ export function JournalNotesCard({
             multiline
             textAlignVertical="top"
             editable
-            accessibilityLabel={"Today's notes — type anything to pass along to the next caregiver"}
+            accessibilityLabel={"Notes for this day — type anything to pass along to the next caregiver"}
           />
         </View>
         <Text

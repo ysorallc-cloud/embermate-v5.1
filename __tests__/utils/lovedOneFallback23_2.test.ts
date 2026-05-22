@@ -31,8 +31,11 @@ import { join } from 'path';
 const ROOT = join(__dirname, '../..');
 const CANONICAL_PATH = join(ROOT, 'utils/lovedOneFallback.ts');
 
+// Phase 31 F3 (2026-05-21) — HandoffSheet target retired from this
+// list. The component file is deleted; its NAME_FALLBACK consumer is
+// gone. journalSubtitle + handoffParagraph remain as canonical
+// fallback consumers.
 const TARGETS = [
-  { name: 'HandoffSheet',     path: join(ROOT, 'components/journal/HandoffSheet.tsx') },
   { name: 'journalSubtitle',  path: join(ROOT, 'utils/journalSubtitle.ts') },
   { name: 'handoffParagraph', path: join(ROOT, 'utils/text/composers/handoffParagraph.ts') },
 ];

@@ -26,21 +26,37 @@ const journalSrc = readFileSync(
   'utf8',
 );
 
-describe('Phase 5.12.b — Journal header mood line', () => {
-  it('reads the canonical handoff tone for the selected date', () => {
-    // The mood-line resolution must consume getHandoffTone(selectedDate)
-    // — same source the HandoffSheet writes to. Otherwise the caregiver's
-    // authored tone wouldn't surface on the Journal header.
-    expect(journalSrc).toMatch(/getHandoffTone\b/);
+describe('Phase 31 F3 reframe — Journal header mood line (was Phase 5.12.b)', () => {
+  // ORIGINAL Phase 5.12.b priority chain:
+  //   1. handoffTone (verbatim caregiver-authored)
+  //   2. narrativeSummary (factual builder)
+  //   3. "No record from this day." (empty fallback)
+  //
+  // Phase 31 F3 (2026-05-21) retired #1 — HandoffSheet is gone, so
+  // no surface writes handoffTone going forward, and the gestalt
+  // tone-as-override branch retired alongside. Legacy tone content
+  // surfaces in Section 4's notes input via consolidatedNotes, not
+  // in the gestalt line. The post-F3 chain is two-tier:
+  //   1. narrativeSummary (shape-of-day prose, the canonical voice)
+  //   2. "No record from this day." (empty fallback)
+
+  it('Phase 31 F3 — journal.tsx no longer reads getHandoffTone directly for the gestalt line', () => {
+    // Reframed from "reads the canonical handoff tone" — the override
+    // branch retired. The tone IS still read by utils/consolidatedNotes
+    // (for the legacy first-load merge into Section 4 notes), but
+    // journal.tsx itself does not import getHandoffTone post-F3.
+    expect(journalSrc).not.toMatch(
+      /import\s*\{[^}]*\bgetHandoffTone\b[^}]*\}\s*from\s*['"][^'"]*storage\/handoffToneRepo['"]/,
+    );
   });
 
-  it('falls back to the narrative builder summary when no tone is set', () => {
-    // narrativeSummaryBuilder is the second priority — facts only, no
-    // interpretive language.
-    expect(journalSrc).toMatch(/buildDayNarrative\b/);
+  it('falls back to the shape-of-day narrative when no notes are set', () => {
+    // Shape-of-day is now the sole source for the gestalt line. The
+    // narrative builder must still be the source of truth.
+    expect(journalSrc).toMatch(/buildShapeOfDay\b/);
   });
 
-  it('renders the empty-day fallback string when no events and no tone', () => {
+  it('renders the empty-day fallback string when no events and no narrative', () => {
     expect(journalSrc).toContain('No record from this day.');
   });
 
@@ -52,12 +68,17 @@ describe('Phase 5.12.b — Journal header mood line', () => {
     expect(journalSrc).toMatch(/<GestaltSummary\b[\s\S]{0,200}?summary=\{moodLine\}/);
   });
 
-  it('the resolution priority chain is visible in source (tone → summary → empty)', () => {
-    // The chain must be expressed as a single conditional cascade — not
-    // three independent renders — so the priority is unambiguous.
-    expect(journalSrc).toMatch(
-      /(handoffTone|tone)[\s\S]{0,200}narrativeSummary|(handoffTone|tone)[\s\S]{0,400}buildDayNarrative/,
+  it('Phase 31 F3 — moodLine resolution is the two-tier narrative-or-fallback chain (no tone branch)', () => {
+    // Reframed from the three-tier "tone → summary → empty" assertion.
+    // Post-F3 the chain is: narrativeSummary → "No record from this
+    // day." The handoffTone identifier must NOT appear in the
+    // moodLine assignment.
+    const moodLineBlock = journalSrc.match(
+      /const\s+moodLine\s*:[\s\S]{0,400}?;/,
     );
+    expect(moodLineBlock).not.toBeNull();
+    expect(moodLineBlock![0]).toMatch(/narrativeSummary/);
+    expect(moodLineBlock![0]).not.toMatch(/handoffTone/);
   });
 });
 

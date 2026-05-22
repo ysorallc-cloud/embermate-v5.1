@@ -37,8 +37,13 @@ describe('Journal — new sections present', () => {
     expect(src).not.toMatch(/import\s+\{[^}]*\bHandoffCard\b[^}]*\}/);
   });
 
-  it('imports HandoffSheet', () => {
-    expect(src).toMatch(/import\s+\{\s*HandoffSheet\s*\}\s+from\s+['"][^'"]+HandoffSheet['"]/);
+  it('Phase 31 F3 — does NOT import HandoffSheet (retired; Share fires directly)', () => {
+    // Pre-F3 the Journal screen imported HandoffSheet and opened it
+    // as a preview modal on Share-CTA tap. Phase 31 F3 (2026-05-21)
+    // retired HandoffSheet entirely — the Journal page already shows
+    // all the data; the intermediate modal was redundant. Share now
+    // fires generateAndShareHandoff directly (PDF + OS share sheet).
+    expect(src).not.toMatch(/import\s+\{[^}]*\bHandoffSheet\b[^}]*\}/);
   });
 
   it('no longer renders <TodayOutcomes> (Phase 5.12.a)', () => {
@@ -57,8 +62,15 @@ describe('Journal — new sections present', () => {
     expect(src).not.toMatch(/<HandoffCard\b/);
   });
 
-  it('renders HandoffSheet', () => {
-    expect(src).toMatch(/<HandoffSheet\b/);
+  it('Phase 31 F3 — Share CTA fires handleShareDaily directly (no HandoffSheet render)', () => {
+    // The Journal screen's sticky Share CTA wires onPress to
+    // handleShareDaily, which calls generateAndShareHandoff
+    // (PDF + OS share sheet) without an intermediate preview modal.
+    // The pre-F3 <HandoffSheet ...> render block is gone from the
+    // file; the CTA is the only share affordance on Journal now.
+    expect(src).not.toMatch(/<HandoffSheet\b/);
+    expect(src).toMatch(/onPress=\{handleShareDaily\}/);
+    expect(src).toMatch(/generateAndShareHandoff/);
   });
 });
 

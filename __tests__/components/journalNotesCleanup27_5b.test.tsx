@@ -183,43 +183,34 @@ describe('Phase 27.5b F5 — JournalNotesCard notes cleanup', () => {
     expect(allText).not.toMatch(/Anything to pass to the next caregiver, or to flag for/);
   });
 
-  it('contract 3 (Phase 31 F2 fix): readOnly bare mode renders STATIC PROSE, not a styled-but-dead TextInput', () => {
-    // Pre-F2 the readOnly bare branch rendered a TextInput with
-    // placeholder "Notes from this day" and editable={false}. On
-    // device, the input chrome (border + bg + padding) made the
-    // surface LOOK editable while ignoring keystrokes — past-day
-    // notes appeared as a dead input box. Phase 31 F2 fix
-    // (2026-05-21) replaces the readOnly TextInput with a plain
-    // <Text> displaying the saved content (or quiet textTertiary
-    // empty-state copy when no notes for the day).
+  it('contract 3 (Phase 31 F3 reframe): bare mode renders an EDITABLE TextInput on BOTH today and past days', () => {
+    // Pre-F2 the readOnly bare branch had an editable={false} TextInput
+    // that LOOKED editable but ignored keystrokes (dead input).
+    // F2 (briefly) replaced it with static <Text> (read-only past).
+    // F3 (2026-05-21) flipped past days to FULLY EDITABLE — caregivers
+    // recall things later ("Dad was off this morning" at night) and
+    // need to amend notes on the day they belong to. Bare mode now
+    // renders the same writable TextInput for today AND past;
+    // saved-at timestamp records when each save happened, no
+    // "added later" marker.
     //
-    // Pin 1: no TextInput renders in readOnly bare mode.
-    // Pin 2: when savedText is present, a <Text> node carries it.
-    // Pin 3: when no saved text, a <Text> node carries the
-    //        empty-state copy "No notes from this day."
-    const treeWithNotes = render({
-      ...baseProps,
-      bare: true,
-      readOnly: true,
-      savedText: 'Past note content here.',
-    });
-    expect(() => treeWithNotes.root.findByType('TextInput' as any)).toThrow();
-    const textNodes = findAll(treeWithNotes.root, (n) => n.type === 'Text')
-      .map(flattenText)
-      .join(' | ');
-    expect(textNodes).toContain('Past note content here.');
-
-    const treeEmpty = render({
-      ...baseProps,
-      bare: true,
-      readOnly: true,
-      savedText: undefined,
-    });
-    expect(() => treeEmpty.root.findByType('TextInput' as any)).toThrow();
-    const emptyText = findAll(treeEmpty.root, (n) => n.type === 'Text')
-      .map(flattenText)
-      .join(' | ');
-    expect(emptyText).toContain('No notes from this day.');
+    // Pin 1: bare + readOnly=true renders an editable TextInput
+    //        (readOnly prop is now structurally ignored in bare mode).
+    // Pin 2: bare + readOnly=false also renders the editable TextInput
+    //        (today path — unchanged behavior).
+    // Pin 3: the input is editable in both cases (editable !== false).
+    for (const readOnly of [true, false]) {
+      const tree = render({
+        ...baseProps,
+        bare: true,
+        readOnly,
+        savedText: 'Some prior content.',
+      });
+      const ti = tree.root.findByType('TextInput' as any);
+      expect(ti).toBeDefined();
+      // editable prop is true (or omitted, which defaults to true in RN).
+      expect(ti.props.editable).not.toBe(false);
+    }
   });
 
   it('contract 4: TextInput container styling carries the new chrome', () => {

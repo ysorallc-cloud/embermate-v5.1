@@ -81,12 +81,16 @@ describe('Phase 5.8.e — handoff builder uniqueness', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('the legacy buildPreviewText helper is gone from HandoffSheet', () => {
-    const sheet = readFileSync(
-      join(ROOT, 'components/journal/HandoffSheet.tsx'),
-      'utf8',
-    );
-    expect(sheet).not.toMatch(/\bfunction\s+buildPreviewText\b/);
+  it('Phase 31 F3 — HandoffSheet.tsx file is RETIRED entirely (which trivially retires its legacy buildPreviewText helper)', () => {
+    // Pre-F3 this contract read HandoffSheet.tsx and asserted the
+    // legacy buildPreviewText helper had been removed (Phase 5.8.e
+    // consolidation). Phase 31 F3 (2026-05-21) retired the entire
+    // HandoffSheet component — the Journal page already shows all
+    // the data, and Share fires generateAndShareHandoff directly
+    // without an intermediate modal. The retirement subsumes the
+    // 5.8.e helper-removal pin.
+    const { existsSync } = require('fs');
+    expect(existsSync(join(ROOT, 'components/journal/HandoffSheet.tsx'))).toBe(false);
   });
 
   it('the canonical builder is exported and importable from utils/handoffReportBuilder.ts', () => {

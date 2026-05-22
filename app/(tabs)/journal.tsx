@@ -52,7 +52,15 @@ import { JournalNotesCard } from '../../components/journal/JournalNotesCard';
 import { TodayNotableMoments } from '../../components/journal/TodayNotableMoments';
 import { TodayStillPending } from '../../components/journal/TodayStillPending';
 import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataSheet';
-import { HandoffSheet } from '../../components/journal/HandoffSheet';
+// Phase 31 F3 (2026-05-21) — HandoffSheet retired. The Journal page
+// already shows all the data; the separate handoff modal was redundant.
+// Share now fires directly from the Share CTA via generateAndShareHandoff
+// (PDF + OS share sheet). Body text comes from the canonical handoff
+// builder. The legacy in-app Copy/SMS actions retire — the OS share
+// sheet offers those equivalents natively when the PDF is shared.
+import { generateAndShareHandoff } from '../../services/handoffPdf';
+import { buildHandoffReport } from '../../utils/handoffReportBuilder';
+import { formatTime } from '../../utils/text/primitives';
 // Phase 27.X — NarrativeView fully retired to intentional orphan. Past-day
 // view now renders the same SOAP layout as today (with past-specific
 // reframes for Section 1 prompt + Section 4 eyebrow/gating). The
@@ -106,7 +114,11 @@ import { useDayEvents } from '../../hooks/useDayEvents';
 // saveConsolidatedNotes returns it.
 import { getConsolidatedNotes, saveConsolidatedNotes, type ConsolidatedNotes } from '../../utils/consolidatedNotes';
 import type { StoredReflection } from '../../storage/reflectionStorage';
-import { getHandoffTone } from '../../storage/handoffToneRepo';
+// Phase 31 F3 (2026-05-21) — direct getHandoffTone import retired
+// from this file. The tone store is still read indirectly via
+// utils/consolidatedNotes (legacy merge on first load). The Section 1
+// gestalt's tone-as-override branch retires alongside HandoffSheet —
+// gestalt now reads the shape-of-day prose only (no tone override).
 import { buildShapeOfDay } from '../../utils/buildShapeOfDay';
 import { getDailyOutcomes } from '../../utils/dailyOutcomes';
 import type { DailyOutcomes } from '../../utils/text/types';
@@ -160,7 +172,9 @@ export default function JournalTab() {
     pending: { count: 0, names: [] },
   });
   const [dayCompleteFlag, setDayCompleteFlag] = useState(false);
-  const [handoffSheetVisible, setHandoffSheetVisible] = useState(false);
+  // Phase 31 F3 — handoffSheetVisible state retired alongside the
+  // HandoffSheet modal. Share CTA now fires generateAndShareHandoff
+  // directly; no modal-open state to track.
   const handoffPulse = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const handoffCardLayoutY = useRef<number | null>(null);
@@ -191,7 +205,12 @@ export default function JournalTab() {
   // Phase 5.12.b — mood line is the page's emotional anchor. Resolved
   // in priority: (1) caregiver-authored handoff tone for the day,
   // (2) factual narrative summary, (3) "No record from this day."
-  const [handoffTone, setHandoffTone] = useState<string | null>(null);
+  // Phase 31 F3 — handoffTone state retired. Pre-F3 this held the
+  // legacy tone-input value and drove the Section 1 gestalt override.
+  // Phase 31 F1's consolidatedNotes utility now folds any legacy tone
+  // into the notes-input value at read time, and the gestalt no longer
+  // overrides — it always reads the shape-of-day prose. No surface
+  // writes the legacy tone store going forward.
   const [narrativeSummary, setNarrativeSummary] = useState<string | null>(null);
   // Phase 22.1 — identity strip + notes-prompt threading. Loaded
   // once on mount; the values rarely change within a session.
@@ -266,20 +285,14 @@ export default function JournalTab() {
   // Pinned by journalGestaltRefreshOnLog27.test.ts Contracts A.1–A.3.
   const refreshMoodLine = useCallback(async () => {
     try {
-      const tone = await getHandoffTone(selectedDate);
-      setHandoffTone(tone);
-      // Phase 27.5b F3 — buildDayNarrative({ factualOnly: true })
-      // produced count-only roll-up sentences ("5/5 medications
-      // logged. 1 wellness check recorded.") for the Section 1
-      // gestalt line. Replaced with buildShapeOfDay which produces
-      // observational prose describing what's done, pending, and
-      // standing out — same data shape, same fallback semantics.
-      if (tone && tone.trim().length > 0) {
-        setNarrativeSummary(null);
-      } else {
-        const shape = await buildShapeOfDay(selectedDate);
-        setNarrativeSummary(shape.hasData ? shape.summary : null);
-      }
+      // Phase 31 F3 — pre-F3 read the legacy tone first and let it
+      // override the shape-of-day prose. With HandoffSheet retired
+      // and tone-as-override gone, the gestalt always reads the
+      // shape-of-day output. Phase 27.5b F3's narrative is the canon
+      // voice for Section 1: observational prose describing what's
+      // done, pending, and standing out.
+      const shape = await buildShapeOfDay(selectedDate);
+      setNarrativeSummary(shape.hasData ? shape.summary : null);
     } catch (err) {
       logError('JournalTab.refreshMoodLine', err);
     }
@@ -314,11 +327,15 @@ export default function JournalTab() {
     }
   }, [refreshMoodLine]));
 
-  // Resolution: tone → narrative summary → empty-day fallback.
+  // Phase 31 F3 — moodLine resolution simplified. Pre-F3 the legacy
+  // handoffTone overrode the shape-of-day prose when present. With
+  // HandoffSheet retired and the tone-as-override branch gone, the
+  // gestalt sentence is always the shape-of-day output (or the
+  // empty-day fallback). Legacy tone content is preserved by being
+  // folded into Section 4's notes input via consolidatedNotes — it
+  // surfaces there, not in the gestalt line.
   const moodLine: string =
-    (handoffTone && handoffTone.trim().length > 0)
-      ? handoffTone.trim()
-      : (narrativeSummary && narrativeSummary.trim().length > 0)
+    narrativeSummary && narrativeSummary.trim().length > 0
       ? narrativeSummary.trim()
       : 'No record from this day.';
 
@@ -703,14 +720,42 @@ export default function JournalTab() {
   // ============================================================================
   // SHARE / REPORT HANDLERS
   // ============================================================================
-  // Phase 9: Share opens HandoffSheet (today, next-caregiver audience).
-  // Bottom HandoffCard's "Share summary" button keeps using this fast-path.
-  function handleShareDaily() {
+  // Phase 31 F3 (2026-05-21) — Share fires the PDF + OS-share path
+  // directly. Pre-F3 opened HandoffSheet (a 638-line preview modal that
+  // wrapped this exact call). The Journal page already shows all the
+  // data; the intermediate modal was redundant. The OS share sheet
+  // (triggered by generateAndShareHandoff) offers Copy / Messages /
+  // Mail / Save natively — no need for in-app duplicate actions.
+  // Phase 31 F3 fix — must be a regular function declaration, NOT a
+  // useCallback hook. The journal.tsx component has loading-state and
+  // error-state early-returns above (L634, L645) that bail before
+  // hitting this region. A useCallback here would fire in the
+  // loaded-state render but not in the loading-state render, causing
+  // a "Rendered more hooks than during the previous render" violation.
+  // Stable identity isn't needed here (no memoized child consumes it),
+  // so a plain function suffices.
+  async function handleShareDaily() {
     if (loading) {
       Alert.alert('Loading', 'Please wait while the journal loads.');
       return;
     }
-    setHandoffSheetVisible(true);
+    try {
+      const bodyText = await buildHandoffReport({ includeNotes: true });
+      if (!bodyText || bodyText.trim().length === 0) return;
+      const now = new Date();
+      await generateAndShareHandoff({
+        patientName: (patientNameRaw ?? '').trim() || 'Patient',
+        dateLabel: now.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'short',
+          day: 'numeric',
+        }),
+        timeLabel: formatTime(now),
+        bodyText,
+      });
+    } catch (err) {
+      logError('JournalTab.handleShareDaily', err);
+    }
   }
 
   function handleDoneForToday() {
@@ -784,7 +829,11 @@ export default function JournalTab() {
               isViewingPast,
               hasEvents: !!(dayEvents && dayEvents.length > 0),
               hasNotes: (reflection?.text?.trim().length ?? 0) > 0,
-              hasTone: !!handoffTone && handoffTone.trim().length > 0,
+              // Phase 31 F3 — tone retired alongside HandoffSheet; the
+              // empty-day predicate no longer factors handoffTone. Any
+              // legacy tone content is folded into the notes value via
+              // consolidatedNotes, so it surfaces through hasNotes.
+              hasTone: false,
               hasCompletedInstances: outcomes.logged.count > 0,
             });
           })() && (
@@ -808,7 +857,11 @@ export default function JournalTab() {
               isViewingPast,
               hasEvents: !!(dayEvents && dayEvents.length > 0),
               hasNotes: (reflection?.text?.trim().length ?? 0) > 0,
-              hasTone: !!handoffTone && handoffTone.trim().length > 0,
+              // Phase 31 F3 — tone retired alongside HandoffSheet; the
+              // empty-day predicate no longer factors handoffTone. Any
+              // legacy tone content is folded into the notes value via
+              // consolidatedNotes, so it surfaces through hasNotes.
+              hasTone: false,
               hasCompletedInstances: outcomes.logged.count > 0,
             });
             if (isEmpty && !addNoteMode) return null;
@@ -1055,22 +1108,22 @@ export default function JournalTab() {
 
       {/* Phase 5.12.g — sticky "Share handoff" CTA. The page's only
           primary action. Hidden on past days (handoff is today-only)
-          and on empty days (no events, no notes, no tone — nothing to
-          share). Opens the canonical HandoffSheet directly; the
-          earlier chooser-style export surface was retired in the v6
-          UX restructure. */}
+          and on empty days (no events, no notes — nothing to share).
+          Phase 31 F3 (2026-05-21) — onPress fires handleShareDaily
+          directly (PDF + OS share sheet). Pre-F3 opened HandoffSheet,
+          a 638-line preview modal. The Journal page already shows all
+          the data; the modal was redundant. */}
       {(() => {
         const isViewingToday = !isViewingPast;
         const hasShareableContent =
           (dayEvents && dayEvents.length > 0) ||
-          (reflection?.text?.trim().length ?? 0) > 0 ||
-          (handoffTone && handoffTone.trim().length > 0);
+          (reflection?.text?.trim().length ?? 0) > 0;
         if (!isViewingToday || !hasShareableContent) return null;
         return (
           <TouchableOpacity
             testID="journal-share-cta"
             style={[s.shareCta, { bottom: tabBarHeight + 14 }]}
-            onPress={() => setHandoffSheetVisible(true)}
+            onPress={handleShareDaily}
             activeOpacity={0.85}
             accessibilityRole="button"
             accessibilityLabel="Share handoff for today"
@@ -1080,13 +1133,9 @@ export default function JournalTab() {
         );
       })()}
 
-      <HandoffSheet
-        visible={handoffSheetVisible}
-        onClose={() => setHandoffSheetVisible(false)}
-        patientName={patientName}
-        date={new Date()}
-        dateKey={getTodayDateString()}
-      />
+      {/* Phase 31 F3 — HandoffSheet render retired. The Share CTA above
+          fires handleShareDaily directly; no in-app modal sits between
+          the user and the share action. */}
 
       <ManageSampleDataSheet
         visible={manageSampleOpen}
