@@ -95,8 +95,19 @@ describe('Phase 31 F3 — kill HandoffSheet + direct share + tone-override retir
     );
   });
 
-  it('invariant 4 corollary: journal.tsx imports buildHandoffReport from utils/handoffReportBuilder', () => {
+  it('invariant 4 corollary (reframed for Phase 31 PDF rebuild): journal.tsx imports buildHandoffDay from utils/handoffDayBuilder', () => {
+    // Pre-Phase-31 the corollary pinned buildHandoffReport — the curated
+    // today-hardcoded body builder. Phase 31 rebuilds Journal Share as a
+    // faithful single-day itemized PDF; the body now comes from
+    // buildHandoffDay(selectedDate), which bundles the four date-keyed
+    // feeders the Journal screen already renders from (no drift,
+    // selected-date threaded through). Importing buildHandoffReport here
+    // is now PROHIBITED — that path produces the thin curated template
+    // the rebuild replaces.
     expect(journalStripped).toMatch(
+      /import\s*\{[^}]*\bbuildHandoffDay\b[^}]*\}\s*from\s*['"][^'"]*utils\/handoffDayBuilder['"]/,
+    );
+    expect(journalStripped).not.toMatch(
       /import\s*\{[^}]*\bbuildHandoffReport\b[^}]*\}\s*from\s*['"][^'"]*utils\/handoffReportBuilder['"]/,
     );
   });

@@ -59,7 +59,11 @@ import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataS
 // builder. The legacy in-app Copy/SMS actions retire — the OS share
 // sheet offers those equivalents natively when the PDF is shared.
 import { generateAndShareHandoff } from '../../services/handoffPdf';
-import { buildHandoffReport } from '../../utils/handoffReportBuilder';
+// Phase 31 — single-day handoff bundler. Replaces the today-hardcoded
+// buildHandoffReport / curated template path so the shared PDF reads
+// from the same date-keyed feeders the screen renders (no drift) and
+// honors selectedDate when sharing from a past day.
+import { buildHandoffDay } from '../../utils/handoffDayBuilder';
 import { formatTime } from '../../utils/text/primitives';
 // Phase 27.X — NarrativeView fully retired to intentional orphan. Past-day
 // view now renders the same SOAP layout as today (with past-specific
@@ -740,18 +744,23 @@ export default function JournalTab() {
       return;
     }
     try {
-      const bodyText = await buildHandoffReport({ includeNotes: true });
-      if (!bodyText || bodyText.trim().length === 0) return;
-      const now = new Date();
+      // Phase 31 — gather the selected day's bundle (same date-keyed
+      // feeders the screen renders from). dateLabel derives from
+      // selectedDate so past-day shares show the day being shared;
+      // timeLabel stays generation-time so the recipient sees when the
+      // PDF was produced. generateAndShareHandoff fires the OS share
+      // sheet directly — no in-app preview.
+      const payload = await buildHandoffDay(selectedDate);
+      if (!payload) return;
+      const selectedDateObj = new Date(`${selectedDate}T12:00:00`);
       await generateAndShareHandoff({
-        patientName: (patientNameRaw ?? '').trim() || 'Patient',
-        dateLabel: now.toLocaleDateString('en-US', {
+        payload,
+        dateLabel: selectedDateObj.toLocaleDateString('en-US', {
           weekday: 'long',
           month: 'short',
           day: 'numeric',
         }),
-        timeLabel: formatTime(now),
-        bodyText,
+        timeLabel: formatTime(new Date()),
       });
     } catch (err) {
       logError('JournalTab.handleShareDaily', err);

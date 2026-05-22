@@ -50,6 +50,7 @@ import {
   buildWellnessPatterns,
   type WellnessPatternsSummary,
 } from './wellnessPatterns';
+import { LIGHT_PDF_CSS } from '../utils/lightPdfTemplate';
 
 // ============================================================================
 // PROFILE-MISSING SENTINEL
@@ -772,30 +773,7 @@ function buildHtml(data: VisitPrepData): string {
 <html>
 <head>
   <meta charset="utf-8" />
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, 'Helvetica Neue', sans-serif; color: #1a1a2e; padding: 32px; font-size: 11px; line-height: 1.5; }
-    h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 20px; font-weight: 400; color: #1a1a2e; margin-bottom: 4px; }
-    .subtitle { font-size: 11px; color: #7a7a8a; margin-bottom: 20px; }
-    /* Phase 23.3 — cover provenance line. Renders flush under .subtitle
-       so the two cover rows read as a unit; one step quieter (10px,
-       #9a9aa8, italic) so it doesn't compete with the dateRange line. */
-    .provenance { font-size: 10px; color: #9a9aa8; font-style: italic; margin-top: -16px; margin-bottom: 20px; }
-    h2 { font-size: 13px; font-weight: 600; color: #4a6b5d; margin: 16px 0 6px; border-bottom: 1px solid #e2e4e8; padding-bottom: 4px; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-    th { text-align: left; font-size: 10px; font-weight: 600; color: #7a7a8a; letter-spacing: 0.5px; padding: 4px 8px; border-bottom: 1px solid #e2e4e8; }
-    td { padding: 4px 8px; font-size: 11px; border-bottom: 1px solid #f0f2f4; }
-    ul { padding-left: 16px; margin-bottom: 12px; }
-    li { margin-bottom: 4px; }
-    .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e2e4e8; font-size: 9px; color: #9a9aa8; text-align: center; }
-    .callout { padding: 10px 14px; margin: 12px 0; border-left: 3px solid #4a6b5d; }
-    .callout-redflag { background: #fef3f0; border-left-color: #c14848; }
-    .callout-hydration { background: #f5f0e8; border-left-color: #4a6b5d; }
-    .callout-wellness { background: #f0f3f0; border-left-color: #4a6b5d; }
-    .callout h2 { border-bottom: none; padding-bottom: 0; margin: 0 0 6px; color: #1a1a2e; }
-    .callout-redflag h2 { color: #8b3030; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
-    .callout p { margin: 4px 0; line-height: 1.5; }
-  </style>
+  <style>${LIGHT_PDF_CSS}</style>
 </head>
 <body>
   <h1>Care Summary: ${data.header.patientName}</h1>

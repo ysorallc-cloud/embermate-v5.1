@@ -1,85 +1,213 @@
 // ============================================================================
-// HANDOFF PDF
-// Single-page PDF for the next-caregiver handoff. Simpler than the visit
-// prep multi-day report — same expo-print + expo-sharing pipeline.
+// HANDOFF PDF — Phase 31 single-day rebuild.
+//
+// Pre-31 emitted a sparse template body from a today-hardcoded curated
+// builder. Phase 31 rebuilds the handoff as a faithful single-day
+// itemized PDF, fed by buildHandoffDay(date) so the on-screen Journal
+// day and the shared PDF read from the same data. Shares the visit-
+// prep light-theme CSS via utils/lightPdfTemplate so both artifacts
+// look like one family.
+//
+// Sections (mirror the Journal SOAP layout):
+//   Summary             — Section 1 gestalt sentence
+//   What was logged     — Section 2 itemized meds + vitals readings
+//   Worth flagging      — Section 3 notable-moments callout (when any)
+//   Caregiver notes     — Section 4 consolidated notes (when present)
+//   Coming up           — next upcoming appointment (when present)
+//
+// One tap → OS share sheet. No in-app preview/modal.
 // ============================================================================
 
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
+import { LIGHT_PDF_CSS, escapeHtml } from '../utils/lightPdfTemplate';
+import type { HandoffDayPayload } from '../utils/handoffDayBuilder';
+import type {
+  MedicationDetail,
+  VitalsDetail,
+} from '../utils/careSummaryBuilder';
+import type { NotableMoment } from '../utils/notableMomentsBuilder';
 import { logError } from '../utils/devLog';
 
 export interface HandoffPdfData {
-  patientName: string;
-  dateLabel: string;        // e.g. "Sunday, Apr 26"
-  timeLabel: string;        // e.g. "10:30 PM"
-  /** Phase 5.8.d — canonical assembled body. When present, the PDF
-   *  renders this directly (preserving line breaks). Wins over the
-   *  legacy outcomesLines/notes/eventLines triple. */
-  bodyText?: string;
-  /** Legacy pre-formatted lines. Kept for back-compat callers; new
-   *  callers should pass bodyText only. */
-  outcomesLines?: string[];
-  notes?: string | null;
-  eventLines?: string[];
+  /** The bundled day data — single source the Journal screen also
+   *  renders from. Drives every section in the body. */
+  payload: HandoffDayPayload;
+  /** Header date label — derived from the SELECTED date (not the
+   *  generation clock) so past-day shares show the day being shared. */
+  dateLabel: string;
+  /** Header time label — generation clock, surfaces WHEN the PDF was
+   *  produced. Pair-renders next to dateLabel. */
+  timeLabel: string;
 }
 
-function escape(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+// ----------------------------------------------------------------------------
+// Time + status formatters — small helpers, no business logic.
+// ----------------------------------------------------------------------------
+
+function formatClock(iso: string | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const h24 = d.getHours();
+  const m = d.getMinutes();
+  const meridiem = h24 >= 12 ? 'PM' : 'AM';
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  const mm = m < 10 ? `0${m}` : String(m);
+  return `${h12}:${mm} ${meridiem}`;
 }
+
+const STATUS_LABEL: Record<MedicationDetail['status'], string> = {
+  completed: 'Taken',
+  pending: 'Pending',
+  skipped: 'Skipped',
+  missed: 'Missed',
+};
+
+// ----------------------------------------------------------------------------
+// Section renderers — each returns an HTML fragment or '' for empty-state.
+// ----------------------------------------------------------------------------
+
+function renderSummary(gestalt: string): string {
+  const trimmed = gestalt.trim();
+  if (!trimmed) return '';
+  return `
+  <h2>Summary</h2>
+  <p>${escapeHtml(trimmed)}</p>
+  `;
+}
+
+function renderMedications(meds: MedicationDetail[]): string {
+  if (meds.length === 0) return '';
+  const rows = meds.map((m) => {
+    const scheduled = formatClock(m.scheduledTime);
+    const taken = m.takenAt ? formatClock(m.takenAt) : '';
+    const statusCell = m.status === 'completed' && taken
+      ? `${escapeHtml(STATUS_LABEL[m.status])} at ${escapeHtml(taken)}`
+      : escapeHtml(STATUS_LABEL[m.status]);
+    return `
+    <tr>
+      <td>${escapeHtml(m.name)}</td>
+      <td>${escapeHtml(m.dosage ?? '')}</td>
+      <td>${escapeHtml(scheduled)}</td>
+      <td>${statusCell}</td>
+    </tr>`;
+  }).join('');
+  return `
+  <h3 style="font-size:11px; font-weight:600; color:#7a7a8a; margin:8px 0 4px;">Medications</h3>
+  <table>
+    <tr><th>Medication</th><th>Dose</th><th>Scheduled</th><th>Status</th></tr>
+    ${rows}
+  </table>
+  `;
+}
+
+function renderVitals(v: VitalsDetail | null): string {
+  if (!v) return '';
+  const r = v.readings;
+  if (!r || !v.recorded) {
+    if (v.scheduled) {
+      return `
+  <h3 style="font-size:11px; font-weight:600; color:#7a7a8a; margin:8px 0 4px;">Vitals</h3>
+  <p style="color:#9a9aa8;">Scheduled — not yet recorded.</p>
+      `;
+    }
+    return '';
+  }
+  const parts: string[] = [];
+  if (r.systolic != null && r.diastolic != null) {
+    parts.push(`BP ${r.systolic}/${r.diastolic}`);
+  }
+  if (r.heartRate != null) parts.push(`HR ${r.heartRate}`);
+  if (r.glucose != null) parts.push(`Glucose ${r.glucose}`);
+  if (r.temperature != null) parts.push(`Temp ${r.temperature}`);
+  if (r.oxygen != null) parts.push(`O₂ ${r.oxygen}%`);
+  if (r.weight != null) parts.push(`Weight ${r.weight}`);
+  const inline = parts.join(' · ');
+  const recordedAt = v.recordedAt ? formatClock(v.recordedAt) : '';
+  return `
+  <h3 style="font-size:11px; font-weight:600; color:#7a7a8a; margin:8px 0 4px;">Vitals</h3>
+  <p>${escapeHtml(inline)}${recordedAt ? ` <span style="color:#9a9aa8;">at ${escapeHtml(recordedAt)}</span>` : ''}</p>
+  `;
+}
+
+function renderLogged(payload: HandoffDayPayload): string {
+  const medsHtml = renderMedications(payload.medications);
+  const vitalsHtml = renderVitals(payload.vitals);
+  if (!medsHtml && !vitalsHtml) return '';
+  return `
+  <h2>What was logged</h2>
+  ${medsHtml}
+  ${vitalsHtml}
+  `;
+}
+
+function renderWorthFlagging(moments: NotableMoment[]): string {
+  if (moments.length === 0) return '';
+  const items = moments.map((m) => `<li>${escapeHtml(m.text)}</li>`).join('');
+  return `
+  <div class="callout callout-redflag">
+    <h2>Worth flagging</h2>
+    <ul>${items}</ul>
+  </div>
+  `;
+}
+
+function renderNotes(notes: HandoffDayPayload['notes']): string {
+  if (!notes || !notes.text.trim()) return '';
+  return `
+  <h2>Caregiver notes</h2>
+  <p style="white-space: pre-wrap;">${escapeHtml(notes.text.trim())}</p>
+  `;
+}
+
+function renderComingUp(appt: HandoffDayPayload['nextAppointment']): string {
+  if (!appt) return '';
+  return `
+  <h2>Coming up</h2>
+  <p>${escapeHtml(appt.specialty)} with ${escapeHtml(appt.provider)} — ${escapeHtml(appt.date)}</p>
+  `;
+}
+
+// ----------------------------------------------------------------------------
+// HTML builder
+// ----------------------------------------------------------------------------
 
 function buildHtml(data: HandoffPdfData): string {
-  // Phase 5.8.d — when bodyText is supplied, render the canonical
-  // assembled handoff verbatim. Whitespace preserved via white-space:
-  // pre-wrap so the section structure carries over from text → PDF.
-  if (typeof data.bodyText === 'string' && data.bodyText.trim().length > 0) {
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-      body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; padding: 36px; color: #111; }
-      h1 { font-size: 18pt; margin-bottom: 4pt; }
-      .meta { font-size: 11pt; color: #555; margin-bottom: 18pt; }
-      .body { font-size: 11pt; line-height: 1.55; white-space: pre-wrap; }
-    </style></head><body>
-      <h1>${escape(data.patientName)} — Handoff</h1>
-      <div class="meta">${escape(data.dateLabel)} · ${escape(data.timeLabel)}</div>
-      <div class="body">${escape(data.bodyText)}</div>
-    </body></html>`;
-  }
+  const { payload, dateLabel, timeLabel } = data;
+  const summaryHtml = renderSummary(payload.gestalt);
+  const loggedHtml = renderLogged(payload);
+  const worthHtml = renderWorthFlagging(payload.worthFlagging);
+  const notesHtml = renderNotes(payload.notes);
+  const comingHtml = renderComingUp(payload.nextAppointment);
 
-  // Legacy structured render — pre-Phase 5.8.d callers.
-  const outcomes = (data.outcomesLines ?? []).map((l) => `<li>${escape(l)}</li>`).join('');
-  const events = (data.eventLines ?? []).map((l) => `<li>${escape(l)}</li>`).join('');
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; padding: 36px; color: #111; }
-    h1 { font-size: 18pt; margin-bottom: 4pt; }
-    .meta { font-size: 11pt; color: #555; margin-bottom: 18pt; }
-    .eyebrow { font-size: 8pt; letter-spacing: 0.5pt; color: #666; text-transform: uppercase; margin-top: 16pt; margin-bottom: 6pt; }
-    ul { padding-left: 18pt; margin: 4pt 0; }
-    li { font-size: 11pt; line-height: 1.5; margin-bottom: 2pt; }
-    p { font-size: 11pt; line-height: 1.5; margin: 4pt 0 0 0; }
-    .notes { background: #f5f5f5; border-radius: 6pt; padding: 10pt 12pt; }
-    .footer { font-size: 9pt; color: #999; margin-top: 28pt; text-align: center; }
-  </style></head><body>
-    <h1>${escape(data.patientName)} — Handoff</h1>
-    <div class="meta">${escape(data.dateLabel)} · ${escape(data.timeLabel)}</div>
-    <div class="eyebrow">Today's outcomes</div>
-    <ul>${outcomes}</ul>
-    ${data.notes ? `<div class="eyebrow">Handoff notes</div><div class="notes">${escape(data.notes)}</div>` : ''}
-    ${(data.eventLines?.length ?? 0) > 0 ? `<div class="eyebrow">Today's events</div><ul>${events}</ul>` : ''}
-    <div class="footer">EmberMate · Not a medical record</div>
-  </body></html>`;
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>${LIGHT_PDF_CSS}</style>
+</head>
+<body>
+  <h1>${escapeHtml(payload.patientName)} — Handoff</h1>
+  <div class="subtitle">${escapeHtml(dateLabel)} · ${escapeHtml(timeLabel)}</div>
+  <div class="provenance">Caregiver-reported observations · Not a clinical record</div>
+  ${summaryHtml}
+  ${loggedHtml}
+  ${worthHtml}
+  ${notesHtml}
+  ${comingHtml}
+  <div class="footer">EmberMate · Not a medical record · stays on this device unless you share.</div>
+</body>
+</html>`;
 }
 
-/** Generate a handoff PDF and present the iOS share sheet. */
+/** Generate the single-day handoff PDF and present the OS share sheet. */
 export async function generateAndShareHandoff(data: HandoffPdfData): Promise<boolean> {
   try {
     const html = buildHtml(data);
     const { uri } = await Print.printToFileAsync({ html, width: 612, height: 792 });
-    const stamp = new Date().toISOString().slice(0, 10);
+    const stamp = (data.payload.date || new Date().toISOString().slice(0, 10));
     const newUri = `${FileSystem.documentDirectory}EmberMate-Handoff-${stamp}.pdf`;
     await FileSystem.moveAsync({ from: uri, to: newUri });
     if (await Sharing.isAvailableAsync()) {

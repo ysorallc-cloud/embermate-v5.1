@@ -136,8 +136,11 @@ jest.mock('../../components/journal/HandoffCard', () => ({
 jest.mock('../../services/handoffPdf', () => ({
   generateAndShareHandoff: jest.fn().mockResolvedValue(true),
 }));
-jest.mock('../../utils/handoffReportBuilder', () => ({
-  buildHandoffReport: jest.fn().mockResolvedValue(''),
+// Phase 31 — buildHandoffDay replaces the retired buildHandoffReport
+// import path (today-hardcoded curated template). No-op mock returning
+// null satisfies the import for smoke; CTA isn't tapped.
+jest.mock('../../utils/handoffDayBuilder', () => ({
+  buildHandoffDay: jest.fn().mockResolvedValue(null),
 }));
 jest.mock('../../utils/dailyOutcomes', () => ({
   getDailyOutcomes: jest.fn().mockResolvedValue({
@@ -328,8 +331,10 @@ jest.mock('../../components/journal/HandoffCard', () => ({
 jest.mock('../../services/handoffPdf', () => ({
   generateAndShareHandoff: jest.fn().mockResolvedValue(true),
 }));
-jest.mock('../../utils/handoffReportBuilder', () => ({
-  buildHandoffReport: jest.fn().mockResolvedValue(''),
+// Phase 31 — buildHandoffDay replaces the retired buildHandoffReport
+// import path. No-op mock returning null satisfies the import.
+jest.mock('../../utils/handoffDayBuilder', () => ({
+  buildHandoffDay: jest.fn().mockResolvedValue(null),
 }));
 jest.mock('../../components/SectionEyebrow', () => ({
   SectionEyebrow: ({ text }: any) => {
