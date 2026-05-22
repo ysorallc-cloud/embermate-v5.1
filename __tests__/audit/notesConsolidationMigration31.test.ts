@@ -46,6 +46,19 @@ jest.mock('../../storage/handoffToneRepo', () => ({
   saveHandoffTone: (...args: any[]) => (mockSaveHandoffTone as any).apply(null, args),
 }));
 
+// In-memory backing store for safeStorage. The authoritative flag lives
+// here via a key pattern owned by the consolidatedNotes utility. Tests
+// reset the store between cases.
+const safeStorageBacking: Record<string, any> = {};
+jest.mock('../../utils/safeStorage', () => ({
+  safeGetItem: jest.fn(async (key: string, fallback: any) => {
+    return key in safeStorageBacking ? safeStorageBacking[key] : fallback;
+  }),
+  safeSetItem: jest.fn(async (key: string, value: any) => {
+    safeStorageBacking[key] = value;
+  }),
+}));
+
 // The utility under test. Import after mocks so the mocked storage
 // modules wire up correctly.
 import { getConsolidatedNotes, saveConsolidatedNotes } from '../../utils/consolidatedNotes';
@@ -56,6 +69,9 @@ describe('Phase 31 F1 — notes consolidation migration', () => {
     mockSaveReflection.mockReset();
     mockGetHandoffTone.mockReset();
     mockSaveHandoffTone.mockReset();
+    for (const key of Object.keys(safeStorageBacking)) {
+      delete safeStorageBacking[key];
+    }
   });
 
   // ------------------------------------------------------------------------
@@ -165,6 +181,122 @@ describe('Phase 31 F1 — notes consolidation migration', () => {
       // ever writes to handoffToneRepo, F1's promise breaks: legacy
       // data is no longer untouched, and a F1 bug could lose data.
       expect(mockSaveHandoffTone).not.toHaveBeenCalled();
+    });
+  });
+
+  // ------------------------------------------------------------------------
+  // Authoritative-flag semantics — "reflectionStorage owns this date"
+  //
+  // The flag is the design extension that closes the after-save re-merge
+  // corruption bug. Semantics:
+  //
+  //   • Flag SET for a date → reflectionStorage is authoritative. The
+  //     legacy tone store is NEVER consulted for that date again, even
+  //     if it still has content. This is what kills the doubling at
+  //     the root: once the user has saved through the consolidated
+  //     input, their notes are canonical and the legacy tone is purely
+  //     historical.
+  //   • Flag NOT SET (date never saved through consolidated path) →
+  //     read-time merge applies (the 4 input states + dedupe above).
+  //   • On first save through saveConsolidatedNotes → flag set
+  //     unconditionally for that date. From then on, the
+  //     "authoritative" rule applies forever.
+  //
+  // Pre-extension: the original 4-state merge runs every load, so an
+  // after-save read with diverged-from-tone content re-concatenates
+  // and corrupts. Contract (a) below pins the exact bug RED before
+  // the flag mechanism lands.
+  // ------------------------------------------------------------------------
+  describe('authoritative-flag semantics — after-save reads must not re-merge', () => {
+    it('(a) after-save read does NOT re-merge — even when edited text diverges from raw tone (THE BUG)', async () => {
+      // Setup: mid-day legacy user. handoffToneRepo has "Felt off." and
+      // reflectionStorage starts empty.
+      mockGetReflection.mockResolvedValueOnce(null);
+      mockGetHandoffTone.mockResolvedValue('Felt off.');
+
+      // First load — case 3 (only-tone-legacy).
+      const first = await getConsolidatedNotes('2026-05-19');
+      expect(first?.text).toBe('Felt off.');
+
+      // User edits + saves a diverged version. saveReflection mock
+      // returns the new value as if persisted.
+      mockSaveReflection.mockResolvedValue({
+        date: '2026-05-19',
+        text: 'Felt off but recovered.',
+        prompt: '',
+        savedAt: '2026-05-19T16:00:00Z',
+      });
+      await saveConsolidatedNotes('2026-05-19', 'Felt off but recovered.');
+
+      // Subsequent reads should see ONLY the saved reflection — the
+      // legacy tone store is no longer consulted for this date.
+      mockGetReflection.mockResolvedValue({
+        date: '2026-05-19',
+        text: 'Felt off but recovered.',
+        prompt: '',
+        savedAt: '2026-05-19T16:00:00Z',
+      });
+      // Legacy tone still present in its store (NEVER deleted per R5).
+      // The authoritative flag should cause the merge to skip it.
+
+      const second = await getConsolidatedNotes('2026-05-19');
+      expect(second?.text).toBe('Felt off but recovered.');
+      // Crucially: no concatenation, no doubling, no trace of the
+      // raw tone re-appended.
+      expect(second?.text).not.toContain('Felt off but recovered.\n\nFelt off.');
+      expect(second?.text).not.toMatch(/Felt off\.\s*$/);
+    });
+
+    it('(b) the authoritative flag is set on save (regardless of whether tone existed)', async () => {
+      // Setup: user with no prior data writes a fresh note.
+      mockGetReflection.mockResolvedValue(null);
+      mockGetHandoffTone.mockResolvedValue(null);
+      mockSaveReflection.mockResolvedValue({
+        date: '2026-05-20',
+        text: 'Fresh note.',
+        prompt: '',
+        savedAt: '2026-05-20T10:00:00Z',
+      });
+
+      // Pre-save: flag absent.
+      const flagKeys = Object.keys(safeStorageBacking).filter((k) =>
+        k.includes('authoritative') || k.includes('consolidated'),
+      );
+      expect(flagKeys.length).toBe(0);
+
+      await saveConsolidatedNotes('2026-05-20', 'Fresh note.');
+
+      // Post-save: a flag key exists for this date. The exact key
+      // shape is an implementation detail; pin presence + per-date
+      // scoping (key contains the date).
+      const flagKeysAfter = Object.keys(safeStorageBacking).filter((k) =>
+        k.includes('2026-05-20'),
+      );
+      expect(flagKeysAfter.length).toBeGreaterThanOrEqual(1);
+      // And the value is truthy so the read-side guard can branch on it.
+      const flagValue = safeStorageBacking[flagKeysAfter[0]];
+      expect(flagValue).toBeTruthy();
+    });
+
+    it('(c) first load (flag NOT set) still concatenates both stores per the brief — preserves the mid-day-legacy case', async () => {
+      // Setup: BOTH stores have different content, no prior save
+      // through the consolidated input (flag absent). This is the
+      // pre-existing case 4a — the merge MUST still fire on this
+      // first interaction so the user sees both blocks of legacy
+      // content before they edit.
+      mockGetReflection.mockResolvedValue({
+        date: '2026-05-21',
+        text: 'BP was high but he ate well.',
+        prompt: '',
+        savedAt: '2026-05-21T18:00:00Z',
+      });
+      mockGetHandoffTone.mockResolvedValue('Felt off today.');
+
+      // No save call between setup and read — flag absent.
+      const result = await getConsolidatedNotes('2026-05-21');
+      expect(result?.text).toBe(
+        'BP was high but he ate well.\n\nFelt off today.',
+      );
     });
   });
 

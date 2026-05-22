@@ -27,7 +27,59 @@ import {
   type StoredReflection,
 } from '../storage/reflectionStorage';
 import { getHandoffTone } from '../storage/handoffToneRepo';
+import { safeGetItem, safeSetItem } from './safeStorage';
 import { logError } from './devLog';
+
+// ----------------------------------------------------------------------------
+// Authoritative-flag mechanism — closes the after-save re-merge corruption bug.
+//
+// Pre-flag: every read merges both stores. After the user saves a value that
+// has diverged from the raw legacy tone, the next read still concatenates,
+// doubling the user's text. Pinned by contract (a) in
+// notesConsolidationMigration31.
+//
+// Flag semantics (per design lock):
+//   • SET for a date → reflectionStorage is authoritative; tone store is
+//     never consulted for that date again. This is what kills the doubling
+//     at the root — once the user has saved through the consolidated input,
+//     their notes are canonical and the legacy tone is purely historical.
+//   • NOT SET → read-time merge applies (the 4-state logic above).
+//   • Set unconditionally on first save through saveConsolidatedNotes
+//     (regardless of whether the tone store had content — defensive: even
+//     if tone was empty, marking the date authoritative protects against
+//     future drift if legacy data ever appeared via migration).
+//
+// R5 PRESERVED: this is a NEW namespace (`@embermate_consolidated_notes_
+// authoritative_v1:{date}`); the tone store is still never written to or
+// deleted.
+// ----------------------------------------------------------------------------
+
+const AUTHORITATIVE_FLAG_KEY = (date: string): string =>
+  `@embermate_consolidated_notes_authoritative_v1:${date}`;
+
+async function isReflectionAuthoritative(date: string): Promise<boolean> {
+  try {
+    const v = await safeGetItem<boolean>(AUTHORITATIVE_FLAG_KEY(date), false);
+    return v === true;
+  } catch (err) {
+    logError('consolidatedNotes.isReflectionAuthoritative', err);
+    // Fail safe: if the flag read errors, treat as not-authoritative so
+    // the merge still surfaces both stores. The cost is occasional
+    // false-merging, which is recoverable; the alternative (false
+    // authoritative) would silently hide legacy data.
+    return false;
+  }
+}
+
+async function markReflectionAuthoritative(date: string): Promise<void> {
+  try {
+    await safeSetItem(AUTHORITATIVE_FLAG_KEY(date), true);
+  } catch (err) {
+    logError('consolidatedNotes.markReflectionAuthoritative', err);
+    // Non-fatal: if the flag write fails, the next load will re-merge.
+    // That's a cosmetic regression at worst, not data loss.
+  }
+}
 
 export interface ConsolidatedNotes {
   /** The text value to populate Section 4's input with. Merged across
@@ -44,16 +96,40 @@ export interface ConsolidatedNotes {
  * Read-time merge of the two notes stores for a given date.
  *
  * Behavior (pinned by Contract A in notesConsolidationMigration31):
- *   • Neither store has content     → returns null
- *   • Only reflectionStorage        → returns it verbatim (with savedAt)
- *   • Only handoffToneRepo (legacy) → returns tone-as-if-notes (savedAt = null)
- *   • Both with DIFFERENT content   → concatenates with `\n\n` (silent — no marker)
- *   • Both with IDENTICAL content   → dedupes — single copy returned
  *
- * Never writes. Never deletes. The legacy store stays untouched.
+ *   • Authoritative flag SET for the date → return reflectionStorage
+ *     ONLY. Legacy tone is not consulted. The user's saved value is
+ *     canonical from the first save onward.
+ *
+ *   • Authoritative flag NOT SET (first interaction with this date):
+ *     - Neither store has content     → returns null
+ *     - Only reflectionStorage        → returns it verbatim (with savedAt)
+ *     - Only handoffToneRepo (legacy) → returns tone-as-if-notes (savedAt = null)
+ *     - Both with DIFFERENT content   → concatenates with `\n\n` (silent — no marker)
+ *     - Both with IDENTICAL content   → dedupes — single copy returned
+ *
+ * Never writes to either notes store. Never deletes. The legacy store
+ * stays permanently untouched.
  */
 export async function getConsolidatedNotes(date: string): Promise<ConsolidatedNotes | null> {
   try {
+    const authoritative = await isReflectionAuthoritative(date);
+
+    if (authoritative) {
+      // Flag SET — reflectionStorage owns this date. Skip the tone
+      // store entirely. This is the after-save path: the user has
+      // already merged + saved, and any subsequent reload must read
+      // ONLY what they saved (else we'd re-append the legacy tone
+      // every load and double their text).
+      const reflection = await getReflection(date);
+      const text = (reflection?.text ?? '').trim();
+      if (!text) return null;
+      return { text, savedAt: reflection?.savedAt ?? null };
+    }
+
+    // Flag NOT SET — first interaction with this date. Run the
+    // original 4-state merge to surface any legacy tone alongside
+    // notes.
     const [reflection, legacyTone] = await Promise.all([
       getReflection(date),
       getHandoffTone(date),
@@ -109,7 +185,16 @@ export async function saveConsolidatedNotes(
     // prompt separately; pass an empty string to satisfy the
     // signature without polluting storage with copy that doesn't
     // belong there.
-    return await saveReflection(date, text, '');
+    const saved = await saveReflection(date, text, '');
+    // Mark the date authoritative — from this save onward, the legacy
+    // tone store is no longer consulted by getConsolidatedNotes for
+    // this date. Unconditional: set the flag even when no tone was
+    // present (defensive against a tone appearing later via some
+    // future migration). The flag write is non-fatal — a failure here
+    // means the next load may re-merge, which is recoverable; it does
+    // NOT cause data loss.
+    await markReflectionAuthoritative(date);
+    return saved;
   } catch (err) {
     logError('consolidatedNotes.saveConsolidatedNotes', err);
     return null;
