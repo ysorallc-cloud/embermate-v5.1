@@ -142,28 +142,39 @@ describe('Phase 27.X — past-day SOAP layout', () => {
     expect(eyebrowConditional).toBeTruthy();
   });
 
-  it('contract 6: Section 4 as a whole is gated so past days with no notes do NOT render hollow chrome (D3.1)', () => {
-    // The Section 4 SoapSectionFrame must be wrapped in a condition that,
-    // when isViewingPast, also requires saved reflection text. Today
-    // always renders (Section 4's NOTES sub-block is the always-on
-    // surface). Acceptable shapes:
-    //   (!isViewingPast || (reflection?.text?.trim().length ?? 0) > 0) && <SoapSectionFrame
-    //   !isViewingPast || hasNotes — etc.
+  it('contract 6 (Phase 31 F2 reframe): Section 4 ALWAYS renders on past days — D3.1 hollow-chrome avoidance retired so legacy/migrated notes never become unreachable', () => {
+    // ORIGINAL D3.1 LOCK (Phase 27.X): past days with no saved
+    // reflection skipped Section 4 entirely to avoid hollow chrome.
+    // That meant the Section 4 SoapSectionFrame was wrapped in a
+    // `(!isViewingPast || hasNotes) && (...)` gate.
     //
-    // Pin: locate the Section 4 opener and check the 300 chars before
-    // it for a gating expression referencing isViewingPast AND a
-    // reflection / notes / hasNotes identifier.
+    // PHASE 31 F2 REFRAME (2026-05-21): the consolidated notes path
+    // merges legacy handoffTone into the displayed value. The user
+    // MUST be able to see migrated/legacy content on the day it
+    // belongs to — hiding Section 4 when empty means migrated content
+    // is data-preserved-but-unreachable on past days, and the
+    // caregiver perceives it as notes loss. Phase 31's visibility
+    // priority overrides D3.1's hollow-chrome avoidance. JournalNotesCard's
+    // readOnly placeholder ("Notes from this day") covers the truly-
+    // empty case without needing additional empty-state copy at this
+    // layer.
+    //
+    // Post-reframe pin: the Section 4 SoapSectionFrame is NOT wrapped
+    // in the `!isViewingPast || hasNotes` gate. The 200 chars before
+    // its open tag do NOT contain a gating expression that conditions
+    // its render on isViewingPast.
     const section4 = findSectionBlockByEyebrow('For the next caregiver')
       || findSectionBlockByEyebrow('Notes from that day');
     expect(section4).toBeTruthy();
     const before = STRIPPED.slice(
-      Math.max(0, section4!.start - 300),
+      Math.max(0, section4!.start - 200),
       section4!.start,
     );
-    // Both isViewingPast and a notes-presence identifier present in
-    // the gate scope.
-    expect(before).toMatch(/isViewingPast|isViewingToday/);
-    expect(before).toMatch(/reflection|hasNotes|notesExist/);
+    // The retired D3.1 gate pattern must be absent. Specifically:
+    // no `(!isViewingPast || hasNotes) && ` or equivalent immediately
+    // before the opener.
+    expect(before).not.toMatch(/\(!isViewingPast\s*\|\|\s*hasNotes\)\s*&&\s*$/);
+    expect(before).not.toMatch(/!isViewingPast\s*\|\|\s*hasNotes\s*\)?\s*&&\s*\(?\s*$/);
   });
 
   it('contract 7: JournalNotesCard receives readOnly={isViewingPast} (preserved across 27.X)', () => {

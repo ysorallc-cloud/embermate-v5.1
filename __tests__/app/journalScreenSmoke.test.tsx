@@ -70,6 +70,16 @@ jest.mock('@react-navigation/native', () => {
   };
 });
 
+// Phase 31 F2 — journal.tsx imports useBottomTabBarHeight to clear the
+// absolute-positioned tab bar from the sticky Share CTA. The smoke test's
+// transformIgnorePatterns don't cover @react-navigation/bottom-tabs (ESM),
+// so mock the hook to return a stable number. The render path doesn't
+// actually consume the tab bar visually in tests; any number satisfies
+// the call site.
+jest.mock('@react-navigation/bottom-tabs', () => ({
+  useBottomTabBarHeight: () => 80,
+}));
+
 jest.mock('../../contexts/ThemeContext', () => ({
   useTheme: () => ({
     colors: new Proxy({}, { get: () => '#000' }),

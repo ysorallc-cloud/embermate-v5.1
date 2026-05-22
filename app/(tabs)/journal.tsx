@@ -20,6 +20,7 @@ import {
   TextInput,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Colors, BorderRadius, Spacing, Fonts } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
@@ -93,7 +94,18 @@ import {
   daysUntilAppointment,
 } from '../../utils/appointmentLookahead';
 import { useDayEvents } from '../../hooks/useDayEvents';
-import { getReflection, saveReflection, StoredReflection } from '../../storage/reflectionStorage';
+// Phase 31 F2 (2026-05-21) — Section 4 notes path routes through the
+// consolidated utility. getConsolidatedNotes merges reflectionStorage
+// + legacy handoffToneRepo on first load (per the brief's mid-day-
+// legacy both-stores case); after first save, the authoritative flag
+// flips and the legacy store is no longer consulted for that date.
+// saveConsolidatedNotes writes to reflectionStorage only — the legacy
+// tone store is never written to and never deleted (R5 hard lock).
+// The pre-F2 direct getReflection/saveReflection imports retire from
+// this file in F2; the StoredReflection type still surfaces because
+// saveConsolidatedNotes returns it.
+import { getConsolidatedNotes, saveConsolidatedNotes, type ConsolidatedNotes } from '../../utils/consolidatedNotes';
+import type { StoredReflection } from '../../storage/reflectionStorage';
 import { getHandoffTone } from '../../storage/handoffToneRepo';
 import { buildShapeOfDay } from '../../utils/buildShapeOfDay';
 import { getDailyOutcomes } from '../../utils/dailyOutcomes';
@@ -110,6 +122,15 @@ export default function JournalTab() {
   const { activePatient } = usePatient();
   const patientNameRaw = useActivePatientNameRaw();
   const insets = useSafeAreaInsets();
+  // Phase 31 F2 fix — the sticky Share CTA + scroll padding need to
+  // clear the absolute-positioned bottom tab bar (height: 80 in
+  // app/(tabs)/_layout.tsx). Pre-fix used `bottom: 14 +
+  // marginBottom: insets.bottom`, which sat behind the tab bar and
+  // got clipped. useBottomTabBarHeight returns the actual rendered
+  // height (includes safe-area insets on notched devices), so
+  // adding it to the CTA's bottom offset reliably keeps the CTA
+  // visible above the tab bar across all device sizes.
+  const tabBarHeight = useBottomTabBarHeight();
   const s = useMemo(() => createStyles(colors), [colors]);
   const [brief, setBrief] = useState<CareBrief | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,7 +171,13 @@ export default function JournalTab() {
   // Legacy MonthCalendar mode + calendar-icon toggle were retired in v6.7.
   // The Jump button on DateTabStrip handles non-recent date access now.
   // journalEvents removed — DetailedEventLog no longer rendered
-  const [reflection, setReflection] = useState<StoredReflection | null>(null);
+  // Phase 31 F2 — `reflection` state now holds ConsolidatedNotes shape
+  // (merge of reflectionStorage + legacy handoffToneRepo per the
+  // authoritative-flag rules in utils/consolidatedNotes). Same `.text`
+  // and `.savedAt` field surface that JournalNotesCard + the
+  // hasNotes checks downstream already read, so the type swap is
+  // shape-compatible — no consumer-side changes required.
+  const [reflection, setReflection] = useState<ConsolidatedNotes | null>(null);
   const [reflectionDirty, setReflectionDirty] = useState(false);
   // Phase 27 F6 — ref on JournalNotesCard's internal TextInput so
   // Section 1's empty-state prompt can focus the textarea on tap
@@ -210,9 +237,12 @@ export default function JournalTab() {
   // empty-day branch naturally falls out of the conditional.
   const [addNoteMode, setAddNoteMode] = useState(false);
 
-  // Load reflection when date changes
+  // Load consolidated notes when date changes. Phase 31 F2 — routes
+  // through getConsolidatedNotes so the merge + authoritative-flag
+  // rules govern what Section 4 shows. Direct getReflection import is
+  // retired from this surface.
   useEffect(() => {
-    getReflection(selectedDate).then(setReflection);
+    getConsolidatedNotes(selectedDate).then(setReflection);
   }, [selectedDate]);
 
   // Phase 27 closeout — gestalt refresh on log events. Pre-closeout
@@ -360,9 +390,15 @@ export default function JournalTab() {
   }, [reflectionDirty]);
 
   const handleSaveReflection = useCallback(async (text: string) => {
-    // Notes are now handoff-oriented; no rotated prompt is associated.
-    const saved = await saveReflection(selectedDate, text, '');
-    setReflection(saved);
+    // Phase 31 F2 — routes through saveConsolidatedNotes which (a)
+    // writes to reflectionStorage and (b) sets the per-date
+    // authoritative flag so subsequent loads skip the legacy tone
+    // merge. The returned StoredReflection's { text, savedAt } shape
+    // matches ConsolidatedNotes, so the state update is direct.
+    const saved: StoredReflection | null = await saveConsolidatedNotes(selectedDate, text);
+    if (saved) {
+      setReflection({ text: saved.text, savedAt: saved.savedAt });
+    }
   }, [selectedDate]);
 
   // Format subtitle date
@@ -907,46 +943,57 @@ export default function JournalTab() {
                       no past-tense STILL PENDING formatter — D2 chose
                       to drop the sub-block rather than build a new
                       past-day formatter).
-                  D3.1 — past days with no saved reflection skip Section
-                  4 entirely so no hollow chrome renders. Gate is inline
-                  for legibility: today always renders Section 4; past
-                  renders only when reflection notes exist. */}
-              {(!isViewingPast || hasNotes) && (
-                <SoapSectionFrame
-                  eyebrow={isViewingPast ? 'Notes from that day' : 'For the next caregiver'}
-                  tint="caregiverAccent"
-                >
-                  {!isViewingPast && stillPendingCount > 0 && (
-                    <Text style={s.section4SubEyebrow}>STILL PENDING</Text>
-                  )}
-                  {!isViewingPast && (
-                    <TodayStillPending
-                      dateKey={selectedDate}
-                      bare
-                      onLoaded={setStillPendingCount}
-                    />
-                  )}
-                  {/* Phase 27.5b F5 — inner "NOTES" sub-eyebrow retired.
-                      The TextInput below now carries visible input chrome
-                      (rgba bg + border + radius) and placeholder-as-prompt
-                      copy, so the writing affordance is discoverable on its
-                      own without a separate label. STILL PENDING sub-eyebrow
-                      above stays — it labels the distinct list (TodayStill
-                      Pending) above the notes block. */}
-                  <JournalNotesCard
-                    inputRef={notesInputRef}
+
+                  Phase 31 F2 (2026-05-21) — D3.1 "skip past Section 4
+                  when no saved reflection" RETIRED. Rationale: the
+                  consolidated notes path merges legacy handoffTone into
+                  the displayed value, and the user must be able to SEE
+                  any migrated/legacy content on the day it belongs to.
+                  Hiding Section 4 when empty means migrated content is
+                  data-preserved-but-unreachable on past days — the
+                  caregiver perceives notes loss. Phase 31's
+                  visibility-over-hollow-chrome priority wins.
+
+                  Empty-state copy: JournalNotesCard's readOnly
+                  placeholder ("Notes from this day") handles the truly-
+                  empty past-day case without needing additional empty-
+                  state copy at this layer. Always rendering the
+                  SoapSectionFrame on past days surfaces ANY content
+                  that exists in either store. */}
+              <SoapSectionFrame
+                eyebrow={isViewingPast ? 'Notes from that day' : 'For the next caregiver'}
+                tint="caregiverAccent"
+              >
+                {!isViewingPast && stillPendingCount > 0 && (
+                  <Text style={s.section4SubEyebrow}>STILL PENDING</Text>
+                )}
+                {!isViewingPast && (
+                  <TodayStillPending
+                    dateKey={selectedDate}
                     bare
-                    date={selectedDate}
-                    savedText={reflection?.text}
-                    savedAt={reflection?.savedAt}
-                    onSave={handleSaveReflection}
-                    onDirtyChange={setReflectionDirty}
-                    readOnly={isViewingPast}
-                    caregiverName={caregiverName}
-                    providerName={upcomingProviderName}
+                    onLoaded={setStillPendingCount}
                   />
-                </SoapSectionFrame>
-              )}
+                )}
+                {/* Phase 27.5b F5 — inner "NOTES" sub-eyebrow retired.
+                    The TextInput below now carries visible input chrome
+                    (rgba bg + border + radius) and placeholder-as-prompt
+                    copy, so the writing affordance is discoverable on its
+                    own without a separate label. STILL PENDING sub-eyebrow
+                    above stays — it labels the distinct list (TodayStill
+                    Pending) above the notes block. */}
+                <JournalNotesCard
+                  inputRef={notesInputRef}
+                  bare
+                  date={selectedDate}
+                  savedText={reflection?.text}
+                  savedAt={reflection?.savedAt}
+                  onSave={handleSaveReflection}
+                  onDirtyChange={setReflectionDirty}
+                  readOnly={isViewingPast}
+                  caregiverName={caregiverName}
+                  providerName={upcomingProviderName}
+                />
+              </SoapSectionFrame>
               </>
             );
           })()}
@@ -1022,7 +1069,7 @@ export default function JournalTab() {
         return (
           <TouchableOpacity
             testID="journal-share-cta"
-            style={[s.shareCta, { marginBottom: insets.bottom }]}
+            style={[s.shareCta, { bottom: tabBarHeight + 14 }]}
             onPress={() => setHandoffSheetVisible(true)}
             activeOpacity={0.85}
             accessibilityRole="button"

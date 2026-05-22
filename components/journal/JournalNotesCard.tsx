@@ -168,13 +168,17 @@ export function JournalNotesCard({
   const promptText = trimmedProvider.length > 0
     ? `Anything to pass to the next caregiver, or to flag for ${trimmedProvider}?`
     : 'Anything to pass to the next caregiver, or to flag for the next visit?';
-  // Phase 27.5b F5 — bare-mode placeholder. Observational statement
-  // (no question mark) threaded with the provider name when known.
-  // Trailing ellipsis suggests "fill this in." Sans-serif at the
-  // dim alpha defined in the F5 spec.
-  const barePlaceholder = trimmedProvider.length > 0
-    ? `A note for the next caregiver or ${trimmedProvider}…`
-    : 'A note for the next caregiver or the next visit…';
+  // Phase 31 F2 (2026-05-21) — bare-mode placeholder is the single
+  // consolidated Notes prompt per the Q-31 lock: "Anything to pass to
+  // the next caregiver, or to flag at the next appointment?" One
+  // prompt, in the field, vanishes on type (Q-31 Q4 lock — no
+  // persistent prompt above the input; the Phase 27 SOAP redesign
+  // reduces chrome). The provider-name interpolation from Phase 27.5b
+  // retires — "appointment" is generic enough to read sensibly with
+  // or without a known upcoming visit, which aligns with the Section
+  // 4 lavender lane's caregiver-to-clinician handoff voice.
+  const barePlaceholder =
+    'Anything to pass to the next caregiver, or to flag at the next appointment?';
 
   // Phase 27 F6 / 27.5b F5 — bare mode for Section 4 (Plan) nesting.
   // Section 4 owns the lavender card chrome. In bare mode this
@@ -193,6 +197,43 @@ export function JournalNotesCard({
   // for typed content. The two voices distinguish "this is the
   // invitation copy" from "this is what you wrote."
   if (bare) {
+    // Phase 31 F2 fix — past-day (readOnly) branch renders as static
+    // prose, not as a styled-but-dead TextInput. Pre-fix the input
+    // chrome (border + bg + padding) made past-day Section 4 look
+    // editable while ignoring keystrokes — the user perceived it as
+    // a dead input box. Fix: in readOnly mode, render saved content
+    // as a plain <Text> with the typed-content typography (serif
+    // italic), and render quiet textTertiary copy "No notes from
+    // this day." when nothing is stored. The TextInput chrome
+    // appears only when the input is actually writable (today path).
+    if (readOnly) {
+      const trimmed = (savedText ?? '').trim();
+      return (
+        <View>
+          <View testID="notes-body" style={styles.bareBody}>
+            {trimmed.length > 0 ? (
+              <Text
+                style={styles.bareReadOnlyText}
+                accessibilityRole="text"
+                accessibilityLabel="Notes from this day (read-only)"
+              >
+                {trimmed}
+              </Text>
+            ) : (
+              <Text
+                style={styles.bareReadOnlyEmpty}
+                accessibilityRole="text"
+                accessibilityLabel="No notes from this day"
+              >
+                No notes from this day.
+              </Text>
+            )}
+          </View>
+          {/* Past-day branch — privacy footer + Save pill don't render
+              (they belong to the writable today path). */}
+        </View>
+      );
+    }
     return (
       <View>
         <View testID="notes-body" style={styles.bareBody}>
@@ -201,16 +242,12 @@ export function JournalNotesCard({
             style={styles.bareInput}
             value={text}
             onChangeText={setText}
-            placeholder={readOnly ? 'Notes from this day' : barePlaceholder}
-            placeholderTextColor={readOnly ? colors.textTertiary : 'rgba(255,255,255,0.35)'}
+            placeholder={barePlaceholder}
+            placeholderTextColor={'rgba(255,255,255,0.35)'}
             multiline
             textAlignVertical="top"
-            editable={!readOnly}
-            accessibilityLabel={
-              readOnly
-                ? 'Notes from this day (read-only)'
-                : "Today's notes — type anything to pass along to the next caregiver"
-            }
+            editable
+            accessibilityLabel={"Today's notes — type anything to pass along to the next caregiver"}
           />
         </View>
         <Text
@@ -423,6 +460,31 @@ const createStyles = (c: any) =>
       fontSize: 11,
       lineHeight: 17,
       color: c.textPrimary,
+    },
+    // Phase 31 F2 fix — past-day read-only render. No input chrome
+    // (no border, bg, or padding box) — the past day's saved notes
+    // are static prose, not an editable surface. Typography matches
+    // the writable bareInput's typed-content register so reading a
+    // past note feels like reading the same content the user would
+    // type today.
+    bareReadOnlyText: {
+      fontFamily: Fonts.serifItalic,
+      fontStyle: 'italic',
+      fontSize: 11,
+      lineHeight: 17,
+      color: c.textPrimary,
+      paddingVertical: 4,
+    },
+    // Empty past-day state — quiet textTertiary so the absence reads
+    // as "I checked and there's nothing here" rather than as missing
+    // chrome or a broken surface.
+    bareReadOnlyEmpty: {
+      fontFamily: Fonts.serifItalic,
+      fontStyle: 'italic',
+      fontSize: 11,
+      lineHeight: 17,
+      color: c.textTertiary,
+      paddingVertical: 4,
     },
     // v6.7 Phase 3 — visible serif italic prompt, replaces the rotating
     // placeholder text. Sits above the textarea so the prompt stays read

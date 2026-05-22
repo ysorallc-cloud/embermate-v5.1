@@ -149,12 +149,22 @@ const baseProps = {
 };
 
 describe('Phase 27.5b F5 — JournalNotesCard notes cleanup', () => {
-  it('contract 1: non-readOnly placeholder is the statement, not empty string and not "…"', () => {
+  it('contract 1: non-readOnly placeholder is the Q-31 prompt copy (Phase 31 F2 — reframed from the pre-F2 "A note for the next caregiver" interpolated copy)', () => {
+    // Phase 27.5b F5 originally pinned the bare-mode placeholder as
+    // a provider-interpolated observational statement ("A note for
+    // the next caregiver or ${provider}…"). Phase 31 F2 (2026-05-21)
+    // collapsed Notes + handoff tone into one consolidated input
+    // and locked the prompt to a single Q-31 string with no
+    // interpolation — "Anything to pass to the next caregiver, or
+    // to flag at the next appointment?" The structural intent of
+    // contract 1 is preserved (placeholder is a meaningful statement,
+    // not empty / not ellipsis-only); the literal pin updates to the
+    // Q-31 lock.
     const tree = render({ ...baseProps, bare: true });
     const ti = tree.root.findByType('TextInput' as any);
-    // The placeholder copy threads the provider name when available;
-    // accept either the providered or generic shape.
-    expect(ti.props.placeholder).toMatch(/A note for the next caregiver/);
+    expect(ti.props.placeholder).toBe(
+      'Anything to pass to the next caregiver, or to flag at the next appointment?',
+    );
     expect(ti.props.placeholder).not.toBe('');
     expect(ti.props.placeholder).not.toMatch(/^…$/);
   });
@@ -173,10 +183,43 @@ describe('Phase 27.5b F5 — JournalNotesCard notes cleanup', () => {
     expect(allText).not.toMatch(/Anything to pass to the next caregiver, or to flag for/);
   });
 
-  it('contract 3: readOnly placeholder remains "Notes from this day" (no copy drift)', () => {
-    const tree = render({ ...baseProps, bare: true, readOnly: true });
-    const ti = tree.root.findByType('TextInput' as any);
-    expect(ti.props.placeholder).toBe('Notes from this day');
+  it('contract 3 (Phase 31 F2 fix): readOnly bare mode renders STATIC PROSE, not a styled-but-dead TextInput', () => {
+    // Pre-F2 the readOnly bare branch rendered a TextInput with
+    // placeholder "Notes from this day" and editable={false}. On
+    // device, the input chrome (border + bg + padding) made the
+    // surface LOOK editable while ignoring keystrokes — past-day
+    // notes appeared as a dead input box. Phase 31 F2 fix
+    // (2026-05-21) replaces the readOnly TextInput with a plain
+    // <Text> displaying the saved content (or quiet textTertiary
+    // empty-state copy when no notes for the day).
+    //
+    // Pin 1: no TextInput renders in readOnly bare mode.
+    // Pin 2: when savedText is present, a <Text> node carries it.
+    // Pin 3: when no saved text, a <Text> node carries the
+    //        empty-state copy "No notes from this day."
+    const treeWithNotes = render({
+      ...baseProps,
+      bare: true,
+      readOnly: true,
+      savedText: 'Past note content here.',
+    });
+    expect(() => treeWithNotes.root.findByType('TextInput' as any)).toThrow();
+    const textNodes = findAll(treeWithNotes.root, (n) => n.type === 'Text')
+      .map(flattenText)
+      .join(' | ');
+    expect(textNodes).toContain('Past note content here.');
+
+    const treeEmpty = render({
+      ...baseProps,
+      bare: true,
+      readOnly: true,
+      savedText: undefined,
+    });
+    expect(() => treeEmpty.root.findByType('TextInput' as any)).toThrow();
+    const emptyText = findAll(treeEmpty.root, (n) => n.type === 'Text')
+      .map(flattenText)
+      .join(' | ');
+    expect(emptyText).toContain('No notes from this day.');
   });
 
   it('contract 4: TextInput container styling carries the new chrome', () => {
