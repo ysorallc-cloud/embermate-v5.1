@@ -44,6 +44,7 @@ import { AddItemSheet } from '../../components/careplan/AddItemSheet';
 import { ActivityDrawer } from '../../components/careplan/drawers/ActivityDrawer';
 import { WaterDrawer } from '../../components/careplan/drawers/WaterDrawer';
 import { SleepDrawer } from '../../components/careplan/drawers/SleepDrawer';
+import { MealsDrawer } from '../../components/careplan/drawers/MealsDrawer';
 
 // Phase 32A F2 — three-section management layout. Each section's bucket
 // allocation is hardcoded here per the brief's locked allocation rather
@@ -499,12 +500,15 @@ export default function CarePlanHomeScreen() {
                   onToggle={(val) => handleToggleBucket(bucket, val)}
                   onPress={() => handleConfigureBucket(bucket)}
                 />
-                {isEnabled && isExpanded && (
+                {isEnabled && isExpanded && config && (
                   <View testID={`drawer-${bucket}`} style={styles.drawerScaffold}>
-                    {/* F6+ fills this drawer with per-bucket internals.
-                        At STOP 2 the scaffold is intentionally empty so
-                        the simulator gate sees the page structure and
-                        accordion behavior without any drawer content. */}
+                    {bucket === 'meals' && (
+                      <MealsDrawer
+                        config={config.meals}
+                        onUpdate={(updates) => updateBucket('meals', updates)}
+                      />
+                    )}
+                    {/* F6 Vitals + F7 Wellness fill below. */}
                   </View>
                 )}
               </React.Fragment>
