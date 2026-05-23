@@ -10,13 +10,18 @@ import { logError } from './devLog';
 
 const INTEGRITY_CHECKED_KEY = '@embermate_integrity_checked';
 
-// Common jailbreak indicator paths (iOS)
+// iOS jailbreak indicator paths — jailbreak-EXCLUSIVE fingerprints only.
+// Host-overlapping Unix paths (/bin/bash, /usr/sbin/sshd, /etc/apt) were
+// intentionally removed: they exist on the macOS host that the iOS
+// simulator inherits from, so they false-positive on every local dev
+// build. The three kept here cover the classic jailbreak surface — Cydia
+// (the package manager), MobileSubstrate (the tweak runtime), and
+// Cydia's apt store directory. Removing any of these three would gut
+// the check; adding host-overlapping paths back would re-introduce the
+// false-positive class.
 const JAILBREAK_PATHS = [
   '/Applications/Cydia.app',
   '/Library/MobileSubstrate/MobileSubstrate.dylib',
-  '/bin/bash',
-  '/usr/sbin/sshd',
-  '/etc/apt',
   '/private/var/lib/apt/',
 ];
 
@@ -38,6 +43,15 @@ const ROOT_PATHS = [
  */
 export async function checkDeviceIntegrity(): Promise<boolean> {
   try {
+    // Dev builds stand down entirely — the bundle + simulator filesystem
+    // legitimately look "modified" to filesystem-based probes (host
+    // macOS paths overlap with simulator paths), producing false-
+    // positives on every `npx expo run:ios`. The probe is a user-facing
+    // warning, not a security gate, so suppressing it in dev costs
+    // nothing. Production builds (EAS, App Store, TestFlight, local
+    // Release) keep running it — `__DEV__` is false there.
+    if (__DEV__) return false;
+
     const paths = Platform.OS === 'ios' ? JAILBREAK_PATHS : ROOT_PATHS;
 
     for (const path of paths) {
@@ -64,6 +78,13 @@ export async function checkDeviceIntegrity(): Promise<boolean> {
  */
 export async function shouldShowIntegrityWarning(): Promise<boolean> {
   try {
+    // Same dev-suppression as checkDeviceIntegrity, guarded HERE too so
+    // we never write 'clean' to the AsyncStorage cache from a dev run.
+    // Otherwise a later production build on the same bundle ID would
+    // short-circuit on the dev-written cached verdict and skip the probe
+    // entirely — a real correctness bug, not just cosmetic.
+    if (__DEV__) return false;
+
     const alreadyChecked = await safeGetItem<string | null>(INTEGRITY_CHECKED_KEY, null);
     if (alreadyChecked !== null) {
       return alreadyChecked === 'compromised';
