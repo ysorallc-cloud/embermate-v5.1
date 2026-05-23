@@ -160,6 +160,43 @@ describe('Phase 32A F2 — Care Plan main 3-section restructure', () => {
   });
 
   // --------------------------------------------------------------------------
+  // F4 — Medications inline-expanded list. Renders ALWAYS expanded
+  // (no toggle, no drawer chrome). Compact rows for each med (name +
+  // dosage + time slot); "+ Add medication" affordance at bottom;
+  // empty state when no meds. Per-med edit + add affordances route to
+  // the canonical /medication-form deep links (the brief's
+  // "or whatever the existing path is" defers to actual code — and the
+  // meds subscreen itself routes to /medication-form for both flows).
+  // --------------------------------------------------------------------------
+
+  describe('contract 6: Medications inline list (F4)', () => {
+    it('source reads config.meds.medications to render the inline list', () => {
+      // Accept either `config.meds.medications`, `medsConfig.medications`,
+      // or destructured `medications` from the meds config.
+      expect(STRIPPED).toMatch(/(config\.meds\.medications|medsConfig\.medications)\b/);
+    });
+
+    it('source contains a meds inline-list test anchor (testID="meds-inline-list")', () => {
+      expect(STRIPPED).toMatch(/testID=["']meds-inline-list["']/);
+    });
+
+    it('per-med edit affordance routes to /medication-form?id=<medId>&source=careplan', () => {
+      // The router call uses the canonical meds-form deep link with the
+      // careplan source param (matches app/care-plan/meds.tsx:466).
+      // Template-literal interpolation form acceptable.
+      expect(STRIPPED).toMatch(/\/medication-form\?id=\$\{[^}]+\}&source=careplan/);
+    });
+
+    it('add-medication affordance routes to /medication-form?source=careplan', () => {
+      expect(STRIPPED).toMatch(/['"`]\/medication-form\?source=careplan['"`]/);
+    });
+
+    it('empty-state copy "No meds added yet" present', () => {
+      expect(STRIPPED).toMatch(/No meds added yet/);
+    });
+  });
+
+  // --------------------------------------------------------------------------
   // Accordion state — single `expandedBucket` tracks one drawer at a time
   // --------------------------------------------------------------------------
 

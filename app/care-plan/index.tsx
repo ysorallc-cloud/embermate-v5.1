@@ -72,6 +72,18 @@ const ADD_WHEN_READY_BUCKETS: BucketType[] = ['water', 'sleep', 'activity', 'app
 // of the named set here.
 const MVP_SUPPRESSED_BUCKETS: readonly BucketType[] = ['errands', 'shifts', 'self_care'] as const;
 
+// Phase 32A F4 — time-of-day label map for the Medications inline list.
+// Matches the labels in TIME_OF_DAY_OPTIONS (types/carePlanConfig.ts:193)
+// — the canonical labels surface in other meds UIs too, so the inline
+// list reads consistent with /medication-form and /care-plan/meds.
+const MEDS_TIME_LABEL: Record<string, string> = {
+  morning: 'Morning',
+  midday: 'Midday',
+  evening: 'Evening',
+  night: 'Night',
+  custom: 'Custom',
+};
+
 // ============================================================================
 // SECTION HEADER ROW
 // ============================================================================
@@ -501,7 +513,61 @@ export default function CarePlanHomeScreen() {
             </TouchableOpacity>
           ))}
 
-          {/* F4 — inline meds list will mount under the meds row above. */}
+          {/* Phase 32A F4 — Medications inline list. The brief says
+              Medications is always expanded with a compact inline list
+              of existing meds; "edit" affordances route to the canonical
+              per-med edit form at /medication-form?id=…&source=careplan
+              (matches app/care-plan/meds.tsx:466 — the brief's
+              "or whatever the existing path is" defers to this entry
+              point). "+ Add medication" routes to the same form without
+              an id. Empty state surfaces a single inline row. */}
+          <View testID="meds-inline-list" style={styles.medsInlineList}>
+            {(config?.meds?.medications ?? []).filter(m => m.active).length === 0 ? (
+              <TouchableOpacity
+                style={styles.medsInlineAddRow}
+                onPress={() => navigate('/medication-form?source=careplan')}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="No meds added yet. Add medication."
+              >
+                <Text style={styles.medsInlineEmptyText}>No meds added yet</Text>
+                <Text style={styles.medsInlineAddCta}>{'+ Add medication'}</Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                {(config?.meds?.medications ?? []).filter(m => m.active).map((med) => {
+                  const tods = (med.timesOfDay ?? []).map(t => MEDS_TIME_LABEL[t] ?? t).join(' · ');
+                  return (
+                    <TouchableOpacity
+                      key={med.id}
+                      style={styles.medsInlineRow}
+                      onPress={() => navigate(`/medication-form?id=${med.id}&source=careplan`)}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Edit ${med.name}, ${med.dosage}${tods ? `, ${tods}` : ''}`}
+                    >
+                      <View style={styles.medsInlineRowInfo}>
+                        <Text style={styles.medsInlineRowName}>{med.name}</Text>
+                        <Text style={styles.medsInlineRowDetail}>
+                          {med.dosage}{tods ? ` · ${tods}` : ''}
+                        </Text>
+                      </View>
+                      <Text style={styles.categoryChevron}>{'›'}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+                <TouchableOpacity
+                  style={styles.medsInlineAddRow}
+                  onPress={() => navigate('/medication-form?source=careplan')}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add medication"
+                >
+                  <Text style={styles.medsInlineAddCta}>{'+ Add medication'}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
 
           <SectionEyebrow text="Daily tracking" />
           {DAILY_TRACKING_BUCKETS.map(bucket => {
@@ -645,6 +711,61 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // pre-32A `coreSectionHeader` / `alwaysOnBadge` / `alwaysOnBadgeText`
   // styles + `sectionHeaderRow` / `sectionHeaderTitle` / `sectionHeaderAction`
   // styles had no callers after the restructure and were dropped.
+
+  // Phase 32A F4 — Medications inline list (compact rows + add affordance).
+  medsInlineList: {
+    marginTop: -2,
+    marginBottom: 8,
+    marginHorizontal: 4,
+    paddingHorizontal: 14,
+  },
+  medsInlineRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: c.glassFaint,
+    borderRadius: 8,
+    marginBottom: 4,
+    gap: 12,
+  },
+  medsInlineRowInfo: {
+    flex: 1,
+  },
+  medsInlineRowName: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: c.textPrimary,
+  },
+  medsInlineRowDetail: {
+    marginTop: 2,
+    fontSize: 12,
+    color: c.textSecondary,
+  },
+  medsInlineAddRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderStyle: 'dashed' as const,
+    borderColor: c.glassBorder,
+    borderRadius: 8,
+    marginTop: 2,
+    gap: 12,
+  },
+  medsInlineAddCta: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: c.accent,
+  },
+  medsInlineEmptyText: {
+    fontSize: 13,
+    color: c.textSecondary,
+    flex: 1,
+  },
 
   // Phase 32A F2 — empty drawer scaffold. Renders below an enabled +
   // expanded toggle row. Slice B (F6–F12) fills this with per-bucket
