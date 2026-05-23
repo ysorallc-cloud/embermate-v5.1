@@ -25,62 +25,42 @@ import {
   BucketConfig,
   BUCKET_META,
   BUCKET_TYPES,
-  CORE_BUCKETS,
-  PRIMARY_BUCKETS,
-  SECONDARY_BUCKETS,
-  OPTIONAL_BUCKETS,
 } from '../../types/carePlanConfig';
 import { InfoModal, InfoIconButton } from '../../components/common/InfoModal';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
+import { SectionEyebrow } from '../../components/SectionEyebrow';
 import { usePatient } from '../../contexts/PatientContext';
 import { CARE_PLAN_TEMPLATES, CarePlanTemplate, TemplateMedSuggestion } from '../../constants/carePlanTemplates';
 import { TemplateMedSeedingModal } from '../../components/careplan/TemplateMedSeedingModal';
 import { AddItemSheet } from '../../components/careplan/AddItemSheet';
 
-// CORE_BUCKETS imported from carePlanConfig canon (2026-05-21
-// canonicalization — see carePlanGroupingCoherence.test.ts trace).
-// Pre-canonicalization this file declared its own local
-// `CORE_BUCKETS: BucketType[] = ['meds', 'vitals', 'wellness', 'meals']`
-// which disagreed with the wizard's local 2-bucket version. Membership
-// settled on {meds, vitals} per the device-visible UX bug (meals +
-// wellness were buried as always-on cards while activity, enabled the
-// same way in the wizard, was a toggle). Aligning here matches Phase
-// 32A's planned Care Plan grouping.
+// Phase 32A F2 — three-section management layout. Each section's bucket
+// allocation is hardcoded here per the brief's locked allocation rather
+// than derived from PRIMARY/SECONDARY/OPTIONAL — the partition sets in
+// types/carePlanConfig.ts encode pre-32A SECTION semantics (e.g.
+// SECONDARY = "hidden behind More") that no longer apply to the inline-
+// expand layout. The section lists below are the new canonical source
+// for "what shows on Care Plan main, where."
 //
-// Optional buckets — all non-core, shown with toggle. The derivation is
-// unchanged; only the input set shrank from 4 buckets to 2, so this
-// list grew from 7 to 9 entries (meals + wellness moved in).
-const OPTIONAL_TOGGLE_BUCKETS: BucketType[] = BUCKET_TYPES.filter(
-  b => !CORE_BUCKETS.includes(b)
-);
+// MVP suppression (F3 spec) is expressed STRUCTURALLY: errands, shifts,
+// and self_care are absent from every section list. They remain in
+// BUCKET_TYPES + the OPTIONAL_BUCKETS partition (data-model preserved
+// per the brief's render-filter-not-data-deletion lock); they just
+// don't appear in any UI section. F1's storage-layer migration forces
+// enabled=false on these three for any pre-32A device that had them
+// toggled on, so the absence here can't strand existing user state.
+const ALWAYS_ON_BUCKETS: BucketType[] = ['meds'];
+const DAILY_TRACKING_BUCKETS: BucketType[] = ['vitals', 'wellness', 'meals'];
+const ADD_WHEN_READY_BUCKETS: BucketType[] = ['water', 'sleep', 'activity', 'appointments'];
 
 // ============================================================================
 // SECTION HEADER ROW
 // ============================================================================
 
-function SectionHeaderRow({ title, action, onAction }: {
-  title: string;
-  action?: string;
-  onAction?: () => void;
-}) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  return (
-    <View style={styles.sectionHeaderRow}>
-      <Text style={styles.sectionHeaderTitle}>{title}</Text>
-      {action && onAction && (
-        <TouchableOpacity
-          onPress={onAction}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel={action}
-        >
-          <Text style={styles.sectionHeaderAction}>{action} {'\u2192'}</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
+// Phase 32A F2 \u2014 SectionHeaderRow retired. Section headers on Care Plan
+// main now render through the SectionEyebrow primitive (brand-canon
+// uppercase + letterSpacing 1.5). Old SectionHeaderRow + its action /
+// onAction affordance had no callers after the restructure.
 
 // ============================================================================
 // CATEGORY ROW — replaces BucketCard
@@ -226,10 +206,13 @@ export default function CarePlanHomeScreen() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [addItemWindow, setAddItemWindow] = useState<string | null>(null);
   const [medSeedingTemplate, setMedSeedingTemplate] = useState<{ name: string; suggestions: TemplateMedSuggestion[] } | null>(null);
+  // Phase 32A F2 — accordion state. ONE bucket's drawer is open at a
+  // time (per the brief's locked decision); null means no drawer open.
+  // Single-bucket type (BucketType | null, NOT an array or Set) is the
+  // accordion invariant — pinned by the test contract.
+  const [expandedBucket, setExpandedBucket] = useState<BucketType | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // All buckets in a single list
-  const allBuckets: BucketType[] = [...PRIMARY_BUCKETS, ...SECONDARY_BUCKETS, ...OPTIONAL_BUCKETS];
   const enabledBucketSet = new Set(enabledBuckets);
 
   // Ensure config exists on first load
@@ -239,25 +222,36 @@ export default function CarePlanHomeScreen() {
     }
   }, [loading, config, initializeConfig]);
 
+  // Phase 32A F2 — toggle behavior with accordion drawer.
+  //   • Toggle ON  → write enabled=true, open this bucket's drawer (closes
+  //     whichever drawer was previously open per the one-at-a-time lock).
+  //   • Toggle OFF → write enabled=false; if this drawer was open, close it.
+  // The drawer contents themselves (chips / dropdowns / toggles per
+  // bucket) land in Slice B (F6–F12). For F2 the drawer is an empty
+  // scaffold so the simulator gate can verify the structure.
   const handleToggleBucket = useCallback(async (bucket: BucketType, enabled: boolean) => {
     await toggleBucket(bucket, enabled);
+    if (enabled) {
+      setExpandedBucket(bucket);
+    } else {
+      setExpandedBucket((curr) => (curr === bucket ? null : curr));
+    }
   }, [toggleBucket]);
 
+  // Phase 32A F2 — row tap behavior.
+  //   • Medications row taps still route to /care-plan/meds (the form
+  //     screen stays per brief — adding/editing a med doesn't fit inline).
+  //   • Every other bucket tap, when the bucket is enabled, opens or
+  //     closes its drawer in the accordion (no router navigation).
+  //   • Disabled rows: no-op on tap (the switch is the only way to
+  //     enable them, per the brief's "toggle is the affordance" pattern).
   const handleConfigureBucket = useCallback((bucket: BucketType) => {
-    switch (bucket) {
-      case 'meds': navigate('/care-plan/meds'); break;
-      case 'vitals': navigate('/care-plan/vitals'); break;
-      case 'meals': navigate('/care-plan/meals'); break;
-      case 'water': navigate('/care-plan/water'); break;
-      case 'sleep': navigate('/care-plan/sleep'); break;
-      case 'activity': navigate('/care-plan/activity'); break;
-      case 'wellness': navigate('/care-plan/wellness'); break;
-      case 'appointments': navigate('/appointments'); break;
-      case 'errands': navigate('/care-plan/errands'); break;
-      case 'shifts': navigate('/care-plan/shifts'); break;
-      case 'self_care': navigate('/care-plan/self-care'); break;
-      default: break;
+    if (bucket === 'meds') {
+      navigate('/care-plan/meds');
+      return;
     }
+    // Accordion toggle for the row's drawer.
+    setExpandedBucket((curr) => (curr === bucket ? null : bucket));
   }, []);
 
   const dismissInsight = useCallback((id: string) => {
@@ -461,15 +455,14 @@ export default function CarePlanHomeScreen() {
             />
           )}
 
-          {/* ═══ CORE — Always on ═══ */}
-          <View style={styles.coreSectionHeader}>
-            <Text style={styles.sectionHeaderTitle}>Core</Text>
-            <View style={styles.alwaysOnBadge}>
-              <Text style={styles.alwaysOnBadgeText}>ALWAYS ON</Text>
-            </View>
-          </View>
-
-          {CORE_BUCKETS.map(bucket => (
+          {/* Phase 32A F2 — three-section management layout.
+              ALWAYS ON: meds (no toggle, no drawer; F4 fills the inline meds list).
+              DAILY TRACKING: vitals, wellness, meals (toggleable; drawer internals F6/F7/F8).
+              ADD WHEN READY: water, sleep, activity, appointments (toggleable; drawer internals F9–F12).
+              Errands / Shifts / Self-care intentionally absent from every section
+              (MVP render filter expressed structurally; data types preserved). */}
+          <SectionEyebrow text="Always on" />
+          {ALWAYS_ON_BUCKETS.map(bucket => (
             <TouchableOpacity
               key={bucket}
               style={styles.coreCard}
@@ -489,22 +482,56 @@ export default function CarePlanHomeScreen() {
             </TouchableOpacity>
           ))}
 
-          {/* ═══ ADD WHEN READY — Toggleable ═══ */}
-          <SectionHeaderRow title="Add When Ready" />
+          {/* F4 — inline meds list will mount under the meds row above. */}
 
-          {OPTIONAL_TOGGLE_BUCKETS.map(bucket => {
+          <SectionEyebrow text="Daily tracking" />
+          {DAILY_TRACKING_BUCKETS.map(bucket => {
             const isEnabled = enabledBucketSet.has(bucket);
+            const isExpanded = expandedBucket === bucket;
             return (
-              <CategoryRow
-                key={bucket}
-                bucket={bucket}
-                emoji={BUCKET_META[bucket].emoji}
-                name={BUCKET_META[bucket].name}
-                detail={isEnabled ? getBucketStatus(bucket) : null}
-                enabled={isEnabled}
-                onToggle={(val) => handleToggleBucket(bucket, val)}
-                onPress={() => handleConfigureBucket(bucket)}
-              />
+              <React.Fragment key={bucket}>
+                <CategoryRow
+                  bucket={bucket}
+                  emoji={BUCKET_META[bucket].emoji}
+                  name={BUCKET_META[bucket].name}
+                  detail={isEnabled ? getBucketStatus(bucket) : null}
+                  enabled={isEnabled}
+                  onToggle={(val) => handleToggleBucket(bucket, val)}
+                  onPress={() => handleConfigureBucket(bucket)}
+                />
+                {isEnabled && isExpanded && (
+                  <View testID={`drawer-${bucket}`} style={styles.drawerScaffold}>
+                    {/* F6+ fills this drawer with per-bucket internals.
+                        At STOP 2 the scaffold is intentionally empty so
+                        the simulator gate sees the page structure and
+                        accordion behavior without any drawer content. */}
+                  </View>
+                )}
+              </React.Fragment>
+            );
+          })}
+
+          <SectionEyebrow text="Add when ready" />
+          {ADD_WHEN_READY_BUCKETS.map(bucket => {
+            const isEnabled = enabledBucketSet.has(bucket);
+            const isExpanded = expandedBucket === bucket;
+            return (
+              <React.Fragment key={bucket}>
+                <CategoryRow
+                  bucket={bucket}
+                  emoji={BUCKET_META[bucket].emoji}
+                  name={BUCKET_META[bucket].name}
+                  detail={isEnabled ? getBucketStatus(bucket) : null}
+                  enabled={isEnabled}
+                  onToggle={(val) => handleToggleBucket(bucket, val)}
+                  onPress={() => handleConfigureBucket(bucket)}
+                />
+                {isEnabled && isExpanded && (
+                  <View testID={`drawer-${bucket}`} style={styles.drawerScaffold}>
+                    {/* F6+ fills this drawer with per-bucket internals. */}
+                  </View>
+                )}
+              </React.Fragment>
             );
           })}
 
@@ -594,36 +621,28 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // Section Header Row
-  coreSectionHeader: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 8,
-    paddingTop: 20,
-    paddingBottom: 10,
-    borderTopWidth: 1,
-    borderTopColor: c.hairlineInset,
-    marginTop: 8,
-  },
-  // Phase 2.6.6 — outlined pill, not filled. The CORE section header is
-  // informational (not a CTA), so the ALWAYS ON badge gets the lower-
-  // visual-weight outline treatment. Filled `accentDim` (10% sage) over
-  // the warm-charcoal bg made sage-on-sage text fight for contrast;
-  // transparent + 50% sage outline + full-sage text gives 6.9:1 against
-  // the page (vs ~5.2:1 before) and reads "label" rather than "button."
-  alwaysOnBadge: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: c.accentMuted,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  alwaysOnBadgeText: {
-    fontSize: 9,
-    fontWeight: '700' as const,
-    color: c.accent,
-    letterSpacing: 0.8,
+  // Phase 32A F2 — Section header chrome retired. SectionEyebrow primitive
+  // now owns section eyebrows on Care Plan main, including ALWAYS ON. The
+  // pre-32A `coreSectionHeader` / `alwaysOnBadge` / `alwaysOnBadgeText`
+  // styles + `sectionHeaderRow` / `sectionHeaderTitle` / `sectionHeaderAction`
+  // styles had no callers after the restructure and were dropped.
+
+  // Phase 32A F2 — empty drawer scaffold. Renders below an enabled +
+  // expanded toggle row. Slice B (F6–F12) fills this with per-bucket
+  // chips / dropdowns / toggles. At STOP 2 the scaffold is intentionally
+  // empty so the simulator gate verifies page structure + accordion
+  // behavior without any drawer content.
+  drawerScaffold: {
+    backgroundColor: c.glassFaint,
+    borderLeftWidth: 2,
+    borderLeftColor: c.accentMuted,
+    borderRadius: 8,
+    marginTop: -4,
+    marginBottom: 8,
+    marginHorizontal: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    minHeight: 44,
   },
   coreCard: {
     flexDirection: 'row' as const,
@@ -636,29 +655,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: 6,
     gap: 12,
   },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 20,
-    paddingBottom: 10,
-    borderTopWidth: 1,
-    borderTopColor: c.hairlineInset,
-    marginTop: 8,
-  },
-  sectionHeaderTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: c.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-  },
-  sectionHeaderAction: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: c.accent,
-  },
-
   // Category Row
   categoryRow: {
     flexDirection: 'row',

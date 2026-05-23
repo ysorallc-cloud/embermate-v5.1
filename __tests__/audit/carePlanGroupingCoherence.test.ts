@@ -83,22 +83,26 @@ function importsCoreBuckets(src: string): boolean {
 }
 
 describe('Care plan grouping coherence — wizard vs management screen', () => {
-  it('wizard confirm.tsx and Care Plan management screen consume the canonical CORE_BUCKETS (no local declarations)', () => {
+  it('wizard imports the canonical CORE_BUCKETS; neither surface redeclares it locally (Phase 32A reframe)', () => {
     // Pre-canonicalization (pre-2026-05-21) BOTH files declared their
     // own local `const CORE_BUCKETS = ...` with DIFFERENT contents
-    // (wizard had ['meds', 'vitals']; management had ['meds', 'vitals',
-    // 'wellness', 'meals']). That drift surfaced as a device-visible
-    // bug — see the file header.
+    // (wizard ['meds', 'vitals']; management ['meds', 'vitals',
+    // 'wellness', 'meals']) — see the file header for the device-visible
+    // bug that drift caused.
     //
-    // Post-canonicalization both files import CORE_BUCKETS from
-    // types/carePlanConfig.ts. This pin enforces that shape: any local
-    // re-declaration in either file (e.g., a future contributor "fixing"
-    // a related grouping by copy-pasting) fails this test, so the
-    // disagreement can't silently regress.
+    // Phase 32A reframe: the wizard still groups by CORE_BUCKETS so it
+    // continues to import the canonical export. The management screen
+    // now renders the three-section inline-expand layout (F2) with
+    // section-specific allocations (ALWAYS_ON_BUCKETS /
+    // DAILY_TRACKING_BUCKETS / ADD_WHEN_READY_BUCKETS) that don't map
+    // 1:1 to CORE_BUCKETS — so it no longer consumes CORE_BUCKETS as
+    // an import. The structural drift guard the pre-32A pin defended
+    // (no local CORE_BUCKETS redeclaration in either file) survives:
+    // if a future contributor copy-pastes a local CORE_BUCKETS into
+    // either surface, this test still catches it.
     const wizardLocal = extractLocalCoreBuckets(confirmSrc);
     const managementLocal = extractLocalCoreBuckets(carePlanIndexSrc);
     const wizardImports = importsCoreBuckets(confirmSrc);
-    const managementImports = importsCoreBuckets(carePlanIndexSrc);
 
     const errors: string[] = [];
     if (wizardLocal) {
@@ -110,7 +114,9 @@ describe('Care plan grouping coherence — wizard vs management screen', () => {
     if (managementLocal) {
       errors.push(
         `  app/care-plan/index.tsx declares a LOCAL CORE_BUCKETS = ${JSON.stringify(managementLocal)}.\n` +
-          `    Delete the local declaration and import CORE_BUCKETS from types/carePlanConfig.`,
+          `    Phase 32A retired the management-screen CORE_BUCKETS consumption — section allocation\n` +
+          `    is now per-section (ALWAYS_ON_BUCKETS / DAILY_TRACKING_BUCKETS / ADD_WHEN_READY_BUCKETS).\n` +
+          `    Remove the local CORE_BUCKETS; use the new section consts.`,
       );
     }
     if (!wizardImports) {
@@ -119,20 +125,17 @@ describe('Care plan grouping coherence — wizard vs management screen', () => {
           `    Add CORE_BUCKETS to the import block from '../../../types/carePlanConfig'.`,
       );
     }
-    if (!managementImports) {
-      errors.push(
-        `  app/care-plan/index.tsx does not import CORE_BUCKETS from carePlanConfig.\n` +
-          `    Add CORE_BUCKETS to the import block from '../../types/carePlanConfig'.`,
-      );
-    }
+    // Management screen no longer needs to import CORE_BUCKETS in
+    // Phase 32A — its three section allocation consts live in the file
+    // itself. Don't assert that import here.
 
     if (errors.length > 0) {
       throw new Error(
-        `Care plan grouping desync — the two screens are not consuming the canonical CORE_BUCKETS:\n${errors.join('\n')}\n\n` +
-          `Same per-bucket {enabled} state in storage; the desync sits at the render layer where\n` +
-          `each screen partitions BUCKET_TYPES into UI sections. The fix is to source CORE_BUCKETS\n` +
-          `from a single place (types/carePlanConfig.ts) — same pattern as PRIMARY / SECONDARY /\n` +
-          `OPTIONAL already do.`,
+        `Care plan grouping desync:\n${errors.join('\n')}\n\n` +
+          `Single source of truth for CORE_BUCKETS lives in types/carePlanConfig.ts.\n` +
+          `Wizard consumes it canonically; management screen uses its own per-section\n` +
+          `allocation (Phase 32A F2). Either surface declaring a LOCAL CORE_BUCKETS is\n` +
+          `the drift class that broke us pre-canonicalization.`,
       );
     }
     expect(errors).toEqual([]);
