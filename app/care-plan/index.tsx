@@ -42,6 +42,7 @@ import { AddItemSheet } from '../../components/careplan/AddItemSheet';
 // they own their internal chips/dropdowns/toggles per the brief's per-
 // bucket spec.
 import { ActivityDrawer } from '../../components/careplan/drawers/ActivityDrawer';
+import { WaterDrawer } from '../../components/careplan/drawers/WaterDrawer';
 
 // Phase 32A F2 — three-section management layout. Each section's bucket
 // allocation is hardcoded here per the brief's locked allocation rather
@@ -526,13 +527,19 @@ export default function CarePlanHomeScreen() {
                 />
                 {isEnabled && isExpanded && config && (
                   <View testID={`drawer-${bucket}`} style={styles.drawerScaffold}>
+                    {bucket === 'water' && (
+                      <WaterDrawer
+                        config={config.water}
+                        onUpdate={(updates) => updateBucket('water', updates)}
+                      />
+                    )}
                     {bucket === 'activity' && (
                       <ActivityDrawer
                         config={config.activity}
                         onUpdate={(updates) => updateBucket('activity', updates)}
                       />
                     )}
-                    {/* F9 Water / F10 Sleep / F12 Appointments fill below. */}
+                    {/* F10 Sleep / F12 Appointments fill below. */}
                   </View>
                 )}
               </React.Fragment>
