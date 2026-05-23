@@ -43,6 +43,7 @@ import { AddItemSheet } from '../../components/careplan/AddItemSheet';
 // bucket spec.
 import { ActivityDrawer } from '../../components/careplan/drawers/ActivityDrawer';
 import { WaterDrawer } from '../../components/careplan/drawers/WaterDrawer';
+import { SleepDrawer } from '../../components/careplan/drawers/SleepDrawer';
 
 // Phase 32A F2 — three-section management layout. Each section's bucket
 // allocation is hardcoded here per the brief's locked allocation rather
@@ -533,13 +534,19 @@ export default function CarePlanHomeScreen() {
                         onUpdate={(updates) => updateBucket('water', updates)}
                       />
                     )}
+                    {bucket === 'sleep' && (
+                      <SleepDrawer
+                        config={config.sleep}
+                        onUpdate={(updates) => updateBucket('sleep', updates)}
+                      />
+                    )}
                     {bucket === 'activity' && (
                       <ActivityDrawer
                         config={config.activity}
                         onUpdate={(updates) => updateBucket('activity', updates)}
                       />
                     )}
-                    {/* F10 Sleep / F12 Appointments fill below. */}
+                    {/* F12 Appointments fills below. */}
                   </View>
                 )}
               </React.Fragment>
