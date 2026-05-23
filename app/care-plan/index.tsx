@@ -53,6 +53,25 @@ const ALWAYS_ON_BUCKETS: BucketType[] = ['meds'];
 const DAILY_TRACKING_BUCKETS: BucketType[] = ['vitals', 'wellness', 'meals'];
 const ADD_WHEN_READY_BUCKETS: BucketType[] = ['water', 'sleep', 'activity', 'appointments'];
 
+// Phase 32A F3 — MVP render filter, made explicit.
+//
+// The three buckets below are suppressed from the management UI in v1.0
+// but PRESERVED in types/carePlanConfig.ts (BUCKET_TYPES +
+// OPTIONAL_BUCKETS partition stays). Lock from the brief:
+// render-filter-not-data-deletion. F1's storage migration forces
+// enabled=false on these three for any pre-32A device that had them
+// toggled on, so the absence from section lists above can't strand
+// existing user state.
+//
+// This const is declarative documentation. The runtime suppression is
+// achieved structurally — none of these names appear in the three
+// section lists above. v1.1 may promote any of these to ADD WHEN READY
+// by removing the name from this set AND adding it to that section
+// const. carePlanInlineReframe32A.test.tsx contract 2 + 2b pin both
+// sides of the contract — the absence from sections and the presence
+// of the named set here.
+const MVP_SUPPRESSED_BUCKETS: readonly BucketType[] = ['errands', 'shifts', 'self_care'] as const;
+
 // ============================================================================
 // SECTION HEADER ROW
 // ============================================================================

@@ -109,6 +109,25 @@ describe('Phase 32A F2 — Care Plan main 3-section restructure', () => {
   });
 
   // --------------------------------------------------------------------------
+  // F3 — MVP suppression made explicit via a named const so future
+  // contributors don't have to infer it from the section consts' absence.
+  // --------------------------------------------------------------------------
+
+  describe('contract 2b: MVP_SUPPRESSED_BUCKETS const documents the render filter', () => {
+    it('source declares MVP_SUPPRESSED_BUCKETS containing exactly errands, shifts, self_care', () => {
+      const m = STRIPPED.match(/const\s+MVP_SUPPRESSED_BUCKETS[^=]*=\s*\[([^\]]*)\]/);
+      expect(m).not.toBeNull();
+      const body = m![1];
+      expect(body).toMatch(/['"]errands['"]/);
+      expect(body).toMatch(/['"]shifts['"]/);
+      expect(body).toMatch(/['"]self_care['"]/);
+      // Exactly three — no narrowing or widening without an explicit decision.
+      const matches = body.match(/['"][a-z_]+['"]/g) ?? [];
+      expect(matches.length).toBe(3);
+    });
+  });
+
+  // --------------------------------------------------------------------------
   // Dead-code retirement
   // --------------------------------------------------------------------------
 
