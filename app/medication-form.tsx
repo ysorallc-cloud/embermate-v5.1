@@ -1100,17 +1100,14 @@ export default function MedicationFormScreen() {
           </>
           )}
 
-          <TouchableOpacity
-            style={[styles.bottomSaveButton, saving && { opacity: 0.5 }]}
-            onPress={handleSave}
-            disabled={saving}
-            accessibilityLabel={isEditing ? 'Save medication changes' : 'Save medication'}
-            accessibilityRole="button"
-          >
-            <Text style={styles.bottomSaveButtonText}>
-              {saving ? 'Saving...' : isEditing ? 'Save Changes' : 'Save Medication'}
-            </Text>
-          </TouchableOpacity>
+          {/* 32A-form-fix BUG 2 — unconditional bottomSaveButton retired
+              (introduced db4091d7 2026-02-28; pre-32A). Pre-fix it
+              rendered ALONGSIDE the step-scoped primarySaveButton on
+              both steps, producing a stacked-duplicate "cream text vs
+              dark text" save pair the user surfaced at STOP 2 of Phase
+              32A's dev-build gate. Each step's primarySaveButton
+              (formStep === 1 → line ~784, formStep === 2 → line ~1086)
+              is the correct single save affordance for that step. */}
 
           <View style={{ height: 40 }} />
         </ScrollView>
