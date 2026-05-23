@@ -28,17 +28,78 @@ const KEYS = {
 };
 
 // ============================================================================
+// SCHEMA VERSION + MIGRATION
+// ============================================================================
+
+/**
+ * Current schema version for the persisted Care Plan config. Bumped when
+ * a backwards-incompatible storage-layer change ships; configs read with
+ * a lower (or missing) schemaVersion get normalized through
+ * `migrateCarePlanConfig` and persisted back at the current version.
+ *
+ *   v0 → v1 (Phase 32A F1, 2026-05-22):
+ *     Force errands.enabled / shifts.enabled / self_care.enabled to
+ *     false. The three buckets are MVP-suppressed via render filter
+ *     (F3); pre-32A devices that toggled them on must have the orphan
+ *     state cleaned so the render filter doesn't strand them.
+ */
+export const CARE_PLAN_CONFIG_SCHEMA_VERSION = 1;
+
+/**
+ * Pure normalizer for stored CarePlanConfig values. Returns the input
+ * untouched (with the `migrated` flag false) when the config is already
+ * at the current schema version; otherwise applies the migration steps
+ * and stamps the schema version. Caller is responsible for persisting
+ * the result when `migrated` is true.
+ */
+function migrateCarePlanConfig(
+  config: CarePlanConfig,
+): { config: CarePlanConfig; migrated: boolean } {
+  const currentVersion = config.schemaVersion ?? 0;
+  if (currentVersion >= CARE_PLAN_CONFIG_SCHEMA_VERSION) {
+    return { config, migrated: false };
+  }
+
+  // v0 → v1 — defensive disable of the three MVP-suppressed buckets.
+  // Only the `enabled` field flips; all other sub-fields (timesOfDay,
+  // priority, notificationsEnabled) pass through verbatim so the
+  // migration is non-destructive.
+  const next: CarePlanConfig = {
+    ...config,
+    errands: { ...config.errands, enabled: false },
+    shifts: { ...config.shifts, enabled: false },
+    self_care: { ...config.self_care, enabled: false },
+    schemaVersion: CARE_PLAN_CONFIG_SCHEMA_VERSION,
+  };
+
+  return { config: next, migrated: true };
+}
+
+// ============================================================================
 // CARE PLAN CONFIG OPERATIONS
 // ============================================================================
 
 /**
  * Get the Care Plan configuration for a patient
  * Returns null if no config exists
+ *
+ * Runs the storage-layer migration (see migrateCarePlanConfig) before
+ * returning; if the migration normalized the config, the migrated value
+ * is persisted back so subsequent reads are migration-free.
  */
 export async function getCarePlanConfig(
   patientId: string = DEFAULT_PATIENT_ID
 ): Promise<CarePlanConfig | null> {
-  return safeGetItem<CarePlanConfig | null>(KEYS.CONFIG(patientId), null);
+  const raw = await safeGetItem<CarePlanConfig | null>(KEYS.CONFIG(patientId), null);
+  if (!raw) return null;
+  const { config, migrated } = migrateCarePlanConfig(raw);
+  if (migrated) {
+    // Persist the migrated value directly (NOT through saveCarePlanConfig)
+    // so we don't trigger the write-counter bump or the dataUpdate emit
+    // — this is a storage-layer normalization, not a user-driven write.
+    await safeSetItem(KEYS.CONFIG(patientId), config);
+  }
+  return config;
 }
 
 /**

@@ -397,7 +397,18 @@ export interface CarePlanConfig {
   patientId: string;
   createdAt: string;
   updatedAt: string;
+  /** Write-counter — increments on every saveCarePlanConfig. NOT a
+   *  schema-version field; see schemaVersion below. */
   version: number;
+  /** Phase 32A F1 — schema version for storage-layer migrations.
+   *  Distinct from `version` (which is a write-counter). When this
+   *  is less than CARE_PLAN_CONFIG_SCHEMA_VERSION on read, the
+   *  migrateCarePlanConfig helper in storage/carePlanConfigRepo.ts
+   *  normalizes the config (e.g. forces enabled=false on the three
+   *  MVP-suppressed buckets) and stamps this field to the current
+   *  value. Optional on the type so pre-32A persisted configs
+   *  (which never had this field) deserialize cleanly. */
+  schemaVersion?: number;
 
   // Phase 5.13.2 — id of the CarePlanTemplate the user picked in the
   // setup wizard (e.g. 'elderly'). Optional so legacy configs and the
@@ -462,6 +473,12 @@ export function createDefaultCarePlanConfig(patientId: string): CarePlanConfig {
     createdAt: now,
     updatedAt: now,
     version: 1,
+    // Phase 32A F1 — stamp current schema version on fresh creations so
+    // the migration path in getCarePlanConfig never fires for them. The
+    // numeric value lives in storage/carePlanConfigRepo.ts as
+    // CARE_PLAN_CONFIG_SCHEMA_VERSION; literal here so this types-layer
+    // function stays free of storage-layer imports.
+    schemaVersion: 1,
     // Core 4 — enabled by default
     meds: { ...DEFAULT_MEDS_CONFIG, enabled: true },
     vitals: { ...DEFAULT_VITALS_CONFIG, enabled: true },
