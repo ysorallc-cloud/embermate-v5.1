@@ -45,6 +45,7 @@ import { ActivityDrawer } from '../../components/careplan/drawers/ActivityDrawer
 import { WaterDrawer } from '../../components/careplan/drawers/WaterDrawer';
 import { SleepDrawer } from '../../components/careplan/drawers/SleepDrawer';
 import { MealsDrawer } from '../../components/careplan/drawers/MealsDrawer';
+import { AppointmentsDrawer } from '../../components/careplan/drawers/AppointmentsDrawer';
 
 // Phase 32A F2 — three-section management layout. Each section's bucket
 // allocation is hardcoded here per the brief's locked allocation rather
@@ -550,7 +551,12 @@ export default function CarePlanHomeScreen() {
                         onUpdate={(updates) => updateBucket('activity', updates)}
                       />
                     )}
-                    {/* F12 Appointments fills below. */}
+                    {bucket === 'appointments' && (
+                      <AppointmentsDrawer
+                        config={config.appointments}
+                        onUpdate={(updates) => updateBucket('appointments', updates)}
+                      />
+                    )}
                   </View>
                 )}
               </React.Fragment>
