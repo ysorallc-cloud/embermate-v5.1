@@ -36,6 +36,12 @@ import { usePatient } from '../../contexts/PatientContext';
 // CarePlanTemplate, TemplateMedSuggestion, TemplateMedSeedingModal are
 // dropped from this file.
 import { AddItemSheet } from '../../components/careplan/AddItemSheet';
+// Phase 32A Slice B — per-bucket drawer internals. Each drawer is a
+// self-contained component file under components/careplan/drawers/.
+// Drawers receive the bucket's current config + an onUpdate dispatcher;
+// they own their internal chips/dropdowns/toggles per the brief's per-
+// bucket spec.
+import { ActivityDrawer } from '../../components/careplan/drawers/ActivityDrawer';
 
 // Phase 32A F2 — three-section management layout. Each section's bucket
 // allocation is hardcoded here per the brief's locked allocation rather
@@ -518,9 +524,15 @@ export default function CarePlanHomeScreen() {
                   onToggle={(val) => handleToggleBucket(bucket, val)}
                   onPress={() => handleConfigureBucket(bucket)}
                 />
-                {isEnabled && isExpanded && (
+                {isEnabled && isExpanded && config && (
                   <View testID={`drawer-${bucket}`} style={styles.drawerScaffold}>
-                    {/* F6+ fills this drawer with per-bucket internals. */}
+                    {bucket === 'activity' && (
+                      <ActivityDrawer
+                        config={config.activity}
+                        onUpdate={(updates) => updateBucket('activity', updates)}
+                      />
+                    )}
+                    {/* F9 Water / F10 Sleep / F12 Appointments fill below. */}
                   </View>
                 )}
               </React.Fragment>
