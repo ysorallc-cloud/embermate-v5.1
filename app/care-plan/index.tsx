@@ -30,8 +30,11 @@ import { InfoModal, InfoIconButton } from '../../components/common/InfoModal';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
 import { SectionEyebrow } from '../../components/SectionEyebrow';
 import { usePatient } from '../../contexts/PatientContext';
-import { CARE_PLAN_TEMPLATES, CarePlanTemplate, TemplateMedSuggestion } from '../../constants/carePlanTemplates';
-import { TemplateMedSeedingModal } from '../../components/careplan/TemplateMedSeedingModal';
+// Phase 32A F5 — Quick Start TemplateCard surface retired from home
+// (P1 lock). The wizard's own template step stays unchanged; templates
+// just no longer surface on Care Plan main. Imports for CARE_PLAN_TEMPLATES,
+// CarePlanTemplate, TemplateMedSuggestion, TemplateMedSeedingModal are
+// dropped from this file.
 import { AddItemSheet } from '../../components/careplan/AddItemSheet';
 
 // Phase 32A F2 — three-section management layout. Each section's bucket
@@ -175,39 +178,10 @@ function AIInsightCard({ icon, title, message, onDismiss }: AIInsightCardProps) 
   );
 }
 
-// ============================================================================
-// TEMPLATE CARD
-// ============================================================================
-
-interface TemplateCardProps {
-  template: CarePlanTemplate;
-  onApply: () => void;
-}
-
-function TemplateCard({ template, onApply }: TemplateCardProps) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const bucketNames = template.enabledBuckets
-    .map(b => BUCKET_META[b].name)
-    .join(', ');
-
-  return (
-    <TouchableOpacity
-      style={styles.templateCard}
-      onPress={onApply}
-      activeOpacity={0.7}
-      accessibilityLabel={`Apply ${template.name} template`}
-      accessibilityRole="button"
-    >
-      <View style={styles.templateHeader}>
-        <Text style={styles.templateEmoji}>{template.emoji}</Text>
-        <Text style={styles.templateName}>{template.name}</Text>
-      </View>
-      <Text style={styles.templateDescription}>{template.description}</Text>
-      <Text style={styles.templateBuckets}>Enables: {bucketNames}</Text>
-    </TouchableOpacity>
-  );
-}
+// Phase 32A F5 — TemplateCard component retired (P1 lock). The brief
+// out-of-scope explicitly rejects templates on Care Plan main. The
+// wizard's own template step is OUT OF SCOPE for 32A — wizardStepTemplate
+// tests continue to pin the wizard's TemplateMedSeedingModal flow.
 
 // ============================================================================
 // MAIN COMPONENT
@@ -236,7 +210,8 @@ export default function CarePlanHomeScreen() {
   const [dismissedInsights, setDismissedInsights] = useState<string[]>([]);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [addItemWindow, setAddItemWindow] = useState<string | null>(null);
-  const [medSeedingTemplate, setMedSeedingTemplate] = useState<{ name: string; suggestions: TemplateMedSuggestion[] } | null>(null);
+  // Phase 32A F5 — medSeedingTemplate state retired with the Quick Start
+  // template surface. The wizard's own template step keeps its mount.
   // Phase 32A F2 — accordion state. ONE bucket's drawer is open at a
   // time (per the brief's locked decision); null means no drawer open.
   // Single-bucket type (BucketType | null, NOT an array or Set) is the
@@ -289,51 +264,10 @@ export default function CarePlanHomeScreen() {
     setDismissedInsights(prev => [...prev, id]);
   }, []);
 
-  const applyTemplate = useCallback(async (template: CarePlanTemplate) => {
-    let currentConfig = config;
-    if (!currentConfig) {
-      currentConfig = await initializeConfig();
-    }
-
-    const enabledSet = new Set(template.enabledBuckets);
-
-    for (const bucket of BUCKET_TYPES) {
-      if (!enabledSet.has(bucket)) {
-        await updateBucket(bucket, { enabled: false });
-      }
-    }
-
-    for (const bucket of template.enabledBuckets) {
-      const suggestion = template.suggestedSettings[bucket];
-      const updates: Partial<BucketConfig> = { enabled: true };
-
-      if (suggestion) {
-        if (suggestion.priority) updates.priority = suggestion.priority;
-        if (suggestion.timesOfDay) updates.timesOfDay = suggestion.timesOfDay;
-      }
-
-      await updateBucket(bucket, updates);
-
-      if (suggestion) {
-        const bucketSpecific: Record<string, any> = {};
-        if (suggestion.vitalTypes) bucketSpecific.vitalTypes = suggestion.vitalTypes;
-        if (suggestion.frequency) bucketSpecific.frequency = suggestion.frequency;
-        if (suggestion.trackingStyle) bucketSpecific.trackingStyle = suggestion.trackingStyle;
-        if (suggestion.dailyGoalGlasses) bucketSpecific.dailyGoalGlasses = suggestion.dailyGoalGlasses;
-
-        if (Object.keys(bucketSpecific).length > 0) {
-          await updateBucket(bucket, bucketSpecific);
-        }
-      }
-    }
-
-    if (template.suggestedMedications && template.suggestedMedications.length > 0) {
-      setMedSeedingTemplate({
-        name: template.name,
-        suggestions: template.suggestedMedications,
-      });
-    }
-  }, [config, initializeConfig, updateBucket]);
+  // Phase 32A F5 — applyTemplate callback retired with the Quick Start
+  // surface (P1 lock). The wizard's own apply path lives in
+  // utils/applyCarePlanTemplate.ts and is invoked from the wizard's
+  // template step — unchanged.
 
   // ============================================================================
   // CONTEXTUAL INSIGHT
@@ -342,14 +276,9 @@ export default function CarePlanHomeScreen() {
   const getContextualInsight = useCallback(() => {
     if (!config) return null;
 
-    if (!hasCarePlan && !dismissedInsights.includes('start-simple')) {
-      return {
-        id: 'start-simple',
-        icon: '\uD83D\uDCA1',
-        title: 'Start simple',
-        message: 'Try enabling Medications and Mood first. You can add more categories anytime.',
-      };
-    }
+    // Phase 32A F5 \u2014 start-simple banner retired (P2). Its CTA referenced
+    // "Mood" (not a row in the new layout) and recommended enabling
+    // Medications (always on now).
 
     if (config.meds.enabled) {
       const medsConfig = config.meds;
@@ -358,7 +287,10 @@ export default function CarePlanHomeScreen() {
           id: 'add-meds',
           icon: '\uD83D\uDC8A',
           title: 'Add medications',
-          message: 'Tap Configure on Medications to add your first medication and set up reminders.',
+          // Phase 32A F5 copy refresh \u2014 points at F4's inline affordance.
+          // Pre-32A copy said "Tap Configure on Medications", but the
+          // Configure button retired with F2.
+          message: 'Tap + Add medication under the Medications row to set up your first medication and reminders.',
         };
       }
 
@@ -377,27 +309,13 @@ export default function CarePlanHomeScreen() {
       }
     }
 
-    const enabledCount = enabledBuckets.length;
-    if (enabledCount >= 6 && !dismissedInsights.includes('focus-suggestion')) {
-      return {
-        id: 'focus-suggestion',
-        icon: '\uD83C\uDFAF',
-        title: 'Focus for better habits',
-        message: "You've enabled many categories. Consider starting with 2-3 that matter most, then add more once those feel natural.",
-      };
-    }
-
-    if (config.vitals.enabled) {
-      const vitalsConfig = config.vitals;
-      if ((!vitalsConfig.vitalTypes || vitalsConfig.vitalTypes.length === 0) && !dismissedInsights.includes('select-vitals')) {
-        return {
-          id: 'select-vitals',
-          icon: '\uD83D\uDCCA',
-          title: 'Choose vitals to track',
-          message: 'Tap Configure on Vitals to select which measurements to track.',
-        };
-      }
-    }
+    // Phase 32A F5 \u2014 focus-suggestion banner retired (brief: "works against
+    // the toggle-on-with-defaults pattern and reads as scolding the
+    // caregiver for using the app").
+    // Phase 32A F5 \u2014 select-vitals banner retired (P2). Its CTA referenced
+    // a "Configure" button on the Vitals row that retired with F2; the new
+    // path is "Tap Vitals row \u2192 drawer opens", which the user already does
+    // when toggling Vitals on.
 
     if (hasCarePlan && config) {
       const anyNotificationsEnabled = enabledBuckets.some((bucket: BucketType) => config[bucket]?.notificationsEnabled);
@@ -459,22 +377,11 @@ export default function CarePlanHomeScreen() {
             hint="Use 'Adjust Today' from the Now screen for one-day changes that reset tomorrow."
           />
 
-          {/* Quick Start Templates — only when no care plan exists */}
-          {!hasCarePlan && (
-            <>
-              <Text style={styles.templateIntroLabel}>QUICK START</Text>
-              <Text style={styles.templateIntro}>
-                Choose a template to get started, then customize as needed.
-              </Text>
-              {CARE_PLAN_TEMPLATES.map(template => (
-                <TemplateCard
-                  key={template.id}
-                  template={template}
-                  onApply={() => applyTemplate(template)}
-                />
-              ))}
-            </>
-          )}
+          {/* Phase 32A F5 — Quick Start Templates surface retired (P1 lock).
+              The brief out-of-scope explicitly rejects templates: "EmberMate
+              isn't right-sized for specific scenarios, templates would
+              pretend it is." The wizard's own template step at
+              app/care-plan/setup/template.tsx is OUT OF SCOPE for 32A. */}
 
           {/* Contextual AI Insight */}
           {contextualInsight && (
@@ -632,15 +539,9 @@ export default function CarePlanHomeScreen() {
         onClose={() => setAddItemWindow(null)}
       />
 
-      {/* Med Seeding Modal */}
-      {medSeedingTemplate && (
-        <TemplateMedSeedingModal
-          visible={!!medSeedingTemplate}
-          templateName={medSeedingTemplate.name}
-          suggestions={medSeedingTemplate.suggestions}
-          onClose={() => setMedSeedingTemplate(null)}
-        />
-      )}
+      {/* Phase 32A F5 — TemplateMedSeedingModal mount retired from home
+          (P1 lock). The wizard's template step keeps its own mount of
+          this modal — unchanged. */}
     </SafeAreaView>
   );
 }
@@ -899,52 +800,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     lineHeight: 20,
   },
 
-  // Templates
-  templateIntroLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: c.textHalf,
-    letterSpacing: 1,
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.lg,
-  },
-  templateIntro: {
-    fontSize: 14,
-    color: c.textSecondary,
-    lineHeight: 20,
-    marginBottom: Spacing.md,
-  },
-  templateCard: {
-    backgroundColor: c.glassFaint,
-    borderWidth: 1,
-    borderColor: c.glassActive,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  templateHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.xs,
-  },
-  templateEmoji: {
-    fontSize: 22,
-  },
-  templateName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: c.textPrimary,
-  },
-  templateDescription: {
-    fontSize: 13,
-    color: c.textSecondary,
-    lineHeight: 18,
-    marginBottom: Spacing.xs,
-  },
-  templateBuckets: {
-    fontSize: 12,
-    color: c.accent,
-    fontWeight: '500',
-  },
+  // Phase 32A F5 — Templates styles retired with the Quick Start surface
+  // (P1 lock). templateIntroLabel / templateIntro / templateCard /
+  // templateHeader / templateEmoji / templateName / templateDescription /
+  // templateBuckets had no callers after the retirement.
 });

@@ -197,6 +197,81 @@ describe('Phase 32A F2 — Care Plan main 3-section restructure', () => {
   });
 
   // --------------------------------------------------------------------------
+  // F5 — Surface retirement on home per P1+P2 locks.
+  //
+  //   P1: Quick Start TemplateCard surface RETIRED. The brief OUT-OF-SCOPE
+  //       explicitly rejects templates ("EmberMate isn't right-sized for
+  //       specific scenarios, templates would pretend it is"). The wizard's
+  //       own template step stays untouched (wizard is OUT OF SCOPE per brief).
+  //
+  //   P2: Contextual insight banners — retire ones whose CTA breaks under
+  //       the new layout, keep ones still semantically valid:
+  //         RETIRE: start-simple ("enable Mood" — not a row),
+  //                 select-vitals ("Tap Configure" — no Configure button),
+  //                 focus-suggestion ("Focus for better habits" — named in brief).
+  //         KEEP:   add-meds (with copy refresh to point at F4 affordance),
+  //                 refill-reminder (still semantically valid),
+  //                 enable-notifications ("Stay on track").
+  // --------------------------------------------------------------------------
+
+  describe('contract 7: Quick Start TemplateCard surface retired (P1)', () => {
+    it('source no longer imports TemplateMedSeedingModal', () => {
+      expect(STRIPPED).not.toMatch(/import\s*\{[^}]*\bTemplateMedSeedingModal\b[^}]*\}/);
+    });
+
+    it('source no longer declares a TemplateCard component', () => {
+      expect(STRIPPED).not.toMatch(/function\s+TemplateCard\b/);
+    });
+
+    it('source no longer declares an applyTemplate callback', () => {
+      expect(STRIPPED).not.toMatch(/\bconst\s+applyTemplate\s*=/);
+    });
+
+    it('source no longer mounts <TemplateCard /> in render', () => {
+      expect(STRIPPED).not.toMatch(/<TemplateCard\b/);
+    });
+
+    it('source no longer mounts <TemplateMedSeedingModal /> in render', () => {
+      expect(STRIPPED).not.toMatch(/<TemplateMedSeedingModal\b/);
+    });
+
+    it('source no longer renders the "QUICK START" template intro label', () => {
+      expect(STRIPPED).not.toMatch(/QUICK START/);
+    });
+  });
+
+  describe('contract 8: Contextual insight banners — retired ids (P2)', () => {
+    it.each(['start-simple', 'focus-suggestion', 'select-vitals'] as const)(
+      "no '%s' banner id in source",
+      (id) => {
+        expect(STRIPPED).not.toMatch(new RegExp(`['"]${id}['"]`));
+      },
+    );
+
+    it('no "Focus for better habits" copy in source (Focus banner retired)', () => {
+      expect(STRIPPED).not.toMatch(/Focus for better habits/);
+    });
+  });
+
+  describe('contract 9: Contextual insight banners — kept ids (P2)', () => {
+    it.each(['add-meds', 'refill-reminder', 'enable-notifications'] as const)(
+      "'%s' banner id still present in source",
+      (id) => {
+        expect(STRIPPED).toMatch(new RegExp(`['"]${id}['"]`));
+      },
+    );
+
+    it('add-meds banner copy refreshed — no "Tap Configure" instruction (the Configure button retired with F2)', () => {
+      // Pull the add-meds branch by isolating the surrounding 400 chars
+      // and asserting the copy does NOT contain the stale "Tap Configure"
+      // instruction. The kept banner exists; we're guarding the COPY.
+      const branchMatch = STRIPPED.match(/id:\s*['"]add-meds['"][\s\S]{0,400}/);
+      expect(branchMatch).not.toBeNull();
+      expect(branchMatch![0]).not.toMatch(/Tap Configure/);
+    });
+  });
+
+  // --------------------------------------------------------------------------
   // Accordion state — single `expandedBucket` tracks one drawer at a time
   // --------------------------------------------------------------------------
 
