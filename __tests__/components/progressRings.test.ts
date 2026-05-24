@@ -29,8 +29,14 @@ describe('ProgressRings (flat inline row)', () => {
     expect(src).toContain('config.chipLabel');
   });
 
-  it('always shows 4 core buckets', () => {
-    expect(src).toContain("const CORE_BUCKETS: BucketType[] = ['meds', 'vitals', 'wellness', 'meals']");
+  it('imports canonical CORE_BUCKETS (Phase 32A F15 reframe — was a local 4-bucket pin)', () => {
+    // Pre-F15 this pin asserted ProgressRings declared a local
+    // `['meds', 'vitals', 'wellness', 'meals']` — the exact drift bug
+    // F15 fixed. Reframed to assert the canonical import pattern
+    // from types/carePlanConfig (single source of truth: ['meds',
+    // 'vitals']). Same drift class as commit 506fc49c.
+    expect(src).toMatch(/import\s*\{[^}]*\bCORE_BUCKETS\b[^}]*\}\s*from\s*['"][^'"]*carePlanConfig['"]/);
+    expect(src).not.toMatch(/\bconst\s+CORE_BUCKETS\b\s*[:=]/);
   });
 
   it('shows optional buckets only when they have items > 0', () => {

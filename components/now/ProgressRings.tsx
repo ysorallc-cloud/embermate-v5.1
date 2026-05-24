@@ -10,13 +10,17 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { CATEGORY_CONFIG } from '../../constants/categoryLabels';
 import type { StatData, TodayStats } from '../../utils/nowHelpers';
 import { isOverdue } from '../../utils/nowHelpers';
-import type { BucketType } from '../../types/carePlanConfig';
+import { CORE_BUCKETS, type BucketType } from '../../types/carePlanConfig';
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
-const CORE_BUCKETS: BucketType[] = ['meds', 'vitals', 'wellness', 'meals'];
+// Phase 32A F15 — canonical CORE_BUCKETS import (was local
+// `['meds', 'vitals', 'wellness', 'meals']`). Same drift class as
+// 506fc49c's canonicalization sweep, which missed this file. The
+// canonical export at types/carePlanConfig.ts:62 is the single source
+// of truth: ['meds', 'vitals'].
 const CORE_SET = new Set<string>(CORE_BUCKETS);
 
 // Bucket → itemType mapping (for overdue detection via instances)

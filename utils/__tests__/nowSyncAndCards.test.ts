@@ -91,11 +91,18 @@ describe('S2: useDailyCareInstances emits events', () => {
 });
 
 // ============================================================================
-// S3: ProgressRings uses hardcoded CORE_BUCKETS
+// S3: ProgressRings bucket alignment (Phase 32A F15 reframe — was
+// "uses hardcoded CORE_BUCKETS"; F15 corrected the drift bug by
+// switching to the canonical import from types/carePlanConfig).
 // ============================================================================
 describe('S3: ProgressRings bucket alignment', () => {
-  test('defines CORE_BUCKETS locally (hardcoded, not imported)', () => {
-    expect(progressRingsSrc).toContain("const CORE_BUCKETS: BucketType[] = ['meds', 'vitals', 'wellness', 'meals']");
+  test('imports canonical CORE_BUCKETS from types/carePlanConfig (NOT a local re-declaration)', () => {
+    // Pre-F15 this file pinned a LOCAL ['meds','vitals','wellness',
+    // 'meals'] declaration — the exact drift bug commit 506fc49c
+    // canonicalized away but which ProgressRings missed. F15
+    // brought ProgressRings onto the canonical import.
+    expect(progressRingsSrc).toMatch(/import\s*\{[^}]*\bCORE_BUCKETS\b[^}]*\}\s*from\s*['"][^'"]*carePlanConfig['"]/);
+    expect(progressRingsSrc).not.toMatch(/\bconst\s+CORE_BUCKETS\b\s*[:=]/);
   });
 
   test('does not define DEFAULT_BUCKETS locally', () => {
