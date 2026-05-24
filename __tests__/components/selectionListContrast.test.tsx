@@ -24,12 +24,12 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 // entries below are still-live screens that should keep this
 // contrast contract.
 const targets: Array<{ file: string; styles: string[] }> = [
-  { file: 'app/care-plan/sleep.tsx',    styles: ['priorityLabelSelected'] },
-  { file: 'app/care-plan/activity.tsx', styles: ['priorityLabelSelected'] },
-  {
-    file: 'app/care-plan/water.tsx',
-    styles: ['priorityLabelSelected', 'goalOptionLabelSelected', 'unitLabelSelected', 'reminderLabelSelected'],
-  },
+  // Phase 32A F13/F14 — all per-bucket subscreens (vitals/wellness/
+  // meals/water/sleep/activity/errands/shifts/self-care) retired. The
+  // inline-expand drawer components (components/careplan/drawers/*)
+  // own selection chrome internally and pin their own contrast at the
+  // component level. Remaining care-plan entry: manage.tsx (still
+  // live; non-subscreen).
   {
     file: 'app/care-plan/manage.tsx',
     styles: ['typeChipLabelSelected', 'windowLabelSelected', 'priorityLabelSelected'],

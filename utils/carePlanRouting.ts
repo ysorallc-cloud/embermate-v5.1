@@ -52,9 +52,13 @@ const ITEM_TYPE_ROUTES: Record<CarePlanItemType, string> = {
   hydration: '/log-water',
   wellness: '/silent-vitals',
   appointment: '/appointments',
-  errand: '/care-plan/errands',
-  shift: '/care-plan/shifts',
-  self_care: '/care-plan/self-care',
+  // Phase 32A F14 — errand/shift/self_care subscreens retired
+  // (orphaned by F3 render filter; types preserved). Route falls back
+  // to Care Plan home — the rows are suppressed there too, but any
+  // legacy item-type pointer still resolves to a valid route.
+  errand: '/care-plan',
+  shift: '/care-plan',
+  self_care: '/care-plan',
   custom: '/log-evening-wellness',
 };
 

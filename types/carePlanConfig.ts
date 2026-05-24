@@ -166,21 +166,24 @@ export const BUCKET_META: Record<BucketType, BucketMeta> = {
     name: 'Errands & Tasks',
     emoji: '\uD83D\uDCCB',
     aiInsight: 'Tracks recurring tasks like Rx pickups, groceries, and meal prep.',
-    route: '/care-plan/errands',
+    // Phase 32A F14 \u2014 subscreen retired (orphaned by F3 render filter);
+    // route falls back to Care Plan home. Type + meta preserved per
+    // render-filter-not-data-deletion lock.
+    route: '/care-plan',
   },
   shifts: {
     type: 'shifts',
     name: 'Shift Schedule',
     emoji: '\uD83D\uDD04',
     aiInsight: 'Coordinates who covers care and when handoffs happen.',
-    route: '/care-plan/shifts',
+    route: '/care-plan',
   },
   self_care: {
     type: 'self_care',
     name: 'Self-Care',
     emoji: '\uD83D\uDC9B',
     aiInsight: 'Blocks time for your own rest, meals, and personal appointments.',
-    route: '/care-plan/self-care',
+    route: '/care-plan',
   },
 };
 

@@ -153,9 +153,12 @@ export default function TodayScopeScreen() {
     activity: { route: '/care-plan', label: 'Configure activity' },
     wellness: { route: '/silent-vitals', label: 'Wellness check-in' },
     appointments: { route: '/appointments', label: 'Manage appointments' },
-    errands: { route: '/care-plan/errands', label: 'Manage errands' },
-    shifts: { route: '/care-plan/shifts', label: 'Manage shifts' },
-    self_care: { route: '/care-plan/self-care', label: 'Self-care tasks' },
+    // Phase 32A F14 — errands/shifts/self_care subscreens retired
+    // (orphaned by F3 render filter; types preserved). Route falls
+    // back to Care Plan home.
+    errands: { route: '/care-plan', label: 'Manage errands' },
+    shifts: { route: '/care-plan', label: 'Manage shifts' },
+    self_care: { route: '/care-plan', label: 'Self-care tasks' },
   };
 
   // Flatten all items from either system
