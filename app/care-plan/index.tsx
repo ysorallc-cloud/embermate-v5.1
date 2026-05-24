@@ -229,6 +229,12 @@ export default function CarePlanHomeScreen() {
   // Single-bucket type (BucketType | null, NOT an array or Set) is the
   // accordion invariant — pinned by the test contract.
   const [expandedBucket, setExpandedBucket] = useState<BucketType | null>(null);
+  // Phase 32A.1 F1 — Medications drawer state. Medications is OUTSIDE the
+  // accordion (Q-32A.1.2 + Q-32A.1.3 lock): the row is always shown,
+  // independent of which DAILY TRACKING / ADD WHEN READY drawer is open.
+  // Default open (always-shown semantic — caregiver sees their meds
+  // immediately on opening Care Plan).
+  const [medsExpanded, setMedsExpanded] = useState<boolean>(true);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const enabledBucketSet = new Set(enabledBuckets);
@@ -256,20 +262,22 @@ export default function CarePlanHomeScreen() {
     }
   }, [toggleBucket]);
 
-  // Phase 32A F2 — row tap behavior.
-  //   • Medications row taps still route to /care-plan/meds (the form
-  //     screen stays per brief — adding/editing a med doesn't fit inline).
-  //   • Every other bucket tap, when the bucket is enabled, opens or
-  //     closes its drawer in the accordion (no router navigation).
-  //   • Disabled rows: no-op on tap (the switch is the only way to
-  //     enable them, per the brief's "toggle is the affordance" pattern).
+  // Phase 32A F2 (Phase 32A.1 reframe): row tap behavior for the accordion
+  // drawers. Medications is OUTSIDE the accordion now — its row taps
+  // toggle medsExpanded directly (handleToggleMedsExpanded below) and
+  // do NOT route through this handler. Every other bucket tap, when
+  // enabled, opens or closes its drawer in the accordion. Disabled rows
+  // are no-ops on tap.
   const handleConfigureBucket = useCallback((bucket: BucketType) => {
-    if (bucket === 'meds') {
-      navigate('/care-plan/meds');
-      return;
-    }
-    // Accordion toggle for the row's drawer.
     setExpandedBucket((curr) => (curr === bucket ? null : bucket));
+  }, []);
+
+  // Phase 32A.1 F1 — Medications row toggle. Independent of the
+  // accordion; never touches setExpandedBucket so opening Vitals /
+  // Wellness / etc. doesn't collapse the meds drawer, and toggling
+  // meds doesn't collapse whichever accordion drawer is open.
+  const handleToggleMedsExpanded = useCallback(() => {
+    setMedsExpanded((prev) => !prev);
   }, []);
 
   const dismissInsight = useCallback((id: string) => {
@@ -412,14 +420,22 @@ export default function CarePlanHomeScreen() {
               Errands / Shifts / Self-care intentionally absent from every section
               (MVP render filter expressed structurally; data types preserved). */}
           <SectionEyebrow text="Always on" />
+          {/* Phase 32A.1 F1 \u2014 Medications row converts from chevron-
+              navigate-to-list (which routed to the now-retired
+              /care-plan/meds subscreen) into expand/caret behavior. Tap
+              the row toggles medsExpanded. Caret indicator reflects
+              the current state ('\u02C7' down when expanded; '\u203A'
+              right when collapsed). Row is OUTSIDE the accordion \u2014
+              setMedsExpanded never touches expandedBucket. */}
           {ALWAYS_ON_BUCKETS.map(bucket => (
             <TouchableOpacity
               key={bucket}
               style={styles.coreCard}
-              onPress={() => handleConfigureBucket(bucket)}
+              onPress={handleToggleMedsExpanded}
               activeOpacity={0.7}
-              accessibilityLabel={`${BUCKET_META[bucket].name}. Tap to configure.`}
+              accessibilityLabel={`${BUCKET_META[bucket].name}. ${medsExpanded ? 'Tap to collapse.' : 'Tap to expand.'}`}
               accessibilityRole="button"
+              accessibilityState={{ expanded: medsExpanded }}
             >
               <Text style={styles.categoryEmoji}>{BUCKET_META[bucket].emoji}</Text>
               <View style={styles.categoryInfo}>
@@ -428,18 +444,21 @@ export default function CarePlanHomeScreen() {
                   <Text style={styles.categoryDetail}>{getBucketStatus(bucket)}</Text>
                 )}
               </View>
-              <Text style={styles.categoryChevron}>{'\u203A'}</Text>
+              <Text style={styles.categoryChevron}>
+                {medsExpanded ? '\u02C7' : '\u203A'}
+              </Text>
             </TouchableOpacity>
           ))}
 
-          {/* Phase 32A F4 — Medications inline list. The brief says
-              Medications is always expanded with a compact inline list
-              of existing meds; "edit" affordances route to the canonical
-              per-med edit form at /medication-form?id=…&source=careplan
-              (matches app/care-plan/meds.tsx:466 — the brief's
-              "or whatever the existing path is" defers to this entry
-              point). "+ Add medication" routes to the same form without
-              an id. Empty state surfaces a single inline row. */}
+          {/* Phase 32A F4 — Medications inline list (compact rows + add
+              affordance). 32A.1 F1 — list rendering now gated on
+              medsExpanded. Default is open (always-shown semantic per
+              Q-32A.1.2 lock); user can collapse via the row caret. The
+              "edit" affordances route to the canonical per-med edit form
+              at /medication-form?id=…&source=careplan; "+ Add medication"
+              routes to the same form without an id. Empty state surfaces
+              a single inline row. */}
+          {medsExpanded && (
           <View testID="meds-inline-list" style={styles.medsInlineList}>
             {(config?.meds?.medications ?? []).filter(m => m.active).length === 0 ? (
               <TouchableOpacity
@@ -487,6 +506,7 @@ export default function CarePlanHomeScreen() {
               </>
             )}
           </View>
+          )}
 
           <SectionEyebrow text="Daily tracking" />
           {DAILY_TRACKING_BUCKETS.map(bucket => {
