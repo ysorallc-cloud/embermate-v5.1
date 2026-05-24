@@ -70,8 +70,8 @@ export const PRIMARY_BUCKETS: BucketType[] = ['meds', 'vitals', 'meals', 'water'
 // set-orphan audit (project_pre_launch_qa_items.md "Lock 2 wellness
 // follow-up") surfaced that wellness was a member of NONE of the
 // three exported sets (PRIMARY/SECONDARY/OPTIONAL) despite being a
-// valid BucketType with full BUCKET_META and a /care-plan/wellness
-// route. The wizard's "Now tab" section derivation
+// valid BucketType with full BUCKET_META and (pre-32A F13) a
+// dedicated wellness subscreen. The wizard's "Now tab" section derivation
 // (`[...PRIMARY, ...SECONDARY].filter(!CORE)`) silently dropped
 // wellness — caregivers couldn't toggle it from the wizard.
 //

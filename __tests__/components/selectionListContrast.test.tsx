@@ -17,15 +17,13 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 // Files + style names in scope. Each entry says: in `file`, the
 // `*LabelSelected` style block must NOT declare `color: c.accent` or
 // `color: c.green` (mint family — the readability-killing tint).
+// Phase 32A F13/F14 — vitals.tsx + meals.tsx + wellness.tsx retired
+// in F13; water/sleep/activity retire in F14. The drawer components
+// (components/careplan/drawers/*) own selection chrome internally
+// and pin their own contrast at the component level. The remaining
+// entries below are still-live screens that should keep this
+// contrast contract.
 const targets: Array<{ file: string; styles: string[] }> = [
-  {
-    file: 'app/care-plan/vitals.tsx',
-    styles: ['priorityLabelSelected', 'vitalLabelSelected', 'frequencyLabelSelected'],
-  },
-  {
-    file: 'app/care-plan/meals.tsx',
-    styles: ['priorityLabelSelected', 'mealLabelSelected', 'styleLabelSelected'],
-  },
   { file: 'app/care-plan/sleep.tsx',    styles: ['priorityLabelSelected'] },
   { file: 'app/care-plan/activity.tsx', styles: ['priorityLabelSelected'] },
   {
@@ -107,30 +105,9 @@ describe('Severity-tinted labels are intentionally preserved (not in scope)', ()
   });
 });
 
-describe('Selection signal lives on the checkmark + border, not the label', () => {
-  // For vitals + meals (the canonical examples), the selected-row style still
-  // sets a mint border, and the checkbox-selected style still sets accent
-  // background — those are the visual signals after this fix.
-  const vitalsSrc = read('app/care-plan/vitals.tsx');
-  const mealsSrc  = read('app/care-plan/meals.tsx');
-
-  it('vitalItemSelected sets borderColor: c.accent', () => {
-    const body = styleBody(vitalsSrc, 'vitalItemSelected');
-    expect(body).toMatch(/borderColor:\s*c\.accent/);
-  });
-
-  it('vitals checkboxSelected fills with c.accent', () => {
-    const body = styleBody(vitalsSrc, 'checkboxSelected');
-    expect(body).toMatch(/backgroundColor:\s*c\.accent/);
-  });
-
-  it('mealItemSelected sets borderColor: c.accent', () => {
-    const body = styleBody(mealsSrc, 'mealItemSelected');
-    expect(body).toMatch(/borderColor:\s*c\.accent/);
-  });
-
-  it('meals checkboxSelected fills with c.accent', () => {
-    const body = styleBody(mealsSrc, 'checkboxSelected');
-    expect(body).toMatch(/backgroundColor:\s*c\.accent/);
-  });
-});
+// Phase 32A F13 — "Selection signal lives on the checkmark + border"
+// describe block retired. Its canonical examples were vitals.tsx +
+// meals.tsx, both deleted by F13. The same visual contract now lives
+// in the inline-expand drawer components (chipSelected style:
+// borderColor c.accent + backgroundColor c.accentDim) — pinned by
+// each drawer's own contract suite rather than re-asserted here.

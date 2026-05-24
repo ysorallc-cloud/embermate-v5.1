@@ -143,11 +143,14 @@ export default function TodayScopeScreen() {
   // Quick Add routes for each bucket
   const quickAddRoutes: Record<BucketType, { route: string; label: string }> = {
     meds: { route: '/medication-form', label: 'Add medication' },
-    vitals: { route: '/care-plan/vitals', label: 'Configure vitals' },
-    meals: { route: '/care-plan/meals', label: 'Configure meals' },
-    water: { route: '/care-plan/water', label: 'Adjust water goal' },
-    sleep: { route: '/care-plan/sleep', label: 'Configure sleep' },
-    activity: { route: '/care-plan/activity', label: 'Configure activity' },
+    // Phase 32A F13/F14 — vitals/meals/water/sleep/activity subscreens
+    // retired in favor of inline drawers on /care-plan. "Configure X"
+    // now routes to Care Plan home where the row expands its drawer.
+    vitals: { route: '/care-plan', label: 'Configure vitals' },
+    meals: { route: '/care-plan', label: 'Configure meals' },
+    water: { route: '/care-plan', label: 'Adjust water goal' },
+    sleep: { route: '/care-plan', label: 'Configure sleep' },
+    activity: { route: '/care-plan', label: 'Configure activity' },
     wellness: { route: '/silent-vitals', label: 'Wellness check-in' },
     appointments: { route: '/appointments', label: 'Manage appointments' },
     errands: { route: '/care-plan/errands', label: 'Manage errands' },

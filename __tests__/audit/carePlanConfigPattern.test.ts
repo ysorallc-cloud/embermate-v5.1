@@ -119,18 +119,20 @@ const FILES: FileInfo[] = IN_SCOPE_FILES.map(analyse);
 // ----------------------------------------------------------------------------
 
 describe('Phase 10.4 — CarePlanConfigScreen pattern audit', () => {
-  it('discovered the expected care-plan in-scope universe (9 screens)', () => {
-    // 8 sev-2 screens migrated in 10.3 + wellness from 10.2.
+  it('discovered the expected care-plan in-scope universe (post-Phase-32A F13: 6 screens)', () => {
+    // Phase 32A F13 — vitals.tsx, wellness.tsx, meals.tsx retired
+    // (inline drawers replace them). The pattern audit shrinks to the
+    // remaining sev-2 screens (water/sleep/activity + errands/shifts/
+    // self-care). F14 will retire those too; this assertion shrinks
+    // further then, and Slice D retires the test premise entirely
+    // (no more care-plan subscreens consuming CarePlanConfigScreen).
     expect(FILES.map((f) => f.path)).toEqual([
       'app/care-plan/activity.tsx',
       'app/care-plan/errands.tsx',
-      'app/care-plan/meals.tsx',
       'app/care-plan/self-care.tsx',
       'app/care-plan/shifts.tsx',
       'app/care-plan/sleep.tsx',
-      'app/care-plan/vitals.tsx',
       'app/care-plan/water.tsx',
-      'app/care-plan/wellness.tsx',
     ]);
   });
 

@@ -23,6 +23,11 @@ interface AddItemSheetProps {
   onClose: () => void;
 }
 
+// Phase 32A F13/F14 \u2014 bucket-config subscreens retired in favor of
+// inline drawers. "Add a vital / wellness check / meal / activity"
+// routes to /care-plan (the home \u2014 user finds the row + expands the
+// drawer). Medication keeps /care-plan/meds (the meds form screen
+// survives per brief).
 const ITEM_TYPES = [
   {
     emoji: '\uD83D\uDC8A',
@@ -34,25 +39,25 @@ const ITEM_TYPES = [
     emoji: '\uD83D\uDCCA',
     label: 'Vital sign',
     description: 'Monitor blood pressure, temperature, etc.',
-    route: '/care-plan/vitals',
+    route: '/care-plan',
   },
   {
     emoji: '\uD83C\uDF05',
     label: 'Wellness check',
     description: 'Configure morning or evening check-in fields',
-    route: '/care-plan/wellness',
+    route: '/care-plan',
   },
   {
     emoji: '\uD83C\uDF7D',
     label: 'Meal tracking',
     description: 'Log meals and nutrition',
-    route: '/care-plan/meals',
+    route: '/care-plan',
   },
   {
     emoji: '\uD83C\uDFC3',
     label: 'Activity',
     description: 'Track exercise and movement',
-    route: '/care-plan/activity',
+    route: '/care-plan',
   },
 ] as const;
 

@@ -91,18 +91,24 @@ function getTimeOfDayFromHHmm(time: string): TimeOfDay {
 // ============================================================================
 
 // Bucket config routes
+// Phase 32A F13/F14 — bucket-config subscreens retired in favor of
+// inline drawers on /care-plan. Buckets that used to point at their
+// own /care-plan/<bucket> subscreen now route to the Care Plan home
+// where the row expands its drawer. Meds keeps /medication-form (the
+// form screen survives per brief); wellness/appointments keep their
+// existing log-/list-screen routes (not affected by F13/F14).
 const BUCKET_CONFIG_ROUTES: Record<BucketType, string> = {
   meds: '/medication-form',
-  vitals: '/care-plan/vitals',
-  meals: '/care-plan/meals',
-  water: '/care-plan/water',
-  sleep: '/care-plan/sleep',
-  activity: '/care-plan/activity',
+  vitals: '/care-plan',
+  meals: '/care-plan',
+  water: '/care-plan',
+  sleep: '/care-plan',
+  activity: '/care-plan',
   wellness: '/log-morning-wellness',
   appointments: '/appointments',
-  errands: '/care-plan/errands',
-  shifts: '/care-plan/shifts',
-  self_care: '/care-plan/self-care',
+  errands: '/care-plan',
+  shifts: '/care-plan',
+  self_care: '/care-plan',
 };
 
 // Placeholder config for unconfigured buckets

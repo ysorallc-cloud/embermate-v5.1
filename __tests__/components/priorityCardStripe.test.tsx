@@ -30,9 +30,16 @@ import { join } from 'path';
 const ROOT = join(__dirname, '../..');
 const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 
+// Phase 32A F13/F14 — vitals.tsx, wellness.tsx, meals.tsx retired in
+// F13; water.tsx / sleep.tsx / activity.tsx retire in F14. The
+// inline-expand drawers (F6/F7/F8/F9/F10) have no Priority cards (P-lock
+// — Priority UI hidden in 32A; field preserved silently in storage).
+// The Slice D F17 reframe converts this whole file to an absence pin
+// (no Priority card chrome anywhere); for F13 we shrink the existing
+// list to the still-present files so the assertion isn't trying to
+// read deleted source. F14 will shrink further; Slice D retires the
+// premise entirely.
 const targets = [
-  'app/care-plan/vitals.tsx',
-  'app/care-plan/meals.tsx',
   'app/care-plan/sleep.tsx',
   'app/care-plan/activity.tsx',
   'app/care-plan/water.tsx',
