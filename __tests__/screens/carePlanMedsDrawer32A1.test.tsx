@@ -109,17 +109,17 @@ describe('Phase 32A.1 F1 — Medications row converts to expand/caret', () => {
   // Drawer mount — list rendering gated on medsExpanded
   // --------------------------------------------------------------------------
 
-  describe('contract 4: inline meds list renders gated on medsExpanded', () => {
-    it('the meds-inline-list block is conditional on medsExpanded', () => {
-      // The pre-32A.1 inline list always rendered (always-shown via F4).
-      // Now it gates on medsExpanded — the drawer collapses when the
-      // user taps the row caret. The testID anchor we pinned in 32A F4
-      // stays so the F2/F4 contracts keep finding the list.
-      const idx = STRIPPED.search(/testID=["']meds-inline-list["']/);
+  describe('contract 4: meds drawer mount is gated on medsExpanded', () => {
+    it('the <MedicationsDrawer /> mount is conditional on medsExpanded (F2 reframe — testID moved into the component file)', () => {
+      // Pre-32A.1 F2: the inline list with testID="meds-inline-list"
+      // lived directly in care-plan/index.tsx; F1 gated it on
+      // medsExpanded. F2 extracted the list into MedicationsDrawer.tsx,
+      // so the testID now lives in the component. The gate moved with
+      // it — `{medsExpanded && <MedicationsDrawer />}`.
+      const idx = STRIPPED.search(/<MedicationsDrawer\b/);
       expect(idx).toBeGreaterThan(-1);
-      // 400-char window before the testID — captures the conditional
-      // wrapping `{medsExpanded && (...)}` or similar.
-      const before = STRIPPED.slice(Math.max(0, idx - 400), idx);
+      // 200-char window before the JSX captures the conditional.
+      const before = STRIPPED.slice(Math.max(0, idx - 200), idx);
       expect(before).toMatch(/medsExpanded\s*&&|medsExpanded\s*\?/);
     });
   });

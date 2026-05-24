@@ -169,30 +169,40 @@ describe('Phase 32A F2 — Care Plan main 3-section restructure', () => {
   // meds subscreen itself routes to /medication-form for both flows).
   // --------------------------------------------------------------------------
 
-  describe('contract 6: Medications inline list (F4)', () => {
-    it('source reads config.meds.medications to render the inline list', () => {
-      // Accept either `config.meds.medications`, `medsConfig.medications`,
-      // or destructured `medications` from the meds config.
-      expect(STRIPPED).toMatch(/(config\.meds\.medications|medsConfig\.medications)\b/);
+  describe('contract 6: Medications inline list (F4 — 32A.1 F2 reframe: lives in MedicationsDrawer.tsx)', () => {
+    // Phase 32A.1 F2 — the inline list extracted from care-plan/index.tsx
+    // into components/careplan/drawers/MedicationsDrawer.tsx. The
+    // contract pins below now read against the drawer source file
+    // (consistent with the 7 other drawers shipped in Slice B of 32A —
+    // each pinned at its own component file). care-plan/index.tsx
+    // imports + mounts the drawer, gated on medsExpanded (pinned in
+    // carePlanMedsDrawer32A1.test.tsx).
+    const drawerSrc = readFileSync(
+      join(ROOT, 'components/careplan/drawers/MedicationsDrawer.tsx'),
+      'utf8',
+    );
+
+    it('drawer reads config.meds.medications to render the list', () => {
+      // Accept optional-chaining variant (`config?.meds?.medications`)
+      // — the drawer uses it for null-safety since useCarePlanConfig
+      // may return null while loading.
+      expect(drawerSrc).toMatch(/config\??\.meds\??\.medications|medsConfig\??\.medications/);
     });
 
-    it('source contains a meds inline-list test anchor (testID="meds-inline-list")', () => {
-      expect(STRIPPED).toMatch(/testID=["']meds-inline-list["']/);
+    it('drawer contains the meds list test anchor (testID="meds-inline-list")', () => {
+      expect(drawerSrc).toMatch(/testID=["']meds-inline-list["']/);
     });
 
     it('per-med edit affordance routes to /medication-form?id=<medId>&source=careplan', () => {
-      // The router call uses the canonical meds-form deep link with the
-      // careplan source param (matches app/care-plan/meds.tsx:466).
-      // Template-literal interpolation form acceptable.
-      expect(STRIPPED).toMatch(/\/medication-form\?id=\$\{[^}]+\}&source=careplan/);
+      expect(drawerSrc).toMatch(/\/medication-form\?id=\$\{[^}]+\}&source=careplan/);
     });
 
     it('add-medication affordance routes to /medication-form?source=careplan', () => {
-      expect(STRIPPED).toMatch(/['"`]\/medication-form\?source=careplan['"`]/);
+      expect(drawerSrc).toMatch(/['"`]\/medication-form\?source=careplan['"`]/);
     });
 
-    it('empty-state copy "No meds added yet" present', () => {
-      expect(STRIPPED).toMatch(/No meds added yet/);
+    it('empty-state copy "No meds added yet" preserved', () => {
+      expect(drawerSrc).toMatch(/No meds added yet/);
     });
   });
 
