@@ -26,7 +26,7 @@
 // F4 lands the quick-add-behind-button mini-form.
 // ============================================================================
 
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -36,11 +36,26 @@ import {
   Animated,
   PanResponder,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { navigate } from '../../../lib/navigate';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../../hooks/useCarePlanConfig';
 import type { TimeOfDay, MedicationPlanItem } from '../../../types/carePlanConfig';
+import { COMMON_MEDICATIONS } from '../../medication/medicationFormHelpers';
+import { emitDataUpdate } from '../../../lib/events';
+import { EVENT } from '../../../lib/eventNames';
+
+// Phase 32A.1 F4 — quick-add time slot options. Maps to TimeOfDay
+// canonical values + a default HH:mm time for each slot. Same shape
+// the subscreen's QuickAddPanel used; preserves the "common-med
+// inline add without /medication-form roundtrip" UX.
+const QUICK_ADD_TIME_SLOTS: { value: TimeOfDay; label: string; time: string }[] = [
+  { value: 'morning', label: 'Morning', time: '08:00' },
+  { value: 'midday',  label: 'Midday',  time: '13:00' },
+  { value: 'evening', label: 'Evening', time: '18:00' },
+  { value: 'night',   label: 'Night',   time: '22:00' },
+];
 
 // Phase 32A.1 F2 — TimeOfDay label map. Mirrors the F4 inline-list map
 // (kept verbatim so the labels stay consistent with /medication-form
@@ -200,11 +215,210 @@ function MedRow({ med, onToggleActive, onRemove }: MedRowProps) {
   );
 }
 
+// ============================================================================
+// QUICK-ADD INLINE — Phase 32A.1 F4
+// Reveal-on-tap mini-form behind the "+ Add medication" button. Keeps
+// the drawer compact in the dominant case (reading meds, not adding)
+// while preserving the "common-med inline add without /medication-form
+// roundtrip" UX from the retired subscreen's QuickAddPanel.
+// ============================================================================
+
+interface QuickAddInlineProps {
+  onSubmit: (med: { name: string; dosage: string; timeSlot: TimeOfDay; time: string }) => Promise<void> | void;
+  onClose: () => void;
+}
+
+function QuickAddInline({ onSubmit, onClose }: QuickAddInlineProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const [selectedMed, setSelectedMed] = useState<typeof COMMON_MEDICATIONS[0] | null>(null);
+  const [selectedDosage, setSelectedDosage] = useState<string>('');
+  const [selectedSlot, setSelectedSlot] = useState<TimeOfDay>('morning');
+  const [showMedDropdown, setShowMedDropdown] = useState(false);
+  const [showDosageDropdown, setShowDosageDropdown] = useState(false);
+
+  const slotMeta = QUICK_ADD_TIME_SLOTS.find((s) => s.value === selectedSlot)!;
+  const canSubmit = !!selectedMed && selectedDosage.trim().length > 0;
+
+  const handleSubmit = useCallback(async () => {
+    if (!canSubmit || !selectedMed) return;
+    await onSubmit({
+      name: selectedMed.name,
+      dosage: selectedDosage,
+      timeSlot: selectedSlot,
+      time: slotMeta.time,
+    });
+    setSelectedMed(null);
+    setSelectedDosage('');
+    setSelectedSlot('morning');
+  }, [canSubmit, selectedMed, selectedDosage, selectedSlot, slotMeta.time, onSubmit]);
+
+  return (
+    <View style={styles.quickAdd}>
+      <View style={styles.quickAddHeader}>
+        <Text style={styles.quickAddTitle}>Quick add</Text>
+        <TouchableOpacity
+          onPress={() => navigate('/medication-form?source=careplan')}
+          accessibilityRole="button"
+          accessibilityLabel="Open full medication form"
+        >
+          <Text style={styles.quickAddFullFormLink}>Full form {'→'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Medication picker */}
+      <View style={{ zIndex: 30, marginBottom: 8 }}>
+        <TouchableOpacity
+          style={[styles.quickAddDropdown, showMedDropdown && styles.quickAddDropdownOpen]}
+          onPress={() => {
+            setShowMedDropdown((v) => !v);
+            setShowDosageDropdown(false);
+          }}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={selectedMed ? `Selected: ${selectedMed.name}. Tap to change.` : 'Select medication'}
+        >
+          <Text
+            style={[
+              styles.quickAddDropdownText,
+              !selectedMed && styles.quickAddDropdownPlaceholder,
+            ]}
+            numberOfLines={1}
+          >
+            {selectedMed?.name ?? 'Select medication...'}
+          </Text>
+          <Text style={styles.quickAddDropdownArrow}>{showMedDropdown ? '▲' : '▼'}</Text>
+        </TouchableOpacity>
+        {showMedDropdown && (
+          <ScrollView style={styles.quickAddDropdownList} nestedScrollEnabled>
+            {COMMON_MEDICATIONS.map((med) => (
+              <TouchableOpacity
+                key={med.name}
+                style={styles.quickAddDropdownItem}
+                onPress={() => {
+                  setSelectedMed(med);
+                  setSelectedDosage(med.commonDosages[0] ?? '');
+                  setShowMedDropdown(false);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${med.name}`}
+              >
+                <Text style={styles.quickAddDropdownItemText}>{med.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+      </View>
+
+      {/* Dosage picker — only when a med is selected */}
+      {selectedMed && (
+        <View style={{ zIndex: 20, marginBottom: 8 }}>
+          <TouchableOpacity
+            style={[styles.quickAddDropdown, showDosageDropdown && styles.quickAddDropdownOpen]}
+            onPress={() => setShowDosageDropdown((v) => !v)}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={selectedDosage ? `Dosage ${selectedDosage}. Tap to change.` : 'Select dosage'}
+          >
+            <Text
+              style={[
+                styles.quickAddDropdownText,
+                !selectedDosage && styles.quickAddDropdownPlaceholder,
+              ]}
+              numberOfLines={1}
+            >
+              {selectedDosage || 'Select dosage...'}
+            </Text>
+            <Text style={styles.quickAddDropdownArrow}>{showDosageDropdown ? '▲' : '▼'}</Text>
+          </TouchableOpacity>
+          {showDosageDropdown && (
+            <View style={styles.quickAddDropdownList}>
+              {selectedMed.commonDosages.map((dose) => (
+                <TouchableOpacity
+                  key={dose}
+                  style={styles.quickAddDropdownItem}
+                  onPress={() => {
+                    setSelectedDosage(dose);
+                    setShowDosageDropdown(false);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select dosage ${dose}`}
+                >
+                  <Text style={styles.quickAddDropdownItemText}>{dose}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Time slot chips */}
+      <View style={styles.quickAddSlotRow}>
+        {QUICK_ADD_TIME_SLOTS.map((slot) => {
+          const isSelected = selectedSlot === slot.value;
+          return (
+            <TouchableOpacity
+              key={slot.value}
+              style={[styles.quickAddSlot, isSelected && styles.quickAddSlotSelected]}
+              onPress={() => setSelectedSlot(slot.value)}
+              activeOpacity={0.7}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: isSelected }}
+              accessibilityLabel={slot.label}
+            >
+              <Text
+                style={[
+                  styles.quickAddSlotLabel,
+                  isSelected && styles.quickAddSlotLabelSelected,
+                ]}
+              >
+                {slot.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Submit + Cancel */}
+      <View style={styles.quickAddButtonRow}>
+        <TouchableOpacity
+          style={styles.quickAddCancel}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel quick add"
+        >
+          <Text style={styles.quickAddCancelLabel}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.quickAddSubmit, !canSubmit && styles.quickAddSubmitDisabled]}
+          onPress={handleSubmit}
+          disabled={!canSubmit}
+          accessibilityRole="button"
+          accessibilityLabel="Add medication"
+          accessibilityState={{ disabled: !canSubmit }}
+        >
+          <Text
+            style={[
+              styles.quickAddSubmitLabel,
+              !canSubmit && styles.quickAddSubmitLabelDisabled,
+            ]}
+          >
+            Add
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 export function MedicationsDrawer() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { config, updateMedication } = useCarePlanConfig();
+  const { config, updateMedication, addMedication } = useCarePlanConfig();
   const medications = config?.meds?.medications ?? [];
+  const [quickAddOpen, setQuickAddOpen] = useState<boolean>(false);
+  const [toastVisible, setToastVisible] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string>('');
 
   const handleToggleActive = useCallback(
     async (medId: string, active: boolean) => {
@@ -229,12 +443,40 @@ export function MedicationsDrawer() {
     [updateMedication],
   );
 
+  const handleQuickAdd = useCallback(
+    async (entry: { name: string; dosage: string; timeSlot: TimeOfDay; time: string }) => {
+      try {
+        if (addMedication) {
+          await addMedication({
+            name: entry.name,
+            dosage: entry.dosage,
+            timesOfDay: [entry.timeSlot],
+            customTimes: [entry.time],
+            scheduledTimeHHmm: entry.time,
+            active: true,
+            notificationsEnabled: true,
+          } as Partial<MedicationPlanItem>);
+        }
+        emitDataUpdate(EVENT.MEDICATION);
+        emitDataUpdate(EVENT.CARE_PLAN_ITEMS);
+        emitDataUpdate(EVENT.DAILY_INSTANCES);
+        setToastMessage(`${entry.name} ${entry.dosage} added!`);
+        setToastVisible(true);
+        setTimeout(() => setToastVisible(false), 2500);
+        setQuickAddOpen(false);
+      } catch (err) {
+        Alert.alert('Could not add medication', 'Please try again.');
+      }
+    },
+    [addMedication],
+  );
+
   return (
     <View testID="meds-inline-list" style={styles.list}>
-      {medications.length === 0 ? (
+      {medications.length === 0 && !quickAddOpen ? (
         <TouchableOpacity
           style={styles.addRow}
-          onPress={() => navigate('/medication-form?source=careplan')}
+          onPress={() => setQuickAddOpen(true)}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="No meds added yet. Add medication."
@@ -252,16 +494,30 @@ export function MedicationsDrawer() {
               onRemove={handleRemove}
             />
           ))}
-          <TouchableOpacity
-            style={styles.addRow}
-            onPress={() => navigate('/medication-form?source=careplan')}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Add medication"
-          >
-            <Text style={styles.addCta}>{'+ Add medication'}</Text>
-          </TouchableOpacity>
+          {quickAddOpen ? (
+            <QuickAddInline
+              onSubmit={handleQuickAdd}
+              onClose={() => setQuickAddOpen(false)}
+            />
+          ) : (
+            <TouchableOpacity
+              style={styles.addRow}
+              onPress={() => setQuickAddOpen(true)}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Add medication"
+            >
+              <Text style={styles.addCta}>{'+ Add medication'}</Text>
+            </TouchableOpacity>
+          )}
         </>
+      )}
+
+      {/* Confirmation toast (post-quick-add) */}
+      {toastVisible && (
+        <View style={styles.toast} accessibilityLiveRegion="polite">
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
       )}
     </View>
   );
@@ -379,6 +635,161 @@ const createStyles = (c: any) => StyleSheet.create({
     fontSize: 13,
     color: c.textSecondary,
     flex: 1,
+  },
+
+  // Phase 32A.1 F4 — quick-add inline panel revealed when the user
+  // taps "+ Add medication". Mini-form: med picker + dosage picker
+  // + time-slot chips + submit + cancel + "Full form →" escape.
+  // Reveal-on-tap keeps the drawer compact in the dominant (reading)
+  // case.
+  quickAdd: {
+    marginTop: 4,
+    padding: 12, // allow: tap-target padding (Apple HIG ≥44pt)
+    backgroundColor: c.glassFaint,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+  },
+  quickAddHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: 8,
+  },
+  quickAddTitle: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: c.textTertiary,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase' as const,
+  },
+  quickAddFullFormLink: {
+    fontSize: 12,
+    color: c.accent,
+    fontWeight: '500' as const,
+  },
+  quickAddDropdown: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingVertical: 8,
+    paddingHorizontal: 10, // allow: tap-target padding (Apple HIG ≥44pt)
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    backgroundColor: c.glass,
+  },
+  quickAddDropdownOpen: {
+    borderColor: c.accent,
+  },
+  quickAddDropdownText: {
+    fontSize: 13,
+    color: c.textPrimary,
+    flex: 1,
+  },
+  quickAddDropdownPlaceholder: {
+    color: c.textTertiary,
+  },
+  quickAddDropdownArrow: {
+    fontSize: 10,
+    color: c.textSecondary,
+    marginLeft: 8,
+  },
+  quickAddDropdownList: {
+    maxHeight: 180,
+    marginTop: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    backgroundColor: c.glass,
+  },
+  quickAddDropdownItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 10, // allow: tap-target padding (Apple HIG ≥44pt)
+  },
+  quickAddDropdownItemText: {
+    fontSize: 13,
+    color: c.textPrimary,
+  },
+  quickAddSlotRow: {
+    flexDirection: 'row' as const,
+    gap: 6,
+    marginBottom: 10,
+  },
+  quickAddSlot: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center' as const,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    backgroundColor: c.glass,
+  },
+  quickAddSlotSelected: {
+    borderColor: c.accent,
+    backgroundColor: c.accentDim,
+  },
+  quickAddSlotLabel: {
+    fontSize: 11,
+    color: c.textSecondary,
+  },
+  quickAddSlotLabelSelected: {
+    color: c.accent,
+    fontWeight: '500' as const,
+  },
+  quickAddButtonRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'flex-end' as const,
+    gap: 8,
+  },
+  quickAddCancel: {
+    paddingVertical: 8,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    borderRadius: 6,
+  },
+  quickAddCancelLabel: {
+    fontSize: 13,
+    color: c.textSecondary,
+  },
+  quickAddSubmit: {
+    paddingVertical: 8,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    borderRadius: 6,
+    backgroundColor: c.accent,
+  },
+  quickAddSubmitDisabled: {
+    backgroundColor: c.glassStrong,
+    opacity: 0.6,
+  },
+  quickAddSubmitLabel: {
+    // Phase 26 F4 precedent: near-black for text on sage colored-fill
+    // surface (button accent is sage). Avoids the
+    // noHardcodedWhiteText33 audit and reads cleanly.
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#0a0c0a',
+  },
+  quickAddSubmitLabelDisabled: {
+    color: c.textTertiary,
+  },
+
+  // Confirmation toast — surfaces after a quick-add succeeds. Fades
+  // automatically after 2.5s via setTimeout in the parent.
+  toast: {
+    position: 'absolute' as const,
+    bottom: 16,
+    left: 16,
+    right: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+    backgroundColor: c.accent,
+    borderRadius: 8,
+    alignItems: 'center' as const,
+  },
+  toastText: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#0a0c0a',
   },
 });
 
