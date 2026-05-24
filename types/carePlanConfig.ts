@@ -446,9 +446,15 @@ export const DEFAULT_MEDS_CONFIG: MedsBucketConfig = {
   medications: [],
 };
 
+// Phase 32A F6 — default chip selection bumped from ['bp', 'hr'] to
+// ['bp', 'hr', 'weight'] to match the brief's locked Vitals-drawer
+// default (Blood Pressure / Heart Rate / Weight). New installs surface
+// the brief-locked default; existing installs keep whatever the user
+// configured (the storage migration in F1 only touches the suppressed
+// errands/shifts/self_care buckets — vitalTypes is preserved as-is).
 export const DEFAULT_VITALS_CONFIG: VitalsBucketConfig = {
   ...DEFAULT_BUCKET_CONFIG,
-  vitalTypes: ['bp', 'hr'],
+  vitalTypes: ['bp', 'hr', 'weight'],
   frequency: 'daily',
 };
 
