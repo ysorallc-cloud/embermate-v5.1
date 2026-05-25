@@ -498,8 +498,19 @@ export default function CarePlanHomeScreen() {
           {/* Phase 32A.1 F2 — MedicationsDrawer mount. Gated on
               medsExpanded (F1 locks "always-shown" default true,
               tap-row-to-collapse). Drawer self-manages its data via
-              useCarePlanConfig; no props from this surface. */}
-          {medsExpanded && <MedicationsDrawer editMode={medsEditMode} />}
+              useCarePlanConfig; receives editMode from the lifted
+              parent state (F8) so per-row minus-circles stay in sync
+              with the Edit toggle in the header row.
+              Phase 32A.1 F9 (STOP-C device-walk fix) — wrap the drawer
+              in the SHARED drawerScaffold (same testID convention,
+              same glassFaint ground + 2px sage left-rule) so meds
+              read as one contained drawer like the 7 sibling drawers,
+              not floating cards. */}
+          {medsExpanded && (
+            <View testID="drawer-meds" style={styles.drawerScaffold}>
+              <MedicationsDrawer editMode={medsEditMode} />
+            </View>
+          )}
 
           <SectionEyebrow text="Daily tracking" />
           {DAILY_TRACKING_BUCKETS.map(bucket => {

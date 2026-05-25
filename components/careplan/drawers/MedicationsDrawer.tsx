@@ -565,21 +565,26 @@ export function MedicationsDrawer({ editMode }: MedicationsDrawerProps) {
 }
 
 const createStyles = (c: any) => StyleSheet.create({
+  // Phase 32A.1 F9 — list container. Padding + horizontal margins
+  // dropped; the shared drawerScaffold wrapper in app/care-plan/
+  // index.tsx owns horizontal padding now, so duplicating it here
+  // double-padded the rows.
   list: {
     marginTop: -2,
-    marginBottom: 8,
-    marginHorizontal: 4,
-    paddingHorizontal: 14, // allow: drawer body padding (Apple HIG ≥44pt tap target)
+    marginBottom: 0,
   },
   // Phase 32A.1 F3 — outer container per row. Holds the swipeable
   // foreground + the Remove action revealed behind it. Marked
   // inactive at the outer level so the de-emphasis applies to the
   // whole row (including the Remove zone if it gets revealed for a
   // paused med — rare but possible).
+  // Phase 32A.1 F9 — borderRadius dropped (rows sit flat on scaffold
+  // ground, no rounded-card look). marginBottom:4 gap replaced with
+  // a hairline bottom divider on the inner row block — adjacent rows
+  // share a single divider, and the scaffold's bottom edge swallows
+  // the last row's divider visually.
   rowOuter: {
     position: 'relative' as const,
-    marginBottom: 4,
-    borderRadius: 8,
     overflow: 'hidden' as const,
   },
   rowInactive: {
@@ -614,19 +619,27 @@ const createStyles = (c: any) => StyleSheet.create({
     color: '#0a0c0a',
   },
   // Foreground row — swipeable; PanResponder translateX moves this.
-  // Opaque background so the Remove action stays hidden until swipe.
+  // OPAQUE background is structural, not decorative — without it the
+  // coral Remove action revealed behind the row would bleed through
+  // in the resting state.
+  // Phase 32A.1 F9 — fill matched to the scaffold ground (glassFaint)
+  // so rows visually disappear into the panel until swiped. Rounded
+  // borderRadius dropped (flat rows on the scaffold).
   rowSwipeable: {
-    backgroundColor: c.glass,
-    borderRadius: 8,
+    backgroundColor: c.glassFaint,
   },
+  // Phase 32A.1 F9 — row body. Standalone fill + borderRadius dropped
+  // (rows sit flat on the scaffold ground). Hairline bottom divider
+  // separates adjacent rows; the last row's divider gets visually
+  // swallowed by the scaffold's bottom edge.
   row: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: c.glassFaint,
-    borderRadius: 8,
+    paddingHorizontal: 0,
     gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: c.hairlineInset,
   },
   rowMain: {
     flex: 1,
