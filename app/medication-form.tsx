@@ -268,6 +268,34 @@ export default function MedicationFormScreen() {
   useEffect(() => {
     if (isEditing) {
       loadMedication();
+    } else {
+      // Phase 32A.1 STOP-C fix — RESET state to defaults when isEditing
+      // transitions to false. expo-router reuses the same screen
+      // instance when navigating between /medication-form?id=X (edit)
+      // and /medication-form (add); without this reset, the prior
+      // mount's state lingered and the user saw the previous med's
+      // data in the "Add medication" form. Pre-fix, the effect only
+      // had the if-branch — no path to clear fields on the edit→add
+      // transition. Pinned by medicationFormAddModeAfterEdit32A1.
+      setName('');
+      setDosage('');
+      setSelectedTimeSlot('morning');
+      setCustomTime('8:00 AM');
+      setCustomTimeDisplay('8:00 AM');
+      setNotes('');
+      setDaysSupply('30');
+      setReminderEnabled(true);
+      setReminderTiming('at_time');
+      setReminderCustomMinutes('15');
+      setFollowUpEnabled(false);
+      setFollowUpInterval(30);
+      setScheduleFrequency('daily');
+      setScheduleDaysOfWeek([0, 1, 2, 3, 4, 5, 6]);
+      setScheduleEndCondition('ongoing');
+      setSelectedMedEntry(null);
+      setFormStep(1);
+      setShowMedDropdown(false);
+      setShowDosageDropdown(false);
     }
   }, [medId, isCarePlanSource]);
 
