@@ -26,14 +26,19 @@ interface AddItemSheetProps {
 // Phase 32A F13/F14 \u2014 bucket-config subscreens retired in favor of
 // inline drawers. "Add a vital / wellness check / meal / activity"
 // routes to /care-plan (the home \u2014 user finds the row + expands the
-// drawer). Medication keeps /care-plan/meds (the meds form screen
-// survives per brief).
+// drawer).
+//
+// Phase 32A.1 F7 \u2014 Medication route updated from the retired
+// /care-plan/meds LIST subscreen to /medication-form (the per-med
+// edit/add form, which survives per the 32A.1 brief). User tapping
+// "Add a medication" goes direct to the form \u2014 same as the
+// FirstTimeWelcomeCard CTA for the meds-enabled-zero-meds case.
 const ITEM_TYPES = [
   {
     emoji: '\uD83D\uDC8A',
     label: 'Medication',
     description: 'Track a medication with dosage and schedule',
-    route: '/care-plan/meds',
+    route: '/medication-form',
   },
   {
     emoji: '\uD83D\uDCCA',

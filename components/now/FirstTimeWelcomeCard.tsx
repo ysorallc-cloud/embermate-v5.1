@@ -28,8 +28,11 @@ export interface WelcomeSummary {
   medicationCount: number;
   /**
    * Phase 5.13.4 — whether the meds bucket is enabled in the active config.
-   * Drives CTA branching: only the (enabled, empty) intersection routes to
-   * /care-plan/meds; every other state routes to /care-plan home.
+   * Drives CTA branching: only the (enabled, empty) intersection routes
+   * direct to the med form; every other state routes to /care-plan home.
+   * Phase 32A.1 F7 — direct-to-form route updated from the retired
+   * /care-plan/meds LIST subscreen to /medication-form?source=careplan
+   * (Q-32A.1.4 lock: one tap to add, not two via the drawer).
    */
   medsBucketEnabled: boolean;
 }
@@ -66,7 +69,7 @@ export function FirstTimeWelcomeCard({
   const ctaLabel = shouldRouteToMedsForm
     ? 'Add a medication →'
     : 'Open Care Plan →';
-  const ctaDestination = shouldRouteToMedsForm ? '/care-plan/meds' : '/care-plan';
+  const ctaDestination = shouldRouteToMedsForm ? '/medication-form?source=careplan' : '/care-plan';
   const ctaA11yLabel = shouldRouteToMedsForm ? 'Add a medication' : 'Open Care Plan';
 
   const handlePrimary = useCallback(() => {

@@ -420,7 +420,7 @@ export default function CarePlanHomeScreen() {
           <SectionEyebrow text="Always on" />
           {/* Phase 32A.1 F1 \u2014 Medications row converts from chevron-
               navigate-to-list (which routed to the now-retired
-              /care-plan/meds subscreen) into expand/caret behavior. Tap
+              retired /care-plan/meds subscreen) into expand/caret behavior. Tap
               the row toggles medsExpanded. Caret indicator reflects
               the current state ('\u02C7' down when expanded; '\u203A'
               right when collapsed). Row is OUTSIDE the accordion \u2014

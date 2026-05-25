@@ -43,7 +43,9 @@ function stripComments(s: string): string {
 }
 
 const CARE_PLAN_HOME = join(ROOT, 'app/care-plan/index.tsx');
-const CARE_PLAN_MEDS = join(ROOT, 'app/care-plan/meds.tsx');
+// Phase 32A.1 F7 — CARE_PLAN_MEDS retired. The meds.tsx subscreen is
+// gone; meds list lives inside MedicationsDrawer (covered by the
+// drawerFiles() sweep below).
 const DRAWERS_DIR = join(ROOT, 'components/careplan/drawers');
 
 function drawerFiles(): string[] {
@@ -54,7 +56,6 @@ function drawerFiles(): string[] {
 
 const SURFACES = [
   CARE_PLAN_HOME,
-  CARE_PLAN_MEDS,
   ...drawerFiles(),
 ];
 
@@ -62,7 +63,8 @@ describe('Phase 32A — Priority UI removed (absence pin across Care Plan surfac
   it('contract 1: every in-scope Care Plan UI surface is included in this audit', () => {
     // Pin the surface list so a future drawer file (added without
     // updating this list) doesn't escape the absence check.
-    expect(SURFACES.length).toBeGreaterThanOrEqual(9); // home + meds + 7 drawers
+    // Post-32A.1 F7: home + 8 drawers (7 Slice-B drawers + MedicationsDrawer).
+    expect(SURFACES.length).toBeGreaterThanOrEqual(9); // home + 8 drawers
     // All 7 drawers from Slice B present.
     const drawerNames = drawerFiles().map((f) => f.split('/').pop());
     for (const expected of [

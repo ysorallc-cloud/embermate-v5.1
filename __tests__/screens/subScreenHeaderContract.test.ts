@@ -120,12 +120,10 @@ const targets: Array<{
     title: /title=['"]Care Plan['"]/,
     subtitle: /Set up what to track for/,
   },
-  {
-    rel: 'app/care-plan/meds.tsx',
-    shouldDropCaps: ['MEDICATIONS'],
-    title: /title=['"]Medications['"]/,
-    subtitle: /Set up [\s\S]+daily meds and reminders/,
-  },
+  // Phase 32A.1 F7 — app/care-plan/meds.tsx retired. The Medications
+  // surface moved into the inline MedicationsDrawer on /care-plan
+  // home, which has no SubScreenHeader (drawer chrome owns the
+  // section anchor). Entry retired from the targets list.
   // Phase 10.2 — wellness migrated to CarePlanConfigScreen primitive
   // and no longer consumes SubScreenHeader. Header / subtitle metrics
   // for the new family are pinned in

@@ -133,7 +133,12 @@ describe('Phase 5.13.4 — FirstTimeWelcomeCard CTA branching', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/care-plan');
   });
 
-  it('Aging in Place (meds enabled, 0 medications): renders "Add a medication →" and routes to /care-plan/meds', () => {
+  it('Aging in Place (meds enabled, 0 medications): renders "Add a medication →" and routes to /medication-form?source=careplan (Phase 32A.1 F7 reframe)', () => {
+    // Pre-32A.1 F7: routed to the /care-plan/meds LIST subscreen,
+    // where the user would then tap "+ Add medication" — two taps
+    // total. F7 retired that subscreen and routes the meds-enabled-
+    // zero-meds CTA DIRECTLY to /medication-form?source=careplan per
+    // Q-32A.1.4 lock (one tap to add, not two).
     const tree = FirstTimeWelcomeCard({
       patientName: 'Mom',
       caregiverName: 'Amber',
@@ -150,7 +155,7 @@ describe('Phase 5.13.4 — FirstTimeWelcomeCard CTA branching', () => {
     const cta = findAll(tree, (n) => n.props?.testID === 'first-welcome-cta')[0];
     expect(cta).toBeDefined();
     cta.props.onPress();
-    expect(mockNavigate).toHaveBeenCalledWith('/care-plan/meds');
+    expect(mockNavigate).toHaveBeenCalledWith('/medication-form?source=careplan');
   });
 
   it('Aging in Place (meds enabled, ≥1 medication): renders "Open Care Plan →" and routes to /care-plan', () => {
