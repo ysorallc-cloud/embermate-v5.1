@@ -122,17 +122,23 @@ describe('Phase 32A.1 F9 — meds-drawer containment (drawerScaffold wrap + flat
     expect(row).not.toMatch(/borderRadius\s*:\s*\d/);
   });
 
-  it('contract 5: rowSwipeable keeps an OPAQUE fill matched to the scaffold ground so the coral Remove action stays hidden', () => {
-    // The swipe foreground MUST stay opaque (else the coral Remove
-    // action revealed behind would bleed through the row in its
-    // resting state). Matching it to the scaffold ground (c.glassFaint)
-    // means rows visually disappear into the panel until swiped —
-    // exactly the "contained drawer" read the fix is after.
+  it('contract 5 (F10 reframe): rowSwipeable carries a fill + no borderRadius; opacity-of-fill pinned separately', () => {
+    // F9 originally pinned c.glassFaint here on the premise that
+    // matching the scaffold ground would melt rows into the panel.
+    // The device walk found that pin WAS the bug: glassFaint is
+    // rgba(255, 245, 220, 0.03) — effectively transparent — so the
+    // coral removeAction behind the foreground bled through at rest.
+    // F10 reframes the opacity invariant into its own permanent
+    // guard (carePlanMedsDrawerSwipeRest32A1) that asserts the
+    // resolved color is fully opaque, regardless of token name.
+    //
+    // This contract now pins the lighter F9 truths: the foreground
+    // HAS a backgroundColor (something must occlude the coral) and
+    // has no borderRadius (round-clipping would re-introduce the
+    // card seam against the scaffold).
     const rowSwipeable = styleBlock(DRAWER_STRIPPED, 'rowSwipeable');
     expect(rowSwipeable).not.toBe('');
-    expect(rowSwipeable).toMatch(/backgroundColor\s*:\s*c\.glassFaint/);
-    // No borderRadius on the swipe foreground either — it would
-    // round-clip the row's seam against the scaffold.
+    expect(rowSwipeable).toMatch(/backgroundColor\s*:\s*c\.\w+/);
     expect(rowSwipeable).not.toMatch(/borderRadius\s*:\s*\d/);
   });
 

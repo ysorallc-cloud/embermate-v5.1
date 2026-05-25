@@ -622,11 +622,18 @@ const createStyles = (c: any) => StyleSheet.create({
   // OPAQUE background is structural, not decorative — without it the
   // coral Remove action revealed behind the row would bleed through
   // in the resting state.
-  // Phase 32A.1 F9 — fill matched to the scaffold ground (glassFaint)
-  // so rows visually disappear into the panel until swiped. Rounded
-  // borderRadius dropped (flat rows on the scaffold).
+  // Phase 32A.1 F10 (STOP-C device-walk regression fix) — F9 used
+  // c.glassFaint to match the scaffold ground, but glassFaint is
+  // rgba(255, 245, 220, 0.03) (3% alpha) — effectively transparent,
+  // so the coral Remove action bled through at rest. c.bgRaised
+  // (#221d18, theme-tokens.ts:377) is the right token: fully OPAQUE
+  // so it occludes the coral, AND within one L* step of the
+  // scaffold's rendered ground (page #1a1612 + glassFaint composites
+  // to ~#211d18) so rows still melt into the panel — no card look
+  // returns. Pinned by carePlanMedsDrawerSwipeRest32A1 as a
+  // permanent guard against future translucent fills.
   rowSwipeable: {
-    backgroundColor: c.glassFaint,
+    backgroundColor: c.bgRaised,
   },
   // Phase 32A.1 F9 — row body. Standalone fill + borderRadius dropped
   // (rows sit flat on the scaffold ground). Hairline bottom divider
