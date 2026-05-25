@@ -436,18 +436,21 @@ function QuickAddInline({ onSubmit, onClose }: QuickAddInlineProps) {
   );
 }
 
-export function MedicationsDrawer() {
+interface MedicationsDrawerProps {
+  // Phase 32A.1 F8 — editMode LIFTED from drawer-local state up to
+  // app/care-plan/index.tsx (the meds header row owns the Edit toggle
+  // now). Drawer just reads the prop and threads it to MedRow so each
+  // row's leading minus-circle stays in sync with the header toggle.
+  editMode: boolean;
+}
+
+export function MedicationsDrawer({ editMode }: MedicationsDrawerProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { config, updateMedication, addMedication } = useCarePlanConfig();
   const medications = config?.meds?.medications ?? [];
   const [quickAddOpen, setQuickAddOpen] = useState<boolean>(false);
   const [toastVisible, setToastVisible] = useState<boolean>(false);
-  // Phase 32A.1 F6 — Edit-mode state. Default false (drawer reads as
-  // a normal list). Tap "Edit" → editMode=true → each row reveals a
-  // leading minus-circle. iOS list pattern, discoverable entry point
-  // for the remove flow F3 built behind the swipe gesture.
-  const [editMode, setEditMode] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>('');
 
   const handleToggleActive = useCallback(
@@ -503,25 +506,13 @@ export function MedicationsDrawer() {
 
   return (
     <View testID="meds-inline-list" style={styles.list}>
-      {/* Phase 32A.1 F6 — Edit / Done toggle. Discoverable entry point
-          for the remove flow that lived behind F3's swipe gesture.
-          Hidden when there's nothing to edit (zero meds + quick-add
-          closed) to avoid an orphan affordance on the empty state. */}
-      {medications.length > 0 && (
-        <View style={styles.editToggleRow}>
-          <TouchableOpacity
-            style={styles.editToggle}
-            onPress={() => setEditMode((v) => !v)}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel={editMode ? 'Done editing medications' : 'Edit medications'}
-            accessibilityState={{ selected: editMode }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={styles.editToggleLabel}>{editMode ? 'Done' : 'Edit'}</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* Phase 32A.1 F8 — Edit / Done toggle moved to the meds header
+          row in app/care-plan/index.tsx (right-aligned, same line as
+          the caret). The drawer reads editMode from props and threads
+          it to each MedRow for the leading minus-circle. Visual fix:
+          the in-drawer Edit row created a gap between header and list
+          that read as two zones; the new placement keeps meds tucked
+          directly under the header as one contained unit. */}
       {medications.length === 0 && !quickAddOpen ? (
         <TouchableOpacity
           style={styles.addRow}
@@ -687,25 +678,11 @@ const createStyles = (c: any) => StyleSheet.create({
     flex: 1,
   },
 
-  // Phase 32A.1 F6 — Edit / Done toggle at the top of the drawer.
-  // Right-aligned per iOS list convention. Subtle sage text — reads
-  // as "action available" without dominating the drawer chrome.
-  editToggleRow: {
-    flexDirection: 'row' as const,
-    justifyContent: 'flex-end' as const,
-    paddingVertical: 4,
-    paddingHorizontal: 4,
-    marginBottom: 4,
-  },
-  editToggle: {
-    paddingVertical: 6,
-    paddingHorizontal: 10, // allow: tap-target padding (Apple HIG ≥44pt with hitSlop)
-  },
-  editToggleLabel: {
-    fontSize: 13,
-    fontWeight: '500' as const,
-    color: c.accent,
-  },
+  // Phase 32A.1 F8 — Edit / Done toggle styles retired from the
+  // drawer (moved to app/care-plan/index.tsx where the header row
+  // owns the toggle now). The minus-circle styles below stay — each
+  // row still renders the leading remove control when editMode prop
+  // is true; only the Edit toggle moved.
   // Phase 32A.1 F6 — leading minus-circle revealed on each row when
   // editMode is true. iOS-style coral circle with a minus glyph.
   // Sized for the ≥44pt tap target via hitSlop on the TouchableOpacity.

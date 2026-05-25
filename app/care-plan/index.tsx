@@ -233,6 +233,16 @@ export default function CarePlanHomeScreen() {
   // Default open (always-shown semantic — caregiver sees their meds
   // immediately on opening Care Plan).
   const [medsExpanded, setMedsExpanded] = useState<boolean>(true);
+  // Phase 32A.1 F8 — Edit-mode state for the meds drawer LIFTS up here
+  // from MedicationsDrawer (where F6 placed it). The Edit/Done toggle
+  // moves into the meds HEADER row (right-aligned next to the caret)
+  // instead of sitting on its own row above the list — the in-drawer
+  // row created a visual gap that read as two zones. Visual-only fix;
+  // behavior unchanged (still toggles MedRow's leading minus-circle,
+  // still shares the F3 soft-delete Alert flow). State lifts because
+  // the toggle now lives in a sibling component (this file) that owns
+  // the header row.
+  const [medsEditMode, setMedsEditMode] = useState<boolean>(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const enabledBucketSet = new Set(enabledBuckets);
@@ -425,34 +435,71 @@ export default function CarePlanHomeScreen() {
               the current state ('\u02C7' down when expanded; '\u203A'
               right when collapsed). Row is OUTSIDE the accordion \u2014
               setMedsExpanded never touches expandedBucket. */}
-          {ALWAYS_ON_BUCKETS.map(bucket => (
-            <TouchableOpacity
-              key={bucket}
-              style={styles.coreCard}
-              onPress={handleToggleMedsExpanded}
-              activeOpacity={0.7}
-              accessibilityLabel={`${BUCKET_META[bucket].name}. ${medsExpanded ? 'Tap to collapse.' : 'Tap to expand.'}`}
-              accessibilityRole="button"
-              accessibilityState={{ expanded: medsExpanded }}
-            >
-              <Text style={styles.categoryEmoji}>{BUCKET_META[bucket].emoji}</Text>
-              <View style={styles.categoryInfo}>
-                <Text style={styles.categoryName}>{BUCKET_META[bucket].name}</Text>
-                {getBucketStatus(bucket) && (
-                  <Text style={styles.categoryDetail}>{getBucketStatus(bucket)}</Text>
+          {ALWAYS_ON_BUCKETS.map(bucket => {
+            // Phase 32A.1 F8 - Edit/Done toggle visibility gated on
+            // (medsExpanded && there's at least one med). No meds ->
+            // nothing to edit; collapsed drawer -> toggle hidden so
+            // the row reads as a clean expand affordance.
+            const medsCount = config?.meds?.medications?.length ?? 0;
+            const showEditToggle = medsExpanded && medsCount > 0;
+            return (
+              <View key={bucket} style={styles.coreCard}>
+                {/* Main tap area: emoji + name + status. Tapping this
+                    or the chevron toggles medsExpanded. Edit lives as
+                    a sibling touch zone between them (right-aligned,
+                    same line as caret per the STOP-C visual fix). */}
+                <TouchableOpacity
+                  style={styles.coreCardMain}
+                  onPress={handleToggleMedsExpanded}
+                  activeOpacity={0.7}
+                  accessibilityLabel={`${BUCKET_META[bucket].name}. ${medsExpanded ? 'Tap to collapse.' : 'Tap to expand.'}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: medsExpanded }}
+                >
+                  <Text style={styles.categoryEmoji}>{BUCKET_META[bucket].emoji}</Text>
+                  <View style={styles.categoryInfo}>
+                    <Text style={styles.categoryName}>{BUCKET_META[bucket].name}</Text>
+                    {getBucketStatus(bucket) && (
+                      <Text style={styles.categoryDetail}>{getBucketStatus(bucket)}</Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+                {showEditToggle && (
+                  <TouchableOpacity
+                    style={styles.medsHeaderEditToggle}
+                    onPress={() => setMedsEditMode((v) => !v)}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={medsEditMode ? 'Done editing medications' : 'Edit medications'}
+                    accessibilityState={{ selected: medsEditMode }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={styles.medsHeaderEditLabel}>
+                      {medsEditMode ? 'Done' : 'Edit'}
+                    </Text>
+                  </TouchableOpacity>
                 )}
+                <TouchableOpacity
+                  style={styles.coreCardChevron}
+                  onPress={handleToggleMedsExpanded}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={medsExpanded ? 'Collapse Medications' : 'Expand Medications'}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.categoryChevron}>
+                    {medsExpanded ? '\u02C7' : '\u203A'}
+                  </Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.categoryChevron}>
-                {medsExpanded ? '\u02C7' : '\u203A'}
-              </Text>
-            </TouchableOpacity>
-          ))}
+            );
+          })}
 
           {/* Phase 32A.1 F2 — MedicationsDrawer mount. Gated on
               medsExpanded (F1 locks "always-shown" default true,
               tap-row-to-collapse). Drawer self-manages its data via
               useCarePlanConfig; no props from this surface. */}
-          {medsExpanded && <MedicationsDrawer />}
+          {medsExpanded && <MedicationsDrawer editMode={medsEditMode} />}
 
           <SectionEyebrow text="Daily tracking" />
           {DAILY_TRACKING_BUCKETS.map(bucket => {
@@ -659,6 +706,31 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     padding: 14,
     marginBottom: 6,
     gap: 12,
+  },
+  // Phase 32A.1 F8 - sub-zones for the meds header row. Splitting the
+  // single-TouchableOpacity row into three touch zones so the Edit
+  // toggle can sit inline (right-aligned, sibling to the caret)
+  // without nesting touchables. The main zone holds emoji + name,
+  // the chevron zone wraps the caret with a larger tap area, and the
+  // Edit toggle slots between them when meds exist.
+  coreCardMain: {
+    flex: 1,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 12,
+  },
+  coreCardChevron: {
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
+  medsHeaderEditToggle: {
+    paddingHorizontal: 8,
+    paddingVertical: 4, // allow: tap-target padding (Apple HIG ≥44pt with hitSlop)
+  },
+  medsHeaderEditLabel: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: c.accent,
   },
   // Category Row
   categoryRow: {

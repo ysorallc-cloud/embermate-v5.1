@@ -14,16 +14,21 @@
 // Rationale: audience skews older / less app-fluent / stressed.
 // Hidden gestures fail them. Edit/Done is the familiar iOS pattern.
 //
-// Implementation invariants:
-//   1. New `editMode` state on MedicationsDrawer, default false.
-//   2. Visible "Edit" toggle at the top of the drawer body.
-//      Tapping flips editMode; label becomes "Done" in edit mode.
-//   3. When editMode is true, each med row renders a remove control
-//      (iOS-style minus circle on the leading edge).
-//   4. Tapping the remove control opens the SAME Alert flow F3 wired
-//      up — same copy, same Cancel + Remove buttons, same soft-delete
-//      write. NO new write path; the existing handleRemove fires.
-//   5. The F3 swipe gesture is UNCHANGED — power-user shortcut stays.
+// F8 REFRAME (STOP-C visual fix):
+//   The Edit / Done toggle MOVED out of the drawer body into the meds
+//   header row in app/care-plan/index.tsx — the in-drawer Edit row
+//   created a visual gap between header and list that read as two
+//   zones. The state lifted with it. Behavior is unchanged; only
+//   where the toggle lives changed. The F8 test
+//   (carePlanMedsEditInHeader32A1.test.tsx) owns the new architectural
+//   pins (state in home, toggle in header row, prop drilling to drawer).
+//   The contracts below were updated to:
+//     • Drop the drawer-local state pin (now in home; F8 owns it).
+//     • Drop the drawer-side toggle render pin (now in home; F8 owns it).
+//     • Drop the drawer-side accessibility-label pin (now in home; F8).
+//     • Keep the contracts that survive the lift unchanged — drawer
+//       receives editMode as a prop, MedRow uses it, single soft-
+//       delete site, swipe untouched, no removeMedication.
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -46,18 +51,23 @@ describe('Phase 32A.1 F6 — discoverable Edit-mode (iOS list pattern)', () => {
   // State + Edit/Done toggle
   // --------------------------------------------------------------------------
 
-  it('contract 1: drawer declares an editMode boolean state, default false', () => {
-    expect(STRIPPED).toMatch(/const\s*\[\s*editMode\s*,\s*setEditMode\s*\]\s*=\s*useState[<(]?[\w]*[>]?\(\s*false\s*\)/);
+  it('contract 1 (F8 reframe): editMode is OWNED by app/care-plan/index.tsx, NOT drawer-local', () => {
+    // Pre-F8: pinned drawer-local `useState(false)` for editMode.
+    // Post-F8: state lifted to the meds header row's parent (the
+    // home screen). Drawer reads it as a prop instead. Pin absence
+    // in drawer + presence in home — full state-shape pin lives in
+    // carePlanMedsEditInHeader32A1.test.tsx contract 1.
+    expect(STRIPPED).not.toMatch(/const\s*\[\s*editMode\s*,\s*setEditMode\s*\]\s*=\s*useState/);
   });
 
-  it('contract 2: drawer renders an Edit/Done toggle at the top of the body', () => {
-    // The toggle button text flips on editMode. Both "Edit" and "Done"
-    // labels must be present in source as conditional values.
-    expect(STRIPPED).toMatch(/['"`]Edit['"`]/);
-    expect(STRIPPED).toMatch(/['"`]Done['"`]/);
-    // The toggle calls setEditMode (either as `setEditMode(!editMode)`
-    // or via a wrapping handler).
-    expect(STRIPPED).toMatch(/setEditMode\b/);
+  it('contract 2 (F8 reframe): drawer accepts editMode as a prop (no internal toggle render)', () => {
+    // Pre-F8: pinned `Edit` / `Done` text in the drawer body.
+    // Post-F8: the toggle moved to the meds header row in
+    // app/care-plan/index.tsx (right-aligned, same line as the
+    // caret). Drawer just consumes the prop. Full toggle-render
+    // pin lives in carePlanMedsEditInHeader32A1.test.tsx contract 5.
+    expect(STRIPPED).toMatch(/editMode\s*:\s*boolean/);
+    expect(STRIPPED).not.toMatch(/setEditMode\b/);
   });
 
   // --------------------------------------------------------------------------
@@ -107,9 +117,18 @@ describe('Phase 32A.1 F6 — discoverable Edit-mode (iOS list pattern)', () => {
   // Accessibility
   // --------------------------------------------------------------------------
 
-  it('contract 7: Edit toggle button has accessibilityRole + accessibilityLabel', () => {
-    // Pin the role + label so the toggle isn't a touchable-without-role
-    // baseline regression.
-    expect(STRIPPED).toMatch(/accessibilityLabel=[^>]*Edit|accessibilityLabel=[^>]*Done/);
+  it('contract 7 (F8 reframe): Edit toggle a11y label moved to the header row in app/care-plan/index.tsx', () => {
+    // Pre-F8: the toggle's accessibilityLabel lived in the drawer.
+    // Post-F8: it lives in the home screen header row. The drawer no
+    // longer renders that toggle — the only Edit/Done labels remain
+    // on the per-row MedRow's minus-circle (its accessibilityLabel
+    // reads "Remove {med.name}", different copy). Pin the new
+    // location instead of the old.
+    const INDEX_SRC = readFileSync(
+      join(ROOT, 'app/care-plan/index.tsx'),
+      'utf8',
+    );
+    const INDEX_STRIPPED = stripComments(INDEX_SRC);
+    expect(INDEX_STRIPPED).toMatch(/accessibilityLabel=\{medsEditMode\s*\?\s*['"][^'"]*Done[^'"]*['"]\s*:\s*['"][^'"]*Edit[^'"]*['"]\}/);
   });
 });
