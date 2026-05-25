@@ -82,9 +82,15 @@ interface MedRowProps {
   med: MedicationPlanItem;
   onToggleActive: (medId: string, active: boolean) => void;
   onRemove: (med: MedicationPlanItem) => void;
+  // Phase 32A.1 F6 — when editMode is true, the row renders a
+  // leading remove-control (iOS-style minus circle). Tapping it
+  // fires the SAME Alert + soft-delete flow the swipe-revealed
+  // Remove button uses. Edit mode is the discoverable entry point;
+  // swipe is the power-user shortcut underneath.
+  editMode: boolean;
 }
 
-function MedRow({ med, onToggleActive, onRemove }: MedRowProps) {
+function MedRow({ med, onToggleActive, onRemove, editMode }: MedRowProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const tods = (med.timesOfDay ?? [])
@@ -172,6 +178,25 @@ function MedRow({ med, onToggleActive, onRemove }: MedRowProps) {
         {...panResponder.panHandlers}
       >
         <View style={styles.row}>
+          {/* Phase 32A.1 F6 — discoverable Edit-mode minus-circle.
+              Renders ONLY when editMode is true. Tap fires the same
+              handleRemovePress that the swipe-revealed Remove button
+              uses — single soft-delete path, no duplicated write.
+              iOS-style minus circle on the leading edge per the
+              user-locked "iOS list pattern" rationale (audience
+              skews older / less app-fluent; hidden gestures fail). */}
+          {editMode && (
+            <TouchableOpacity
+              style={styles.editMinus}
+              onPress={handleRemovePress}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${med.name}`}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.editMinusGlyph}>−</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={styles.rowMain}
             onPress={() => {
@@ -418,6 +443,11 @@ export function MedicationsDrawer() {
   const medications = config?.meds?.medications ?? [];
   const [quickAddOpen, setQuickAddOpen] = useState<boolean>(false);
   const [toastVisible, setToastVisible] = useState<boolean>(false);
+  // Phase 32A.1 F6 — Edit-mode state. Default false (drawer reads as
+  // a normal list). Tap "Edit" → editMode=true → each row reveals a
+  // leading minus-circle. iOS list pattern, discoverable entry point
+  // for the remove flow F3 built behind the swipe gesture.
+  const [editMode, setEditMode] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>('');
 
   const handleToggleActive = useCallback(
@@ -473,6 +503,25 @@ export function MedicationsDrawer() {
 
   return (
     <View testID="meds-inline-list" style={styles.list}>
+      {/* Phase 32A.1 F6 — Edit / Done toggle. Discoverable entry point
+          for the remove flow that lived behind F3's swipe gesture.
+          Hidden when there's nothing to edit (zero meds + quick-add
+          closed) to avoid an orphan affordance on the empty state. */}
+      {medications.length > 0 && (
+        <View style={styles.editToggleRow}>
+          <TouchableOpacity
+            style={styles.editToggle}
+            onPress={() => setEditMode((v) => !v)}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={editMode ? 'Done editing medications' : 'Edit medications'}
+            accessibilityState={{ selected: editMode }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.editToggleLabel}>{editMode ? 'Done' : 'Edit'}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       {medications.length === 0 && !quickAddOpen ? (
         <TouchableOpacity
           style={styles.addRow}
@@ -492,6 +541,7 @@ export function MedicationsDrawer() {
               med={med}
               onToggleActive={handleToggleActive}
               onRemove={handleRemove}
+              editMode={editMode}
             />
           ))}
           {quickAddOpen ? (
@@ -635,6 +685,47 @@ const createStyles = (c: any) => StyleSheet.create({
     fontSize: 13,
     color: c.textSecondary,
     flex: 1,
+  },
+
+  // Phase 32A.1 F6 — Edit / Done toggle at the top of the drawer.
+  // Right-aligned per iOS list convention. Subtle sage text — reads
+  // as "action available" without dominating the drawer chrome.
+  editToggleRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'flex-end' as const,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    marginBottom: 4,
+  },
+  editToggle: {
+    paddingVertical: 6,
+    paddingHorizontal: 10, // allow: tap-target padding (Apple HIG ≥44pt with hitSlop)
+  },
+  editToggleLabel: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: c.accent,
+  },
+  // Phase 32A.1 F6 — leading minus-circle revealed on each row when
+  // editMode is true. iOS-style coral circle with a minus glyph.
+  // Sized for the ≥44pt tap target via hitSlop on the TouchableOpacity.
+  editMinus: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: c.criticalAlert ?? c.error ?? '#e6776e',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginRight: 4,
+  },
+  editMinusGlyph: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    // Phase 26 F4 precedent — near-black text on coral fill avoids
+    // the noHardcodedWhiteText33 audit (same rule as the swipe-
+    // revealed Remove label).
+    color: '#0a0c0a',
+    lineHeight: 20,
   },
 
   // Phase 32A.1 F4 — quick-add inline panel revealed when the user
