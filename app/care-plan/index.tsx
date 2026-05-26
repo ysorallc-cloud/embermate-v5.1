@@ -172,10 +172,17 @@ function CategoryRow({ bucket, name, detail, enabled, onToggle, onPress }: Categ
       </View>
       {/* Right: toggle + chevron — fixed width column */}
       <View style={styles.categoryRight}>
+        {/* Phase 33 F3 — muted toggle ON state. trackColor.true was
+            colors.accent (saturated sage #5fb88a, loud against the
+            cream-on-warm-charcoal palette when 5 rows light up at
+            once); now colors.accentMuted (same sage at 50% alpha)
+            so ON reads quiet but clearly sage. ON thumb / OFF track
+            / OFF thumb / iOS background all unchanged — single
+            token swap. Behavior unchanged (visual only). */}
         <Switch
           value={enabled}
           onValueChange={onToggle}
-          trackColor={{ false: colors.glassStrong, true: colors.accent }}
+          trackColor={{ false: colors.glassStrong, true: colors.accentMuted }}
           thumbColor={enabled ? colors.textPrimary : colors.switchThumbOff}
           ios_backgroundColor={colors.glassStrong}
         />
