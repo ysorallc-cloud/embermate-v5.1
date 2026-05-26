@@ -21,6 +21,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
+import { useWellnessSettings } from '../../hooks/useWellnessSettings';
+import { getWellnessCadenceText } from '../../utils/wellnessCadenceText';
 import {
   BucketType,
   BucketConfig,
@@ -254,6 +256,23 @@ export default function CarePlanHomeScreen() {
     getBucketStatus,
     initializeConfig,
   } = useCarePlanConfig();
+  // Phase 33 F4 — wellness cadence subtitle reads from the P5 bridge
+  // store (not CarePlanConfig). Hook is the canonical reader; the
+  // helper getWellnessCadenceText composes its return into a single-
+  // line subtitle for the wellness row.
+  const { settings: wellnessSettings } = useWellnessSettings();
+
+  // Phase 33 F4 — single source of truth for "what subtitle does
+  // this row show?" Wellness routes through the cadence helper
+  // because its config lives in the wellness store (P5 bridge);
+  // every other bucket falls through to getBucketStatus which
+  // reads CarePlanConfig directly.
+  const getBucketDetail = useCallback((bucket: BucketType): string | null => {
+    if (bucket === 'wellness') {
+      return getWellnessCadenceText(wellnessSettings);
+    }
+    return getBucketStatus(bucket);
+  }, [wellnessSettings, getBucketStatus]);
 
   const [dismissedInsights, setDismissedInsights] = useState<string[]>([]);
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -500,8 +519,8 @@ export default function CarePlanHomeScreen() {
                   </View>
                   <View style={styles.categoryInfo}>
                     <Text style={styles.categoryName}>{BUCKET_META[bucket].name}</Text>
-                    {getBucketStatus(bucket) && (
-                      <Text style={styles.categoryDetail}>{getBucketStatus(bucket)}</Text>
+                    {getBucketDetail(bucket) && (
+                      <Text style={styles.categoryDetail}>{getBucketDetail(bucket)}</Text>
                     )}
                   </View>
                 </TouchableOpacity>
@@ -564,7 +583,7 @@ export default function CarePlanHomeScreen() {
                 <CategoryRow
                   bucket={bucket}
                   name={BUCKET_META[bucket].name}
-                  detail={isEnabled ? getBucketStatus(bucket) : null}
+                  detail={isEnabled ? getBucketDetail(bucket) : null}
                   enabled={isEnabled}
                   onToggle={(val) => handleToggleBucket(bucket, val)}
                   onPress={() => handleConfigureBucket(bucket)}
@@ -606,7 +625,7 @@ export default function CarePlanHomeScreen() {
                 <CategoryRow
                   bucket={bucket}
                   name={BUCKET_META[bucket].name}
-                  detail={isEnabled ? getBucketStatus(bucket) : null}
+                  detail={isEnabled ? getBucketDetail(bucket) : null}
                   enabled={isEnabled}
                   onToggle={(val) => handleToggleBucket(bucket, val)}
                   onPress={() => handleConfigureBucket(bucket)}
