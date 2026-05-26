@@ -175,7 +175,18 @@ describe('Phase 32A F7 — Wellness drawer (source + render + round-trip)', () =
   // Render — drawer mounts and surfaces enough chips for both periods
   // ----------------------------------------------------------------------
 
-  it('contract 6: renders at least 14 checkbox chips total (morning + evening fields)', async () => {
+  it('contract 6 (Phase 33 F7 reframe): renders the CORE chip set (clinical OPTIONAL fields hidden)', async () => {
+    // Pre-F7: pinned ≥14 field chips (3 morning core + 2 morning
+    // optional + 4 evening core + 5 evening optional). Phase 33 F7
+    // v1-hides both OPTIONAL sets — clinical features (Orientation,
+    // Decision making, Pain level, Alertness, Bowel movement,
+    // Bathing, Mobility) are RENDER-FILTERED for v1, not deleted.
+    // Constants stay in source; storage values for any pre-existing
+    // selections survive untouched (F7 contract 4 pins that).
+    //
+    // The v1-visible field set is morning CORE (3) + evening CORE (4)
+    // = 7 field chips. Plus the 2 period-toggle chips at the top
+    // (Morning / Evening) → ≥7 floor accepts both shapes.
     await import('../../utils/safeStorage').then(({ safeSetItem }) =>
       safeSetItem(StorageKeys.WELLNESS_SETTINGS, DEFAULT_WELLNESS_SETTINGS),
     );
@@ -187,46 +198,66 @@ describe('Phase 32A F7 — Wellness drawer (source + render + round-trip)', () =
     await flush();
 
     const chips = findChips(tree);
-    // 14 field chips minimum. Brief allows the period-toggle chips
-    // (Morning / Evening) on top, so ≥14 is the floor.
-    expect(chips.length).toBeGreaterThanOrEqual(14);
+    expect(chips.length).toBeGreaterThanOrEqual(7);
   });
 
   // ----------------------------------------------------------------------
   // Round-trip — the bridge actually persists changes (P5 lock)
   // ----------------------------------------------------------------------
 
-  it('contract 7 (ROUND-TRIP — P5 lock): tapping an evening OPTIONAL chip writes to @embermate_wellness_settings; reload sees the new value', async () => {
-    // Seed defaults: painLevel optional is false.
+  it('contract 7 (ROUND-TRIP — P5 lock, Phase 33 F7 reframe): tapping an evening CORE chip writes to @embermate_wellness_settings; reload sees the new value', async () => {
+    // Pre-F7: tapped the "Pain level" chip (an OPTIONAL field) and
+    // asserted optionalChecks.painLevel persisted. Phase 33 F7 v1-
+    // hides Pain level (clinical-tier option). The P5 bridge is the
+    // invariant — not the specific chip tapped — so the round-trip
+    // target moves to a v1-visible CORE chip ("Day rating", key
+    // 'dayRating'). CORE chips write to cfg.checks (string[]), not
+    // cfg.optionalChecks; assertion shape updates accordingly.
+    //
+    // The optionalChecks data-preservation guarantee (an F7 lock —
+    // stored values for hidden keys survive untouched) is pinned in
+    // wellnessDrawerDeclutter33F7.test.tsx contract 4; this file
+    // covers the storage round-trip in general.
     const { safeSetItem, safeGetItem } = await import('../../utils/safeStorage');
-    await safeSetItem(StorageKeys.WELLNESS_SETTINGS, DEFAULT_WELLNESS_SETTINGS);
+    // DEFAULT_WELLNESS_SETTINGS pre-selects evening.checks =
+    // ['mood', 'meals', 'dayRating', 'notes']. Seed a version with
+    // 'dayRating' DROPPED so the chip tap adds it — verifies the
+    // toggle-on write path through the bridge, which is the P5
+    // round-trip the contract pins.
+    const seed: WellnessSettings = {
+      ...DEFAULT_WELLNESS_SETTINGS,
+      evening: {
+        ...DEFAULT_WELLNESS_SETTINGS.evening,
+        checks: DEFAULT_WELLNESS_SETTINGS.evening.checks.filter((k) => k !== 'dayRating'),
+      },
+    };
+    await safeSetItem(StorageKeys.WELLNESS_SETTINGS, seed);
 
-    // First mount — find the "Pain level" chip and tap it.
     let tree!: TestRenderer.ReactTestRenderer;
     await act(async () => {
       tree = TestRenderer.create(React.createElement(WellnessDrawer));
     });
     await flush();
 
-    const painChip = findAll(tree.root, (n: any) =>
+    const dayRatingChip = findAll(tree.root, (n: any) =>
       n.type === 'TouchableOpacity' &&
       typeof n.props?.accessibilityLabel === 'string' &&
-      /pain level/i.test(n.props.accessibilityLabel),
+      /day rating/i.test(n.props.accessibilityLabel),
     )[0];
-    expect(painChip).toBeDefined();
+    expect(dayRatingChip).toBeDefined();
 
     await act(async () => {
-      await painChip.props.onPress();
+      await dayRatingChip.props.onPress();
     });
     await flush();
 
-    // Storage now reflects painLevel = true.
+    // Storage now reflects dayRating ∈ evening.checks.
     const persisted = await safeGetItem<WellnessSettings | null>(
       StorageKeys.WELLNESS_SETTINGS,
       null,
     );
     expect(persisted).not.toBeNull();
-    expect(persisted!.evening.optionalChecks.painLevel).toBe(true);
+    expect(persisted!.evening.checks).toContain('dayRating');
 
     // Second mount (simulating app reload) — chip state reflects the
     // persisted value.
@@ -236,13 +267,13 @@ describe('Phase 32A F7 — Wellness drawer (source + render + round-trip)', () =
     });
     await flush();
 
-    const painChip2 = findAll(tree2.root, (n: any) =>
+    const dayRatingChip2 = findAll(tree2.root, (n: any) =>
       n.type === 'TouchableOpacity' &&
       typeof n.props?.accessibilityLabel === 'string' &&
-      /pain level/i.test(n.props.accessibilityLabel),
+      /day rating/i.test(n.props.accessibilityLabel),
     )[0];
-    expect(painChip2).toBeDefined();
-    expect(painChip2.props.accessibilityState?.checked).toBe(true);
+    expect(dayRatingChip2).toBeDefined();
+    expect(dayRatingChip2.props.accessibilityState?.checked).toBe(true);
   });
 
   it('contract 8 (ROUND-TRIP — reminder toggle persists too)', async () => {

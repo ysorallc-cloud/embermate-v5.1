@@ -191,7 +191,13 @@ export function WellnessDrawer() {
       <Text style={styles.label}>MORNING · TRACK</Text>
       <View style={styles.chipRow}>
         {MORNING_CORE.map((f) => renderChip('morning', f, true))}
-        {MORNING_OPTIONAL.map((f) => renderChip('morning', f, false))}
+        {/* Phase 33 F7 — MORNING_OPTIONAL (Orientation, Decision making)
+            v1-hidden as part of the "hide clinical features for v1"
+            backlog deferral. Render line removed; the FieldDef const
+            stays declared above so stored selections in
+            optionalChecks survive untouched (presentation-layer
+            hide, never data deletion). v1.1 unhide = restore one
+            JSX line. */}
       </View>
       <View style={styles.row}>
         <View style={styles.rowLabelBlock}>
@@ -200,7 +206,7 @@ export function WellnessDrawer() {
         <Switch
           value={settings.morning.reminderEnabled}
           onValueChange={(v) => toggleReminder('morning', v)}
-          trackColor={{ false: colors.glassStrong, true: colors.accent }}
+          trackColor={{ false: colors.glassStrong, true: colors.accentMuted }}
           thumbColor={settings.morning.reminderEnabled ? colors.textPrimary : colors.switchThumbOff}
           ios_backgroundColor={colors.glassStrong}
           accessibilityLabel="Morning reminder"
@@ -213,7 +219,12 @@ export function WellnessDrawer() {
       <Text style={styles.label}>EVENING · TRACK</Text>
       <View style={styles.chipRow}>
         {EVENING_CORE.map((f) => renderChip('evening', f, true))}
-        {EVENING_OPTIONAL.map((f) => renderChip('evening', f, false))}
+        {/* Phase 33 F7 — EVENING_OPTIONAL (Pain level, Alertness, Bowel
+            movement, Bathing, Mobility) v1-hidden — clinical-tier
+            options deferred to a future version per the "hide clinical
+            features for v1" backlog. Const declaration above is
+            preserved; storage selections in optionalChecks for any
+            pre-F7 caregiver survive untouched. */}
       </View>
       <View style={styles.row}>
         <View style={styles.rowLabelBlock}>
@@ -222,7 +233,7 @@ export function WellnessDrawer() {
         <Switch
           value={settings.evening.reminderEnabled}
           onValueChange={(v) => toggleReminder('evening', v)}
-          trackColor={{ false: colors.glassStrong, true: colors.accent }}
+          trackColor={{ false: colors.glassStrong, true: colors.accentMuted }}
           thumbColor={settings.evening.reminderEnabled ? colors.textPrimary : colors.switchThumbOff}
           ios_backgroundColor={colors.glassStrong}
           accessibilityLabel="Evening reminder"
@@ -250,24 +261,32 @@ const createStyles = (c: any) => StyleSheet.create({
     flexWrap: 'wrap' as const,
     marginBottom: 8,
   },
+  // Phase 33 F7 — chip restyle (style A, user-locked).
+  //   Selected   = soft-sage fill, no border, light cream text.
+  //   Unselected = text only — no fill, no border, muted text.
+  // Replaces the pre-F7 every-chip-outlined look that read as a row
+  // of equally-weighted cards regardless of state. The selected
+  // state now carries the visual weight; unselected recedes.
   chip: {
     paddingVertical: 8,
     paddingHorizontal: 14, // allow: chip horizontal padding (Apple HIG ≥44pt tap target)
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: c.glassBorder,
-    backgroundColor: c.glassFaint,
   },
+  // The selected fill is a literal because the canonical sage in
+  // theme-tokens.ts is rgba(95,184,138,_); user spec is rgba(127,
+  // 184,138,0.16) — a deliberately warmer shade chosen for this
+  // surface. Inline rather than adding a one-off token until the
+  // value settles across more chip surfaces (Phase 33 may eventually
+  // canonicalize it).
   chipSelected: {
-    borderColor: c.accent,
-    backgroundColor: c.accentDim,
+    backgroundColor: 'rgba(127, 184, 138, 0.16)',
   },
   chipLabel: {
     fontSize: 12,
     color: c.textSecondary,
   },
   chipLabelSelected: {
-    color: c.accent,
+    color: c.textPrimary,
     fontWeight: '500' as const,
   },
   row: {
