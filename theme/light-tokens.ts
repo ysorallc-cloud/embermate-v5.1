@@ -60,6 +60,10 @@ export const LightColors = {
   accentHint: 'rgba(4, 120, 87, 0.10)',
   accentSubtle: 'rgba(4, 120, 87, 0.10)',
   accentMuted: 'rgba(4, 120, 87, 0.35)',
+  // Phase 33 F7 — selected-chip fill (light-theme sage). Matches
+  // the dark-theme accentChipFill at the light-mode sage RGB
+  // (4,120,87). Same role: soft sage chip fill on the drawer ground.
+  accentChipFill: 'rgba(4, 120, 87, 0.10)',
   accentGradientStart: '#047857',
   accentGradientMid: '#059669',
   accentGradientEnd: '#10b981',

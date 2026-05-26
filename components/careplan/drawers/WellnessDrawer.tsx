@@ -272,14 +272,16 @@ const createStyles = (c: any) => StyleSheet.create({
     paddingHorizontal: 14, // allow: chip horizontal padding (Apple HIG ≥44pt tap target)
     borderRadius: 999,
   },
-  // The selected fill is a literal because the canonical sage in
-  // theme-tokens.ts is rgba(95,184,138,_); user spec is rgba(127,
-  // 184,138,0.16) — a deliberately warmer shade chosen for this
-  // surface. Inline rather than adding a one-off token until the
-  // value settles across more chip surfaces (Phase 33 may eventually
-  // canonicalize it).
+  // Phase 33 F7 — selected-chip fill. Uses the canon sage at 16%
+  // (theme-tokens.ts:accentChipFill = rgba(95,184,138,0.16)). The
+  // existing accentDim at 10% composited too close to the bgRaised
+  // ground (~ΔL 6) to read as selected; 16% gives enough green
+  // presence to register as ON without shouting. Token-named so
+  // future drawer surfaces adopting the same soft-fill-on-dark-
+  // ground chip pattern share one source of truth, and a palette
+  // tweak lands in one place.
   chipSelected: {
-    backgroundColor: 'rgba(127, 184, 138, 0.16)',
+    backgroundColor: c.accentChipFill,
   },
   chipLabel: {
     fontSize: 12,

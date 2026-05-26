@@ -135,14 +135,49 @@ describe('Phase 33 F7 — Wellness drawer declutter (chip restyle + v1 trim + mu
     expect(chip).not.toMatch(/backgroundColor\s*:\s*c\.glassFaint/);
   });
 
-  it('contract 7: chipSelected uses soft-sage fill rgba(127, 184, 138, 0.16), no border', () => {
+  it('contract 7: chipSelected uses c.accentChipFill (CANON sage 95,184,138 at 16% alpha); rejects off-canon hues + inline literals', () => {
+    // User correction (2026-05-26): the 127 in the original spec
+    // was a mock-hex typo; the app uses canon sage RGB 95,184,138.
+    // F7 ships c.accentChipFill as a named token (theme-tokens.ts +
+    // light-tokens.ts) at the 16% step because accentDim at 10% on
+    // the bgRaised drawer ground composites too close to the ground
+    // (~ΔL 6) to read as selected.
+    //
+    // Three pins:
+    //   (a) Token reference — no inline rgba/hex literal in the
+    //       chipSelected style block.
+    //   (b) c.accentChipFill resolves to CANON sage (RGB 95) at
+    //       16% — value-level proof that token rename can't drift
+    //       the chip into off-canon hue.
+    //   (c) Hard reject of the off-canon RGB 127 anywhere in the
+    //       drawer source, so the mock-hex typo can't sneak back.
     const chipSelected = styleBlock(STRIPPED, 'chipSelected');
     expect(chipSelected).not.toBe('');
-    // The user-locked literal value. Accept any whitespace between
-    // tokens inside the rgba(...) call so the formatter doesn't break
-    // this pin.
-    expect(chipSelected).toMatch(/backgroundColor\s*:\s*['"]rgba\s*\(\s*127\s*,\s*184\s*,\s*138\s*,\s*0?\.16\s*\)['"]/);
-    // No border on the selected chip either — clean fill, no outline.
+
+    // (a) Token reference required; inline rgba/hex rejected.
+    expect(chipSelected).toMatch(/backgroundColor\s*:\s*c\.accentChipFill\b/);
+    expect(chipSelected).not.toMatch(/\brgba?\s*\(/);
+    expect(chipSelected).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+
+    // (b) Value-level — c.accentChipFill in theme-tokens.ts is the
+    // canon-sage 16% step. Reads the token, normalizes whitespace,
+    // pins both the RGB triple and the alpha.
+    const TOKENS_SRC = readFileSync(
+      join(ROOT, 'theme/theme-tokens.ts'),
+      'utf8',
+    );
+    const m = TOKENS_SRC.match(/\baccentChipFill\s*:\s*['"`]([^'"`]+)['"`]/);
+    expect(m).not.toBeNull();
+    const normalized = m![1].replace(/\s+/g, '');
+    expect(normalized).toBe('rgba(95,184,138,0.16)');
+
+    // (c) Hard reject — the off-canon RGB 127 must not appear
+    // ANYWHERE in the drawer source (or as an alternate spelling).
+    // Catches both the literal "127" inside rgba and any 0x7f hex
+    // sneak.
+    expect(STRIPPED).not.toMatch(/rgba?\s*\(\s*127\s*,/);
+
+    // No border on the selected chip — clean fill, no outline.
     expect(chipSelected).not.toMatch(/borderColor\s*:\s*c\.accent/);
   });
 

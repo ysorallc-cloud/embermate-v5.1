@@ -87,6 +87,15 @@ const DarkColors = {
   accentHint: 'rgba(95, 184, 138, 0.14)',
   accentSubtle: 'rgba(95, 184, 138, 0.14)',
   accentMuted: 'rgba(95, 184, 138, 0.50)',
+  // Phase 33 F7 — selected-chip fill on the wellness drawer's
+  // grounded ground (#221d18). 16% sage gives enough green
+  // presence to register as ON without shouting; the existing
+  // accentDim at 10% composited too close to the bgRaised ground
+  // (~ΔL 6) to read as selected. Named for the use case rather
+  // than added to the generic accent* drift; future drawer surfaces
+  // adopting the soft-fill-on-dark-ground chip pattern share this
+  // token.
+  accentChipFill: 'rgba(95, 184, 138, 0.16)',
   accentGradientStart: '#5fb88a',
   accentGradientMid: '#059669',
   accentGradientEnd: '#6EE7B7',
