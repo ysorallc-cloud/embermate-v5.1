@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
@@ -74,6 +75,32 @@ const ALWAYS_ON_BUCKETS: BucketType[] = ['meds'];
 const DAILY_TRACKING_BUCKETS: BucketType[] = ['vitals', 'wellness', 'meals'];
 const ADD_WHEN_READY_BUCKETS: BucketType[] = ['water', 'sleep', 'activity', 'appointments'];
 
+// Phase 33 F2 — line-icon set replacing the pre-33 emoji glyphs on
+// every Care Plan category row. User-locked mapping (2026-05-25):
+// medkit (not medical — warm, not hospital-clinical), pulse, partly-
+// sunny, restaurant, water, moon, walk, calendar. All -outline
+// variants for the thin-stroke / cream-muted register. Stroke color
+// is c.textSecondary at render time; no fill, no color-coding.
+// BUCKET_META.emoji STAYS in types/carePlanConfig.ts — other surfaces
+// (Now-tab, Insights, etc.) still consume it. Phase 33 is Care Plan
+// only; this map is the local override for this file.
+const BUCKET_ICON_MAP: Record<BucketType, React.ComponentProps<typeof Ionicons>['name']> = {
+  meds: 'medkit-outline',
+  vitals: 'pulse-outline',
+  wellness: 'partly-sunny-outline',
+  meals: 'restaurant-outline',
+  water: 'water-outline',
+  sleep: 'moon-outline',
+  activity: 'walk-outline',
+  appointments: 'calendar-outline',
+  // Retired buckets — kept in the map for type completeness (Record
+  // requires every BucketType key). 32A's render filter prevents
+  // them from reaching the UI; the icon choice here is incidental.
+  errands: 'list-outline',
+  shifts: 'people-outline',
+  self_care: 'heart-outline',
+};
+
 // Phase 32A F3 — MVP render filter, made explicit.
 //
 // The three buckets below are suppressed from the management UI in v1.0
@@ -112,7 +139,6 @@ const MVP_SUPPRESSED_BUCKETS: readonly BucketType[] = ['errands', 'shifts', 'sel
 
 interface CategoryRowProps {
   bucket: BucketType;
-  emoji: string;
   name: string;
   detail: string | null;
   enabled: boolean;
@@ -120,7 +146,7 @@ interface CategoryRowProps {
   onPress: () => void;
 }
 
-function CategoryRow({ bucket, emoji, name, detail, enabled, onToggle, onPress }: CategoryRowProps) {
+function CategoryRow({ bucket, name, detail, enabled, onToggle, onPress }: CategoryRowProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   return (
@@ -131,9 +157,14 @@ function CategoryRow({ bucket, emoji, name, detail, enabled, onToggle, onPress }
       accessibilityLabel={`${name}, ${enabled ? 'enabled' : 'disabled'}. ${enabled ? 'Tap to configure.' : 'Toggle to enable.'}`}
       accessibilityRole="button"
     >
-      {/* Left: emoji + text */}
+      {/* Left: icon + text. Phase 33 F2 retired the emoji glyph in
+          favor of a thin Ionicons outline icon, cream-muted stroke,
+          in a fixed 24pt gutter so header + rows align on one left
+          edge. */}
       <View style={styles.categoryLeft}>
-        <Text style={styles.categoryEmoji}>{emoji}</Text>
+        <View style={styles.categoryEmoji}>
+          <Ionicons name={BUCKET_ICON_MAP[bucket]} size={20} color={colors.textSecondary} />
+        </View>
         <View style={styles.categoryInfo}>
           <Text style={styles.categoryName}>{name}</Text>
           {enabled && detail && <Text style={styles.categoryDetail}>{detail}</Text>}
@@ -457,7 +488,9 @@ export default function CarePlanHomeScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ expanded: medsExpanded }}
                 >
-                  <Text style={styles.categoryEmoji}>{BUCKET_META[bucket].emoji}</Text>
+                  <View style={styles.categoryEmoji}>
+                    <Ionicons name={BUCKET_ICON_MAP[bucket]} size={20} color={colors.textSecondary} />
+                  </View>
                   <View style={styles.categoryInfo}>
                     <Text style={styles.categoryName}>{BUCKET_META[bucket].name}</Text>
                     {getBucketStatus(bucket) && (
@@ -523,7 +556,6 @@ export default function CarePlanHomeScreen() {
               <React.Fragment key={bucket}>
                 <CategoryRow
                   bucket={bucket}
-                  emoji={BUCKET_META[bucket].emoji}
                   name={BUCKET_META[bucket].name}
                   detail={isEnabled ? getBucketStatus(bucket) : null}
                   enabled={isEnabled}
@@ -566,7 +598,6 @@ export default function CarePlanHomeScreen() {
               <React.Fragment key={bucket}>
                 <CategoryRow
                   bucket={bucket}
-                  emoji={BUCKET_META[bucket].emoji}
                   name={BUCKET_META[bucket].name}
                   detail={isEnabled ? getBucketStatus(bucket) : null}
                   enabled={isEnabled}
@@ -782,10 +813,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     gap: 12,
     paddingRight: 12,
   },
+  // Phase 33 F2 — fixed-width gutter for the Ionicons line icon
+  // (formerly the emoji <Text>). 24pt locked so the meds header +
+  // sibling category rows share ONE left edge for their name text.
+  // The icon itself is 20pt and centers in this 24pt slot.
   categoryEmoji: {
-    fontSize: 22,
-    width: 32,
-    textAlign: 'center',
+    width: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
     flexShrink: 0,
   },
   categoryInfo: {
