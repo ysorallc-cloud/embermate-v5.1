@@ -517,12 +517,19 @@ export function hasAnyEnabledBucket(config: CarePlanConfig): boolean {
 
 /**
  * Get list of enabled bucket types
+ *
+ * Phase 33 F7 follow-up (STOP-walk fix) — the pre-fix body force-
+ * included 'wellness' regardless of stored `enabled` state, a
+ * pre-32A behavior left over from when wellness lived in
+ * ALWAYS_ON. 32A F2 moved wellness to DAILY_TRACKING (toggleable
+ * like vitals + meals); the force-include masked the user's
+ * stored false value on every read, causing the category-row
+ * toggle to appear stuck in the ON position. Removed; wellness
+ * now reads its stored enabled value like every other bucket.
+ * Pinned by carePlanWellnessToggleOff33F7.test.tsx.
  */
 export function getEnabledBuckets(config: CarePlanConfig): BucketType[] {
-  const buckets = BUCKET_TYPES.filter(bucket => config[bucket]?.enabled === true);
-  // Wellness is always-on — force-include if missing
-  if (!buckets.includes('wellness')) buckets.push('wellness');
-  return buckets;
+  return BUCKET_TYPES.filter(bucket => config[bucket]?.enabled === true);
 }
 
 /**
