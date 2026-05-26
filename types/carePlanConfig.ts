@@ -195,7 +195,11 @@ export type TimeOfDay = 'morning' | 'midday' | 'evening' | 'night' | 'custom';
 
 export const TIME_OF_DAY_OPTIONS: { value: TimeOfDay; label: string; time: string }[] = [
   { value: 'morning', label: 'Morning', time: '8:00 AM' },
-  { value: 'midday', label: 'Midday', time: '12:00 PM' },
+  // Phase 34 F1 — user-facing label retires "Midday" in favor of
+  // "Afternoon" (unifies vocabulary with the Now-page window names).
+  // The enum VALUE `'midday'` stays — internal storage key unchanged
+  // (no migration); only the displayed label moves.
+  { value: 'midday', label: 'Afternoon', time: '12:00 PM' },
   { value: 'evening', label: 'Evening', time: '6:00 PM' },
   { value: 'night', label: 'Night', time: '9:00 PM' },
   { value: 'custom', label: 'Custom', time: '' },

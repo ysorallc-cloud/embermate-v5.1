@@ -522,9 +522,11 @@ export default function NowScreen() {
       });
       return;
     }
-    // Wellness: morning + midday land on the silent-vitals capture (the
-    // v6.7 reframe — single-screen sleep/mood/energy). Evening keeps its
-    // dedicated wizard for now since it captures a broader set of fields.
+    // Wellness: morning + afternoon land on the silent-vitals capture
+    // (the v6.7 reframe — single-screen sleep/mood/energy). Evening
+    // keeps its dedicated wizard for now since it captures a broader
+    // set of fields. (Phase 34 F1 — comment harmonized with the
+    // unified time-model vocabulary; routing logic unchanged.)
     if (instance.itemType === 'wellness') {
       const wellnessRoute = instance.windowLabel === 'evening'
         ? '/log-evening-wellness'

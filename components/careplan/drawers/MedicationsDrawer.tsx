@@ -50,19 +50,29 @@ import { EVENT } from '../../../lib/eventNames';
 // canonical values + a default HH:mm time for each slot. Same shape
 // the subscreen's QuickAddPanel used; preserves the "common-med
 // inline add without /medication-form roundtrip" UX.
+// Phase 34 F1 — labels harmonized with the unified time model. "Midday"
+// → "Afternoon" follows the Now-page vocabulary (TIME_OF_DAY_OPTIONS at
+// types/carePlanConfig.ts owns the canonical label set). The midday
+// slot's time also moves from the drifted 13:00 → 12:00 to match
+// TIME_OF_DAY_DEFAULTS — pre-F1 this was a third place hardcoding a
+// different time. Internal value `'midday'` stays (FLAG 1 lock — no
+// migration).
 const QUICK_ADD_TIME_SLOTS: { value: TimeOfDay; label: string; time: string }[] = [
-  { value: 'morning', label: 'Morning', time: '08:00' },
-  { value: 'midday',  label: 'Midday',  time: '13:00' },
-  { value: 'evening', label: 'Evening', time: '18:00' },
-  { value: 'night',   label: 'Night',   time: '22:00' },
+  { value: 'morning', label: 'Morning',   time: '08:00' },
+  { value: 'midday',  label: 'Afternoon', time: '12:00' },
+  { value: 'evening', label: 'Evening',   time: '18:00' },
+  { value: 'night',   label: 'Night',     time: '22:00' },
 ];
 
 // Phase 32A.1 F2 — TimeOfDay label map. Mirrors the F4 inline-list map
 // (kept verbatim so the labels stay consistent with /medication-form
 // and the meds subscreen the drawer replaces).
+// Phase 34 F1 — per-med row display labels. Same retire-"Midday"
+// move as QUICK_ADD_TIME_SLOTS above; canonical label set lives in
+// types/carePlanConfig.ts:TIME_OF_DAY_OPTIONS.
 const MEDS_TIME_LABEL: Record<string, string> = {
   morning: 'Morning',
-  midday: 'Midday',
+  midday: 'Afternoon',
   evening: 'Evening',
   night: 'Night',
   custom: 'Custom',

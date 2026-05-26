@@ -36,6 +36,7 @@ import {
   BucketConfig,
   CarePlanConfig,
   VITAL_TYPE_OPTIONS,
+  TIME_OF_DAY_DEFAULTS,
 } from '../types/carePlanConfig';
 import { generateUniqueId } from '../utils/idGenerator';
 import { safeGetItem } from '../utils/safeStorage';
@@ -64,16 +65,14 @@ const TIME_OF_DAY_TO_WINDOW: Record<TimeOfDay, TimeWindowLabel> = {
   custom: 'custom',
 };
 
-/**
- * Default times for each time of day
- */
-const TIME_OF_DAY_DEFAULTS: Record<TimeOfDay, string> = {
-  morning: '08:00',
-  midday: '12:00',
-  evening: '18:00',
-  night: '21:00',
-  custom: '12:00',
-};
+// Phase 34 F1 — TIME_OF_DAY_DEFAULTS de-duplication. Single source of
+// truth lives in types/carePlanConfig.ts; the generator imports it
+// instead of declaring a parallel const. Pre-F1 the local copy carried
+// a drifted `custom: '12:00'` value; canonical is `custom: ''` which
+// preserves the `|| customTimes[i] || TIME_OF_DAY_DEFAULTS[tod]`
+// fall-through chain in the `at:` field assembly (the empty string
+// short-circuits to the next fallback rather than locking the time
+// to noon).
 
 /**
  * Create a CarePlanItem from a MedicationPlanItem
