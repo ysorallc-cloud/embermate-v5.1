@@ -428,6 +428,7 @@ export default function CarePlanHomeScreen() {
               Errands / Shifts / Self-care intentionally absent from every section
               (MVP render filter expressed structurally; data types preserved). */}
           <SectionEyebrow text="Always on" />
+          <View testID="section-zone-always-on" style={styles.sectionZone}>
           {/* Phase 32A.1 F1 \u2014 Medications row converts from chevron-
               navigate-to-list (which routed to the now-retired
               retired /care-plan/meds subscreen) into expand/caret behavior. Tap
@@ -511,8 +512,10 @@ export default function CarePlanHomeScreen() {
               <MedicationsDrawer editMode={medsEditMode} />
             </View>
           )}
+          </View>
 
           <SectionEyebrow text="Daily tracking" />
+          <View testID="section-zone-daily-tracking" style={styles.sectionZone}>
           {DAILY_TRACKING_BUCKETS.map(bucket => {
             const isEnabled = enabledBucketSet.has(bucket);
             const isExpanded = expandedBucket === bucket;
@@ -552,8 +555,10 @@ export default function CarePlanHomeScreen() {
               </React.Fragment>
             );
           })}
+          </View>
 
           <SectionEyebrow text="Add when ready" />
+          <View testID="section-zone-add-when-ready" style={styles.sectionZone}>
           {ADD_WHEN_READY_BUCKETS.map(bucket => {
             const isEnabled = enabledBucketSet.has(bucket);
             const isExpanded = expandedBucket === bucket;
@@ -599,6 +604,7 @@ export default function CarePlanHomeScreen() {
               </React.Fragment>
             );
           })}
+          </View>
 
           {/* Bottom spacing */}
           <View style={{ height: 40 }} />
@@ -706,6 +712,20 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     minHeight: 44,
+  },
+  // Phase 33 F1 — three identical grounded zones. Always On / Daily
+  // Tracking / Add When Ready each wrap in this container. Tokens
+  // are canon-locked + already in use elsewhere (bgRaised = F10
+  // swipe foreground; hairlineInset = F9 row dividers) — zero new
+  // colors. User-locked "all three identical" — no warmer treatment
+  // for the meds / always-on zone; no per-section variant exists.
+  sectionZone: {
+    backgroundColor: c.bgRaised,
+    borderWidth: 1,
+    borderColor: c.hairlineInset,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
   },
   coreCard: {
     flexDirection: 'row' as const,
