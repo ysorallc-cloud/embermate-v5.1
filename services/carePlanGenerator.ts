@@ -496,11 +496,30 @@ export async function syncOtherBucketsWithConfig(
       }
     }
     const existingWellnessItems = allItems.filter(i => i.type === 'wellness' && !i.id.startsWith('sample-'));
+    const hasActiveWellnessItem = existingWellnessItems.some(i => i.active);
     if (!wellnessEnabled) {
       // Deactivate all wellness items when bucket is off
       for (const item of existingWellnessItems) {
         if (item.active) {
           await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
+          changed = true;
+        }
+      }
+    } else if (wellnessEnabled && existingWellnessItems.length > 0 && !hasActiveWellnessItem) {
+      // Phase 34 F2.1 — canonical reactivation branch (mirrors
+      // vitals/sleep/water/activity). Pre-fix the ladder had only
+      // "deactivate / create-from-zero / else-migration"; the
+      // "items exist but all inactive" case fell to the migration
+      // branch which never re-activated. Trigger: user toggled
+      // wellness off (post-b8f0ea11 force-include fix), items went
+      // inactive, then toggled back on — items stayed inactive
+      // (filtered by listCarePlanItems({activeOnly: true}) at the
+      // generation pipeline → no wellness instances on Now). Now
+      // matches every other bucket's pattern.
+      for (const item of existingWellnessItems) {
+        if (!item.active) {
+          devLog('[syncOtherBucketsWithConfig] Reactivating wellness item:', item.id);
+          await upsertCarePlanItem({ ...item, active: true, updatedAt: now });
           changed = true;
         }
       }
