@@ -52,6 +52,20 @@ jest.mock('../../utils/safeStorage', () => ({
 jest.mock('../../lib/events', () => ({ emitDataUpdate: jest.fn() }));
 jest.mock('../../utils/devLog', () => ({ logError: () => {}, devLog: () => {} }));
 
+// Phase 34 F3.1 — WellnessDrawer now reads carePlanConfig.wellness
+// .timesOfDay for the CHECK-IN TIMES chips. Mock useCarePlanConfig
+// with a fixture covering all four canonical windows. updateBucket
+// is a no-op spy here — the 32A contracts that survived F3.1 only
+// exercise the WHAT layer (chip checks + reminder toggles) which
+// still writes through useWellnessSettings; the WHEN layer's
+// own round-trip is pinned in the F3.1 file.
+jest.mock('../../hooks/useCarePlanConfig', () => ({
+  useCarePlanConfig: () => ({
+    config: { wellness: { enabled: true, timesOfDay: ['morning', 'midday', 'evening', 'night'] } },
+    updateBucket: jest.fn(async () => {}),
+  }),
+}));
+
 jest.mock('../../contexts/ThemeContext', () => ({
   useTheme: () => ({
     colors: {
@@ -132,17 +146,23 @@ describe('Phase 32A F7 — Wellness drawer (source + render + round-trip)', () =
     expect(INDEX_SRC).toMatch(/<WellnessDrawer\b/);
   });
 
-  it('contract 3: WellnessDrawer bridges via useWellnessSettings (NOT useCarePlanConfig)', () => {
+  it('contract 3 (F3.1 REFRAME): WellnessDrawer bridges to BOTH stores — useWellnessSettings (P5 WHAT) + useCarePlanConfig (carePlanConfig WHEN)', () => {
+    // Pre-F3.1: this contract pinned exclusive P5 bridging
+    // (P5 lock, no useCarePlanConfig). Phase 34 F3.1 closed the
+    // dual-store divergence by moving the WHEN layer
+    // (timesOfDay) to carePlanConfig.wellness — the source the
+    // F2/F3 generator reads. The drawer now bridges BOTH:
+    //   • useWellnessSettings — WHAT layer (checks /
+    //     optionalChecks / reminderEnabled) — unchanged.
+    //   • useCarePlanConfig — WHEN layer (timesOfDay) — new
+    //     read+write path for the CHECK-IN TIMES chips.
+    // Both reads expected to be present in the drawer source.
     const src = readFileSync(DRAWER_PATH, 'utf8');
     const stripped = src
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/\/\/[^\n]*/g, '');
     expect(stripped).toMatch(/useWellnessSettings/);
-    // Negative pin — must not pull from useCarePlanConfig for its
-    // data. (Comments stripped — the file's docstring documents WHY
-    // it doesn't bridge through useCarePlanConfig, so the absence
-    // pin runs against the code body only.)
-    expect(stripped).not.toMatch(/useCarePlanConfig/);
+    expect(stripped).toMatch(/useCarePlanConfig/);
   });
 
   it('contract 4: all 14 P4-locked field labels surface in the drawer source', () => {

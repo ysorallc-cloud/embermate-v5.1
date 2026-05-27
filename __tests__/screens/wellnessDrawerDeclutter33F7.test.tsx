@@ -217,9 +217,19 @@ describe('Phase 33 F7 — Wellness drawer declutter (chip restyle + v1 trim + mu
     expect(STRIPPED).toMatch(/updateSettings\s*\(/);
   });
 
-  it('contract 12: toggleField + togglePeriodEnabled + toggleReminder handlers unchanged in signature (visual-only contract)', () => {
+  it('contract 12 (F3.1 REFRAME): toggleField + toggleReminder handlers unchanged; togglePeriodEnabled retired → toggleCheckInWindow (writes to carePlanConfig.timesOfDay)', () => {
+    // Phase 33 F7 was a visual-only declutter and originally pinned
+    // three handler names. Phase 34 F3.1 retired togglePeriodEnabled
+    // (the P5-write path) and replaced it with toggleCheckInWindow
+    // (the carePlanConfig.timesOfDay write path). The other two
+    // handlers (toggleField for TRACK chips, toggleReminder for
+    // the reminder Switches) are part of the WHAT layer and remain
+    // unchanged.
     expect(STRIPPED).toMatch(/const\s+toggleField\s*=\s*useCallback/);
-    expect(STRIPPED).toMatch(/const\s+togglePeriodEnabled\s*=\s*useCallback/);
     expect(STRIPPED).toMatch(/const\s+toggleReminder\s*=\s*useCallback/);
+    // togglePeriodEnabled is RETIRED — pin absence.
+    expect(STRIPPED).not.toMatch(/const\s+togglePeriodEnabled\s*=\s*useCallback/);
+    // toggleCheckInWindow is the new handler.
+    expect(STRIPPED).toMatch(/const\s+toggleCheckInWindow\s*=\s*useCallback/);
   });
 });

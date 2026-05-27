@@ -49,6 +49,18 @@ jest.mock('../../utils/safeStorage', () => ({
 jest.mock('../../lib/events', () => ({ emitDataUpdate: jest.fn() }));
 jest.mock('../../utils/devLog', () => ({ logError: () => {}, devLog: () => {} }));
 
+// Phase 34 F3.1 — WellnessDrawer now reads carePlanConfig.wellness.timesOfDay
+// for the CHECK-IN TIMES chips. Mock useCarePlanConfig with a stub that
+// returns a wellness bucket having all four windows in timesOfDay (matching
+// the F3.1 default for fresh state); chip-PARITY behavior tested here is
+// orthogonal to which chips are selected, so a populated default suffices.
+jest.mock('../../hooks/useCarePlanConfig', () => ({
+  useCarePlanConfig: () => ({
+    config: { wellness: { enabled: true, timesOfDay: ['morning', 'midday', 'evening', 'night'] } },
+    updateBucket: jest.fn(async () => {}),
+  }),
+}));
+
 // Resolved-value mock for the theme tokens this drawer reads. The
 // pinned accentChipFill literal here matches the production token
 // (theme-tokens.ts:accentChipFill = rgba(95,184,138,0.16)) so the

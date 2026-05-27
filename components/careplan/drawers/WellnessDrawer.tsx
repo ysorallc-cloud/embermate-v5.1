@@ -33,6 +33,8 @@ import React, { useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Switch, StyleSheet } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useWellnessSettings } from '../../../hooks/useWellnessSettings';
+import { useCarePlanConfig } from '../../../hooks/useCarePlanConfig';
+import type { TimeOfDay } from '../../../types/carePlanConfig';
 import type { WellnessSettings, WellnessCheckConfig } from '../../../types/wellnessSettings';
 
 // Field schemas — mirror the retiring app/care-plan/wellness.tsx subscreen
@@ -82,25 +84,48 @@ function timeLabel(time: string): string {
   return `${h12} ${meridiem}`;
 }
 
+// Phase 34 F3.1 — CHECK-IN TIMES chip set. All four canonical windows
+// (the F1-unified vocabulary). Plain window labels — user-locked
+// option (b). User-visible label sourced via TIME_OF_DAY_OPTIONS
+// (F1 already renamed 'midday' → 'Afternoon').
+const CHECK_IN_WINDOWS: TimeOfDay[] = ['morning', 'midday', 'evening', 'night'];
+const CHECK_IN_WINDOW_LABEL: Record<TimeOfDay, string> = {
+  morning: 'Morning',
+  midday: 'Afternoon',
+  evening: 'Evening',
+  night: 'Night',
+  custom: 'Custom',
+};
+
 export function WellnessDrawer() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  // P5 store stays for the WHAT layer (checks / optionalChecks /
+  // reminderEnabled). Pre-F3.1 the WHEN (period.enabled) also lived
+  // here — F3.1 retires that field as legacy/inert; it stays in
+  // storage (hide-not-delete) but is no longer read or written.
   const { settings, updateSettings } = useWellnessSettings();
+  // Phase 34 F3.1 — WHEN now lives in carePlanConfig.wellness.
+  // timesOfDay (the source of truth the F2/F3 generator reads).
+  // Chip reads + writes route through this hook, not the P5 store.
+  const { config: carePlanConfig, updateBucket } = useCarePlanConfig();
+  const wellnessTimesOfDay: TimeOfDay[] =
+    (carePlanConfig?.wellness?.timesOfDay as TimeOfDay[] | undefined) ?? [];
 
   // ---- Mutators ---------------------------------------------------------
 
-  const togglePeriodEnabled = useCallback(
-    (period: 'morning' | 'evening') => {
-      const next: WellnessSettings = {
-        ...settings,
-        [period]: {
-          ...settings[period],
-          enabled: !settings[period].enabled,
-        },
-      };
-      updateSettings(next);
+  // Phase 34 F3.1 — toggle a single window in/out of
+  // carePlanConfig.wellness.timesOfDay. Replaces the pre-F3.1
+  // togglePeriodEnabled which wrote to P5.
+  const toggleCheckInWindow = useCallback(
+    (tod: TimeOfDay) => {
+      const isOn = wellnessTimesOfDay.includes(tod);
+      const nextTimesOfDay = isOn
+        ? wellnessTimesOfDay.filter((t) => t !== tod)
+        : [...wellnessTimesOfDay, tod];
+      updateBucket('wellness', { timesOfDay: nextTimesOfDay } as any);
     },
-    [settings, updateSettings],
+    [wellnessTimesOfDay, updateBucket],
   );
 
   const toggleField = useCallback(
@@ -163,24 +188,33 @@ export function WellnessDrawer() {
 
   return (
     <View>
-      {/* ─── CHECK-IN TIMES ─── */}
+      {/* ─── CHECK-IN TIMES ─── (Phase 34 F3.1)
+          Four canonical windows. Reads + writes carePlanConfig.wellness
+          .timesOfDay — the source of truth the F2/F3 generator reads.
+          Pre-F3.1 these were 2 chips reading/writing P5
+          wellnessSettings.{period}.enabled, which diverged from
+          generation (chips changed visually but instances kept
+          appearing). Closed.
+          Labels are plain window names; resolved time per window
+          (08:00 / 12:00 / 18:00 / 21:00 via TIME_OF_DAY_DEFAULTS)
+          is shown in the Reminder section, not on the chip. */}
       <Text style={styles.label}>CHECK-IN TIMES</Text>
       <View style={styles.chipRow}>
-        {(['morning', 'evening'] as const).map((period) => {
-          const isOn = settings[period].enabled;
-          const labelText = `${period === 'morning' ? 'Morning' : 'Evening'} · ${timeLabel(settings[period].time)}`;
+        {CHECK_IN_WINDOWS.map((tod) => {
+          const isOn = wellnessTimesOfDay.includes(tod);
+          const label = CHECK_IN_WINDOW_LABEL[tod];
           return (
             <TouchableOpacity
-              key={`time-${period}`}
+              key={`time-${tod}`}
               style={[styles.chip, isOn && styles.chipSelected]}
-              onPress={() => togglePeriodEnabled(period)}
+              onPress={() => toggleCheckInWindow(tod)}
               activeOpacity={0.7}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: isOn }}
-              accessibilityLabel={`${period === 'morning' ? 'Morning' : 'Evening'} check-in`}
+              accessibilityLabel={`${label} check-in`}
             >
               <Text style={[styles.chipLabel, isOn && styles.chipLabelSelected]}>
-                {labelText}
+                {label}
               </Text>
             </TouchableOpacity>
           );

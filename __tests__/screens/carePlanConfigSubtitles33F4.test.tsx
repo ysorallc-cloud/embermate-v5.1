@@ -55,38 +55,29 @@ function withPeriods(morning: boolean, evening: boolean): WellnessSettings {
   };
 }
 
-describe('Phase 33 F4 — config subtitles on enabled Care Plan rows', () => {
+describe('Phase 33 F4 — config subtitles on enabled Care Plan rows (F3.1 reframed)', () => {
   // --------------------------------------------------------------------------
-  // GROUP A — wellness cadence helper (the only NEW logic in F4).
+  // GROUP A — wellness cadence helper.
+  //
+  // Phase 34 F3.1 REFRAME: the helper signature changed from
+  // `(settings: WellnessSettings | null | undefined)` to
+  // `(timesOfDay: TimeOfDay[] | null | undefined)`. Full behavior
+  // pins live in __tests__/screens/wellnessChipsToCarePlanConfig
+  // 34F3_1.test.tsx (contracts 1-5). Phase 33 F4's original
+  // signature contracts are SUBSUMED there — kept here as a
+  // single delegation pin so a future maintainer reading this
+  // file sees where the live coverage lives.
   // --------------------------------------------------------------------------
 
-  it('contract 1: both periods enabled → "Morning + evening check-in"', () => {
-    expect(getWellnessCadenceText(withPeriods(true, true))).toBe('Morning + evening check-in');
-  });
-
-  it('contract 2: morning only → "Morning check-in"', () => {
-    expect(getWellnessCadenceText(withPeriods(true, false))).toBe('Morning check-in');
-  });
-
-  it('contract 3: evening only → "Evening check-in"', () => {
-    expect(getWellnessCadenceText(withPeriods(false, true))).toBe('Evening check-in');
-  });
-
-  it('contract 4 (DO NOT INVENT): neither period enabled → null (no fabricated subtitle)', () => {
-    // User lock: "If a category is ON but has no meaningful config
-    // yet, show nothing rather than a placeholder — don't invent
-    // text." A wellness row that's toggled on but where both
-    // periods got disabled in the drawer has no meaningful cadence;
-    // helper returns null and the row renders no subtitle.
-    expect(getWellnessCadenceText(withPeriods(false, false))).toBeNull();
-  });
-
-  it('contract 5 (DO NOT INVENT): missing settings → null', () => {
-    // Defensive — if the wellness store hasn't loaded yet (null
-    // settings), the helper returns null rather than throwing or
-    // inventing copy.
-    expect(getWellnessCadenceText(null)).toBeNull();
-    expect(getWellnessCadenceText(undefined)).toBeNull();
+  it('contract 1-5 (F3.1 REFRAME — SUBSUMED): helper signature + behavior pinned in wellnessChipsToCarePlanConfig34F3_1.test.tsx', () => {
+    // The F3.1 swap retired the P5-based signature this group
+    // originally pinned. New shape: `getWellnessCadenceText(
+    // timesOfDay: TimeOfDay[] | null | undefined)`. Sanity-pin
+    // the helper still exists and returns string|null; full
+    // behavior coverage lives in the F3.1 file.
+    expect(typeof getWellnessCadenceText).toBe('function');
+    expect(getWellnessCadenceText(null as any)).toBeNull();
+    expect(getWellnessCadenceText(undefined as any)).toBeNull();
   });
 
   // --------------------------------------------------------------------------
@@ -97,23 +88,33 @@ describe('Phase 33 F4 — config subtitles on enabled Care Plan rows', () => {
     expect(STRIPPED).toMatch(/import\s*\{\s*getWellnessCadenceText\s*\}\s*from\s*['"][^'"]*wellnessCadenceText['"]/);
   });
 
-  it('contract 7: care-plan/index.tsx reads wellness settings via useWellnessSettings', () => {
-    // The cadence helper takes WellnessSettings; care-plan/index.tsx
-    // needs access to that store. The hook is the canonical reader
-    // (P5 bridge); pin its import + use.
-    expect(STRIPPED).toMatch(/import\s*\{\s*useWellnessSettings\s*\}\s*from\s*['"][^'"]*useWellnessSettings['"]/);
-    expect(STRIPPED).toMatch(/useWellnessSettings\s*\(\s*\)/);
+  it('contract 7 (F3.1 REFRAME): care-plan/index.tsx reads carePlanConfig — NOT the P5 useWellnessSettings hook — for the wellness cadence subtitle', () => {
+    // Pre-F3.1 the home read useWellnessSettings (P5 store) so
+    // the helper could consume morning.enabled + evening.enabled.
+    // F3.1 swapped the helper signature to take TimeOfDay[]
+    // directly; the home now reads carePlanConfig.wellness
+    // .timesOfDay. P5 useWellnessSettings import + hook call
+    // retired from this file. (The drawer still uses the P5
+    // store for the WHAT layer — separate concern.)
+    expect(STRIPPED).not.toMatch(/import\s*\{[^}]*\buseWellnessSettings\b[^}]*\}\s*from/);
+    expect(STRIPPED).not.toMatch(/\buseWellnessSettings\s*\(/);
+    // useCarePlanConfig stays — the home reads the carePlanConfig
+    // for the wellness bucket.
+    expect(STRIPPED).toMatch(/useCarePlanConfig\s*\(\s*\)/);
   });
 
-  it('contract 8: getBucketDetail wrapper exists and routes wellness → cadence helper, others → getBucketStatus', () => {
-    // Single source of truth for "what subtitle does this row show?"
-    // — wraps getBucketStatus(bucket) with a wellness override that
-    // calls getWellnessCadenceText. Pin the wrapper's existence and
-    // the wellness routing.
+  it('contract 8 (F3.1 REFRAME): getBucketDetail wellness branch passes timesOfDay to the helper (NOT the P5 settings object)', () => {
+    // Wrapper still routes wellness → cadence helper; argument
+    // shape swapped from P5 settings to TimeOfDay[]. Pin the
+    // new shape; reject the old.
     expect(STRIPPED).toMatch(/\bgetBucketDetail\b/);
-    // The wellness branch invokes the cadence helper with the
-    // settings shape.
     expect(STRIPPED).toMatch(/bucket\s*===\s*['"]wellness['"][\s\S]{0,200}getWellnessCadenceText/);
+    // The call argument now reaches into config?.wellness?.timesOfDay
+    // (or equivalent). Pin literal `.timesOfDay` in the helper
+    // call site's argument.
+    expect(STRIPPED).toMatch(/getWellnessCadenceText\s*\(\s*[^)]*\.timesOfDay/);
+    // Hard reject of the pre-F3.1 P5 settings argument shape.
+    expect(STRIPPED).not.toMatch(/getWellnessCadenceText\s*\(\s*wellnessSettings\s*\)/);
   });
 
   it('contract 9: CategoryRow detail prop now reads from getBucketDetail (not getBucketStatus directly)', () => {

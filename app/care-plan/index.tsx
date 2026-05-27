@@ -21,7 +21,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
-import { useWellnessSettings } from '../../hooks/useWellnessSettings';
 import { getWellnessCadenceText } from '../../utils/wellnessCadenceText';
 import {
   BucketType,
@@ -256,23 +255,23 @@ export default function CarePlanHomeScreen() {
     getBucketStatus,
     initializeConfig,
   } = useCarePlanConfig();
-  // Phase 33 F4 — wellness cadence subtitle reads from the P5 bridge
-  // store (not CarePlanConfig). Hook is the canonical reader; the
-  // helper getWellnessCadenceText composes its return into a single-
-  // line subtitle for the wellness row.
-  const { settings: wellnessSettings } = useWellnessSettings();
-
-  // Phase 33 F4 — single source of truth for "what subtitle does
-  // this row show?" Wellness routes through the cadence helper
-  // because its config lives in the wellness store (P5 bridge);
-  // every other bucket falls through to getBucketStatus which
-  // reads CarePlanConfig directly.
+  // Phase 33 F4 → updated by Phase 34 F3.1 — wellness cadence
+  // subtitle now reads carePlanConfig.wellness.timesOfDay (the
+  // source of truth the F2/F3 generator AND the F3.1 wellness
+  // chips read). The P5 bridge store (useWellnessSettings) is no
+  // longer touched here; the subtitle, the chips, and generation
+  // all agree.
   const getBucketDetail = useCallback((bucket: BucketType): string | null => {
     if (bucket === 'wellness') {
-      return getWellnessCadenceText(wellnessSettings);
+      // F3.1 — read carePlanConfig.wellness.timesOfDay directly,
+      // matching the source the F2/F3 generator and the F3.1
+      // wellness chips both use. Pre-F3.1 this read the P5 store
+      // (wellnessSettings.{morning,evening}.enabled), which
+      // diverged from generation.
+      return getWellnessCadenceText(config?.wellness?.timesOfDay as any);
     }
     return getBucketStatus(bucket);
-  }, [wellnessSettings, getBucketStatus]);
+  }, [config, getBucketStatus]);
 
   const [dismissedInsights, setDismissedInsights] = useState<string[]>([]);
   const [showInfoModal, setShowInfoModal] = useState(false);
