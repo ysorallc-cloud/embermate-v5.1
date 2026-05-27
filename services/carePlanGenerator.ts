@@ -505,77 +505,54 @@ export async function syncOtherBucketsWithConfig(
         }
       }
     } else if (existingWellnessItems.length === 0) {
-      // Create "Morning wellness check" item
-      const morningItem: CarePlanItem = {
-        id: 'sync-wellness-morning',
-        carePlanId,
-        type: 'wellness',
-        name: 'Morning wellness check',
-        priority: 'recommended',
-        active: true,
-        schedule: {
-          frequency: 'daily',
-          times: [{
-            id: 'sync-wellness-morning-time',
-            kind: 'exact' as const,
-            label: 'morning',
-            at: '07:00',
-          }],
-        },
-        emoji: '🌅',
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      // Create "Evening wellness check" item
-      const eveningItem: CarePlanItem = {
-        id: 'sync-wellness-evening',
-        carePlanId,
-        type: 'wellness',
-        name: 'Evening wellness check',
-        priority: 'recommended',
-        active: true,
-        schedule: {
-          frequency: 'daily',
-          times: [{
-            id: 'sync-wellness-evening-time',
-            kind: 'exact' as const,
-            label: 'evening',
-            at: '20:00',
-          }],
-        },
-        emoji: '🌙',
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      // Create "Afternoon wellness check" item
-      const afternoonItem: CarePlanItem = {
-        id: 'sync-wellness-afternoon',
-        carePlanId,
-        type: 'wellness',
-        name: 'Afternoon wellness check',
-        priority: 'recommended',
-        active: true,
-        schedule: {
-          frequency: 'daily',
-          times: [{
-            id: 'sync-wellness-afternoon-time',
-            kind: 'exact' as const,
-            label: 'afternoon',
-            at: '13:00',
-          }],
-        },
-        emoji: '☀️',
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      devLog('[syncOtherBucketsWithConfig] Creating wellness CarePlanItems (morning + afternoon + evening)');
-      await upsertCarePlanItem(morningItem);
-      await upsertCarePlanItem(afternoonItem);
-      await upsertCarePlanItem(eveningItem);
-      changed = true;
+      // Phase 34 F2 — Bug H fix. Wellness generation now reads
+      // per-window selection from carePlanConfig.wellness.timesOfDay
+      // and routes each window through the shared resolver
+      // (TIME_OF_DAY_TO_WINDOW + TIME_OF_DAY_DEFAULTS) — exactly the
+      // path every other category (vitals/sleep/water/activity)
+      // uses. ONE consolidated CarePlanItem with N times replaces
+      // the pre-F2 three-separate-items bypass.
+      //
+      // Empty array = user-explicit "no wellness windows" → no
+      // instance created (respect the explicit selection — what
+      // the user sets is what generates).
+      // Undefined = legacy data without a timesOfDay field →
+      // fall back to the canonical default so legacy state doesn't
+      // silently lose wellness.
+      //
+      // P5 wellnessSettings.{period}.enabled is preserved-but-inert
+      // (hide-not-delete). Not read here. Subtitle reader at
+      // utils/wellnessCadenceText.ts continues to read the P5 store
+      // — known divergence until F5 closes when editor chips swap
+      // their write target to carePlanConfig.wellness.timesOfDay.
+      const wellnessTimesOfDay =
+        wellnessConfig?.timesOfDay ?? ['morning', 'midday', 'evening'];
+      if (wellnessTimesOfDay.length > 0) {
+        const times: TimeWindow[] = wellnessTimesOfDay.map((tod: TimeOfDay) => ({
+          id: `sync-wellness-${tod}-time`,
+          kind: 'exact' as const,
+          label: TIME_OF_DAY_TO_WINDOW[tod],
+          at: TIME_OF_DAY_DEFAULTS[tod] || '08:00',
+        }));
+        const wellnessItem: CarePlanItem = {
+          id: 'sync-wellness',
+          carePlanId,
+          type: 'wellness',
+          name: 'Wellness check',
+          priority: wellnessConfig?.priority || 'recommended',
+          active: true,
+          schedule: { frequency: 'daily', times },
+          emoji: '🌅',
+          createdAt: now,
+          updatedAt: now,
+        };
+        devLog(
+          '[syncOtherBucketsWithConfig] Creating wellness CarePlanItem from timesOfDay:',
+          wellnessTimesOfDay.join(', '),
+        );
+        await upsertCarePlanItem(wellnessItem);
+        changed = true;
+      }
     } else {
       // Migrate existing items from old names to standardized "wellness check" naming
       for (const item of existingWellnessItems) {
