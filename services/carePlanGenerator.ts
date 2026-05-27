@@ -496,57 +496,146 @@ export async function syncOtherBucketsWithConfig(
       }
     }
     const existingWellnessItems = allItems.filter(i => i.type === 'wellness' && !i.id.startsWith('sample-'));
-    const hasActiveWellnessItem = existingWellnessItems.some(i => i.active);
     if (!wellnessEnabled) {
-      // Deactivate all wellness items when bucket is off
+      // Bucket OFF — deactivate all wellness items (hide-not-delete).
       for (const item of existingWellnessItems) {
         if (item.active) {
           await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
           changed = true;
         }
       }
-    } else if (wellnessEnabled && existingWellnessItems.length > 0 && !hasActiveWellnessItem) {
-      // Phase 34 F2.1 — canonical reactivation branch (mirrors
-      // vitals/sleep/water/activity). Pre-fix the ladder had only
-      // "deactivate / create-from-zero / else-migration"; the
-      // "items exist but all inactive" case fell to the migration
-      // branch which never re-activated. Trigger: user toggled
-      // wellness off (post-b8f0ea11 force-include fix), items went
-      // inactive, then toggled back on — items stayed inactive
-      // (filtered by listCarePlanItems({activeOnly: true}) at the
-      // generation pipeline → no wellness instances on Now). Now
-      // matches every other bucket's pattern.
+    } else {
+      // Bucket ON — Phase 34 F3 unified reconciliation pass.
+      //
+      // Replaces the pre-F3 four-branch ladder (deactivate /
+      // F2.1-reactivate-only / F2-fresh-create / migration-block).
+      // Every existing wellness item routes through the shared
+      // resolver (TIME_OF_DAY_TO_WINDOW + TIME_OF_DAY_DEFAULTS) +
+      // checked against carePlanConfig.wellness.timesOfDay:
+      //   • TimeOfDay in user's selection → reactivate +
+      //     reconcile schedule.times to canonical (resolves the
+      //     legacy-times artifact F2.1 flagged where pre-F2 items
+      //     reactivated at OLD 07:00/13:00/20:00 stored times).
+      //   • TimeOfDay NOT in user's selection → deactivate
+      //     (hide-not-delete; the force-add-afternoon bypass that
+      //     was the F3-bound exception in F1 contract 6).
+      //   • Unknown id-suffix (future renamed/added id form) →
+      //     LEFT UNTOUCHED. The bridge map below returns null for
+      //     unknown keys; no silent default-to-morning misroute.
+      //
+      // The id-suffix bridge below is PARSE-ONLY — it reads
+      // legacy ids to derive their TimeOfDay. No write path
+      // creates a new per-period legacy-form id post-F3; the
+      // fresh-state branch below writes only the consolidated
+      // 'sync-wellness' id. Pinned by F3 contract 9 + 10.
+      const wellnessTimesOfDay =
+        wellnessConfig?.timesOfDay ?? ['morning', 'midday', 'evening'];
+
+      // Legacy id-suffix → TimeOfDay. Bridges the pre-F2 ids
+      // (which were named after the TimeWindowLabel like 'afternoon')
+      // back to the TimeOfDay storage key (e.g. 'midday') that the
+      // shared resolver consumes. Returns undefined for unknown
+      // suffixes — caller treats that as "leave untouched."
+      const ID_SUFFIX_TO_TOD: Record<string, TimeOfDay> = {
+        morning: 'morning',
+        afternoon: 'midday',
+        evening: 'evening',
+      };
+
+      // Pass A — legacy name migration ("morning check-in" → "Morning
+      // wellness check"). Preserved for very-old devices; touches
+      // name strings only, not TimeWindowLabel literals (outside
+      // F1 contract 6's scope).
       for (const item of existingWellnessItems) {
-        if (!item.active) {
-          devLog('[syncOtherBucketsWithConfig] Reactivating wellness item:', item.id);
-          await upsertCarePlanItem({ ...item, active: true, updatedAt: now });
+        const oldName = item.name.toLowerCase();
+        let newName: string | null = null;
+        if (oldName === 'morning check-in') newName = 'Morning wellness check';
+        else if (oldName === 'evening check-in') newName = 'Evening wellness check';
+        if (newName && item.name !== newName) {
+          await upsertCarePlanItem({ ...item, name: newName, updatedAt: now });
           changed = true;
         }
       }
-    } else if (existingWellnessItems.length === 0) {
-      // Phase 34 F2 — Bug H fix. Wellness generation now reads
-      // per-window selection from carePlanConfig.wellness.timesOfDay
-      // and routes each window through the shared resolver
-      // (TIME_OF_DAY_TO_WINDOW + TIME_OF_DAY_DEFAULTS) — exactly the
-      // path every other category (vitals/sleep/water/activity)
-      // uses. ONE consolidated CarePlanItem with N times replaces
-      // the pre-F2 three-separate-items bypass.
-      //
-      // Empty array = user-explicit "no wellness windows" → no
-      // instance created (respect the explicit selection — what
-      // the user sets is what generates).
-      // Undefined = legacy data without a timesOfDay field →
-      // fall back to the canonical default so legacy state doesn't
-      // silently lose wellness.
-      //
-      // P5 wellnessSettings.{period}.enabled is preserved-but-inert
-      // (hide-not-delete). Not read here. Subtitle reader at
-      // utils/wellnessCadenceText.ts continues to read the P5 store
-      // — known divergence until F5 closes when editor chips swap
-      // their write target to carePlanConfig.wellness.timesOfDay.
-      const wellnessTimesOfDay =
-        wellnessConfig?.timesOfDay ?? ['morning', 'midday', 'evening'];
-      if (wellnessTimesOfDay.length > 0) {
+
+      // Pass B — reconciliation pass. Per-item: reactivate +
+      // canonical-time-reconcile OR deactivate based on
+      // timesOfDay membership.
+      for (const item of existingWellnessItems) {
+        if (item.id === 'sync-wellness') {
+          // Post-F2 consolidated item — reconcile its schedule.times
+          // to match current timesOfDay via the shared resolver.
+          const targetActive = wellnessTimesOfDay.length > 0;
+          const expectedTimes: TimeWindow[] = wellnessTimesOfDay.map((tod: TimeOfDay) => ({
+            id: `sync-wellness-${tod}-time`,
+            kind: 'exact' as const,
+            label: TIME_OF_DAY_TO_WINDOW[tod],
+            at: TIME_OF_DAY_DEFAULTS[tod] || '08:00',
+          }));
+          const currentTimes = item.schedule?.times ?? [];
+          const sameShape = currentTimes.length === expectedTimes.length &&
+            expectedTimes.every((et: TimeWindow) =>
+              currentTimes.some((ct: TimeWindow) =>
+                ct.label === et.label && ct.at === et.at));
+          if (item.active !== targetActive || (targetActive && !sameShape)) {
+            await upsertCarePlanItem({
+              ...item,
+              active: targetActive,
+              schedule: { ...item.schedule, frequency: 'daily', times: expectedTimes },
+              updatedAt: now,
+            });
+            changed = true;
+          }
+          continue;
+        }
+
+        // Legacy per-period item — derive TimeOfDay from id-suffix.
+        const suffix = item.id.replace(/^sync-wellness-/, '');
+        const todForItem = ID_SUFFIX_TO_TOD[suffix];
+        if (!todForItem) {
+          // Unknown id-suffix (future renamed/added form). Leave
+          // untouched — no silent misroute. The future maintainer
+          // who adds a new suffix must explicitly extend the map.
+          continue;
+        }
+
+        const inSelection = wellnessTimesOfDay.includes(todForItem);
+        if (inSelection) {
+          const canonicalTime: TimeWindow = {
+            id: `${item.id}-time`,
+            kind: 'exact' as const,
+            label: TIME_OF_DAY_TO_WINDOW[todForItem],
+            at: TIME_OF_DAY_DEFAULTS[todForItem] || '08:00',
+          };
+          const currentTime = item.schedule?.times?.[0];
+          const drifted = !currentTime ||
+            currentTime.label !== canonicalTime.label ||
+            currentTime.at !== canonicalTime.at;
+          if (!item.active || drifted) {
+            devLog('[syncOtherBucketsWithConfig] Reconciling wellness item:', item.id);
+            await upsertCarePlanItem({
+              ...item,
+              active: true,
+              schedule: { ...item.schedule, frequency: 'daily', times: [canonicalTime] },
+              updatedAt: now,
+            });
+            changed = true;
+          }
+        } else {
+          // Not in user's selection — deactivate (hide-not-delete).
+          if (item.active) {
+            devLog('[syncOtherBucketsWithConfig] Deactivating out-of-selection wellness item:', item.id);
+            await upsertCarePlanItem({ ...item, active: false, updatedAt: now });
+            changed = true;
+          }
+        }
+      }
+
+      // Pass C — fresh-state creation (F2 path). Only fires when
+      // ZERO wellness items exist at all. ONE consolidated
+      // CarePlanItem with N times, routed through the shared
+      // resolver, id 'sync-wellness'. Empty timesOfDay = explicit
+      // user "no wellness windows" → no instance created.
+      if (existingWellnessItems.length === 0 && wellnessTimesOfDay.length > 0) {
         const times: TimeWindow[] = wellnessTimesOfDay.map((tod: TimeOfDay) => ({
           id: `sync-wellness-${tod}-time`,
           kind: 'exact' as const,
@@ -570,46 +659,6 @@ export async function syncOtherBucketsWithConfig(
           wellnessTimesOfDay.join(', '),
         );
         await upsertCarePlanItem(wellnessItem);
-        changed = true;
-      }
-    } else {
-      // Migrate existing items from old names to standardized "wellness check" naming
-      for (const item of existingWellnessItems) {
-        const oldName = item.name.toLowerCase();
-        let newName: string | null = null;
-        if (oldName === 'morning check-in') newName = 'Morning wellness check';
-        else if (oldName === 'evening check-in') newName = 'Evening wellness check';
-        if (newName && item.name !== newName) {
-          await upsertCarePlanItem({ ...item, name: newName, updatedAt: now });
-          changed = true;
-        }
-      }
-
-      // Migration: add afternoon wellness check for existing users who only have morning + evening
-      const hasAfternoon = existingWellnessItems.some(i => i.id === 'sync-wellness-afternoon');
-      if (!hasAfternoon) {
-        const afternoonItem: CarePlanItem = {
-          id: 'sync-wellness-afternoon',
-          carePlanId,
-          type: 'wellness',
-          name: 'Afternoon wellness check',
-          priority: 'recommended',
-          active: true,
-          schedule: {
-            frequency: 'daily',
-            times: [{
-              id: 'sync-wellness-afternoon-time',
-              kind: 'exact' as const,
-              label: 'afternoon',
-              at: '13:00',
-            }],
-          },
-          emoji: '☀️',
-          createdAt: now,
-          updatedAt: now,
-        };
-        devLog('[syncOtherBucketsWithConfig] Migration: adding afternoon wellness check');
-        await upsertCarePlanItem(afternoonItem);
         changed = true;
       }
     }

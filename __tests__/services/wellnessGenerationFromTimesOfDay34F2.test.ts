@@ -209,21 +209,20 @@ describe('Phase 34 F2 — source-level structural pins on the rewritten wellness
     expect(block).not.toMatch(/@embermate_wellness_settings/);
   });
 
-  it('contract 4 (F3-bound exception, documented): the migration block at ~:592-618 still hardcodes label "afternoon" + time "13:00" — pin so F3 closes it', () => {
-    // The migration-block bypass that F2 LEFT INTACT per user-
-    // locked scope. Pin its existence as the F3-bound exception,
-    // mirror of how F1 pinned the fresh-state bypass as F2-bound.
-    // The fingerprint: `hasAfternoon` variable + `'Afternoon
-    // wellness check'` name + hardcoded `label: 'afternoon'` +
-    // `at: '13:00'` clustered together.
-    const migIdx = GEN_STRIPPED.search(/hasAfternoon\s*=\s*existingWellnessItems\.some/);
-    expect(migIdx).toBeGreaterThan(-1);
-    const block = GEN_STRIPPED.slice(
-      migIdx,
-      Math.min(GEN_STRIPPED.length, migIdx + 1500),
-    );
-    expect(block).toMatch(/label\s*:\s*['"]afternoon['"]/);
-    expect(block).toMatch(/at\s*:\s*['"]13:00['"]/);
+  it('contract 4 (F3 CLOSED): migration-block bypass is GONE — no hasAfternoon force-inject anywhere in the wellness sync', () => {
+    // F2 pinned the migration-block hardcode as the F3-bound
+    // exception (hasAfternoon variable + literal label
+    // 'afternoon' + literal at '13:00'). F3 closed that bypass —
+    // the reconciliation pass replaces the migration block, and
+    // every label + at value now flows through the shared
+    // resolver. This contract FLIPS from EXISTENCE-pin to
+    // ABSENCE-pin: any future regression that reintroduces the
+    // force-inject pattern fails here.
+    expect(GEN_STRIPPED).not.toMatch(/hasAfternoon\s*=\s*existingWellnessItems\.some/);
+    // No 'Afternoon wellness check' name string either — the
+    // pre-F2 trio name died with the F2 fresh-state consolidation
+    // and the F3 migration-block removal.
+    expect(GEN_STRIPPED).not.toMatch(/['"]Afternoon wellness check['"]/);
   });
 });
 

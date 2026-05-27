@@ -116,57 +116,71 @@ describe('Phase 34 F1 — unified time-model foundation', () => {
     expect(lookups.length).toBeGreaterThanOrEqual(6);
   });
 
-  it('contract 6 (F2 PARTIAL FLIP — fresh-state bypass CLOSED, migration-block bypass remains F3-bound)', () => {
-    // F1 originally pinned the EXISTENCE of three hardcoded
-    // labels ('morning' / 'afternoon' / 'evening') in the
-    // fresh-state wellness sync branch (carePlanGenerator.ts:
-    // 507-578). F2 closed that bypass — the fresh-state branch
-    // now uses the shared resolver TIME_OF_DAY_TO_WINDOW. The
-    // migration-block bypass at ~:592-618 remains; F3 closes it.
-    //
-    // This contract is now a PARTIAL FLIP:
-    //   (a) Pin ABSENCE of the fresh-state bypass — the per-period
-    //       name strings ('Morning wellness check' / 'Evening
-    //       wellness check') no longer mark a creation site;
-    //       at most one occurrence each (the migration block's
-    //       name-rename branch).
-    //   (b) Pin EXISTENCE of the migration-block hardcode as the
-    //       documented F3-bound exception. Same shape F1 used for
-    //       the F2-bound exception — the test names what still
-    //       needs to close.
+  it('contract 6 (F3 FULL FLIP — BOTH bypasses CLOSED, no hardcoded TimeWindowLabel / time literals in wellness path)', () => {
+    // Evolution of this contract:
+    //   F1 (original) — pinned EXISTENCE of hardcoded triple in
+    //     fresh-state wellness sync branch (F2-bound exception).
+    //   F2 — flipped partially: fresh-state ABSENCE pinned; migration
+    //     block (hasAfternoon force-inject) EXISTENCE pinned as
+    //     F3-bound exception.
+    //   F3 (this version) — FULL FLIP. Both bypasses closed.
+    //     The wellness sync block now routes EVERY label + at value
+    //     through TIME_OF_DAY_TO_WINDOW + TIME_OF_DAY_DEFAULTS.
+    //     No `label: 'morning' | 'afternoon' | 'evening'` literals
+    //     and no `at: 'HH:MM'` literals anywhere in the wellness
+    //     sync section.
     const src = stripComments(
       readFileSync(join(ROOT, 'services/carePlanGenerator.ts'), 'utf8'),
     );
 
-    // (a) Fresh-state bypass CLOSED.
-    // The pre-F2 fresh-state branch had THREE per-period name
-    // literals; post-F2 there's ONE consolidated 'Wellness check'
-    // item. Per-period name strings now appear only inside the
-    // migration block's name-rename code (`if (oldName === ...)
-    // newName = '...'`), at most once each.
+    // (a) Fresh-state bypass STILL CLOSED (F2 invariant holds).
     const morningNameMatches =
       src.match(/['"]Morning wellness check['"]/g) ?? [];
     const eveningNameMatches =
       src.match(/['"]Evening wellness check['"]/g) ?? [];
     expect(morningNameMatches.length).toBeLessThanOrEqual(1);
     expect(eveningNameMatches.length).toBeLessThanOrEqual(1);
-
-    // The new consolidated wellness item lands a single
-    // 'Wellness check' name.
     expect(src).toMatch(/name\s*:\s*['"]Wellness check['"]/);
 
-    // (b) Migration-block bypass STILL exists as F3-bound exception.
-    // Anchor on hasAfternoon — the variable that gates the
-    // migration's force-inject — and pin the hardcoded label +
-    // time literals it carries.
-    const migIdx = src.search(/hasAfternoon\s*=\s*existingWellnessItems\.some/);
-    expect(migIdx).toBeGreaterThan(-1);
-    const migWindow = src.slice(
-      migIdx,
-      Math.min(src.length, migIdx + 1500),
+    // (b) Migration-block bypass CLOSED (F3 fix). The hasAfternoon
+    // force-inject variable + its accompanying hardcoded label
+    // 'afternoon' + at '13:00' are GONE.
+    expect(src).not.toMatch(/hasAfternoon\s*=\s*existingWellnessItems\.some/);
+
+    // (c) No hardcoded TimeWindowLabel literal in the wellness
+    // sync block. The section anchors are inside `// =====` line
+    // comments, which stripComments removes — so scan the RAW
+    // source for the anchors, then strip-clean the captured
+    // block. (The test's stripped `src` was used for the (a)/(b)
+    // pins above where anchors weren't needed.)
+    const rawSrc = readFileSync(
+      join(ROOT, 'services/carePlanGenerator.ts'),
+      'utf8',
     );
-    expect(migWindow).toMatch(/label\s*:\s*['"]afternoon['"]/);
-    expect(migWindow).toMatch(/at\s*:\s*['"]13:00['"]/);
+    const wellnessStart = rawSrc.search(/===== WELLNESS SYNC =====/);
+    expect(wellnessStart).toBeGreaterThan(-1);
+    const wellnessEnd = rawSrc.indexOf('===== SLEEP SYNC =====', wellnessStart);
+    expect(wellnessEnd).toBeGreaterThan(wellnessStart);
+    const wellnessBlock = stripComments(rawSrc.slice(wellnessStart, wellnessEnd));
+
+    // No hardcoded `label: 'morning'` / `'afternoon'` / `'evening'`
+    // literals as TimeWindow.label values. The reconciliation pass
+    // sources labels via TIME_OF_DAY_TO_WINDOW[tod] exclusively.
+    expect(wellnessBlock).not.toMatch(/label\s*:\s*['"]morning['"]/);
+    expect(wellnessBlock).not.toMatch(/label\s*:\s*['"]afternoon['"]/);
+    expect(wellnessBlock).not.toMatch(/label\s*:\s*['"]evening['"]/);
+    // No hardcoded `at: 'HH:MM'` literals. The reconciliation
+    // pass sources times via TIME_OF_DAY_DEFAULTS[tod] (with
+    // '08:00' string fallback inside the `||` chain, which is
+    // canonical morning — not a per-window hardcode).
+    expect(wellnessBlock).not.toMatch(/at\s*:\s*['"]07:00['"]/);
+    expect(wellnessBlock).not.toMatch(/at\s*:\s*['"]13:00['"]/);
+    expect(wellnessBlock).not.toMatch(/at\s*:\s*['"]18:00['"]/);
+    expect(wellnessBlock).not.toMatch(/at\s*:\s*['"]20:00['"]/);
+    // The resolver references must be present (constructive proof
+    // the path IS resolver-routed).
+    expect(wellnessBlock).toMatch(/TIME_OF_DAY_TO_WINDOW\[/);
+    expect(wellnessBlock).toMatch(/TIME_OF_DAY_DEFAULTS\[/);
   });
 
   // --------------------------------------------------------------------------
