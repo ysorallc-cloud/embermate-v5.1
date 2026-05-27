@@ -406,15 +406,17 @@ function QuickAddInline({ onSubmit, onClose }: QuickAddInlineProps) {
                   styles.quickAddSlotLabel,
                   isSelected && styles.quickAddSlotLabelSelected,
                 ]}
-                // Phase 34 F1 follow-up — lock single-line render +
-                // iOS auto-shrink. The chips are flex:1 (equal width),
-                // and post-F1 the "Afternoon" label is longer than
-                // the others; without this pair the label wrapped to
-                // two lines and broke the row's equal-height read.
-                // adjustsFontSizeToFit shrinks only the overflowing
-                // chip's label; the other three keep full 11pt.
+                // Phase 34 F1 follow-up² — single-line floor only.
+                // First attempt (adjustsFontSizeToFit) was unreliable
+                // in RN flex-width containers; per-chip auto-shrink
+                // didn't actually fire on device. Structural fix
+                // moved to quickAddSlotLabel.fontSize (one smaller
+                // size applied to all four chips equally). This
+                // numberOfLines={1} stays as a hard safety floor:
+                // if a future label is too long, the worst case
+                // becomes truncation, never wrap (which broke the
+                // row's equal-height read).
                 numberOfLines={1}
-                adjustsFontSizeToFit
               >
                 {slot.label}
               </Text>
@@ -818,14 +820,30 @@ const createStyles = (c: any) => StyleSheet.create({
     fontSize: 13,
     color: c.textPrimary,
   },
+  // Phase 34 F1 follow-up³ — quick-add chips break out of the 4-in-
+  // a-row cram into a flex-wrap grid. Four chips at fixed 1/4-width
+  // couldn't reliably fit "Afternoon" at full font on every device;
+  // shrinking the font (10pt) didn't hold either. The structural fix
+  // is to let the layout accommodate the content — chips size to
+  // their label + comfortable padding, the row wraps naturally
+  // (yields a 2x2 grid for the four current labels on typical iOS
+  // widths). All four chips share the same fontSize + paddingVertical
+  // so heights match regardless of which row they land on.
+  //
+  // ACTUAL ON-DEVICE WRAP BEHAVIOR is WALK-ONLY VERIFIED — the iOS
+  // text-layout engine that decides per-label wrap doesn't run in
+  // Jest. The structural pins live in the test file; the
+  // "no-mid-word-wrap, full-font, no-truncation" outcome is Amber's
+  // walk gate, not a green-suite claim.
   quickAddSlotRow: {
     flexDirection: 'row' as const,
-    gap: 6,
+    flexWrap: 'wrap' as const,
+    gap: 8,
     marginBottom: 10,
   },
   quickAddSlot: {
-    flex: 1,
     paddingVertical: 8,
+    paddingHorizontal: 14, // allow: chip horizontal padding (Apple HIG ≥44pt tap target with gap)
     alignItems: 'center' as const,
     borderRadius: 6,
     borderWidth: 1,
@@ -836,6 +854,10 @@ const createStyles = (c: any) => StyleSheet.create({
     borderColor: c.accent,
     backgroundColor: c.accentDim,
   },
+  // Phase 34 F1 follow-up³ — chip font back to full 11pt. The
+  // shrink-to-10 attempt was a workaround for the 4-in-a-row width
+  // constraint; that constraint is gone (chips flex-wrap and size
+  // to content), so the label can render at full size.
   quickAddSlotLabel: {
     fontSize: 11,
     color: c.textSecondary,
