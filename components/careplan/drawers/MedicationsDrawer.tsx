@@ -406,6 +406,15 @@ function QuickAddInline({ onSubmit, onClose }: QuickAddInlineProps) {
                   styles.quickAddSlotLabel,
                   isSelected && styles.quickAddSlotLabelSelected,
                 ]}
+                // Phase 34 F1 follow-up — lock single-line render +
+                // iOS auto-shrink. The chips are flex:1 (equal width),
+                // and post-F1 the "Afternoon" label is longer than
+                // the others; without this pair the label wrapped to
+                // two lines and broke the row's equal-height read.
+                // adjustsFontSizeToFit shrinks only the overflowing
+                // chip's label; the other three keep full 11pt.
+                numberOfLines={1}
+                adjustsFontSizeToFit
               >
                 {slot.label}
               </Text>
