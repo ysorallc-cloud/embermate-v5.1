@@ -3,7 +3,7 @@
 // React hook for accessing and managing Care Plan configuration
 // ============================================================================
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { logError } from '../utils/devLog';
 import { useDataListener, emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
@@ -79,10 +79,45 @@ export function useCarePlanConfig(
 
   /**
    * Load the Care Plan config
+   *
+   * Phase 34 F3.2 — loading semantic locked to "no config available,"
+   * NOT "reading storage again." The initial mount (config === null in
+   * state) flips loading=true while the first storage read runs; once
+   * a config is in state, subsequent reloads triggered by the data
+   * listener (or any caller) DO NOT toggle loading — that's a
+   * background refresh and the consumer has data to render.
+   *
+   * Pre-F3.2 the unconditional setLoading(true) caused every chip
+   * write to flicker loading→true→false. Consumers that gate render
+   * on `if (loading)` (Care Plan home + today-scope) would unmount
+   * their ScrollView for the flicker frame → scrollTop reset on
+   * every chip toggle. Closed at the hook layer so every consumer
+   * benefits, not just the home screen.
+   *
+   * No `refreshing` flag added — audit confirmed no consumer needs
+   * a separate signal. If one ever does, add it then.
+   *
+   * Pinned by useCarePlanConfigLoadingSemantics34F3_2.test.tsx.
    */
+  // Phase 34 F3.2 — ref-mirror of config so loadConfig can read the
+  // current value without re-creating itself on every config change
+  // (which would cycle useEffect → loadConfig → setConfig → new
+  // loadConfig → useEffect → ... forever). The ref updates on every
+  // render below, after loadConfig's callback identity is decided.
+  const configRef = useRef<CarePlanConfig | null>(null);
+  configRef.current = config;
+
   const loadConfig = useCallback(async () => {
     try {
-      setLoading(true);
+      // F3.2 — only flip loading=true when no config is in state yet
+      // (initial mount). Subsequent reloads triggered by the data
+      // listener are background refreshes and must not flicker
+      // loading; consumers using `if (loading) return <spinner>`
+      // would otherwise unmount their ScrollView and reset scroll
+      // position on every chip toggle (the F3.2 walk-failure).
+      if (!configRef.current) {
+        setLoading(true);
+      }
       setError(null);
       const loadedConfig = await getCarePlanConfig(patientId);
       setConfig(loadedConfig);
