@@ -61,6 +61,33 @@ export const BUCKET_TYPES: BucketType[] = [
 // list, so the wizard and management screen tell the same story.
 export const CORE_BUCKETS: BucketType[] = ['meds', 'vitals'];
 
+// ============================================================================
+// Phase 34 F4 — MVP_HIDDEN_BUCKETS: the SINGLE SOURCE OF TRUTH for what's
+// hidden in Care Plan v1.
+//
+// v1 Care Plan = Meds, Wellness, Meals, Vitals. Water / Sleep / Activity /
+// Appointments are HIDDEN — data, storage, and routes all preserved. Each
+// returns in v1.1 when it has a real working flow.
+//
+// This constant is consumed by EVERY suppression surface — getEnabledBuckets
+// (below; cascades to Care Plan rows + quick-log + Now snapshot), the
+// sleep/water/activity generator gates (services/carePlanGenerator.ts), the
+// Now water-ring (app/(tabs)/now.tsx), and the Care Plan ADD_WHEN_READY
+// section list derivation (app/care-plan/index.tsx). No surface hardcodes
+// its own hidden list. v1.1 unhide = remove a bucket from THIS array —
+// one edit controls all surfaces. Pinned by carePlanMvpHiddenBuckets34F4.
+//
+// HIDE-NOT-DELETE: nothing here mutates stored config.{bucket}.enabled.
+// Suppression is read-time only; an existing user's stored selection
+// survives and the F2.1 reactivation branch resurrects their items when
+// the bucket leaves this set.
+export const MVP_HIDDEN_BUCKETS: readonly BucketType[] = [
+  'water',
+  'sleep',
+  'activity',
+  'appointments',
+];
+
 // Primary buckets shown by default
 export const PRIMARY_BUCKETS: BucketType[] = ['meds', 'vitals', 'meals', 'water'];
 
@@ -533,7 +560,15 @@ export function hasAnyEnabledBucket(config: CarePlanConfig): boolean {
  * Pinned by carePlanWellnessToggleOff33F7.test.tsx.
  */
 export function getEnabledBuckets(config: CarePlanConfig): BucketType[] {
-  return BUCKET_TYPES.filter(bucket => config[bucket]?.enabled === true);
+  // Phase 34 F4 — also exclude v1-hidden buckets. Even if a stored
+  // config has water/sleep/activity/appointments enabled (existing
+  // user), they're suppressed from the enabled set in v1 — which
+  // cascades to Care Plan rows, quick-log (getFilteredOptions), and
+  // the Now snapshot. config.enabled itself is never mutated
+  // (hide-not-delete); this is a read-time filter.
+  return BUCKET_TYPES.filter(
+    bucket => config[bucket]?.enabled === true && !MVP_HIDDEN_BUCKETS.includes(bucket),
+  );
 }
 
 /**

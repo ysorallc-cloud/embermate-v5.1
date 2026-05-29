@@ -30,13 +30,13 @@ const VITAL_OPTIONS: { value: VitalType; label: string }[] = [
   { value: 'temp',    label: 'Temperature' },
 ];
 
-type Frequency = 'daily' | 'weekly' | 'as_needed';
-
-const FREQUENCY_OPTIONS: { value: Frequency; label: string }[] = [
-  { value: 'daily',     label: 'Daily' },
-  { value: 'weekly',    label: 'Weekly' },
-  { value: 'as_needed', label: 'As Needed' },
-];
+// Phase 34 F4 — the HOW OFTEN frequency control is HIDDEN in v1. The
+// Frequency type + FREQUENCY_OPTIONS are retired from this drawer; the
+// VitalsBucketConfig.frequency field stays in the data model
+// (types/carePlanConfig.ts) so stored values survive and v1.1 can
+// re-surface the control. The generator already ignored frequency
+// (always daily — Bug B), so hiding it is a UI-only change with no
+// behavior delta.
 
 export interface VitalsDrawerProps {
   config: VitalsBucketConfig;
@@ -47,7 +47,6 @@ export function VitalsDrawer({ config, onUpdate }: VitalsDrawerProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const selected: VitalType[] = (config.vitalTypes ?? ['bp', 'hr', 'weight']) as VitalType[];
-  const frequency: Frequency = (config.frequency as Frequency) ?? 'daily';
   const remindersOn = config.notificationsEnabled ?? true;
 
   const toggleVital = (value: VitalType) => {
@@ -55,10 +54,6 @@ export function VitalsDrawer({ config, onUpdate }: VitalsDrawerProps) {
       ? selected.filter((v) => v !== value)
       : [...selected, value];
     onUpdate({ vitalTypes: next } as Partial<BucketConfig>);
-  };
-
-  const setFrequency = (value: Frequency) => {
-    onUpdate({ frequency: value } as Partial<BucketConfig>);
   };
 
   return (
@@ -85,27 +80,8 @@ export function VitalsDrawer({ config, onUpdate }: VitalsDrawerProps) {
         })}
       </View>
 
-      <Text style={styles.label}>HOW OFTEN</Text>
-      <View style={styles.optionRow}>
-        {FREQUENCY_OPTIONS.map((opt) => {
-          const isSelected = frequency === opt.value;
-          return (
-            <TouchableOpacity
-              key={opt.value}
-              style={[styles.option, isSelected && styles.optionSelected]}
-              onPress={() => setFrequency(opt.value)}
-              activeOpacity={0.7}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: isSelected }}
-              accessibilityLabel={`${opt.label} frequency`}
-            >
-              <Text style={[styles.optionLabel, isSelected && styles.optionLabelSelected]}>
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      {/* Phase 34 F4 — HOW OFTEN frequency control removed (hidden in
+          v1; field preserved in the data model — see header comment). */}
 
       <View style={styles.row}>
         <View style={styles.rowLabelBlock}>

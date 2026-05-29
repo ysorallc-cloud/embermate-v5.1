@@ -210,23 +210,33 @@ describe('Phase 34 F2.1 — inactive items reactivate on bucket re-enable (every
   });
 
   // --------------------------------------------------------------------------
-  // SLEEP — canonical reactivation. Expected GREEN going in.
+  // SLEEP / WATER / ACTIVITY — Phase 34 F4 REFRAME.
+  //
+  // These three were canonical-reactivation buckets in F2.1. Phase 34
+  // F4 made them v1-HIDDEN (MVP_HIDDEN_BUCKETS). The F4 gate means the
+  // generator treats them as not-enabled regardless of config.enabled,
+  // so an inactive item STAYS inactive (no reactivation in v1) and an
+  // active item DEACTIVATES. The reactivation BRANCH still exists in
+  // the code (proven by the visible buckets below + the F4 v1.1-unhide
+  // path); F4 just gates it shut for these three. config.enabled is
+  // preserved — when v1.1 removes a bucket from MVP_HIDDEN_BUCKETS,
+  // the reactivation branch fires again. Pinned by
+  // mvpHiddenBucketsGeneration34F4.test.ts.
   // --------------------------------------------------------------------------
 
-  it('contract SLEEP: enabled bucket + inactive sync-sleep item → reactivates on next sync', async () => {
+  it('contract SLEEP (F4 reframe — v1-hidden): inactive sync-sleep item STAYS inactive on sync (reactivation gated by MVP_HIDDEN_BUCKETS)', async () => {
     seedWith(
       { sleep: { ...freshConfig().sleep, enabled: true, timesOfDay: ['morning'] } },
       [inactiveSyncItem('sleep', 'sync-sleep', 'morning', '08:00', 'Log sleep')],
     );
     await syncOtherBucketsWithConfig('cp-test', 'default');
-    expect(activeItemsOfType('sleep').length).toBeGreaterThan(0);
+    // Hidden in v1 → no reactivation → no active sleep item.
+    expect(activeItemsOfType('sleep').length).toBe(0);
+    // But preserved (hide-not-delete) — item still present, inactive.
+    expect(mockState.items.filter((i) => i.type === 'sleep').length).toBe(1);
   });
 
-  // --------------------------------------------------------------------------
-  // WATER (HYDRATION) — canonical reactivation. Expected GREEN going in.
-  // --------------------------------------------------------------------------
-
-  it('contract WATER: enabled bucket + inactive sync-hydration item → reactivates on next sync', async () => {
+  it('contract WATER (F4 reframe — v1-hidden): inactive sync-hydration item STAYS inactive on sync', async () => {
     seedWith(
       {
         water: {
@@ -240,14 +250,11 @@ describe('Phase 34 F2.1 — inactive items reactivate on bucket re-enable (every
       [inactiveSyncItem('hydration', 'sync-hydration', 'afternoon', '12:00', 'Drink water')],
     );
     await syncOtherBucketsWithConfig('cp-test', 'default');
-    expect(activeItemsOfType('hydration').length).toBeGreaterThan(0);
+    expect(activeItemsOfType('hydration').length).toBe(0);
+    expect(mockState.items.filter((i) => i.type === 'hydration').length).toBe(1);
   });
 
-  // --------------------------------------------------------------------------
-  // ACTIVITY — canonical reactivation. Expected GREEN going in.
-  // --------------------------------------------------------------------------
-
-  it('contract ACTIVITY: enabled bucket + inactive sync-activity item → reactivates on next sync', async () => {
+  it('contract ACTIVITY (F4 reframe — v1-hidden): inactive sync-activity item STAYS inactive on sync', async () => {
     seedWith(
       {
         activity: {
@@ -259,7 +266,8 @@ describe('Phase 34 F2.1 — inactive items reactivate on bucket re-enable (every
       [inactiveSyncItem('activity', 'sync-activity', 'evening', '18:00', 'Activity check')],
     );
     await syncOtherBucketsWithConfig('cp-test', 'default');
-    expect(activeItemsOfType('activity').length).toBeGreaterThan(0);
+    expect(activeItemsOfType('activity').length).toBe(0);
+    expect(mockState.items.filter((i) => i.type === 'activity').length).toBe(1);
   });
 
   // --------------------------------------------------------------------------

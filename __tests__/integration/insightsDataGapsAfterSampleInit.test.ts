@@ -93,7 +93,14 @@ beforeEach(() => {
 });
 
 describe('Phase 11.9.3 — Insights data gaps after sample-data init', () => {
-  it('computeDataGaps does NOT include "Sleep" after fresh init', async () => {
+  it('computeDataGaps does NOT include "Sleep" after fresh init (Phase 34 F4: gap SUPPRESSED for v1-hidden bucket, not a phantom)', async () => {
+    // Pre-F4 the gap was absent because sample data POPULATED sleep
+    // (avgSleepHours > 0). Phase 34 F4 makes sleep a v1-hidden bucket
+    // → generation suppressed → avgSleepHours is 0 again, BUT
+    // computeDataGaps now skips the gap row for hidden buckets
+    // (MVP_HIDDEN_BUCKETS gate). So "Sleep" still doesn't appear —
+    // for the RIGHT reason (suppressed feature, not a phantom
+    // "missing data" nag for something the caregiver can't act on).
     await initializeSampleData();
     const pageData = await loadUnderstandPageData(14);
     const gaps = computeDataGaps(pageData, 14);
@@ -101,7 +108,7 @@ describe('Phase 11.9.3 — Insights data gaps after sample-data init', () => {
     expect(metrics).not.toContain('Sleep');
   });
 
-  it('computeDataGaps does NOT include "Hydration" after fresh init', async () => {
+  it('computeDataGaps does NOT include "Hydration" after fresh init (Phase 34 F4: suppressed for v1-hidden water bucket)', async () => {
     await initializeSampleData();
     const pageData = await loadUnderstandPageData(14);
     const gaps = computeDataGaps(pageData, 14);
@@ -109,7 +116,10 @@ describe('Phase 11.9.3 — Insights data gaps after sample-data init', () => {
     expect(metrics).not.toContain('Hydration');
   });
 
-  it('computeDataGaps does NOT include "Evening wellness" after fresh init', async () => {
+  it('computeDataGaps does NOT include "Evening wellness" after fresh init (wellness is v1-VISIBLE — populated, not suppressed)', async () => {
+    // Wellness is NOT hidden, so its gap row is still evaluated. It's
+    // absent here because sample data populates wellness
+    // (avgWellnessPerDay >= 0.5) — the original Phase 11.9 reason.
     await initializeSampleData();
     const pageData = await loadUnderstandPageData(14);
     const gaps = computeDataGaps(pageData, 14);
@@ -117,13 +127,17 @@ describe('Phase 11.9.3 — Insights data gaps after sample-data init', () => {
     expect(metrics).not.toContain('Evening wellness');
   });
 
-  it('pageData carries non-zero avgs for the three formerly-flagged metrics', async () => {
-    // Direct-cause pin: the gaps disappear because the underlying
-    // averages are populated. If averages are 0, gaps surface again.
+  it('Phase 34 F4 — sleep/hydration avgs are 0 in v1 (hidden, not seeded); wellness avg stays populated (visible)', async () => {
+    // Pre-F4 this pinned non-zero avgs for all three (the demo
+    // populated sleep + hydration). F4 makes sleep/water v1-hidden
+    // so the demo no longer seeds them — their avgs are legitimately
+    // 0. The gaps don't surface anyway (suppressed by the
+    // MVP_HIDDEN_BUCKETS gate above), so the Insights surface stays
+    // clean despite the 0 avgs. Wellness (visible) stays populated.
     await initializeSampleData();
     const pageData = await loadUnderstandPageData(14);
-    expect(pageData.avgSleepHours).toBeGreaterThan(0);
-    expect(pageData.avgHydrationPerDay).toBeGreaterThan(0);
+    expect(pageData.avgSleepHours).toBe(0);
+    expect(pageData.avgHydrationPerDay).toBe(0);
     expect(pageData.avgWellnessPerDay).toBeGreaterThan(0);
   });
 });

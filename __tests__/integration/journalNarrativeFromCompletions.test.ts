@@ -51,30 +51,21 @@ describe('Phase 5.13.5 Stage 1 — buildDayNarrative reflects instance completio
       await applyCarePlanTemplate(generalWellness, PATIENT_ID);
       const instances = await ensureDailyInstances(PATIENT_ID, TEST_DATE);
 
-      // Pick three instances spanning wellness + meals + (sleep or activity).
-      // General Wellness doesn't enable meds/vitals, but the spec language
-      // ("spanning meds + vitals + wellness types") is template-dependent —
-      // with this template we get wellness/meals/sleep/activity instead.
-      // The bug surfaces for ALL non-meds types; spanning three of them
-      // matches the spec's intent of "at least 3 instances spanning multiple
-      // types of completion."
-      const byType = (t: string) => instances.find((i) => i.itemType === t);
-      const wellnessInstance = byType('wellness');
-      const nutritionInstance = byType('nutrition');
-      const sleepInstance = byType('sleep') || byType('activity');
-
+      // Phase 34 F4 reframe — pre-F4 this completed wellness + meals +
+      // (sleep OR activity). F4 makes sleep/activity/water v1-hidden, so
+      // those instances no longer generate; General Wellness now yields
+      // only the v1-visible buckets (wellness + meals, where meals is
+      // breakfast/lunch/dinner). That's still ≥3 instances — wellness
+      // (morning+evening) + 3 nutrition slots — so the "≥3 completions
+      // spanning multiple instances" intent holds. We complete the first
+      // three GENERATED instances (all v1-visible by construction, since
+      // hidden buckets don't generate) rather than hand-picking types
+      // that may be suppressed. Robust to F4 + future hide changes.
+      const toComplete = instances.slice(0, 3);
       completedTypes = [];
-      if (wellnessInstance) {
-        await logInstanceCompletion(PATIENT_ID, TEST_DATE, wellnessInstance.id, 'completed');
-        completedTypes.push('wellness');
-      }
-      if (nutritionInstance) {
-        await logInstanceCompletion(PATIENT_ID, TEST_DATE, nutritionInstance.id, 'completed');
-        completedTypes.push('nutrition');
-      }
-      if (sleepInstance) {
-        await logInstanceCompletion(PATIENT_ID, TEST_DATE, sleepInstance.id, 'completed');
-        completedTypes.push(sleepInstance.itemType);
+      for (const inst of toComplete) {
+        await logInstanceCompletion(PATIENT_ID, TEST_DATE, inst.id, 'completed');
+        completedTypes.push(inst.itemType);
       }
 
       narrative = await buildDayNarrative(TEST_DATE, { factualOnly: true });

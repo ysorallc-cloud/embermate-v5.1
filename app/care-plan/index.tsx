@@ -27,6 +27,7 @@ import {
   BucketConfig,
   BUCKET_META,
   BUCKET_TYPES,
+  MVP_HIDDEN_BUCKETS,
 } from '../../types/carePlanConfig';
 import { InfoModal, InfoIconButton } from '../../components/common/InfoModal';
 import { SubScreenHeader } from '../../components/SubScreenHeader';
@@ -74,7 +75,15 @@ import { MedicationsDrawer } from '../../components/careplan/drawers/Medications
 // toggled on, so the absence here can't strand existing user state.
 const ALWAYS_ON_BUCKETS: BucketType[] = ['meds'];
 const DAILY_TRACKING_BUCKETS: BucketType[] = ['vitals', 'wellness', 'meals'];
-const ADD_WHEN_READY_BUCKETS: BucketType[] = ['water', 'sleep', 'activity', 'appointments'];
+// Phase 34 F4 — "Add when ready" section list is DERIVED from
+// MVP_HIDDEN_BUCKETS, not hardcoded. All four optional buckets are
+// v1-hidden, so this resolves to [] in v1 and the section is guarded
+// (below) so no empty zone renders. v1.1 unhide = remove a bucket
+// from MVP_HIDDEN_BUCKETS → it reappears in this section automatically.
+const ADD_WHEN_READY_BUCKETS_ALL: BucketType[] = ['water', 'sleep', 'activity', 'appointments'];
+const ADD_WHEN_READY_BUCKETS: BucketType[] = ADD_WHEN_READY_BUCKETS_ALL.filter(
+  b => !MVP_HIDDEN_BUCKETS.includes(b),
+);
 
 // Phase 33 F2 — line-icon set replacing the pre-33 emoji glyphs on
 // every Care Plan category row. User-locked mapping (2026-05-25):
@@ -614,6 +623,15 @@ export default function CarePlanHomeScreen() {
           })}
           </View>
 
+          {/* Phase 34 F4 — guard the whole "Add when ready" section on a
+              non-empty bucket list. All four optional buckets are
+              v1-hidden (MVP_HIDDEN_BUCKETS) so ADD_WHEN_READY_BUCKETS
+              resolves to [] in v1 → the section (eyebrow + zone) does
+              not render. v1 Care Plan presents as complete; no empty
+              zone, no "coming soon." v1.1 unhide re-populates the list
+              and the section reappears automatically. */}
+          {ADD_WHEN_READY_BUCKETS.length > 0 && (
+          <>
           <SectionEyebrow text="Add when ready" />
           <View testID="section-zone-add-when-ready" style={styles.sectionZone}>
           {ADD_WHEN_READY_BUCKETS.map(bucket => {
@@ -661,6 +679,8 @@ export default function CarePlanHomeScreen() {
             );
           })}
           </View>
+          </>
+          )}
 
           {/* Bottom spacing */}
           <View style={{ height: 40 }} />

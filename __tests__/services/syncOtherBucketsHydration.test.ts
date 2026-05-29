@@ -113,26 +113,27 @@ beforeEach(() => {
 // ----------------------------------------------------------------------------
 
 describe('Phase 11.9.2 — syncOtherBucketsWithConfig hydration sync', () => {
-  it('contract 1: water.enabled=true + no existing hydration items → creates one CarePlanItem of type "hydration"', async () => {
+  it('contract 1 (Phase 34 F4 reframe): water is v1-HIDDEN → enabled=true + no items still creates NO hydration item', async () => {
+    // Pre-F4 (Phase 11.9.2) this pinned that water.enabled=true
+    // created a hydration CarePlanItem (the original bug was that NO
+    // hydration case existed). Phase 34 F4 makes water a v1-hidden
+    // bucket (MVP_HIDDEN_BUCKETS): the generator gates waterEnabled
+    // with !MVP_HIDDEN_BUCKETS.includes('water'), so even with
+    // config.water.enabled=true, generation is suppressed in v1.
+    // The HYDRATION SYNC block still EXISTS (contract 6 source pins
+    // it) — it's gated shut, not deleted. v1.1 unhide reopens it.
     mockGetCarePlanConfig.mockResolvedValue(
       makeConfig({ water: { enabled: true, priority: 'recommended', timesOfDay: ['midday'], notificationsEnabled: false, trackingStyle: 'quick', dailyGoalGlasses: 8, units: 'glasses' } }),
     );
-    // No existing items of any type — sleep block et al. won't fire.
     mockListCarePlanItems.mockResolvedValue([]);
 
     await syncOtherBucketsWithConfig('cp1', 'default');
 
-    const hydrationCalls = mockUpsertCarePlanItem.mock.calls.filter(
-      (call) => call[0]?.type === 'hydration',
+    const hydrationCreates = mockUpsertCarePlanItem.mock.calls.filter(
+      (call) => call[0]?.type === 'hydration' && call[0]?.active === true,
     );
-    expect(hydrationCalls).toHaveLength(1);
-    const created = hydrationCalls[0][0];
-    expect(created.type).toBe('hydration');
-    expect(created.active).toBe(true);
-    expect(created.schedule.frequency).toBe('daily');
-    // Default window from timesOfDay: ['midday'] → afternoon window.
-    expect(Array.isArray(created.schedule.times)).toBe(true);
-    expect(created.schedule.times.length).toBeGreaterThanOrEqual(1);
+    // v1-hidden → no active hydration item created.
+    expect(hydrationCreates).toHaveLength(0);
   });
 
   it('contract 2: idempotency — second call with the existing active item doesn\'t duplicate', async () => {
@@ -170,7 +171,12 @@ describe('Phase 11.9.2 — syncOtherBucketsWithConfig hydration sync', () => {
     expect(hydrationCalls).toHaveLength(0);
   });
 
-  it('contract 4: existing inactive hydration item + enabled=true → reactivated', async () => {
+  it('contract 4 (Phase 34 F4 reframe): water v1-HIDDEN → existing inactive hydration item STAYS inactive (no reactivation in v1)', async () => {
+    // Pre-F4 this pinned reactivation when enabled flipped true.
+    // Phase 34 F4's hidden gate suppresses reactivation for water in
+    // v1 — the inactive item stays inactive (preserved, hide-not-
+    // delete). When v1.1 removes water from MVP_HIDDEN_BUCKETS, the
+    // reactivation branch fires again.
     mockGetCarePlanConfig.mockResolvedValue(
       makeConfig({ water: { enabled: true, priority: 'recommended', timesOfDay: ['midday'], notificationsEnabled: false, trackingStyle: 'quick', dailyGoalGlasses: 8, units: 'glasses' } }),
     );
@@ -180,13 +186,11 @@ describe('Phase 11.9.2 — syncOtherBucketsWithConfig hydration sync', () => {
 
     await syncOtherBucketsWithConfig('cp1', 'default');
 
+    // No reactivation — no upsert flipping the item to active.
     const reactivations = mockUpsertCarePlanItem.mock.calls.filter(
       (call) => call[0]?.type === 'hydration' && call[0]?.active === true,
     );
-    expect(reactivations.length).toBeGreaterThanOrEqual(1);
-    // No new id created — the reactivation reuses the existing id.
-    const ids = reactivations.map((c) => c[0].id);
-    expect(ids).toContain('sync-hydration');
+    expect(reactivations.length).toBe(0);
   });
 
   it('contract 5: existing active hydration item + enabled=false → deactivated', async () => {

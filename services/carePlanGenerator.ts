@@ -37,6 +37,7 @@ import {
   CarePlanConfig,
   VITAL_TYPE_OPTIONS,
   TIME_OF_DAY_DEFAULTS,
+  MVP_HIDDEN_BUCKETS,
 } from '../types/carePlanConfig';
 import { generateUniqueId } from '../utils/idGenerator';
 import { safeGetItem } from '../utils/safeStorage';
@@ -668,7 +669,12 @@ export async function syncOtherBucketsWithConfig(
     // pattern. Sleep is new and has no legacy non-sync items, so the
     // logic is the simpler reactivate / create / deactivate triad.
     const sleepConfig = (config as any).sleep as BucketConfig | undefined;
-    const sleepEnabled = sleepConfig?.enabled === true;
+    // Phase 34 F4 — gate generation on the v1-hidden set. A hidden
+    // bucket with config.enabled=true (existing user) reads as NOT
+    // enabled here, so the deactivate branch fires (items preserved,
+    // active:false). config.enabled itself is untouched. v1.1 unhide
+    // → this gate opens → the F2.1 reactivation branch resurrects.
+    const sleepEnabled = sleepConfig?.enabled === true && !MVP_HIDDEN_BUCKETS.includes('sleep');
     const existingSleepItems = allItems.filter(i => i.type === 'sleep');
     const hasActiveSleepItem = existingSleepItems.some(i => i.active);
 
@@ -725,7 +731,8 @@ export async function syncOtherBucketsWithConfig(
     // type is 'hydration' (matching LogEntryData.type and the
     // aggregator's data?.type === 'hydration' check).
     const waterConfig = (config as any).water as BucketConfig | undefined;
-    const waterEnabled = waterConfig?.enabled === true;
+    // Phase 34 F4 — v1-hidden gate (see sleep block above).
+    const waterEnabled = waterConfig?.enabled === true && !MVP_HIDDEN_BUCKETS.includes('water');
     const existingHydrationItems = allItems.filter(i => i.type === 'hydration');
     const hasActiveHydrationItem = existingHydrationItems.some(i => i.active);
 
@@ -773,7 +780,8 @@ export async function syncOtherBucketsWithConfig(
 
     // ===== ACTIVITY SYNC =====
     const activityConfig = (config as any).activity as BucketConfig | undefined;
-    const activityEnabled = activityConfig?.enabled === true;
+    // Phase 34 F4 — v1-hidden gate (see sleep block above).
+    const activityEnabled = activityConfig?.enabled === true && !MVP_HIDDEN_BUCKETS.includes('activity');
     const existingActivityItems = allItems.filter(i => i.type === 'activity');
     const hasActiveActivityItem = existingActivityItems.some(i => i.active);
 

@@ -66,13 +66,21 @@ describe('Phase 5.13.3 — wizard → Now alignment (reproduction)', () => {
   // --------------------------------------------------------------------------
   // Contract 2 — ensureDailyInstances covers sleep + activity.
   // --------------------------------------------------------------------------
-  describe('Contract 2: ensureDailyInstances covers sleep + activity', () => {
-    it('produces at least one sleep and one activity instance after applying General Wellness', async () => {
+  describe('Contract 2 (Phase 34 F4 reframe): sleep + activity are v1-HIDDEN → no instances', () => {
+    it('produces NO sleep/activity instances after applying General Wellness (v1-hidden via MVP_HIDDEN_BUCKETS)', async () => {
+      // Pre-F4 this pinned that General Wellness (which enables
+      // sleep + activity) generated sleep + activity instances.
+      // Phase 34 F4 makes sleep/activity/water/appointments v1-hidden:
+      // the generator gates them off regardless of the template's
+      // enable writes. The template still writes enabled=true (Contract
+      // 1 unchanged — config preserved), but generation is suppressed
+      // in v1. v1.1 unhide resumes generation. Pinned by
+      // mvpHiddenBucketsGeneration34F4.test.ts.
       await applyCarePlanTemplate(generalWellness, PATIENT_ID);
       const instances = await ensureDailyInstances(PATIENT_ID, TEST_DATE);
       const types = instances.map((i) => i.itemType);
-      expect(types).toContain('sleep');
-      expect(types).toContain('activity');
+      expect(types).not.toContain('sleep');
+      expect(types).not.toContain('activity');
     });
 
     it('returns zero sleep/activity instances after toggling those buckets off', async () => {
@@ -187,27 +195,26 @@ describe('Phase 5.13.3 — wizard → Now alignment (reproduction)', () => {
       expect(nowSrc).toMatch(/<NowTimeline\b/);
     });
 
-    it('contract 5c: ensureDailyInstances produces instances for the wizard-Now bucket set — meals/water/sleep/activity/wellness', async () => {
-      // The orb-removal contract is "buckets surface through the schedule,
-      // not orbs." Contract 2 covers sleep + activity; broaden here to the
-      // full wizard-Now section (PRIMARY+SECONDARY minus CORE per the Lock 2
-      // section split) so the schedule promise is pinned end-to-end.
-      //
-      // Core meds/vitals require explicit CarePlanItems (medication
-      // entries), which the wizard's step-2 TemplateMedSeedingModal path
-      // creates separately — out of scope for the bucket-surface contract.
+    it('contract 5c (Phase 34 F4 reframe): the v1-VISIBLE wizard buckets generate (meals + wellness); the v1-HIDDEN ones (water/sleep/activity) do NOT', async () => {
+      // Pre-F4 this pinned all five wizard buckets (meals/water/sleep/
+      // activity/wellness) generating. Phase 34 F4 makes water/sleep/
+      // activity v1-hidden — only the visible buckets surface in v1.
+      // General Wellness disables meds/vitals, so of its enabled set
+      // (meals/water/wellness/sleep/activity) only meals + wellness
+      // generate after F4. The schedule-not-orbs promise still holds
+      // for the visible buckets.
       await applyCarePlanTemplate(generalWellness, PATIENT_ID);
 
       const instances = await ensureDailyInstances(PATIENT_ID, TEST_DATE);
       const types = new Set(instances.map((i) => i.itemType));
 
-      // Now-tab wizard section (the 5 buckets the user sees in the
-      // "These show on your Now tab" wizard section).
+      // v1-visible wizard buckets still surface.
       expect(types.has('nutrition')).toBe(true); // meals
-      expect(types.has('hydration')).toBe(true); // water
-      expect(types.has('sleep')).toBe(true);
-      expect(types.has('activity')).toBe(true);
       expect(types.has('wellness')).toBe(true);
+      // v1-hidden buckets do NOT generate (MVP_HIDDEN_BUCKETS gate).
+      expect(types.has('hydration')).toBe(false); // water
+      expect(types.has('sleep')).toBe(false);
+      expect(types.has('activity')).toBe(false);
     });
 
     it('contract 5d: StatRings.tsx file is preserved (post-launch restore path)', () => {

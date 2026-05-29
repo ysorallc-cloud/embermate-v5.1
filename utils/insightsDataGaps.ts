@@ -13,6 +13,7 @@
 // ============================================================================
 
 import type { UnderstandPageData } from './understandInsights';
+import { MVP_HIDDEN_BUCKETS } from '../types/carePlanConfig';
 
 export interface DataGap {
   metric: string;
@@ -27,7 +28,14 @@ export function computeDataGaps(
 ): DataGap[] {
   const gaps: DataGap[] = [];
 
-  if (pageData.avgSleepHours === 0) {
+  // Phase 34 F4 — do NOT flag data gaps for v1-hidden buckets. A
+  // hidden bucket (sleep/water/activity/appointments) can't be
+  // enabled or logged in v1, so surfacing a "Missing Sleep data"
+  // gap would be a phantom gap for a feature the caregiver can't
+  // act on — the reverse "control doesn't control" pattern. Gated
+  // on the same MVP_HIDDEN_BUCKETS single source of truth as every
+  // other suppression surface; v1.1 unhide re-enables the gap rows.
+  if (pageData.avgSleepHours === 0 && !MVP_HIDDEN_BUCKETS.includes('sleep')) {
     gaps.push({
       metric: 'Sleep',
       daysMissing: timeRange,
@@ -36,6 +44,8 @@ export function computeDataGaps(
     });
   }
 
+  // Evening wellness — wellness is a v1-VISIBLE bucket, so its gap
+  // row stays.
   if (pageData.avgWellnessPerDay < 0.5) {
     const missing = Math.round(timeRange * (1 - pageData.avgWellnessPerDay));
     gaps.push({
@@ -46,7 +56,7 @@ export function computeDataGaps(
     });
   }
 
-  if (pageData.avgHydrationPerDay === 0) {
+  if (pageData.avgHydrationPerDay === 0 && !MVP_HIDDEN_BUCKETS.includes('water')) {
     gaps.push({
       metric: 'Hydration',
       daysMissing: timeRange,

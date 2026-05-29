@@ -61,22 +61,37 @@ describe('Phase 32A F6 — Vitals drawer', () => {
     expect(src).toMatch(/['"]temp['"]/);
   });
 
-  it('contract 5: drawer surfaces the three frequency options (Daily / Weekly / As Needed)', () => {
+  it('contract 5 (Phase 34 F4 reframe): the HOW OFTEN frequency control is HIDDEN (Bug B closure — value preserved in the data model)', () => {
+    // Pre-F4 (Phase 32A F6) this pinned the three frequency options
+    // (Daily / Weekly / As Needed) rendering in the drawer. Phase 34
+    // F4 HIDES the HOW OFTEN control — the generator always ignored
+    // frequency (Bug B: hardcoded daily), so the control was lying.
+    // Hide-only: the control's render is gone, but the
+    // VitalsBucketConfig.frequency type field stays in the data model
+    // (pinned in carePlanMvpHiddenBuckets34F4 contract 11), so stored
+    // values survive and v1.1 can re-surface the control.
     const src = readFileSync(DRAWER_PATH, 'utf8');
-    expect(src).toMatch(/Daily/);
-    expect(src).toMatch(/Weekly/);
-    expect(src).toMatch(/As Needed|as_needed/i);
-    // Storage values
-    expect(src).toMatch(/['"]daily['"]/);
-    expect(src).toMatch(/['"]weekly['"]/);
-    expect(src).toMatch(/['"]as_needed['"]/);
+    const stripped = src
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/[^\n]*/g, '');
+    // The HOW OFTEN label + the frequency-options render are gone
+    // from the drawer body.
+    expect(stripped).not.toMatch(/HOW OFTEN/);
+    expect(stripped).not.toMatch(/FREQUENCY_OPTIONS/);
   });
 
-  it('contract 6: vitalTypes + frequency + notificationsEnabled all wired', () => {
+  it('contract 6 (Phase 34 F4 reframe): vitalTypes + notificationsEnabled still wired; frequency control retired from the drawer', () => {
     const src = readFileSync(DRAWER_PATH, 'utf8');
-    expect(src).toMatch(/vitalTypes/);
-    expect(src).toMatch(/frequency/);
-    expect(src).toMatch(/notificationsEnabled/);
+    const stripped = src
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/[^\n]*/g, '');
+    // The two surviving controls.
+    expect(stripped).toMatch(/vitalTypes/);
+    expect(stripped).toMatch(/notificationsEnabled/);
+    // frequency is no longer read/written by the drawer (the
+    // setFrequency mutator + frequency local were removed with the
+    // HOW OFTEN block). The field lives only in the type/storage now.
+    expect(stripped).not.toMatch(/setFrequency/);
   });
 
   it('contract 7: NO HealthKit Auto-Import surface (P3 lock — parked for v1.1, retired separately)', () => {

@@ -44,7 +44,7 @@ import { useAppointments } from '../../hooks/useAppointments';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
 import { useTodayScope } from '../../hooks/useTodayScope';
 import { getTodayDateString } from '../../services/carePlanGenerator';
-import { BUCKET_META, BucketType, type CarePlanConfig, type MedsBucketConfig } from '../../types/carePlanConfig';
+import { BUCKET_META, BucketType, MVP_HIDDEN_BUCKETS, type CarePlanConfig, type MedsBucketConfig } from '../../types/carePlanConfig';
 import { CARE_PLAN_TEMPLATES } from '../../constants/carePlanTemplates';
 
 // Urgency System
@@ -290,7 +290,13 @@ export default function NowScreen() {
   // (see types/carePlanConfig.ts:351–376); the legacy .buckets.water
   // nest never existed and silently produced fallback values.
   const waterGoal = carePlanConfig?.water?.dailyGoalGlasses ?? 8;
-  const isWaterBucketEnabled = carePlanConfig?.water?.enabled === true;
+  // Phase 34 F4 — water is a v1-hidden bucket. Even if an existing
+  // user has water.enabled=true in stored config, the water ring is
+  // suppressed in v1 (gated on MVP_HIDDEN_BUCKETS — the single source
+  // of truth). config.water.enabled is preserved (hide-not-delete);
+  // v1.1 unhide re-surfaces the ring automatically.
+  const isWaterBucketEnabled =
+    carePlanConfig?.water?.enabled === true && !MVP_HIDDEN_BUCKETS.includes('water');
 
   // Phase 5.13.2 — summary surfaced on the first-time welcome card. Reads
   // appliedTemplateId (stamped in applyCarePlanTemplate), bucket-enabled

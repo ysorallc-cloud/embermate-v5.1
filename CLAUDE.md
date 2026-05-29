@@ -60,6 +60,10 @@ utils/                # Utility functions (80+ files)
 
 ## Critical Rules
 
+### Input Validity (STANDING RULE — every caregiver input, every time)
+Every caregiver input must be verified end-to-end: **persisted → encrypted (if health/personal) → surfaced where expected → survives reload.** Input without persistence is a trust violation; notes and care-history especially. When adding or changing ANY input surface, trace it all the way: onChange → save handler → `safeSetItem(key)` → confirm the key is read back somewhere visible → confirm the read path loads on mount. A control that writes nowhere, writes to a key nothing reads, or silently drops on reload is the same class of bug as a lost note. This applies to all new inputs going forward, not just retroactively.
+- Encryption routing lives in `utils/safeStorage.ts` (`SENSITIVE_KEY_PREFIXES`). A key is encrypted to SecureStore iff it starts with a listed prefix. Health/personal inputs must land on a sensitive-prefixed key.
+
 ### Before Modifying Files
 1. **Check the file exists first** — several screens were recently removed (care-journey, coming-soon, care-brief, etc.)
 2. **Navigation targets must match `app/` filenames** — no file = crash on tap
