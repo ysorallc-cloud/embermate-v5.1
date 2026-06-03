@@ -155,12 +155,25 @@ export default function LogMedicationPlanItemScreen() {
         sideEffects: sideEffects.length > 0 ? sideEffects : undefined,
       } as any);
 
-      // Complete the care instance if we have an instance ID
+      // Complete the care instance if we have an instance ID.
+      // Phase 35 Slice 2 — notes passed as the 4th positional arg
+      // per completeInstance(id, outcome, data?, notes?). Pre-fix
+      // the note was buried inside the 3rd-arg data object, which
+      // landed it in LogEntry.data.notes instead of the canonical
+      // LogEntry.notes. The off-by-one was the only call site with
+      // this bug (other completeInstance calls pass no notes).
+      // The Slice 2 data-rescue migration (utils/notesFieldRescue.ts)
+      // covers existing users' history; this writer fix prevents
+      // new entries from re-introducing the bug shape.
       if (instanceId) {
-        await completeInstance(instanceId, 'taken', {
-          sideEffect: sideEffects.length > 0 ? sideEffects.join(', ') : undefined,
-          notes: notes.trim() || undefined,
-        });
+        await completeInstance(
+          instanceId,
+          'taken',
+          {
+            sideEffect: sideEffects.length > 0 ? sideEffects.join(', ') : undefined,
+          },
+          notes.trim() || undefined,
+        );
         emitDataUpdate(EVENT.DAILY_INSTANCES);
       }
 

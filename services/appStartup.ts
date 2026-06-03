@@ -12,6 +12,7 @@ import { ensureDailySnapshot, pruneOldOverrides } from '../utils/carePlanStorage
 import { logError, devLog } from '../utils/devLog';
 import { runMigrations } from './migrationService';
 import { migrateToEncryptedStorage } from '../utils/dataMigration';
+import { rescueNotesFieldFromData } from '../utils/notesFieldRescue';
 import { loadCustomThresholds } from '../utils/vitalThresholds';
 import { purgeIfNeeded } from '../utils/dataRetention';
 import { initErrorReporting, reportError, reportWarning } from '../utils/errorReporting';
@@ -72,7 +73,21 @@ export async function runStartupSequence(): Promise<StartupResult> {
     phases,
   );
 
-  // Phase 2c: One-time cleanup of duplicate CarePlanItems + stale instances
+  // Phase 2c: Phase 35 Slice 2 — one-time notes-field rescue. Moves
+  // LogEntry.data.notes → LogEntry.notes for existing users whose
+  // medication-log writes pre-dated the arg-position fix. Runs AFTER
+  // Phase 2b so the log keys are already encrypted/sensitive when
+  // this sweep reads/writes them. Idempotent (per-entry + flag) +
+  // atomic (in-place encrypted overwrite at same key).
+  await runPhase(
+    'notesFieldRescue',
+    async () => {
+      await rescueNotesFieldFromData();
+    },
+    phases,
+  );
+
+  // Phase 2d: One-time cleanup of duplicate CarePlanItems + stale instances
   await runPhase(
     'cleanupDuplicates',
     async () => {

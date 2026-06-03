@@ -147,6 +147,15 @@ export const StorageKeys = {
   // encrypted in-place at the same AsyncStorage key. Idempotent +
   // atomic. Pinned by encryptionMigrationV2.test.ts.
   ENCRYPTION_MIGRATED_V2: '@embermate_encryption_migrated_v2',
+  // Phase 35 Slice 2 — one-time sweep that moves caregiver notes out
+  // of LogEntry.data.notes into the canonical LogEntry.notes field.
+  // Pre-Slice-2 the medication log screen passed notes in the 3rd-arg
+  // data object (arg-position bug); the writer fix lands in Slice 2
+  // alongside this rescue. Idempotent (per-entry data.notes check +
+  // this flag) + atomic (in-place encrypted overwrite at same key,
+  // per bucket). Runs Phase 2c in appStartup, AFTER the encryption
+  // migration. Pinned by notesFieldRescueSlice2.test.ts.
+  NOTES_FIELD_RESCUE_V1: '@embermate_notes_field_rescue_v1',
   MIGRATION_STATUS_V1: '@embermate_migration_status_v1',
   DUPLICATE_CLEANUP_V1: '@embermate_duplicate_cleanup_v1',
   LAST_PURGE_DATE: '@embermate_last_purge_date',
