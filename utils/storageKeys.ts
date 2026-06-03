@@ -138,6 +138,15 @@ export const StorageKeys = {
 
   // ---- Data Management ----
   ENCRYPTION_MIGRATED_V1: '@embermate_encryption_migrated_v1',
+  // Phase 35 Slice 1 — bumped from V1 → V2 so the existing one-time
+  // sweep (utils/dataMigration.ts:migrateToEncryptedStorage) re-runs
+  // ONCE to cover newly-sensitive keys: @embermate_logs_v2:*,
+  // @embermate_all_logs_v2:*, @embermate_wellness_settings. The
+  // per-key v3:/v2: prefix skip protects already-encrypted v1 keys
+  // (no double-encryption); the newly-sensitive plaintext keys get
+  // encrypted in-place at the same AsyncStorage key. Idempotent +
+  // atomic. Pinned by encryptionMigrationV2.test.ts.
+  ENCRYPTION_MIGRATED_V2: '@embermate_encryption_migrated_v2',
   MIGRATION_STATUS_V1: '@embermate_migration_status_v1',
   DUPLICATE_CLEANUP_V1: '@embermate_duplicate_cleanup_v1',
   LAST_PURGE_DATE: '@embermate_last_purge_date',

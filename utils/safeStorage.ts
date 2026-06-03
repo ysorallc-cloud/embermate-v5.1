@@ -38,6 +38,18 @@ export const SENSITIVE_KEY_PREFIXES = [
   'emergency_contacts',              // emergencyContacts.ts key (no @ prefix)
   'events:',                         // CareEvents contain health data (vitals, meds, symptoms)
   'reflection_',                     // caregiver reflections — personal emotional content
+  // Phase 35 Slice 1 — completion logs + wellness settings hold health-
+  // adjacent caregiver data (notes, side-effects, mood/sleep/pain field
+  // selections) that escaped encryption pre-Slice-1. Precise prefixes:
+  // `@embermate_logs_v2:` does NOT match the date-only index
+  // `@embermate_logs_index_v2:` (correct — the index is non-sensitive).
+  // Migration ENCRYPTION_MIGRATED_V2 (utils/storageKeys.ts) re-runs the
+  // sweep once to re-encrypt existing plaintext in place. Read/write
+  // for all three flow through safeStorage already, so encryption is
+  // transparent — zero call-site changes.
+  '@embermate_logs_v2:',             // per-day LogEntry buckets
+  '@embermate_all_logs_v2:',         // append-only all-logs aggregate
+  '@embermate_wellness_settings',    // P5 wellness store (single key)
 ];
 
 export function isSensitiveKey(key: string): boolean {

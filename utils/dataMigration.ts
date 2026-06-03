@@ -10,7 +10,16 @@ import { isSensitiveKey } from './safeStorage';
 import { devLog, logError } from './devLog';
 import { StorageKeys } from './storageKeys';
 
-const MIGRATION_FLAG = StorageKeys.ENCRYPTION_MIGRATED_V1;
+// Phase 35 Slice 1 — bumped V1 → V2. The sweep iterates
+// AsyncStorage.getAllKeys() and re-encrypts any isSensitiveKey() not
+// already prefixed v3:/v2:. The flag bump makes it re-run ONCE for
+// existing users so newly-sensitive keys (@embermate_logs_v2:*,
+// @embermate_all_logs_v2:*, @embermate_wellness_settings) get
+// encrypted in place. The per-key prefix skip protects already-
+// encrypted v1 keys (no double-encryption); the in-place same-key
+// overwrite handles atomicity (no absence window). V1 flag stays in
+// storage as a no-op breadcrumb for older test installs.
+const MIGRATION_FLAG = StorageKeys.ENCRYPTION_MIGRATED_V2;
 
 export async function migrateToEncryptedStorage(): Promise<void> {
   try {

@@ -33,11 +33,27 @@ jest.mock('@react-native-async-storage/async-storage', () => {
   };
 });
 
-jest.mock('expo-secure-store', () => ({
-  getItemAsync: jest.fn(() => Promise.resolve(null)),
-  setItemAsync: jest.fn(() => Promise.resolve()),
-  deleteItemAsync: jest.fn(() => Promise.resolve()),
-}));
+jest.mock('expo-secure-store', () => {
+  // Phase 35 Slice 1 — log keys (@embermate_logs_v2:*) are now
+  // sensitive, so safeSetItem routes through secureStorage which
+  // reads/writes the AES master key via expo-secure-store. The
+  // pre-Slice-1 always-null mock made every encrypt use a fresh
+  // key and every decrypt fail → reads returned default → this
+  // test's pre/post-undo log-list check saw an empty list both
+  // times. Persist the key in an in-memory map so encrypt + decrypt
+  // share the same key (the same shape encryptionRoundTrip uses).
+  const keychain: Record<string, string> = {};
+  return {
+    getItemAsync: jest.fn(async (key: string) => keychain[key] ?? null),
+    setItemAsync: jest.fn(async (key: string, value: string) => {
+      keychain[key] = value;
+    }),
+    deleteItemAsync: jest.fn(async (key: string) => {
+      delete keychain[key];
+    }),
+    WHEN_UNLOCKED: 'WHEN_UNLOCKED',
+  };
+});
 
 jest.mock('../../lib/events', () => ({
   emitDataUpdate: jest.fn(),
