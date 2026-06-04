@@ -258,7 +258,17 @@ export default function JournalTab() {
   // composition, flip into populated mode so JournalNotesCard mounts and
   // accepts input. Once they save, the reflection state populates and the
   // empty-day branch naturally falls out of the conditional.
-  const [addNoteMode, setAddNoteMode] = useState(false);
+  // Phase 35 Slice 3-C followup (Bug B) — addNoteMode RETIRED.
+  // Pre-fix this state was set true by JournalEmptyDay's onAddNote
+  // callback, which unmounted the empty-day frame and mounted the
+  // SOAP layout. The note input the caregiver expected mounted in
+  // Section 4 far below the visible viewport with no autofocus.
+  // The relocation made the input vanish from the user's POV —
+  // option (b) lock moves the input INLINE within JournalEmptyDay,
+  // so this state has no purpose. The empty-state transition is
+  // now data-driven (reflection.text non-empty → isEmpty flips →
+  // SOAP mounts naturally on the same render cycle the save
+  // completes). No click-driven layout shift.
 
   // Load consolidated notes when date changes. Phase 31 F2 — routes
   // through getConsolidatedNotes so the merge + authoritative-flag
@@ -902,7 +912,6 @@ export default function JournalTab() {
               Past days keep NarrativeView (which has its own empty
               handling). */}
           {(() => {
-            if (addNoteMode) return false;
             return shouldRenderJournalEmptyDay({
               isViewingPast,
               hasEvents: !!(dayEvents && dayEvents.length > 0),
@@ -917,7 +926,7 @@ export default function JournalTab() {
           })() && (
             <JournalEmptyDay
               dateKey={selectedDate}
-              onAddNote={() => setAddNoteMode(true)}
+              onSave={handleSaveReflection}
               onSelectDay={handleDateSelect}
             />
           )}
@@ -929,8 +938,17 @@ export default function JournalTab() {
               branch is retired; the component file lives on as an
               intentional orphan. */}
           {(() => {
-            // Hide the populated structure on empty-day mode unless the
-            // user opted into addNoteMode (which mounts JournalNotesCard).
+            // Phase 35 Slice 3-C followup (Bug B) — empty-state branch
+            // is now purely data-driven. Pre-fix this gate was
+            // `isEmpty && !addNoteMode` — the addNoteMode flag let the
+            // populated SOAP layout mount over the empty-day frame on
+            // tap, which was the mount/unmount race the walk surfaced.
+            // Post-fix: when the user types + saves into JournalEmptyDay's
+            // inline input, reflection.text becomes non-empty, isEmpty
+            // re-evaluates to false, and the populated SOAP layout
+            // (with the just-saved note in Section 4) mounts on the
+            // same render cycle the JournalEmptyDay unmounts. One
+            // clean data-driven transition.
             const isEmpty = shouldRenderJournalEmptyDay({
               isViewingPast,
               hasEvents: !!(dayEvents && dayEvents.length > 0),
@@ -942,7 +960,7 @@ export default function JournalTab() {
               hasTone: false,
               hasCompletedInstances: outcomes.logged.count > 0,
             });
-            if (isEmpty && !addNoteMode) return null;
+            if (isEmpty) return null;
             const hasGestalt = (moodLine ?? '').trim().length > 0;
             const hasNotes = (reflection?.text?.trim().length ?? 0) > 0;
             const subjectiveEmpty = !hasGestalt && !hasNotes;

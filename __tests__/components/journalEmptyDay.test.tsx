@@ -113,7 +113,7 @@ describe('JournalEmptyDay — restorative hero (Phase 27.5b F8 reframe)', () => 
     // strings are gone.
     const tree = JournalEmptyDay({
       dateKey: '2026-05-06',
-      onAddNote: () => {},
+      onSave: async () => {},
       onSelectDay: () => {},
     });
     const text = textOf(tree);
@@ -132,10 +132,10 @@ describe('JournalEmptyDay — restorative hero (Phase 27.5b F8 reframe)', () => 
 
 describe('JournalEmptyDay — Add a note affordance', () => {
   it('exposes a tappable "+ Add a note for this day" link in lavender', () => {
-    const onAddNote = jest.fn();
+    const onSave = jest.fn().mockResolvedValue(undefined);
     const tree = JournalEmptyDay({
       dateKey: '2026-05-06',
-      onAddNote,
+      onSave,
       onSelectDay: () => {},
     });
     const link = findAll(tree, (n) => n.props?.testID === 'empty-day-add-note')[0];
@@ -146,17 +146,18 @@ describe('JournalEmptyDay — Add a note affordance', () => {
     expect(styleOf(labelText).color).toBe(CAREGIVER);
   });
 
-  it('tapping the affordance fires the onAddNote callback', () => {
-    const onAddNote = jest.fn();
-    const tree = JournalEmptyDay({
-      dateKey: '2026-05-06',
-      onAddNote,
-      onSelectDay: () => {},
-    });
-    const link = findAll(tree, (n) => n.props?.testID === 'empty-day-add-note')[0];
-    link.props.onPress();
-    expect(onAddNote).toHaveBeenCalledTimes(1);
-  });
+  // Phase 35 Slice 3-C followup (Bug B) — the legacy "tapping fires
+  // the onAddNote callback" pin RETIRED. Pre-fix the link's onPress
+  // fired a parent callback that unmounted the entire JournalEmptyDay
+  // frame — that callback IS the bug the followup fix removed. Post-
+  // fix tap reveals an inline TextInput in place of the link; the
+  // useState-mocked test harness in this file (line 22-31, every
+  // useState returns initial + no-op setter) CANNOT observe the
+  // input-reveal because the state-flip is a no-op here. The behavior
+  // pin lives at __tests__/components/journalEmptyDayInlineNote35S3C
+  // .test.tsx which uses @testing-library/react-native to mount the
+  // real React state machine (fireEvent.press → state flip → re-render
+  // → TextInput visible → typing → Save fires onSave).
 });
 
 describe('JournalEmptyDay — nearby-days continuity', () => {
@@ -167,7 +168,7 @@ describe('JournalEmptyDay — nearby-days continuity', () => {
     ];
     const tree = JournalEmptyDay({
       dateKey: '2026-05-06',
-      onAddNote: () => {},
+      onSave: async () => {},
       onSelectDay: () => {},
     });
     expect(textOf(tree)).toMatch(/NEARBY DAYS WITH RECORDS/);
@@ -180,7 +181,7 @@ describe('JournalEmptyDay — nearby-days continuity', () => {
     ];
     const tree = JournalEmptyDay({
       dateKey: '2026-05-06',
-      onAddNote: () => {},
+      onSave: async () => {},
       onSelectDay: () => {},
     });
     const cards = findAll(tree, (n) =>
@@ -193,7 +194,7 @@ describe('JournalEmptyDay — nearby-days continuity', () => {
     mockNearbyDays = [];
     const tree = JournalEmptyDay({
       dateKey: '2026-05-06',
-      onAddNote: () => {},
+      onSave: async () => {},
       onSelectDay: () => {},
     });
     expect(textOf(tree)).not.toMatch(/NEARBY DAYS WITH RECORDS/);
@@ -210,7 +211,7 @@ describe('JournalEmptyDay — nearby-days continuity', () => {
     const onSelectDay = jest.fn();
     const tree = JournalEmptyDay({
       dateKey: '2026-05-06',
-      onAddNote: () => {},
+      onSave: async () => {},
       onSelectDay,
     });
     const card = findAll(tree, (n) => n.props?.testID === 'empty-day-nearby-0')[0];

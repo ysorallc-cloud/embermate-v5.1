@@ -27,15 +27,26 @@
 // observation per bucket.
 // ============================================================================
 
-import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Spacing, Sizing, Fonts } from '../../theme/theme-tokens';
 import { useNearbyDaysWithRecords } from '../../hooks/useNearbyDaysWithRecords';
 
 interface JournalEmptyDayProps {
   dateKey: string;
-  onAddNote: () => void;
+  /** Phase 35 Slice 3-C followup (Bug B) — caregiver-facing save.
+   *  The inline note input writes through this callback; the parent
+   *  routes it through saveConsolidatedNotes (the single source of
+   *  truth the populated Section 4 JournalNotesCard also uses).
+   *  Pre-fix this prop was `onAddNote: () => void` which flipped a
+   *  parent state flag that unmounted this whole frame — the input
+   *  the caregiver expected mounted far below the visible viewport
+   *  with no autofocus. User experience: "I tapped a button and my
+   *  input vanished." Now the input lives inline: the affordance
+   *  promises an input where the caregiver tapped; this honors it
+   *  literally. */
+  onSave: (text: string) => Promise<void>;
   onSelectDay: (dateKey: string) => void;
 }
 
@@ -61,12 +72,40 @@ function shortDateLabel(dateKey: string): string {
 
 export function JournalEmptyDay({
   dateKey,
-  onAddNote,
+  onSave,
   onSelectDay,
 }: JournalEmptyDayProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const nearby = useNearbyDaysWithRecords(dateKey, 2);
+
+  // Phase 35 Slice 3-C followup (Bug B) — inline-note state.
+  // Tapping the "+ Add a note for this day" link flips inputOpen → true,
+  // revealing a multiline autofocused TextInput in place of the link.
+  // saving locks the Save button to prevent double-tap double-write
+  // (the standing pattern Slice 3-C established for every caregiver-
+  // initiated trust action).
+  const [inputOpen, setInputOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const trimmed = text.trim();
+  const canSave = trimmed.length > 0 && !saving;
+
+  async function handleSave() {
+    if (!canSave) return;
+    setSaving(true);
+    try {
+      await onSave(trimmed);
+      // Don't reset inputOpen here — the parent's save handler will
+      // setReflection, which flips the empty-state predicate, which
+      // unmounts this entire JournalEmptyDay frame and mounts the
+      // SOAP layout containing the just-saved note in Section 4.
+      // The transition is data-driven, not click-driven (calm).
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <View style={styles.section}>
@@ -105,18 +144,46 @@ export function JournalEmptyDay({
         </View>
       )}
 
-      <TouchableOpacity
-        testID="empty-day-add-note"
-        style={styles.addNote}
-        onPress={onAddNote}
-        activeOpacity={0.7}
-        accessibilityRole="button"
-        accessibilityLabel="Add a note for this day"
-      >
-        <Text testID="empty-day-add-note-label" style={styles.addNoteText}>
-          {'+ Add a note for this day'}
-        </Text>
-      </TouchableOpacity>
+      {!inputOpen ? (
+        <TouchableOpacity
+          testID="empty-day-add-note"
+          style={styles.addNote}
+          onPress={() => setInputOpen(true)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Add a note for this day"
+        >
+          <Text testID="empty-day-add-note-label" style={styles.addNoteText}>
+            {'+ Add a note for this day'}
+          </Text>
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.inlineNoteWrap}>
+          <TextInput
+            testID="empty-day-note-input"
+            style={styles.inlineNoteInput}
+            value={text}
+            onChangeText={setText}
+            autoFocus
+            multiline
+            placeholder="A short note about today…"
+            placeholderTextColor={colors.textTertiary}
+            accessibilityLabel="Note for this day"
+            editable={!saving}
+          />
+          <TouchableOpacity
+            testID="empty-day-note-save"
+            style={[styles.inlineNoteSave, !canSave && styles.inlineNoteSaveDisabled]}
+            onPress={handleSave}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Save note for this day"
+            disabled={!canSave}
+          >
+            <Text style={styles.inlineNoteSaveLabel}>{saving ? 'Saving…' : 'Save'}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -197,6 +264,45 @@ const createStyles = (c: any) =>
     addNoteText: {
       fontSize: 13,
       color: c.caregiverAccent,
+      fontWeight: '500' as const,
+    },
+    // Phase 35 Slice 3-C followup (Bug B) — inline-note input styles.
+    // The input lives WHERE THE LINK WAS so the caregiver gets an
+    // input "where they tapped" (option b lock). Sage accent border on
+    // the input + sage-filled Save button match the Phase 33 brand
+    // language (calm, predictable, no surprise motion).
+    inlineNoteWrap: {
+      marginTop: Spacing.lg,
+      paddingHorizontal: 14, // allow: page-rhythm horizontal inset
+    },
+    inlineNoteInput: {
+      minHeight: 88, // allow: multi-line input target (Apple HIG ≥44pt × 2 lines)
+      backgroundColor: 'rgba(255,255,255,0.04)',
+      borderWidth: 1,
+      borderColor: c.glassBorder,
+      borderRadius: Sizing.cardRadius,
+      padding: 12,
+      fontSize: 14,
+      lineHeight: 20,
+      color: c.textPrimary,
+      textAlignVertical: 'top' as const,
+    },
+    inlineNoteSave: {
+      alignSelf: 'flex-end' as const,
+      marginTop: Spacing.sm,
+      paddingVertical: 8,
+      paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: c.accent,
+      backgroundColor: 'transparent',
+    },
+    inlineNoteSaveDisabled: {
+      opacity: 0.4,
+    },
+    inlineNoteSaveLabel: {
+      fontSize: 13,
+      color: c.accent,
       fontWeight: '500' as const,
     },
   });
