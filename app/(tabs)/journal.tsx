@@ -51,6 +51,7 @@ import { DateTabStrip } from '../../components/journal/DateTabStrip';
 import { JournalNotesCard } from '../../components/journal/JournalNotesCard';
 import { TodayNotableMoments } from '../../components/journal/TodayNotableMoments';
 import { TodayStillPending } from '../../components/journal/TodayStillPending';
+import { ObservationsFromLogging } from '../../components/journal/ObservationsFromLogging';
 import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataSheet';
 // Phase 31 F3 (2026-05-21) — HandoffSheet retired. The Journal page
 // already shows all the data; the separate handoff modal was redundant.
@@ -1123,6 +1124,15 @@ export default function JournalTab() {
                     onLoaded={setStillPendingCount}
                   />
                 )}
+                {/* Phase 35 Slice 3-A — OBSERVATIONS FROM LOGGING sub-section.
+                    Reads LogEntry rows for the selected date, filters to those
+                    with non-empty notes, renders chronologically. Hidden when
+                    no qualifying rows exist (Q-3A.9). Renders identically on
+                    past days (Q-3A.10 — read-only). The Section 4 frame
+                    above already subscribes to EVENT.LOGS via the parent's
+                    useDataListener (Q-3A.11), so saves elsewhere refresh
+                    this surface through the date prop. */}
+                <ObservationsFromLogging date={selectedDate} />
                 {/* Phase 27.5b F5 — inner "NOTES" sub-eyebrow retired.
                     The TextInput below now carries visible input chrome
                     (rgba bg + border + radius) and placeholder-as-prompt

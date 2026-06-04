@@ -29,6 +29,9 @@ import { getDetailedUrgencyLabel, getTimeDeltaString } from '../../utils/urgency
 import { Colors } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { BucketType } from '../../types/carePlanConfig';
+import { DoneRowWithNote } from './DoneRowWithNote';
+import { useNotesByLogId } from '../../hooks/useNotesByLogId';
+import { getTodayDateString } from '../../services/carePlanGenerator';
 
 // ============================================================================
 // BUCKET → ITEM TYPE MAPPING
@@ -261,6 +264,7 @@ export function TimelineSection({
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
+  const notesByLogId = useNotesByLogId(getTodayDateString());
 
   if (!hasRegimenInstances && selectedCategory !== 'water') return null;
   if (allPending.length === 0 && completed.length === 0 && selectedCategory !== 'water') return null;
@@ -478,17 +482,22 @@ export function TimelineSection({
 
           // Done/skipped
           const statusText = instance.status === 'skipped' ? 'Skipped' : 'Done';
+          const noteForRow = instance.logId ? notesByLogId[instance.logId] : undefined;
           return (
             <View key={instance.id} style={styles.categoryItemRow}>
-              <View style={[styles.statusCircle, styles.statusCircleDone]}>
-                <Text style={styles.statusCircleDoneText}>{'\u2713'}</Text>
-              </View>
-              <View style={styles.categoryItemDetails}>
-                <Text style={styles.categoryItemNameDone}>{instance.itemName}</Text>
-                <Text style={styles.categoryItemTimeDone}>
-                  {timeDisplay ? `${timeDisplay} \u00B7 ${statusText}` : statusText}
-                </Text>
-              </View>
+              <DoneRowWithNote note={noteForRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                  <View style={[styles.statusCircle, styles.statusCircleDone]}>
+                    <Text style={styles.statusCircleDoneText}>{'\u2713'}</Text>
+                  </View>
+                  <View style={styles.categoryItemDetails}>
+                    <Text style={styles.categoryItemNameDone}>{instance.itemName}</Text>
+                    <Text style={styles.categoryItemTimeDone}>
+                      {timeDisplay ? `${timeDisplay} \u00B7 ${statusText}` : statusText}
+                    </Text>
+                  </View>
+                </View>
+              </DoneRowWithNote>
             </View>
           );
         })}
@@ -540,6 +549,7 @@ function TimelineModeBContent({
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [skipMenuFor, setSkipMenuFor] = useState<any | null>(null);
+  const notesByLogId = useNotesByLogId(getTodayDateString());
   const allItems = [...allPending, ...completed];
   const grouped = groupByTimeWindow(allItems);
 
@@ -693,34 +703,40 @@ function TimelineModeBContent({
                     // ── Build the item content (right of divider) ──
                     let itemContent: React.ReactNode;
 
+                    const noteForRow = instance.logId ? notesByLogId[instance.logId] : undefined;
+
                     if (isCompleted) {
                       itemContent = (
-                        <View style={[styles.gutterContent, { opacity: 0.4 }]} accessibilityLabel={`${instance.itemName}, logged${timeStr ? ` at ${timeStr}` : ''}`}>
-                          {CATEGORY_CONFIG[instance.itemType]?.label && (
-                            <Text style={[styles.typeBadge, { color: CATEGORY_CONFIG[instance.itemType]?.color || colors.textMuted, opacity: 0.6 }]}>
-                              {CATEGORY_CONFIG[instance.itemType]?.label}
-                            </Text>
-                          )}
-                          <View style={styles.gutterItemRow}>
-                            <Text style={styles.timelineNameDone} numberOfLines={1}>{instance.itemName}</Text>
-                            <Text style={styles.timelineStatusText}>{'\u2713'}</Text>
+                        <DoneRowWithNote note={noteForRow}>
+                          <View style={[styles.gutterContent, { opacity: 0.4 }]} accessibilityLabel={`${instance.itemName}, logged${timeStr ? ` at ${timeStr}` : ''}`}>
+                            {CATEGORY_CONFIG[instance.itemType]?.label && (
+                              <Text style={[styles.typeBadge, { color: CATEGORY_CONFIG[instance.itemType]?.color || colors.textMuted, opacity: 0.6 }]}>
+                                {CATEGORY_CONFIG[instance.itemType]?.label}
+                              </Text>
+                            )}
+                            <View style={styles.gutterItemRow}>
+                              <Text style={styles.timelineNameDone} numberOfLines={1}>{instance.itemName}</Text>
+                              <Text style={styles.timelineStatusText}>{'\u2713'}</Text>
+                            </View>
+                            <Text style={styles.timelineSubDone}>{timeStr ? `Logged at ${timeStr}` : 'Logged'}</Text>
                           </View>
-                          <Text style={styles.timelineSubDone}>{timeStr ? `Logged at ${timeStr}` : 'Logged'}</Text>
-                        </View>
+                        </DoneRowWithNote>
                       );
                     } else if (isSkipped) {
                       itemContent = (
-                        <View style={[styles.gutterContent, { opacity: 0.6 }]} accessibilityLabel={`${instance.itemName}, skipped`}>
-                          {CATEGORY_CONFIG[instance.itemType]?.label && (
-                            <Text style={[styles.typeBadge, { color: CATEGORY_CONFIG[instance.itemType]?.color || colors.textMuted, opacity: 0.6 }]}>
-                              {CATEGORY_CONFIG[instance.itemType]?.label}
-                            </Text>
-                          )}
-                          <View style={styles.gutterItemRow}>
-                            <Text style={styles.timelineNameMissed} numberOfLines={1}>{instance.itemName}</Text>
-                            <Text style={styles.timelineStatusSkipped}>Skipped</Text>
+                        <DoneRowWithNote note={noteForRow}>
+                          <View style={[styles.gutterContent, { opacity: 0.6 }]} accessibilityLabel={`${instance.itemName}, skipped`}>
+                            {CATEGORY_CONFIG[instance.itemType]?.label && (
+                              <Text style={[styles.typeBadge, { color: CATEGORY_CONFIG[instance.itemType]?.color || colors.textMuted, opacity: 0.6 }]}>
+                                {CATEGORY_CONFIG[instance.itemType]?.label}
+                              </Text>
+                            )}
+                            <View style={styles.gutterItemRow}>
+                              <Text style={styles.timelineNameMissed} numberOfLines={1}>{instance.itemName}</Text>
+                              <Text style={styles.timelineStatusSkipped}>Skipped</Text>
+                            </View>
                           </View>
-                        </View>
+                        </DoneRowWithNote>
                       );
                     } else if (isMissed) {
                       itemContent = (
