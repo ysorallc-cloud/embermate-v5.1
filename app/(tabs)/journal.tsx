@@ -758,7 +758,19 @@ export default function JournalTab() {
       // the day genuinely had nothing to share. Same trust class as
       // the notes-into-the-void bug (input without persistence). Now
       // surfaces a caregiver-facing Alert.
-      if (!payload) {
+      //
+      // Slice 3-C followup — the truth gate widened. Walk surfaced:
+      // empty-but-profiled today produced a non-null payload (the
+      // null branch only fires when buildCareBrief returns falsy /
+      // no patient profile), and Share generated a 22 KB PDF
+      // showing scheduled meds all labeled "Status: Pending" + a
+      // "Vitals — Scheduled, not yet recorded" line. Recipient
+      // could mis-read as "the caregiver hasn't given meds today."
+      // The flag payload.hasLoggedContent (P2 PDF-content predicate,
+      // computed in buildHandoffDay) gates against this misleading-
+      // PDF class. Same Alert wording — one caregiver-facing message,
+      // two triggers (no profile OR no logged content).
+      if (!payload || !payload.hasLoggedContent) {
         Alert.alert(
           'Nothing to share for this day yet',
           'Log a medication, vital, or note on the Now tab, then come back to share.',

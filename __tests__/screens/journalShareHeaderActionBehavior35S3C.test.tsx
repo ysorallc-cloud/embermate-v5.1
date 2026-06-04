@@ -287,6 +287,12 @@ const generateAndShareHandoffMock = generateAndShareHandoff as jest.MockedFuncti
 const alertMock = Alert.alert as jest.MockedFunction<typeof Alert.alert>;
 const logErrorMock = logError as jest.MockedFunction<typeof logError>;
 
+// Sample payload — represents a TRUTHFULLY non-empty day. The
+// hasLoggedContent flag is the call-site's truth gate (Phase 35
+// Slice 3-C followup; P2 PDF-content predicate, B-C placement).
+// Tests that intend the SUCCESS path must set true; tests that
+// intend the empty-day Alert path set false (or rely on the
+// null-payload branch).
 const SAMPLE_PAYLOAD = {
   date: '2026-06-03',
   patientName: 'Mom',
@@ -296,6 +302,7 @@ const SAMPLE_PAYLOAD = {
   worthFlagging: [],
   notes: null,
   nextAppointment: null,
+  hasLoggedContent: true,
 };
 
 async function renderJournalAndGetShareAction() {
@@ -332,11 +339,12 @@ describe('Phase 35 Slice 3-C — BEHAVIOR pins (TouchableOpacity onPress fires t
     expect(buildHandoffDayMock).toHaveBeenCalledWith('2026-06-03');
   });
 
-  it('contract 2 (EMPTY-DAY ALERT): when buildHandoffDay returns null, Alert "Nothing to share for this day yet." fires (PART 2 silent-return fix)', async () => {
-    // Pre-PART-2: `if (!payload) return;` — silent. User taps Share on
-    // a day with no care brief, gets nothing back, can't tell whether
-    // the app heard the tap or whether the day genuinely has nothing
-    // to share. PART 2 surfaces it.
+  it('contract 2 (NO-PROFILE ALERT): when buildHandoffDay returns null, Alert "Nothing to share for this day yet." fires (PART 2 silent-return fix)', async () => {
+    // Pre-PART-2: `if (!payload) return;` — silent. The null branch
+    // only fires when buildHandoffDay's buildCareBrief returns falsy
+    // (i.e., no patient profile). Post-PART-2 the caregiver sees the
+    // empty-day Alert. The Slice 3-C followup expands this branch
+    // (see contract 2b below) — same Alert, different trigger.
     buildHandoffDayMock.mockResolvedValue(null);
     const { action } = await renderJournalAndGetShareAction();
     fireEvent.press(action);
@@ -348,6 +356,43 @@ describe('Phase 35 Slice 3-C — BEHAVIOR pins (TouchableOpacity onPress fires t
     expect(haystack).toMatch(/Nothing to share for this day/i);
     // generateAndShareHandoff must NOT be called on the empty-day branch
     // — null payload short-circuits before PDF generation.
+    expect(generateAndShareHandoffMock).not.toHaveBeenCalled();
+  });
+
+  it('contract 2b (EMPTY-CONTENT ALERT — BUG REPRO): when buildHandoffDay returns a non-null payload with hasLoggedContent FALSE (scheduled meds all pending, vitals scheduled-not-recorded, no notes, no flagging), Alert fires and NO PDF generates', async () => {
+    // The exact walk-surfaced bug (Phase 35 Slice 3-C followup): page
+    // shows "Nothing logged yet today" while pre-flag Share happily
+    // generated a 22 KB PDF with scheduled meds all labeled "Pending"
+    // — a real-looking but content-empty document. Worse than the
+    // silent-failure it replaced (caregiver unknowingly shares a
+    // misleading document, not nothing).
+    //
+    // Fix: payload.hasLoggedContent (P2 PDF-content predicate, B-C
+    // placement). Caller refuses share when the flag is false.
+    // generateAndShareHandoff MUST NOT be called — that's the truth
+    // gate. Same Alert as the null branch: one caregiver-facing
+    // message, two triggers.
+    const emptyPayload = {
+      ...SAMPLE_PAYLOAD,
+      // Scheduled-pending meds still surface in the payload so the
+      // page can render its "scheduled but not logged" view if it
+      // chose to — but they don't count toward hasLoggedContent.
+      medications: [
+        { name: 'Lisinopril', dosage: '10mg', status: 'pending' as const, scheduledTime: '2026-06-03T08:00:00Z' },
+        { name: 'Metformin', dosage: '500mg', status: 'pending' as const, scheduledTime: '2026-06-03T18:00:00Z' },
+      ],
+      hasLoggedContent: false,
+    };
+    buildHandoffDayMock.mockResolvedValue(emptyPayload as any);
+    const { action } = await renderJournalAndGetShareAction();
+    fireEvent.press(action);
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalled();
+    });
+    const firstCall = alertMock.mock.calls[0];
+    const haystack = `${firstCall[0]} ${firstCall[1] ?? ''}`;
+    expect(haystack).toMatch(/Nothing to share for this day/i);
+    // The truth gate — no PDF generated, no share sheet opens.
     expect(generateAndShareHandoffMock).not.toHaveBeenCalled();
   });
 

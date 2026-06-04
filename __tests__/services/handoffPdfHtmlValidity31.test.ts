@@ -84,6 +84,14 @@ function emptyPayload(): HandoffDayPayload {
     worthFlagging: [],
     notes: null,
     nextAppointment: null,
+    // Phase 35 Slice 3-C followup — required by HandoffDayPayload.
+    // false matches the P2 predicate for this empty literal (no
+    // logged meds, no recorded vitals, no notes, no moments). The
+    // PDF buildHtml itself does not READ this flag — it's the
+    // caller-side truth gate. Including it here only to satisfy
+    // the type contract; the HTML-validity contracts below verify
+    // the renderer is permissive on empty input regardless.
+    hasLoggedContent: false,
   };
 }
 
@@ -127,6 +135,10 @@ function fullPayload(): HandoffDayPayload {
       savedAt: '2026-05-15T20:30:00Z',
     },
     nextAppointment: { provider: 'Dr. Torres', specialty: 'Cardiology', date: '2026-05-22' },
+    // Phase 35 Slice 3-C followup — true matches the P2 predicate
+    // for this rich literal (Lisinopril completed → logged meds true;
+    // vitals.recorded=true; notes non-empty; one flagging moment).
+    hasLoggedContent: true,
   };
 }
 

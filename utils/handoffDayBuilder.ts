@@ -68,6 +68,25 @@ export interface HandoffDayPayload {
   /** Bonus context — next upcoming appointment (or null). Lets the
    *  PDF surface a "Coming up" line without re-querying. */
   nextAppointment: CareBrief['nextAppointment'];
+  /** Phase 35 Slice 3-C followup — P2 PDF-content predicate. True iff
+   *  the PDF would render at least one piece of LOGGED content:
+   *    • a medication with status !== 'pending' (taken/skipped/missed)
+   *    • vitals with recorded === true
+   *    • a non-empty caregiver note
+   *    • at least one worth-flagging moment
+   *  The four categories above are exactly what handoffPdf.ts's
+   *  renderers emit. Mood / meals / hydration / sleep are NOT counted
+   *  (Q-C lock: the handoff PDF is intentionally narrower than the
+   *  Journal page — recipient-facing scope only).
+   *
+   *  Callers use this as the truth gate before invoking PDF generation:
+   *  if false, refuse with the caregiver-facing "Nothing to share for
+   *  this day yet" Alert instead of producing a real-looking but
+   *  content-empty document. (Walk-surfaced bug: pre-flag, scheduled-
+   *  but-pending meds + scheduled-not-recorded vitals produced a 22 KB
+   *  PDF showing "Status: Pending" rows that recipients could mis-
+   *  read as "the caregiver hasn't given meds today.") */
+  hasLoggedContent: boolean;
 }
 
 /**
@@ -100,15 +119,36 @@ export async function buildHandoffDay(
     const vitalsHasContent =
       brief.vitals && (brief.vitals.scheduled || brief.vitals.recorded || brief.vitals.readings);
 
+    // Phase 35 Slice 3-C followup — P2 PDF-content predicate.
+    // Mirrors what handoffPdf.ts's renderers actually emit:
+    //   • renderMedications skips status:'pending' rows visually (well,
+    //     emits them; that was the bug — recipient saw "Pending" rows).
+    //     For the truth gate we count ONLY logged statuses.
+    //   • renderVitals emits readings only when recorded === true (the
+    //     scheduled-not-recorded branch emits a "scheduled, not recorded"
+    //     line; that's chrome, not logged content).
+    //   • renderNotes / renderWorthFlagging both skip on empty input.
+    // Mood / meals / hydration / sleep are NOT in any PDF renderer
+    // (Q-C lock) and therefore NOT in this predicate.
+    const meds = brief.medications ?? [];
+    const hasLoggedMeds = meds.some((m) => m.status !== 'pending');
+    const hasRecordedVitals = brief.vitals?.recorded === true;
+    const hasNonEmptyNotes = !!notes && typeof notes.text === 'string' && notes.text.trim().length > 0;
+    const flaggedMoments = moments?.moments ?? [];
+    const hasFlagging = flaggedMoments.length > 0;
+    const hasLoggedContent =
+      hasLoggedMeds || hasRecordedVitals || hasNonEmptyNotes || hasFlagging;
+
     return {
       date,
       patientName: brief.patient?.name ?? 'Patient',
       gestalt: shape.hasData ? shape.summary : '',
-      medications: brief.medications ?? [],
+      medications: meds,
       vitals: vitalsHasContent ? brief.vitals : null,
-      worthFlagging: moments?.moments ?? [],
+      worthFlagging: flaggedMoments,
       notes: notes ? { text: notes.text, savedAt: notes.savedAt } : null,
       nextAppointment: brief.nextAppointment ?? null,
+      hasLoggedContent,
     };
   } catch (err) {
     // ProfileMissingError (from buildCareBrief / patient registry) must
