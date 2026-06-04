@@ -201,6 +201,15 @@ export interface LogEntry {
   /** Why this entry was skipped — set only when outcome === 'skipped'. */
   skipReason?: 'refused' | 'too-soon' | 'other';
   notes?: string;
+  /** Phase 35 Slice 3-D — soft-delete (hide-not-delete) tombstone. ISO
+   *  timestamp set by tombstoneLogEntry when the caregiver undoes a
+   *  completion. The audit trail is preserved (raw storage retains the
+   *  entry); the bottom-layer read primitives (`listLogsByDate`,
+   *  `getLogById`, `listLogsInRange`) filter `!log.deletedAt` BY
+   *  DEFAULT. Audit-trail consumers opt in with `{ includeDeleted: true }`.
+   *  The `immutable: true` content contract is preserved — the tombstone
+   *  is operationally distinct from content edits. */
+  deletedAt?: string;
 
   // Type-specific data payload
   data?: LogEntryData;

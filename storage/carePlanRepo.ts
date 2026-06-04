@@ -425,9 +425,14 @@ export async function createLogEntry(
  */
 export async function listLogsByDate(
   patientId: string,
-  date: string
+  date: string,
+  options: { includeDeleted?: boolean } = {}
 ): Promise<LogEntry[]> {
-  return safeGetItem<LogEntry[]>(KEYS.LOGS(patientId, date), []);
+  const raw = await safeGetItem<LogEntry[]>(KEYS.LOGS(patientId, date), []);
+  // Phase 35 Slice 3-D — bottom-layer soft-delete filter. Default reads
+  // hide tombstoned entries; audit-trail consumers opt in.
+  if (options.includeDeleted) return raw;
+  return raw.filter((l) => !l.deletedAt);
 }
 
 /**
@@ -437,14 +442,19 @@ export async function listLogsInRange(
   patientId: string,
   startDate: string,
   endDate: string,
-  options: { itemId?: string } = {}
+  options: { itemId?: string; includeDeleted?: boolean } = {}
 ): Promise<LogEntry[]> {
   const index = await safeGetItem<string[]>(KEYS.LOGS_INDEX(patientId), []);
   const relevantDates = index.filter(d => d >= startDate && d <= endDate);
 
   const allLogs: LogEntry[] = [];
   for (const date of relevantDates) {
-    const logs = await listLogsByDate(patientId, date);
+    // Soft-delete filter cascades — pass the includeDeleted flag
+    // through so the range read honors the same default-hide
+    // contract listLogsByDate enforces.
+    const logs = await listLogsByDate(patientId, date, {
+      includeDeleted: options.includeDeleted,
+    });
     allLogs.push(...logs);
   }
 
@@ -462,9 +472,10 @@ export async function listLogsInRange(
 export async function getLogById(
   patientId: string,
   date: string,
-  logId: string
+  logId: string,
+  options: { includeDeleted?: boolean } = {}
 ): Promise<LogEntry | null> {
-  const logs = await listLogsByDate(patientId, date);
+  const logs = await listLogsByDate(patientId, date, options);
   return logs.find(l => l.id === logId) || null;
 }
 
@@ -582,6 +593,51 @@ export async function undoInstanceCompletion(
 }
 
 /**
+ * Phase 35 Slice 3-D — soft-delete (hide-not-delete) the LogEntry by
+ * writing a `deletedAt` ISO timestamp onto the persisted entry. Raw
+ * storage retains the entry (audit trail); the bottom-layer read
+ * primitives (`listLogsByDate`, `getLogById`, `listLogsInRange`)
+ * filter `!log.deletedAt` by default.
+ *
+ * No-op when the logId is not found, when it's already tombstoned, or
+ * when both daily + aggregate stores are empty for the date.
+ *
+ * The canonical caregiver-visible writer is undoInstanceCompletion (to
+ * be unified in commit 2 of Slice 3-D). This primitive is exported so
+ * the integration round-trip can pin the bottom-layer contract
+ * independently of the caller, and so a future audit/edit-history flow
+ * can soft-delete without needing the full instance state machine.
+ */
+export async function tombstoneLogEntry(
+  patientId: string,
+  date: string,
+  logId: string,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const lockKey = KEYS.LOGS(patientId, date);
+  await withKeyLock(lockKey, async () => {
+    // Daily bucket — opt into includeDeleted so we can no-op cleanly
+    // if the entry is already tombstoned (avoids overwriting the
+    // original deletedAt timestamp).
+    const dailyLogs = await listLogsByDate(patientId, date, { includeDeleted: true });
+    const dailyIdx = dailyLogs.findIndex((l) => l.id === logId);
+    if (dailyIdx !== -1 && !dailyLogs[dailyIdx].deletedAt) {
+      dailyLogs[dailyIdx] = { ...dailyLogs[dailyIdx], deletedAt: now };
+      await safeSetItem(KEYS.LOGS(patientId, date), dailyLogs);
+    }
+
+    // ALL_LOGS aggregate — append-only audit; mirror the tombstone so
+    // future audit-trail readers see the same shape on either path.
+    const allLogs = await safeGetItem<LogEntry[]>(KEYS.ALL_LOGS(patientId), []);
+    const allIdx = allLogs.findIndex((l) => l.id === logId);
+    if (allIdx !== -1 && !allLogs[allIdx].deletedAt) {
+      allLogs[allIdx] = { ...allLogs[allIdx], deletedAt: now };
+      await safeSetItem(KEYS.ALL_LOGS(patientId), allLogs);
+    }
+  });
+}
+
+/**
  * Remove a log entry from both the daily bucket and the all-logs append-only
  * store. Internal helper for undoInstanceCompletion — log entries are
  * otherwise immutable.
@@ -591,7 +647,10 @@ async function deleteLogEntry(
   date: string,
   logId: string,
 ): Promise<void> {
-  const dailyLogs = await listLogsByDate(patientId, date);
+  // Phase 35 Slice 3-D — opt into includeDeleted so hard-delete still
+  // operates on tombstoned entries (the soft-delete filter would
+  // otherwise hide them from the read and leave the raw entry behind).
+  const dailyLogs = await listLogsByDate(patientId, date, { includeDeleted: true });
   const filteredDaily = dailyLogs.filter((l) => l.id !== logId);
   if (filteredDaily.length !== dailyLogs.length) {
     await safeSetItem(KEYS.LOGS(patientId, date), filteredDaily);
