@@ -749,11 +749,24 @@ export default function JournalTab() {
       // selectedDate so past-day shares show the day being shared;
       // timeLabel stays generation-time so the recipient sees when the
       // PDF was produced. generateAndShareHandoff fires the OS share
-      // sheet directly — no in-app preview.
+      // sheet directly — no in-app preview (F3's "page IS the preview"
+      // stance; iOS Share's own Preview shows the actual rendered PDF).
       const payload = await buildHandoffDay(selectedDate);
-      if (!payload) return;
+      // Phase 35 Slice 3-C PART 2 — empty-day silent-return retired.
+      // Pre-fix this branch returned with zero user feedback, leaving
+      // the caregiver unable to tell whether the tap registered or
+      // the day genuinely had nothing to share. Same trust class as
+      // the notes-into-the-void bug (input without persistence). Now
+      // surfaces a caregiver-facing Alert.
+      if (!payload) {
+        Alert.alert(
+          'Nothing to share for this day yet',
+          'Log a medication, vital, or note on the Now tab, then come back to share.',
+        );
+        return;
+      }
       const selectedDateObj = new Date(`${selectedDate}T12:00:00`);
-      await generateAndShareHandoff({
+      const shareOk = await generateAndShareHandoff({
         payload,
         dateLabel: selectedDateObj.toLocaleDateString('en-US', {
           weekday: 'long',
@@ -762,8 +775,32 @@ export default function JournalTab() {
         }),
         timeLabel: formatTime(new Date()),
       });
+      // Phase 35 Slice 3-C PART 2 — generateAndShareHandoff's boolean
+      // return was previously discarded. Its OWN try/catch swallows
+      // inner throws (Print / FileSystem / Sharing) and returns false,
+      // and Sharing.isAvailableAsync() false also returns true with no
+      // share sheet shown. Both failure modes surfaced as a silent dud
+      // button. Now: check the boolean, surface friendly Alert on
+      // failure. The error itself was already logged inside
+      // generateAndShareHandoff's catch.
+      if (!shareOk) {
+        Alert.alert(
+          "Couldn't share",
+          'Something went wrong preparing the handoff PDF. Please try again.',
+        );
+      }
     } catch (err) {
+      // Phase 35 Slice 3-C PART 2 — outer catch fires when
+      // buildHandoffDay re-throws (e.g., ProfileMissingError, which
+      // its handler intentionally propagates). Pre-fix this branch
+      // logged silently. Now: still log for debugging, AND surface
+      // a friendly Alert. Raw error message NOT surfaced — the
+      // caregiver shouldn't see stack-trace shrapnel.
       logError('JournalTab.handleShareDaily', err);
+      Alert.alert(
+        "Couldn't share",
+        'Something went wrong preparing the handoff. Please try again.',
+      );
     }
   }
 
