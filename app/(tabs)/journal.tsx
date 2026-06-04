@@ -1123,11 +1123,16 @@ export default function JournalTab() {
           a 638-line preview modal. The Journal page already shows all
           the data; the modal was redundant. */}
       {(() => {
+        // Phase 35 Slice 3-B — decoupled from content. Pre-fix the
+        // gate also required (dayEvents.length > 0 || reflection.text
+        // .length > 0). Saving a note via JournalNotesCard set
+        // reflection.text → gate flipped false→true → CTA
+        // materialized, reading as "pops up on save" — a deliberate
+        // share action coupled to an incidental save. Now persistent
+        // on today-view; past-day share lives in the Slice 3-C
+        // upper-right header action (user-locked option b1).
         const isViewingToday = !isViewingPast;
-        const hasShareableContent =
-          (dayEvents && dayEvents.length > 0) ||
-          (reflection?.text?.trim().length ?? 0) > 0;
-        if (!isViewingToday || !hasShareableContent) return null;
+        if (!isViewingToday) return null;
         return (
           <TouchableOpacity
             testID="journal-share-cta"
