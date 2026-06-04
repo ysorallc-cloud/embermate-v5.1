@@ -1,15 +1,27 @@
 // ============================================================================
-// Phase 5.12.g — sticky export CTA.
+// Phase 5.12.g — Share Handoff CTA (reframed Phase 35 Slice 3-C).
 //
-// Single anchored "Share handoff →" button at the bottom of the Journal
-// page — the only primary action on the screen. Opens the existing
-// HandoffSheet (which is now Journal's canonical share surface; the
-// retired ExportChooserSheet referenced in the original spec was removed
-// in the v6 UX restructure).
+// HISTORICAL: Phase 5.12.g introduced a single anchored "Share handoff →"
+// button at the BOTTOM of the Journal page as the only primary action on
+// the screen. Hidden when the day was empty (no events, no notes) and on
+// past days (handoff was today-only).
 //
-// Hidden when:
-//   • The day is empty (no events, no notes, no tone) — nothing to share.
-//   • The user is viewing a past day (handoff is today-only).
+// PHASE 35 EVOLUTION:
+//   • Slice 3-B (commit dde95a31) — decoupled visibility from content
+//     (the gate became `isViewingToday`-only; saving a note no longer
+//     "popped up" the CTA).
+//   • Slice 3-C — relocated the Share affordance entirely from a bottom
+//     sticky CTA to an upper-right sage-outline HEADER ACTION (per the
+//     Phase 33 banked brand spec). The action now lives inside the
+//     Journal headerRow, fires the same handleShareDaily handler, and
+//     shows on BOTH today AND past days (handleShareDaily threads
+//     selectedDate through buildHandoffDay).
+//
+// The Phase 5.12.g architectural invariants this file pinned — "single
+// primary share action; fires handleShareDaily directly; no HandoffCard
+// alternative" — are preserved. Only the visual placement + style
+// changed. Each contract below is reframed to the post-Slice-3-C
+// surface.
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -21,63 +33,92 @@ const journalSrc = readFileSync(
   'utf8',
 );
 
-describe('Phase 5.12.g — sticky export CTA', () => {
-  it('renders the "Share handoff" CTA copy', () => {
-    expect(journalSrc).toMatch(/Share handoff/);
+describe('Phase 5.12.g — Share Handoff action (reframed Phase 35 Slice 3-C)', () => {
+  it('renders the "Share" CTA copy (the action label)', () => {
+    // Pre-Slice-3-C the copy was "Share handoff →" inside a saturated-
+    // green sticky CTA. The relocated sage-outline header action uses
+    // a tighter "Share" label (the headerRow real estate is narrow).
+    // Pin: the word "Share" appears in source as the action label.
+    expect(journalSrc).toMatch(/>Share</);
   });
 
-  it('Phase 31 F3 — the CTA fires handleShareDaily directly (reframed from "opens HandoffSheet" pin)', () => {
-    // Pre-F3 the CTA opened HandoffSheet via setHandoffSheetVisible(true)
-    // — a 638-line preview modal that wrapped generateAndShareHandoff.
-    // Phase 31 F3 (2026-05-21) retired HandoffSheet entirely; the
-    // Journal page already shows all the data, so the modal was
-    // redundant. The CTA now wires onPress directly to
-    // handleShareDaily, which calls generateAndShareHandoff (PDF +
-    // OS share sheet) without an intermediate modal.
+  it('Phase 31 F3 — the Share action fires handleShareDaily directly (reframed from sticky-bottom testID to header-action testID)', () => {
+    // Pre-F3 the CTA opened HandoffSheet via setHandoffSheetVisible(true).
+    // Phase 31 F3 (2026-05-21) retired HandoffSheet; onPress wires
+    // directly to handleShareDaily → generateAndShareHandoff (PDF +
+    // OS share). Phase 35 Slice 3-C only changes the testID handle
+    // (the architectural invariant — direct handler wiring — survives).
     expect(journalSrc).toMatch(
-      /testID=['"]journal-share-cta['"][\s\S]{0,300}onPress=\{handleShareDaily\}/,
+      /testID=['"]journal-share-header-action['"][\s\S]{0,600}onPress=\{handleShareDaily\}/,
     );
   });
 
-  it('the CTA is anchored absolute at the bottom of the screen container', () => {
-    // The sticky pattern: position absolute, bottom + left/right insets,
-    // so it stays put while the scroll content moves underneath.
-    const ctaStyle = journalSrc.match(/shareCta:\s*\{([^}]*)\}/);
-    expect(ctaStyle).toBeTruthy();
-    expect(ctaStyle![1]).toMatch(/position:\s*['"]absolute['"]/);
-    expect(ctaStyle![1]).toMatch(/bottom:/);
+  it('Phase 35 Slice 3-C — the Share action is a sage-outline header action (reframed from "absolute-positioned sticky" pin)', () => {
+    // Pre-Slice-3-C the sticky pattern was position: absolute + bottom
+    // inset. Slice 3-C retires the sticky in favor of an in-flow
+    // header action; the style block is shareHeaderAction (sage
+    // border + sage text + transparent fill, NO backgroundColor:
+    // c.accent — the canon-defended invariant against the loud green
+    // re-creeping back).
+    const styleBlock = journalSrc.match(/shareHeaderAction\s*:\s*\{([^}]*)\}/);
+    expect(styleBlock).toBeTruthy();
+    expect(styleBlock![1]).toMatch(/borderColor\s*:\s*c\.accent\b/);
+    expect(styleBlock![1]).toMatch(/borderWidth\s*:\s*1\b/);
+    expect(styleBlock![1]).not.toMatch(/backgroundColor\s*:\s*c\.accent\b/);
   });
 
-  it('the CTA hides on past days', () => {
-    // The render guard must reference the existing isViewingPast flag
-    // (or its inverse) so past-date navigation does not show a CTA that
-    // would open today's handoff sheet.
-    expect(journalSrc).toMatch(
-      /isViewingToday[\s\S]{0,400}testID=['"]journal-share-cta['"]|!isViewingPast[\s\S]{0,400}testID=['"]journal-share-cta['"]/,
+  it('Phase 35 Slice 3-C — the Share action shows on past days too (reframed from "hides on past days" pin)', () => {
+    // Pre-Slice-3-C the sticky CTA was today-only (no past-day share
+    // entry point existed; user-locked option b1 in Slice 3-B kept
+    // this restriction for the bottom surface). Slice 3-C's full
+    // design moves past-day Share to the header action — caregivers
+    // need to re-share or amend past days. The header action must
+    // NOT be wrapped in an isViewingToday gate.
+    const actionIdx = journalSrc.search(/testID=['"]journal-share-header-action['"]/);
+    expect(actionIdx).toBeGreaterThan(-1);
+    const window = journalSrc.slice(
+      Math.max(0, actionIdx - 600),
+      Math.min(journalSrc.length, actionIdx + 400),
     );
+    expect(window).not.toMatch(/!isViewingToday[^?]*\?\s*null/);
+    expect(window).not.toMatch(/isViewingPast\s*&&/);
   });
 
-  it('the CTA hides on empty days (no events, no notes — tone retired in F3)', () => {
-    // The guard must check for at least one of dayEvents / reflection
-    // text so an empty day does not surface a "share what?" button.
-    // Phase 31 F3 — handoffTone retired from the predicate (the legacy
-    // tone is folded into reflection text via consolidatedNotes, so it
-    // shows up through that channel).
-    const ctaIdx = journalSrc.indexOf("testID='journal-share-cta'");
-    const ctaIdxAlt = journalSrc.indexOf('testID="journal-share-cta"');
-    const idx = ctaIdx > 0 ? ctaIdx : ctaIdxAlt;
-    expect(idx).toBeGreaterThan(0);
-    const before = journalSrc.slice(Math.max(0, idx - 800), idx);
-    expect(before).toMatch(/dayEvents|reflection|hasShareableContent/);
+  it('Phase 35 Slice 3-C — the Share action is NOT gated by content state (reframed from "hides on empty days" pin)', () => {
+    // Pre-Slice-3-B the sticky CTA's gate was
+    //   if (!isViewingToday || !hasShareableContent) return null;
+    // where hasShareableContent = dayEvents.length > 0 || reflection.text.
+    // That meant saving a note "popped up" the CTA — a deliberate share
+    // action coupled to an incidental save (the bug Slice 3-B fixed).
+    // Slice 3-C extends the decoupling to the new surface — the
+    // header action's render must NOT reference any content-derived
+    // shareability flag.
+    const actionIdx = journalSrc.search(/testID=['"]journal-share-header-action['"]/);
+    expect(actionIdx).toBeGreaterThan(-1);
+    const window = journalSrc.slice(
+      Math.max(0, actionIdx - 800),
+      actionIdx,
+    );
+    expect(window).not.toMatch(/hasShareableContent/);
+    expect(window).not.toMatch(/dayEvents\s*&&\s*dayEvents\.length/);
   });
 });
 
-describe('Phase 5.12.g — single primary action contract', () => {
-  it('removes the legacy HandoffCard share button (sticky CTA is the only primary)', () => {
-    // The spec calls out: "The CTA is the page's only primary action."
+describe('Phase 5.12.g — single primary action contract (preserved through Slice 3-C)', () => {
+  it('removes the legacy HandoffCard share button (header action is the only primary)', () => {
+    // The Phase 5.12.g spec: "The CTA is the page's only primary action."
     // HandoffCard's "Share summary" button was the previous primary;
     // both can't coexist or Journal grows two competing share entry
-    // points.
+    // points. Slice 3-C preserves this invariant — the header action
+    // is the sole share surface.
     expect(journalSrc).not.toMatch(/<HandoffCard\b/);
+  });
+
+  it('Phase 35 Slice 3-C — the retired bottom CTA render is GONE (single-primary preserved through relocation)', () => {
+    // If both the header action AND the bottom CTA rendered, Journal
+    // would have two competing primary share entry points. Slice 3-C
+    // commits to one: the header action. Pin the absence of the
+    // bottom-CTA testID render.
+    expect(journalSrc).not.toMatch(/testID=['"]journal-share-cta['"]/);
   });
 });

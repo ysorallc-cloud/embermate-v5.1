@@ -75,15 +75,20 @@ describe('Journal — new sections present', () => {
 });
 
 describe('Journal — section order in the rendered tree', () => {
-  it('the sticky share CTA renders below the in-flow content (Phase 5.12.g)', () => {
-    // After 5.12.g, HandoffCard was removed and replaced by an absolute-
-    // positioned sticky CTA. The CTA's testID lands LATE in the file
-    // (after the JSX of all in-flow sections) since it sits inside the
-    // outer screen container after the SafeAreaView/ScrollView close.
+  it('Phase 35 Slice 3-C — Share action renders in the header (BEFORE in-flow content, reframed from "sticky bottom" pin)', () => {
+    // Pre-Slice-3-C, Phase 5.12.g pinned the Share affordance as a
+    // sticky bottom CTA — its testID landed AFTER JournalNotesCard
+    // in source order. Slice 3-C relocates it to an upper-right
+    // header action (sage-outline, per Phase 33 banked spec); its
+    // testID journal-share-header-action now lands inside the
+    // headerRow at the top of the JSX tree — BEFORE JournalNotesCard
+    // in source order. The order-direction pin INVERTS: header
+    // action precedes the notes card.
     const notes = src.indexOf('<JournalNotesCard');
-    const sticky = src.indexOf("testID=\"journal-share-cta\"");
+    const headerAction = src.indexOf('testID="journal-share-header-action"');
     expect(notes).toBeGreaterThan(-1);
-    expect(sticky).toBeGreaterThan(notes);
+    expect(headerAction).toBeGreaterThan(-1);
+    expect(headerAction).toBeLessThan(notes);
   });
 });
 

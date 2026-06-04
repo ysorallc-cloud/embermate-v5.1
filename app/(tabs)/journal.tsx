@@ -808,6 +808,26 @@ export default function JournalTab() {
             <View style={s.headerLeft}>
               <Text style={s.headerTitle}>Journal</Text>
             </View>
+            {/* Phase 35 Slice 3-C — upper-right Share action. Banked in
+                Phase 33 (memory: project_phase_33_audit.md "RELOCATE
+                to the upper-right corner as a compact header action ...
+                SAGE-OUTLINE") but never built; lands here. Fires the
+                same handleShareDaily handler — works for today AND
+                past days because handleShareDaily threads selectedDate
+                through buildHandoffDay. The previously sticky bottom
+                green CTA retired in this same commit (two CTAs for one
+                action is clutter; the loud one was off-brand). */}
+            <TouchableOpacity
+              testID="journal-share-header-action"
+              style={s.shareHeaderAction}
+              onPress={handleShareDaily}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Share handoff"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={s.shareHeaderActionLabel}>Share</Text>
+            </TouchableOpacity>
           </View>
 
           <JournalIdentityStrip
@@ -1122,30 +1142,15 @@ export default function JournalTab() {
           directly (PDF + OS share sheet). Pre-F3 opened HandoffSheet,
           a 638-line preview modal. The Journal page already shows all
           the data; the modal was redundant. */}
-      {(() => {
-        // Phase 35 Slice 3-B — decoupled from content. Pre-fix the
-        // gate also required (dayEvents.length > 0 || reflection.text
-        // .length > 0). Saving a note via JournalNotesCard set
-        // reflection.text → gate flipped false→true → CTA
-        // materialized, reading as "pops up on save" — a deliberate
-        // share action coupled to an incidental save. Now persistent
-        // on today-view; past-day share lives in the Slice 3-C
-        // upper-right header action (user-locked option b1).
-        const isViewingToday = !isViewingPast;
-        if (!isViewingToday) return null;
-        return (
-          <TouchableOpacity
-            testID="journal-share-cta"
-            style={[s.shareCta, { bottom: tabBarHeight + 14 }]}
-            onPress={handleShareDaily}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel="Share handoff for today"
-          >
-            <Text style={s.shareCtaText}>{'Share handoff →'}</Text>
-          </TouchableOpacity>
-        );
-      })()}
+      {/* Phase 35 Slice 3-C — the bottom green sticky Share Handoff
+          CTA retired. The same handleShareDaily handler is now wired
+          to the upper-right sage-outline header action above (in the
+          headerRow). Two CTAs for one action was clutter; the loud
+          bottom one was the off-brand surface. Hide-not-delete:
+          handleShareDaily stays defined (wired to the header action);
+          the shareCta / shareCtaText style blocks stay in
+          createStyles as dead-code-sweep targets per the user-locked
+          retention rule. */}
 
       {/* Phase 31 F3 — HandoffSheet render retired. The Share CTA above
           fires handleShareDaily directly; no in-app modal sits between
@@ -1388,6 +1393,28 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '400' as const,
     color: c.textPrimary,
     letterSpacing: -0.8,
+  },
+  // Phase 35 Slice 3-C — upper-right Share action. Sage-outline per
+  // the banked Phase 33 brand spec (sage border + sage text +
+  // transparent fill — explicitly NOT the saturated-green background
+  // of the retired sticky bottom CTA). Right-edge tap target sized
+  // for HIG ≥44pt via paddingHorizontal/Vertical + hitSlop on the
+  // TouchableOpacity. marginTop matches the header's serif title
+  // baseline so the action reads as a peer of the title, not a
+  // floating chip.
+  shareHeaderAction: {
+    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt with hitSlop)
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: c.accent,
+    backgroundColor: 'transparent',
+    marginTop: 8,
+  },
+  shareHeaderActionLabel: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: c.accent,
   },
   // Phase 22.1 — headerDate / headerMood styles retired. The date
   // moved into JournalIdentityStrip and the mood line into

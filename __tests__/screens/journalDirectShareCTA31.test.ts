@@ -116,9 +116,16 @@ describe('Phase 31 F3 — kill HandoffSheet + direct share + tone-override retir
   // INVARIANT 5 — Share CTA wires to handleShareDaily (not modal state)
   // ------------------------------------------------------------------------
 
-  it('invariant 5: the journal-share-cta TouchableOpacity onPress wires to handleShareDaily', () => {
+  it('invariant 5 (reframed Phase 35 Slice 3-C): the Share action TouchableOpacity onPress wires to handleShareDaily', () => {
+    // Phase 31 F3 originally pinned this on the bottom-sticky CTA
+    // (testID journal-share-cta). Phase 35 Slice 3-C relocated the
+    // Share affordance to an upper-right sage-outline header action
+    // (testID journal-share-header-action) and retired the bottom CTA.
+    // The F3 architectural invariant — "Share fires handleShareDaily
+    // directly, not via a HandoffSheet modal toggle" — is preserved;
+    // only the testID handle changes.
     const ctaBlock = journalStripped.match(
-      /testID=["']journal-share-cta["'][\s\S]{0,400}?onPress=\{([^}]+)\}/,
+      /testID=["']journal-share-header-action["'][\s\S]{0,600}?onPress=\{([^}]+)\}/,
     );
     expect(ctaBlock).not.toBeNull();
     expect(ctaBlock![1].trim()).toBe('handleShareDaily');
