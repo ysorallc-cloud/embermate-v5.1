@@ -20,6 +20,7 @@ import {
   upsertDailyInstances,
   updateDailyInstanceStatus,
   removeStaleInstances,
+  removeStaleWindowInstances,
   upsertCarePlanItem,
   deleteCarePlanItem,
   createCarePlan,
@@ -1140,6 +1141,30 @@ async function _ensureDailyInstancesCore(
   // 6. Build set of valid item IDs and remove stale instances from storage
   const validItemIds = new Set(items.map(item => item.id));
   await removeStaleInstances(patientId, date, validItemIds);
+
+  // 6.1 Phase 34 F5.1.1 — soft-deactivate stale-window instances.
+  // For multi-window buckets (vitals + wellness + any future bucket
+  // with ONE CarePlanItem holding multiple time windows), a chip
+  // removed from the editor shrinks item.schedule.times. The
+  // item-level removeStaleInstances pass above doesn't catch
+  // instances whose windowId is no longer in their item's current
+  // schedule (the item is still active — only one of its windows
+  // is gone). F5.1's vitals chip set surfaced this latent class-of-
+  // bug; F5.1.1 closes it for every multi-window bucket uniformly
+  // at the generator layer. Hide-not-delete: only PENDING stale-
+  // window instances are tombstoned; completed/skipped/missed
+  // preserve caregiver action history regardless of schedule
+  // changes. Pinned by vitalsBucketRoundTrip34F5_1 rt-4/rt-7 +
+  // wellnessBucketRoundTrip34F5_1_1 rt-2/rt-3.
+  const validWindowIdsByItem = new Map<string, Set<string>>();
+  for (const item of items) {
+    if (!item.schedule?.times) continue;
+    validWindowIdsByItem.set(
+      item.id,
+      new Set(item.schedule.times.map((t) => t.id)),
+    );
+  }
+  await removeStaleWindowInstances(patientId, date, validWindowIdsByItem);
 
   // 6.5 Reschedule notifications if items changed (AFTER instances exist)
   if (medsChanged || bucketsChanged) {

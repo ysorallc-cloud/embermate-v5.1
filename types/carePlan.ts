@@ -165,6 +165,17 @@ export interface DailyCareInstance {
   /** Why this instance was skipped — set only when status === 'skipped'. */
   skipReason?: 'refused' | 'too-soon' | 'other';
   logId?: string;                 // Reference to LogEntry.id when logged
+  /** Phase 34 F5.1.1 — soft-delete (hide-not-delete) tombstone for
+   *  instances whose windowId is no longer in their item's current
+   *  schedule.times (caregiver removed a chip from the editor). ISO
+   *  timestamp set by removeStaleWindowInstances. Default reads
+   *  filter `!i.deactivatedAt`; audit-trail consumers opt in with
+   *  `{ includeDeactivated: true }`. Parallels Slice 3-D's
+   *  LogEntry.deletedAt pattern. Caregiver action history is
+   *  preserved at the storage layer (raw bucket retains the
+   *  instance) even when the schedule that produced it changed —
+   *  the default reader just doesn't surface it. */
+  deactivatedAt?: string;
   generatedFromVersion?: number;  // CarePlan version when generated
 
   // Denormalized for display (avoids lookups)

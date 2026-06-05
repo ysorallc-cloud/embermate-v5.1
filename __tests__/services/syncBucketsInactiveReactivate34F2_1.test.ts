@@ -55,6 +55,11 @@ jest.mock('../../storage/carePlanRepo', () => ({
   upsertDailyInstances: jest.fn(async () => {}),
   updateDailyInstanceStatus: jest.fn(async () => {}),
   removeStaleInstances: jest.fn(async () => {}),
+  // Phase 34 F5.1.1 — generator wires a new sister pass after the
+  // existing removeStaleInstances. This test pre-dates the new pass
+  // and doesn't probe its behavior; mock it as a no-op so the
+  // ensureDailyInstances code path doesn't crash on the missing export.
+  removeStaleWindowInstances: jest.fn(async () => {}),
   upsertCarePlanItem: jest.fn(async (item: any) => {
     const idx = mockState.items.findIndex((i) => i.id === item.id);
     if (idx >= 0) mockState.items[idx] = item;

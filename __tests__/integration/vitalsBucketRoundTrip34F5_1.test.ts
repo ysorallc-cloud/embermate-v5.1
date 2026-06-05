@@ -48,6 +48,8 @@ import {
 import {
   getActiveCarePlan,
   listCarePlanItems,
+  listDailyInstances,
+  updateDailyInstanceStatus,
   DEFAULT_PATIENT_ID,
 } from '../../storage/carePlanRepo';
 import { ensureDailyInstances } from '../../services/carePlanGenerator';
@@ -134,21 +136,29 @@ describe('Phase 34 F5.1 — Vitals bucket timesOfDay write → generator reconci
     expect(item!.schedule!.times[0].at).toBe('08:00');
   });
 
-  it('rt-3 (GENERATOR RECONCILE — ADD WINDOW, LOAD-BEARING): adding "midday" to an existing vitals item\'s timesOfDay reconciles schedule.times to BOTH windows (closes the F5.1 audit-surfaced parity gap)', async () => {
-    // THE F5.1 LOAD-BEARING CONTRACT. Pre-F5.1 the audit found that
-    // vitals sync had no Pass-B-style reconciliation (compare
-    // wellness's L561-632) — existing-item branches only flipped
-    // .active. With the new chip set writing timesOfDay from the UI,
-    // a "control doesn't control" bug would appear: the chip toggle
-    // would update the config, but the existing CarePlanItem's
-    // schedule.times would stay frozen. F5.1 mirrors wellness's
-    // Pass-B reconciliation for the sync-vitals item; this contract
-    // is RED without that fix and GREEN once it lands.
+  it('rt-3 (GENERATOR RECONCILE — ADD WINDOW, LOAD-BEARING): adding "midday" → schedule.times reconciles AND a new DailyCareInstance appears for the added window (device-facing layer)', async () => {
+    // THE F5.1 LOAD-BEARING CONTRACT. F5.1.1 refinement: the
+    // original rt-3 only asserted on CarePlanItem.schedule.times
+    // (the intermediate storage template). The F5.1 device walk
+    // surfaced that the device-facing surface (DailyCareInstance via
+    // listDailyInstances → Now tab) was the layer that actually
+    // mattered. Standing rule sharpened: round-trip integration
+    // tests must assert on what the device-facing screen reads,
+    // NOT intermediate storage templates.
+    //
+    // Both layers asserted here:
+    //   (a) schedule.times on the CarePlanItem (template)
+    //   (b) DailyCareInstance for the added window exists on
+    //       listDailyInstances (what Now actually shows)
     await seedVitalsOnly({ timesOfDay: ['morning'] });
     await ensureDailyInstances(DEFAULT_PATIENT_ID, DATE);
     {
       const item = await getVitalsItem();
       expect(item!.schedule!.times).toHaveLength(1);
+      const instances = await listDailyInstances(DEFAULT_PATIENT_ID, DATE);
+      const vitalsInstances = instances.filter((i) => i.itemType === 'vitals');
+      expect(vitalsInstances).toHaveLength(1);
+      expect(vitalsInstances[0].windowId).toBe('sync-vitals-morning-time');
     }
 
     // Caregiver toggles "Afternoon" chip on (internal value 'midday').
@@ -157,35 +167,129 @@ describe('Phase 34 F5.1 — Vitals bucket timesOfDay write → generator reconci
     });
     await ensureDailyInstances(DEFAULT_PATIENT_ID, DATE);
 
+    // Layer (a) — schedule template.
     const item = await getVitalsItem();
     expect(item).not.toBeNull();
     expect(item!.active).toBe(true);
     expect(item!.schedule!.times).toHaveLength(2);
     const labels = item!.schedule!.times.map((t) => t.label).sort();
     expect(labels).toEqual(['afternoon', 'morning']);
-    const ats = item!.schedule!.times.map((t) => t.at).sort();
-    expect(ats).toEqual(['08:00', '12:00']);
+
+    // Layer (b) — device-facing DailyCareInstance state.
+    const instances = await listDailyInstances(DEFAULT_PATIENT_ID, DATE);
+    const vitalsInstances = instances.filter((i) => i.itemType === 'vitals');
+    expect(vitalsInstances).toHaveLength(2);
+    const windowIds = vitalsInstances.map((i) => i.windowId).sort();
+    expect(windowIds).toEqual(['sync-vitals-midday-time', 'sync-vitals-morning-time']);
   });
 
-  it('rt-4 (GENERATOR RECONCILE — REMOVE WINDOW): removing "morning" from timesOfDay reconciles schedule.times to the remaining windows', async () => {
-    // Symmetric reverse of rt-3. Same reconciliation path, opposite
-    // direction. Hide-not-delete invariant: the bucket stays enabled
-    // and the item stays active (because timesOfDay is non-empty);
-    // only the schedule.times array changes.
+  it('rt-4 (GENERATOR RECONCILE — REMOVE WINDOW, LOAD-BEARING): removing "morning" → the pending morning DailyCareInstance is soft-deactivated and no longer surfaces from listDailyInstances (device-facing layer)', async () => {
+    // F5.1 walk failure pin. Pre-F5.1.1 the test only asserted on
+    // CarePlanItem.schedule.times (template layer). The device
+    // showed a lingering morning instance because removeStaleInstances
+    // (storage/carePlanRepo.ts:325) is item-level — keeps any
+    // instance whose carePlanItemId is active, regardless of
+    // windowId. F5.1.1's removeStaleWindowInstances pass closes the
+    // gap by soft-deactivating instances whose windowId is no
+    // longer in their item's current schedule.times.
+    //
+    // Q-34.F5.1.1 lock: hide-not-delete via deactivatedAt
+    // (parallels Slice 3-D LogEntry.deletedAt). Default
+    // listDailyInstances reads filter `!i.deactivatedAt`;
+    // includeDeactivated opt-in surfaces the audit trail.
     await seedVitalsOnly({ timesOfDay: ['morning', 'midday'] });
     await ensureDailyInstances(DEFAULT_PATIENT_ID, DATE);
+    {
+      const instances = await listDailyInstances(DEFAULT_PATIENT_ID, DATE);
+      const vitalsInstances = instances.filter((i) => i.itemType === 'vitals');
+      expect(vitalsInstances).toHaveLength(2);
+    }
 
+    // Caregiver removes "Morning" chip — only Afternoon remains.
     await updateBucketConfig(DEFAULT_PATIENT_ID, 'vitals', {
       timesOfDay: ['midday'],
     });
     await ensureDailyInstances(DEFAULT_PATIENT_ID, DATE);
 
+    // Layer (a) — schedule template reconciled.
     const item = await getVitalsItem();
-    expect(item).not.toBeNull();
     expect(item!.active).toBe(true);
     expect(item!.schedule!.times).toHaveLength(1);
     expect(item!.schedule!.times[0].label).toBe('afternoon');
-    expect(item!.schedule!.times[0].at).toBe('12:00');
+
+    // Layer (b) — device-facing read. The morning pending instance
+    // must NOT surface; only the midday instance remains visible.
+    const visible = await listDailyInstances(DEFAULT_PATIENT_ID, DATE);
+    const visibleVitals = visible.filter((i) => i.itemType === 'vitals');
+    expect(visibleVitals).toHaveLength(1);
+    expect(visibleVitals[0].windowId).toBe('sync-vitals-midday-time');
+    // Defensive: no remnant morning instance in the visible read.
+    expect(
+      visibleVitals.find((i) => i.windowId === 'sync-vitals-morning-time'),
+    ).toBeUndefined();
+
+    // Audit-trail layer — opt-in includeDeactivated surfaces the
+    // soft-deactivated morning instance with a deactivatedAt
+    // timestamp. The instance was preserved in storage (hide-not-
+    // delete); the default reader just doesn't see it.
+    const raw = await listDailyInstances(DEFAULT_PATIENT_ID, DATE, {
+      includeDeactivated: true,
+    });
+    const morningRaw = raw.find(
+      (i) => i.windowId === 'sync-vitals-morning-time' && i.itemType === 'vitals',
+    );
+    expect(morningRaw).toBeDefined();
+    expect(typeof morningRaw!.deactivatedAt).toBe('string');
+    expect(morningRaw!.deactivatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+  });
+
+  it('rt-7 (AUDIT-TRAIL PRESERVATION): when a window is removed, a COMPLETED instance for that window is PRESERVED (not deactivated) — caregiver action history survives schedule changes', async () => {
+    // Q-34.F5.1.1 hide-not-delete refinement: completed/skipped/
+    // missed instances carry caregiver action history. Even though
+    // the schedule that produced them changed, removing them would
+    // silently drop logged work from Journal Section 2 + handoff
+    // PDF + any other surface reading per-day instances. The new
+    // pass MUST tombstone only the unactioned (pending) placeholders;
+    // actioned instances stay visible verbatim.
+    await seedVitalsOnly({ timesOfDay: ['morning', 'midday'] });
+    await ensureDailyInstances(DEFAULT_PATIENT_ID, DATE);
+
+    // Caregiver completes the morning vitals instance.
+    const beforeComplete = await listDailyInstances(DEFAULT_PATIENT_ID, DATE);
+    const morningInst = beforeComplete.find(
+      (i) => i.itemType === 'vitals' && i.windowId === 'sync-vitals-morning-time',
+    );
+    expect(morningInst).toBeDefined();
+    await updateDailyInstanceStatus(
+      DEFAULT_PATIENT_ID,
+      DATE,
+      morningInst!.id,
+      'completed',
+    );
+
+    // Later that same day caregiver removes "Morning" from the chip set.
+    await updateBucketConfig(DEFAULT_PATIENT_ID, 'vitals', {
+      timesOfDay: ['midday'],
+    });
+    await ensureDailyInstances(DEFAULT_PATIENT_ID, DATE);
+
+    // The completed morning instance MUST survive in the visible read
+    // — caregiver action history is preserved regardless of the
+    // schedule change. Only the unactioned placeholder for a removed
+    // window would be tombstoned; rt-7 pins the opposite case.
+    const after = await listDailyInstances(DEFAULT_PATIENT_ID, DATE);
+    const afterVitals = after.filter((i) => i.itemType === 'vitals');
+    const completedMorning = afterVitals.find(
+      (i) => i.windowId === 'sync-vitals-morning-time',
+    );
+    expect(completedMorning).toBeDefined();
+    expect(completedMorning!.status).toBe('completed');
+    expect(completedMorning!.deactivatedAt).toBeUndefined();
+    // Midday pending instance also present (current schedule).
+    const middayPending = afterVitals.find(
+      (i) => i.windowId === 'sync-vitals-midday-time',
+    );
+    expect(middayPending).toBeDefined();
   });
 
   it('rt-5 (EMPTY ARRAY): timesOfDay=[] on an enabled vitals bucket deactivates the item (no time windows = nothing to schedule)', async () => {

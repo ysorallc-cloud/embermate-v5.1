@@ -219,13 +219,23 @@ export async function deleteCarePlanItem(
 // ============================================================================
 
 /**
- * List all instances for a patient on a specific date
+ * List all instances for a patient on a specific date.
+ *
+ * Phase 34 F5.1.1 — bottom-layer soft-delete filter. Default reads
+ * hide tombstoned (`deactivatedAt`) instances; audit-trail consumers
+ * (insights, exports, edit-history v1.1+) opt in via
+ * `{ includeDeactivated: true }`. Parallels Slice 3-D's
+ * listLogsByDate / getLogById / listLogsInRange treatment of
+ * LogEntry.deletedAt.
  */
 export async function listDailyInstances(
   patientId: string,
-  date: string
+  date: string,
+  options: { includeDeactivated?: boolean } = {}
 ): Promise<DailyCareInstance[]> {
-  return safeGetItem<DailyCareInstance[]>(KEYS.DAILY_INSTANCES(patientId, date), []);
+  const raw = await safeGetItem<DailyCareInstance[]>(KEYS.DAILY_INSTANCES(patientId, date), []);
+  if (options.includeDeactivated) return raw;
+  return raw.filter((i) => !i.deactivatedAt);
 }
 
 /**
@@ -251,7 +261,12 @@ export async function upsertDailyInstances(
   const lockKey = KEYS.DAILY_INSTANCES(patientId, date);
   return withKeyLock(lockKey, async () => {
     const now = new Date().toISOString();
-    const existing = await listDailyInstances(patientId, date);
+    // Phase 34 F5.1.1 — opt into includeDeactivated so the bulk
+    // upsert merges over tombstoned entries (same Slice 3-D
+    // createLogEntry trap pattern). Without this, the default
+    // soft-delete filter would hide tombstoned instances from the
+    // read and they'd be silently lost when we write the array back.
+    const existing = await listDailyInstances(patientId, date, { includeDeactivated: true });
     const existingMap = new Map(existing.map(i => [i.id, i]));
 
     const result: DailyCareInstance[] = [];
@@ -329,16 +344,89 @@ export async function removeStaleInstances(
 ): Promise<number> {
   const lockKey = KEYS.DAILY_INSTANCES(patientId, date);
   return withKeyLock(lockKey, async () => {
-    const instances = await listDailyInstances(patientId, date);
-    const validInstances = instances.filter(i => validItemIds.has(i.carePlanItemId));
-    const removedCount = instances.length - validInstances.length;
-
-    if (removedCount > 0) {
-      const ok = await safeSetItem(KEYS.DAILY_INSTANCES(patientId, date), validInstances);
+    // Phase 34 F5.1.1 — primitive upgraded from hard-delete to
+    // soft-delete (parallel to removeStaleWindowInstances below).
+    // Class-of-bug fix: pre-F5.1.1 the hard-delete silently dropped
+    // COMPLETED instances tied to deactivated items (e.g. when a
+    // caregiver removes a meal from the chip set after logging it),
+    // erasing caregiver action history from Journal Section 2,
+    // handoff PDF, insights, etc. The new contract:
+    //   • Pending instances for items not in validItemIds → tombstone
+    //     (set deactivatedAt; default reads hide them)
+    //   • Completed / skipped / missed / partial instances →
+    //     PRESERVED VISIBLE regardless of item state (audit-trail
+    //     refinement of hide-not-delete: action history must survive
+    //     schedule changes)
+    // Internal read uses includeDeactivated so this sweep is
+    // idempotent over already-tombstoned entries (same trap pattern
+    // as Slice 3-D's createLogEntry / deleteLogEntry).
+    const instances = await listDailyInstances(patientId, date, { includeDeactivated: true });
+    const now = new Date().toISOString();
+    let tombstoned = 0;
+    const next = instances.map((i) => {
+      if (i.deactivatedAt) return i;
+      if (validItemIds.has(i.carePlanItemId)) return i;
+      if (i.status !== 'pending') return i; // audit-trail — preserve visible
+      tombstoned++;
+      return { ...i, deactivatedAt: now };
+    });
+    if (tombstoned > 0) {
+      const ok = await safeSetItem(KEYS.DAILY_INSTANCES(patientId, date), next);
       if (ok) emitDataUpdate(EVENT.DAILY_INSTANCES);
     }
+    return tombstoned;
+  });
+}
 
-    return removedCount;
+/**
+ * Phase 34 F5.1.1 — soft-deactivate DailyCareInstances whose windowId
+ * is no longer in their item's current schedule.times. The class-of-
+ * bug fix for "control doesn't control" when a caregiver removes a
+ * window from a multi-window bucket's chip set (vitals + wellness +
+ * any future bucket with one CarePlanItem holding multiple time
+ * windows). Sister primitive to removeStaleInstances; both run from
+ * ensureDailyInstances.
+ *
+ * Tombstones the stale instance by writing `deactivatedAt = now` ISO
+ * timestamp. Raw storage retains the instance (hide-not-delete); the
+ * default listDailyInstances reader filters it out.
+ *
+ * Hide-not-delete refinement: only PENDING instances are tombstoned
+ * for stale windows. Instances with status 'completed' / 'skipped' /
+ * 'missed' / 'partial' are preserved verbatim — caregiver action
+ * history MUST survive a schedule change. (Journal Section 2,
+ * handoff PDF, insights, etc. all read this layer.)
+ *
+ * Items not present in `validWindowIdsByItem` are left untouched —
+ * the caller (ensureDailyInstances) controls which items get window-
+ * level cleanup; unknown items get the item-level cleanup via
+ * removeStaleInstances. Class-of-bug guard matching wellness Pass-B
+ * "unknown id form" pattern.
+ */
+export async function removeStaleWindowInstances(
+  patientId: string,
+  date: string,
+  validWindowIdsByItem: Map<string, Set<string>>
+): Promise<number> {
+  const lockKey = KEYS.DAILY_INSTANCES(patientId, date);
+  return withKeyLock(lockKey, async () => {
+    const instances = await listDailyInstances(patientId, date, { includeDeactivated: true });
+    const now = new Date().toISOString();
+    let tombstoned = 0;
+    const next = instances.map((i) => {
+      if (i.deactivatedAt) return i; // already tombstoned
+      if (i.status !== 'pending') return i; // audit-trail — preserve
+      const valid = validWindowIdsByItem.get(i.carePlanItemId);
+      if (!valid) return i; // item not tracked by this cleanup
+      if (valid.has(i.windowId)) return i; // current window — keep
+      tombstoned++;
+      return { ...i, deactivatedAt: now };
+    });
+    if (tombstoned > 0) {
+      const ok = await safeSetItem(KEYS.DAILY_INSTANCES(patientId, date), next);
+      if (ok) emitDataUpdate(EVENT.DAILY_INSTANCES);
+    }
+    return tombstoned;
   });
 }
 
