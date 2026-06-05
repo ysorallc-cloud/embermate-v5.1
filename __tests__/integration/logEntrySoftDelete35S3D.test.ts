@@ -60,10 +60,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createLogEntry,
   tombstoneLogEntry,
+  resurrectLogEntry,
+  logInstanceCompletion,
+  undoInstanceCompletion,
   listLogsByDate,
   getLogById,
   listLogsInRange,
   listDailyInstances,
+  getDailyInstance,
   upsertDailyInstances,
   DEFAULT_PATIENT_ID,
 } from '../../storage/carePlanRepo';
@@ -312,6 +316,169 @@ describe('Phase 35 Slice 3-D — LogEntry soft-delete write→read INTEGRATION r
     expect(surfaced).toHaveLength(1);
     expect(surfaced[0].notes).toBe(SECRET);
     expect(typeof surfaced[0].deletedAt).toBe('string');
+  });
+
+  it('rt-4 (INSTANCE REVERTS): undoInstanceCompletion soft-deletes the linked LogEntry, clears instance.logId, AND reverts instance.status to "pending" — three changes, one canonical call', async () => {
+    // The unification contract. Pre-3-D the codebase had TWO undo
+    // paths with divergent semantics:
+    //   • handleQuickLog / handleQuickSkip → undoInstanceCompletion
+    //     (HARD-deleted via deleteLogEntry; instance.logId
+    //     cleared; status reverted to pending)
+    //   • handleQuickConfirm → updateDailyInstanceStatus(..., 'pending')
+    //     ONLY (log left dangling; instance.logId NOT cleared
+    //     in the comment at app/(tabs)/now.tsx L1167-1170 the
+    //     dangling log was acknowledged as a "best-effort
+    //     revert")
+    // The 3-D unification canonicalizes undoInstanceCompletion to
+    // do three things atomically: soft-delete (tombstone) the
+    // log, clear instance.logId, revert status to pending.
+    // All four trigger paths route through this single fn in
+    // commits 2 + 3 (handleQuickLog, handleQuickSkip,
+    // handleQuickConfirm, plus the new long-press affordance).
+    const instance = makeInstance({ id: 'inst-confirm-1', itemName: 'Atenolol 50mg' });
+    await upsertDailyInstances(DEFAULT_PATIENT_ID, DATE, [instance]);
+
+    // logInstanceCompletion is the production write path. After
+    // the call the instance has logId set and status 'completed'.
+    const result = await logInstanceCompletion(
+      DEFAULT_PATIENT_ID,
+      DATE,
+      instance.id,
+      'completed',
+      { type: 'medication' },
+      { notes: 'Took with breakfast.', source: 'record' },
+    );
+    expect(result).not.toBeNull();
+    const originalLogId = result!.log.id;
+    {
+      const preUndo = await getDailyInstance(DEFAULT_PATIENT_ID, DATE, instance.id);
+      expect(preUndo!.status).toBe('completed');
+      expect(preUndo!.logId).toBe(originalLogId);
+    }
+
+    // ── Canonical undo ──
+    await undoInstanceCompletion(DEFAULT_PATIENT_ID, DATE, instance.id);
+
+    // Log soft-deleted (hide-not-delete preserved — audit trail
+    // accessible via includeDeleted opt-in).
+    const visible = await listLogsByDate(DEFAULT_PATIENT_ID, DATE);
+    expect(visible).toHaveLength(0);
+    const raw = await listLogsByDate(DEFAULT_PATIENT_ID, DATE, { includeDeleted: true });
+    expect(raw).toHaveLength(1);
+    expect(raw[0].id).toBe(originalLogId);
+    expect(typeof raw[0].deletedAt).toBe('string');
+
+    // Instance: status reverted, logId cleared.
+    const reverted = await getDailyInstance(DEFAULT_PATIENT_ID, DATE, instance.id);
+    expect(reverted).not.toBeNull();
+    expect(reverted!.status).toBe('pending');
+    expect(reverted!.logId).toBeUndefined();
+  });
+
+  it('rt-5 (RE-CONFIRM after UNDO creates a NEW LogEntry, NOT a resurrection of the old): the soft-deleted entry stays soft-deleted; re-confirming generates a fresh log with a distinct id', async () => {
+    // After undo, the caregiver may re-confirm (e.g. they meant
+    // to confirm but mis-read the row). That re-confirm is a
+    // SEPARATE caregiver action from the original confirm — it
+    // gets its own LogEntry with its own timestamp. The
+    // soft-deleted original stays tombstoned (audit trail of
+    // "caregiver tried, undid, tried again"). The redo path
+    // (rt-6) is the ONLY way to resurrect the original; once
+    // re-confirm runs, the original is permanently tombstoned.
+    const instance = makeInstance({ id: 'inst-reconfirm-1', itemName: 'Lisinopril 10mg' });
+    await upsertDailyInstances(DEFAULT_PATIENT_ID, DATE, [instance]);
+
+    const first = await logInstanceCompletion(
+      DEFAULT_PATIENT_ID,
+      DATE,
+      instance.id,
+      'completed',
+      { type: 'medication' },
+      { notes: 'First take.', source: 'record' },
+    );
+    const firstLogId = first!.log.id;
+
+    await undoInstanceCompletion(DEFAULT_PATIENT_ID, DATE, instance.id);
+
+    // Re-confirm (new caregiver action; could have different notes).
+    const second = await logInstanceCompletion(
+      DEFAULT_PATIENT_ID,
+      DATE,
+      instance.id,
+      'completed',
+      { type: 'medication' },
+      { notes: 'Second take, this one stays.', source: 'record' },
+    );
+    const secondLogId = second!.log.id;
+
+    expect(secondLogId).not.toBe(firstLogId);
+
+    // Default read shows ONLY the new log. Audit-trail read shows both.
+    const visible = await listLogsByDate(DEFAULT_PATIENT_ID, DATE);
+    expect(visible).toHaveLength(1);
+    expect(visible[0].id).toBe(secondLogId);
+    expect(visible[0].notes).toBe('Second take, this one stays.');
+
+    const audit = await listLogsByDate(DEFAULT_PATIENT_ID, DATE, { includeDeleted: true });
+    expect(audit).toHaveLength(2);
+    const auditFirst = audit.find((l) => l.id === firstLogId);
+    const auditSecond = audit.find((l) => l.id === secondLogId);
+    expect(auditFirst!.notes).toBe('First take.');
+    expect(auditFirst!.deletedAt).toBeDefined();
+    expect(auditSecond!.notes).toBe('Second take, this one stays.');
+    expect(auditSecond!.deletedAt).toBeUndefined();
+
+    // Instance points at the new log.
+    const inst = await getDailyInstance(DEFAULT_PATIENT_ID, DATE, instance.id);
+    expect(inst!.logId).toBe(secondLogId);
+    expect(inst!.status).toBe('completed');
+  });
+
+  it('rt-6 (REDO within window): resurrectLogEntry clears deletedAt, relinks instance.logId, AND restores instance.status to "completed"', async () => {
+    // The 5s post-undo toast offers a Redo affordance (Q-3D.8
+    // lock). Tapping Redo resurrects the just-undone log
+    // (clears deletedAt) AND relinks instance.logId AND
+    // restores instance.status. This is the ONLY way to keep
+    // the original LogEntry id + notes + timestamp after an
+    // undo — after the 5s window closes (and after a re-confirm
+    // creates a new log per rt-5) the original is permanently
+    // tombstoned.
+    //
+    // The status restoration is needed because undo (rt-4) sets
+    // status='pending' atomically with tombstone; redo must
+    // unwind both. Outcome is read from the log itself so the
+    // 'taken' / 'completed' / 'skipped' / 'partial' / 'missed'
+    // distinction survives.
+    const instance = makeInstance({ id: 'inst-redo-1', itemName: 'Aspirin 81mg' });
+    await upsertDailyInstances(DEFAULT_PATIENT_ID, DATE, [instance]);
+
+    const first = await logInstanceCompletion(
+      DEFAULT_PATIENT_ID,
+      DATE,
+      instance.id,
+      'completed',
+      { type: 'medication' },
+      { notes: 'Original observation.', source: 'record' },
+    );
+    const originalLogId = first!.log.id;
+
+    await undoInstanceCompletion(DEFAULT_PATIENT_ID, DATE, instance.id);
+
+    // ── Redo ──
+    await resurrectLogEntry(DEFAULT_PATIENT_ID, DATE, originalLogId);
+
+    // Log: deletedAt cleared, content preserved verbatim.
+    const fetched = await getLogById(DEFAULT_PATIENT_ID, DATE, originalLogId);
+    expect(fetched).not.toBeNull();
+    expect(fetched!.id).toBe(originalLogId);
+    expect(fetched!.notes).toBe('Original observation.');
+    expect(fetched!.deletedAt).toBeUndefined();
+
+    // Instance: logId relinked, status restored to the outcome's
+    // mapped state ('completed').
+    const restored = await getDailyInstance(DEFAULT_PATIENT_ID, DATE, instance.id);
+    expect(restored).not.toBeNull();
+    expect(restored!.logId).toBe(originalLogId);
+    expect(restored!.status).toBe('completed');
   });
 
   it('rt-9 (INCLUDE_DELETED opt-in): each bottom-layer read primitive accepts { includeDeleted: true } to surface tombstoned entries (audit-trail consumer hook)', async () => {

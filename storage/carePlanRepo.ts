@@ -400,8 +400,11 @@ export async function createLogEntry(
     createdAt: now,
   };
 
-  // Store in daily bucket — bail early if this fails
-  const dailyLogs = await listLogsByDate(log.patientId, date);
+  // Store in daily bucket — bail early if this fails. Opt into
+  // includeDeleted so tombstoned entries in the same date are
+  // preserved when we write the new entry back (the default
+  // filter would silently drop them).
+  const dailyLogs = await listLogsByDate(log.patientId, date, { includeDeleted: true });
   dailyLogs.push(newLog);
   const dailyOk = await safeSetItem(KEYS.LOGS(log.patientId, date), dailyLogs);
   if (!dailyOk) return newLog;
@@ -562,10 +565,29 @@ export async function logInstanceCompletion(
 }
 
 /**
- * Revert an instance back to 'pending' and remove the corresponding log entry.
- * Used by the Now-tab tap-to-log flow when the caregiver hits Undo within the
- * 5-second toast window. Safe to call when no log exists — the instance is
- * still cleared.
+ * Phase 35 Slice 3-D — CANONICAL undo for a completed/skipped instance.
+ *
+ * Three atomic effects:
+ *   1. Soft-delete (tombstone) the linked LogEntry via tombstoneLogEntry
+ *      — hide-not-delete preserved; audit trail accessible via
+ *      `{ includeDeleted: true }` opt-in on the bottom-layer reads.
+ *   2. Clear instance.logId (the chevron / View-Note affordance reads
+ *      naturally drop the now-tombstoned log).
+ *   3. Revert instance.status to 'pending' (the Now-tab row returns
+ *      to its pre-confirm state, eligible for re-confirm).
+ *
+ * Pre-3-D this fn HARD-deleted the LogEntry via deleteLogEntry and
+ * the Now-tab handleQuickConfirm path used a separate flow (Phase-1D
+ * undoToast) that called updateDailyInstanceStatus directly without
+ * touching the log — leaving the entry dangling. 3-D unifies all
+ * four trigger paths (handleQuickLog / handleQuickSkip /
+ * handleQuickConfirm / new long-press) through this single fn.
+ *
+ * Safe to call when no log exists (e.g. a sample-data instance with
+ * logId never set, or an already-undone instance) — the tombstone
+ * step is skipped and the instance is still reverted.
+ *
+ * Use `resurrectLogEntry` to undo the undo within the 5s redo window.
  */
 export async function undoInstanceCompletion(
   patientId: string,
@@ -577,7 +599,7 @@ export async function undoInstanceCompletion(
 
   const logId = instance.logId;
   if (logId) {
-    await deleteLogEntry(patientId, date, logId);
+    await tombstoneLogEntry(patientId, date, logId);
   }
 
   const reverted = await updateDailyInstanceStatus(
@@ -590,6 +612,89 @@ export async function undoInstanceCompletion(
   );
 
   return reverted;
+}
+
+/**
+ * Phase 35 Slice 3-D — REDO for the just-undone LogEntry.
+ *
+ * The symmetric reverse of undoInstanceCompletion:
+ *   1. Clear the log's deletedAt (resurrect the tombstoned entry).
+ *   2. Relink instance.logId to the resurrected log.
+ *   3. Restore instance.status from the log's outcome — 'taken' and
+ *      'completed' both map to 'completed' (same as
+ *      logInstanceCompletion's statusMap); 'skipped' maps to
+ *      'skipped'; 'partial' to 'partial'; 'missed' to 'missed'.
+ *
+ * Only callable when the log still exists in raw storage (i.e.
+ * tombstoned but not hard-deleted). Returns null when:
+ *   • the log id is not found (already hard-deleted, or never existed)
+ *   • the log is not currently tombstoned (no-op — already live)
+ *   • the linked instance no longer exists (stale-instance edge)
+ *
+ * The 5s post-undo toast surfaces this via a "Redo" action; after the
+ * window closes the affordance disappears, and re-confirming via
+ * logInstanceCompletion creates a NEW log entry with a fresh id
+ * (rt-5 pins this contract). The tombstoned original stays in raw
+ * storage indefinitely as audit trail.
+ */
+export async function resurrectLogEntry(
+  patientId: string,
+  date: string,
+  logId: string,
+): Promise<{ instance: DailyCareInstance; log: LogEntry } | null> {
+  const lockKey = KEYS.LOGS(patientId, date);
+  const restored: { log: LogEntry | null } = { log: null };
+
+  await withKeyLock(lockKey, async () => {
+    // Daily bucket — opt into includeDeleted to read the
+    // tombstoned entry.
+    const dailyLogs = await listLogsByDate(patientId, date, { includeDeleted: true });
+    const dailyIdx = dailyLogs.findIndex((l) => l.id === logId);
+    if (dailyIdx === -1 || !dailyLogs[dailyIdx].deletedAt) {
+      return;
+    }
+    const next: LogEntry = { ...dailyLogs[dailyIdx] };
+    delete (next as Partial<LogEntry>).deletedAt;
+    dailyLogs[dailyIdx] = next;
+    await safeSetItem(KEYS.LOGS(patientId, date), dailyLogs);
+    restored.log = next;
+
+    // ALL_LOGS aggregate — mirror the restoration.
+    const allLogs = await safeGetItem<LogEntry[]>(KEYS.ALL_LOGS(patientId), []);
+    const allIdx = allLogs.findIndex((l) => l.id === logId);
+    if (allIdx !== -1 && allLogs[allIdx].deletedAt) {
+      const allNext: LogEntry = { ...allLogs[allIdx] };
+      delete (allNext as Partial<LogEntry>).deletedAt;
+      allLogs[allIdx] = allNext;
+      await safeSetItem(KEYS.ALL_LOGS(patientId), allLogs);
+    }
+  });
+
+  if (!restored.log) return null;
+
+  const log = restored.log;
+  const statusMap: Record<LogOutcome, DailyCareInstance['status']> = {
+    taken: 'completed',
+    completed: 'completed',
+    skipped: 'skipped',
+    partial: 'partial',
+    missed: 'missed',
+  };
+  const restoredStatus = statusMap[log.outcome];
+
+  const updatedInstance = log.dailyInstanceId
+    ? await updateDailyInstanceStatus(
+        patientId,
+        date,
+        log.dailyInstanceId,
+        restoredStatus,
+        log.id,
+        log.outcome === 'skipped' ? log.skipReason : undefined,
+      )
+    : null;
+
+  if (!updatedInstance) return null;
+  return { instance: updatedInstance, log };
 }
 
 /**

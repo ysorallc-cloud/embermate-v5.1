@@ -86,7 +86,7 @@ import { MorningMedsBanner } from '../../components/now/MorningMedsBanner';
 // Banners (removed: NoMedicationsBanner, NoCarePlanBanner, DataIntegrityBanner)
 import { logError } from '../../utils/devLog';
 import { hapticSuccess } from '../../utils/hapticFeedback';
-import { updateDailyInstanceStatus, undoInstanceCompletion, logInstanceCompletion, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
+import { undoInstanceCompletion, logInstanceCompletion, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 import { addCup, getDayTotal as getHydrationDayTotal } from '../../storage/hydrationRepo';
 import {
   upsertDailyReflection,
@@ -191,8 +191,10 @@ export default function NowScreen() {
   // Category filter state (tappable rings)
   const [selectedCategory, setSelectedCategory] = useState<BucketType | null>(null);
   const [activeRoutineWindow, setActiveRoutineWindow] = useState<TimeWindow | null>(null);
-  // Phase 1C/D — undo toast for inline quick-confirm actions
-  const [undoItem, setUndoItem] = useState<{ id: string; name: string } | null>(null);
+  // Phase 35 Slice 3-D — Phase-1D parallel undoToast retired.
+  // handleQuickConfirm now routes through the unified LogToast pattern
+  // below + the canonical undoInstanceCompletion (which soft-deletes
+  // the LogEntry per the hide-not-delete standing rule).
   // v6.7 — LogToast (Add / Undo) state for the trailing-edge inline checkbox.
   const [logToast, setLogToast] = useState<{
     instanceId: string;
@@ -588,7 +590,27 @@ export default function NowScreen() {
   // Phase 1C — inline one-tap confirm for routine items.
   // Completes a medication (or other quick-confirmable item) without
   // navigating, fires success haptics, and surfaces an undo toast.
-  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  //
+  // Phase 35 Slice 3-D — unified through the LogToast pattern. The
+  // canonical undoInstanceCompletion (storage/carePlanRepo.ts)
+  // soft-deletes the LogEntry, clears instance.logId, and reverts
+  // instance.status — three atomic effects via one fn. All four
+  // trigger paths in this file (handleQuickLog, handleQuickSkip,
+  // handleQuickConfirm, plus the new long-press affordance landing
+  // in commit 3/3) route through the same canonical fn.
+  //
+  // dismissLogToast is the small helper shared by every setLogToast
+  // call site (Add, Undo, post-window auto-dismiss). Defined here so
+  // handleQuickConfirm can reference it in its useCallback deps
+  // (handleQuickLog / handleQuickSkip below also use it).
+  const dismissLogToast = useCallback(() => {
+    if (logToastTimerRef.current) {
+      clearTimeout(logToastTimerRef.current);
+      logToastTimerRef.current = null;
+    }
+    setLogToast(null);
+  }, []);
+
   const handleQuickConfirm = useCallback(async (instance: any) => {
     try {
       const confirmedAt = new Date().toISOString();
@@ -612,29 +634,40 @@ export default function NowScreen() {
       emitDataUpdate(EVENT.DAILY_INSTANCES);
       void hapticSuccess();
 
-      setUndoItem({ id: instance.id, name: instance.itemName });
-      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-      undoTimerRef.current = setTimeout(() => setUndoItem(null), 5000);
+      setLogToast({
+        instanceId: instance.id,
+        message: `${instance.itemName} confirmed`,
+        onAdd: () => {
+          dismissLogToast();
+          handleTimelineItemPress(instance);
+        },
+        onUndo: async () => {
+          try {
+            await undoInstanceCompletion(DEFAULT_PATIENT_ID, today, instance.id);
+            emitDataUpdate(EVENT.DAILY_INSTANCES);
+          } catch (err) {
+            logError('handleQuickConfirm.undo', err);
+          } finally {
+            dismissLogToast();
+          }
+        },
+      });
+      if (logToastTimerRef.current) clearTimeout(logToastTimerRef.current);
+      logToastTimerRef.current = setTimeout(() => setLogToast(null), 5000);
     } catch (err) {
       logError('handleQuickConfirm', err);
       Alert.alert('Error', 'Could not confirm. Try again.');
     }
-  }, [completeInstance]);
+  }, [completeInstance, today, dismissLogToast]);
 
   // ============================================================================
   // v6.7 — Inline trailing-edge checkbox handlers (Now timeline).
   // These power the new InlineCheckbox + LogToast pattern: tap to log, tap
   // checkbox again (during the toast window) to undo, long-press for the
   // skip-reason menu. Hydration uses a separate `+` button via handleAddCup.
+  // (dismissLogToast lives above handleQuickConfirm so all four trigger
+  // paths can share it; see the comment block there.)
   // ============================================================================
-
-  const dismissLogToast = useCallback(() => {
-    if (logToastTimerRef.current) {
-      clearTimeout(logToastTimerRef.current);
-      logToastTimerRef.current = null;
-    }
-    setLogToast(null);
-  }, []);
 
   const handleQuickLog = useCallback(async (instance: any) => {
     try {
@@ -1155,40 +1188,6 @@ export default function NowScreen() {
         </View>
       )}
 
-      {/* Phase 1D — undo toast for inline quick-confirm */}
-      {undoItem && (
-        <View style={styles.undoToast}>
-          <Text style={styles.undoToastText}>{undoItem.name} confirmed</Text>
-          <TouchableOpacity
-            onPress={async () => {
-              const item = undoItem;
-              if (!item) return;
-              try {
-                // Best-effort revert: flip the instance back to 'pending' and
-                // clear its logId. The completion log entry is left dangling
-                // (no UI references it once the instance no longer points at
-                // it) — acceptable for the undo window.
-                await updateDailyInstanceStatus(
-                  DEFAULT_PATIENT_ID,
-                  today,
-                  item.id,
-                  'pending'
-                );
-                emitDataUpdate(EVENT.DAILY_INSTANCES);
-              } catch (err) {
-                logError('handleQuickConfirm.undo', err);
-              } finally {
-                if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-                setUndoItem(null);
-              }
-            }}
-            accessibilityLabel="Undo confirmation"
-            accessibilityRole="button"
-          >
-            <Text style={styles.undoToastAction}>Undo</Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
       {/* Routine Sheet — batch logging for a time window */}
       {activeRoutineWindow && (
@@ -1227,15 +1226,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // cards align flush with the scrollContent edge.
   scrollContent: { paddingTop: 24, paddingHorizontal: 14 }, // allow: tap-target padding (Apple HIG ≥44pt)
   content: { paddingHorizontal: 0, paddingTop: 0 },
-
-  // Undo toast (floats above tab bar)
-  undoToast: {
-    position: 'absolute', bottom: 100, left: 16, right: 16,
-    backgroundColor: c.warmSurfaceAlert, borderWidth: 1, borderColor: c.warmSurfaceAlertBorder,
-    borderRadius: 10, padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-  },
-  undoToastText: { fontSize: 13, color: c.textAlertPrimary },
-  undoToastAction: { fontSize: 13, fontWeight: '600', color: c.textAlertLabel },
 
   // v6.7 LogToast wrapper — same float anchor as the legacy undo toast.
   logToastWrap: {
