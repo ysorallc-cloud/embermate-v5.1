@@ -52,6 +52,10 @@ export interface NowTimelineProps {
   onQuickLog?: (instance: any) => void;
   /** v6.7 — long-press skip menu choice. Persists skipReason on the log. */
   onQuickSkip?: (instance: any, reason: 'refused' | 'too-soon' | 'other') => void;
+  /** Phase 35 Slice 3-D — long-press on a done row → immediate undo via
+   *  the canonical undoInstanceCompletion + 5s Redo toast. Symmetric
+   *  with the pending-row long-press skip gesture. */
+  onUndoCompleted?: (instance: any) => void;
   /** v6.7 — hydration `+` button. Adds one cup via hydrationRepo. */
   onAddCup?: (instance: any) => void;
   /** v6.7 — wellness checkbox routes to silent-vitals capture. */
@@ -146,6 +150,7 @@ export function NowTimeline({
   onQuickConfirm,
   onQuickLog,
   onQuickSkip,
+  onUndoCompleted,
   onAddCup,
   onWellnessTap,
   onStartRoutine,
@@ -201,6 +206,7 @@ export function NowTimeline({
             onQuickConfirm={onQuickConfirm}
             onQuickLog={onQuickLog}
             onQuickSkip={onQuickSkip}
+            onUndoCompleted={onUndoCompleted}
             onAddCup={onAddCup}
             onWellnessTap={onWellnessTap}
             todayStats={todayStats}

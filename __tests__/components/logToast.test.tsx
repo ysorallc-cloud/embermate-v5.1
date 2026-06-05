@@ -145,3 +145,83 @@ describe('LogToast — accessibility', () => {
     }
   });
 });
+
+// ============================================================================
+// Phase 35 Slice 3-D commit 3 — Redo-mode contracts.
+//
+// The long-press done-row affordance fires an immediate undo + surfaces
+// the SAME LogToast component in "Redo mode": message reads "Undid
+// {item}", the primary action label flips to "Redo", and the Add link
+// is hidden (the row no longer has a fresh log to add details to).
+// Q-3D.5 + Q-3D.8 locks: symmetric 5s toast, single component, no
+// parallel chrome.
+//
+// Implementation surfaces a `undoLabel?: string` prop (defaults to
+// 'Undo' — preserves existing call sites) and a `hideAdd?: boolean`
+// prop (defaults to false — preserves existing tenure-driven Add
+// behavior). The `onUndo` callback is the primary action regardless
+// of label so the storage call site can be either undoInstanceCompletion
+// (Undo mode) or resurrectLogEntry (Redo mode).
+// ============================================================================
+
+describe('LogToast — Slice 3-D Redo mode', () => {
+  it('undoLabel prop overrides the button text (defaults to "Undo" when unset)', () => {
+    // Default — no prop → "Undo".
+    const defaultTree = LogToast(baseProps);
+    expect(flattenText(defaultTree)).toContain('Undo');
+
+    // Override — undoLabel="Redo" → button renders as "Redo".
+    const redoTree = LogToast({ ...baseProps, undoLabel: 'Redo' } as any);
+    const redoText = flattenText(redoTree);
+    expect(redoText).toContain('Redo');
+    expect(redoText).not.toContain('Undo');
+  });
+
+  it('hideAdd prop hides the Add button regardless of tenure', () => {
+    // Pre-3-D the Add button visibility was tenure-driven (always for
+    // 'new', secondary for 'experienced', hidden for 'seasoned'). The
+    // Redo mode needs unconditional hide: there's no fresh log to add
+    // details to. The new prop wins over tenure.
+    const tree = LogToast({ ...baseProps, hideAdd: true } as any);
+    const text = flattenText(tree);
+    expect(text).not.toContain('Add');
+    // The primary action is still rendered.
+    expect(text).toContain('Undo');
+  });
+
+  it('onUndo still fires when undoLabel is "Redo" (callback is decoupled from button text)', () => {
+    // The callback contract is unchanged. The caller passes
+    // resurrectLogEntry-wired callback as onUndo; the button label
+    // reads "Redo"; the press fires the supplied callback.
+    const tree = LogToast({ ...baseProps, undoLabel: 'Redo', hideAdd: true } as any);
+    const button = findAll(tree, (n) =>
+      n.type === 'TouchableOpacity' &&
+      typeof n.props?.accessibilityLabel === 'string' &&
+      /redo|undo/i.test(n.props.accessibilityLabel),
+    )[0];
+    expect(button).toBeDefined();
+    button.props.onPress();
+    expect(baseProps.onUndo).toHaveBeenCalledTimes(1);
+  });
+
+  it('the primary action accessibilityLabel reflects the visible label (Redo vs Undo)', () => {
+    // VoiceOver users encounter the button by its accessibilityLabel.
+    // The label must agree with the visible text — "Redo this log"
+    // when undoLabel="Redo", "Undo this log" otherwise.
+    const undoTree = LogToast(baseProps);
+    const undoButton = findAll(undoTree, (n) =>
+      n.type === 'TouchableOpacity' &&
+      typeof n.props?.accessibilityLabel === 'string' &&
+      /undo|redo/i.test(n.props.accessibilityLabel),
+    )[0];
+    expect(undoButton.props.accessibilityLabel).toMatch(/undo/i);
+
+    const redoTree = LogToast({ ...baseProps, undoLabel: 'Redo' } as any);
+    const redoButton = findAll(redoTree, (n) =>
+      n.type === 'TouchableOpacity' &&
+      typeof n.props?.accessibilityLabel === 'string' &&
+      /undo|redo/i.test(n.props.accessibilityLabel),
+    )[0];
+    expect(redoButton.props.accessibilityLabel).toMatch(/redo/i);
+  });
+});

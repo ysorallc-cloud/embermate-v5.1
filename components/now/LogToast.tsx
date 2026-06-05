@@ -35,6 +35,17 @@ export interface LogToastProps {
   tenure?: TenurePhase;
   /** Anomaly-driven copy that overrides the tenure default. */
   anomalyPrompt?: string;
+  /** Phase 35 Slice 3-D — primary action label override. Defaults to
+   *  'Undo'. The Redo mode used by the long-press done-row affordance
+   *  passes 'Redo' here; the `onUndo` callback is wired to
+   *  resurrectLogEntry in that case. Decoupling label from callback
+   *  lets one component cover both 5s windows without a parallel
+   *  toast surface. */
+  undoLabel?: string;
+  /** Phase 35 Slice 3-D — unconditional hide for the Add button.
+   *  Wins over tenure-driven scaffolding. Used in Redo mode where
+   *  there is no fresh log to add details to. */
+  hideAdd?: boolean;
 }
 
 const NEW_PROMPT = 'Anything to note? (side effect, refused, mood)';
@@ -48,6 +59,8 @@ export function LogToast({
   onDismiss,
   tenure = 'new',
   anomalyPrompt,
+  undoLabel = 'Undo',
+  hideAdd = false,
 }: LogToastProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -80,6 +93,8 @@ export function LogToast({
     promptLine = null;
     showAdd = false;
   }
+  // Slice 3-D — hideAdd wins over tenure (Redo mode is single-action).
+  if (hideAdd) showAdd = false;
 
   return (
     <View
@@ -112,9 +127,9 @@ export function LogToast({
           onPress={onUndo}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Undo this log"
+          accessibilityLabel={`${undoLabel} this log`}
         >
-          <Text style={[styles.actionText, styles.actionTextUndo]}>{'Undo'}</Text>
+          <Text style={[styles.actionText, styles.actionTextUndo]}>{undoLabel}</Text>
         </TouchableOpacity>
       </View>
     </View>

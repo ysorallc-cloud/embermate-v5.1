@@ -86,7 +86,7 @@ import { MorningMedsBanner } from '../../components/now/MorningMedsBanner';
 // Banners (removed: NoMedicationsBanner, NoCarePlanBanner, DataIntegrityBanner)
 import { logError } from '../../utils/devLog';
 import { hapticSuccess } from '../../utils/hapticFeedback';
-import { undoInstanceCompletion, logInstanceCompletion, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
+import { undoInstanceCompletion, resurrectLogEntry, logInstanceCompletion, DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 import { addCup, getDayTotal as getHydrationDayTotal } from '../../storage/hydrationRepo';
 import {
   upsertDailyReflection,
@@ -202,6 +202,14 @@ export default function NowScreen() {
     anomalyPrompt?: string;
     onAdd: () => void;
     onUndo: () => Promise<void>;
+    /** Phase 35 Slice 3-D — Redo mode override. When set, the LogToast
+     *  primary action button text + accessibilityLabel reflect this
+     *  label (typically 'Redo' for the post-undo toast). The onUndo
+     *  callback is wired to resurrectLogEntry in that mode. */
+    undoLabel?: string;
+    /** Phase 35 Slice 3-D — when true the Add affordance is hidden
+     *  unconditionally (Redo mode has no fresh log to add details to). */
+    hideAdd?: boolean;
   } | null>(null);
   const logToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // v6.7 — tenure phase drives the toast scaffolding (new / experienced /
@@ -659,6 +667,55 @@ export default function NowScreen() {
       Alert.alert('Error', 'Could not confirm. Try again.');
     }
   }, [completeInstance, today, dismissLogToast]);
+
+  // Phase 35 Slice 3-D commit 3 — long-press done-row → immediate undo.
+  // The done-row's short-tap is reserved for the View Note affordance
+  // (Slice 3-A); the long-press fires this handler. Mirrors the
+  // pending-row long-press skip gesture for symmetry. The 5s "Undid
+  // {item}" toast surfaces a Redo action backed by resurrectLogEntry
+  // — within the window the original LogEntry id + notes + timestamp
+  // are recoverable; after the window closes, re-confirming creates
+  // a fresh log (rt-5 pin in the integration round-trip).
+  const handleUndoCompleted = useCallback(async (instance: any) => {
+    const originalLogId: string | undefined = instance.logId;
+    const itemName: string = instance.itemName ?? 'Item';
+    try {
+      await undoInstanceCompletion(DEFAULT_PATIENT_ID, today, instance.id);
+      emitDataUpdate(EVENT.DAILY_INSTANCES);
+      void hapticSuccess();
+
+      setLogToast({
+        instanceId: instance.id,
+        message: `${itemName} undone`,
+        undoLabel: 'Redo',
+        hideAdd: true,
+        onAdd: () => {
+          // Add affordance is hidden in Redo mode; the field exists to
+          // satisfy the LogToast prop shape but should never fire.
+          dismissLogToast();
+        },
+        onUndo: async () => {
+          if (!originalLogId) {
+            dismissLogToast();
+            return;
+          }
+          try {
+            await resurrectLogEntry(DEFAULT_PATIENT_ID, today, originalLogId);
+            emitDataUpdate(EVENT.DAILY_INSTANCES);
+          } catch (err) {
+            logError('handleUndoCompleted.redo', err);
+          } finally {
+            dismissLogToast();
+          }
+        },
+      });
+      if (logToastTimerRef.current) clearTimeout(logToastTimerRef.current);
+      logToastTimerRef.current = setTimeout(() => setLogToast(null), 5000);
+    } catch (err) {
+      logError('handleUndoCompleted', err);
+      Alert.alert('Error', 'Could not undo. Try again.');
+    }
+  }, [today, dismissLogToast]);
 
   // ============================================================================
   // v6.7 — Inline trailing-edge checkbox handlers (Now timeline).
@@ -1140,6 +1197,7 @@ export default function NowScreen() {
             onQuickConfirm={handleQuickConfirm}
             onQuickLog={handleQuickLog}
             onQuickSkip={handleQuickSkip}
+            onUndoCompleted={handleUndoCompleted}
             onAddCup={handleAddCup}
             onWellnessTap={handleWellnessTap}
             onStartRoutine={setActiveRoutineWindow}
@@ -1184,6 +1242,8 @@ export default function NowScreen() {
             onAdd={logToast.onAdd}
             onUndo={() => { void logToast.onUndo(); }}
             onDismiss={dismissLogToast}
+            undoLabel={logToast.undoLabel}
+            hideAdd={logToast.hideAdd}
           />
         </View>
       )}

@@ -225,6 +225,9 @@ interface TimelineSectionProps {
   onQuickLog?: (instance: any) => void;
   /** v6.7 — long-press skip-menu choice. Caller persists the skipReason. */
   onQuickSkip?: (instance: any, reason: 'refused' | 'too-soon' | 'other') => void;
+  /** Phase 35 Slice 3-D — long-press on a done row → caller invokes
+   *  the canonical undoInstanceCompletion + surfaces the Redo toast. */
+  onUndoCompleted?: (instance: any) => void;
   /** v6.7 — hydration `+` button. Adds one cup via hydrationRepo. */
   onAddCup?: (instance: any) => void;
   /** v6.7 — wellness checkbox routes to silent-vitals capture. */
@@ -252,6 +255,7 @@ export function TimelineSection({
   onQuickConfirm,
   onQuickLog,
   onQuickSkip,
+  onUndoCompleted,
   onAddCup,
   onWellnessTap,
   todayStats,
@@ -483,9 +487,10 @@ export function TimelineSection({
           // Done/skipped
           const statusText = instance.status === 'skipped' ? 'Skipped' : 'Done';
           const noteForRow = instance.logId ? notesByLogId[instance.logId] : undefined;
+          const undoForRow = onUndoCompleted ? () => onUndoCompleted(instance) : undefined;
           return (
             <View key={instance.id} style={styles.categoryItemRow}>
-              <DoneRowWithNote note={noteForRow}>
+              <DoneRowWithNote note={noteForRow} onUndo={undoForRow}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                   <View style={[styles.statusCircle, styles.statusCircleDone]}>
                     <Text style={styles.statusCircleDoneText}>{'\u2713'}</Text>
@@ -517,6 +522,7 @@ export function TimelineSection({
       onStartRoutine={onStartRoutine}
       onQuickLog={onQuickLog}
       onQuickSkip={onQuickSkip}
+      onUndoCompleted={onUndoCompleted}
       onAddCup={onAddCup}
       onWellnessTap={onWellnessTap}
     />
@@ -534,6 +540,7 @@ function TimelineModeBContent({
   onStartRoutine,
   onQuickLog,
   onQuickSkip,
+  onUndoCompleted,
   onAddCup,
   onWellnessTap,
 }: {
@@ -543,6 +550,7 @@ function TimelineModeBContent({
   onStartRoutine?: (window: TimeWindow) => void;
   onQuickLog?: (instance: any) => void;
   onQuickSkip?: (instance: any, reason: 'refused' | 'too-soon' | 'other') => void;
+  onUndoCompleted?: (instance: any) => void;
   onAddCup?: (instance: any) => void;
   onWellnessTap?: (instance: any) => void;
 }) {
@@ -704,10 +712,11 @@ function TimelineModeBContent({
                     let itemContent: React.ReactNode;
 
                     const noteForRow = instance.logId ? notesByLogId[instance.logId] : undefined;
+                    const undoForRow = onUndoCompleted ? () => onUndoCompleted(instance) : undefined;
 
                     if (isCompleted) {
                       itemContent = (
-                        <DoneRowWithNote note={noteForRow}>
+                        <DoneRowWithNote note={noteForRow} onUndo={undoForRow}>
                           <View style={[styles.gutterContent, { opacity: 0.4 }]} accessibilityLabel={`${instance.itemName}, logged${timeStr ? ` at ${timeStr}` : ''}`}>
                             {CATEGORY_CONFIG[instance.itemType]?.label && (
                               <Text style={[styles.typeBadge, { color: CATEGORY_CONFIG[instance.itemType]?.color || colors.textMuted, opacity: 0.6 }]}>
@@ -724,7 +733,7 @@ function TimelineModeBContent({
                       );
                     } else if (isSkipped) {
                       itemContent = (
-                        <DoneRowWithNote note={noteForRow}>
+                        <DoneRowWithNote note={noteForRow} onUndo={undoForRow}>
                           <View style={[styles.gutterContent, { opacity: 0.6 }]} accessibilityLabel={`${instance.itemName}, skipped`}>
                             {CATEGORY_CONFIG[instance.itemType]?.label && (
                               <Text style={[styles.typeBadge, { color: CATEGORY_CONFIG[instance.itemType]?.color || colors.textMuted, opacity: 0.6 }]}>

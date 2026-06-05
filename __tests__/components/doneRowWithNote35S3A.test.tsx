@@ -164,4 +164,77 @@ describe('Phase 35 Slice 3-A — DoneRowWithNote behavior pin', () => {
     expect(text).toContain('Took with food');
     expect(text).not.toContain('   Took with food   ');
   });
+
+  // ============================================================================
+  // Phase 35 Slice 3-D commit 3/3 — long-press undo affordance contracts.
+  //
+  // Q-3D.4 lock: whole row tappable (existing short-tap = view note),
+  // long-press = undo. Symmetric with the pending-row long-press skip
+  // gesture (SkipReasonSheet). Short = inspect, long = act. The Q-3D.6
+  // unification routes the long-press through the canonical
+  // undoInstanceCompletion via a parent-supplied onUndo callback. The
+  // wrapper is purely presentational; the caller (TimelineSection)
+  // owns the storage call + the Redo toast wiring.
+  //
+  // The long-press affordance is INDEPENDENT of the note affordance —
+  // a done row with no note still long-presses for undo. The
+  // passthrough contract (contracts 1 + 2) needs amendment: passthrough
+  // only when BOTH affordances are absent (no note AND no onUndo).
+  // ============================================================================
+
+  it('contract 7 (LONG-PRESS WITHOUT NOTE): when onUndo is provided but no note, the row wraps in a touchable AND long-press invokes onUndo (no chevron, no expansion)', () => {
+    // A done row with no caregiver note still needs an undo path.
+    // The chevron cue is still absent (no note to view) but the
+    // touchable wrapper IS present so long-press fires.
+    const onUndo = jest.fn();
+    const { getByTestId, queryByTestId } = render(
+      <DoneRowWithNote note={undefined} onUndo={onUndo}>
+        <RowChildren />
+      </DoneRowWithNote>,
+    );
+    // Touchable present (for long-press)
+    expect(getByTestId('done-row-note-touchable')).toBeTruthy();
+    // Chevron absent (no note)
+    expect(queryByTestId('done-row-note-chevron')).toBeNull();
+    // No expansion path (no note)
+    expect(queryByTestId('done-row-note-expanded')).toBeNull();
+
+    fireEvent(getByTestId('done-row-note-touchable'), 'longPress');
+    expect(onUndo).toHaveBeenCalledTimes(1);
+  });
+
+  it('contract 8 (LONG-PRESS WITH NOTE): when both note + onUndo present, chevron renders AND long-press fires onUndo AND short-tap toggles expansion (independent affordances)', () => {
+    const onUndo = jest.fn();
+    const { getByTestId, queryByTestId } = render(
+      <DoneRowWithNote note={'Note attached.'} onUndo={onUndo}>
+        <RowChildren />
+      </DoneRowWithNote>,
+    );
+    expect(getByTestId('done-row-note-chevron')).toBeTruthy();
+    expect(queryByTestId('done-row-note-expanded')).toBeNull();
+
+    // Short-tap toggles expansion (Slice 3-A contract).
+    fireEvent.press(getByTestId('done-row-note-touchable'));
+    expect(getByTestId('done-row-note-expanded')).toBeTruthy();
+    expect(onUndo).not.toHaveBeenCalled();
+
+    // Long-press fires onUndo independently of expansion state.
+    fireEvent(getByTestId('done-row-note-touchable'), 'longPress');
+    expect(onUndo).toHaveBeenCalledTimes(1);
+  });
+
+  it('contract 9 (PASSTHROUGH REFINED): row is passthrough only when BOTH note and onUndo are absent', () => {
+    // Refines contracts 1 + 2 — pre-3-D passthrough was triggered
+    // by absent note alone. 3-D adds the onUndo affordance, which
+    // also triggers a wrap (contract 7 above). True passthrough
+    // requires both absent.
+    const { queryByTestId } = render(
+      <DoneRowWithNote note={undefined} onUndo={undefined}>
+        <RowChildren />
+      </DoneRowWithNote>,
+    );
+    expect(queryByTestId('done-row-note-touchable')).toBeNull();
+    expect(queryByTestId('done-row-note-chevron')).toBeNull();
+    expect(queryByTestId('done-row-note-expanded')).toBeNull();
+  });
 });
