@@ -1,15 +1,37 @@
 // ============================================================================
-// VITALS DRAWER — Phase 32A F6
+// VITALS DRAWER — Phase 34 F5.1.
 //
-// Body:
-//   • WHICH VITALS chips (multi-select) — Blood Pressure / Heart Rate /
-//     Weight / Oxygen Level / Blood Sugar / Temperature. Default
-//     BP+HR+Weight (from DEFAULT_VITALS_CONFIG).
-//   • HOW OFTEN dropdown — Daily / Weekly / As Needed (default 'daily').
-//   • Reminders Switch — default on per brief.
+// First per-category adoption of the F5 What → When → Reminder
+// editor skeleton (primitive F5.0 EditorSection + F5.1
+// EditorDisableRow). Also closes the F2.1-banked Vitals
+// When-surface gap by adding the four-window chip set the existing
+// VitalsBucketConfig.timesOfDay field already accepted but had no
+// UI for (audit decision: Q-34.F5.1).
 //
-// HealthKit Auto-Import section from the retired vitals subscreen is
-// NOT folded here (P3 lock — preserved/parked for v1.1 separately).
+// SECTIONS (top to bottom):
+//   • EditorDisableRow — turn-off-inside affordance (in-drawer
+//     Switch). Q-34.F5.1.B option (b): flipping OFF keeps the
+//     drawer open with the body dimmed + non-interactive.
+//   • EditorSection "What to track" — six vital-type chips
+//     (BP / HR / Weight / Oxygen Level / Blood Sugar / Temperature).
+//   • EditorSection "When" — four canonical windows
+//     (Morning / Afternoon / Evening / Night). Writes to
+//     carePlanConfig.vitals.timesOfDay; the generator's vitals
+//     Pass-B reconciliation (services/carePlanGenerator.ts) honors
+//     additions + removals atomically with the chip flip.
+//   • EditorSection "Reminder" — Switch + sub-line copy.
+//
+// HealthKit Auto-Import surface from the retired vitals subscreen
+// is NOT folded here (P3 lock — preserved for v1.1 separately).
+// HOW OFTEN frequency control stays HIDDEN per Phase 34 F4 (data
+// model preserved — types/carePlanConfig.ts:VitalsBucketConfig
+// retains the frequency field).
+//
+// Pinned by:
+//   __tests__/components/vitalsDrawerF5_1Adoption.test.tsx
+//   __tests__/integration/vitalsBucketRoundTrip34F5_1.test.ts
+//   __tests__/screens/carePlanDrawerVitals32A.test.tsx (legacy
+//     source-pin tests for the chip labels + named export survive)
 // ============================================================================
 
 import React, { useMemo } from 'react';
@@ -19,7 +41,10 @@ import type {
   BucketConfig,
   VitalsBucketConfig,
   VitalType,
+  TimeOfDay,
 } from '../../../types/carePlanConfig';
+import { EditorSection } from '../editor/EditorSection';
+import { EditorDisableRow } from '../editor/EditorDisableRow';
 
 const VITAL_OPTIONS: { value: VitalType; label: string }[] = [
   { value: 'bp',      label: 'Blood Pressure' },
@@ -30,94 +55,153 @@ const VITAL_OPTIONS: { value: VitalType; label: string }[] = [
   { value: 'temp',    label: 'Temperature' },
 ];
 
-// Phase 34 F4 — the HOW OFTEN frequency control is HIDDEN in v1. The
-// Frequency type + FREQUENCY_OPTIONS are retired from this drawer; the
-// VitalsBucketConfig.frequency field stays in the data model
-// (types/carePlanConfig.ts) so stored values survive and v1.1 can
-// re-surface the control. The generator already ignored frequency
-// (always daily — Bug B), so hiding it is a UI-only change with no
-// behavior delta.
+// Phase 34 F5.1 — When chip set. Four canonical windows. Q-34.F5.1
+// audit decision: full set (Vitals is a measurement, not a
+// check-in — no v1-filter applies). Internal `'midday'` value
+// renders as the user-facing "Afternoon" label per the unified
+// time model (Phase 34 F1).
+const WHEN_WINDOWS: { value: TimeOfDay; label: string }[] = [
+  { value: 'morning', label: 'Morning' },
+  { value: 'midday',  label: 'Afternoon' },
+  { value: 'evening', label: 'Evening' },
+  { value: 'night',   label: 'Night' },
+];
 
 export interface VitalsDrawerProps {
   config: VitalsBucketConfig;
   onUpdate: (updates: Partial<BucketConfig>) => void | Promise<void>;
+  /** Phase 34 F5.1 — current bucket-enabled state. Drives the
+   *  in-drawer EditorDisableRow Switch + the body dim treatment.
+   *  Mirrors the outer-row Switch state; same single source of
+   *  truth (carePlanConfig.vitals.enabled). */
+  enabled: boolean;
+  /** Phase 34 F5.1 — turn-off-inside flip. Routes through the
+   *  caller's toggleBucket (useCarePlanConfig). */
+  onToggleEnabled: (next: boolean) => void;
 }
 
-export function VitalsDrawer({ config, onUpdate }: VitalsDrawerProps) {
+export function VitalsDrawer({
+  config,
+  onUpdate,
+  enabled,
+  onToggleEnabled,
+}: VitalsDrawerProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const selected: VitalType[] = (config.vitalTypes ?? ['bp', 'hr', 'weight']) as VitalType[];
+  const selectedVitals: VitalType[] = (config.vitalTypes ?? ['bp', 'hr', 'weight']) as VitalType[];
+  const selectedWhen: TimeOfDay[] = (config.timesOfDay ?? ['morning']) as TimeOfDay[];
   const remindersOn = config.notificationsEnabled ?? true;
 
   const toggleVital = (value: VitalType) => {
-    const next = selected.includes(value)
-      ? selected.filter((v) => v !== value)
-      : [...selected, value];
+    const next = selectedVitals.includes(value)
+      ? selectedVitals.filter((v) => v !== value)
+      : [...selectedVitals, value];
     onUpdate({ vitalTypes: next } as Partial<BucketConfig>);
   };
 
+  // Phase 34 F5.1 — When toggle. Membership semantics — write the
+  // updated array back through onUpdate; the generator's vitals
+  // Pass-B reconciliation handles additions / removals atomically.
+  const toggleWhen = (value: TimeOfDay) => {
+    const next = selectedWhen.includes(value)
+      ? selectedWhen.filter((v) => v !== value)
+      : [...selectedWhen, value];
+    onUpdate({ timesOfDay: next });
+  };
+
   return (
-    <View>
-      <Text style={styles.label}>WHICH VITALS</Text>
-      <View style={styles.chipRow}>
-        {VITAL_OPTIONS.map((opt) => {
-          const isSelected = selected.includes(opt.value);
-          return (
-            <TouchableOpacity
-              key={opt.value}
-              style={[styles.chip, isSelected && styles.chipSelected]}
-              onPress={() => toggleVital(opt.value)}
-              activeOpacity={0.7}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: isSelected }}
-              accessibilityLabel={opt.label}
-            >
-              <Text style={[styles.chipLabel, isSelected && styles.chipLabelSelected]}>
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Phase 34 F4 — HOW OFTEN frequency control removed (hidden in
-          v1; field preserved in the data model — see header comment). */}
-
-      <View style={styles.row}>
-        <View style={styles.rowLabelBlock}>
-          <Text style={styles.rowLabel}>Reminders</Text>
-          <Text style={styles.rowSubtitle}>Nudge when it's time to record vitals.</Text>
+    <EditorDisableRow
+      label="Turn off Vitals"
+      enabled={enabled}
+      onToggle={onToggleEnabled}
+    >
+      {/* WHAT */}
+      <EditorSection
+        title="What to track"
+        narration="Pick the readings you record for this person."
+      >
+        <View style={styles.chipRow}>
+          {VITAL_OPTIONS.map((opt) => {
+            const isSelected = selectedVitals.includes(opt.value);
+            return (
+              <TouchableOpacity
+                key={opt.value}
+                style={[styles.chip, isSelected && styles.chipSelected]}
+                onPress={() => toggleVital(opt.value)}
+                activeOpacity={0.7}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: isSelected }}
+                accessibilityLabel={opt.label}
+              >
+                <Text style={[styles.chipLabel, isSelected && styles.chipLabelSelected]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-        <Switch
-          value={remindersOn}
-          onValueChange={(v) => onUpdate({ notificationsEnabled: v })}
-          trackColor={{ false: colors.glassStrong, true: colors.accent }}
-          thumbColor={remindersOn ? colors.textPrimary : colors.switchThumbOff}
-          ios_backgroundColor={colors.glassStrong}
-          accessibilityLabel="Vitals reminders"
-          accessibilityRole="switch"
-          accessibilityState={{ checked: remindersOn }}
-        />
-      </View>
-    </View>
+      </EditorSection>
+
+      {/* WHEN */}
+      <EditorSection
+        title="When"
+        narration="Which times of day to record. Tap to add or remove a window."
+      >
+        <View style={styles.chipRow}>
+          {WHEN_WINDOWS.map((opt) => {
+            const isSelected = selectedWhen.includes(opt.value);
+            return (
+              <TouchableOpacity
+                key={opt.value}
+                testID={`vitals-when-chip-${opt.value}`}
+                style={[styles.chip, isSelected && styles.chipSelected]}
+                onPress={() => toggleWhen(opt.value)}
+                activeOpacity={0.7}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: isSelected }}
+                accessibilityLabel={`${opt.label} vitals window`}
+              >
+                <Text style={[styles.chipLabel, isSelected && styles.chipLabelSelected]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </EditorSection>
+
+      {/* REMINDER */}
+      <EditorSection
+        title="Reminder"
+        narration="Nudge when it's time to record."
+      >
+        <View style={styles.row}>
+          <View style={styles.rowLabelBlock}>
+            <Text style={styles.rowLabel}>Reminders on</Text>
+          </View>
+          <Switch
+            testID="vitals-reminder-switch"
+            value={remindersOn}
+            onValueChange={(v) => onUpdate({ notificationsEnabled: v })}
+            trackColor={{ false: colors.glassStrong, true: colors.accent }}
+            thumbColor={remindersOn ? colors.textPrimary : colors.switchThumbOff}
+            ios_backgroundColor={colors.glassStrong}
+            accessibilityLabel="Vitals reminders"
+            accessibilityRole="switch"
+            accessibilityState={{ checked: remindersOn }}
+          />
+        </View>
+      </EditorSection>
+    </EditorDisableRow>
   );
 }
 
 const createStyles = (c: any) => StyleSheet.create({
-  label: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    color: c.textTertiary,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase' as const,
-    marginBottom: 8,
-    marginTop: 4,
-  },
   chipRow: {
     flexDirection: 'row' as const,
     gap: 8,
     flexWrap: 'wrap' as const,
-    marginBottom: 12,
+    marginBottom: 4,
   },
   chip: {
     paddingVertical: 8,
@@ -139,33 +223,6 @@ const createStyles = (c: any) => StyleSheet.create({
     color: c.accent,
     fontWeight: '500' as const,
   },
-  optionRow: {
-    flexDirection: 'row' as const,
-    gap: 8,
-    marginBottom: 12,
-  },
-  option: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: c.glassBorder,
-    backgroundColor: c.glassFaint,
-    alignItems: 'center' as const,
-  },
-  optionSelected: {
-    borderColor: c.accent,
-    backgroundColor: c.accentDim,
-  },
-  optionLabel: {
-    fontSize: 12,
-    color: c.textSecondary,
-  },
-  optionLabelSelected: {
-    color: c.accent,
-    fontWeight: '500' as const,
-  },
   row: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
@@ -181,11 +238,6 @@ const createStyles = (c: any) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '500' as const,
     color: c.textPrimary,
-  },
-  rowSubtitle: {
-    marginTop: 2,
-    fontSize: 11,
-    color: c.textSecondary,
   },
 });
 

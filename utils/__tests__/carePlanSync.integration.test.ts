@@ -135,10 +135,24 @@ describe('Care Plan Sync Integration', () => {
 
   describe('Inactive bucket items re-activation', () => {
     it('should re-activate inactive vitals items when vitals bucket is enabled', async () => {
-      // Setup: create regimen with an INACTIVE vitals CarePlanItem
+      // Setup: create regimen with an INACTIVE vitals CarePlanItem.
+      //
+      // Phase 34 F5.1 — id tightened from generateUniqueId() to the
+      // canonical `'sync-vitals'`. The pre-F5.1 vitals sync had a
+      // loose "reactivate any inactive vitals item" branch that
+      // would silently reactivate ANY id form, including hand-
+      // crafted ones a user might have deactivated for a reason.
+      // F5.1's Pass-A reconciliation mirrors wellness's class-of-bug
+      // guard (F3 contract 10): canonical id forms reconcile,
+      // unknown ids are left untouched. In production the only
+      // non-sample vitals items come from the sync's fresh-state
+      // branch (Pass B), which always writes id 'sync-vitals' — so
+      // tightening the test to that id reflects what actually
+      // exists, while preserving the contract (re-enable bucket →
+      // reactivate item).
       const carePlan = await createCarePlan(DEFAULT_PATIENT_ID);
       const inactiveVitalsItem = {
-        id: generateUniqueId(),
+        id: 'sync-vitals',
         carePlanId: carePlan.id,
         type: 'vitals' as const,
         name: 'Check vitals',

@@ -253,9 +253,21 @@ export async function syncOtherBucketsWithConfig(
     const now = new Date().toISOString();
 
     // ===== VITALS SYNC =====
+    // Phase 34 F5.1 — symmetric with the wellness sync below (Pass B
+    // reconciliation pattern at L561-632). Pre-F5.1 vitals only had
+    // a fresh-state branch + reactivate / deactivate (no schedule.times
+    // reconciliation). With the F5.1 When chip set writing
+    // vitalsConfig.timesOfDay, the gap would have surfaced as a
+    // "control doesn't control" bug — pinned by
+    // __tests__/integration/vitalsBucketRoundTrip34F5_1.test.ts rt-3/4/5.
     const vitalsConfig = config.vitals as VitalsBucketConfig;
     const vitalsEnabled = vitalsConfig?.enabled && vitalsConfig.vitalTypes?.length > 0;
-    // Deactivate stale sample-vitals items so sync items take over
+    // F5.1 — lift timesOfDay derivation to the top so Pass A + Pass B
+    // share the same fallback (preserves the `|| ['morning']`
+    // contract at rt-6).
+    const vitalsTimesOfDay = vitalsConfig?.timesOfDay || ['morning'];
+
+    // Deactivate stale sample-vitals items so sync items take over.
     const sampleVitalsItems = allItems.filter(i => i.type === 'vitals' && i.id.startsWith('sample-'));
     for (const item of sampleVitalsItems) {
       if (item.active) {
@@ -264,23 +276,58 @@ export async function syncOtherBucketsWithConfig(
         changed = true;
       }
     }
-    // Check for non-sample vitals items
     const existingVitalsItems = allItems.filter(i => i.type === 'vitals' && !i.id.startsWith('sample-'));
-    const hasActiveVitalsItem = existingVitalsItems.some(i => i.active);
 
-    if (vitalsEnabled && existingVitalsItems.length > 0 && !hasActiveVitalsItem) {
-      // Items exist but all are inactive — reactivate them so the user's
-      // re-enabled bucket starts generating instances again.
-      for (const item of existingVitalsItems) {
-        if (!item.active) {
-          devLog('[syncOtherBucketsWithConfig] Reactivating vitals item:', item.id);
-          await upsertCarePlanItem({ ...item, active: true, updatedAt: now });
+    // Pass A — reconciliation pass for the consolidated 'sync-vitals'
+    // item. Atomically reactivate-or-deactivate AND reconcile
+    // schedule.times based on vitalsTimesOfDay membership. Mirrors
+    // wellness's Pass B at L561-590. Closes the F5.1-surfaced
+    // "control doesn't control" gap.
+    //
+    //   targetActive = vitalsEnabled && vitalsTimesOfDay.length > 0
+    //
+    //   • bucket disabled OR vitalTypes empty → vitalsEnabled false → deactivate
+    //   • timesOfDay empty                    → no windows to schedule → deactivate
+    //   • else → reactivate (if needed) + reconcile schedule.times to
+    //     the canonical shape derived from timesOfDay via the shared
+    //     resolver (TIME_OF_DAY_TO_WINDOW + TIME_OF_DAY_DEFAULTS).
+    //
+    // Non-canonical id forms (future renamed items) → leave untouched.
+    // No silent misroute; the future maintainer who adds an alternate
+    // id form must explicitly extend this block.
+    for (const item of existingVitalsItems) {
+      if (item.id === 'sync-vitals') {
+        const targetActive = vitalsEnabled && vitalsTimesOfDay.length > 0;
+        const expectedTimes: TimeWindow[] = vitalsTimesOfDay.map((tod: TimeOfDay) => ({
+          id: `sync-vitals-${tod}-time`,
+          kind: 'exact' as const,
+          label: TIME_OF_DAY_TO_WINDOW[tod],
+          at: TIME_OF_DAY_DEFAULTS[tod] || '08:00',
+        }));
+        const currentTimes = item.schedule?.times ?? [];
+        const sameShape = currentTimes.length === expectedTimes.length &&
+          expectedTimes.every((et: TimeWindow) =>
+            currentTimes.some((ct: TimeWindow) =>
+              ct.label === et.label && ct.at === et.at));
+        if (item.active !== targetActive || (targetActive && !sameShape)) {
+          devLog('[syncOtherBucketsWithConfig] Reconciling vitals item:', item.id);
+          await upsertCarePlanItem({
+            ...item,
+            active: targetActive,
+            schedule: { ...item.schedule, frequency: 'daily', times: expectedTimes },
+            updatedAt: now,
+          });
           changed = true;
         }
+        continue;
       }
-    } else if (vitalsEnabled && existingVitalsItems.length === 0) {
-      // Only create if NO vitals items exist at all
-      const vitalsTimesOfDay = vitalsConfig.timesOfDay || ['morning'];
+      // Unknown id form — leave untouched.
+    }
+
+    // Pass B — fresh-state creation. Only when ZERO vitals items
+    // exist at all AND the bucket is enabled with a non-empty
+    // timesOfDay. Existing fresh-state behavior preserved verbatim.
+    if (vitalsEnabled && existingVitalsItems.length === 0 && vitalsTimesOfDay.length > 0) {
       const times: TimeWindow[] = vitalsTimesOfDay.map(tod => ({
         id: `sync-vitals-${tod}-time`,
         kind: 'exact' as const,
@@ -308,14 +355,6 @@ export async function syncOtherBucketsWithConfig(
       devLog('[syncOtherBucketsWithConfig] Creating vitals CarePlanItem');
       await upsertCarePlanItem(vitalsItem);
       changed = true;
-    } else if (!vitalsEnabled && hasActiveVitalsItem) {
-      // Deactivate all vitals items
-      for (const item of existingVitalsItems) {
-        if (item.active) {
-          await upsertCarePlanItem({ ...item, active: false });
-          changed = true;
-        }
-      }
     }
 
     // ===== MOOD SYNC =====

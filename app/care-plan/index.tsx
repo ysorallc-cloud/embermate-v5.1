@@ -602,6 +602,8 @@ export default function CarePlanHomeScreen() {
                       <VitalsDrawer
                         config={config.vitals}
                         onUpdate={(updates) => updateBucket('vitals', updates)}
+                        enabled={isEnabled}
+                        onToggleEnabled={(val) => handleToggleBucket('vitals', val)}
                       />
                     )}
                     {bucket === 'wellness' && (
