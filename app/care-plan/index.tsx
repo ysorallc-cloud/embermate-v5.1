@@ -21,7 +21,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCarePlanConfig } from '../../hooks/useCarePlanConfig';
-import { getWellnessCadenceText } from '../../utils/wellnessCadenceText';
+// Phase 34 F5.3 — getWellnessCadenceText retired with the
+// combined WellnessDrawer. Each pseudo-key row (wellness-morning,
+// wellness-evening) computes its own subtitle from the P5
+// wellnessSettings store directly.
+import { useWellnessSettings } from '../../hooks/useWellnessSettings';
+import { formatTime } from '../../utils/nowHelpers';
 import {
   BucketType,
   BucketConfig,
@@ -50,7 +55,10 @@ import { SleepDrawer } from '../../components/careplan/drawers/SleepDrawer';
 import { MealsDrawer } from '../../components/careplan/drawers/MealsDrawer';
 import { AppointmentsDrawer } from '../../components/careplan/drawers/AppointmentsDrawer';
 import { VitalsDrawer } from '../../components/careplan/drawers/VitalsDrawer';
-import { WellnessDrawer } from '../../components/careplan/drawers/WellnessDrawer';
+// Phase 34 F5.3 — combined WellnessDrawer retired. Replaced by two
+// sibling editor cards (Morning Check-in + Evening Check-in) sharing
+// the same WellnessCheckInDrawer component with a `period` prop.
+import { WellnessCheckInDrawer } from '../../components/careplan/drawers/WellnessCheckInDrawer';
 // Phase 32A.1 F2 — Medications inline list extracted into its own
 // drawer component. Like WellnessDrawer this drawer self-manages its
 // data via useCarePlanConfig (per-med shape is richer than a bucket
@@ -74,7 +82,41 @@ import { MedicationsDrawer } from '../../components/careplan/drawers/Medications
 // enabled=false on these three for any pre-32A device that had them
 // toggled on, so the absence here can't strand existing user state.
 const ALWAYS_ON_BUCKETS: BucketType[] = ['meds'];
+
+// Phase 34 F5.3 — TWO constants now coexist:
+//   DAILY_TRACKING_BUCKETS = the real BucketType partition (used by
+//     BUCKET_TYPES-partition contracts + downstream readers that
+//     operate at the bucket layer, e.g., getEnabledBuckets).
+//     UNCHANGED across F5.3 — 'wellness' remains the underlying
+//     bucket; F5.3 only splits the UI representation.
+//   DAILY_TRACKING_ROWS  = the UI row list. Replaces the single
+//     'wellness' entry with two pseudo-key rows (wellness-morning,
+//     wellness-evening) that both route to the same backing
+//     carePlanConfig.wellness storage. UI-layer pseudo-keys only —
+//     no BucketType enum change (Q-34.F5.A Option C reasoning).
 const DAILY_TRACKING_BUCKETS: BucketType[] = ['vitals', 'wellness', 'meals'];
+
+type DailyTrackingRowKey =
+  | BucketType
+  | 'wellness-morning'
+  | 'wellness-evening';
+const DAILY_TRACKING_ROWS: DailyTrackingRowKey[] = [
+  'vitals',
+  'wellness-morning',
+  'wellness-evening',
+  'meals',
+];
+
+/** Map a pseudo-row key to the wellness window it represents, or
+ *  null when the key is a real BucketType. Centralizes the pseudo-
+ *  key → window resolution so every consumer reads the same map. */
+function wellnessWindowOfRow(
+  key: DailyTrackingRowKey,
+): 'morning' | 'evening' | null {
+  if (key === 'wellness-morning') return 'morning';
+  if (key === 'wellness-evening') return 'evening';
+  return null;
+}
 // Phase 34 F4 — "Add when ready" section list is DERIVED from
 // MVP_HIDDEN_BUCKETS, not hardcoded. All four optional buckets are
 // v1-hidden, so this resolves to [] in v1 and the section is guarded
@@ -148,15 +190,21 @@ const MVP_SUPPRESSED_BUCKETS: readonly BucketType[] = ['errands', 'shifts', 'sel
 // ============================================================================
 
 interface CategoryRowProps {
-  bucket: BucketType;
+  // Phase 34 F5.3 — accepts pseudo-key row identifiers via the
+  // DailyTrackingRowKey superset, plus an explicit `icon` prop so
+  // the row doesn't have to know how to resolve icons for pseudo-
+  // keys vs real BucketTypes. The caller passes the icon name
+  // (typed against Ionicons).
+  rowKey?: string;
   name: string;
   detail: string | null;
   enabled: boolean;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
   onToggle: (enabled: boolean) => void;
   onPress: () => void;
 }
 
-function CategoryRow({ bucket, name, detail, enabled, onToggle, onPress }: CategoryRowProps) {
+function CategoryRow({ rowKey, name, detail, enabled, icon, onToggle, onPress }: CategoryRowProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   return (
@@ -166,6 +214,7 @@ function CategoryRow({ bucket, name, detail, enabled, onToggle, onPress }: Categ
       activeOpacity={enabled ? 0.7 : 1}
       accessibilityLabel={`${name}, ${enabled ? 'enabled' : 'disabled'}. ${enabled ? 'Tap to configure.' : 'Toggle to enable.'}`}
       accessibilityRole="button"
+      testID={rowKey ? `category-row-${rowKey}` : undefined}
     >
       {/* Left: icon + text. Phase 33 F2 retired the emoji glyph in
           favor of a thin Ionicons outline icon, cream-muted stroke,
@@ -173,7 +222,7 @@ function CategoryRow({ bucket, name, detail, enabled, onToggle, onPress }: Categ
           edge. */}
       <View style={styles.categoryLeft}>
         <View style={styles.categoryEmoji}>
-          <Ionicons name={BUCKET_ICON_MAP[bucket]} size={20} color={colors.textSecondary} />
+          <Ionicons name={icon} size={20} color={colors.textSecondary} />
         </View>
         <View style={styles.categoryInfo}>
           <Text style={styles.categoryName}>{name}</Text>
@@ -264,23 +313,26 @@ export default function CarePlanHomeScreen() {
     getBucketStatus,
     initializeConfig,
   } = useCarePlanConfig();
-  // Phase 33 F4 → updated by Phase 34 F3.1 — wellness cadence
-  // subtitle now reads carePlanConfig.wellness.timesOfDay (the
-  // source of truth the F2/F3 generator AND the F3.1 wellness
-  // chips read). The P5 bridge store (useWellnessSettings) is no
-  // longer touched here; the subtitle, the chips, and generation
-  // all agree.
-  const getBucketDetail = useCallback((bucket: BucketType): string | null => {
-    if (bucket === 'wellness') {
-      // F3.1 — read carePlanConfig.wellness.timesOfDay directly,
-      // matching the source the F2/F3 generator and the F3.1
-      // wellness chips both use. Pre-F3.1 this read the P5 store
-      // (wellnessSettings.{morning,evening}.enabled), which
-      // diverged from generation.
-      return getWellnessCadenceText(config?.wellness?.timesOfDay as any);
-    }
-    return getBucketStatus(bucket);
-  }, [config, getBucketStatus]);
+  // Phase 34 F5.3 — wellness cadence subtitle retired with the
+  // combined drawer. Each pseudo-key wellness row computes its own
+  // time-based subtitle from the P5 wellnessSettings store
+  // (Q-34.F5.3.B Option α lock: "7:00 AM" when ON, nothing when OFF).
+  const { settings: wellnessSettings } = useWellnessSettings();
+  const getRowDetail = useCallback(
+    (row: DailyTrackingRowKey, isEnabled: boolean): string | null => {
+      const window = wellnessWindowOfRow(row);
+      if (window) {
+        // Pseudo-key wellness row — show the scheduled time when ON.
+        if (!isEnabled) return null;
+        const raw = wellnessSettings?.[window]?.time;
+        if (!raw) return null;
+        const formatted = formatTime(raw);
+        return formatted === 'Time not set' ? null : formatted;
+      }
+      return getBucketStatus(row as BucketType);
+    },
+    [wellnessSettings, getBucketStatus],
+  );
 
   const [dismissedInsights, setDismissedInsights] = useState<string[]>([]);
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -291,7 +343,11 @@ export default function CarePlanHomeScreen() {
   // time (per the brief's locked decision); null means no drawer open.
   // Single-bucket type (BucketType | null, NOT an array or Set) is the
   // accordion invariant — pinned by the test contract.
-  const [expandedBucket, setExpandedBucket] = useState<BucketType | null>(null);
+  // Phase 34 F5.3 — widened to DailyTrackingRowKey so the pseudo-
+  // key wellness rows can independently expand. Same accordion
+  // contract (ONE row's drawer open at a time) just over the
+  // superset.
+  const [expandedBucket, setExpandedBucket] = useState<DailyTrackingRowKey | null>(null);
   // Phase 32A.1 F1 — Medications drawer state. Medications is OUTSIDE the
   // accordion (Q-32A.1.2 + Q-32A.1.3 lock): the row is always shown,
   // independent of which DAILY TRACKING / ADD WHEN READY drawer is open.
@@ -334,6 +390,34 @@ export default function CarePlanHomeScreen() {
       setExpandedBucket((curr) => (curr === bucket ? null : curr));
     }
   }, [toggleBucket]);
+
+  // Phase 34 F5.3 — row-level dispatch. Pseudo-key wellness rows
+  // translate their toggle into a membership write on
+  // carePlanConfig.wellness.timesOfDay (Q-34.F5.B Option (b) lock).
+  // The bucket-level wellness.enabled flag auto-flips in lockstep:
+  // ON when adding the first window; OFF when the last window goes
+  // away. Single updateBucket call carries both fields atomically.
+  const handleToggleRow = useCallback(
+    async (row: DailyTrackingRowKey, enabled: boolean) => {
+      const window = wellnessWindowOfRow(row);
+      if (!window) {
+        await handleToggleBucket(row as BucketType, enabled);
+        return;
+      }
+      const currentTimes = (config?.wellness?.timesOfDay as ('morning' | 'evening')[] | undefined) ?? [];
+      const nextTimes = enabled
+        ? [...currentTimes.filter((t) => t !== window), window]
+        : currentTimes.filter((t) => t !== window);
+      const nextBucketEnabled = nextTimes.length > 0;
+      await updateBucket('wellness', {
+        timesOfDay: nextTimes as any,
+        enabled: nextBucketEnabled,
+      } as any);
+      if (enabled) setExpandedBucket(row);
+      else setExpandedBucket((curr) => (curr === row ? null : curr));
+    },
+    [config, handleToggleBucket, updateBucket],
+  );
 
   // Phase 32A F2 (Phase 32A.1 reframe): row tap behavior for the accordion
   // drawers. Medications is OUTSIDE the accordion now — its row taps
@@ -583,22 +667,32 @@ export default function CarePlanHomeScreen() {
 
           <SectionEyebrow text="Daily tracking" />
           <View testID="section-zone-daily-tracking" style={styles.sectionZone}>
-          {DAILY_TRACKING_BUCKETS.map(bucket => {
-            const isEnabled = enabledBucketSet.has(bucket);
-            const isExpanded = expandedBucket === bucket;
+          {DAILY_TRACKING_ROWS.map(row => {
+            const window = wellnessWindowOfRow(row);
+            const isEnabled = window
+              ? !!(config?.wellness?.enabled && (config.wellness.timesOfDay as any)?.includes(window))
+              : enabledBucketSet.has(row as BucketType);
+            const isExpanded = expandedBucket === row;
+            const name = window
+              ? `${window.charAt(0).toUpperCase()}${window.slice(1)} Check-in`
+              : BUCKET_META[row as BucketType].name;
+            const icon: React.ComponentProps<typeof Ionicons>['name'] = window
+              ? (window === 'morning' ? 'sunny-outline' : 'moon-outline')
+              : BUCKET_ICON_MAP[row as BucketType];
             return (
-              <React.Fragment key={bucket}>
+              <React.Fragment key={row}>
                 <CategoryRow
-                  bucket={bucket}
-                  name={BUCKET_META[bucket].name}
-                  detail={isEnabled ? getBucketDetail(bucket) : null}
+                  rowKey={row}
+                  name={name}
+                  icon={icon}
+                  detail={isEnabled ? getRowDetail(row, isEnabled) : null}
                   enabled={isEnabled}
-                  onToggle={(val) => handleToggleBucket(bucket, val)}
-                  onPress={() => handleConfigureBucket(bucket)}
+                  onToggle={(val) => handleToggleRow(row, val)}
+                  onPress={() => setExpandedBucket(curr => curr === row ? null : row)}
                 />
                 {isEnabled && isExpanded && config && (
-                  <View testID={`drawer-${bucket}`} style={styles.drawerScaffold}>
-                    {bucket === 'vitals' && (
+                  <View testID={`drawer-${row}`} style={styles.drawerScaffold}>
+                    {row === 'vitals' && (
                       <VitalsDrawer
                         config={config.vitals}
                         onUpdate={(updates) => updateBucket('vitals', updates)}
@@ -606,13 +700,19 @@ export default function CarePlanHomeScreen() {
                         onToggleEnabled={(val) => handleToggleBucket('vitals', val)}
                       />
                     )}
-                    {bucket === 'wellness' && (
-                      // F7 — WellnessDrawer reads/writes the wellness
-                      // store internally via useWellnessSettings (P5
-                      // bridge — separate from useCarePlanConfig).
-                      <WellnessDrawer />
+                    {window && (
+                      // Phase 34 F5.3 — both pseudo-key wellness rows
+                      // mount the same component with different
+                      // periods. The shared drawer reads/writes the
+                      // window-specific slice of the P5
+                      // wellnessSettings store.
+                      <WellnessCheckInDrawer
+                        period={window}
+                        enabled={isEnabled}
+                        onToggleEnabled={(val) => handleToggleRow(row, val)}
+                      />
                     )}
-                    {bucket === 'meals' && (
+                    {row === 'meals' && (
                       <MealsDrawer
                         config={config.meals}
                         onUpdate={(updates) => updateBucket('meals', updates)}

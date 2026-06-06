@@ -90,20 +90,27 @@ describe('Phase 33 F2 — emoji retired from Care Plan rendering; Ionicons outli
   // Render sites — Ionicons rendered, no <Text>{emoji}</Text>
   // --------------------------------------------------------------------------
 
-  it('contract 3: meds header + CategoryRow render <Ionicons /> (at least 2 sites)', () => {
+  it('contract 3: meds header + CategoryRow render <Ionicons /> (at least 2 sites; bucket-driven icon source)', () => {
     // Two sites must render Ionicons:
     //   1. The meds header inside the ALWAYS_ON_BUCKETS map.
-    //   2. The CategoryRow component (shared by the 7 sibling rows).
-    // Both call sites must use the BUCKET_ICON_MAP lookup.
+    //   2. The CategoryRow component (shared by the daily-tracking
+    //      rows).
+    // Phase 34 F5.3 — CategoryRow's icon prop became explicit (the
+    // caller passes the resolved icon name) because the pseudo-key
+    // wellness rows ('wellness-morning' / 'wellness-evening') aren't
+    // BUCKET_ICON_MAP keys. The meds header still uses
+    // BUCKET_ICON_MAP[bucket] directly. The bucket-driven lookup
+    // pattern persists at the caller — guards against a hard-coded
+    // icon name slipping in. Pattern allowed: either
+    // `name={BUCKET_ICON_MAP[...]}` (meds header) or `name={icon}`
+    // (CategoryRow + per-row caller resolves via map).
     const ioniconsRenders = STRIPPED.match(/<Ionicons\b[^/]*\/>/g) ?? [];
     expect(ioniconsRenders.length).toBeGreaterThanOrEqual(2);
-    // Each render must wire name={BUCKET_ICON_MAP[bucket]} (the
-    // bucket-driven lookup pattern — guards against a hard-coded
-    // icon name slipping into either site).
-    const mappedRenders = STRIPPED.match(
-      /<Ionicons\s+name=\{BUCKET_ICON_MAP\[\s*bucket\s*\]\}/g,
-    ) ?? [];
-    expect(mappedRenders.length).toBeGreaterThanOrEqual(2);
+    // The caller still drives icons via BUCKET_ICON_MAP for real
+    // BucketTypes (per-row Daily Tracking lookup falls through to
+    // it). Pin that the source still references the map.
+    expect(STRIPPED).toMatch(/BUCKET_ICON_MAP\[\s*row\s*as\s*BucketType\s*\]/);
+    expect(STRIPPED).toMatch(/<Ionicons\s+name=\{BUCKET_ICON_MAP\[\s*bucket\s*\]\}/);
   });
 
   it('contract 4: <Text>{emoji}</Text> rendering pattern is gone (CategoryRow no longer renders the emoji prop)', () => {

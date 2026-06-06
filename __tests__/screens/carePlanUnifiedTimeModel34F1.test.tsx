@@ -245,12 +245,14 @@ describe('Phase 34 F1 — unified time-model foundation', () => {
     //     retiring file is wasted churn.
     //   • components/careplan/BucketCarePlanPanel.tsx — orphan,
     //     zero callers (grep-confirmed); dead-code sweep.
+    // Phase 34 F5.3 — WellnessDrawer.tsx retired; replaced by
+    // WellnessCheckInDrawer.tsx.
     const liveSurfaces = [
       'types/carePlanConfig.ts',
       'components/careplan/drawers/MedicationsDrawer.tsx',
       'components/careplan/drawers/MealsDrawer.tsx',
       'components/careplan/drawers/VitalsDrawer.tsx',
-      'components/careplan/drawers/WellnessDrawer.tsx',
+      'components/careplan/drawers/WellnessCheckInDrawer.tsx',
       'components/careplan/drawers/WaterDrawer.tsx',
       'components/careplan/drawers/SleepDrawer.tsx',
       'components/careplan/drawers/ActivityDrawer.tsx',

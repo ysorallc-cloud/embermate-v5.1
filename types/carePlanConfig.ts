@@ -523,7 +523,15 @@ export function createDefaultCarePlanConfig(patientId: string): CarePlanConfig {
     meds: { ...DEFAULT_MEDS_CONFIG, enabled: true },
     vitals: { ...DEFAULT_VITALS_CONFIG, enabled: true },
     meals: { ...DEFAULT_MEALS_CONFIG, enabled: true },
-    wellness: { ...DEFAULT_BUCKET_CONFIG, enabled: true, priority: 'recommended', timesOfDay: ['morning', 'midday', 'evening'] },
+    // Phase 34 F5.3 — default updated from ['morning', 'midday',
+    // 'evening'] to ['morning', 'evening'] to align with the v1
+    // two-editor model (Morning Check-in + Evening Check-in only).
+    // Existing users with 'midday' or 'night' in their stored
+    // timesOfDay keep those values untouched (hide-not-delete at the
+    // per-user level — F5.3 changes only the SEED for new installs).
+    // Pinned by __tests__/integration/wellnessSplitRoundTripF5_3.test.ts
+    // rt-1.
+    wellness: { ...DEFAULT_BUCKET_CONFIG, enabled: true, priority: 'recommended', timesOfDay: ['morning', 'evening'] },
     // Optional — disabled by default, user toggles on via Care Plan
     water: { ...DEFAULT_WATER_CONFIG },
     sleep: { ...DEFAULT_BUCKET_CONFIG },
