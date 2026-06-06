@@ -26,10 +26,10 @@ import {
   requestNotificationPermissions,
   hasNotificationPermissions,
   getScheduledNotifications,
+  rescheduleAllNotifications,
   NotificationSettings,
 } from '../utils/notificationService';
-import { getMedications } from '../utils/medicationStorage';
-import { scheduleMedicationNotifications } from '../utils/notificationService';
+import { DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
@@ -89,8 +89,14 @@ export default function NotificationSettingsScreen() {
         'Permissions Granted',
         'EmberMate can now send you reminders.'
       );
-      const medications = await getMedications();
-      await scheduleMedicationNotifications(medications);
+      // Phase 34 NOT.D-wiring — routes through the UNIFIED scheduler
+      // path (NOT.A1+NOT.A2 wired CarePlanItem.notification through
+      // here). Pre-D-wiring this called the LEGACY
+      // scheduleMedicationNotifications, silently bypassing the
+      // per-med config wiring. See
+      // [[feedback_canonical_path_when_implementations_coexist]] for
+      // the trap-class context.
+      await rescheduleAllNotifications(DEFAULT_PATIENT_ID);
       await loadSettings();
     } else {
       Alert.alert(
@@ -106,9 +112,15 @@ export default function NotificationSettingsScreen() {
     await saveNotificationSettings(newSettings);
     emitDataUpdate(EVENT.NOTIFICATIONS);
 
-    // Reschedule notifications with new delivery settings
-    const medications = await getMedications();
-    await scheduleMedicationNotifications(medications);
+    // Phase 34 NOT.D-wiring — routes through the UNIFIED scheduler.
+    // Pre-D-wiring this called the LEGACY scheduleMedicationNotifications
+    // after every sound/vibration/quiet-hours/follow-up toggle, silently
+    // bypassing NOT.A1+A2's per-med config wiring. The unified path
+    // reads CarePlanItem.notification (wired in A1) so delivery-setting
+    // changes propagate correctly. Trap class: legacy-vs-unified caller
+    // drift — see
+    // [[feedback_canonical_path_when_implementations_coexist]].
+    await rescheduleAllNotifications(DEFAULT_PATIENT_ID);
   };
 
   const handleToggleSound = async (value: boolean) => {
