@@ -54,6 +54,7 @@ import {
 } from '../../storage/carePlanRepo';
 import { ensureDailyInstances } from '../../services/carePlanGenerator';
 import { createDefaultCarePlanConfig, type VitalsBucketConfig } from '../../types/carePlanConfig';
+import { seedDeviceState, makeVitalsItem } from './_helpers/seedDeviceState';
 
 async function clearAll(): Promise<void> {
   const keys = await AsyncStorage.getAllKeys();
@@ -343,5 +344,169 @@ describe('Phase 34 F5.1 — Vitals bucket timesOfDay write → generator reconci
     expect(item!.active).toBe(true);
     expect(item!.schedule!.times).toHaveLength(1);
     expect(item!.schedule!.times[0].label).toBe('morning');
+  });
+
+  it('rt-8 (F5.1.2 — DEVICE-REALISTIC STATE — MISSED IS TOMBSTONED ON REMOVE): a MISSED morning instance (system-marked past the grace period, not caregiver-acted) is tombstoned when its window is removed from the chip set', async () => {
+    // F5.1.1 walk-failure pin. F5.1.1 preserved ALL non-pending
+    // statuses ('completed' | 'skipped' | 'missed' | 'partial')
+    // under "audit-trail preservation." But 'missed' is SYSTEM-
+    // marked (ensureDailyInstances step 4 flips pending → missed
+    // once past grace at the end of the window), not caregiver-
+    // acted. Preserving missed across schedule changes meant the
+    // user's noon walk saw the morning vitals row still on Now
+    // after removing the morning chip — bug.
+    //
+    // F5.1.2 refinement: audit-trail preservation applies only to
+    // CAREGIVER-ACTED statuses ('completed' | 'skipped' | 'partial').
+    // Missed tombstones with pending. Symmetric across
+    // removeStaleInstances AND removeStaleWindowInstances.
+    //
+    // STANDING RULE SHARPENED (F5.1.2): tests must seed device-
+    // realistic STATE, not just device-readable state. rt-4 + rt-7
+    // seeded fresh-pending state; the device exists in post-grace
+    // missed state by noon. THIS test seeds that state explicitly
+    // via the shared seedDeviceState helper — raw-storage seeding,
+    // no generator wrapper.
+    const cfg = createDefaultCarePlanConfig(DEFAULT_PATIENT_ID);
+    for (const k of Object.keys(cfg) as (keyof typeof cfg)[]) {
+      if (k === 'id' || k === 'patientId' || k === 'createdAt' || k === 'updatedAt' || k === 'version' || k === 'schemaVersion') continue;
+      const bucket = (cfg as any)[k];
+      if (bucket && typeof bucket === 'object' && 'enabled' in bucket && k !== 'vitals') {
+        (bucket as any).enabled = false;
+      }
+    }
+    cfg.vitals = {
+      ...cfg.vitals,
+      enabled: true,
+      vitalTypes: ['bp', 'hr', 'weight'],
+      timesOfDay: ['morning', 'midday'],
+    } as VitalsBucketConfig;
+
+    const vitalsItem = makeVitalsItem({ timesOfDay: ['morning', 'midday'] });
+    await seedDeviceState({
+      date: DATE,
+      config: cfg,
+      items: [vitalsItem],
+      instances: [
+        { itemId: 'sync-vitals', windowId: 'sync-vitals-morning-time', status: 'missed' },
+        { itemId: 'sync-vitals', windowId: 'sync-vitals-midday-time', status: 'pending' },
+      ],
+    });
+
+    // Caregiver removes the morning chip later in the day.
+    await updateBucketConfig(DEFAULT_PATIENT_ID, 'vitals', {
+      timesOfDay: ['midday'],
+    });
+    await ensureDailyInstances(DEFAULT_PATIENT_ID, DATE);
+
+    // Device-facing read: morning is GONE (not visible). Audit-trail
+    // opt-in still surfaces it with deactivatedAt set.
+    const visible = await listDailyInstances(DEFAULT_PATIENT_ID, DATE);
+    expect(
+      visible.find(
+        (i) => i.itemType === 'vitals' && i.windowId === 'sync-vitals-morning-time',
+      ),
+    ).toBeUndefined();
+    const raw = await listDailyInstances(DEFAULT_PATIENT_ID, DATE, {
+      includeDeactivated: true,
+    });
+    const tombstoned = raw.find(
+      (i) => i.itemType === 'vitals' && i.windowId === 'sync-vitals-morning-time',
+    );
+    expect(tombstoned).toBeDefined();
+    expect(tombstoned!.status).toBe('missed'); // status preserved in audit
+    expect(typeof tombstoned!.deactivatedAt).toBe('string');
+  });
+
+  it('rt-9 (F5.1.2 — updateDailyInstanceStatus PRESERVES TOMBSTONES): updating one live instance\'s status does NOT silently erase tombstoned instances from raw storage', async () => {
+    // F5.1.2 latent-trap pin (β fix). updateDailyInstanceStatus
+    // pre-F5.1.2 read via default filter (excluding tombstoned),
+    // then wrote the full filtered array back — same trap pattern
+    // as Slice 3-D's createLogEntry / deleteLogEntry. Every status
+    // change after a tombstone would silently erase the tombstone
+    // from raw storage. The β fix opts the internal read into
+    // includeDeactivated so the write-back preserves tombstoned
+    // entries.
+    //
+    // Device-realistic seed: a tombstoned morning + a live midday
+    // already exist in storage (from an earlier chip-remove). The
+    // test exercises just the β fix in isolation — caregiver
+    // completes the midday instance and we assert the existing
+    // tombstone survives the write.
+    const cfg = createDefaultCarePlanConfig(DEFAULT_PATIENT_ID);
+    for (const k of Object.keys(cfg) as (keyof typeof cfg)[]) {
+      if (k === 'id' || k === 'patientId' || k === 'createdAt' || k === 'updatedAt' || k === 'version' || k === 'schemaVersion') continue;
+      const bucket = (cfg as any)[k];
+      if (bucket && typeof bucket === 'object' && 'enabled' in bucket && k !== 'vitals') {
+        (bucket as any).enabled = false;
+      }
+    }
+    cfg.vitals = {
+      ...cfg.vitals,
+      enabled: true,
+      vitalTypes: ['bp', 'hr', 'weight'],
+      timesOfDay: ['midday'],
+    } as VitalsBucketConfig;
+
+    // Item schedule reflects post-chip-remove state — only midday
+    // window in the active schedule. Morning instance is seeded as
+    // a tombstone (its window is gone from the schedule).
+    const vitalsItem = makeVitalsItem({ timesOfDay: ['midday'] });
+    await seedDeviceState({
+      date: DATE,
+      config: cfg,
+      items: [vitalsItem],
+      instances: [
+        {
+          itemId: 'sync-vitals',
+          windowId: 'sync-vitals-morning-time',
+          status: 'pending',
+          deactivatedAt: '2026-06-05T08:00:00.000Z',
+        },
+        { itemId: 'sync-vitals', windowId: 'sync-vitals-midday-time', status: 'pending' },
+      ],
+    });
+
+    // Sanity: tombstone exists in raw storage.
+    {
+      const raw = await listDailyInstances(DEFAULT_PATIENT_ID, DATE, {
+        includeDeactivated: true,
+      });
+      const morningTombstoned = raw.find(
+        (i) => i.windowId === 'sync-vitals-morning-time',
+      );
+      expect(morningTombstoned).toBeDefined();
+      expect(typeof morningTombstoned!.deactivatedAt).toBe('string');
+    }
+
+    // Caregiver completes the midday live instance.
+    const visible = await listDailyInstances(DEFAULT_PATIENT_ID, DATE);
+    const middayLive = visible.find(
+      (i) => i.itemType === 'vitals' && i.windowId === 'sync-vitals-midday-time',
+    );
+    expect(middayLive).toBeDefined();
+    await updateDailyInstanceStatus(
+      DEFAULT_PATIENT_ID,
+      DATE,
+      middayLive!.id,
+      'completed',
+    );
+
+    // Tombstoned morning MUST still exist in raw storage. Pre-β
+    // this contract was RED because the write-back filtered out
+    // tombstoned entries. Post-β fix: GREEN.
+    const raw = await listDailyInstances(DEFAULT_PATIENT_ID, DATE, {
+      includeDeactivated: true,
+    });
+    const morningStillTombstoned = raw.find(
+      (i) => i.windowId === 'sync-vitals-morning-time',
+    );
+    expect(morningStillTombstoned).toBeDefined();
+    expect(typeof morningStillTombstoned!.deactivatedAt).toBe('string');
+    // And the midday completion took effect.
+    const middayCompleted = raw.find(
+      (i) => i.windowId === 'sync-vitals-midday-time',
+    );
+    expect(middayCompleted!.status).toBe('completed');
   });
 });

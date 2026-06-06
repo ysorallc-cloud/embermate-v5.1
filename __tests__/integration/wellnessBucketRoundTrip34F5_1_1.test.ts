@@ -45,6 +45,7 @@ import {
 } from '../../storage/carePlanRepo';
 import { ensureDailyInstances } from '../../services/carePlanGenerator';
 import { createDefaultCarePlanConfig } from '../../types/carePlanConfig';
+import { seedDeviceState, makeWellnessItem } from './_helpers/seedDeviceState';
 
 async function clearAll(): Promise<void> {
   const keys = await AsyncStorage.getAllKeys();
@@ -221,5 +222,118 @@ describe('Phase 34 F5.1.1 — Wellness bucket WINDOW remove/add INTEGRATION roun
     const inst = await listDailyInstances(DEFAULT_PATIENT_ID, DATE);
     const wellnessInst = inst.filter((i) => i.itemType === 'wellness');
     expect(wellnessInst).toHaveLength(0);
+  });
+
+  it('rt-5 (F5.1.2 — DEVICE-REALISTIC STATE — MISSED IS TOMBSTONED ON REMOVE): a MISSED morning wellness check-in is tombstoned when its window is removed from the chip set (parallels vitals rt-8)', async () => {
+    // F5.1.2 walk-failure pin, wellness flank. Symmetric with
+    // vitalsBucketRoundTrip rt-8. Pre-F5.1.2 the audit-trail
+    // preservation rule was too broad — it preserved 'missed'
+    // (system-marked) along with caregiver-acted statuses. F5.1.2
+    // tightens the preservation predicate to
+    // ('completed' | 'skipped' | 'partial') only. Missed and
+    // pending both tombstone on schedule changes.
+    //
+    // Device-realistic seed via seedDeviceState (post-grace state
+    // pre-baked, no need to wait for time or call ensureDailyInstances
+    // first).
+    const cfg = createDefaultCarePlanConfig(DEFAULT_PATIENT_ID);
+    for (const k of Object.keys(cfg) as (keyof typeof cfg)[]) {
+      if (k === 'id' || k === 'patientId' || k === 'createdAt' || k === 'updatedAt' || k === 'version' || k === 'schemaVersion') continue;
+      const bucket = (cfg as any)[k];
+      if (bucket && typeof bucket === 'object' && 'enabled' in bucket && k !== 'wellness') {
+        (bucket as any).enabled = false;
+      }
+    }
+    cfg.wellness = {
+      ...cfg.wellness,
+      enabled: true,
+      timesOfDay: ['morning', 'evening'] as any,
+    };
+
+    const wellnessItem = makeWellnessItem({ timesOfDay: ['morning', 'evening'] });
+    await seedDeviceState({
+      date: DATE,
+      config: cfg,
+      items: [wellnessItem],
+      instances: [
+        { itemId: 'sync-wellness', windowId: 'sync-wellness-morning-time', status: 'missed' },
+        { itemId: 'sync-wellness', windowId: 'sync-wellness-evening-time', status: 'pending' },
+      ],
+    });
+
+    // Caregiver removes the morning chip in the editor.
+    await updateBucketConfig(DEFAULT_PATIENT_ID, 'wellness', {
+      timesOfDay: ['evening'],
+    });
+    await ensureDailyInstances(DEFAULT_PATIENT_ID, DATE);
+
+    // Device-facing read: morning is GONE. Audit-trail opt-in
+    // still surfaces it.
+    const visible = await listDailyInstances(DEFAULT_PATIENT_ID, DATE);
+    expect(
+      visible.find(
+        (i) => i.itemType === 'wellness' && i.windowId === 'sync-wellness-morning-time',
+      ),
+    ).toBeUndefined();
+    const raw = await listDailyInstances(DEFAULT_PATIENT_ID, DATE, {
+      includeDeactivated: true,
+    });
+    const tombstoned = raw.find(
+      (i) => i.itemType === 'wellness' && i.windowId === 'sync-wellness-morning-time',
+    );
+    expect(tombstoned).toBeDefined();
+    expect(tombstoned!.status).toBe('missed');
+    expect(typeof tombstoned!.deactivatedAt).toBe('string');
+  });
+
+  it('rt-6 (F5.1.2 — BUCKET-OFF WITH MISSED INSTANCE): toggling wellness off when morning is already MISSED → morning tombstones (NOT preserved by audit-trail rule)', async () => {
+    // The exact walk-failure scenario regression #3 from F5.1.1.
+    // User toggles vitals/wellness OFF after noon when morning has
+    // already auto-flipped to missed. Pre-F5.1.2 my preservation
+    // rule kept the missed row visible — bucket-OFF "didn't work."
+    // Post-F5.1.2 fix: missed tombstones cleanly.
+    //
+    // Seed via seedDeviceState. Co-enables vitals so
+    // ensureDailyInstances doesn't hit the hasAnyEnabledBucket
+    // early return after wellness toggles off.
+    const cfg = createDefaultCarePlanConfig(DEFAULT_PATIENT_ID);
+    for (const k of Object.keys(cfg) as (keyof typeof cfg)[]) {
+      if (k === 'id' || k === 'patientId' || k === 'createdAt' || k === 'updatedAt' || k === 'version' || k === 'schemaVersion') continue;
+      const bucket = (cfg as any)[k];
+      if (bucket && typeof bucket === 'object' && 'enabled' in bucket && k !== 'wellness' && k !== 'vitals') {
+        (bucket as any).enabled = false;
+      }
+    }
+    cfg.wellness = { ...cfg.wellness, enabled: true, timesOfDay: ['morning'] as any };
+    cfg.vitals = { ...cfg.vitals, enabled: true } as any;
+
+    const wellnessItem = makeWellnessItem({ timesOfDay: ['morning'] });
+    await seedDeviceState({
+      date: DATE,
+      config: cfg,
+      items: [wellnessItem],
+      instances: [
+        { itemId: 'sync-wellness', windowId: 'sync-wellness-morning-time', status: 'missed' },
+      ],
+    });
+
+    // Toggle wellness bucket off via the outer-row Switch path.
+    await updateBucketConfig(DEFAULT_PATIENT_ID, 'wellness', { enabled: false });
+    await ensureDailyInstances(DEFAULT_PATIENT_ID, DATE);
+
+    // Device-facing read: no wellness rows. Missed morning was
+    // tombstoned (not preserved by the audit-trail rule).
+    const visible = await listDailyInstances(DEFAULT_PATIENT_ID, DATE);
+    expect(visible.filter((i) => i.itemType === 'wellness')).toHaveLength(0);
+    // Audit-trail opt-in still surfaces it.
+    const raw = await listDailyInstances(DEFAULT_PATIENT_ID, DATE, {
+      includeDeactivated: true,
+    });
+    const tombstoned = raw.find(
+      (i) => i.itemType === 'wellness' && i.windowId === 'sync-wellness-morning-time',
+    );
+    expect(tombstoned).toBeDefined();
+    expect(tombstoned!.status).toBe('missed');
+    expect(typeof tombstoned!.deactivatedAt).toBe('string');
   });
 });

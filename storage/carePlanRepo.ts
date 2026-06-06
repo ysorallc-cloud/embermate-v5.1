@@ -306,7 +306,18 @@ export async function updateDailyInstanceStatus(
 ): Promise<DailyCareInstance | null> {
   const lockKey = KEYS.DAILY_INSTANCES(patientId, date);
   return withKeyLock(lockKey, async () => {
-    const instances = await listDailyInstances(patientId, date);
+    // Phase 34 F5.1.2 β fix — opt into includeDeactivated so the
+    // write-back preserves tombstoned entries. Pre-F5.1.2 this
+    // primitive read via the default filter (hiding tombstoned),
+    // then wrote back the full filtered array — silently erasing
+    // every tombstoned instance every time a caregiver completed/
+    // skipped/missed/changed status on any LIVE instance. Same
+    // trap class as Slice 3-D's createLogEntry / deleteLogEntry
+    // pre-includeDeleted fixes. The trap was latent (no walk
+    // path triggered it before F5.1.1 added tombstones), and is
+    // closed in the same F5.1.2 commit as the audit-trail
+    // predicate refinement so the class-of-bug guard is uniform.
+    const instances = await listDailyInstances(patientId, date, { includeDeactivated: true });
     const index = instances.findIndex(i => i.id === instanceId);
 
     if (index === -1) return null;
@@ -346,27 +357,40 @@ export async function removeStaleInstances(
   return withKeyLock(lockKey, async () => {
     // Phase 34 F5.1.1 — primitive upgraded from hard-delete to
     // soft-delete (parallel to removeStaleWindowInstances below).
-    // Class-of-bug fix: pre-F5.1.1 the hard-delete silently dropped
-    // COMPLETED instances tied to deactivated items (e.g. when a
-    // caregiver removes a meal from the chip set after logging it),
-    // erasing caregiver action history from Journal Section 2,
-    // handoff PDF, insights, etc. The new contract:
-    //   • Pending instances for items not in validItemIds → tombstone
-    //     (set deactivatedAt; default reads hide them)
-    //   • Completed / skipped / missed / partial instances →
-    //     PRESERVED VISIBLE regardless of item state (audit-trail
-    //     refinement of hide-not-delete: action history must survive
-    //     schedule changes)
+    // F5.1.2 — audit-trail preservation predicate REFINED. Pre-
+    // F5.1.2 ALL non-pending statuses ('completed' | 'skipped' |
+    // 'missed' | 'partial') were preserved under "audit-trail."
+    // But 'missed' is SYSTEM-marked by ensureDailyInstances step 4
+    // (pending → missed once past grace), NOT caregiver-acted.
+    // Preserving missed across schedule changes left missed rows
+    // visible on Now after the caregiver toggled the bucket OFF
+    // (or removed the chip) — F5.1.1's user-reported regression.
+    //
+    // Refined contract:
+    //   • Caregiver-acted statuses ('completed' | 'skipped' |
+    //     'partial') for items not in validItemIds → PRESERVED
+    //     VISIBLE (audit-trail intact across schedule changes).
+    //   • Pending OR missed for items not in validItemIds →
+    //     tombstone (set deactivatedAt; default reads hide them,
+    //     includeDeactivated opt-in surfaces them).
+    // Symmetric with removeStaleWindowInstances below.
+    //
     // Internal read uses includeDeactivated so this sweep is
-    // idempotent over already-tombstoned entries (same trap pattern
-    // as Slice 3-D's createLogEntry / deleteLogEntry).
+    // idempotent over already-tombstoned entries (Slice 3-D
+    // createLogEntry/deleteLogEntry trap class).
     const instances = await listDailyInstances(patientId, date, { includeDeactivated: true });
     const now = new Date().toISOString();
     let tombstoned = 0;
     const next = instances.map((i) => {
       if (i.deactivatedAt) return i;
       if (validItemIds.has(i.carePlanItemId)) return i;
-      if (i.status !== 'pending') return i; // audit-trail — preserve visible
+      // F5.1.2 — preserve ONLY caregiver-acted statuses. Missed
+      // is system-marked and tombstones with pending.
+      if (
+        i.status === 'completed' ||
+        i.status === 'skipped' ||
+        i.status === 'partial'
+      ) return i;
       tombstoned++;
       return { ...i, deactivatedAt: now };
     });
@@ -391,11 +415,12 @@ export async function removeStaleInstances(
  * timestamp. Raw storage retains the instance (hide-not-delete); the
  * default listDailyInstances reader filters it out.
  *
- * Hide-not-delete refinement: only PENDING instances are tombstoned
- * for stale windows. Instances with status 'completed' / 'skipped' /
- * 'missed' / 'partial' are preserved verbatim — caregiver action
- * history MUST survive a schedule change. (Journal Section 2,
- * handoff PDF, insights, etc. all read this layer.)
+ * Hide-not-delete refinement (F5.1.2): only CAREGIVER-ACTED statuses
+ * ('completed' | 'skipped' | 'partial') are preserved across window
+ * changes. Pending and missed instances tombstone — missed is
+ * system-marked by ensureDailyInstances step 4, not caregiver-acted,
+ * so preserving it across schedule changes left missed rows on Now
+ * after a chip removal (F5.1.1 user-reported regression).
  *
  * Items not present in `validWindowIdsByItem` are left untouched —
  * the caller (ensureDailyInstances) controls which items get window-
@@ -415,7 +440,14 @@ export async function removeStaleWindowInstances(
     let tombstoned = 0;
     const next = instances.map((i) => {
       if (i.deactivatedAt) return i; // already tombstoned
-      if (i.status !== 'pending') return i; // audit-trail — preserve
+      // F5.1.2 — preserve ONLY caregiver-acted statuses (symmetric
+      // with removeStaleInstances above). Missed is system-marked
+      // and tombstones with pending.
+      if (
+        i.status === 'completed' ||
+        i.status === 'skipped' ||
+        i.status === 'partial'
+      ) return i;
       const valid = validWindowIdsByItem.get(i.carePlanItemId);
       if (!valid) return i; // item not tracked by this cleanup
       if (valid.has(i.windowId)) return i; // current window — keep
