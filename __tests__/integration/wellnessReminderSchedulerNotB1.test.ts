@@ -47,21 +47,28 @@
 //   but the schedule call IS the artifact).
 //
 // CONTRACTS:
-//   a. AND-gate POSITIVE — timesOfDay includes morning + evening,
-//      wellnessSettings.morning + .evening reminderEnabled true →
+//   a. AND-gate POSITIVE — morning in timesOfDay,
+//      wellnessSettings.morning.reminderEnabled=true →
 //      >=1 wellness scheduleNotificationAsync call (RED today; GREEN
 //      after B1 wires the read).
-//   b. AND-gate NEG via reminderEnabled — same timesOfDay, reminders
-//      OFF → ZERO wellness calls. Forward-guard: scheduler must not
-//      fire wellness once B1 lands without respecting the gate.
-//   c. AND-gate NEG via timesOfDay — empty timesOfDay → ZERO wellness
+//   b. AND-gate NEG via reminderEnabled — morning in timesOfDay,
+//      wellnessSettings.morning.reminderEnabled=false → 0 wellness
+//      calls. Gate-closed assertion: pre-B1 this passes vacuously
+//      (no scheduling at all); post-B1 it passes because the gate
+//      actually blocks the fire.
+//   c. AND-gate NEG via timesOfDay — empty timesOfDay → 0 wellness
 //      calls. Forward-guard: Layer 1 is sync-ladder-enforced;
 //      regression would mean the sync ladder accidentally creates
 //      wellness items outside the selection.
 //   d. NO DUPLICATES (window-staleness guard) — call reschedule
-//      twice with positive setup; second call count equals first
-//      (not 2x). Verifies cancelAllNotifications-then-schedule
-//      semantics survive B1's changes.
+//      twice with positive setup; second-call delta equals first-call
+//      count (not zero, not double). Verifies
+//      cancelAllNotifications-then-schedule semantics survive B1.
+//   e. Q-34.NOT.B.2 — night-window wellness instance + ANY
+//      reminderEnabled state → 0 wellness calls. Night has no
+//      wellnessSettings key (no caregiver toggle); no toggle = no
+//      fire in v1. Forward-guards against a future change that
+//      "fills in" a default-true behavior for unmapped windows.
 // ============================================================================
 
 const store = new Map<string, string>();
@@ -212,12 +219,12 @@ beforeEach(() => {
 });
 
 describe('Phase 34 NOT.B1 — wellness reminder AND-gate (device-facing layer)', () => {
-  it('contract a (AND-gate POSITIVE): timesOfDay=[morning,evening] + both reminderEnabled true → >=1 wellness scheduleNotificationAsync call', async () => {
-    // RED-expected today: wellness items have no notification field;
+  it('contract a (AND-gate POSITIVE): morning in timesOfDay + morning.reminderEnabled=true → >=1 wellness scheduleNotificationAsync call', async () => {
+    // RED today: wellness items have no notification field;
     // scheduler reads DEFAULT_NOTIFICATION_CONFIG.wellness which is
     // { enabled: false }. Skipped. Count = 0.
-    // GREEN after B1: wellness items route through wellnessSettings-
-    // gated logic; both windows pass the gate; count >= 1.
+    // GREEN after B1: wellness items route through the new
+    // wellnessSettings-gated logic; morning window passes; count >= 1.
     await setWellnessSettings({
       morning: {
         enabled: true,
@@ -226,30 +233,18 @@ describe('Phase 34 NOT.B1 — wellness reminder AND-gate (device-facing layer)',
         reminderEnabled: true,
         optionalChecks: {},
       },
-      evening: {
-        enabled: true,
-        time: EVENING_FUTURE_HHMM,
-        checks: ['mood'],
-        reminderEnabled: true,
-        optionalChecks: {},
-      },
     });
 
-    const wellnessItem = makeWellnessItemWithFutureTimes(['morning', 'evening']);
+    const wellnessItem = makeWellnessItemWithFutureTimes(['morning']);
     await seedDeviceState({
       patientId: DEFAULT_PATIENT_ID,
       date: TODAY,
-      config: configWithWellnessTimesOfDay(['morning', 'evening']),
+      config: configWithWellnessTimesOfDay(['morning']),
       items: [wellnessItem],
       instances: [
         {
           itemId: wellnessItem.id,
           windowId: wellnessItem.schedule.times[0].id,
-          status: 'pending',
-        },
-        {
-          itemId: wellnessItem.id,
-          windowId: wellnessItem.schedule.times[1].id,
           status: 'pending',
         },
       ],
@@ -260,10 +255,9 @@ describe('Phase 34 NOT.B1 — wellness reminder AND-gate (device-facing layer)',
     expect(countWellnessScheduleCalls()).toBeGreaterThanOrEqual(1);
   });
 
-  it('contract b (AND-gate NEG via reminderEnabled): timesOfDay populated + both reminderEnabled FALSE → 0 wellness calls', async () => {
-    // Forward-guard: once B1 lands, the scheduler must respect the
-    // reminderEnabled gate. Today this passes vacuously (no wellness
-    // scheduling happens at all). Post-B1 it pins the gate.
+  it('contract b (AND-gate NEG via reminderEnabled): morning in timesOfDay + morning.reminderEnabled=FALSE → 0 wellness calls (gate-closed)', async () => {
+    // Pre-B1: passes vacuously (no wellness scheduling happens at all).
+    // Post-B1: passes because the gate actually blocks the fire.
     await setWellnessSettings({
       morning: {
         enabled: true,
@@ -272,30 +266,18 @@ describe('Phase 34 NOT.B1 — wellness reminder AND-gate (device-facing layer)',
         reminderEnabled: false,
         optionalChecks: {},
       },
-      evening: {
-        enabled: true,
-        time: EVENING_FUTURE_HHMM,
-        checks: ['mood'],
-        reminderEnabled: false,
-        optionalChecks: {},
-      },
     });
 
-    const wellnessItem = makeWellnessItemWithFutureTimes(['morning', 'evening']);
+    const wellnessItem = makeWellnessItemWithFutureTimes(['morning']);
     await seedDeviceState({
       patientId: DEFAULT_PATIENT_ID,
       date: TODAY,
-      config: configWithWellnessTimesOfDay(['morning', 'evening']),
+      config: configWithWellnessTimesOfDay(['morning']),
       items: [wellnessItem],
       instances: [
         {
           itemId: wellnessItem.id,
           windowId: wellnessItem.schedule.times[0].id,
-          status: 'pending',
-        },
-        {
-          itemId: wellnessItem.id,
-          windowId: wellnessItem.schedule.times[1].id,
           status: 'pending',
         },
       ],
@@ -336,10 +318,12 @@ describe('Phase 34 NOT.B1 — wellness reminder AND-gate (device-facing layer)',
     expect(countWellnessScheduleCalls()).toBe(0);
   });
 
-  it('contract d (NO DUPLICATES — window-staleness guard): second reschedule with same setup produces same wellness call count, not double', async () => {
+  it('contract d (NO DUPLICATES — window-staleness guard): second reschedule with same setup produces same delta as first call', async () => {
     // rescheduleAllNotifications calls cancelAllNotifications first
-    // (line 625). A second call should wipe the first's schedules and
-    // re-emit the same count. Forward-guard against B1 introducing a
+    // (line 625). A second call wipes the first's schedules and
+    // re-emits the same count. The mock-call history is cumulative;
+    // we assert the second-call DELTA equals the first-call count
+    // (not zero, not double). Forward-guard against B1 introducing a
     // path that bypasses the cancel.
     await setWellnessSettings({
       morning: {
@@ -349,30 +333,18 @@ describe('Phase 34 NOT.B1 — wellness reminder AND-gate (device-facing layer)',
         reminderEnabled: true,
         optionalChecks: {},
       },
-      evening: {
-        enabled: true,
-        time: EVENING_FUTURE_HHMM,
-        checks: ['mood'],
-        reminderEnabled: true,
-        optionalChecks: {},
-      },
     });
 
-    const wellnessItem = makeWellnessItemWithFutureTimes(['morning', 'evening']);
+    const wellnessItem = makeWellnessItemWithFutureTimes(['morning']);
     await seedDeviceState({
       patientId: DEFAULT_PATIENT_ID,
       date: TODAY,
-      config: configWithWellnessTimesOfDay(['morning', 'evening']),
+      config: configWithWellnessTimesOfDay(['morning']),
       items: [wellnessItem],
       instances: [
         {
           itemId: wellnessItem.id,
           windowId: wellnessItem.schedule.times[0].id,
-          status: 'pending',
-        },
-        {
-          itemId: wellnessItem.id,
-          windowId: wellnessItem.schedule.times[1].id,
           status: 'pending',
         },
       ],
@@ -384,13 +356,54 @@ describe('Phase 34 NOT.B1 — wellness reminder AND-gate (device-facing layer)',
     await rescheduleAllNotifications(DEFAULT_PATIENT_ID);
     const afterSecond = countWellnessScheduleCalls();
 
-    // After the second reschedule, the cumulative schedule count
-    // doubled IS expected (mock-call history is cumulative), but the
-    // NET pending count is what matters. We assert the second-call
-    // delta equals the first-call total (i.e., not zero, not double
-    // the cumulative; the second call recreated the same scheduling
-    // surface).
     const secondCallDelta = afterSecond - afterFirst;
     expect(secondCallDelta).toBe(afterFirst);
+  });
+
+  it('contract e (Q-34.NOT.B.2 — night window has NO wellnessSettings key → 0 scheduled regardless of reminderEnabled state)', async () => {
+    // Forward-guard for B.2: wellness reminders supported only for
+    // windows with a wellnessSettings reminder toggle
+    // (morning/afternoon/evening). night and custom have no toggle;
+    // no toggle = no fire in v1. Future change that "fills in" a
+    // default-true behavior for unmapped windows breaks this contract.
+    await setWellnessSettings({
+      morning: {
+        enabled: true,
+        time: MORNING_FUTURE_HHMM,
+        checks: ['mood'],
+        // morning reminder ON but morning is NOT seeded as a window:
+        reminderEnabled: true,
+        optionalChecks: {},
+      },
+    });
+
+    // Wellness item with ONLY a night window. Layer 1 (sync ladder)
+    // would let this exist if timesOfDay included 'night'. The
+    // scheduler must skip it because the night window has no key in
+    // wellnessSettings.
+    const wellnessItem = makeWellnessItem({ timesOfDay: ['night'] });
+    // Set a future time so the past-time guard doesn't drop the
+    // instance for a spurious reason.
+    wellnessItem.schedule.times = wellnessItem.schedule.times.map((t) => ({
+      ...t,
+      at: todayPlusHoursAsHHmm(5),
+    }));
+    await seedDeviceState({
+      patientId: DEFAULT_PATIENT_ID,
+      date: TODAY,
+      config: configWithWellnessTimesOfDay(['night']),
+      items: [wellnessItem],
+      instances: [
+        {
+          itemId: wellnessItem.id,
+          windowId: wellnessItem.schedule.times[0].id,
+          status: 'pending',
+        },
+      ],
+    });
+
+    await rescheduleAllNotifications(DEFAULT_PATIENT_ID);
+
+    expect(countWellnessScheduleCalls()).toBe(0);
   });
 });

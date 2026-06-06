@@ -578,7 +578,7 @@ export async function isInQuietHours(): Promise<boolean> {
 // CARE PLAN-BASED SCHEDULING (NEW UNIFIED SYSTEM)
 // ============================================================================
 
-import type { CarePlanItem, DailyCareInstance } from '../types/carePlan';
+import type { CarePlanItem, DailyCareInstance, TimeWindowLabel } from '../types/carePlan';
 import type {
   NotificationConfig,
   DeliveryPreferences,
@@ -594,6 +594,26 @@ import {
   replaceNotificationsForItem,
   getScheduledNotifications as getRegistryNotifications,
 } from '../storage/notificationRegistry';
+import type { WellnessSettings } from '../types/wellnessSettings';
+import { DEFAULT_WELLNESS_SETTINGS } from '../types/wellnessSettings';
+
+// Phase 34 NOT.B1 — wellness reminder AND-gate. Layer 1 is enforced by
+// the wellness sync ladder (carePlanGenerator.ts:605-783); items only
+// exist for windows in carePlanConfig.wellness.timesOfDay. Layer 2 is
+// enforced HERE: wellnessSettings[period].reminderEnabled gates each
+// instance.
+//
+// Q-34.NOT.B.2 — only morning/afternoon/evening map to wellnessSettings.
+// night and custom windows have NO toggle in v1; no toggle = no fire.
+// The map omits them deliberately; a windowLabel not in the map
+// resolves to undefined and the instance skips.
+const WINDOW_LABEL_TO_WELLNESS_PERIOD: Partial<
+  Record<TimeWindowLabel, keyof WellnessSettings>
+> = {
+  morning: 'morning',
+  afternoon: 'afternoon',
+  evening: 'evening',
+};
 
 /**
  * Schedule notifications for all Care Plan items
@@ -628,6 +648,16 @@ export async function scheduleCarePlanNotifications(
     const now = new Date();
     const today = getTodayDateString();
 
+    // Phase 34 NOT.B1 — load wellnessSettings once so the wellness
+    // branch below can gate each instance against
+    // wellnessSettings[period].reminderEnabled. Falls back to defaults
+    // for first-launch users who haven't touched the drawer yet
+    // (defaults have all three periods reminderEnabled:true).
+    const wellnessSettings = await safeGetItem<WellnessSettings>(
+      StorageKeys.WELLNESS_SETTINGS,
+      DEFAULT_WELLNESS_SETTINGS,
+    );
+
     // Group instances by item ID
     const instancesByItem = new Map<string, DailyCareInstance[]>();
     for (const instance of instances) {
@@ -642,6 +672,42 @@ export async function scheduleCarePlanNotifications(
     // Schedule notifications for each item
     for (const item of items) {
       if (!item.active) continue;
+
+      // Phase 34 NOT.B1 — wellness uses a per-INSTANCE gate, not the
+      // per-ITEM gate the rest of the items use. Reason: one wellness
+      // CarePlanItem ('sync-wellness') carries multiple schedule.times
+      // (e.g., morning + evening) with independent reminderEnabled
+      // toggles. A per-item gate would silence one when the other is
+      // off. Layer 1 (sync ladder) already enforced timesOfDay
+      // membership at item-window creation; Layer 2 is enforced here.
+      if (item.type === 'wellness') {
+        const itemInstances = instancesByItem.get(item.id) || [];
+        for (const instance of itemInstances) {
+          const period =
+            WINDOW_LABEL_TO_WELLNESS_PERIOD[instance.windowLabel];
+          // Q-34.NOT.B.2 — night and custom windows have no toggle.
+          if (!period) continue;
+          const periodSettings = wellnessSettings[period];
+          if (!periodSettings?.reminderEnabled) continue;
+
+          const wellnessConfig: NotificationConfig = {
+            enabled: true,
+            timing: 'at_time',
+            followUp: { enabled: false, intervalMinutes: 30, maxAttempts: 1 },
+          };
+          const scheduled = await scheduleInstanceNotification(
+            patientId,
+            item,
+            instance,
+            wellnessConfig,
+            deliveryPrefs,
+          );
+          if (scheduled) {
+            scheduledNotifications.push(scheduled);
+          }
+        }
+        continue;
+      }
 
       // Get notification config (use item-level or defaults)
       const config = item.notification || getDefaultNotificationConfig(item.type);
@@ -732,6 +798,18 @@ async function scheduleInstanceNotification(
         date: triggerTime,
         channelId: Platform.OS === 'android' ? 'medication-reminders' : undefined,
       },
+    });
+
+    // [NOT-instrument] Phase 34 NOT-slice TEMPORARY: simulator silently
+    // drops scheduled local notifications, so this log is the
+    // simulator-realistic substitute for delivery verification. Visible
+    // in React Native DevTools console. REMOVE before App Store
+    // submission (banked alongside the iOS APS entitlement flip).
+    // See feedback_notification_walk_needs_real_device.md for context.
+    console.log('[NOT scheduled]', {
+      itemId: item.id,
+      scheduledFor: triggerTime.toISOString(),
+      identifier: expoNotificationId,
     });
 
     // Create registry entry
