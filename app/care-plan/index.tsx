@@ -611,8 +611,13 @@ export default function CarePlanHomeScreen() {
                   </View>
                   <View style={styles.categoryInfo}>
                     <Text style={styles.categoryName}>{BUCKET_META[bucket].name}</Text>
-                    {getBucketDetail(bucket) && (
-                      <Text style={styles.categoryDetail}>{getBucketDetail(bucket)}</Text>
+                    {/* Phase 34 F5.3.1 — call site updated to the
+                        renamed helper. The Meds row is always-on; pass
+                        true for isEnabled so the subtitle resolves
+                        through the real-BucketType branch of getRowDetail
+                        (falls through to getBucketStatus). */}
+                    {getRowDetail(bucket, true) && (
+                      <Text style={styles.categoryDetail}>{getRowDetail(bucket, true)}</Text>
                     )}
                   </View>
                 </TouchableOpacity>
@@ -743,10 +748,21 @@ export default function CarePlanHomeScreen() {
             const isExpanded = expandedBucket === bucket;
             return (
               <React.Fragment key={bucket}>
+                {/* Phase 34 F5.3.1 — CategoryRow shape updated. The
+                    old `bucket={bucket}` prop was renamed to `rowKey`
+                    when F5.3 widened to DailyTrackingRowKey, and the
+                    icon lookup moved to the caller. All ADD_WHEN_READY
+                    entries are real BucketTypes; the BUCKET_ICON_MAP
+                    lookup resolves cleanly. Pre-F5.3.1 this branch
+                    was dormant (MVP_HIDDEN_BUCKETS filters the array
+                    to [] in v1) but would crash the moment any
+                    optional bucket is unhidden in v1.1. Fixed while
+                    the rename context is fresh — class-of-bug guard. */}
                 <CategoryRow
-                  bucket={bucket}
+                  rowKey={bucket}
                   name={BUCKET_META[bucket].name}
-                  detail={isEnabled ? getBucketDetail(bucket) : null}
+                  icon={BUCKET_ICON_MAP[bucket]}
+                  detail={isEnabled ? getRowDetail(bucket, isEnabled) : null}
                   enabled={isEnabled}
                   onToggle={(val) => handleToggleBucket(bucket, val)}
                   onPress={() => handleConfigureBucket(bucket)}
