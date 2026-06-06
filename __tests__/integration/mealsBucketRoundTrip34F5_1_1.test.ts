@@ -37,6 +37,8 @@ import {
 } from '../../storage/carePlanRepo';
 import { ensureDailyInstances } from '../../services/carePlanGenerator';
 import { createDefaultCarePlanConfig } from '../../types/carePlanConfig';
+import { seedDeviceState } from './_helpers/seedDeviceState';
+import type { CarePlanItem } from '../../types/carePlan';
 
 async function clearAll(): Promise<void> {
   const keys = await AsyncStorage.getAllKeys();
@@ -139,5 +141,104 @@ describe('Phase 34 F5.1.1 — Meals bucket window-level cleanup FORWARD-GUARD (n
     // The completed instance is not tombstoned via deactivatedAt
     // — caregiver action history is preserved verbatim.
     expect(completedMidday!.deactivatedAt).toBeUndefined();
+  });
+
+  it('rt-3 (F5.2 — DEVICE-REALISTIC STATE — MISSED MIDDAY MEAL TOMBSTONES ON CHIP-REMOVE): a missed sync-meal-midday instance is tombstoned when Lunch is removed from the chip set — F5.1.2 predicate refinement\'s class-of-bug guard applied to meals\' item-level cleanup path', async () => {
+    // Forward-guard for meals. Parallels vitalsBucketRoundTrip rt-8
+    // and wellnessBucketRoundTrip rt-5 but tests the ITEM-level
+    // cleanup path (removeStaleInstances) rather than the window-
+    // level path (removeStaleWindowInstances). Meals achieves
+    // cleanup by deactivating the sync-meal-X CarePlanItem entirely
+    // when the user removes the corresponding chip; F5.1.2's
+    // refined predicate in removeStaleInstances handles the
+    // missed status correctly along the item-level path.
+    //
+    // Seeded device-realistic state via seedDeviceState helper —
+    // the missed-status transition that ensureDailyInstances step 4
+    // performs on the device is baked into the seed directly,
+    // matching the standing rule.
+    const cfg = createDefaultCarePlanConfig(DEFAULT_PATIENT_ID);
+    for (const k of Object.keys(cfg) as (keyof typeof cfg)[]) {
+      if (k === 'id' || k === 'patientId' || k === 'createdAt' || k === 'updatedAt' || k === 'version' || k === 'schemaVersion') continue;
+      const bucket = (cfg as any)[k];
+      if (bucket && typeof bucket === 'object' && 'enabled' in bucket && k !== 'meals') {
+        (bucket as any).enabled = false;
+      }
+    }
+    cfg.meals = {
+      ...cfg.meals,
+      enabled: true,
+      timesOfDay: ['morning', 'midday', 'evening'] as any,
+    };
+
+    // Three sync-meal-X items, one per active TimeOfDay. Each item
+    // has a single-time schedule (the meal's tod).
+    const now = new Date().toISOString();
+    const makeMealItem = (tod: 'morning' | 'midday' | 'evening' | 'night', at: string, label: 'morning' | 'afternoon' | 'evening' | 'night', name: string, emoji: string): CarePlanItem => ({
+      id: `sync-meal-${tod}`,
+      carePlanId: 'placeholder',
+      type: 'nutrition',
+      name,
+      priority: 'recommended',
+      active: true,
+      schedule: {
+        frequency: 'daily',
+        times: [{
+          id: `sync-meal-${tod}-time`,
+          kind: 'exact' as const,
+          label,
+          at,
+        }],
+      },
+      emoji,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await seedDeviceState({
+      date: DATE,
+      config: cfg,
+      items: [
+        makeMealItem('morning', '08:00', 'morning', 'Breakfast', '🍳'),
+        makeMealItem('midday', '12:00', 'afternoon', 'Lunch', '🥗'),
+        makeMealItem('evening', '18:00', 'evening', 'Dinner', '🍽️'),
+      ],
+      instances: [
+        // Caregiver missed lunch (system-marked 'missed' past grace).
+        { itemId: 'sync-meal-midday', windowId: 'sync-meal-midday-time', status: 'missed' },
+        // Other meals still pending.
+        { itemId: 'sync-meal-morning', windowId: 'sync-meal-morning-time', status: 'pending' },
+        { itemId: 'sync-meal-evening', windowId: 'sync-meal-evening-time', status: 'pending' },
+      ],
+    });
+
+    // Caregiver removes Lunch from the chip set later in the day.
+    await updateBucketConfig(DEFAULT_PATIENT_ID, 'meals', {
+      timesOfDay: ['morning', 'evening'],
+    });
+    await ensureDailyInstances(DEFAULT_PATIENT_ID, DATE);
+
+    // Device-facing read: missed midday is GONE (F5.1.2 predicate
+    // refinement applied at the item-level path). Pre-F5.1.2 the
+    // missed status would have been preserved by the audit-trail
+    // rule; post-F5.1.2 only caregiver-acted statuses preserve.
+    const visible = await listDailyInstances(DEFAULT_PATIENT_ID, DATE);
+    const middayVisible = visible.find(
+      (i) => i.itemType === 'nutrition' && i.carePlanItemId === 'sync-meal-midday',
+    );
+    expect(middayVisible).toBeUndefined();
+
+    // Audit-trail opt-in surfaces the tombstoned instance with
+    // deactivatedAt set + the missed status preserved in the audit
+    // record.
+    const raw = await listDailyInstances(DEFAULT_PATIENT_ID, DATE, {
+      includeDeactivated: true,
+    });
+    const middayTombstoned = raw.find(
+      (i) => i.itemType === 'nutrition' && i.carePlanItemId === 'sync-meal-midday',
+    );
+    expect(middayTombstoned).toBeDefined();
+    expect(middayTombstoned!.status).toBe('missed');
+    expect(typeof middayTombstoned!.deactivatedAt).toBe('string');
   });
 });

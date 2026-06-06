@@ -1,15 +1,48 @@
 // ============================================================================
-// MEALS DRAWER — Phase 32A F8
+// MEALS DRAWER — Phase 34 F5.2.
 //
-// Body:
-//   • WHICH MEALS chips (multi-select) — Breakfast / Lunch / Dinner / Snack.
-//     Defaults: Breakfast + Lunch + Dinner (from DEFAULT_MEALS_CONFIG).
-//   • Reminders Switch — default off.
+// Second per-category adoption of the F5 What → Reminder editor
+// skeleton (primitive F5.0 EditorSection + F5.1 EditorDisableRow).
+// Meals is the F5 "no When" exception — meal names encode time
+// (Breakfast=morning, Lunch=midday, Dinner=evening, Evening
+// snack=night), so the What chip set IS the When equivalent.
+//
+// **DO NOT ADD A WHEN SECTION HERE.** Future reader, please read
+// this comment before "fixing" the apparent omission:
+//   • Vitals + Wellness need a When chip set because their
+//     CarePlanItem holds multiple time windows in one item's
+//     schedule.times array. The window membership is independent
+//     of "what" is tracked.
+//   • Meals work differently: each meal is its own CarePlanItem
+//     (sync-meal-morning, sync-meal-midday, sync-meal-evening,
+//     sync-meal-night). The chip set BOTH picks which meals to
+//     track AND, by virtue of the meal name, encodes when. There's
+//     no second dimension to surface.
+// The "no When" exception is forward-guarded by contract 8 of
+// __tests__/components/mealsDrawerF5_2Adoption.test.tsx.
+//
+// CHIP LABELS ARE CANONICAL — they match the user-facing item names
+// on Now, Journal Section 2, and the handoff PDF. The generator
+// creates items with these exact names at
+// services/carePlanGenerator.ts:466-471. If you rename a chip label
+// here, update that map in the SAME commit. Pre-F5.2 the drawer
+// said "Snack" while the generator said "Evening snack" — caregivers
+// saw inconsistent labels across surfaces. F5.2 aligns both to the
+// canonical "Evening snack" (drawer matches generator; generator was
+// already correct on every other surface).
 //
 // trackingStyle stays as a silent default 'quick' in storage; no UI
 // surface in v1.0 per the P-lock (hide-only — field preserved in
 // MealsBucketConfig + storage so a future v1.1 surface can re-enable
 // the picker without data migration).
+//
+// Pinned by:
+//   __tests__/components/mealsDrawerF5_2Adoption.test.tsx
+//   __tests__/integration/mealsBucketRoundTrip34F5_1_1.test.ts
+//   __tests__/screens/carePlanDrawerMeals32A.test.tsx (legacy
+//     source-pin contracts for the chip labels + named export
+//     survive verbatim — the F5.2 rewrite keeps all data writes
+//     intact)
 // ============================================================================
 
 import React, { useMemo } from 'react';
@@ -20,20 +53,38 @@ import type {
   MealsBucketConfig,
   TimeOfDay,
 } from '../../../types/carePlanConfig';
+import { EditorSection } from '../editor/EditorSection';
+import { EditorDisableRow } from '../editor/EditorDisableRow';
 
+// F5.2 — meal labels aligned to the canonical user-facing names
+// (services/carePlanGenerator.ts:466-471). Drawer + generator + Now +
+// Journal + handoff PDF all read the SAME label per TimeOfDay value.
 const MEAL_OPTIONS: { value: TimeOfDay; label: string }[] = [
   { value: 'morning', label: 'Breakfast' },
   { value: 'midday', label: 'Lunch' },
   { value: 'evening', label: 'Dinner' },
-  { value: 'night', label: 'Snack' },
+  { value: 'night', label: 'Evening snack' },
 ];
 
 export interface MealsDrawerProps {
   config: MealsBucketConfig;
   onUpdate: (updates: Partial<BucketConfig>) => void | Promise<void>;
+  /** Phase 34 F5.2 — current bucket-enabled state. Drives the
+   *  in-drawer EditorDisableRow Switch + the body dim treatment.
+   *  Mirrors the outer-row Switch state; same single source of
+   *  truth (carePlanConfig.meals.enabled). */
+  enabled: boolean;
+  /** Phase 34 F5.2 — turn-off-inside flip. Routes through the
+   *  caller's toggleBucket (useCarePlanConfig). */
+  onToggleEnabled: (next: boolean) => void;
 }
 
-export function MealsDrawer({ config, onUpdate }: MealsDrawerProps) {
+export function MealsDrawer({
+  config,
+  onUpdate,
+  enabled,
+  onToggleEnabled,
+}: MealsDrawerProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const selected: TimeOfDay[] = (config.timesOfDay ?? ['morning', 'midday', 'evening']) as TimeOfDay[];
@@ -47,63 +98,77 @@ export function MealsDrawer({ config, onUpdate }: MealsDrawerProps) {
   };
 
   return (
-    <View>
-      <Text style={styles.label}>WHICH MEALS</Text>
-      <View style={styles.chipRow}>
-        {MEAL_OPTIONS.map((opt) => {
-          const isSelected = selected.includes(opt.value);
-          return (
-            <TouchableOpacity
-              key={opt.value}
-              style={[styles.chip, isSelected && styles.chipSelected]}
-              onPress={() => toggleMeal(opt.value)}
-              activeOpacity={0.7}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: isSelected }}
-              accessibilityLabel={`${opt.label} meal tracking`}
-            >
-              <Text style={[styles.chipLabel, isSelected && styles.chipLabelSelected]}>
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      <View style={styles.row}>
-        <View style={styles.rowLabelBlock}>
-          <Text style={styles.rowLabel}>Reminders</Text>
-          <Text style={styles.rowSubtitle}>Nudge at meal times.</Text>
+    <EditorDisableRow
+      label="Turn off Meals"
+      enabled={enabled}
+      onToggle={onToggleEnabled}
+    >
+      {/* WHAT — Q-34.F5.2.A narration lock. Voice matches the F5.1
+          vitals adoption ("Pick the readings you record for this
+          person.") so the cadence reads consistent across the four
+          v1 editors. */}
+      <EditorSection
+        title="What to track"
+        narration="Pick the meals you'd like to track for this person."
+      >
+        <View style={styles.chipRow}>
+          {MEAL_OPTIONS.map((opt) => {
+            const isSelected = selected.includes(opt.value);
+            return (
+              <TouchableOpacity
+                key={opt.value}
+                style={[styles.chip, isSelected && styles.chipSelected]}
+                onPress={() => toggleMeal(opt.value)}
+                activeOpacity={0.7}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: isSelected }}
+                accessibilityLabel={`${opt.label} tracking`}
+              >
+                <Text style={[styles.chipLabel, isSelected && styles.chipLabelSelected]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-        <Switch
-          value={remindersOn}
-          onValueChange={(v) => onUpdate({ notificationsEnabled: v })}
-          trackColor={{ false: colors.glassStrong, true: colors.accent }}
-          thumbColor={remindersOn ? colors.textPrimary : colors.switchThumbOff}
-          ios_backgroundColor={colors.glassStrong}
-          accessibilityLabel="Meal reminders"
-          accessibilityRole="switch"
-          accessibilityState={{ checked: remindersOn }}
-        />
-      </View>
-    </View>
+      </EditorSection>
+
+      {/* NO WHEN SECTION — see file header for the exception. Future
+          reader, do not add one. Pinned by contract 8 of
+          mealsDrawerF5_2Adoption.test.tsx. */}
+
+      {/* REMINDER */}
+      <EditorSection
+        title="Reminder"
+        narration="Nudge at mealtimes."
+      >
+        <View style={styles.row}>
+          <View style={styles.rowLabelBlock}>
+            <Text style={styles.rowLabel}>Reminders on</Text>
+          </View>
+          <Switch
+            testID="meals-reminder-switch"
+            value={remindersOn}
+            onValueChange={(v) => onUpdate({ notificationsEnabled: v })}
+            trackColor={{ false: colors.glassStrong, true: colors.accent }}
+            thumbColor={remindersOn ? colors.textPrimary : colors.switchThumbOff}
+            ios_backgroundColor={colors.glassStrong}
+            accessibilityLabel="Meal reminders"
+            accessibilityRole="switch"
+            accessibilityState={{ checked: remindersOn }}
+          />
+        </View>
+      </EditorSection>
+    </EditorDisableRow>
   );
 }
 
 const createStyles = (c: any) => StyleSheet.create({
-  label: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    color: c.textTertiary,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase' as const,
-    marginBottom: 8,
-  },
   chipRow: {
     flexDirection: 'row' as const,
     gap: 8,
     flexWrap: 'wrap' as const,
-    marginBottom: 12,
+    marginBottom: 4,
   },
   chip: {
     paddingVertical: 8,
@@ -134,16 +199,12 @@ const createStyles = (c: any) => StyleSheet.create({
   },
   rowLabelBlock: {
     flex: 1,
+    paddingRight: 8,
   },
   rowLabel: {
     fontSize: 13,
     fontWeight: '500' as const,
     color: c.textPrimary,
-  },
-  rowSubtitle: {
-    marginTop: 2,
-    fontSize: 11,
-    color: c.textSecondary,
   },
 });
 

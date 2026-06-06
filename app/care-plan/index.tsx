@@ -616,6 +616,8 @@ export default function CarePlanHomeScreen() {
                       <MealsDrawer
                         config={config.meals}
                         onUpdate={(updates) => updateBucket('meals', updates)}
+                        enabled={isEnabled}
+                        onToggleEnabled={(val) => handleToggleBucket('meals', val)}
                       />
                     )}
                   </View>
