@@ -1,29 +1,74 @@
 // ============================================================================
-// MEDICATIONS DRAWER — Phase 32A.1 F2
+// MEDICATIONS DRAWER — Phase 34 F5.4 (fourth + final F5 adoption).
 //
-// Extracted from the F4 inline list (app/care-plan/index.tsx) into its
-// own component, matching the 7-other-drawers pattern from Slice B of
-// 32A. Like WellnessDrawer (which bridges to useWellnessSettings),
-// MedicationsDrawer self-manages its data via useCarePlanConfig rather
-// than receiving raw config + onUpdate props — the per-med data shape
-// is richer than a single bucket config, and we want a single source
-// of truth for the add/update/toggle/swipe flows.
+// Adopts the F5.0 EditorSection primitive for the "Your medications"
+// section. **TWO PRINCIPLED EXCEPTIONS** to the F5 chrome pattern,
+// each pinned below:
 //
-// F2 scope:
-//   - Per-med row with name + dosage + time + (optional) instructions.
-//   - Per-row Switch (active toggle) — flips med.active without
+// **DO NOT ADD <EditorDisableRow> HERE** (Q-34.F5.4.A lock). Future
+// reader, this is a principled exception, not an oversight. Meds is
+// in ALWAYS_ON_BUCKETS per the Phase 32A.1 design lock (Q-32A.1.1 —
+// Meds is the core; you can't care for someone without their meds).
+// There is NO bucket-level enable/disable to mirror. Adopting
+// EditorDisableRow with a no-op Switch would be a write-without-
+// consequence trust trap — the same class as the notes-into-the-
+// void bug from Slice 2/3 and the banked wellness/meds reminder
+// gaps. The three other v1 editors (Vitals/Meals/Wellness
+// Check-ins) DO adopt EditorDisableRow because they ARE toggleable.
+// Symmetry breaks honestly: editors with disable have the row;
+// editors without disable don't. Pinned by contract 4 of
+// __tests__/components/medicationsDrawerF5_4Adoption.test.tsx.
+//
+// **DO NOT ADD a bucket-level Reminder section here** (Q-34.F5.4.B
+// lock). Same reasoning applied to the second F5 chrome convention.
+// `config.meds.notificationsEnabled` is a BucketConfig field that
+// NO consumer reads today (grep-verified across
+// services/notificationService.ts, utils/notificationService.ts,
+// services/carePlanGenerator.ts during the F5.4 audit). Adding a
+// UI Switch that writes to it would be the sixth instance this
+// phase of the write-without-consequence trap class. Meds
+// reminders are PER-PILL — each MedicationPlanItem carries its
+// own notificationsEnabled flag, and the per-pill notification
+// scheduling IS wired correctly. The bucket-level UI gets added
+// in the same slice that closes the F5.3-banked wellness reminder
+// gap by wiring a bucket-level consumer. NOT BEFORE. Pinned by
+// contract 5 of the same test file.
+//
+// Q-34.F5.4.C narration lock: "The medications you give this person
+// each day." Consistent voice cadence with F5.1/F5.2/F5.3 narrations.
+//
+// ────────────────────────────────────────────────────────────────────
+// HISTORICAL CONTEXT — Phase 32A.1 design + behavior
+//
+// Extracted from the F4 inline list (app/care-plan/index.tsx) into
+// its own component, matching the sibling-drawers pattern. Self-
+// manages data via useCarePlanConfig (per-med shape is richer than
+// a single bucket config; single source of truth for the add /
+// update / toggle / swipe flows).
+//
+// Behavior contracts (all preserved across F5.4):
+//   • Per-med row: name + dosage + time + (optional) instructions.
+//   • Per-row Switch (active toggle) — flips med.active without
 //     destroying the record (Q-32A.1.5 lock; preserves history).
-//   - Inactive meds STAY in the list with visual de-emphasis (pause is
-//     visible, not vanished). The F4 active-only filter is dropped here
-//     for that reason.
-//   - Tap-to-edit routes to /medication-form?id=…&source=careplan.
-//   - "+ Add medication" routes to /medication-form?source=careplan
-//     (quick-add-behind-button comes in F4).
-//   - Empty state copy from F4 preserved.
+//   • Inactive meds STAY in the list with visual de-emphasis
+//     (pause is visible, not vanished).
+//   • Tap-to-edit routes to /medication-form?id=…&source=careplan.
+//   • "+ Add medication" — Phase 32A.1 F4 quick-add-behind-button
+//     mini-form (lives at the end of the section body in F5.4).
+//   • Phase 32A.1 F3 swipe-to-Remove: soft-delete via
+//     `updateMedication(id, { active: false })` — NOT hard-delete.
 //
-// F3 lands swipe-to-remove (port from subscreen — soft-delete via
-// `updateMedication(id, { active: false })`, NOT hard-delete).
-// F4 lands the quick-add-behind-button mini-form.
+// Pinned by:
+//   __tests__/components/medicationsDrawerF5_4Adoption.test.tsx [NEW]
+//     six contracts: smoke-mount, one EditorSection, locked
+//     narration, no EditorDisableRow, no Reminder section, existing
+//     meds-inline-list testID preserved inside the section body.
+//   __tests__/screens/carePlanMedsDrawer*32A1.test.tsx [PRESERVED]
+//     seven source-pin test files exercising the pre-F5.4
+//     contracts (medsExpanded state, quick-add flow, active
+//     toggle, edit-mode prop chain, swipe-remove, swipe-rest,
+//     containment). All survive verbatim — the F5.4 chrome wraps
+//     but does NOT replace the existing list internals.
 // ============================================================================
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
@@ -45,6 +90,7 @@ import type { TimeOfDay, MedicationPlanItem } from '../../../types/carePlanConfi
 import { COMMON_MEDICATIONS } from '../../medication/medicationFormHelpers';
 import { emitDataUpdate } from '../../../lib/events';
 import { EVENT } from '../../../lib/eventNames';
+import { EditorSection } from '../editor/EditorSection';
 
 // Phase 32A.1 F4 — quick-add time slot options. Maps to TimeOfDay
 // canonical values + a default HH:mm time for each slot. Same shape
@@ -501,6 +547,18 @@ export function MedicationsDrawer({ editMode }: MedicationsDrawerProps) {
     async (entry: { name: string; dosage: string; timeSlot: TimeOfDay; time: string }) => {
       try {
         if (addMedication) {
+          // Phase 34 F5.4 — `as Partial<MedicationPlanItem>` cast
+          // retired. The cast widened required fields (name / dosage /
+          // timesOfDay / active) to optional, which TS rejects against
+          // useCarePlanConfig.addMedication's signature
+          // `Omit<MedicationPlanItem, 'id' | 'createdAt' | 'updatedAt'>`.
+          // The literal below already contains all required fields;
+          // TypeScript infers the correct type without a cast. Latent
+          // pre-F5.4 bug — surfaced by the new medicationsDrawer
+          // smoke-mount test (F5.3.1 standing rule: mount-test before
+          // restructure). Same trap class as F5.3.1's stale call sites
+          // — no test previously compiled this file, so the cast went
+          // unchecked.
           await addMedication({
             name: entry.name,
             dosage: entry.dosage,
@@ -509,7 +567,7 @@ export function MedicationsDrawer({ editMode }: MedicationsDrawerProps) {
             scheduledTimeHHmm: entry.time,
             active: true,
             notificationsEnabled: true,
-          } as Partial<MedicationPlanItem>);
+          });
         }
         emitDataUpdate(EVENT.MEDICATION);
         emitDataUpdate(EVENT.CARE_PLAN_ITEMS);
@@ -526,6 +584,17 @@ export function MedicationsDrawer({ editMode }: MedicationsDrawerProps) {
   );
 
   return (
+    // Phase 34 F5.4 — outer EditorSection wraps the existing meds
+    // list. Title + narration locked per Q-34.F5.4. NO
+    // EditorDisableRow and NO Reminder section per the two
+    // principled exceptions documented in the file header. The
+    // meds-inline-list View below is preserved verbatim — every
+    // child render (per-med rows, quick-add panel, toast) lives
+    // inside the section body.
+    <EditorSection
+      title="Your medications"
+      narration="The medications you give this person each day."
+    >
     <View testID="meds-inline-list" style={styles.list}>
       {/* Phase 32A.1 F8 — Edit / Done toggle moved to the meds header
           row in app/care-plan/index.tsx (right-aligned, same line as
@@ -582,6 +651,7 @@ export function MedicationsDrawer({ editMode }: MedicationsDrawerProps) {
         </View>
       )}
     </View>
+    </EditorSection>
   );
 }
 
