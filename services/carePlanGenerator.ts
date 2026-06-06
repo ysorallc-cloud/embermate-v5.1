@@ -42,6 +42,8 @@ import {
 } from '../types/carePlanConfig';
 import { generateUniqueId } from '../utils/idGenerator';
 import { safeGetItem } from '../utils/safeStorage';
+import { DEFAULT_NOTIFICATION_CONFIG } from '../utils/notificationDefaults';
+import type { NotificationConfig } from '../types/notifications';
 
 // ============================================================================
 // CONFIGURATION
@@ -75,6 +77,45 @@ const TIME_OF_DAY_TO_WINDOW: Record<TimeOfDay, TimeWindowLabel> = {
 // fall-through chain in the `at:` field assembly (the empty string
 // short-circuits to the next fallback rather than locking the time
 // to noon).
+
+// Phase 34 NOT.A1 — per-med notification wiring. Closes gap C of the
+// three reminder write-without-consequence gaps the slice targets.
+// Q-34.NOT.A.1 (a) lock: honor stored timing values. F6's master-toggle-
+// only UI implicitly produces 'at_time' via the medication default,
+// not via hard-coding. NotificationConfig.followUp is set from the
+// medication default; the scheduler does NOT yet read followUp (banked
+// as project_notification_latent_traps trap 5 — feature decision, not
+// closed by this slice).
+function buildMedicationNotificationConfig(
+  configMed: MedicationPlanItem
+): NotificationConfig {
+  const defaults = DEFAULT_NOTIFICATION_CONFIG.medication;
+  const timing = configMed.reminderTiming ?? defaults.timing;
+  const config: NotificationConfig = {
+    enabled: configMed.notificationsEnabled ?? defaults.enabled,
+    timing,
+    followUp: defaults.followUp,
+  };
+  if (timing === 'custom' && configMed.reminderCustomMinutes !== undefined) {
+    config.customMinutesBefore = configMed.reminderCustomMinutes;
+  }
+  return config;
+}
+
+function notificationConfigEquals(
+  a: NotificationConfig | undefined,
+  b: NotificationConfig
+): boolean {
+  if (!a) return false;
+  return (
+    a.enabled === b.enabled &&
+    a.timing === b.timing &&
+    a.customMinutesBefore === b.customMinutesBefore &&
+    a.followUp?.enabled === b.followUp?.enabled &&
+    a.followUp?.intervalMinutes === b.followUp?.intervalMinutes &&
+    a.followUp?.maxAttempts === b.followUp?.maxAttempts
+  );
+}
 
 /**
  * Create a CarePlanItem from a MedicationPlanItem
@@ -120,6 +161,7 @@ function createCarePlanItemFromConfigMed(
       dose: configMed.dosage,
       instructions: configMed.instructions || undefined,
     },
+    notification: buildMedicationNotificationConfig(configMed),
     emoji: '💊',
     createdAt: now,
     updatedAt: now,
@@ -188,10 +230,29 @@ async function syncMedicationItemsWithConfig(
       const matched = matchById || matchByName || matchByBaseName;
 
       if (matched) {
-        // If the matched item is inactive, reactivate it so the regimen reflects config.
-        if (matched.active === false) {
-          devLog('[syncMedicationItemsWithConfig] Reactivating inactive medication item:', matched.name);
-          await upsertCarePlanItem({ ...matched, active: true });
+        // Phase 34 NOT.A1 — propagate notification-config changes too.
+        // Pre-NOT.A1 this branch only reactivated inactive items; toggling
+        // notificationsEnabled / reminderTiming on the config side never
+        // reached the existing CarePlanItem the scheduler reads. Load-
+        // bearing for the "I toggled it but nothing changed" trust class.
+        const freshNotification = buildMedicationNotificationConfig(configMed);
+        const notificationChanged = !notificationConfigEquals(
+          matched.notification,
+          freshNotification,
+        );
+        const activeChanged = matched.active === false;
+        if (notificationChanged || activeChanged) {
+          if (activeChanged) {
+            devLog('[syncMedicationItemsWithConfig] Reactivating inactive medication item:', matched.name);
+          }
+          if (notificationChanged) {
+            devLog('[syncMedicationItemsWithConfig] Updating notification config for:', matched.name);
+          }
+          await upsertCarePlanItem({
+            ...matched,
+            active: true,
+            notification: freshNotification,
+          });
           changed = true;
         }
         continue;
