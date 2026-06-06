@@ -117,6 +117,24 @@ function notificationConfigEquals(
   );
 }
 
+// Phase 34 NOT.A2 — predicate for "should this med save trigger a
+// reschedule of the OS notification queue?". Used by medication-form's
+// handleSave to avoid thrashing the queue on non-notification edits
+// (rename, dosage change). before=null is add mode (always true; new
+// med means a new instance to schedule). For edit mode, folds both
+// sides through buildMedicationNotificationConfig so legacy meds (no
+// reminder fields) compare equal to explicit-default-set meds, per
+// Q-34.NOT.A.1 (a) honor-stored-values lock + defaults-fold.
+export function medicationNotificationChanged(
+  before: MedicationPlanItem | null,
+  after: MedicationPlanItem
+): boolean {
+  if (!before) return true;
+  const beforeConfig = buildMedicationNotificationConfig(before);
+  const afterConfig = buildMedicationNotificationConfig(after);
+  return !notificationConfigEquals(beforeConfig, afterConfig);
+}
+
 /**
  * Create a CarePlanItem from a MedicationPlanItem
  */

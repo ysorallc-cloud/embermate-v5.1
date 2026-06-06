@@ -67,6 +67,7 @@ import { generateUniqueId } from '../utils/idGenerator';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
+import { medicationNotificationChanged } from '../services/carePlanGenerator';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'bedtime';
 
@@ -258,6 +259,11 @@ export default function MedicationFormScreen() {
   const [scheduleEndCondition, setScheduleEndCondition] = useState<ScheduleEndCondition>('ongoing');
 
   const [saving, setSaving] = useState(false);
+  // Phase 34 NOT.A2 — load-time snapshot of the existing MedicationPlanItem
+  // so handleSave can compute medicationNotificationChanged(before, after)
+  // post-persistence. Null in add mode; populated by loadMedication in
+  // edit + isCarePlanSource paths.
+  const [loadedMed, setLoadedMed] = useState<MedicationPlanItem | null>(null);
   const [formStep, setFormStep] = useState<1 | 2>(1);
   const [showMedDropdown, setShowMedDropdown] = useState(false);
   const [showDosageDropdown, setShowDosageDropdown] = useState(false);
@@ -296,6 +302,10 @@ export default function MedicationFormScreen() {
       setFormStep(1);
       setShowMedDropdown(false);
       setShowDosageDropdown(false);
+      // Phase 34 NOT.A2 — clear add-mode loadedMed; add mode is the
+      // null branch of the medicationNotificationChanged predicate
+      // (always returns true → always reschedules new meds).
+      setLoadedMed(null);
     }
   }, [medId, isCarePlanSource]);
 
@@ -340,6 +350,11 @@ export default function MedicationFormScreen() {
           if (med.timesOfDay?.[0]) {
             setSelectedTimeSlot(todToSlot[med.timesOfDay[0]] || 'morning');
           }
+          // Phase 34 NOT.A2 — snapshot the loaded med for the post-save
+          // reschedule predicate. handleSave compares this against the
+          // form's planMedData to decide whether to call
+          // rescheduleAllNotifications.
+          setLoadedMed(med);
         }
       } else {
         // Load from legacy medicationStorage
@@ -502,6 +517,36 @@ export default function MedicationFormScreen() {
           await updateMedicationInPlan(DEFAULT_PATIENT_ID, medId, planMedData);
         } else {
           await addMedicationToPlan(DEFAULT_PATIENT_ID, planMedData);
+        }
+
+        // Phase 34 NOT.A2 — reschedule the OS notification queue when
+        // notification-relevant fields changed. The predicate
+        // medicationNotificationChanged folds both sides through
+        // buildMedicationNotificationConfig so legacy meds (no reminder
+        // fields) compare equal to explicit-default-set meds — no
+        // spurious thrash on non-notification edits like rename or
+        // dosage change. rescheduleAllNotifications wipes the entire
+        // queue (banked latent trap 3) so the predicate gate matters.
+        // Ordering: this runs AFTER persistence completes, so the next
+        // reschedule reads the just-written CarePlanItem.notification
+        // that A1 wires in (via syncMedicationItemsWithConfig's
+        // matched-update branch).
+        const planMedForPredicate = {
+          ...planMedData,
+          id: medId || 'pending',
+          createdAt: '',
+          updatedAt: '',
+        } as MedicationPlanItem;
+        if (medicationNotificationChanged(loadedMed, planMedForPredicate)) {
+          try {
+            const { rescheduleAllNotifications } = await import('../utils/notificationService');
+            await rescheduleAllNotifications(DEFAULT_PATIENT_ID);
+          } catch (rescheduleError) {
+            // Notification reschedule failure must NOT block save success;
+            // the persisted data is the source of truth, and the next
+            // ensureDailyInstances cycle will re-attempt the reschedule.
+            logError('MedicationFormScreen.handleSave.reschedule', rescheduleError);
+          }
         }
 
         // Convert new reminderTiming to legacy reminderMinutesBefore
