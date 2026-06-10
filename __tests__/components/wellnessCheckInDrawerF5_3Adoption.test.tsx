@@ -37,9 +37,14 @@
 //      Q-34.F5.B (b) lock: P5 store stays canonical for the WHAT
 //      layer; carePlanConfig stays canonical for the WHEN layer.
 //   5. REMINDER PRESERVED — the Switch writes
-//      wellnessSettings.{period}.reminderEnabled (carries the
-//      banked write-without-consequence gap per the F5.3 commit
-//      message; not closed here).
+//      wellnessSettings.{period}.reminderEnabled. The
+//      write-without-consequence gap that F5.3 banked has been
+//      CLOSED: B1 (00fbbec1) wired the scheduler to live-read the
+//      flag at schedule time; B2 (b087b469) wired this drawer's
+//      toggleReminder to call rescheduleAllNotifications so the
+//      change takes effect immediately. The reschedule trigger is
+//      pinned by __tests__/components/wellnessCheckInDrawerResched
+//      NotB2.test.tsx contract a.
 //   6. TURN-OFF-INSIDE — flipping the in-drawer Switch fires
 //      onToggleEnabled (caller routes to wellness.timesOfDay
 //      membership write).
