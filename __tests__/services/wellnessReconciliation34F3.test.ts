@@ -175,11 +175,17 @@ describe('Phase 34 F3 — wellness reconciliation closes migration-block bypass,
     const times = activeTimes();
     expect(times.length).toBe(2);
     expect(times.find((t) => t.label === 'afternoon')).toBeUndefined();
-    expect(times).toContainEqual({ id: 'sync-wellness', label: 'morning', at: '08:00' });
-    expect(times).toContainEqual({ id: 'sync-wellness', label: 'evening', at: '18:00' });
+    // Phase 34 NOT.B3 — wellness fire time now resolved through
+    // DEFAULT_WELLNESS_SETTINGS (07:00/13:00/20:00) via the
+    // resolveWellnessTime helper. The OLD 08:00/12:00/18:00 values
+    // lived in TIME_OF_DAY_DEFAULTS — still the fallback for unmapped
+    // windows (night/custom) but no longer the primary for
+    // morning/afternoon/evening wellness.
+    expect(times).toContainEqual({ id: 'sync-wellness', label: 'morning', at: '07:00' });
+    expect(times).toContainEqual({ id: 'sync-wellness', label: 'evening', at: '20:00' });
   });
 
-  it('contract 2 (LEGACY FULL): pre-F2 trio at OLD times + timesOfDay full → reactivate all + reconcile times to canonical', async () => {
+  it('contract 2 (LEGACY FULL): pre-F2 trio at OLD times + timesOfDay full → reactivate all + reconcile times to canonical (B3: DEFAULT_WELLNESS_SETTINGS)', async () => {
     seedConfig(['morning', 'midday', 'evening']);
     // Items pre-existing with all THREE windows, all inactive
     // (the device-walk shape: prior toggle-off left them inactive
@@ -190,12 +196,13 @@ describe('Phase 34 F3 — wellness reconciliation closes migration-block bypass,
 
     const times = activeTimes();
     expect(times.length).toBe(3);
-    // Times rewritten to canonical TIME_OF_DAY_DEFAULTS via the
-    // shared resolver. Pre-F3 the F2.1 reactivation reactivated
-    // at the OLD stored times; F3 reconciles in the same pass.
-    expect(times).toContainEqual({ id: 'sync-wellness-morning', label: 'morning', at: '08:00' });
-    expect(times).toContainEqual({ id: 'sync-wellness-evening', label: 'evening', at: '18:00' });
-    expect(times).toContainEqual({ id: 'sync-wellness-afternoon', label: 'afternoon', at: '12:00' });
+    // Times rewritten to canonical via the shared resolver.
+    // Phase 34 NOT.B3 — canonical now means DEFAULT_WELLNESS_SETTINGS
+    // (07:00/13:00/20:00). Reconciliation still drives drifted items
+    // toward the canonical shape; only the canonical values changed.
+    expect(times).toContainEqual({ id: 'sync-wellness-morning', label: 'morning', at: '07:00' });
+    expect(times).toContainEqual({ id: 'sync-wellness-evening', label: 'evening', at: '20:00' });
+    expect(times).toContainEqual({ id: 'sync-wellness-afternoon', label: 'afternoon', at: '13:00' });
   });
 
   it('contract 3 (LEGACY DROPS MIDDAY): pre-F2 trio active + timesOfDay = ["morning","evening"] → afternoon DEACTIVATED, morning+evening canonical', async () => {
@@ -208,21 +215,24 @@ describe('Phase 34 F3 — wellness reconciliation closes migration-block bypass,
     await syncOtherBucketsWithConfig('cp-test', 'default');
 
     const active = activeTimes();
-    // Morning + evening reconciled to canonical times.
-    expect(active).toContainEqual({ id: 'sync-wellness-morning', label: 'morning', at: '08:00' });
-    expect(active).toContainEqual({ id: 'sync-wellness-evening', label: 'evening', at: '18:00' });
+    // Phase 34 NOT.B3 — canonical times now from DEFAULT_WELLNESS_SETTINGS.
+    expect(active).toContainEqual({ id: 'sync-wellness-morning', label: 'morning', at: '07:00' });
+    expect(active).toContainEqual({ id: 'sync-wellness-evening', label: 'evening', at: '20:00' });
     // Afternoon deactivated — no longer in active times.
     expect(active.find((t) => t.id === 'sync-wellness-afternoon')).toBeUndefined();
   });
 
-  it('contract 4 (F1 INVARIANT — stored midday): timesOfDay contains "midday" → afternoon item present at 12:00', async () => {
+  it('contract 4 (F1 INVARIANT — stored midday): timesOfDay contains "midday" → afternoon item present at DEFAULT_WELLNESS_SETTINGS.afternoon.time', async () => {
     seedConfig(['morning', 'midday', 'evening']);
     await syncOtherBucketsWithConfig('cp-test', 'default');
 
     const times = activeTimes();
     const afternoon = times.find((t) => t.label === 'afternoon');
     expect(afternoon).toBeDefined();
-    expect(afternoon!.at).toBe('12:00');
+    // Phase 34 NOT.B3 — afternoon time now 13:00 (was 12:00 from
+    // TIME_OF_DAY_DEFAULTS). The F1 invariant ('midday' resolves to
+    // 'afternoon' label) stays; the fire time changed.
+    expect(afternoon!.at).toBe('13:00');
   });
 
   it('contract 5 (NO MIDDAY → NO AFTERNOON): fresh user without "midday" → label "afternoon" absent from all active times', async () => {

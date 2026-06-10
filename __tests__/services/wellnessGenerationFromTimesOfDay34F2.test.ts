@@ -177,12 +177,16 @@ describe('Phase 34 F2 — source-level structural pins on the rewritten wellness
     expect(eveningNameMatches.length).toBeLessThanOrEqual(1);
   });
 
-  it('contract 2: the wellness sync uses TIME_OF_DAY_TO_WINDOW and TIME_OF_DAY_DEFAULTS via the shared resolver', () => {
-    // F2 adds a resolver-routed map step in the wellness path.
-    // Pin that the wellness sync block references both resolver
-    // members. Anchor on the WELLNESS block via its emoji/comment
-    // signature and look forward for the resolver usage within
-    // ~2500 chars.
+  it('contract 2: the wellness sync uses TIME_OF_DAY_TO_WINDOW and routes time through resolveWellnessTime (the B3 shared resolver)', () => {
+    // F2 added a resolver-routed map step. B3 swapped the inline
+    // TIME_OF_DAY_DEFAULTS[tod] reads at all three sync sites for
+    // resolveWellnessTime(tod, wellnessSettings) — the single source
+    // of truth that composes TIME_OF_DAY_TO_WINDOW →
+    // WINDOW_LABEL_TO_WELLNESS_PERIOD → wellnessSettings.{period}.time
+    // and falls back to TIME_OF_DAY_DEFAULTS. The fallback symbol
+    // stays in the file (inside the resolver definition), but the
+    // wellness sync block itself no longer reads TIME_OF_DAY_DEFAULTS
+    // directly.
     const wellnessAnchor = GEN_STRIPPED.search(/wellnessConfig\s*=\s*\(?config/);
     expect(wellnessAnchor).toBeGreaterThan(-1);
     const block = GEN_STRIPPED.slice(
@@ -190,7 +194,7 @@ describe('Phase 34 F2 — source-level structural pins on the rewritten wellness
       Math.min(GEN_STRIPPED.length, wellnessAnchor + 2500),
     );
     expect(block).toMatch(/TIME_OF_DAY_TO_WINDOW\[/);
-    expect(block).toMatch(/TIME_OF_DAY_DEFAULTS\[/);
+    expect(block).toMatch(/resolveWellnessTime\(/);
   });
 
   it('contract 3: the wellness sync reads timesOfDay from carePlanConfig.wellness (NOT from wellnessSettings/P5 store)', () => {
@@ -252,8 +256,11 @@ describe('Phase 34 F2 — wellness generation BEHAVIOR (both directions seeded)'
     expect(items.length).toBeGreaterThan(0);
     const times = allTimesAcrossWellnessItems();
     expect(times.length).toBe(2);
-    expect(times).toContainEqual({ label: 'morning', at: '08:00' });
-    expect(times).toContainEqual({ label: 'evening', at: '18:00' });
+    // Phase 34 NOT.B3 — fire times come from DEFAULT_WELLNESS_SETTINGS
+    // (the safeGetItem mock returns fallback = defaults). morning=07:00,
+    // evening=20:00 (was 08:00/18:00 from TIME_OF_DAY_DEFAULTS pre-B3).
+    expect(times).toContainEqual({ label: 'morning', at: '07:00' });
+    expect(times).toContainEqual({ label: 'evening', at: '20:00' });
     // The off-window has NO instance — the missing direction the
     // user explicitly called out as the place prior toggle bugs
     // hid. This is the assertion that would have caught Bug H.
@@ -266,23 +273,25 @@ describe('Phase 34 F2 — wellness generation BEHAVIOR (both directions seeded)'
 
     const times = allTimesAcrossWellnessItems();
     expect(times.length).toBe(1);
-    expect(times[0]).toEqual({ label: 'morning', at: '08:00' });
+    expect(times[0]).toEqual({ label: 'morning', at: '07:00' });
   });
 
-  it('contract 7 (FULL DEFAULT): timesOfDay = ["morning","midday","evening"] → THREE times generated, midday resolves to afternoon @ 12:00 (F1 invariant)', async () => {
+  it('contract 7 (FULL DEFAULT): timesOfDay = ["morning","midday","evening"] → THREE times generated, midday resolves to afternoon (F1 invariant); times from DEFAULT_WELLNESS_SETTINGS via B3 resolver', async () => {
     seedConfigWithWellnessTimesOfDay(['morning', 'midday', 'evening']);
     await syncOtherBucketsWithConfig('cp-test', 'default');
 
     const times = allTimesAcrossWellnessItems();
     expect(times.length).toBe(3);
     // F1 invariant — `'midday'` stays the storage key, resolves to
-    // 'afternoon' window via TIME_OF_DAY_TO_WINDOW, scheduled at
-    // canonical 12:00 from TIME_OF_DAY_DEFAULTS. Pre-F2 the
-    // afternoon was hardcoded at 13:00 — that drift gets corrected
-    // for free by routing through the canonical defaults.
-    expect(times).toContainEqual({ label: 'morning', at: '08:00' });
-    expect(times).toContainEqual({ label: 'afternoon', at: '12:00' });
-    expect(times).toContainEqual({ label: 'evening', at: '18:00' });
+    // 'afternoon' window via TIME_OF_DAY_TO_WINDOW. Phase 34 NOT.B3 —
+    // fire time now comes from DEFAULT_WELLNESS_SETTINGS via the
+    // resolveWellnessTime helper. morning=07:00, afternoon=13:00,
+    // evening=20:00 (the OLD 08:00/12:00/18:00 values lived in
+    // TIME_OF_DAY_DEFAULTS — still the fallback for unmapped windows
+    // like night/custom).
+    expect(times).toContainEqual({ label: 'morning', at: '07:00' });
+    expect(times).toContainEqual({ label: 'afternoon', at: '13:00' });
+    expect(times).toContainEqual({ label: 'evening', at: '20:00' });
   });
 
   it('contract 8 (EDGE — empty selection): timesOfDay = [] with bucket enabled → ZERO wellness instances (no force-injection)', async () => {
@@ -344,29 +353,20 @@ describe('Phase 34 F2 — wellness generation BEHAVIOR (both directions seeded)'
   // P5 inertness — the dual-store convergence claim.
   // --------------------------------------------------------------------------
 
-  it('contract 11 (P5 INERT): wellnessSettings.afternoon.enabled does NOT affect generation — only timesOfDay does', async () => {
-    // Audit claim: nothing else in the codebase reads
-    // wellnessSettings.{period}.enabled for generation decisions.
-    // The generator we're testing was the only candidate, and we
-    // just rewrote it to read carePlanConfig.wellness.timesOfDay.
-    // This contract proves the inertness: a config with no
-    // afternoon in timesOfDay generates NO afternoon instance
-    // EVEN IF a future caller has flipped P5 afternoon.enabled
-    // to true. (We don't seed the P5 store in this test — the
-    // safeGetItem mock returns fallback only — but the assertion
-    // is the same: generation must depend on timesOfDay alone.)
+  it('contract 11 (P5 INERT FOR WHETHER): wellnessSettings.afternoon.enabled does NOT affect generation — only carePlanConfig.wellness.timesOfDay decides which windows generate', async () => {
+    // Phase 34 NOT.B3 narrowed the original "P5 INERT" claim. Pre-B3:
+    // the wellness sync never read wellnessSettings at all. Post-B3:
+    // it reads wellnessSettings.{period}.time for FIRE-TIME only —
+    // wellnessSettings.{period}.enabled remains unread and inert.
+    // timesOfDay is STILL the sole source of truth for WHICH windows
+    // generate. This contract narrows from "no read at all" (the
+    // pre-B3 belt-and-suspenders) to "no read of the .enabled
+    // field for generation decisions." The .time read is correct
+    // per B3 (separate contract — fire-time, not whether).
     seedConfigWithWellnessTimesOfDay(['morning', 'evening']);
     await syncOtherBucketsWithConfig('cp-test', 'default');
 
     const times = allTimesAcrossWellnessItems();
     expect(times.find((t) => t.label === 'afternoon')).toBeUndefined();
-    // Belt and suspenders — the wellness sync block never reads
-    // safeGetItem with the wellness storage key.
-    const { safeGetItem } = require('../../utils/safeStorage');
-    const calls = (safeGetItem as jest.Mock).mock.calls;
-    const wellnessKeyCalls = calls.filter(
-      (c: any[]) => typeof c[0] === 'string' && c[0].includes('wellness'),
-    );
-    expect(wellnessKeyCalls.length).toBe(0);
   });
 });

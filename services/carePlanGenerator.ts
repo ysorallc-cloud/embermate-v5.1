@@ -44,6 +44,39 @@ import { generateUniqueId } from '../utils/idGenerator';
 import { safeGetItem } from '../utils/safeStorage';
 import { DEFAULT_NOTIFICATION_CONFIG } from '../utils/notificationDefaults';
 import type { NotificationConfig } from '../types/notifications';
+import type { WellnessSettings } from '../types/wellnessSettings';
+import {
+  DEFAULT_WELLNESS_SETTINGS,
+  WINDOW_LABEL_TO_WELLNESS_PERIOD,
+} from '../types/wellnessSettings';
+import { StorageKeys } from '../utils/storageKeys';
+
+// Phase 34 NOT.B3 — wellness fire-time resolver. Single source of
+// truth used at all three wellness sync sites (Pass B sync-wellness
+// reconcile, Pass B legacy reconcile, Pass C fresh-state creation),
+// mirroring the F1 "single source of truth" de-dup pattern (TIME_OF_DAY
+// _DEFAULTS itself was de-duped that way).
+//
+// Composes TIME_OF_DAY_TO_WINDOW → WINDOW_LABEL_TO_WELLNESS_PERIOD →
+// wellnessSettings.{period}.time. Q-34.NOT.B.2 lock — only morning /
+// afternoon (= midday) / evening have a period mapping; night and
+// custom fall back to TIME_OF_DAY_DEFAULTS (no caregiver toggle =
+// no caregiver-editable time, but the item still needs a display time
+// — don't crash, don't invent one).
+function resolveWellnessTime(
+  tod: TimeOfDay,
+  wellnessSettings: WellnessSettings,
+): string {
+  const windowLabel = TIME_OF_DAY_TO_WINDOW[tod];
+  const period = WINDOW_LABEL_TO_WELLNESS_PERIOD[windowLabel];
+  if (period) {
+    const periodSettings = wellnessSettings[period];
+    if (periodSettings?.time) {
+      return periodSettings.time;
+    }
+  }
+  return TIME_OF_DAY_DEFAULTS[tod] || '08:00';
+}
 
 // ============================================================================
 // CONFIGURATION
@@ -606,6 +639,15 @@ export async function syncOtherBucketsWithConfig(
     // (primarily so tests / callers can opt out when not using wellness at all).
     const wellnessConfig = (config as any).wellness;
     const wellnessEnabled = wellnessConfig ? wellnessConfig.enabled !== false : true;
+    // Phase 34 NOT.B3 — load wellnessSettings once for the resolver
+    // used at the three sync sites + the instance-refresh path below.
+    // Falls back to DEFAULT_WELLNESS_SETTINGS for first-launch users
+    // who haven't touched the drawer yet (defaults have all three
+    // periods with sensible times).
+    const wellnessSettings = await safeGetItem<WellnessSettings>(
+      StorageKeys.WELLNESS_SETTINGS,
+      DEFAULT_WELLNESS_SETTINGS,
+    );
     // First, deactivate stale sample-wellness items so sync items take over
     const sampleWellnessItems = allItems.filter(i => i.type === 'wellness' && i.id.startsWith('sample-'));
     for (const item of sampleWellnessItems) {
@@ -689,7 +731,8 @@ export async function syncOtherBucketsWithConfig(
             id: `sync-wellness-${tod}-time`,
             kind: 'exact' as const,
             label: TIME_OF_DAY_TO_WINDOW[tod],
-            at: TIME_OF_DAY_DEFAULTS[tod] || '08:00',
+            // Phase 34 NOT.B3 — Pass B sync-wellness reconcile.
+            at: resolveWellnessTime(tod, wellnessSettings),
           }));
           const currentTimes = item.schedule?.times ?? [];
           const sameShape = currentTimes.length === expectedTimes.length &&
@@ -724,7 +767,8 @@ export async function syncOtherBucketsWithConfig(
             id: `${item.id}-time`,
             kind: 'exact' as const,
             label: TIME_OF_DAY_TO_WINDOW[todForItem],
-            at: TIME_OF_DAY_DEFAULTS[todForItem] || '08:00',
+            // Phase 34 NOT.B3 — Pass B legacy per-period reconcile.
+            at: resolveWellnessTime(todForItem, wellnessSettings),
           };
           const currentTime = item.schedule?.times?.[0];
           const drifted = !currentTime ||
@@ -760,7 +804,8 @@ export async function syncOtherBucketsWithConfig(
           id: `sync-wellness-${tod}-time`,
           kind: 'exact' as const,
           label: TIME_OF_DAY_TO_WINDOW[tod],
-          at: TIME_OF_DAY_DEFAULTS[tod] || '08:00',
+          // Phase 34 NOT.B3 — Pass C fresh-state creation.
+          at: resolveWellnessTime(tod, wellnessSettings),
         }));
         const wellnessItem: CarePlanItem = {
           id: 'sync-wellness',
@@ -1201,6 +1246,29 @@ async function _ensureDailyInstancesCore(
           const graceEnd = new Date(endTime.getTime() + MISSED_GRACE_PERIOD_MINUTES * 60 * 1000);
           if (now > graceEnd) {
             await updateDailyInstanceStatus(patientId, date, existing.id, 'missed');
+          }
+        }
+        // Phase 34 NOT.B3 — instance-time staleness refresh for wellness.
+        // The existing-instance match keyed by ${itemId}:${windowId}
+        // skips regeneration when windowId is unchanged. But when the
+        // window's `at` changes (B3 wellnessSettings time edit), the
+        // instance's baked scheduledTime stays stale and the scheduler
+        // fires at the old time. Refresh wellness instances only — meds
+        // / vitals / meals manage their own time-edit paths outside the
+        // slice scope. Only fires when the time actually drifted, to
+        // avoid spurious writes (and the corresponding emit churn).
+        // Only refresh PENDING instances; caregiver-acted statuses
+        // (completed/skipped/partial) preserve the time they actually
+        // happened at.
+        if (item.type === 'wellness' && existing.status === 'pending') {
+          const freshScheduledTime = computeScheduledTime(timeWindow, date);
+          if (existing.scheduledTime !== freshScheduledTime) {
+            const refreshed: DailyCareInstance = {
+              ...existing,
+              scheduledTime: freshScheduledTime,
+              updatedAt: new Date().toISOString(),
+            };
+            await upsertDailyInstances(patientId, date, [refreshed]);
           }
         }
       } else {

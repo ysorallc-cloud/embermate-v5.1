@@ -169,18 +169,23 @@ describe('Phase 34 F1 — unified time-model foundation', () => {
     expect(wellnessBlock).not.toMatch(/label\s*:\s*['"]morning['"]/);
     expect(wellnessBlock).not.toMatch(/label\s*:\s*['"]afternoon['"]/);
     expect(wellnessBlock).not.toMatch(/label\s*:\s*['"]evening['"]/);
-    // No hardcoded `at: 'HH:MM'` literals. The reconciliation
-    // pass sources times via TIME_OF_DAY_DEFAULTS[tod] (with
-    // '08:00' string fallback inside the `||` chain, which is
-    // canonical morning — not a per-window hardcode).
+    // No hardcoded `at: 'HH:MM'` literals. Phase 34 NOT.B3 — the
+    // sync sites source times via resolveWellnessTime(tod,
+    // wellnessSettings); the resolver itself uses
+    // wellnessSettings.{period}.time for mapped periods and falls
+    // back to TIME_OF_DAY_DEFAULTS[tod] for night/custom. No per-
+    // window HH:MM literal lands in the wellness sync block.
     expect(wellnessBlock).not.toMatch(/at\s*:\s*['"]07:00['"]/);
     expect(wellnessBlock).not.toMatch(/at\s*:\s*['"]13:00['"]/);
     expect(wellnessBlock).not.toMatch(/at\s*:\s*['"]18:00['"]/);
     expect(wellnessBlock).not.toMatch(/at\s*:\s*['"]20:00['"]/);
     // The resolver references must be present (constructive proof
-    // the path IS resolver-routed).
+    // the path IS resolver-routed). Phase 34 NOT.B3 — the inline
+    // TIME_OF_DAY_DEFAULTS[tod] reads at all three sync sites were
+    // swapped for resolveWellnessTime(...) calls. The label still
+    // routes through TIME_OF_DAY_TO_WINDOW.
     expect(wellnessBlock).toMatch(/TIME_OF_DAY_TO_WINDOW\[/);
-    expect(wellnessBlock).toMatch(/TIME_OF_DAY_DEFAULTS\[/);
+    expect(wellnessBlock).toMatch(/resolveWellnessTime\(/);
   });
 
   // --------------------------------------------------------------------------
