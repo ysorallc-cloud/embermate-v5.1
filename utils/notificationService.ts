@@ -578,7 +578,7 @@ export async function isInQuietHours(): Promise<boolean> {
 // CARE PLAN-BASED SCHEDULING (NEW UNIFIED SYSTEM)
 // ============================================================================
 
-import type { CarePlanItem, DailyCareInstance, TimeWindowLabel } from '../types/carePlan';
+import type { CarePlanItem, DailyCareInstance } from '../types/carePlan';
 import type {
   NotificationConfig,
   DeliveryPreferences,
@@ -595,7 +595,10 @@ import {
   getScheduledNotifications as getRegistryNotifications,
 } from '../storage/notificationRegistry';
 import type { WellnessSettings } from '../types/wellnessSettings';
-import { DEFAULT_WELLNESS_SETTINGS } from '../types/wellnessSettings';
+import {
+  DEFAULT_WELLNESS_SETTINGS,
+  WINDOW_LABEL_TO_WELLNESS_PERIOD,
+} from '../types/wellnessSettings';
 
 // Phase 34 NOT.B1 — wellness reminder AND-gate. Layer 1 is enforced by
 // the wellness sync ladder (carePlanGenerator.ts:605-783); items only
@@ -603,17 +606,10 @@ import { DEFAULT_WELLNESS_SETTINGS } from '../types/wellnessSettings';
 // enforced HERE: wellnessSettings[period].reminderEnabled gates each
 // instance.
 //
-// Q-34.NOT.B.2 — only morning/afternoon/evening map to wellnessSettings.
-// night and custom windows have NO toggle in v1; no toggle = no fire.
-// The map omits them deliberately; a windowLabel not in the map
-// resolves to undefined and the instance skips.
-const WINDOW_LABEL_TO_WELLNESS_PERIOD: Partial<
-  Record<TimeWindowLabel, keyof WellnessSettings>
-> = {
-  morning: 'morning',
-  afternoon: 'afternoon',
-  evening: 'evening',
-};
+// The WINDOW_LABEL_TO_WELLNESS_PERIOD map was moved to
+// types/wellnessSettings.ts in the B-prep commit so B3 (the wellness
+// fire-time wiring in services/carePlanGenerator.ts) can import the
+// same map without circular deps.
 
 /**
  * Schedule notifications for all Care Plan items

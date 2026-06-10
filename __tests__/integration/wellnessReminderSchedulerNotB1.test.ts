@@ -131,6 +131,7 @@ jest.mock('../../lib/events', () => ({
 import { safeSetItem } from '../../utils/safeStorage';
 import { StorageKeys } from '../../utils/storageKeys';
 import { rescheduleAllNotifications } from '../../utils/notificationService';
+import { saveDeliveryPreferences } from '../../storage/notificationRegistry';
 import { seedDeviceState, makeWellnessItem } from './_helpers/seedDeviceState';
 import {
   createDefaultCarePlanConfig,
@@ -139,18 +140,42 @@ import {
 import { DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 import type { WellnessSettings } from '../../types/wellnessSettings';
 
-const TODAY = new Date().toISOString().slice(0, 10);
+// LOCAL date (NOT UTC). The scheduler uses getTodayDateString from
+// services/carePlanGenerator which computes local-timezone YYYY-MM-DD;
+// instances filed under a UTC-different date get filtered out at
+// notificationService.ts:634. Pre-prep this test used
+// toISOString().slice(0,10) which is UTC, producing a sleeping bug
+// that surfaced once test runs crossed midnight UTC.
+function localTodayString(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const TODAY = localTodayString();
 
-function todayPlusHoursAsHHmm(hoursFromNow: number): string {
-  const d = new Date(Date.now() + hoursFromNow * 60 * 60 * 1000);
+// Returns an HH:MM string strictly LATER than "now" within today's date,
+// clamped to avoid wrapping past midnight (which would land in the past
+// when applied to TODAY's date). Caps to within-today minus a 2-minute
+// safety margin so the scheduler's 30s past-time guard doesn't drop the
+// instance. Late-evening test runs use a small forward offset; daytime
+// runs use a comfortable 4-hour gap.
+function todayFutureHHmm(preferHoursFromNow: number): string {
+  const now = new Date();
+  const minutesRemainingToday =
+    24 * 60 - (now.getHours() * 60 + now.getMinutes());
+  const preferredMinutes = preferHoursFromNow * 60;
+  const offsetMin = Math.max(
+    2,
+    Math.min(preferredMinutes, minutesRemainingToday - 2),
+  );
+  const d = new Date(now.getTime() + offsetMin * 60 * 1000);
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 // Wellness scheduled times far enough in the future that the
 // scheduler's past-time guard at notificationService.ts:697 doesn't
 // drop them. Two windows so the AND-gate has shape.
-const MORNING_FUTURE_HHMM = todayPlusHoursAsHHmm(4);
-const EVENING_FUTURE_HHMM = todayPlusHoursAsHHmm(6);
+const MORNING_FUTURE_HHMM = todayFutureHHmm(4);
+const EVENING_FUTURE_HHMM = todayFutureHHmm(6);
 
 function configWithWellnessTimesOfDay(
   timesOfDay: Array<'morning' | 'midday' | 'evening' | 'night'>,
@@ -213,9 +238,21 @@ function countWellnessScheduleCalls(): number {
   ).length;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   store.clear();
   scheduleCalls.length = 0;
+  // Disable quiet hours globally for the suite. Default delivery prefs
+  // set quiet hours 22:00-07:00, which would silently drop late-evening
+  // test runs at the past-time-equivalent gate (notificationService.ts:
+  // scheduleInstanceNotification's isTimeInQuietHours check). The test
+  // contracts are about the AND-gate, not about quiet-hours behavior;
+  // disable to keep timing-only flake out of the suite.
+  await saveDeliveryPreferences({
+    masterEnabled: true,
+    soundEnabled: true,
+    vibrationEnabled: true,
+    quietHours: { enabled: false, start: '22:00', end: '07:00' },
+  });
 });
 
 describe('Phase 34 NOT.B1 — wellness reminder AND-gate (device-facing layer)', () => {
@@ -386,7 +423,7 @@ describe('Phase 34 NOT.B1 — wellness reminder AND-gate (device-facing layer)',
     // instance for a spurious reason.
     wellnessItem.schedule.times = wellnessItem.schedule.times.map((t) => ({
       ...t,
-      at: todayPlusHoursAsHHmm(5),
+      at: todayFutureHHmm(5),
     }));
     await seedDeviceState({
       patientId: DEFAULT_PATIENT_ID,
