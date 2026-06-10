@@ -56,6 +56,8 @@ import type {
 } from '../../../types/wellnessSettings';
 import { EditorSection } from '../editor/EditorSection';
 import { EditorDisableRow } from '../editor/EditorDisableRow';
+import { rescheduleAllNotifications } from '../../../utils/notificationService';
+import { DEFAULT_PATIENT_ID } from '../../../storage/carePlanRepo';
 
 interface FieldDef {
   key: string;
@@ -158,13 +160,27 @@ export function WellnessCheckInDrawer({
   );
 
   const toggleReminder = useCallback(
-    (value: boolean) => {
+    async (value: boolean) => {
       if (!settings || !periodCfg) return;
       const next: WellnessSettings = {
         ...settings,
         [period]: { ...periodCfg, reminderEnabled: value },
       };
       updateSettings(next);
+      // Phase 34 NOT.B2 — trigger reschedule so B1's gate state takes
+      // effect immediately, not on the next ensureDailyInstances cycle.
+      // Reminder toggle is LIVE-READ by the scheduler (utils/
+      // notificationService.ts:686 reads wellnessSettings[period].
+      // reminderEnabled per-instance), so a bare reschedule is the
+      // correct trigger here — no sync/ensure needed. B3 contract 7
+      // forward-guards the read-only invariant for the future time-
+      // edit path (which DOES require sync+ensure+reschedule).
+      try {
+        await rescheduleAllNotifications(DEFAULT_PATIENT_ID);
+      } catch {
+        // Toggle save succeeded; reschedule failure must not block.
+        // The next ensureDailyInstances cycle will retry.
+      }
     },
     [settings, periodCfg, period, updateSettings],
   );
