@@ -31,6 +31,7 @@ import {
   Linking,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing, BorderRadius } from '../../../theme/theme-tokens';
@@ -92,6 +93,7 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({
   return (
     <View style={styles.container}>
       <StaticAuroraBackground variant="welcome" />
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.emoji}>{'\u{1F512}'}</Text>
         <Text style={styles.title}>
@@ -172,6 +174,7 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({
           </Text>
         )}
       </ScrollView>
+      </SafeAreaView>
     </View>
   );
 };
@@ -182,12 +185,15 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     width: SCREEN_WIDTH,
     backgroundColor: c.background,
   },
+  safe: {
+    flex: 1,
+  },
   content: {
     flexGrow: 1,
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingBottom: 32, // allow: C2 spec — 32px safe inset for CTA
-    paddingTop: 80, // allow: top breathing room matches C1 rhythm
+    paddingTop: Spacing.xl, // allow: layout pass — top breathes via safe area not hardcoded 80px
   },
   emoji: {
     fontSize: 56,
@@ -308,8 +314,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   ctaText: {
     fontFamily: Fonts.serif,
     fontSize: 16, // allow: C2 CTA matches C1 label scale
-    color: c.textPrimary,
+    // Layout pass — near-black charcoal #1a1612 on ember fill.
+    color: '#1a1612',
     letterSpacing: 0.3,
+    fontWeight: '600' as const,
   },
   termsHelper: {
     fontFamily: Fonts.serifItalic,

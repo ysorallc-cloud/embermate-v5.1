@@ -33,6 +33,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing } from '../../../theme/theme-tokens';
@@ -77,6 +78,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
   return (
     <View style={styles.container}>
       <StaticAuroraBackground variant="welcome" />
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.content}>
         <View style={styles.topBlock}>
           <Text style={styles.headline}>{`Meet ${name}.`}</Text>
@@ -104,18 +106,22 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
             style={styles.ctaGradient}
           >
             {isStarting ? (
-              <ActivityIndicator size="small" color={colors.textPrimary} />
+              <ActivityIndicator size="small" color="#1a1612" />
             ) : (
               <Text style={styles.ctaText}>{`Start with ${name}`}</Text>
             )}
           </LinearGradient>
         </Pressable>
       </View>
+      </SafeAreaView>
     </View>
   );
 };
 
 const createStyles = (c: typeof Colors) => StyleSheet.create({
+  safe: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     width: SCREEN_WIDTH,
@@ -167,8 +173,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   ctaText: {
     fontFamily: Fonts.serif,
     fontSize: 16, // allow: C4 CTA matches C1/C2/C3 label scale
-    color: c.textPrimary,
+    // Layout pass — near-black charcoal #1a1612 on ember fill.
+    color: '#1a1612',
     letterSpacing: 0.3,
+    fontWeight: '600' as const,
   },
 });
 

@@ -181,31 +181,36 @@ export default function OnboardingFlow() {
 
   // Onboarding redesign C4 — final 4-screen renderer.
   //   0 Welcome (C1) → 1 Privacy (C2) → 2 Name (C3) → 3 Landing (C4)
+  // Onboarding redesign C4 fix — each renderItem return is wrapped in
+  // a fixed-width slide container so the horizontal FlatList computes
+  // page widths correctly. Without the wrapper, screen content
+  // (especially ScrollView children) competed with FlatList sizing
+  // and the paged scroller landed on a slide it couldn't recover from
+  // (NameScreen-first-visible / Continue-tap-dead bug).
   const renderItem = ({ item, index }: any) => {
+    let screen: React.ReactNode = null;
     if (index === 0) {
       // Onboarding redesign C1 — Welcome owns its own "Begin" CTA
       // wired to advanceToNext. The shared footer Next is hidden
       // on this index (showFooter condition below).
-      return <WelcomeScreen onContinue={advanceToNext} />;
-    }
-    if (index === 1) {
+      screen = <WelcomeScreen onContinue={advanceToNext} />;
+    } else if (index === 1) {
       // Onboarding redesign C2 — Privacy owns its own ember-gradient
       // Continue CTA wired to advanceToNext. The Terms helper surfaces
       // only after a Continue tap while the checkbox is unchecked.
-      return (
+      screen = (
         <PrivacyDisclaimerScreen
           onDisclaimerAccepted={setDisclaimerAccepted}
           onContinue={advanceToNext}
         />
       );
-    }
-    if (index === 2) {
+    } else if (index === 2) {
       // Onboarding redesign C3 — NameScreen replaces MeetSampleScreen
       // at index 2. Captures the patient name, stores it in
       // orchestrator state, then advances. C4's Landing interpolates
       // "Meet {name}." from this value; completeOnboarding (also in C4)
       // writes it through writePatientName.
-      return (
+      screen = (
         <NameScreen
           initialValue={patientName}
           onContinue={(name) => {
@@ -214,16 +219,17 @@ export default function OnboardingFlow() {
           }}
         />
       );
-    }
-    if (index === 3) {
-      return (
+    } else if (index === 3) {
+      screen = (
         <LandingScreen
           patientName={patientName}
           onComplete={completeOnboarding}
         />
       );
     }
-    return null;
+    return (
+      <View style={{ width: SCREEN_WIDTH, flex: 1 }}>{screen}</View>
+    );
   };
 
   // Onboarding redesign C4 — every screen in the 4-screen flow owns
@@ -249,6 +255,20 @@ export default function OnboardingFlow() {
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         bounces={false}
+        // Onboarding redesign C4 fix — pin the first slide on mount.
+        // Without this, the FlatList sometimes initialized on index 2
+        // (NameScreen) when the first slide hadn't yet measured, and
+        // the paged scroller couldn't recover (Continue tap dead).
+        initialScrollIndex={0}
+        // getItemLayout lets the FlatList compute slide offsets up-
+        // front instead of waiting for content to measure — required
+        // for initialScrollIndex to land deterministically and for
+        // scrollToIndex (advanceToNext) to hit the right slide.
+        getItemLayout={(_data: any, index: number) => ({
+          length: SCREEN_WIDTH,
+          offset: SCREEN_WIDTH * index,
+          index,
+        })}
       />
 
       {/* Navigation footer */}

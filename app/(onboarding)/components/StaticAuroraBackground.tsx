@@ -91,25 +91,29 @@ export const StaticAuroraBackground: React.FC<Props> = ({ variant }) => {
   );
 };
 
+// Onboarding redesign layout pass — the fixed-height (450 / 300) layers
+// + bottom borderRadius produced a visible curved-rectangle seam mid-
+// screen. The primary layer now fills the full container (top: -50,
+// bottom: 0) so the gradient's natural fade-to-transparent at 80%
+// blends seamlessly into the screen's c.background. Secondary layer
+// keeps its accent placement but extends to bottom too.
 const styles = StyleSheet.create({
   primaryLayer: {
     position: 'absolute',
     top: -50,
     left: '-15%',
     right: '-15%',
-    height: 450,
+    bottom: 0,
   },
   primaryGradient: {
     flex: 1,
-    borderBottomLeftRadius: 200,
-    borderBottomRightRadius: 200,
   },
   secondaryLayer: {
     position: 'absolute',
     top: 100,
     left: 0,
     right: 0,
-    height: 300,
+    bottom: 0,
   },
   secondaryGradient: {
     flex: 1,

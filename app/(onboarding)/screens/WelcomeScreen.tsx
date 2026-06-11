@@ -27,6 +27,7 @@
 
 import React, { useMemo } from 'react';
 import { View, Text, Image, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing } from '../../../theme/theme-tokens';
@@ -54,6 +55,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onContinue }) => {
   return (
     <View style={styles.container}>
       <StaticAuroraBackground variant="welcome" />
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.content}>
         <View style={styles.topBlock}>
           <Image
@@ -96,6 +98,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onContinue }) => {
           </LinearGradient>
         </Pressable>
       </View>
+      </SafeAreaView>
     </View>
   );
 };
@@ -105,6 +108,9 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     width: SCREEN_WIDTH,
     backgroundColor: c.background,
+  },
+  safe: {
+    flex: 1,
   },
   content: {
     flex: 1,
@@ -172,8 +178,11 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   ctaText: {
     fontFamily: Fonts.serif,
     fontSize: 16, // allow: C1 spec — serif CTA label
-    color: c.textPrimary,
+    // Layout pass — near-black charcoal #1a1612 on ember fill;
+    // textPrimary cream read washed out on device.
+    color: '#1a1612',
     letterSpacing: 0.3,
+    fontWeight: '600' as const,
   },
 });
 
