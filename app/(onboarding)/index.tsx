@@ -176,7 +176,15 @@ export default function OnboardingFlow() {
       return <WelcomeScreen onContinue={advanceToNext} />;
     }
     if (index === 1) {
-      return <PrivacyDisclaimerScreen onDisclaimerAccepted={setDisclaimerAccepted} />;
+      // Onboarding redesign C2 — Privacy owns its own ember-gradient
+      // Continue CTA wired to advanceToNext. The Terms helper surfaces
+      // only after a Continue tap while the checkbox is unchecked.
+      return (
+        <PrivacyDisclaimerScreen
+          onDisclaimerAccepted={setDisclaimerAccepted}
+          onContinue={advanceToNext}
+        />
+      );
     }
     if (index === 2) {
       return <MeetSampleScreen careMode={careMode} />;
@@ -193,9 +201,10 @@ export default function OnboardingFlow() {
   // Phase 16.3 — footer-hide indices reshifted after WhoIsThisFor cut.
   // Hide footer on screen 3 (AsYouUse — own Got it button) and screen
   // 4 (GetStarted — its own two-card layout owns the next action).
-  // Onboarding redesign C1 — also hide on screen 0 (Welcome) which
-  // now owns its own Begin CTA.
-  const showFooter = currentIndex !== 0 && currentIndex !== 3 && currentIndex !== 4;
+  // Onboarding redesign C1 — hide on screen 0 (Welcome — own Begin CTA).
+  // Onboarding redesign C2 — hide on screen 1 (Privacy — own Continue CTA).
+  const showFooter =
+    currentIndex !== 0 && currentIndex !== 1 && currentIndex !== 3 && currentIndex !== 4;
   // Privacy is now index 1; the Next button stays disabled until the
   // disclaimer toggle is accepted.
   const isNextDisabled = currentIndex === 1 && !disclaimerAccepted;
