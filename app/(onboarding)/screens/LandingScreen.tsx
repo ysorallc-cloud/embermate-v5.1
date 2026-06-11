@@ -30,7 +30,6 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  Dimensions,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,7 +38,7 @@ import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// Post-walk width single-sourcing fix — root style is flex:1 only.
 
 export interface LandingScreenProps {
   /** Patient name captured by C3's NameScreen; the orchestrator
@@ -124,7 +123,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   container: {
     flex: 1,
-    width: SCREEN_WIDTH,
     backgroundColor: c.background,
   },
   content: {

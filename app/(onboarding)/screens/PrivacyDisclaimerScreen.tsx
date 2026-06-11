@@ -25,7 +25,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
   TouchableOpacity,
   Pressable,
   Linking,
@@ -37,7 +36,7 @@ import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing, BorderRadius } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// Post-walk width single-sourcing fix — root style is flex:1 only.
 
 interface Props {
   onDisclaimerAccepted: (accepted: boolean) => void;
@@ -182,7 +181,6 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    width: SCREEN_WIDTH,
     backgroundColor: c.background,
   },
   safe: {

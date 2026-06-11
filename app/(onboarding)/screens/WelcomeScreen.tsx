@@ -26,14 +26,16 @@
 // ============================================================================
 
 import React, { useMemo } from 'react';
-import { View, Text, Image, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// Post-walk width single-sourcing fix — the screen fills its
+// orchestrator wrapper (which reads useWindowDimensions). The root
+// style is flex:1 only; never self-size to a stale Dimensions value.
 
 // Three value points — text preserved from the prior screen
 // (caregiver-tested copy), emoji decorations dropped per the C1 spec.
@@ -106,7 +108,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onContinue }) => {
 const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
-    width: SCREEN_WIDTH,
     backgroundColor: c.background,
   },
   safe: {

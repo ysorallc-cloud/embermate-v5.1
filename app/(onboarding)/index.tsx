@@ -31,7 +31,8 @@
 // ============================================================================
 
 import React, { useRef, useState, useMemo } from 'react';
-import { View, StyleSheet, FlatList, Dimensions, Pressable, Text } from 'react-native';
+import { View, StyleSheet, FlatList, Pressable, Text, useWindowDimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { useSharedValue, useAnimatedScrollHandler } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { safeSetItem } from '../../utils/safeStorage';
@@ -51,7 +52,11 @@ import { saveCarePlanConfig } from '../../storage/carePlanConfigRepo';
 import { writePatientName } from '../../utils/patientNameWriter';
 import { DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// Onboarding redesign fix — width is single-sourced from
+// useWindowDimensions inside the component. Removing the module-level
+// Dimensions.get('window') usage stops the orange-sliver bleed where
+// the screen self-sized to a stale value while the FlatList page
+// width tracked the live window.
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
@@ -83,6 +88,10 @@ export default function OnboardingFlow() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const flatListRef = useRef<FlatList>(null);
+  // Onboarding redesign fix — single source of truth for slide width.
+  // useWindowDimensions tracks the live window; the FlatList page
+  // width, getItemLayout, and renderItem wrapper all read from here.
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   const scrollX = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
@@ -210,9 +219,13 @@ export default function OnboardingFlow() {
       // orchestrator state, then advances. C4's Landing interpolates
       // "Meet {name}." from this value; completeOnboarding (also in C4)
       // writes it through writePatientName.
+      // isActive prop drives focus-on-arrival: NameScreen focuses its
+      // TextInput inside a settle delay only when this slide is the
+      // active one (replaces the launch-bug-causing autoFocus prop).
       screen = (
         <NameScreen
           initialValue={patientName}
+          isActive={currentIndex === 2}
           onContinue={(name) => {
             setPatientName(name);
             advanceToNext();
@@ -260,6 +273,15 @@ export default function OnboardingFlow() {
         // (NameScreen) when the first slide hadn't yet measured, and
         // the paged scroller couldn't recover (Continue tap dead).
         initialScrollIndex={0}
+        // Onboarding redesign hardening — swipes disabled. The flow
+        // navigates via per-screen CTAs (forward) + the back chevron
+        // overlay below (backward). This permanently prevents any
+        // focus/scroll fight (autoFocus inside an input would otherwise
+        // steal the FlatList scroll position) and accidental mid-flow
+        // swipes that could land on a partially-complete slide.
+        // scrollToIndex via flatListRef still works programmatically.
+        scrollEnabled={false}
+        keyboardShouldPersistTaps="handled"
         // getItemLayout lets the FlatList compute slide offsets up-
         // front instead of waiting for content to measure — required
         // for initialScrollIndex to land deterministically and for
@@ -270,6 +292,36 @@ export default function OnboardingFlow() {
           index,
         })}
       />
+
+      {/* Onboarding redesign back affordance — subtle chevron top-
+          left inside the safe area on indices 1-3. Tapping calls
+          scrollToIndex(currentIndex - 1) on the FlatList ref (which
+          works even with scrollEnabled={false}). Index 0 (Welcome)
+          intentionally has no back button. pointerEvents="box-none"
+          on the SafeAreaView lets the back button receive taps while
+          letting everything else pass through to the slides below. */}
+      {currentIndex >= 1 && currentIndex <= 3 && (
+        <SafeAreaView
+          style={styles.backOverlay}
+          edges={['top']}
+          pointerEvents="box-none"
+        >
+          <Pressable
+            onPress={() =>
+              flatListRef.current?.scrollToIndex({
+                index: currentIndex - 1,
+                animated: true,
+              })
+            }
+            hitSlop={12}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+          >
+            <Text style={styles.backChevron}>‹</Text>
+          </Pressable>
+        </SafeAreaView>
+      )}
 
       {/* Navigation footer */}
       {showFooter && (
@@ -303,6 +355,26 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: c.background,
+  },
+  // Onboarding redesign back-affordance styles.
+  backOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  backButton: {
+    width: 44, // allow: Apple HIG tap-target minimum
+    height: 44, // allow: Apple HIG tap-target minimum
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8, // allow: subtle edge inset for the chevron glyph
+  },
+  backChevron: {
+    fontSize: 28, // allow: subtle chevron glyph per spec
+    color: c.textMuted,
+    fontWeight: '300' as const,
+    lineHeight: 32, // allow: vertically center the glyph in the 44pt button
   },
   footer: {
     position: 'absolute',
