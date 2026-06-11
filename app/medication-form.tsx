@@ -19,7 +19,6 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, BorderRadius } from '../theme/theme-tokens';
@@ -1212,21 +1211,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     paddingHorizontal: Spacing.lg,
   },
-  bottomSaveButton: {
-    backgroundColor: c.accent,
-    borderRadius: 14,
-    padding: 16,
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginTop: 24,
-    marginBottom: 32,
-  },
-  bottomSaveButtonText: {
-    color: c.background,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-
   // Form
   formGroup: {
     marginBottom: Spacing.lg,
@@ -1439,9 +1423,6 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
     flex: 1,
-  },
-  reminderIcon: {
-    fontSize: 20,
   },
   reminderToggleInfo: {
     flex: 1,
