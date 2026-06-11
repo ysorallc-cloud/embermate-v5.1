@@ -27,7 +27,7 @@ import { safeSetItem } from '../../utils/safeStorage';
 
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { PrivacyDisclaimerScreen } from './screens/PrivacyDisclaimerScreen';
-import { MeetSampleScreen } from './screens/MeetSampleScreen';
+import { NameScreen } from './screens/NameScreen';
 import { GetStartedScreen } from './screens/GetStartedScreen';
 import { AsYouUseScreen } from './screens/AsYouUseScreen';
 
@@ -58,10 +58,14 @@ const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 // (free-text + library-aware picker) that warrants its own UX pass; that
 // design lands with v7. Until then, the WatchForScreen contract is ready
 // to slot in once a Diagnosis[] is captured on this side of onboarding.
+// Onboarding redesign C3 — MeetSampleScreen retired from the main
+// flow at index 2 in favor of the new NameScreen. The full
+// 4-screen restructure (cutting AsYouUseScreen + GetStartedScreen
+// and adding the Landing "Meet {name}" screen) lands in C4.
 const ONBOARDING_SCREENS = [
   { id: '1', title: 'Welcome' },
   { id: '2', title: 'Privacy' },
-  { id: '3', title: 'Meet' },
+  { id: '3', title: 'Name' },
   { id: '4', title: 'As You Use' },
   { id: '5', title: 'Get Started' },
 ];
@@ -73,6 +77,10 @@ export default function OnboardingFlow() {
   const scrollX = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+  // Onboarding redesign C3 — patient name captured by NameScreen,
+  // threaded to C4's Landing screen for "Meet {name}." interpolation
+  // and to writePatientName at completion. Default empty until C3.
+  const [patientName, setPatientName] = useState('');
   // Phase 16.3 — careMode hardcoded to 'caregiver' (primary EmberMate
   // use case). The state hook + WhoIsThisForScreen selector were
   // retired; see the file's header comment for the audit findings.
@@ -187,7 +195,20 @@ export default function OnboardingFlow() {
       );
     }
     if (index === 2) {
-      return <MeetSampleScreen careMode={careMode} />;
+      // Onboarding redesign C3 — NameScreen replaces MeetSampleScreen
+      // at index 2. Captures the patient name, stores it in
+      // orchestrator state, then advances. C4's Landing interpolates
+      // "Meet {name}." from this value; completeOnboarding (also in C4)
+      // writes it through writePatientName.
+      return (
+        <NameScreen
+          initialValue={patientName}
+          onContinue={(name) => {
+            setPatientName(name);
+            advanceToNext();
+          }}
+        />
+      );
     }
     if (index === 3) {
       return <AsYouUseScreen onContinue={advanceToNext} />;
@@ -203,8 +224,13 @@ export default function OnboardingFlow() {
   // 4 (GetStarted — its own two-card layout owns the next action).
   // Onboarding redesign C1 — hide on screen 0 (Welcome — own Begin CTA).
   // Onboarding redesign C2 — hide on screen 1 (Privacy — own Continue CTA).
+  // Onboarding redesign C3 — hide on screen 2 (Name — own Continue CTA).
   const showFooter =
-    currentIndex !== 0 && currentIndex !== 1 && currentIndex !== 3 && currentIndex !== 4;
+    currentIndex !== 0 &&
+    currentIndex !== 1 &&
+    currentIndex !== 2 &&
+    currentIndex !== 3 &&
+    currentIndex !== 4;
   // Privacy is now index 1; the Next button stays disabled until the
   // disclaimer toggle is accepted.
   const isNextDisabled = currentIndex === 1 && !disclaimerAccepted;

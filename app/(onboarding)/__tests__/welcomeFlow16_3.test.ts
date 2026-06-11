@@ -62,11 +62,12 @@ describe('Phase 16.3 — welcome flow narrowed from 6 → 5 screens', () => {
     expect(indexCode).not.toMatch(/handleSelectCareMode\b/);
   });
 
-  it('contract 5: the surviving 5-screen order is Welcome → Privacy → Meet → AsYouUse → GetStarted', () => {
-    // Renumbered after Screen 2 cut. What was Screen 1 (Welcome) is
-    // still Screen 1; what was Screen 3 (Privacy) is now Screen 2;
-    // etc.
-    const expectedOrder = ['Welcome', 'Privacy', 'Meet', 'As You Use', 'Get Started'];
+  it('contract 5: the surviving onboarding flow order is Welcome → Privacy → Name → AsYouUse → GetStarted (interim — C4 lands the final 4-screen restructure)', () => {
+    // Updated for onboarding redesign C3: MeetSampleScreen retired
+    // from the main flow at index 2; NameScreen replaces it. The
+    // final 4-screen flow (cutting AsYouUseScreen + GetStartedScreen
+    // and adding a Landing screen) lands in C4.
+    const expectedOrder = ['Welcome', 'Privacy', 'Name', 'As You Use', 'Get Started'];
     const found: string[] = [];
     const entryRegex = /title:\s*['"]([^'"]+)['"]/g;
     let m: RegExpExecArray | null;
