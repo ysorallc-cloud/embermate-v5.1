@@ -265,7 +265,7 @@ export default function SettingsScreen() {
           icon: '📊',
           title: 'Vital sign ranges',
           subtitle: 'Custom alert thresholds',
-          onPress: () => navigate('/vital-thresholds' as any),
+          onPress: () => navigate('/vital-threshold-settings' as any),
         },
       ],
     },
@@ -341,20 +341,6 @@ export default function SettingsScreen() {
       icon: 'ℹ️',
       title: 'About',
       items: [
-        {
-          id: 'help',
-          icon: '❓',
-          title: 'Help',
-          subtitle: 'How to use EmberMate',
-          onPress: () => navigate('/help' as any),
-        },
-        {
-          id: 'privacy-and-terms',
-          icon: '📄',
-          title: 'Privacy and terms',
-          subtitle: 'How we handle your data and the usage terms',
-          onPress: () => navigate('/legal/privacy-and-terms' as any),
-        },
         {
           id: 'whats-next',
           icon: '✨',
