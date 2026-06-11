@@ -209,7 +209,7 @@ export const CoffeeMomentMinimal: React.FC<CoffeeMomentMinimalProps> = ({
             accessibilityRole="button"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Text style={{ fontSize: 14, color: c.textMuted }}>{'\u2715'}</Text>
+            <Text style={{ fontSize: 14, color: colors.textMuted }}>{'\u2715'}</Text>
           </TouchableOpacity>
 
           {/* Microcopy — permission, not invitation */}
