@@ -1,7 +1,10 @@
 // ============================================================================
-// ScheduleCard — row spacing + Start button tap target.
-// Locks in the 14pt vertical padding floor and verifies the Start button
-// has at least a 44pt tap target (Apple HIG / Material Design minimum).
+// ScheduleCard — row spacing.
+//
+// UX-2 pre-launch — Start text-link affordance retired (one status per
+// row contract). The "Start text-link tap target" describe block in
+// this file was dropped at the same time; the test that survives pins
+// the new 15pt row paddingVertical established by UX-2.
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -24,48 +27,18 @@ function num(block: string, prop: string): number | null {
 }
 
 describe('ScheduleCard — equal row geometry', () => {
-  it('windowRow paddingVertical is 8pt (matches active and inactive rows)', () => {
-    // May 2 spacing-pass Phase 4 lifted paddingVertical 6 → 8 to give
-    // each row a slightly taller tap target while keeping active/inactive
-    // height parity (still colour-only differentiation).
+  it('windowRow paddingVertical is 15pt (UX-2 pre-launch period-row pad)', () => {
+    // UX-2 pre-launch lifted the row pad 8 → 15. Prior history:
+    // Phase 3 set 6 (parity-only), May 2 Phase 4 lifted to 8, UX-2
+    // bumped to 15 for the new period-row rhythm + tap-target lift.
     const block = styleBlock('windowRow');
     expect(block).not.toBe('');
     const pv = num(block, 'paddingVertical');
-    expect(pv).toBe(8);
+    expect(pv).toBe(15);
   });
 
   it('row dividers stay 0.5px (lift comes from typography, not heavier lines)', () => {
     const block = styleBlock('windowRowDivider');
     expect(num(block, 'borderTopWidth')).toBe(0.5);
-  });
-});
-
-describe('ScheduleCard — Start text-link tap target', () => {
-  it('Start text-link uses hitSlop to clear the 44pt minimum tap target', () => {
-    // Phase 3b replaced the filled windowStartBtn with a text-link
-    // (windowStartLink). The link's tappable area comes from hitSlop +
-    // visual font height. Apple HIG / Material Design require >= 44pt.
-    const btn = styleBlock('windowStartLink');
-    expect(btn).not.toBe('');
-    const padV = num(btn, 'paddingVertical') ?? 0;
-    const fontMatch = src.match(/windowStartLinkText:\s*\{[^}]*fontSize:\s*(\d+)/s);
-    const font = fontMatch ? Number(fontMatch[1]) : 13;
-    const visualHeight = font + padV * 2;
-
-    if (visualHeight >= 44) return;
-
-    // The Start TouchableOpacity declares hitSlop. Walk the JSX from the
-    // style anchor to the closing Text to capture the full opening tag.
-    const styleAnchor = src.indexOf('style={s.windowStartLink}');
-    const textCloser = src.indexOf('<Text style={s.windowStartLinkText}', styleAnchor);
-    expect(styleAnchor).toBeGreaterThan(-1);
-    expect(textCloser).toBeGreaterThan(styleAnchor);
-    const startBtnOpen = src.slice(styleAnchor, textCloser);
-    const hitSlopMatch = startBtnOpen.match(/hitSlop=\{\{([\s\S]*?)\}\s*\}/);
-    expect(hitSlopMatch).toBeTruthy();
-    const hitSlop = hitSlopMatch![1];
-    const top = Number((hitSlop.match(/top:\s*(\d+)/) || [])[1] || 0);
-    const bottom = Number((hitSlop.match(/bottom:\s*(\d+)/) || [])[1] || 0);
-    expect(visualHeight + top + bottom).toBeGreaterThanOrEqual(44);
   });
 });

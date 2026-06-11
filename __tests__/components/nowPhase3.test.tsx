@@ -165,23 +165,12 @@ describe('ScheduleCard — calm active row (no card-in-card)', () => {
     expect(merged.backgroundColor).toBeUndefined();
   });
 
-  it('Start affordance is a text-link, not a filled button (no backgroundColor: accent)', () => {
-    const tree = (ScheduleCard as any)({
-      windows: baseWindows,
-      onStart: jest.fn(),
-      onRowPress: jest.fn(),
-    });
-    const startBtn = findAll(tree, (n) =>
-      typeof n.props?.accessibilityLabel === 'string' &&
-      /Start Morning routine/.test(n.props.accessibilityLabel),
-    )[0];
-    expect(startBtn).toBeDefined();
-    const merged = styleOf(startBtn);
-    expect(merged.backgroundColor).toBeUndefined();
-    expect(merged.backgroundColor).not.toBe('#5fb88a');
-  });
+  // UX-2 pre-launch retired the per-row "Start ›" affordance ("one
+  // status per row" contract). The Start-affordance describe block
+  // that lived here is dropped; row taps still open the timeline via
+  // onRowPress, which is the canonical entry into a window's items.
 
-  it('active and inactive rows have equal paddingVertical (target ~6)', () => {
+  it('active and inactive rows have equal paddingVertical (UX-2 = 15)', () => {
     const tree = (ScheduleCard as any)({
       windows: baseWindows,
       onStart: jest.fn(),
@@ -196,6 +185,6 @@ describe('ScheduleCard — calm active row (no card-in-card)', () => {
     const paddings = rows.map((r) => styleOf(r).paddingVertical);
     const unique = new Set(paddings);
     expect(unique.size).toBe(1);
-    expect(paddings[0]).toBeLessThanOrEqual(8);
+    expect(paddings[0]).toBe(15);
   });
 });

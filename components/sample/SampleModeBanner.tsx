@@ -1,20 +1,21 @@
 // ============================================================================
 // SAMPLE MODE BANNER
-// Slim pill shown on Now while the user is exploring with example data.
-// Tap opens ManageSampleDataSheet (set up vs. remove).
+// Single muted line shown on Now while the user is exploring with example
+// data. Tap opens ManageSampleDataSheet (set up vs. remove).
 //
-// Phase 33b Scope 2 — Surface 5 lavender scale reduction. Per Q-33b.7
-// lock: cream pill, optional small lavender sparkle icon, no border.
-// Pre-33b the entire pill carried lavender chrome (~100% footprint —
-// border + bg + icon + text + chevron). 33b retains the sparkle glyph
-// at lavender as a wayfinding garnish; everything else migrates to
-// cream tones. The sample-mode state is meta/system, not section
-// chrome — canon allows a tiny garnish accent for wayfinding without
-// using lavender as primary chrome.
+// UX-2 pre-launch — pill chrome retired in favour of a quiet text line.
+// Pre-UX-2 history (preserved for context):
+//   Phase 33b Scope 2 reframed the surface per Q-33b.7 lock: cream pill,
+//   small lavender sparkle icon, no border. Pre-33b the entire pill carried
+//   lavender chrome (~100% footprint — border + bg + icon + text + chevron).
+// UX-2 takes the next step: no pill at all. The sample-mode state is meta /
+// system, not section chrome; a single muted line ("✦ Viewing example
+// data ›") reads as wayfinding without competing with Now's content.
+// The ✦ glyph stays at caregiverAccent as a tiny garnish accent.
 // ============================================================================
 
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export interface SampleModeBannerProps {
@@ -30,58 +31,46 @@ export function SampleModeBanner({ isSampleMode, onPress }: SampleModeBannerProp
 
   return (
     <TouchableOpacity
-      style={styles.pill}
+      style={styles.line}
       onPress={onPress}
-      activeOpacity={0.85}
+      activeOpacity={0.6}
       accessibilityRole="button"
       accessibilityLabel="Viewing example data. Tap to manage."
       accessibilityHint="Opens the example data sheet to set up your own profile or remove the example."
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     >
-      <View style={styles.content}>
+      <Text style={styles.lineText}>
         <Text style={styles.glyph}>{'✦'}</Text>
-        <Text style={styles.label}>Viewing example data</Text>
-      </View>
-      <Text style={styles.chevron}>{'›'}</Text>
+        <Text>{' Viewing example data '}</Text>
+        <Text style={styles.chevron}>{'›'}</Text>
+      </Text>
     </TouchableOpacity>
   );
 }
 
-const createStyles = (c: any) => StyleSheet.create({
-  // Phase 33b Scope 2 — cream pill, no border. Pre-33b carried full
-  // lavender chrome (border + bg + label + chevron all lavender);
-  // 33b retains only the glyph as a lavender wayfinding garnish.
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: c.glass,
-    borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
-    marginHorizontal: 16, // allow: off-scale gap (intentional)
-    marginBottom: 12,
-  },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  // Lavender sparkle garnish — the only lavender on this pill post-33b.
-  glyph: {
-    fontSize: 13,
-    color: c.caregiverAccent,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: c.textPrimary,
-    letterSpacing: 0.1,
-  },
-  chevron: {
-    fontSize: 16,
-    color: c.textTertiary,
-    fontWeight: '500',
-  },
-});
+const createStyles = (c: any) =>
+  StyleSheet.create({
+    // UX-2 pre-launch — no pill chrome (no background, no border,
+    // no rounded corners). Just a single inline tappable line.
+    line: {
+      paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
+      paddingVertical: 6,
+      marginBottom: 12,
+      alignSelf: 'flex-start',
+    },
+    lineText: {
+      fontSize: 13,
+      color: c.textTertiary,
+      letterSpacing: 0.1,
+    },
+    // Lavender sparkle garnish — the only colored token on this surface.
+    glyph: {
+      color: c.caregiverAccent,
+    },
+    chevron: {
+      color: c.textTertiary,
+      fontWeight: '500',
+    },
+  });
 
 export default SampleModeBanner;

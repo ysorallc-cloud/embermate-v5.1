@@ -42,16 +42,15 @@ describe('Schedule card — single card with internal dividers', () => {
     }
   });
 
-  it('row vertical padding equalizes active + inactive at 8pt (May 2 spacing-pass Phase 4)', () => {
-    // History: prior passes set 14 (heavier) → 6 (parity-only). May 2
-    // Phase 4 lifts to 8 — gives every row a slightly taller tap target
-    // while preserving active/inactive height parity (still colour-only
-    // differentiation).
+  it('row vertical padding equalizes active + inactive at 15pt (UX-2 pre-launch period-row pad)', () => {
+    // History: 14 (heavier) → 6 (parity-only) → 8 (May 2 Phase 4) →
+    // 15 (UX-2 pre-launch period-row rhythm). Every row stays at the
+    // same paddingVertical; active state is colour-only.
     const rowBlock = cardSrc.match(/windowRow:\s*\{[^}]*\}/s);
     expect(rowBlock).toBeTruthy();
     const padMatch = rowBlock![0].match(/paddingVertical:\s*(\d+)/);
     expect(padMatch).toBeTruthy();
-    expect(Number(padMatch![1])).toBe(8);
+    expect(Number(padMatch![1])).toBe(15);
   });
 
   it('exposes windows + onStart props matching the spec', () => {

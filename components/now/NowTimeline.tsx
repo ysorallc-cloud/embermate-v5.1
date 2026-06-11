@@ -166,11 +166,13 @@ export function NowTimeline({
   return (
     <>
       <SectionHeaderRow
+        // UX-2 pre-launch — header `+` retired. The QuickLogFAB on Now
+        // is the canonical quick-add entry; the duplicate header icon
+        // adds nothing and clutters the schedule chrome. Care Plan →
+        // action stays as the bucket-config drilldown.
         title="Today's Schedule"
         action="Care Plan"
         onAction={() => navigate('/care-plan')}
-        iconAction="+"
-        onIconAction={() => navigate('/quick-log-more')}
         collapsed={timelineCollapsed}
         onToggleCollapse={onToggleCollapse}
         s={s}

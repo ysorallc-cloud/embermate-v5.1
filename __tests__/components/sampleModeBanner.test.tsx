@@ -86,20 +86,18 @@ describe('SampleModeBanner', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('renders a cream pill (Phase 33b Scope 2 — Q-33b.7 chrome retired, sparkle garnish only)', () => {
-    // Phase 33b Scope 2 reframed the pill per Q-33b.7 lock: cream pill,
-    // optional small lavender sparkle icon, no border. Pre-33b carried
-    // full lavender chrome (border + bg + label + chevron); 33b retains
-    // only the ✦ glyph as a lavender wayfinding garnish.
+  it('renders a quiet muted line, no pill chrome (UX-2 pre-launch — pill retired)', () => {
+    // UX-2 dropped the cream pill in favour of a single inline tappable
+    // line. The surface must have NO backgroundColor (no pill bg), NO
+    // border, and NO rounded radius. The ✦ glyph stays at caregiverAccent
+    // as a tiny wayfinding garnish.
     const tree = SampleModeBanner({ isSampleMode: true, onPress: () => {} });
     const button = findAll(tree, (n) => n.type === 'TouchableOpacity')[0];
     const flatStyle = Object.assign({}, ...(Array.isArray(button.props.style) ? button.props.style : [button.props.style]));
-    // Cream pill background (glass token) — warm-dark subtle pill,
-    // not lavender chrome.
-    expect(flatStyle.backgroundColor).toBe('#363830');
-    // No border — pre-33b had borderWidth 0.5 + lavender borderColor.
+    expect(flatStyle.backgroundColor).toBeUndefined();
     expect(flatStyle.borderWidth).toBeUndefined();
     expect(flatStyle.borderColor).toBeUndefined();
+    expect(flatStyle.borderRadius).toBeUndefined();
   });
 
   it('shows the ✦ glyph and a chevron affordance', () => {

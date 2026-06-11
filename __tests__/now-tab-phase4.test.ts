@@ -78,8 +78,10 @@ describe('Phase 4b — ScheduleCard row geometry', () => {
   const windowRow = extractStyleBody(src, 'windowRow');
   const windowRowDivider = extractStyleBody(src, 'windowRowDivider');
 
-  it('windowRow has paddingVertical: 8', () => {
-    expect(num(windowRow, 'paddingVertical')).toBe(8);
+  it('windowRow has paddingVertical: 15 (UX-2 pre-launch period-row pad)', () => {
+    // History: Phase 3 set 6 (parity-only), May 2 Phase 4 lifted to 8,
+    // UX-2 pre-launch bumped to 15 for the new period-row rhythm.
+    expect(num(windowRow, 'paddingVertical')).toBe(15);
   });
 
   it('hairline divider uses positive borderTopWidth (inset, NOT negative margin)', () => {

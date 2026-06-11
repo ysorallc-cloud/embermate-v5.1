@@ -61,26 +61,16 @@ export function ScheduleCard({ windows, onStart, onRowPress }: ScheduleCardProps
             <Text style={[s.windowLabel, w.isActive && s.windowLabelActive]}>
               {w.name}
             </Text>
+            {/* UX-2 pre-launch — "Start ›" affordance retired from active
+                rows. One status per row is the new contract: the active
+                row reads in sage with the same "X remaining" text as the
+                inactive rows; tapping the row still expands the timeline
+                via onRowPress, which is the canonical entry into a
+                window's items. */}
             <Text style={[s.windowStatus, w.isActive && s.windowStatusActive]}>
               {statusText}
             </Text>
-            {w.isActive ? (
-              <TouchableOpacity
-                style={s.windowStartLink}
-                onPress={() => onStart(w.window)}
-                activeOpacity={0.7}
-                accessibilityLabel={`Start ${w.name} routine`}
-                accessibilityRole="button"
-                // hitSlop bumped to clear the 44pt HIG min tap target —
-                // visual height is small (font 13 + paddingVertical 2*2 =
-                // 17), so vertical hitSlop pushes total tappable to ≥45pt.
-                hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
-              >
-                <Text style={s.windowStartLinkText}>{'Start ›'}</Text>
-              </TouchableOpacity>
-            ) : (
-              <Text style={s.windowChevron}>{'▾'}</Text>
-            )}
+            <Text style={s.windowChevron}>{'▾'}</Text>
           </TouchableOpacity>
         );
       })}
@@ -108,7 +98,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 8,
+    // UX-2 pre-launch — bumped from 8 to 15 for the new period-row
+    // rhythm. The visual height was the thinnest tappable surface on
+    // Now; 15 gives the row noticeable air without growing the card.
+    paddingVertical: 15, // allow: UX-2 period-row pad
     paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt)
   },
   windowRowDivider: {

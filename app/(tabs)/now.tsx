@@ -252,7 +252,11 @@ export default function NowScreen() {
   // Timeline collapse state — default expanded so users see their schedule
   // Default collapsed: caregiver sees the schedule overview (window banners)
   // first, then taps Start / a window to expand its items.
-  const [timelineCollapsed, setTimelineCollapsed] = useState(true);
+  // UX-2 pre-launch — timeline opens by default. Completed time windows
+  // still auto-collapse inside the expanded view (TimelineSection
+  // collapsedWindows initializer), so "done items stay compressed"
+  // without keeping the whole schedule shut.
+  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
 
   // Phase 15.6 — `brief` state + setter retired. The Today's Journal
   // preview tile in NowFooter consumed it; the tile has been removed
