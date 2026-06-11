@@ -241,7 +241,12 @@ export default function OnboardingFlow() {
       );
     }
     return (
-      <View style={{ width: SCREEN_WIDTH, flex: 1 }}>{screen}</View>
+      // Round 3 right-edge bleed fix — overflow:'hidden' clips any
+      // aurora/background overhang at the slide boundary so an
+      // adjacent slide's content can't peek through during paging.
+      <View style={{ width: SCREEN_WIDTH, flex: 1, overflow: 'hidden' }}>
+        {screen}
+      </View>
     );
   };
 

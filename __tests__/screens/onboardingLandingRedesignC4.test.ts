@@ -71,9 +71,11 @@ describe('Onboarding redesign C4 — Landing screen', () => {
     expect(LANDING).toMatch(/Start with\s*\$\{[\s\S]{0,50}name[\s\S]{0,5}\}/);
   });
 
-  it('contract 4 (EMBER GRADIENT): ember + emberDeep tokens referenced; no slab-green (#5fb88a)', () => {
-    expect(LANDING).toMatch(/colors\.ember\b/);
-    expect(LANDING).toMatch(/emberDeep/);
+  it('contract 4 (CHARCOAL INK GRADIENT): ONBOARDING_CTA_GRADIENT imported from the shared onboardingTokens; no slab-green (#5fb88a)', () => {
+    // Onboarding redesign Round 3 — the four CTAs unify on the
+    // bridge palette via the shared constant.
+    expect(LANDING).toMatch(/ONBOARDING_CTA_GRADIENT/);
+    expect(LANDING).toMatch(/from\s+['"]\.\.\/onboardingTokens['"]/);
     expect(LANDING).not.toMatch(/#5fb88a/i);
   });
 

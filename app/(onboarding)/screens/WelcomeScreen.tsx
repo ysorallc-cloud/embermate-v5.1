@@ -32,6 +32,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { ONBOARDING_CTA_GRADIENT } from '../onboardingTokens';
 
 // Post-walk width single-sourcing fix — the screen fills its
 // orchestrator wrapper (which reads useWindowDimensions). The root
@@ -81,6 +82,11 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onContinue }) => {
           ))}
         </View>
 
+        {/* Round 3 rhythm fix — spacer pushes the CTA to the bottom
+            while the title+points compose as one upper two-thirds
+            block, instead of justify-space-between's dead gap. */}
+        <View style={styles.spacer} />
+
         <Pressable
           onPress={onContinue}
           accessibilityRole="button"
@@ -91,7 +97,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onContinue }) => {
           ]}
         >
           <LinearGradient
-            colors={[colors.ember, colors.emberDeep]}
+            colors={ONBOARDING_CTA_GRADIENT as unknown as string[]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.ctaGradient}
@@ -118,7 +124,10 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xl, // allow: top third breathes — onboarding rhythm lock
     paddingBottom: 32, // allow: C1 spec — 32px bottom safe inset for the CTA
-    justifyContent: 'space-between',
+    // Round 3 rhythm fix — justify-space-between created a dead gap
+    // between the subtitle and the value points. Layout now flows
+    // top-to-bottom: title block → points (with marginTop xxl-equivalent
+    // below) → flex spacer → CTA pinned at bottom.
   },
   topBlock: {
     alignItems: 'flex-start',
@@ -150,7 +159,13 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     borderLeftWidth: 1,
     borderLeftColor: 'rgba(255, 140, 66, 0.30)',
     paddingLeft: Spacing.md,
-    marginVertical: Spacing.xl,
+    // Round 3 rhythm fix — xxl-equivalent (Spacing.xl = 36 + Spacing.md = 20)
+    // pulls the points up so the title block + points compose together
+    // as the upper two-thirds.
+    marginTop: 56, // allow: Round 3 — Spacing.xxl-equivalent (xl + md)
+  },
+  spacer: {
+    flex: 1,
   },
   pointRow: {
     // 20px vertical gap between value points per C1 spec.

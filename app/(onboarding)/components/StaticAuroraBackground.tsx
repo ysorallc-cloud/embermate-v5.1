@@ -30,9 +30,14 @@ const AURORA_CONFIGS: Record<OnboardingAuroraVariant, {
   colors: [string, string, string];
 }> = {
   welcome: {
+    // Onboarding redesign Round 3 — warm-up. Charcoal Ink register:
+    // a faint ember glow at the top fades through a whisper of dusty
+    // blue to charcoal. Replaces the prior teal-leaning palette so
+    // the four onboarding screens read as one coherent surface.
+    // Only the 'welcome' variant is used by the new 4-screen flow.
     colors: [
-      'rgba(20, 120, 100, 0.5)',
-      'rgba(40, 80, 100, 0.25)',
+      'rgba(201, 138, 74, 0.16)',
+      'rgba(107, 140, 174, 0.08)',
       'transparent',
     ],
   },
@@ -101,8 +106,11 @@ const styles = StyleSheet.create({
   primaryLayer: {
     position: 'absolute',
     top: -50,
-    left: '-15%',
-    right: '-15%',
+    // Round 3 right-edge bleed fix — the -15% horizontal overhang
+    // served no purpose for a vertical gradient and bled into the
+    // adjacent slide (paged FlatList). Flush to the container.
+    left: 0,
+    right: 0,
     bottom: 0,
   },
   primaryGradient: {

@@ -58,9 +58,16 @@ describe('Onboarding redesign C1 — Welcome screen', () => {
     expect(SRC).toMatch(/Fonts\.serifItalic\b/);
   });
 
-  it('contract 4 (EMBER GRADIENT CTA): ember + emberDeep tokens referenced; no slab-green (#5fb88a) in source', () => {
-    expect(SRC).toMatch(/colors\.ember\b/);
-    expect(SRC).toMatch(/emberDeep/);
+  it('contract 4 (CHARCOAL INK CTA GRADIENT): the shared ONBOARDING_CTA_GRADIENT bridge palette is imported; no slab-green (#5fb88a) in source', () => {
+    // Onboarding redesign Round 3 — primary CTAs across the four
+    // screens unify on the Charcoal Ink bridge gradient
+    // ['#e09556', '#c98a4a'] exported from app/(onboarding)/
+    // onboardingTokens.ts. The website's colors.ember /
+    // colors.emberDeep theme tokens stay untouched for other in-app
+    // surfaces; onboarding routes through the dedicated constant so
+    // the palette can drift independently.
+    expect(SRC).toMatch(/ONBOARDING_CTA_GRADIENT/);
+    expect(SRC).toMatch(/from\s+['"]\.\.\/onboardingTokens['"]/);
     expect(SRC).not.toMatch(/#5fb88a/i);
   });
 

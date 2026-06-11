@@ -71,9 +71,9 @@ describe('Onboarding redesign C3 — Name screen', () => {
     expect(SRC).toContain('e.g. Mom, Dad, Linda');
   });
 
-  it('contract 6 (EMBER CONTINUE CTA): ember + emberDeep tokens referenced; "Continue" label; no slab-green (#5fb88a)', () => {
-    expect(SRC).toMatch(/colors\.ember\b/);
-    expect(SRC).toMatch(/emberDeep/);
+  it('contract 6 (CHARCOAL INK CONTINUE CTA): ONBOARDING_CTA_GRADIENT imported; "Continue" label; no slab-green (#5fb88a)', () => {
+    // Onboarding redesign Round 3 — shared bridge palette.
+    expect(SRC).toMatch(/ONBOARDING_CTA_GRADIENT/);
     expect(SRC).toMatch(/['"`]Continue['"`]/);
     expect(SRC).not.toMatch(/#5fb88a/i);
   });

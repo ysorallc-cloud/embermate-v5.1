@@ -35,6 +35,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing, BorderRadius } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { ONBOARDING_CTA_GRADIENT } from '../onboardingTokens';
 
 // Post-walk width single-sourcing fix — root style is flex:1 only.
 
@@ -157,7 +158,7 @@ export const PrivacyDisclaimerScreen: React.FC<Props> = ({
           ]}
         >
           <LinearGradient
-            colors={[colors.ember, colors.emberDeep]}
+            colors={ONBOARDING_CTA_GRADIENT as unknown as string[]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.ctaGradient}

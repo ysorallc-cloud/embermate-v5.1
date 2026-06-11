@@ -70,9 +70,11 @@ describe('Onboarding redesign C2 — Privacy screen', () => {
     expect(SRC).toMatch(/Fonts\.serifItalic\b/);
   });
 
-  it('contract 5 (OWN CONTINUE CTA): the screen renders an ember-gradient "Continue" button', () => {
-    expect(SRC).toMatch(/colors\.ember\b/);
-    expect(SRC).toMatch(/emberDeep/);
+  it('contract 5 (OWN CONTINUE CTA — CHARCOAL INK BRIDGE): the screen renders a "Continue" button using the shared ONBOARDING_CTA_GRADIENT', () => {
+    // Onboarding redesign Round 3 — the four screens unify on the
+    // Charcoal Ink bridge gradient via ONBOARDING_CTA_GRADIENT
+    // exported from app/(onboarding)/onboardingTokens.ts.
+    expect(SRC).toMatch(/ONBOARDING_CTA_GRADIENT/);
     expect(SRC).toMatch(/['"`]Continue['"`]/);
   });
 

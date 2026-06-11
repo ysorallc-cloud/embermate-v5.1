@@ -37,6 +37,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
 import { Colors, Fonts, Spacing } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { ONBOARDING_CTA_GRADIENT } from '../onboardingTokens';
 
 // Post-walk width single-sourcing fix — root style is flex:1 only.
 
@@ -79,11 +80,18 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
       <StaticAuroraBackground variant="welcome" />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.content}>
-        <View style={styles.topBlock}>
-          <Text style={styles.headline}>{`Meet ${name}.`}</Text>
-          <Text style={styles.warm}>
-            {`${name}'s care starts here. Log what happens, when it happens — a few taps a day, in your own words.`}
-          </Text>
+        {/* Round 3 vertical-centering fix — wrap the title block in
+            a flex:1 + justifyContent:'center' container so "Meet
+            {name}." floats at the visual center of the screen
+            instead of hiding at the top with the entire middle
+            empty. The CTA stays pinned at the bottom. */}
+        <View style={styles.centerBlock}>
+          <View style={styles.topBlock}>
+            <Text style={styles.headline}>{`Meet ${name}.`}</Text>
+            <Text style={styles.warm}>
+              {`${name}'s care starts here. Log what happens, when it happens — a few taps a day, in your own words.`}
+            </Text>
+          </View>
         </View>
 
         <Pressable
@@ -99,7 +107,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
           ]}
         >
           <LinearGradient
-            colors={[colors.ember, colors.emberDeep]}
+            colors={ONBOARDING_CTA_GRADIENT as unknown as string[]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.ctaGradient}
@@ -130,7 +138,14 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xl, // allow: C4 spec — top third breathes
     paddingBottom: 32, // allow: C4 spec — 32px safe inset for CTA
-    justifyContent: 'space-between',
+    // Round 3 vertical-centering fix — centerBlock owns the upper
+    // flex region with justifyContent:'center'; the CTA sits at the
+    // natural bottom of the column. justify-space-between left the
+    // headline glued to the top with the middle empty.
+  },
+  centerBlock: {
+    flex: 1,
+    justifyContent: 'center',
   },
   topBlock: {
     alignItems: 'flex-start',
