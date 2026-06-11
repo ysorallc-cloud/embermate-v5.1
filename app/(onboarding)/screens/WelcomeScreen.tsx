@@ -97,7 +97,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onContinue }) => {
           ]}
         >
           <LinearGradient
-            colors={ONBOARDING_CTA_GRADIENT as unknown as string[]}
+            colors={ONBOARDING_CTA_GRADIENT}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.ctaGradient}
