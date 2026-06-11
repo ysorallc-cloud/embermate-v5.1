@@ -1,46 +1,55 @@
 // ============================================================================
-// ONBOARDING FLOW — 5-Screen Experience (v1.0; Phase 16.3)
-// Welcome → Privacy → Meet (sample) → As You Use → Get Started
+// ONBOARDING FLOW — 4-Screen Emotional Flow (pre-launch redesign)
+// Welcome (C1) → Privacy (C2) → Name (C3) → Landing (C4)
 //
-// Phase 16.3 — "Who are you caring for?" (WhoIsThisForScreen) cut from
-// the welcome flow. The careMode selection drove only in-onboarding
-// copy variations and no persistent app state: the CARE_MODE storage
-// key had zero production readers, and the relationship value never
-// flowed into Patient.relationship (the default Patient row hardcodes
-// relationship='self' in patientRegistry regardless). Per the spec's
-// stated trade-off ("if the 'myself' path is meaningfully different
-// and someone needs it, they can configure in Settings later"), the
-// screen was retired and careMode is now hardcoded 'caregiver' (the
-// primary EmberMate use case).
+// SCOPED REPLACEMENT — not a rebuild. The wizard at /care-plan/setup
+// stays intact and is reachable post-onboarding from the Now tab's
+// Care Plan link. Onboarding's job is the emotional landing: voice,
+// brand register, and the minimum capture (patient name) needed to
+// personalize the Now tab.
 //
-// The WhoIsThisForScreen.tsx file is left in place as orphan source
-// (matches 15.10 / 15.6 patterns) for a separate cleanup scope or
-// v1.1+ re-introduction as a Settings-page selector.
+// Phase 16.3 — "Who are you caring for?" (WhoIsThisForScreen) cut
+// from the welcome flow earlier; careMode hardcoded 'caregiver'.
+// File left as orphan source per the established pattern.
+//
+// Pre-launch redesign C4 — the prior 5-screen flow
+//   Welcome → Privacy → Meet (sample) → As You Use → Get Started
+// is restructured. MeetSampleScreen, AsYouUseScreen, GetStartedScreen
+// retired from the main flow. NameScreen (C3) replaces patient-name
+// capture; LandingScreen (C4) is the new completion screen with
+// "Meet {name}." display + warm italic + "Start with {name}" CTA.
+// completeOnboarding now writes the three required keys + calls
+// writePatientName + generates the default care plan + lands the
+// user on /(tabs)/now (no wizard handoff).
+//
+// The cut screens (MeetSampleScreen / AsYouUseScreen / GetStartedScreen)
+// remain on disk as orphan source per the established 15.10 / 15.6
+// pattern; a separate cleanup scope can sweep them later. The Set Up
+// + Sample option from GetStartedScreen is retired in v1; users who
+// want the populated example exercise it from a future Settings
+// surface.
 // ============================================================================
 
 import React, { useRef, useState, useMemo } from 'react';
 import { View, StyleSheet, FlatList, Dimensions, Pressable, Text } from 'react-native';
 import Animated, { useSharedValue, useAnimatedScrollHandler } from 'react-native-reanimated';
 import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { safeSetItem } from '../../utils/safeStorage';
 
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { PrivacyDisclaimerScreen } from './screens/PrivacyDisclaimerScreen';
 import { NameScreen } from './screens/NameScreen';
-import { GetStartedScreen } from './screens/GetStartedScreen';
-import { AsYouUseScreen } from './screens/AsYouUseScreen';
+import { LandingScreen } from './screens/LandingScreen';
 
 import { PaginationDots } from './components/PaginationDots';
-import { seedSampleData } from '../../utils/sampleData';
-import { resetSampleBannerMode } from '../../utils/sampleDataManager';
-import { initializeSampleData } from '../../utils/sampleDataGenerator';
 import { logError } from '../../utils/devLog';
 import { Colors, Typography, Spacing, BorderRadius } from '../../theme/theme-tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { StorageKeys } from '../../utils/storageKeys';
 import { generateCarePlanFromOnboarding, OnboardingAnswers } from '../../utils/onboardingToPlan';
 import { saveCarePlanConfig } from '../../storage/carePlanConfigRepo';
+import { writePatientName } from '../../utils/patientNameWriter';
+import { DEFAULT_PATIENT_ID } from '../../storage/carePlanRepo';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -58,16 +67,16 @@ const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 // (free-text + library-aware picker) that warrants its own UX pass; that
 // design lands with v7. Until then, the WatchForScreen contract is ready
 // to slot in once a Diagnosis[] is captured on this side of onboarding.
-// Onboarding redesign C3 — MeetSampleScreen retired from the main
-// flow at index 2 in favor of the new NameScreen. The full
-// 4-screen restructure (cutting AsYouUseScreen + GetStartedScreen
-// and adding the Landing "Meet {name}" screen) lands in C4.
+// Onboarding redesign C4 — final 4-screen flow.
+//   0 → Welcome (C1) — voice-setting hero
+//   1 → Privacy   (C2) — disclaimer + terms
+//   2 → Name      (C3) — patient-name capture
+//   3 → Landing   (C4) — "Meet {name}." + completion
 const ONBOARDING_SCREENS = [
   { id: '1', title: 'Welcome' },
   { id: '2', title: 'Privacy' },
   { id: '3', title: 'Name' },
-  { id: '4', title: 'As You Use' },
-  { id: '5', title: 'Get Started' },
+  { id: '4', title: 'Landing' },
 ];
 
 export default function OnboardingFlow() {
@@ -82,9 +91,9 @@ export default function OnboardingFlow() {
   // and to writePatientName at completion. Default empty until C3.
   const [patientName, setPatientName] = useState('');
   // Phase 16.3 — careMode hardcoded to 'caregiver' (primary EmberMate
-  // use case). The state hook + WhoIsThisForScreen selector were
-  // retired; see the file's header comment for the audit findings.
-  const careMode: 'caregiver' | 'self' = 'caregiver';
+  // use case). Retained as a literal for the generateCarePlanFromOnboarding
+  // answers shape below.
+  const careMode: 'caregiver' = 'caregiver';
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -103,20 +112,36 @@ export default function OnboardingFlow() {
 
   // Phase 16.3 — handleSelectCareMode retired with WhoIsThisForScreen.
 
-  const handleAcceptDisclaimer = async (seedData: boolean) => {
-    await completeOnboarding(seedData);
-  };
-
-  const completeOnboarding = async (seedData: boolean = false) => {
+  // Onboarding redesign C4 — three required onboarding writes +
+  // patient-name persistence + default care plan + land on Now.
+  // No wizard handoff, no sample-data path here (Settings can
+  // surface a populated example later if needed).
+  const completeOnboarding = async () => {
     try {
+      // 1. ONBOARDING_COMPLETE — gate consumer for first-time UX
+      //    surfaces (FirstTimeWelcomeCard, prompt systems).
       await safeSetItem(StorageKeys.ONBOARDING_COMPLETE, 'true');
+      // 2. disclaimer_accepted — terms acceptance from C2.
       await safeSetItem('disclaimer_accepted', 'true');
-      await safeSetItem(StorageKeys.CARE_MODE, careMode);
+      // 3. Patient name — canonical write via writePatientName
+      //    (registry + AsyncStorage mirror + EVENT.PATIENT emit).
+      //    The C3 NameScreen's Continue button guards against empty,
+      //    but writePatientName itself no-ops on empty trim — extra
+      //    belt and suspenders.
+      try {
+        await writePatientName(DEFAULT_PATIENT_ID, patientName);
+      } catch (nameError) {
+        logError('OnboardingFlow.writePatientName', nameError);
+        // Non-blocking — the name can be re-entered later via the
+        // post-onboarding profile nudge (Now tab) or Settings.
+      }
 
-      // Generate initial care plan from onboarding answers
+      // Default care plan — meds + wellness enabled per C4 spec.
+      // wellness.timesOfDay defaults to ['morning','evening'] via the
+      // 'morning_evening' cadence (CADENCE_TO_TIMES map).
       try {
         const answers: OnboardingAnswers = {
-          relationship: careMode === 'self' ? 'self' : 'parent',
+          relationship: 'parent',
           careAreas: ['medications', 'wellness'],
           concerns: [],
           cadence: 'morning_evening',
@@ -125,32 +150,13 @@ export default function OnboardingFlow() {
         await saveCarePlanConfig(carePlanConfig);
       } catch (cpError) {
         logError('OnboardingFlow.generateCarePlan', cpError);
-        // Non-blocking — app works without initial care plan
+        // Non-blocking — app works without initial care plan; user
+        // can configure via the Now tab's Care Plan link.
       }
 
-      // Seed sample data if requested
-      if (seedData) {
-        // Clear the initialized flag so initializeSampleData() runs fresh
-        // (may still be set from a previous onboarding cycle)
-        await AsyncStorage.removeItem(StorageKeys.SAMPLE_DATA_INITIALIZED);
-        await seedSampleData({ daysOfData: 14 });
-        await initializeSampleData();
-        // Phase 5.13.1.e — fresh sample seed shows banner in 'full' mode
-        // on first Now-tab landing.
-        await resetSampleBannerMode();
-        // Sample-mode users land on Now and pick up the wizard later via
-        // the banner — preserve the legacy route here.
-        router.replace('/(tabs)/now');
-        return;
-      }
-
-      // Phase 5.13.f — real-mode path now hands off to the wizard so
-      // the user picks a template and confirms buckets before landing
-      // on Now. Cancel from the wizard returns to the onboarding stack.
-      router.replace({
-        pathname: '/care-plan/setup/who',
-        params: { from: 'onboarding' },
-      } as any);
+      // Land on the Now tab. The wizard at /care-plan/setup stays
+      // reachable from there but is no longer a hard handoff.
+      router.replace('/(tabs)/now');
     } catch (error) {
       logError('OnboardingFlow.completeOnboarding', error);
     }
@@ -173,9 +179,8 @@ export default function OnboardingFlow() {
     });
   };
 
-  // Phase 16.3 — renderer reindexed after WhoIsThisFor cut. Screen
-  // ordering is now Welcome(0) → Privacy(1) → Meet(2) → AsYouUse(3)
-  // → GetStarted(4).
+  // Onboarding redesign C4 — final 4-screen renderer.
+  //   0 Welcome (C1) → 1 Privacy (C2) → 2 Name (C3) → 3 Landing (C4)
   const renderItem = ({ item, index }: any) => {
     if (index === 0) {
       // Onboarding redesign C1 — Welcome owns its own "Begin" CTA
@@ -211,29 +216,23 @@ export default function OnboardingFlow() {
       );
     }
     if (index === 3) {
-      return <AsYouUseScreen onContinue={advanceToNext} />;
-    }
-    if (index === 4) {
-      return <GetStartedScreen onComplete={handleAcceptDisclaimer} careMode={careMode} />;
+      return (
+        <LandingScreen
+          patientName={patientName}
+          onComplete={completeOnboarding}
+        />
+      );
     }
     return null;
   };
 
-  // Phase 16.3 — footer-hide indices reshifted after WhoIsThisFor cut.
-  // Hide footer on screen 3 (AsYouUse — own Got it button) and screen
-  // 4 (GetStarted — its own two-card layout owns the next action).
-  // Onboarding redesign C1 — hide on screen 0 (Welcome — own Begin CTA).
-  // Onboarding redesign C2 — hide on screen 1 (Privacy — own Continue CTA).
-  // Onboarding redesign C3 — hide on screen 2 (Name — own Continue CTA).
-  const showFooter =
-    currentIndex !== 0 &&
-    currentIndex !== 1 &&
-    currentIndex !== 2 &&
-    currentIndex !== 3 &&
-    currentIndex !== 4;
-  // Privacy is now index 1; the Next button stays disabled until the
-  // disclaimer toggle is accepted.
-  const isNextDisabled = currentIndex === 1 && !disclaimerAccepted;
+  // Onboarding redesign C4 — every screen in the 4-screen flow owns
+  // its own CTA. The shared footer (pagination + Next button) is
+  // hidden on all indices; PaginationDots is kept imported for the
+  // current scope's structure but no longer renders. A future
+  // cleanup commit can retire the footer JSX + the import together.
+  const showFooter = false;
+  const isNextDisabled = false;
 
   return (
     <View style={styles.container}>

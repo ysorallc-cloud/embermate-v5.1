@@ -1,9 +1,22 @@
 // ============================================================================
-// Phase 5.13.f — onboarding routes "Set up my loved one" to the wizard.
+// Phase 5.13.f → Onboarding redesign C4 — wizard handoff RETIRED.
 //
-// completeOnboarding(false) now lands on /care-plan/setup/who?from=onboarding
-// instead of /(tabs)/now. The seedData === true branch is unchanged —
-// sample-mode users transition into the wizard later via the banner.
+// Original Phase 5.13.f intent: completeOnboarding(false) lands on
+// /care-plan/setup/who?from=onboarding instead of /(tabs)/now. That
+// behavior was the pre-redesign wizard-driven onboarding shape.
+//
+// Pre-launch C4 retires the wizard handoff entirely:
+//   • completeOnboarding writes ONBOARDING_COMPLETE + disclaimer_accepted
+//     + calls writePatientName + generates the default care plan + lands
+//     the user directly on /(tabs)/now.
+//   • The wizard at /care-plan/setup stays UNTOUCHED but is reachable
+//     post-onboarding from the Now tab's Care Plan link, not via
+//     onboarding handoff.
+//
+// This file is preserved (not deleted) so the migration is visible in
+// the git history at the same path. The active four-screen flow
+// contracts live in
+// __tests__/screens/onboardingLandingRedesignC4.test.ts.
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -15,19 +28,22 @@ const src = readFileSync(
   'utf8',
 );
 
-describe('Phase 5.13.f — onboarding routes real-mode path to wizard', () => {
-  it('completeOnboarding navigates to the wizard for the real-mode branch', () => {
-    expect(src).toMatch(/care-plan\/setup\/who/);
+describe('Onboarding redesign C4 — wizard handoff retired', () => {
+  it('completeOnboarding lands on /(tabs)/now (no wizard handoff)', () => {
+    expect(src).toMatch(/router\.replace\(\s*['"]\/\(tabs\)\/now['"]/);
   });
 
-  it('passes from=onboarding to the wizard', () => {
-    expect(src).toMatch(/from:\s*['"]onboarding['"]/);
+  it('no longer passes from=onboarding to the wizard (the handoff is gone)', () => {
+    // Forward-guard: if a future change reintroduces the wizard
+    // handoff at completion, this contract catches it. The wizard
+    // remains REACHABLE from the Now tab, just not via a hard
+    // handoff at onboarding completion.
+    expect(src).not.toMatch(/router\.replace\(\s*\{\s*pathname:\s*['"]\/care-plan\/setup\/who['"][\s\S]{0,200}from:\s*['"]onboarding['"]/);
   });
 
-  it('preserves the legacy /(tabs)/now route for the seedData === true (sample) branch', () => {
-    // Sample-mode users still land on Now after seeding; they pick up
-    // the wizard later via the banner. Only the seedData === false
-    // branch was retargeted.
-    expect(src).toMatch(/\/\(tabs\)\/now/);
+  it('preserves the three required onboarding writes (the C4 lock)', () => {
+    expect(src).toMatch(/safeSetItem\s*\(\s*StorageKeys\.ONBOARDING_COMPLETE/);
+    expect(src).toMatch(/safeSetItem\s*\(\s*['"]disclaimer_accepted['"]/);
+    expect(src).toMatch(/writePatientName/);
   });
 });
