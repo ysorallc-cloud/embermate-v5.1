@@ -967,7 +967,26 @@ export default function JournalTab() {
             const subjectiveEmpty = !hasGestalt && !hasNotes;
             return (
               <>
-              {/* Phase 27 F3 / 27.X — Section 1 (Subjective).
+              {/* UX-3 pre-launch — section order reshuffled per the
+                  pre-launch device walk:
+                    1. Worth flagging   (was Section 3, amber)
+                    2. How today went   (was Section 1, caregiverAccent)
+                    3. What was logged  (was Section 2, neutral)
+                    4. For the next caregiver (Section 4, unchanged)
+                  Worth flagging leads with the urgency-bearing surface
+                  so flags are visible without scrolling past gestalt /
+                  bucket fields. TodayNotableMoments still null-renders
+                  when no moments exist, so the lead position collapses
+                  cleanly on quiet days. */}
+
+              {/* Section 3 → Position 1 — "Worth flagging" (amber).
+                  TodayNotableMoments owns the SoapSectionFrame amber
+                  chrome when wrapInSection is set. Returns null when
+                  no moments — the entire section card collapses, no
+                  empty assessment chrome appears. */}
+              <TodayNotableMoments dateKey={selectedDate} wrapInSection />
+
+              {/* Section 1 → Position 2 — "How today went" (caregiverAccent).
                   Lavender card carrying the witness-voice gestalt. The
                   bare-mode GestaltSummary skips its standalone chrome
                   because JournalSection owns the card shape. The
@@ -975,8 +994,7 @@ export default function JournalTab() {
                   Phase 27.X D1 — past days are read-only; the prompt's
                   forward-handoff voice doesn't fit a closed day. Past
                   with no gestalt falls back to GestaltSummary's
-                  "No record from this day." (the same tuned phrasing
-                  NarrativeView used). */}
+                  "No record from this day." */}
               <SoapSectionFrame eyebrow="How today went" tint="caregiverAccent">
                 {!isViewingPast && subjectiveEmpty ? (
                   <TouchableOpacity
@@ -994,7 +1012,7 @@ export default function JournalTab() {
                 )}
               </SoapSectionFrame>
 
-              {/* Phase 27 F2/F3 — Section 2 (Objective).
+              {/* Section 2 → Position 3 — "What was logged" (neutral).
                   Hybrid gutter layout per Q-27.2c: bucket header above,
                   name|time sub-rows beneath. Pre-filter logic in this
                   IIFE drives the per-bucket gates (pending dedup —
@@ -1003,9 +1021,11 @@ export default function JournalTab() {
                   state (Q-27.9 — warm "Nothing logged yet today" line
                   rather than a collapsed blank section). loggedOnly
                   prop on each narrative does the in-component pending
-                  suppression for the rendered rows. Section as a whole
-                  is still gated on brief !== null so no chrome flashes
-                  during the initial load. */}
+                  suppression for the rendered rows. UX-3 contract: the
+                  section is FULLY VISIBLE — no collapse, no truncation;
+                  every populated bucket renders its narrative in full.
+                  Gated on brief !== null so no chrome flashes during
+                  the initial load. */}
               {brief && (() => {
                 const loggedMeds = brief.medications.filter(m => m.status !== 'pending');
                 const hasMedsLogged = loggedMeds.length > 0;
@@ -1077,14 +1097,12 @@ export default function JournalTab() {
                 );
               })()}
 
-              {/* Phase 27 F5 — Section 3 (Assessment).
-                  TodayNotableMoments owns the JournalSection amber
-                  chrome ("Worth flagging") when wrapInSection is set.
-                  Returns null when no moments — the entire section
-                  card collapses, no empty assessment chrome appears. */}
-              <TodayNotableMoments dateKey={selectedDate} wrapInSection />
+              {/* UX-3 pre-launch — TodayNotableMoments (Section 3)
+                  moved to Position 1 above. The lead-position reshuffle
+                  surfaces the flag list before the gestalt + bucket
+                  fields without rebuilding the existing section. */}
 
-              {/* Phase 27 F6 / 27.X — Section 4 (Plan / Notes).
+              {/* Section 4 → Position 4 — "For the next caregiver" (unchanged).
                   Lavender bookend, paired with Section 1.
                     • Today: eyebrow "For the next caregiver", with
                       STILL PENDING + NOTES sub-blocks.

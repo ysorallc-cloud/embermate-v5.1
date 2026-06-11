@@ -78,14 +78,20 @@ describe('Phase 27 F8 — Journal SOAP four-section structure', () => {
     expect(s2!.start).toBeGreaterThan(s1!.start);
   });
 
-  it('contract 4: Section 3 (Assessment) — mounted as <TodayNotableMoments wrapInSection />, AFTER Section 2', () => {
-    const s2 = findSoapSectionFrameByEyebrow('What was logged');
-    expect(s2).toBeTruthy();
+  it('contract 4 [UX-3 reshuffle]: Section 3 (Assessment) — mounted as <TodayNotableMoments wrapInSection />, BEFORE Section 1', () => {
+    // Pre-UX-3 the Phase 27 SOAP order was S1 → S2 → S3 → S4. UX-3
+    // pre-launch device walk moved S3 (Worth Flagging) to the lead
+    // position so flags are visible without scrolling: the new order
+    // is S3 → S1 → S2 → S4. TodayNotableMoments wrapInSection still
+    // owns the amber chrome internally and still null-renders when
+    // no moments fire — only the position shifted.
+    const s1 = findSoapSectionFrameByEyebrow('How today went');
+    expect(s1).toBeTruthy();
     const notableMount = STRIPPED.match(/<TodayNotableMoments[\s\S]*?\/>/);
     expect(notableMount).toBeTruthy();
     expect(notableMount![0]).toMatch(/\bwrapInSection\b/);
     const notableIdx = STRIPPED.indexOf(notableMount![0]);
-    expect(notableIdx).toBeGreaterThan(s2!.start);
+    expect(notableIdx).toBeLessThan(s1!.start);
   });
 
   it('contract 5: Section 4 (Plan) — eyebrow conditional today/past, tint caregiverAccent, AFTER Section 3', () => {

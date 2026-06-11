@@ -113,16 +113,19 @@ describe('Phase 27 F8 — Journal SOAP redesign structural contract (downstream 
     expect(frames[2].tag).toContain('For the next caregiver');
   });
 
-  it('invariant 1: S3 (TodayNotableMoments wrapInSection) renders AFTER S2 and BEFORE S4 in source order', () => {
+  it('invariant 1 [UX-3 reshuffle]: S3 (TodayNotableMoments wrapInSection) renders BEFORE S1 in source order (lead position)', () => {
+    // Pre-UX-3 the Phase 27 SOAP layout was S1 → S2 → S3 → S4.
+    // UX-3 pre-launch device walk moved Worth Flagging to the lead
+    // position: S3 → S1 → S2 → S4. The lavender bookend rhythm
+    // (S1 + S4 both caregiverAccent) is unchanged — only the
+    // assessment-card position moved.
     const frames = findAllSoapFrames(journalStripped);
-    const s2Start = frames[1].start;
-    const s4Start = frames[2].start;
+    const s1Start = frames[0].start;
     const notableMount = journalStripped.match(/<TodayNotableMoments[\s\S]*?\/>/);
     expect(notableMount).toBeTruthy();
     expect(notableMount![0]).toMatch(/\bwrapInSection\b/);
     const notableIdx = journalStripped.indexOf(notableMount![0]);
-    expect(notableIdx).toBeGreaterThan(s2Start);
-    expect(notableIdx).toBeLessThan(s4Start);
+    expect(notableIdx).toBeLessThan(s1Start);
   });
 
   // --------------------------------------------------------------------------
