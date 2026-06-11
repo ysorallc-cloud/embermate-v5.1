@@ -52,6 +52,17 @@ utils/                # Utility functions (80+ files)
 - `DailyCareInstance` = daily occurrences generated from items by `ensureDailyInstances()`
 - `syncMedicationItemsWithConfig()` keeps CarePlanItems in sync with config medications
 
+### Notification Reminder Gates (Phase 34 notification slice)
+- Single canonical scheduler: `utils/notificationService.ts` (`scheduleCarePlanNotifications`, `rescheduleAllNotifications`). No `services/notificationService.ts` exists — that path is folkloric.
+- All four bucket types route reminders through LIVE-READ gates as of the notification slice. The drawer toggle is the user-visible trigger; the scheduler re-reads the gate at schedule time.
+  - **Meds** — per-med `MedicationPlanItem.notificationsEnabled` flows through `syncMedicationItemsWithConfig` → `CarePlanItem.notification.enabled`. Wired by NOT.A1 + NOT.A2.
+  - **Wellness** — per-window `wellnessSettings.{period}.reminderEnabled` (AND-gated against `carePlanConfig.wellness.timesOfDay`). Fire-time live-read from `wellnessSettings.{period}.time` via `resolveWellnessTime`. Wired by NOT.B1 + NOT.B2 + NOT.B3 + HIGH #5 (drawer time picker).
+  - **Vitals** — bucket-level `carePlanConfig.vitals.notificationsEnabled`. Wired by HIGH #7.
+  - **Meals** — bucket-level `carePlanConfig.meals.notificationsEnabled` (read via item.type === 'nutrition' in scheduler). Wired by HIGH #7.
+- B2 asymmetric trigger discipline: toggle changes call `rescheduleAllNotifications` ONLY; time edits call `ensureDailyInstances → rescheduleAllNotifications` (time is baked into `instance.scheduledTime`, not live-read). Forward-guarded by `wellnessFireTimeNotB3` contract 7.
+- Notification settings UI at `app/notification-settings.tsx` routes through the unified scheduler post-NOT.D-wiring (no legacy `scheduleMedicationNotifications` callers).
+- Walks require a real iPhone — simulator silently drops scheduled locals. See `feedback_notification_walk_needs_real_device.md`.
+
 ### Sample Data
 - `utils/sampleDataGenerator.ts` → `initializeSampleData()` creates full demo dataset
 - Creates: patient profile, medications (5), care plan config, daily instances, 14-day history
