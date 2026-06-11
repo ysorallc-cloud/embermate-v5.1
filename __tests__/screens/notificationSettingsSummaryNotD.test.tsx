@@ -54,10 +54,17 @@
 //      contains both times.
 //   6. WELLNESS DISABLED — seed both periods reminderEnabled=false
 //      → row says "disabled".
-//   7. VITALS DISABLED FORWARD-GUARD — vitals row always says
-//      "disabled" in v1 (no consumer). Pin to forward-guard a
-//      regression that accidentally enables vitals notifications.
-//   8. MEALS DISABLED FORWARD-GUARD — same as vitals.
+//   7a/7b. VITALS LIVE-READ — Vitals row reflects the gate field
+//      carePlanConfig.vitals.notificationsEnabled. true → "on"; false
+//      or absent → "disabled". v1 has no per-window vitals time UI
+//      yet, so we show on/off, not a time. Pre-correction the test
+//      hard-coded "always disabled" — that was authored before HIGH
+//      #7 (commit 4463e1e1) gave vitals a live gate. Always-disabled
+//      would lie whenever the caregiver toggled the drawer ON,
+//      re-opening the exact write-without-consequence trust bug #7
+//      just closed, one layer up in the read-out.
+//   8a/8b. MEALS LIVE-READ — same shape on
+//      carePlanConfig.meals.notificationsEnabled.
 // ============================================================================
 
 import { readFileSync } from 'fs';
@@ -131,8 +138,13 @@ jest.mock('../../utils/notificationService', () => ({
 let medsPlanFixture: any[] = [];
 let wellnessSettingsFixture: any = null;
 
+// D.summary.3 — vitals/meals now live-read carePlanConfig.{vitals,meals}.
+// notificationsEnabled (the same gate HIGH #7's scheduler honors).
+let carePlanConfigFixture: any = null;
+
 jest.mock('../../storage/carePlanConfigRepo', () => ({
   getMedicationsFromPlan: jest.fn(async () => medsPlanFixture),
+  getCarePlanConfig: jest.fn(async () => carePlanConfigFixture),
 }));
 
 jest.mock('../../hooks/useWellnessSettings', () => ({
@@ -244,12 +256,24 @@ function treeText(root: any): string {
   return JSON.stringify(root.toJSON());
 }
 
+function seedCarePlanConfig(opts: {
+  vitalsReminders?: boolean;
+  mealsReminders?: boolean;
+}) {
+  carePlanConfigFixture = {
+    vitals: { notificationsEnabled: opts.vitalsReminders ?? false },
+    meals: { notificationsEnabled: opts.mealsReminders ?? false },
+  };
+}
+
 beforeEach(() => {
   store.clear();
   medsPlanFixture = [];
   wellnessSettingsFixture = null;
+  carePlanConfigFixture = null;
   seedWellness(true, '07:00', true, '20:00');
   seedMeds(0);
+  seedCarePlanConfig({ vitalsReminders: false, mealsReminders: false });
 });
 
 describe('Phase 34 NOT.D-summary — SCHEDULE SUMMARY section', () => {
@@ -273,14 +297,14 @@ describe('Phase 34 NOT.D-summary — SCHEDULE SUMMARY section', () => {
     const root = await renderLoaded();
     const tree = treeText(root);
     // The summary row for Medications carries the count.
-    expect(tree).toMatch(/Medications[^"]*4[^"]*reminders/i);
+    expect(tree).toMatch(/Medications[\s\S]{0,200}4[\s\S]{0,200}reminders/i);
   });
 
   it('contract 4 (MEDS DISABLED): seed zero enabled meds → Medications row says "disabled"', async () => {
     seedMeds(0);
     const root = await renderLoaded();
     const tree = treeText(root);
-    expect(tree).toMatch(/Medications[^"]*disabled/i);
+    expect(tree).toMatch(/Medications[\s\S]{0,200}disabled/i);
   });
 
   it('contract 5 (WELLNESS WINDOWS): seed morning+evening reminderEnabled=true with 07:00 and 20:00 → row contains both times', async () => {
@@ -288,26 +312,44 @@ describe('Phase 34 NOT.D-summary — SCHEDULE SUMMARY section', () => {
     const root = await renderLoaded();
     const tree = treeText(root);
     // Both times appear in the Wellness row's content.
-    expect(tree).toMatch(/Wellness[^"]*07:00[^"]*20:00/i);
+    expect(tree).toMatch(/Wellness[\s\S]{0,200}07:00[\s\S]{0,200}20:00/i);
   });
 
   it('contract 6 (WELLNESS DISABLED): seed both periods reminderEnabled=false → Wellness row says "disabled"', async () => {
     seedWellness(false, '07:00', false, '20:00');
     const root = await renderLoaded();
     const tree = treeText(root);
-    expect(tree).toMatch(/Wellness[^"]*disabled/i);
+    expect(tree).toMatch(/Wellness[\s\S]{0,200}disabled/i);
   });
 
-  it('contract 7 (VITALS DISABLED FORWARD-GUARD): Vitals row always says "disabled" in v1', async () => {
+  it('contract 7a (VITALS LIVE-READ ON): carePlanConfig.vitals.notificationsEnabled=true → Vitals row says "on"', async () => {
+    // Live-read the same gate field HIGH #7 wired into the scheduler.
+    // The summary must NOT lie when the drawer toggle is ON.
+    seedCarePlanConfig({ vitalsReminders: true });
     const root = await renderLoaded();
     const tree = treeText(root);
-    expect(tree).toMatch(/Vitals[^"]*disabled/i);
+    expect(tree).toMatch(/Vitals[\s\S]{0,200}\bon\b/i);
   });
 
-  it('contract 8 (MEALS DISABLED FORWARD-GUARD): Meals row always says "disabled" in v1', async () => {
+  it('contract 7b (VITALS LIVE-READ OFF): carePlanConfig.vitals.notificationsEnabled=false → Vitals row says "disabled"', async () => {
+    seedCarePlanConfig({ vitalsReminders: false });
     const root = await renderLoaded();
     const tree = treeText(root);
-    expect(tree).toMatch(/Meals[^"]*disabled/i);
+    expect(tree).toMatch(/Vitals[\s\S]{0,200}disabled/i);
+  });
+
+  it('contract 8a (MEALS LIVE-READ ON): carePlanConfig.meals.notificationsEnabled=true → Meals row says "on"', async () => {
+    seedCarePlanConfig({ mealsReminders: true });
+    const root = await renderLoaded();
+    const tree = treeText(root);
+    expect(tree).toMatch(/Meals[\s\S]{0,200}\bon\b/i);
+  });
+
+  it('contract 8b (MEALS LIVE-READ OFF): carePlanConfig.meals.notificationsEnabled=false → Meals row says "disabled"', async () => {
+    seedCarePlanConfig({ mealsReminders: false });
+    const root = await renderLoaded();
+    const tree = treeText(root);
+    expect(tree).toMatch(/Meals[\s\S]{0,200}disabled/i);
   });
 
   it('contract 9 (SOURCE-LEVEL — replaces footer count): the bare "scheduled" count footer is GONE (the structured summary is the replacement)', () => {

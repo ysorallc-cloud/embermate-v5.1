@@ -30,6 +30,11 @@ import {
   NotificationSettings,
 } from '../utils/notificationService';
 import { DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
+import {
+  getMedicationsFromPlan,
+  getCarePlanConfig,
+} from '../storage/carePlanConfigRepo';
+import { useWellnessSettings } from '../hooks/useWellnessSettings';
 import { logError } from '../utils/devLog';
 import { emitDataUpdate } from '../lib/events';
 import { EVENT } from '../lib/eventNames';
@@ -55,8 +60,14 @@ export default function NotificationSettingsScreen() {
     quietHoursEnd: '07:00',
   });
   const [hasPermission, setHasPermission] = useState(false);
-  const [scheduledCount, setScheduledCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  // Phase 34 NOT.D-summary — intent-side data sources (NOT the
+  // registry, which fluctuates as notifications fire). The summary
+  // renders the four-row breakdown caregivers can act on.
+  const [medsEnabledCount, setMedsEnabledCount] = useState(0);
+  const [vitalsGateOpen, setVitalsGateOpen] = useState(false);
+  const [mealsGateOpen, setMealsGateOpen] = useState(false);
+  const { settings: wellnessSettings } = useWellnessSettings();
 
   useEffect(() => {
     loadSettings();
@@ -64,21 +75,59 @@ export default function NotificationSettingsScreen() {
 
   const loadSettings = async () => {
     try {
-      const [savedSettings, permission, scheduled] = await Promise.all([
-        getNotificationSettings(),
-        hasNotificationPermissions(),
-        getScheduledNotifications(),
-      ]);
+      // Phase 34 NOT.D-summary — also read the live intent-side
+      // sources for the SCHEDULE SUMMARY section. getMedicationsFromPlan
+      // is the canonical meds source (per-med notificationsEnabled is
+      // the A1 gate); getCarePlanConfig is the live-read for the
+      // vitals/meals bucket gates HIGH #7 wired into the scheduler.
+      const [savedSettings, permission, plannedMeds, carePlanCfg] =
+        await Promise.all([
+          getNotificationSettings(),
+          hasNotificationPermissions(),
+          getMedicationsFromPlan(DEFAULT_PATIENT_ID),
+          getCarePlanConfig(DEFAULT_PATIENT_ID),
+        ]);
 
       setSettings(savedSettings);
       setHasPermission(permission);
-      setScheduledCount(scheduled.length);
+      const enabledMeds = (plannedMeds || []).filter(
+        (m: any) => m && m.active !== false && m.notificationsEnabled !== false,
+      );
+      setMedsEnabledCount(enabledMeds.length);
+      const vitalsBucket = (carePlanCfg as any)?.vitals;
+      const mealsBucket = (carePlanCfg as any)?.meals;
+      setVitalsGateOpen(vitalsBucket?.notificationsEnabled === true);
+      setMealsGateOpen(mealsBucket?.notificationsEnabled === true);
     } catch (error) {
       logError('NotificationSettingsScreen.loadSettings', error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Phase 34 NOT.D-summary — D.summary.1 lock: Medications row is
+  // count + "reminders". Wellness row is windows + times. Vitals +
+  // Meals rows are live-read on/off (no per-window time UI yet).
+  // D.summary.2 lock: four rows always; only the value varies.
+  const medsSummaryValue =
+    medsEnabledCount === 0
+      ? 'disabled'
+      : `${medsEnabledCount} ${medsEnabledCount === 1 ? 'reminder' : 'reminders'}`;
+
+  const wellnessSummaryValue = (() => {
+    const morning = wellnessSettings?.morning;
+    const evening = wellnessSettings?.evening;
+    const morningOn = morning?.reminderEnabled === true;
+    const eveningOn = evening?.reminderEnabled === true;
+    if (!morningOn && !eveningOn) return 'disabled';
+    const pieces: string[] = [];
+    if (morningOn) pieces.push(`morning ${morning?.time ?? '07:00'}`);
+    if (eveningOn) pieces.push(`evening ${evening?.time ?? '20:00'}`);
+    return pieces.join(' • ');
+  })();
+
+  const vitalsSummaryValue = vitalsGateOpen ? 'on' : 'disabled';
+  const mealsSummaryValue = mealsGateOpen ? 'on' : 'disabled';
 
   const handleRequestPermissions = async () => {
     const granted = await requestNotificationPermissions();
@@ -414,13 +463,35 @@ export default function NotificationSettingsScreen() {
             <Text style={styles.carePlanLinkChevron}>›</Text>
           </TouchableOpacity>
 
-          {/* Footer Status */}
-          <View style={styles.footerStatus}>
-            <Text style={styles.footerStatusText}>
-              {scheduledCount > 0
-                ? `${scheduledCount} ${scheduledCount === 1 ? 'reminder' : 'reminders'} currently scheduled`
-                : 'No reminders scheduled'}
-            </Text>
+          {/* Phase 34 NOT.D-summary — SCHEDULE SUMMARY section.
+              Replaces the pre-D-summary bare scheduledCount footer
+              (debug-side, not caregiver-useful). The structured rows
+              read intent-side (config, not the OS registry) so the
+              caregiver sees what THEY configured, not what happens to
+              be scheduled at this exact second. */}
+          <View style={styles.summarySection}>
+            <Text style={styles.sectionHeader}>SCHEDULE SUMMARY</Text>
+            <View style={styles.settingCard}>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryRowLabel}>Medications</Text>
+                <Text style={styles.summaryRowValue}>{medsSummaryValue}</Text>
+              </View>
+              <View style={styles.settingDivider} />
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryRowLabel}>Wellness</Text>
+                <Text style={styles.summaryRowValue}>{wellnessSummaryValue}</Text>
+              </View>
+              <View style={styles.settingDivider} />
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryRowLabel}>Vitals</Text>
+                <Text style={styles.summaryRowValue}>{vitalsSummaryValue}</Text>
+              </View>
+              <View style={styles.settingDivider} />
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryRowLabel}>Meals</Text>
+                <Text style={styles.summaryRowValue}>{mealsSummaryValue}</Text>
+              </View>
+            </View>
           </View>
 
           <View style={{ height: 40 }} />
@@ -711,13 +782,26 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Footer Status
-  footerStatus: {
+  // Phase 34 NOT.D-summary — SCHEDULE SUMMARY section styles.
+  // Mirrors the existing settingCard / sectionHeader pattern used
+  // by SOUND & VIBRATION / QUIET HOURS / FOLLOW-UP REMINDERS above.
+  summarySection: {
+    marginTop: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
+    paddingHorizontal: Spacing.md,
   },
-  footerStatusText: {
-    fontSize: 12,
-    color: c.textMuted,
+  summaryRowLabel: {
+    fontSize: 14,
+    color: c.textPrimary,
+  },
+  summaryRowValue: {
+    fontSize: 13,
+    color: c.textSecondary,
   },
 });
