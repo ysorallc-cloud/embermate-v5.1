@@ -71,6 +71,15 @@ jest.mock('../../contexts/ThemeContext', () => ({
   }),
 }));
 
+// Phase 34 HIGH #5 — DateTimePicker is a native module and isn't
+// transformed by jest. Stub it with a host primitive so the drawer
+// mounts when HIGH #5's time-edit affordance is in source.
+jest.mock('@react-native-community/datetimepicker', () => {
+  const React = require('react');
+  return ({ children, ...props }: any) =>
+    React.createElement('DateTimePicker', props, children);
+});
+
 jest.mock('react-native', () => {
   const React = require('react');
   const make = (name: string) =>
