@@ -45,7 +45,7 @@
 //     intact)
 // ============================================================================
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Switch, StyleSheet } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
 import type {
@@ -55,6 +55,10 @@ import type {
 } from '../../../types/carePlanConfig';
 import { EditorSection } from '../editor/EditorSection';
 import { EditorDisableRow } from '../editor/EditorDisableRow';
+import { updateBucketConfig } from '../../../storage/carePlanConfigRepo';
+import { rescheduleAllNotifications } from '../../../utils/notificationService';
+import { DEFAULT_PATIENT_ID } from '../../../storage/carePlanRepo';
+import { logError } from '../../../utils/devLog';
 
 // F5.2 — meal labels aligned to the canonical user-facing names
 // (services/carePlanGenerator.ts:466-471). Drawer + generator + Now +
@@ -96,6 +100,34 @@ export function MealsDrawer({
       : [...selected, value];
     onUpdate({ timesOfDay: next });
   };
+
+  // Phase 34 NOT.7 — bucket-level reminder toggle. Writes the new
+  // value DIRECTLY through updateBucketConfig (storage layer) so the
+  // persistence completes before rescheduleAllNotifications runs —
+  // the scheduler's NOT.7 branch live-reads the persisted gate.
+  // onUpdate still fires so the parent's useCarePlanConfig state
+  // refreshes; we do NOT rely on the parent's persistence path.
+  // Mirrors WellnessCheckInDrawer's toggleReminder + VitalsDrawer's
+  // toggleReminders: bare reschedule (no sync/ensure) because the
+  // gate is a live read, not baked into instance.scheduledTime
+  // (B3 contract 7).
+  const toggleReminders = useCallback(
+    async (value: boolean) => {
+      // Order documented in VitalsDrawer.toggleReminders — parent
+      // state refresh first (sync), then storage persist, then
+      // reschedule reads the persisted gate.
+      onUpdate({ notificationsEnabled: value });
+      try {
+        await updateBucketConfig(DEFAULT_PATIENT_ID, 'meals', {
+          notificationsEnabled: value,
+        });
+        await rescheduleAllNotifications(DEFAULT_PATIENT_ID);
+      } catch (e) {
+        logError('MealsDrawer.toggleReminders', e);
+      }
+    },
+    [onUpdate],
+  );
 
   return (
     <EditorDisableRow
@@ -149,7 +181,7 @@ export function MealsDrawer({
           <Switch
             testID="meals-reminder-switch"
             value={remindersOn}
-            onValueChange={(v) => onUpdate({ notificationsEnabled: v })}
+            onValueChange={toggleReminders}
             trackColor={{ false: colors.glassStrong, true: colors.accent }}
             thumbColor={remindersOn ? colors.textPrimary : colors.switchThumbOff}
             ios_backgroundColor={colors.glassStrong}

@@ -654,6 +654,16 @@ export async function scheduleCarePlanNotifications(
       DEFAULT_WELLNESS_SETTINGS,
     );
 
+    // Phase 34 NOT.7 — load carePlanConfig once for the vitals + meals
+    // bucket gates below. Mirrors B1's live-read architecture: items
+    // are created by the sync ladder WITHOUT a notification field;
+    // the per-bucket toggle in carePlanConfig is the single source of
+    // truth for whether vitals/meals reminders fire. Dynamic import
+    // matches the house pattern used by rescheduleAllNotifications
+    // for circular-dep safety.
+    const { getCarePlanConfig } = await import('../storage/carePlanConfigRepo');
+    const carePlanConfig = await getCarePlanConfig(patientId);
+
     // Group instances by item ID
     const instancesByItem = new Map<string, DailyCareInstance[]>();
     for (const instance of instances) {
@@ -696,6 +706,46 @@ export async function scheduleCarePlanNotifications(
             item,
             instance,
             wellnessConfig,
+            deliveryPrefs,
+          );
+          if (scheduled) {
+            scheduledNotifications.push(scheduled);
+          }
+        }
+        continue;
+      }
+
+      // Phase 34 NOT.7 — vitals + meals (nutrition) bucket gate.
+      // Layer 1: sync ladder already enforces bucket enabled +
+      // timesOfDay membership at item creation. Layer 2 (enforced
+      // HERE): the bucket-level reminder toggle the drawer writes —
+      // carePlanConfig.{vitals,meals}.notificationsEnabled — gates
+      // whether the OS notification fires. Sync-created items never
+      // carry item.notification, and DEFAULT_NOTIFICATION_CONFIG
+      // hard-disables both types, so the standard path below would
+      // skip every instance regardless of caregiver intent. This
+      // branch is the trust-bug closure mirroring B1's wellness
+      // gate: live-read the config flag, default to skip when the
+      // gate is closed or absent.
+      if (item.type === 'vitals' || item.type === 'nutrition') {
+        const bucketKey: 'vitals' | 'meals' =
+          item.type === 'vitals' ? 'vitals' : 'meals';
+        const bucketConfig = (carePlanConfig as any)?.[bucketKey];
+        const gateOpen = bucketConfig?.notificationsEnabled === true;
+        if (!gateOpen) continue;
+
+        const bucketConfigNotif: NotificationConfig = {
+          enabled: true,
+          timing: 'at_time',
+          followUp: { enabled: false, intervalMinutes: 30, maxAttempts: 1 },
+        };
+        const itemInstances = instancesByItem.get(item.id) || [];
+        for (const instance of itemInstances) {
+          const scheduled = await scheduleInstanceNotification(
+            patientId,
+            item,
+            instance,
+            bucketConfigNotif,
             deliveryPrefs,
           );
           if (scheduled) {
