@@ -107,6 +107,7 @@ import { useSampleMode } from '../../hooks/useSampleMode';
 import { SampleModeBanner } from '../../components/sample/SampleModeBanner';
 import { ManageSampleDataSheet } from '../../components/sample/ManageSampleDataSheet';
 import { FirstTimeWelcomeCard } from '../../components/now/FirstTimeWelcomeCard';
+import { ProfileNamePrompt } from '../../components/now/ProfileNamePrompt';
 import { getCaregiverProfile } from '../../storage/caregiverProfileRepo';
 
 
@@ -1137,6 +1138,26 @@ export default function NowScreen() {
           patientName={patientName}
           caregiverName={caregiverName}
           summary={welcomeSummary}
+        />
+
+        {/* Post-onboarding ProfileNamePrompt — recovers the caregiver
+            name that the C4 onboarding redesign defers. Appears below
+            the welcome card only when the visibility predicate is
+            satisfied: ONBOARDING_COMPLETE + CAREGIVER_NAME null +
+            ≥1 real logged event (any todayStats completion counts as
+            evidence the user has felt the app's value) + dismissed-
+            count < 3 + not in sample mode. The component owns the
+            full predicate; we just feed it the logged-event signal
+            we already compute. */}
+        <ProfileNamePrompt
+          hasRealLoggedEvent={
+            (todayStats.meds?.completed ?? 0) > 0 ||
+            (todayStats.vitals?.completed ?? 0) > 0 ||
+            (todayStats.meals?.completed ?? 0) > 0 ||
+            (todayStats.water?.completed ?? 0) > 0 ||
+            (todayStats.sleep?.completed ?? 0) > 0 ||
+            (todayStats.activity?.completed ?? 0) > 0
+          }
         />
 
         <SampleModeBanner
