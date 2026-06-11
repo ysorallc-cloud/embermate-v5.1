@@ -105,7 +105,7 @@ export default function LogNoteScreen() {
             style={[styles.input, styles.textArea]}
             value={content}
             onChangeText={setContent}
-            placeholder="Seemed more energetic today. Appetite was good at lunch. Remember to ask doctor about new medication next visit…"
+            placeholder="What stood out today? Energy, appetite, anything to ask the doctor…"
             placeholderTextColor={colors.textMuted}
             multiline
             numberOfLines={10}

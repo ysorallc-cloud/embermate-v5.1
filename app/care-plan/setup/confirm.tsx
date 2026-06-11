@@ -48,6 +48,7 @@ import {
 import {
   getOrCreateCarePlanConfig,
   setBucketEnabled,
+  setWellnessWindowEnabled,
 } from '../../../storage/carePlanConfigRepo';
 import { clearWizardProgress } from '../../../storage/wizardProgressRepo';
 import { logError } from '../../../utils/devLog';
@@ -118,13 +119,41 @@ export default function WizardStepConfirm() {
 
   const rows: BucketRow[] = useMemo(() => {
     if (!config) return [];
-    return BUCKET_TYPES.map((type) => ({
+    // Blocker #2 fix — wellness is EXCLUDED from the plain-toggle rows.
+    // It renders as the two Morning/Evening Check-in pseudo-rows below
+    // (membership on wellness.timesOfDay, Q-34.F5.B Option (b)), so a
+    // single enabled-only toggle can no longer write the illegal
+    // enabled=false + populated-timesOfDay state.
+    return BUCKET_TYPES.filter((type) => type !== 'wellness').map((type) => ({
       type,
       name: BUCKET_META[type].name,
       emoji: BUCKET_META[type].emoji,
       enabled: config[type]?.enabled === true,
     }));
   }, [config]);
+
+  // Checked state for the wellness pseudo-rows — same derivation the
+  // management screen uses: enabled AND window in timesOfDay.
+  const wellnessWindowChecked = useCallback(
+    (window: 'morning' | 'evening') =>
+      !!(
+        config?.wellness?.enabled &&
+        ((config.wellness.timesOfDay as string[] | undefined) ?? []).includes(window)
+      ),
+    [config],
+  );
+
+  const handleToggleWellnessWindow = useCallback(
+    async (window: 'morning' | 'evening', next: boolean) => {
+      try {
+        const updated = await setWellnessWindowEnabled(PATIENT_ID, window, next);
+        setConfig(updated);
+      } catch (err) {
+        logError('WizardStepConfirm.toggleWellnessWindow', err);
+      }
+    },
+    [],
+  );
 
   const coreRows = rows.filter((r) => CORE_BUCKETS.includes(r.type));
   const nowTabRows = rows.filter((r) => NOW_TAB_BUCKETS.has(r.type));
@@ -202,6 +231,32 @@ export default function WizardStepConfirm() {
 
           <View style={styles.section}>
             <SectionEyebrow text="These show on your Now tab" tint="caregiverAccent" />
+            {/* Wellness pseudo-rows — Morning/Evening Check-in render
+                ahead of the remaining Now-tab toggles, matching the
+                management screen's five-row order (Meds / Vitals /
+                Morning Check-in / Evening Check-in / Meals). */}
+            {(
+              [
+                { window: 'morning' as const, key: 'wellness-morning', name: 'Morning Check-in', emoji: '🌅' },
+                { window: 'evening' as const, key: 'wellness-evening', name: 'Evening Check-in', emoji: '🌙' },
+              ]
+            ).map((r) => (
+              <View
+                key={r.key}
+                testID={`wizard-confirm-now-${r.key}`}
+                style={styles.row}
+              >
+                <Text style={styles.rowEmoji}>{r.emoji}</Text>
+                <Text style={styles.rowName}>{r.name}</Text>
+                <Switch
+                  value={wellnessWindowChecked(r.window)}
+                  onValueChange={(v) => handleToggleWellnessWindow(r.window, v)}
+                  trackColor={{ false: colors.glassBorder, true: colors.accent }}
+                  thumbColor={'#ffffff'}
+                  accessibilityLabel={`${r.name} — ${wellnessWindowChecked(r.window) ? 'enabled' : 'disabled'}`}
+                />
+              </View>
+            ))}
             {nowTabRows.map((r) => (
               <View
                 key={r.type}

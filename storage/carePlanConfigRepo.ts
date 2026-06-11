@@ -161,6 +161,38 @@ export async function updateBucketConfig(
 }
 
 /**
+ * Blocker #2 fix (F5.3 audit gap) — shared membership write for the
+ * Morning/Evening Check-in pseudo-rows. Semantics mirror the Care Plan
+ * management screen's handleToggleRow (Q-34.F5.B Option (b) lock):
+ *
+ *   • enable  → window appended to wellness.timesOfDay (deduped)
+ *   • disable → window removed; all OTHER stored values untouched
+ *               (hide-not-delete — legacy 'midday'/'night' survive)
+ *   • wellness.enabled in lockstep: true ⟺ timesOfDay non-empty,
+ *     written atomically in the same updateBucketConfig call
+ *
+ * Consumers: wizard confirm step (app/care-plan/setup/confirm.tsx).
+ * The management screen's handleToggleRow carries the same semantics
+ * inline via its useCarePlanConfig hook — unification candidate, see
+ * wizardWellnessWindowsGap.test.ts trace.
+ */
+export async function setWellnessWindowEnabled(
+  patientId: string,
+  window: 'morning' | 'evening',
+  enabled: boolean
+): Promise<CarePlanConfig> {
+  const config = await getOrCreateCarePlanConfig(patientId);
+  const currentTimes = (config.wellness?.timesOfDay ?? []) as string[];
+  const nextTimes = enabled
+    ? [...currentTimes.filter((t) => t !== window), window]
+    : currentTimes.filter((t) => t !== window);
+  return updateBucketConfig(patientId, 'wellness', {
+    timesOfDay: nextTimes as any,
+    enabled: nextTimes.length > 0,
+  });
+}
+
+/**
  * Enable or disable a bucket
  */
 export async function setBucketEnabled(

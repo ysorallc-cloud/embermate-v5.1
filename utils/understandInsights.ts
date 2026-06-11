@@ -13,6 +13,7 @@ import { getTodayDateString, toLocalDateString } from '../services/carePlanGener
 
 import { getDailyTrackingLogs } from './dailyTrackingStorage';
 import { getAllBaselines } from './baselineStorage';
+import { hasSampleData } from './sampleData';
 import { listLogsInRange, listDailyInstancesRange, listCarePlanItems, getActiveCarePlan, DEFAULT_PATIENT_ID } from '../storage/carePlanRepo';
 import { LogEntry, CarePlanItem, CarePlanItemType } from '../types/carePlan';
 
@@ -873,9 +874,16 @@ export async function loadUnderstandPageData(timeRange: TimeRange): Promise<Unde
     // Check if we have Care Plan data (newer system)
     const hasCarePlanData = carePlanStats.totalLogs >= 3 || carePlanStats.carePlanItems.length > 0;
 
-    // If not enough data from either source, check if we should show sample data
+    // Synthetic sample preview — ONLY for users who explicitly chose
+    // sample/example mode during onboarding (sample_data_seeded flag,
+    // the same gate appStartup's sampleData phase uses). A fresh
+    // Start-Fresh account must see a true empty state, never fabricated
+    // health data it could mistake for a real loved one's record.
+    // Pinned by __tests__/utils/understandInsightsSampleLeak.test.ts.
     const sampleDismissed = await isSampleDataDismissed();
-    const shouldShowSample = !hasEnoughData && !hasCarePlanData && daysOfData < 5 && !sampleDismissed;
+    const sampleModeChosen = await hasSampleData();
+    const shouldShowSample =
+      sampleModeChosen && !hasEnoughData && !hasCarePlanData && daysOfData < 5 && !sampleDismissed;
 
     if (shouldShowSample) {
       return await getSampleData(timeRange);
