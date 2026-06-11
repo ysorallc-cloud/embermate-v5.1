@@ -64,9 +64,9 @@ export const SubCardRoleColors: Record<ComponentRole, {
   configuration: {
     background: Colors.glass,
     border: Colors.glassBorder,
-    accent: Colors.purple,
-    labelBackground: Colors.purpleHint,
-    labelColor: Colors.purple,
+    accent: Colors.caregiverAccent,
+    labelBackground: Colors.caregiverAccentHint,
+    labelColor: Colors.caregiverAccent,
   },
 };
 
