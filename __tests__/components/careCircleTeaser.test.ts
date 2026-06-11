@@ -39,8 +39,13 @@ describe('CareCircleTeaser component', () => {
     expect(src).toMatch(/dismiss|close/i);
   });
 
-  it('uses purple tokens for dark mode styling', () => {
-    expect(src).toContain('#aa8adc');
+  it('uses caregiver-lane tokens for dark mode styling', () => {
+    // LOW #9 (baa2b089) migrated the two inline #aa8adc literals in
+    // CareCircleTeaser.tsx to the dusty blue #6b8cae as a scoped
+    // straggler retirement. The rgba(159, 122, 234, …) shadow-ish
+    // values stayed put — they're a separate purple register and
+    // the full token migration is deferred to F7 polish.
+    expect(src).toContain('#6b8cae');
     expect(src).toContain('rgba(159, 122, 234,');
   });
 });
