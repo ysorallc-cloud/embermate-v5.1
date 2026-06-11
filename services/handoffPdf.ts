@@ -206,7 +206,13 @@ function buildHtml(data: HandoffPdfData): string {
 export async function generateAndShareHandoff(data: HandoffPdfData): Promise<boolean> {
   try {
     const html = buildHtml(data);
-    const { uri } = await Print.printToFileAsync({ html, width: 612, height: 792 });
+    // LOW #8 fix — height param removed. Passing height:792 set a hard
+    // single-page viewport; WebKit clipped content that overflowed rather
+    // than paginating. Without height, WebKit computes the natural document
+    // height and auto-paginates. width:612 stays (US Letter points, controls
+    // text reflow). @page margin in LIGHT_PDF_CSS replaces the old
+    // padding:32px body hack. Pinned by handoffPdfTruncationLow8 contract 4.
+    const { uri } = await Print.printToFileAsync({ html, width: 612 });
     const stamp = (data.payload.date || new Date().toISOString().slice(0, 10));
     const newUri = `${FileSystem.documentDirectory}EmberMate-Handoff-${stamp}.pdf`;
     await FileSystem.moveAsync({ from: uri, to: newUri });

@@ -23,8 +23,14 @@
 // ============================================================================
 
 export const LIGHT_PDF_CSS = `
+    /* LOW #8 fix — @page margin handles all-page gutters so WebKit can
+       auto-paginate. The old padding:32px hack only applied to page 1
+       and caused the renderer to clip long content at the hard 792pt
+       viewport when the printToFileAsync height param was present.
+       Pinned by handoffPdfTruncationLow8.test.ts contracts 2+3. */
+    @page { margin: 32px; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, 'Helvetica Neue', sans-serif; color: #1a1a2e; padding: 32px; font-size: 11px; line-height: 1.5; }
+    body { font-family: -apple-system, 'Helvetica Neue', sans-serif; color: #1a1a2e; font-size: 11px; line-height: 1.5; }
     h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 20px; font-weight: 400; color: #1a1a2e; margin-bottom: 4px; }
     .subtitle { font-size: 11px; color: #7a7a8a; margin-bottom: 20px; }
     /* Phase 23.3 — cover provenance line. Renders flush under .subtitle
