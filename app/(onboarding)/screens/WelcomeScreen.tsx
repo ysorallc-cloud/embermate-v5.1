@@ -1,69 +1,100 @@
 // ============================================================================
-// WELCOME SCREEN - Empathy-first introduction
-// Screen 1 of 4: Lead with emotional connection, then value points
+// WELCOME SCREEN — Onboarding redesign C1 (pre-launch).
 //
-// Phase 28 Batch B sidecar — Animated.View / Animated.Text from
-// `react-native-reanimated` were rendering blank in Expo Go SDK 52 +
-// Reanimated 3.16.7 (same runtime layer as the BreathingExercise
-// EXC_CRASH already memo'd for pre-launch QA). All onboarding screens
-// using Animated.* stayed blank; AsYouUseScreen (which never used
-// Animated.*) rendered correctly — the distinguishing variable, per
-// the Path A spike confirmation. Workaround: replace Animated.View /
-// Animated.Text with plain View / Text + swap AuroraBackground for
-// StaticAuroraBackground (LinearGradient only, no Animated.View).
-// Static visual cost: no fade-in entrance polish, no aurora translate
-// loop — acceptable for pre-launch. Re-introduce animations
-// selectively once Reanimated stabilizes in this runtime or once the
-// app moves to a dev-build / production binary where Reanimated
-// renders correctly.
+// Screen 1 of the 4-screen emotional flow. Voice anchored to the
+// embermate.app register: serif display, lowercase-feeling, warm.
+// Title is the website's own opening line; the rest of the screen
+// makes room for that line to land.
+//
+// Visual lock per the C1 spec:
+//   • Title — Fonts.serif 34px weight 300 lineHeight 42 letterSpacing -0.5
+//   • Subtitle — Fonts.serifItalic 17px lineHeight 26 textSecondary
+//   • Three value points — Fonts.serif 15px, no emoji, thin left
+//     hairline rule (1px ember at 30% opacity) running the height of
+//     the points container with 20px vertical gap between each
+//   • CTA "Begin" — full-width ember → emberDeep gradient,
+//     Fonts.serif 16px, 32px bottom inset
+//   • Pre-redesign pill / chart / lock emoji iconography is gone
+//     (decorative emoji-in-a-row was the second AI-tell)
+//   • Sage/slab-green is intentionally absent — ember is the
+//     onboarding accent; sage is the in-app confirm color
+//
+// Phase 28 Batch B note carries forward: StaticAuroraBackground
+// instead of AuroraBackground (Reanimated 3.16.7 + Expo Go SDK 52
+// blank-render workaround). Re-introduce the animated variant once
+// dev-build verification clears.
 // ============================================================================
 
 import React, { useMemo } from 'react';
-import { View, Text, Image, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, Image, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StaticAuroraBackground } from '../components/StaticAuroraBackground';
-import { Colors, Spacing } from '../../../theme/theme-tokens';
+import { Colors, Fonts, Spacing } from '../../../theme/theme-tokens';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Privacy point lands last so it closes the pitch with reassurance.
-const VALUE_POINTS = [
-  { icon: '\u{1F48A}', text: 'Track meds, vitals, and mood — a few taps a day' },
-  { icon: '\u{1F4CA}', text: 'See patterns a single visit might miss' },
-  { icon: '\u{1F512}', text: 'Stays on your device. No accounts, no cloud.' },
+// Three value points — text preserved from the prior screen
+// (caregiver-tested copy), emoji decorations dropped per the C1 spec.
+const VALUE_POINTS: string[] = [
+  'Track meds, vitals, and mood — a few taps a day',
+  'See patterns a single visit might miss',
+  'Stays on your device. No accounts, no cloud.',
 ];
 
-export const WelcomeScreen: React.FC = () => {
+export interface WelcomeScreenProps {
+  /** Advance to the next screen in the onboarding flow. Wired in by
+   *  the orchestrator (app/(onboarding)/index.tsx). */
+  onContinue?: () => void;
+}
+
+export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onContinue }) => {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.container}>
       <StaticAuroraBackground variant="welcome" />
       <View style={styles.content}>
-        <View>
+        <View style={styles.topBlock}>
           <Image
             source={require('../../../assets/images/embermate-icon.png')}
             style={styles.appIcon}
             accessibilityLabel="EmberMate"
           />
+          <Text style={styles.title}>
+            You carry more{'\n'}than people can see.
+          </Text>
+          <Text style={styles.subtitle}>
+            A quiet place to put some of it down.
+          </Text>
         </View>
-        <Text style={styles.title}>
-          Caring for someone{'\n'}is a lot to carry.
-        </Text>
-        <Text style={styles.subtitle}>
-          A quiet companion to help you keep track — gently — and see the patterns that matter.
-        </Text>
+
         <View style={styles.pointsContainer}>
           {VALUE_POINTS.map((point, index) => (
-            <View
-              key={index}
-              style={styles.pointRow}
-            >
-              <Text style={styles.pointIcon}>{point.icon}</Text>
-              <Text style={styles.pointText}>{point.text}</Text>
+            <View key={index} style={styles.pointRow}>
+              <Text style={styles.pointText}>{point}</Text>
             </View>
           ))}
         </View>
+
+        <Pressable
+          onPress={onContinue}
+          accessibilityRole="button"
+          accessibilityLabel="Begin"
+          style={({ pressed }) => [
+            styles.ctaWrapper,
+            pressed && styles.ctaPressed,
+          ]}
+        >
+          <LinearGradient
+            colors={[colors.ember, colors.emberDeep]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.ctaGradient}
+          >
+            <Text style={styles.ctaText}>Begin</Text>
+          </LinearGradient>
+        </Pressable>
       </View>
     </View>
   );
@@ -77,51 +108,72 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingBottom: 100,
+    paddingTop: Spacing.xl, // allow: top third breathes — onboarding rhythm lock
+    paddingBottom: 32, // allow: C1 spec — 32px bottom safe inset for the CTA
+    justifyContent: 'space-between',
+  },
+  topBlock: {
+    alignItems: 'flex-start',
   },
   appIcon: {
-    width: 88,
-    height: 88,
-    borderRadius: 20,
+    width: 64,
+    height: 64,
+    borderRadius: 14,
     marginBottom: Spacing.lg,
   },
   title: {
-    fontSize: 22,
+    fontFamily: Fonts.serif,
+    fontSize: 34, // allow: C1 spec — serif display headline
     fontWeight: '300',
+    lineHeight: 42, // allow: C1 spec — 1.24× fontSize for serif title rhythm
+    letterSpacing: -0.5,
     color: c.textPrimary,
-    textAlign: 'center',
     marginBottom: Spacing.md,
-    lineHeight: 30,
   },
   subtitle: {
-    fontSize: 15,
+    fontFamily: Fonts.serifItalic,
+    fontSize: 17, // allow: C1 spec — serif italic subtitle
+    lineHeight: 26, // allow: C1 spec — 1.53× fontSize for italic warmth
     color: c.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: Spacing.xl,
-    paddingHorizontal: Spacing.sm,
   },
   pointsContainer: {
-    width: '100%',
-    gap: 16,
-    marginTop: Spacing.sm,
+    // Thin left hairline rule (1px ember at 30% opacity) runs the
+    // height of the points container per C1 spec.
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255, 140, 66, 0.30)',
+    paddingLeft: Spacing.md,
+    marginVertical: Spacing.xl,
   },
   pointRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  pointIcon: {
-    fontSize: 22,
+    // 20px vertical gap between value points per C1 spec.
+    marginBottom: 20, // allow: C1 spec — 20px between value points
   },
   pointText: {
-    fontSize: 14,
+    fontFamily: Fonts.serif,
+    fontSize: 15, // allow: C1 spec — serif value-point text
+    lineHeight: 22, // allow: C1 spec — comfortable serif body rhythm
     color: c.textSecondary,
-    flex: 1,
-    lineHeight: 20,
+  },
+  ctaWrapper: {
+    width: '100%',
+    borderRadius: 14, // allow: cardRadius equivalent — C1 CTA shape
+    overflow: 'hidden',
+  },
+  ctaPressed: {
+    opacity: 0.85,
+  },
+  ctaGradient: {
+    paddingVertical: 18, // allow: C1 CTA tap-target height (Apple HIG ≥44pt)
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaText: {
+    fontFamily: Fonts.serif,
+    fontSize: 16, // allow: C1 spec — serif CTA label
+    color: c.textPrimary,
+    letterSpacing: 0.3,
   },
 });
 
