@@ -119,6 +119,19 @@ jest.mock('../../components/now/RoutineSheet', () => ({
   RoutineSheet: () => null,
 }));
 
+// UX-1 pre-launch — QuickLog FAB + sheet are mounted at the tab-root
+// z-index in production but contribute no rendered chrome to the
+// empty-state smoke surface (FAB is null until tapped via parent
+// state, sheet is null until visible). Stub both to keep the smoke
+// test focused on Now's primary content tree.
+jest.mock('../../components/now/QuickLogFAB', () => ({
+  QuickLogFAB: () => null,
+}));
+
+jest.mock('../../components/now/QuickLogSheet', () => ({
+  QuickLogSheet: () => null,
+}));
+
 jest.mock('../../components/sample/SampleModeBanner', () => ({
   SampleModeBanner: () => null,
 }));

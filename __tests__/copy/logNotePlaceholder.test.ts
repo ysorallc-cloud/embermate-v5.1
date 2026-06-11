@@ -19,8 +19,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 describe('log-note placeholder reads as a prompt, not sample content', () => {
+  // UX-1 pre-launch — the textarea + placeholder live in NoteForm (the
+  // form internals shared by the /log-note route AND the new QuickLog
+  // sheet's Note body). The contract is unchanged: the placeholder must
+  // read as a prompt to the caregiver, not as completed observation
+  // content that could be mistaken for a real note.
   const source = fs.readFileSync(
-    path.join(__dirname, '../../app/log-note.tsx'),
+    path.join(__dirname, '../../components/logging/NoteForm.tsx'),
     'utf8',
   );
 

@@ -72,6 +72,8 @@ import { useNowPrompts } from '../../hooks/useNowPrompts';
 
 // Extracted components
 import { RoutineSheet } from '../../components/now/RoutineSheet';
+import { QuickLogFAB } from '../../components/now/QuickLogFAB';
+import { QuickLogSheet } from '../../components/now/QuickLogSheet';
 import { NowHeader } from '../../components/now/NowHeader';
 import { NowTimeline } from '../../components/now/NowTimeline';
 import { NowFooter } from '../../components/now/NowFooter';
@@ -192,6 +194,9 @@ export default function NowScreen() {
   // Category filter state (tappable rings)
   const [selectedCategory, setSelectedCategory] = useState<BucketType | null>(null);
   const [activeRoutineWindow, setActiveRoutineWindow] = useState<TimeWindow | null>(null);
+  // UX-1 pre-launch — QuickLogSheet visibility. FAB toggles open; sheet
+  // handles its own internal mode (picker → note/vitals sub-bodies).
+  const [quickLogSheetOpen, setQuickLogSheetOpen] = useState(false);
   // Phase 35 Slice 3-D — Phase-1D parallel undoToast retired.
   // handleQuickConfirm now routes through the unified LogToast pattern
   // below + the canonical undoInstanceCompletion (which soft-deletes
@@ -1293,6 +1298,15 @@ export default function NowScreen() {
         activePatientName={patientName}
         entrySource="banner"
         onClose={() => setManageSampleSheet({ open: false })}
+      />
+
+      {/* UX-1 pre-launch — QuickLog FAB + sheet. The FAB lives at the
+          tab-root z-index so it floats above the scroll + LogToast.
+          The sheet is a Modal so it overlays Now without navigating. */}
+      <QuickLogFAB onPress={() => setQuickLogSheetOpen(true)} />
+      <QuickLogSheet
+        visible={quickLogSheetOpen}
+        onClose={() => setQuickLogSheetOpen(false)}
       />
     </View>
   );

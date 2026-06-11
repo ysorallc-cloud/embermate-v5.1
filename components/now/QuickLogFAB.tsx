@@ -1,15 +1,29 @@
+// ============================================================================
+// QUICK LOG FAB — bottom-right floating action button on the Now tab.
+//
+// Pre-launch UX-1: was previously routed straight to /quick-log-more on
+// tap. Now accepts an onPress handler from the parent so Now can open
+// the new QuickLogSheet (Note / Vitals / Water / Meal / More picker)
+// without leaving the tab.
+// ============================================================================
+
 import React from 'react';
 import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
-import { navigate } from '../../lib/navigate';
 import { useTheme } from '../../contexts/ThemeContext';
 
-export function QuickLogFAB() {
+export interface QuickLogFABProps {
+  /** Tap handler. Now owns the open/close state for the QuickLogSheet. */
+  onPress: () => void;
+}
+
+export function QuickLogFAB({ onPress }: QuickLogFABProps) {
   const { colors } = useTheme();
 
   return (
     <TouchableOpacity
+      testID="quick-log-fab"
       style={[styles.fab, { backgroundColor: colors.accent }]}
-      onPress={() => navigate('/quick-log-more')}
+      onPress={onPress}
       accessibilityLabel="Log a new entry — meds, vitals, meals, and more"
       accessibilityRole="button"
       activeOpacity={0.8}
