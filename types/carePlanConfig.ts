@@ -273,6 +273,42 @@ export interface BucketConfig {
   priority: BucketPriority;
   timesOfDay: TimeOfDay[];
   customTimes?: string[]; // HH:mm format
+  /**
+   * Phase 34 notification slice — bucket-level reminder gate.
+   *
+   * Behavior is PER-BUCKET, not uniform across all buckets:
+   *   • vitals  — LIVE GATE. Read by scheduleCarePlanNotifications
+   *               (utils/notificationService.ts NOT.7 branch). Written
+   *               by VitalsDrawer's toggleReminders. Closed by HIGH #7.
+   *   • meals   — LIVE GATE. Same shape as vitals; matched on
+   *               item.type === 'nutrition' (the type name diverges
+   *               from the bucket key). Written by MealsDrawer's
+   *               toggleReminders. Closed by HIGH #7.
+   *   • meds    — DELIBERATELY UNUSED in v1. The source of truth for
+   *               medication reminders is the PER-MED flag
+   *               (MedicationPlanItem.notificationsEnabled, line 363
+   *               below). NOT.A1 (434bdedb) wires it through
+   *               syncMedicationItemsWithConfig → CarePlanItem.
+   *               notification.enabled. NOT.A2 (6ae9cf7c) reschedules
+   *               on save. The bucket-level field exists for forward-
+   *               compatibility but is NOT consumed by the scheduler.
+   *               Do NOT add a bucket-level meds toggle to the UI
+   *               without also wiring a consumer — would be a fresh
+   *               write-without-consequence trust bug (Q-34.NOT.C.1
+   *               (c) defer lock).
+   *   • wellness — UNUSED at the bucket level. Wellness reminders are
+   *               gated per-window via wellnessSettings.{period}.
+   *               reminderEnabled (B1), not via this field.
+   *   • sleep / water / activity / appointments / errands / shifts /
+   *     self_care — no scheduler consumer in v1. The field is
+   *     declared but inert; future slices can wire each bucket on
+   *     its own terms.
+   *
+   * When adding a new consumer, mirror NOT.B1/NOT.7's live-read
+   * pattern: read the flag inside scheduleCarePlanNotifications and
+   * trigger rescheduleAllNotifications from the drawer toggle (B2
+   * asymmetry — bare reschedule because the gate is live-read).
+   */
   notificationsEnabled?: boolean;
   notificationSchedule?: NotificationSchedule;
   units?: string; // For water: oz/ml, for weight: lbs/kg
