@@ -38,10 +38,16 @@ import { navigate } from '../../lib/navigate';
 import { useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing } from '../../theme/theme-tokens';
+import {
+  SECTION_GAP,
+  TITLE_CLEARANCE,
+  TypeScale,
+} from '../../theme/spacing';
 import { useTheme } from '../../contexts/ThemeContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { InsightsReadCard } from '../../components/insights/InsightsReadCard';
 import { InsightsDataCard } from '../../components/insights/InsightsDataCard';
+import { PatternsZone } from '../../components/insights/PatternsZone';
 import { UpcomingVisitInsightsCard } from '../../components/insights/UpcomingVisitInsightsCard';
 import { usePatient } from '../../contexts/PatientContext';
 import {
@@ -95,6 +101,64 @@ interface AdherenceData {
   total: number;
   missedDates: string[]; // e.g., ["Feb 22 (morning)"]
   doseStatuses: ('taken' | 'missed' | 'skipped')[]; // One per dose
+}
+
+// ============================================================================
+// DATA EXPANDER — F7 collapsed-at-fold wrapper for InsightsDataCard.
+// Renders a single-tap row with the data eyebrow + chevron; expands to
+// reveal the wrapped surface.
+// ============================================================================
+
+function DataExpander({ children }: { children: React.ReactNode }) {
+  const { colors } = useTheme();
+  const [expanded, setExpanded] = useState(false);
+  const styles = useMemo(() => StyleSheet.create({
+    row: {
+      flexDirection: 'row' as const,
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 14, // allow: tap-target padding (Apple HIG ≥44pt)
+      borderTopWidth: 0.5,
+      borderTopColor: colors.glassBorder,
+      borderBottomWidth: 0.5,
+      borderBottomColor: colors.glassBorder,
+    },
+    label: {
+      ...TypeScale.body,
+      color: colors.textSecondary,
+    },
+    labelStrong: {
+      color: colors.textPrimary,
+      fontWeight: '500' as const,
+    },
+    chevron: {
+      ...TypeScale.body,
+      color: colors.textTertiary,
+    },
+    body: {
+      paddingTop: 12,
+    },
+  }), [colors]);
+  return (
+    <View>
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => setExpanded((v) => !v)}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="The data: vitals and adherence grid"
+        accessibilityState={{ expanded }}
+        testID="insights-data-expander"
+      >
+        <Text style={styles.label}>
+          <Text style={styles.labelStrong}>The data</Text>
+          {' — vitals · adherence grid'}
+        </Text>
+        <Text style={styles.chevron}>{expanded ? '▴' : '▾'}</Text>
+      </TouchableOpacity>
+      {expanded && <View style={styles.body}>{children}</View>}
+    </View>
+  );
 }
 
 // ============================================================================
@@ -457,24 +521,16 @@ export default function UnderstandScreen() {
               } : null,
             })}
             rightAction={
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                {pageData && !pageData.isSampleData && pageData.daysOfData >= EMPTY_STATE_DAYS_THRESHOLD && (
-                  <TimeRangeToggle value={timeRange} onChange={setTimeRange} />
-                )}
-                <TouchableOpacity
-                  onPress={() => navigate('/settings')}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel="Settings"
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <View style={styles.settingsGear}>
-                    <Text style={styles.settingsGearText}>{'⚙'}</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
+              // F7 — settings gear retired from Insights header. Time-range
+              // chips (7d/14d/30d) stay as the sole right-side affordance.
+              // Settings is reached from the You tab where it belongs.
+              pageData && !pageData.isSampleData && pageData.daysOfData >= EMPTY_STATE_DAYS_THRESHOLD ? (
+                <TimeRangeToggle value={timeRange} onChange={setTimeRange} />
+              ) : null
             }
           />
+          {/* F7 — TITLE_CLEARANCE below ScreenHeader before first zone. */}
+          <View style={{ height: TITLE_CLEARANCE }} />
 
           {/* v6.7 Phase 4 — consolidated empty state for under-14-day
               windows. Replaces the prior Patterns Coming + What we'll be
@@ -513,33 +569,43 @@ export default function UnderstandScreen() {
             );
           })()}
 
-          {/* ═══ SECTION 1: THE READ (sage) ═══
-              Phase 28 Batch B F6 — subsumes the prior Section 1 "This
-              week's pulse" prose summary AND the Section 2 PatternStack
-              "EmberMate noticed" surface into a single sage-encoded
-              observation card. Card decides for itself when to return
-              null (no gestalt, all four metric tiles unavailable AND
-              no patterns) — parent does not gate. */}
+          {/* ═══ F7 PATTERNS ZONE (z1, coral cards) ═══
+              Each pattern surfaces as its own coral card under the
+              "📈 PATTERNS · understand" eyebrow. Null-renders when
+              there are no patterns; the parent doesn't gate. */}
+          <PatternsZone patterns={patternStackData} />
+
+          <View style={{ height: SECTION_GAP }} />
+
+          {/* ═══ F7 THE READ zone (sage, gestalt prose + metric tiles) ═══
+              InsightsReadCard's internal "{N} patterns worth discussing"
+              callout is suppressed by passing patterns={[]}; the patterns
+              now surface above via PatternsZone. The card's own JournalSection
+              sage chrome stays — F7's "open prose, no grid boxes" reframe
+              is a v1.1 polish item for this card. */}
           {pageData && (
             <InsightsReadCard
               timeRange={timeRange}
               pageData={pageData}
-              patterns={patternStackData}
+              patterns={[]}
             />
           )}
 
-          {/* ═══ SECTION 2: THE DATA (neutral) ═══
-              Phase 28 Batch B F6 — subsumes the prior Section 4 Vitals
-              Dashboard + Section 5 Medication Adherence + Section 3
-              Data Gaps (now demoted to a single footer line inside the
-              card). Card returns null when there's nothing to surface;
-              parent does not gate. */}
-          <InsightsDataCard
-            timeRange={timeRange}
-            vitalTiles={vitalTiles}
-            adherence={adherence}
-            dataGaps={dataGaps}
-          />
+          <View style={{ height: SECTION_GAP }} />
+
+          {/* ═══ F7 THE DATA — collapsed at fold ═══
+              "The data — vitals · adherence grid ▾" — toggles open the
+              full InsightsDataCard surface (vitals tiles + adherence +
+              data-gaps line). Defaults to collapsed so the page's first
+              paint is THE READ + Patterns; the Data is one tap away. */}
+          <DataExpander>
+            <InsightsDataCard
+              timeRange={timeRange}
+              vitalTiles={vitalTiles}
+              adherence={adherence}
+              dataGaps={dataGaps}
+            />
+          </DataExpander>
 
           {/* ═══ SECTION 3: UPCOMING VISIT (caregiver→clinician handoff lane) ═══
               Phase 28 Batch B F5 (35c5441b) — moved to Section 3 position.

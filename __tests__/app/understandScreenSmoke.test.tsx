@@ -243,15 +243,12 @@ describe('UnderstandScreen — render smoke test', () => {
     expect(getByText("WHAT WE'LL BE WATCHING FOR")).toBeTruthy();
   });
 
-  it('renders the Settings primary action with proper a11y', async () => {
-    const { getByLabelText } = await renderUnderstand();
-    const settings = getByLabelText('Settings');
-    expect(settings.props.accessibilityRole).toBe('button');
-  });
-
-  it('tapping the Settings gear navigates to /settings', async () => {
-    const { getByLabelText } = await renderUnderstand();
-    fireEvent.press(getByLabelText('Settings'));
-    expect(mockNavigate).toHaveBeenCalledWith('/settings');
+  it('Settings gear RETIRED from Insights header (F7 C4)', async () => {
+    // F7 retired the settings gear from the Insights header rightAction.
+    // Settings is reached from the You tab where it belongs; the
+    // Insights header now carries only the time-range chips (when
+    // populated state has them) and nothing else on the right.
+    const { queryByLabelText } = await renderUnderstand();
+    expect(queryByLabelText('Settings')).toBeNull();
   });
 });
