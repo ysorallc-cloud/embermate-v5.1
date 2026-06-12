@@ -83,7 +83,7 @@ jest.mock('react-native', () => {
   const React = require('react');
   const PT = (n: string) => ({ children, ...props }: any) =>
     React.createElement(n, props, children);
-  const AnimatedValue = function (v: number) { (this as any).value = v; };
+  const AnimatedValue = function (this: any, v: number) { (this as any).value = v; };
   AnimatedValue.prototype.setValue = function () {};
   const Animated = {
     View: PT('Animated.View'),

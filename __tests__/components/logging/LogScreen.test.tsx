@@ -66,7 +66,7 @@ import { LogScreen } from '../../../components/logging/LogScreen';
 // TestInstance — that walks the actual rendered tree (props + children
 // already resolved). A hand-rolled walk over `props.children` misses
 // nested arrays and forwarded refs.
-function findAll(root: TestRenderer.ReactTestInstance, predicate: (n: TestRenderer.ReactTestInstance) => boolean): TestRenderer.ReactTestInstance[] {
+function findAll(root: TestRenderer.ReactTestInstance, predicate: (n: any) => boolean): TestRenderer.ReactTestInstance[] {
   return root.findAll((n: any) => {
     try {
       return predicate(n);

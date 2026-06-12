@@ -86,7 +86,7 @@ import { CarePlanConfigScreen } from '../../../components/care-plan/CarePlanConf
 
 function findAll(
   root: TestRenderer.ReactTestInstance,
-  predicate: (n: TestRenderer.ReactTestInstance) => boolean,
+  predicate: (n: any) => boolean,
 ): TestRenderer.ReactTestInstance[] {
   return root.findAll((n: any) => {
     try { return predicate(n); } catch { return false; }
@@ -220,11 +220,14 @@ describe('Phase 10.1 — CarePlanConfigScreen children', () => {
       (n) => n.props?.testID === 'consumer-content',
     )[0];
     expect(consumer).toBeDefined();
-    // Walk up to find the nearest ScrollView ancestor.
+    // Walk up to find the nearest ScrollView ancestor. The react-test-
+    // renderer typings declare `type` as ElementType, but our mocked
+    // react-native emits a bare string at runtime — cast at the
+    // comparison so tsc sees the overlap.
     let node: TestRenderer.ReactTestInstance | null = consumer;
     let foundScrollView = false;
     while (node) {
-      if (node.type === 'ScrollView') { foundScrollView = true; break; }
+      if ((node.type as unknown as string) === 'ScrollView') { foundScrollView = true; break; }
       node = node.parent ?? null;
     }
     expect(foundScrollView).toBe(true);

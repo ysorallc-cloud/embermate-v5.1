@@ -80,7 +80,7 @@ jest.mock('react-native', () => {
   const React = require('react');
   const PT = (n: string) => ({ children, ...props }: any) =>
     React.createElement(n, props, children);
-  const AnimatedValue = function (v: number) { (this as any).value = v; };
+  const AnimatedValue = function (this: any, v: number) { (this as any).value = v; };
   AnimatedValue.prototype.setValue = function () {};
   const Animated = {
     View: PT('Animated.View'),
@@ -135,7 +135,7 @@ const FORM_SRC = readFileSync(
 
 function findAll(
   root: TestRenderer.ReactTestInstance,
-  predicate: (n: TestRenderer.ReactTestInstance) => boolean,
+  predicate: (n: any) => boolean,
 ): TestRenderer.ReactTestInstance[] {
   return root.findAll((n: any) => {
     try { return predicate(n); } catch { return false; }

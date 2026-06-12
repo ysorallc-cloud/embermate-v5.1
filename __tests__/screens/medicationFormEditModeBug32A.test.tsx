@@ -97,7 +97,7 @@ jest.mock('react-native', () => {
     React.createElement(n, props, children);
   // Animated.View / Animated.Text plus a no-op Value class — the form
   // imports `Animated` for transitions; we don't need the animation engine.
-  const AnimatedValue = function (v: number) { (this as any).value = v; };
+  const AnimatedValue = function (this: any, v: number) { (this as any).value = v; };
   AnimatedValue.prototype.setValue = function () {};
   const Animated = {
     View: PT('Animated.View'),

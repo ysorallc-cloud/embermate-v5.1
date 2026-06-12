@@ -52,7 +52,7 @@ import { GestaltSummary } from '../../components/journal/GestaltSummary';
 
 function findAll(
   root: TestRenderer.ReactTestInstance,
-  predicate: (n: TestRenderer.ReactTestInstance) => boolean,
+  predicate: (n: any) => boolean,
 ): TestRenderer.ReactTestInstance[] {
   return root.findAll((n: any) => {
     try { return predicate(n); } catch { return false; }

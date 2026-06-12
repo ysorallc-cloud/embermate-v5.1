@@ -85,7 +85,7 @@ describe('Phase 2.5 — HC override migration', () => {
     expect(writes.length).toBeGreaterThanOrEqual(1);
     expect(writes[writes.length - 1][1]).toBe('false');
 
-    tree?.unmount();
+    (tree as any)?.unmount();
   });
 
   it('renders colors.background as the website source-of-truth #1a1612, NOT the HC #000', async () => {
@@ -107,7 +107,7 @@ describe('Phase 2.5 — HC override migration', () => {
     expect(resolved).toBe('#1a1612');
     expect(resolved).not.toBe('#000000');
 
-    tree?.unmount();
+    (tree as any)?.unmount();
   });
 
   it('does NOT write to the HC key when storage is already null/false', async () => {
@@ -125,7 +125,7 @@ describe('Phase 2.5 — HC override migration', () => {
     const writes = safeSetItem.mock.calls.filter((c) => c[0] === HC_KEY);
     expect(writes.length).toBe(0);
 
-    tree?.unmount();
+    (tree as any)?.unmount();
   });
 
   it('also does NOT write to the HC key when storage already says "false"', async () => {
@@ -144,6 +144,6 @@ describe('Phase 2.5 — HC override migration', () => {
     const writes = safeSetItem.mock.calls.filter((c) => c[0] === HC_KEY);
     expect(writes.length).toBe(0);
 
-    tree?.unmount();
+    (tree as any)?.unmount();
   });
 });

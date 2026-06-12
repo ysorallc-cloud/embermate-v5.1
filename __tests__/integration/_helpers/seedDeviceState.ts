@@ -128,10 +128,14 @@ export async function seedDeviceState(
 
   // 2. Resolve / create the CarePlan so items + instances anchor
   // against a real id.
-  let carePlan = await getActiveCarePlan(patientId);
-  if (!carePlan) {
-    carePlan = await createCarePlan(patientId);
+  let resolvedCarePlan = await getActiveCarePlan(patientId);
+  if (!resolvedCarePlan) {
+    resolvedCarePlan = await createCarePlan(patientId);
   }
+  // Pin to a const after the null-check so the .map() closure below
+  // sees the narrowed non-null type (TS narrowing doesn't reach
+  // through the closure boundary on a `let` binding).
+  const carePlan = resolvedCarePlan;
 
   // 3. Write items.
   for (const item of options.items ?? []) {
