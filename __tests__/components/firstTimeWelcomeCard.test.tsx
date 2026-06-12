@@ -304,12 +304,19 @@ describe('FirstTimeWelcomeCard — Now mounting', () => {
     );
   });
 
-  it('Now mounts FirstTimeWelcomeCard between NowHeader and SampleModeBanner', () => {
+  it('Now mounts FirstTimeWelcomeCard after NowHeader (F7 zone restructure)', () => {
+    // Pre-F7 order: NowHeader → FirstTimeWelcomeCard → SampleModeBanner.
+    // F7 reshuffle: the SampleModeBanner whisper line moves directly
+    // beneath NowHeader so the sample-mode state reads right after the
+    // date row. FirstTimeWelcomeCard now sits AFTER SampleModeBanner;
+    // both still null-render in their respective non-applicable states
+    // so the visible cadence on first paint is unchanged for users
+    // who aren't in sample mode or aren't first-time-launching.
     const header = nowSrc.indexOf('<NowHeader');
     const welcome = nowSrc.indexOf('<FirstTimeWelcomeCard');
     const banner = nowSrc.indexOf('<SampleModeBanner');
     expect(header).toBeGreaterThan(-1);
-    expect(welcome).toBeGreaterThan(header);
-    expect(banner).toBeGreaterThan(welcome);
+    expect(banner).toBeGreaterThan(header);
+    expect(welcome).toBeGreaterThan(banner);
   });
 });

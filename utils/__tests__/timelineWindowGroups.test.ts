@@ -69,16 +69,19 @@ describe('Window default collapse based on completion', () => {
     expect(stateInit![0]).toMatch(/completed|skipped|allDone|every/);
   });
 
-  test('pending and done item names use identical font size', () => {
+  test('done item names compress to 12px (F7 zone restructure)', () => {
+    // Pre-F7 contract: pending + done used identical font size (13),
+    // with the strikethrough + opacity carrying the differentiation.
+    // F7 explicitly compresses done to 12px so completed work recedes
+    // visually under the new zone-architecture rhythm.
     const pendingMatch = src.match(/timelineName:\s*\{[^}]+\}/);
     const doneMatch = src.match(/timelineNameDone:\s*\{[^}]+\}/);
     expect(pendingMatch).not.toBeNull();
     expect(doneMatch).not.toBeNull();
     const pendingSize = pendingMatch![0].match(/fontSize:\s*(\d+)/);
     const doneSize = doneMatch![0].match(/fontSize:\s*(\d+)/);
-    expect(pendingSize).not.toBeNull();
-    expect(doneSize).not.toBeNull();
-    expect(pendingSize![1]).toBe(doneSize![1]);
+    expect(pendingSize![1]).toBe('13');
+    expect(doneSize![1]).toBe('12');
   });
 
   test('tap-to-toggle still works via the SchedulePeriodHeader onToggle', () => {

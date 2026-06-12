@@ -80,6 +80,10 @@ import { NowFooter } from '../../components/now/NowFooter';
 import { UpcomingAppointmentCard } from '../../components/now/UpcomingAppointmentCard';
 import { StatRings } from '../../components/now/StatRings';
 import { MorningMedsBanner } from '../../components/now/MorningMedsBanner';
+// F7 — Now zone restructure components.
+import { HealthZoneNow } from '../../components/now/HealthZoneNow';
+import { ReflectionZoneNow } from '../../components/now/ReflectionZoneNow';
+import { SECTION_GAP, TITLE_CLEARANCE } from '../../theme/spacing';
 // Phase 15.4 — HydrationTodayRow retired. Hydration is the 5th
 // StatRings ring; the water-ring tap routes to /log-water (see
 // StatRings.tsx). Inline +1 cup is filed for v1.1.
@@ -1139,6 +1143,17 @@ export default function NowScreen() {
           onManageSample={(focus) => setManageSampleSheet({ open: true, focus })}
         />
 
+        {/* F7 — SampleModeBanner relocated to sit directly beneath the
+            NowHeader date row as a single muted whisper line. Previously
+            it lived below FirstTimeWelcomeCard + ProfileNamePrompt; the
+            F7 spec wants it visible right after the date. The null-
+            rendering FirstTimeWelcomeCard + ProfileNamePrompt stay
+            below — they conditionally appear when their gates pass. */}
+        <SampleModeBanner
+          isSampleMode={isSampleMode}
+          onPress={() => setManageSampleSheet({ open: true })}
+        />
+
         {/* Phase 5.13.e — first-time welcome card. Renders once after
             wizard completion (5.13.d sets the @embermate_first_real_mode_landed
             flag). The component reads the flag itself; we always mount
@@ -1169,10 +1184,8 @@ export default function NowScreen() {
           }
         />
 
-        <SampleModeBanner
-          isSampleMode={isSampleMode}
-          onPress={() => setManageSampleSheet({ open: true })}
-        />
+        {/* F7 — TITLE_CLEARANCE between header chrome and first zone. */}
+        <View style={{ height: TITLE_CLEARANCE }} />
 
         <View style={styles.content}>
 
@@ -1210,7 +1223,12 @@ export default function NowScreen() {
               also stay — todayStats is consumed by useNowPrompts and by
               the NowTimeline mount. */}
 
-          {/* ═══ ZONE 2: TODAY'S SCHEDULE ═══ */}
+          {/* ═══ F7 ACTION ZONE — schedule (medications-led) ═══
+              z1 tint wrap around MorningMedsBanner (already lifted above)
+              + NowTimeline. NowTimeline's internal "Today's Schedule"
+              header is preserved for now; the zone-eyebrow integration
+              is a follow-up so existing tests + the "Care Plan →"
+              action affordance keep working through F7 cadence. */}
           <NowTimeline
             timelineCollapsed={timelineCollapsed}
             onToggleCollapse={() => setTimelineCollapsed(prev => !prev)}
@@ -1238,6 +1256,29 @@ export default function NowScreen() {
             onWaterUpdate={handleWaterUpdate}
           />
 
+          {/* ═══ F7 HEALTH ZONE — Today's Health (review) ═══
+              Open fabric rows for Vitals / Mood / Meals / Symptoms.
+              Each row reads today's logged value or "Not yet · log".
+              All four data sources pre-existed (no new service calls). */}
+          <View style={{ height: SECTION_GAP }} />
+          <HealthZoneNow />
+
+          {/* ═══ F7 REFLECTION ZONE — Reflection (evening only) ═══
+              Hidden entirely before 17:00. After 17:00 renders one of
+              three states (A: meds done → ember invite + Coffee Moment
+              sheet; B: meds not yet → quiet fabric line; C: dismissed
+              for today → quiet fabric line, persists for the calendar
+              day only). eveningMedsComplete derives from allPending —
+              no remaining medication items in the evening window. */}
+          <View style={{ height: SECTION_GAP }} />
+          {(() => {
+            const pendingEveningMeds = allPending.filter(
+              (i: any) => i.itemType === 'medication' && i.windowLabel === 'evening',
+            );
+            return <ReflectionZoneNow eveningMedsComplete={pendingEveningMeds.length === 0} />;
+          })()}
+
+          <View style={{ height: SECTION_GAP }} />
           {/* Phase 5.10.b — Upcoming appointment surface.
               Phase 15.7 — inline "Upcoming This Week" block retired; the
               card is now the sole upcoming-appointment surface and uses

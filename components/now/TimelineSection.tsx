@@ -806,8 +806,15 @@ function TimelineModeBContent({
                     }
 
                     const dimmed = isCompleted || isSkipped;
+                    // F7 spec: missed medications surface as a coral
+                    // card inline in the timeline. Other missed item
+                    // types stay in their pre-F7 row treatment.
+                    const isMissedMed = isMissed && instance.itemType === 'medication';
                     return (
-                      <View key={instance.id} style={styles.gutterRow}>
+                      <View
+                        key={instance.id}
+                        style={[styles.gutterRow, isMissedMed && styles.missedMedCard]}
+                      >
                         <View style={[styles.timeGutter, dimmed && styles.dimmed]}>
                           {shortTime && <Text style={styles.gutterTime}>{shortTime}</Text>}
                         </View>
@@ -1128,10 +1135,19 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     paddingRight: 12,
     paddingLeft: 8,
   },
-  // Logged / skipped time + body opacity per v6.7 spec — strikethrough is
-  // applied separately on the name only (timelineNameDone above).
+  // Logged / skipped time + body opacity. F7 spec: 0.45 (was 0.5 in
+  // v6.7). Strikethrough is applied separately on the name only
+  // (timelineNameDone above).
   dimmed: {
-    opacity: 0.5,
+    opacity: 0.45,
+  },
+  // F7 spec: missed medications render as a coral-bordered card
+  // inline in the timeline so they stand out without yelling.
+  missedMedCard: {
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(192, 107, 90, 0.55)',
+    borderRadius: 4,
+    backgroundColor: 'rgba(192, 107, 90, 0.04)',
   },
   inlineActionPlus: {
     width: 28,
@@ -1289,7 +1305,8 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     color: c.amber,
   },
   timelineNameDone: {
-    fontSize: 13,
+    // F7 spec: done items compress to 12px (was 13).
+    fontSize: 12,
     fontWeight: '500',
     color: c.textMuted,
     textDecorationLine: 'line-through',
