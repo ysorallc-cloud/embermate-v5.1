@@ -2,6 +2,14 @@
 // PARKED — Vitals HealthKit Auto-Import (extracted from app/care-plan/vitals.tsx
 // during Phase 32A F13 subscreen retirement). NOT CURRENTLY MOUNTED ANYWHERE.
 //
+// TS-CHECK: this file is in tsconfig's `exclude` (utils/parked/**) so its
+// references to retired modules (e.g. ../../services/healthDataProvider,
+// removed at F13) don't pollute the production tsc gate. The whole
+// `utils/parked/` directory carries the same policy. When this code is
+// re-attached for v1.1 (HealthKit Auto-Import re-introduction), pull it
+// out of utils/parked/, restore the missing imports, and let tsc
+// re-include it from its new home.
+//
 // Per the P3 lock (Phase 32A audit): the vitals subscreen retired in F13
 // to be replaced by the inline VitalsDrawer (chips + frequency +
 // reminders). The drawer scope does NOT include HealthKit Auto-Import.
