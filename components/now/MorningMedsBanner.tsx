@@ -4,16 +4,20 @@
 // Phase 23.1 Fix 2 — softened from amber-alert to witness-voice lavender
 // chrome. Phase 33b Scope 2 — Surface 1 lavender scale reduction: full
 // lavender chrome (~80% footprint — border + bg + headline + body + CTA)
-// decomposes to small "READY TO LOG" lavender eyebrow + cream serif
-// headline + cream body + sage CTA + no border chrome. Canon eyebrow-as-
-// garnish pattern. Observational register preserved; only the visual
-// weight rebalances. Handler logic (onConfirmAll, one-shot dismiss,
-// instanceIds) is unchanged.
+// decomposed to a "READY TO LOG" lavender eyebrow + cream serif headline
+// + cream body + sage CTA + no border chrome.
+//
+// UX-2 follow-up (post device walk) — the "READY TO LOG" eyebrow is
+// retired. The card speaks for itself: the medication-count headline +
+// the "Confirm all →" affordance carry the affordance without a
+// section-label hint. The lavender eyebrow garnish was the last piece
+// of Phase 33b Scope 2 chrome on this surface; with it gone the banner
+// reads as a calm cream-on-bg row with a single sage CTA. Handler logic
+// (onConfirmAll, one-shot dismiss, instanceIds) is unchanged.
 // ============================================================================
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { SectionEyebrow } from '../SectionEyebrow';
 
 interface MorningMedsBannerProps {
   pendingCount: number;
@@ -44,7 +48,6 @@ export function MorningMedsBanner({
 
   return (
     <View testID="morning-meds-banner" style={styles.container}>
-      <SectionEyebrow text="Ready to log" tint="caregiverAccent" />
       <View style={styles.content}>
         <Text style={[styles.emoji]}>💊</Text>
         <View style={styles.textContainer}>

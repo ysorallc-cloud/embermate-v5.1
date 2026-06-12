@@ -29,9 +29,12 @@ export interface SchedulePeriodHeaderProps {
       already interacted; this component just executes. */
   hintEnabled: boolean;
   onToggle: () => void;
-  /** Optional Start button. Only renders when status?.kind === 'current-active'
-   *  (or, in the legacy fallback path, when the period is collapsed with
-   *  pending items). */
+  /** Retired in UX-2 follow-up — "Start" affordance per period row was
+   *  dropped (one status per row contract). The prop stays in the API
+   *  surface so existing callers (TimelineSection, NowTimeline) don't
+   *  need to be re-plumbed; the handler is silently unused at render
+   *  time. The full routine-batch entry now comes from inside the
+   *  expanded timeline via the per-item rows. */
   onStart?: () => void;
   /** Caregiver-warm status. When supplied, drives the metadata label, the
    *  metadata color, and Start button visibility. When omitted, the header
@@ -109,12 +112,13 @@ export function SchedulePeriodHeader({
   // pre-computed label + colour from there (single source of truth in
   // utils/scheduleStatus.ts). Otherwise fall back to the legacy count text
   // so older callers don't break.
+  //
+  // UX-2 follow-up — the per-period "Start" affordance was retired; the
+  // `showStart` derivation that used to live in this block went with it.
   let metaLabel: string;
   let statusMetaColor: string | undefined;
-  let showStart: boolean;
   if (status) {
     metaLabel = status.label;
-    showStart = status.kind === 'current-active';
     // Phase 3.8.2 — palette mapping:
     //   • current-active → sage (draws the eye to the period the user
     //     should focus on right now)
@@ -142,7 +146,6 @@ export function SchedulePeriodHeader({
   } else {
     metaLabel = remainingCount > 0 ? `${remainingCount} to go` : 'caught up';
     statusMetaColor = undefined;
-    showStart = isCollapsed && remainingCount > 0;
   }
 
   const a11yMeta = status?.label ?? metaLabel;
@@ -168,17 +171,11 @@ export function SchedulePeriodHeader({
         {metaLabel}
       </Text>
 
-      {showStart && onStart && (
-        <TouchableOpacity
-          onPress={onStart}
-          style={styles.startButton}
-          activeOpacity={0.7}
-          accessibilityLabel={`Start ${label} items`}
-          accessibilityRole="button"
-        >
-          <Text style={styles.startButtonText}>Start</Text>
-        </TouchableOpacity>
-      )}
+      {/* UX-2 follow-up — per-period "Start" button retired. One status
+          per row contract: emoji + label + count meta + chevron only.
+          The showStart / status?.kind === 'current-active' gate stays in
+          the local logic above so the metadata color still tints the
+          current-active row, but the button JSX is gone. */}
 
       <Animated.Text
         testID="period-chevron"
@@ -220,17 +217,6 @@ const createStyles = (c: any) => StyleSheet.create({
     fontSize: 11,
     color: c.textSecondary,
     textAlign: 'right',
-  },
-  startButton: {
-    backgroundColor: c.accent,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  startButtonText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: c.textPrimary,
   },
   chevron: {
     fontSize: 12,

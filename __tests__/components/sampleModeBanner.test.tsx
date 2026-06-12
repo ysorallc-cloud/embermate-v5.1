@@ -100,10 +100,18 @@ describe('SampleModeBanner', () => {
     expect(flatStyle.borderRadius).toBeUndefined();
   });
 
-  it('shows the ✦ glyph and a chevron affordance', () => {
+  it('shows the ✦ glyph and a "· Switch" inline affordance (UX-2 follow-up)', () => {
+    // UX-2 follow-up retired the trailing "›" chevron in favour of
+    // "· Switch" inline copy. The line reads as a muted sentence with
+    // an explicit action word, not a button — the chrome stays absent.
     const tree = SampleModeBanner({ isSampleMode: true, onPress: () => {} });
     const all = flattenText(tree);
     expect(all).toContain('✦');
-    expect(all).toMatch(/›|→/);
+    expect(all).toContain('Viewing example data');
+    expect(all).toContain('Switch');
+    expect(all).toContain('·');
+    // The chevron is gone.
+    expect(all).not.toContain('›');
+    expect(all).not.toContain('→');
   });
 });

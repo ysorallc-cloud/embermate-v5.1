@@ -3,15 +3,18 @@
 // Single muted line shown on Now while the user is exploring with example
 // data. Tap opens ManageSampleDataSheet (set up vs. remove).
 //
-// UX-2 pre-launch — pill chrome retired in favour of a quiet text line.
-// Pre-UX-2 history (preserved for context):
-//   Phase 33b Scope 2 reframed the surface per Q-33b.7 lock: cream pill,
-//   small lavender sparkle icon, no border. Pre-33b the entire pill carried
-//   lavender chrome (~100% footprint — border + bg + icon + text + chevron).
-// UX-2 takes the next step: no pill at all. The sample-mode state is meta /
-// system, not section chrome; a single muted line ("✦ Viewing example
-// data ›") reads as wayfinding without competing with Now's content.
-// The ✦ glyph stays at caregiverAccent as a tiny garnish accent.
+// Surface history (preserved for context):
+//   • Pre-33b: full lavender pill chrome (~100% footprint — border + bg +
+//     icon + text + chevron).
+//   • Phase 33b Scope 2: cream pill + lavender ✦ glyph garnish, no border.
+//   • UX-2: pill chrome retired. Single inline tappable line with a
+//     trailing "›" chevron.
+//   • UX-2 follow-up (post device walk): chevron retired in favour of
+//     "· Switch" inline copy so the line reads as a sentence-with-action
+//     rather than a button. The whole line is still tappable; the
+//     "Switch" word makes the affordance explicit without button chrome.
+//
+// The ✦ glyph stays at caregiverAccent as a tiny wayfinding garnish.
 // ============================================================================
 
 import React, { useMemo } from 'react';
@@ -35,14 +38,14 @@ export function SampleModeBanner({ isSampleMode, onPress }: SampleModeBannerProp
       onPress={onPress}
       activeOpacity={0.6}
       accessibilityRole="button"
-      accessibilityLabel="Viewing example data. Tap to manage."
+      accessibilityLabel="Viewing example data. Tap to switch."
       accessibilityHint="Opens the example data sheet to set up your own profile or remove the example."
       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     >
       <Text style={styles.lineText}>
         <Text style={styles.glyph}>{'✦'}</Text>
-        <Text>{' Viewing example data '}</Text>
-        <Text style={styles.chevron}>{'›'}</Text>
+        <Text>{' Viewing example data · '}</Text>
+        <Text style={styles.switchWord}>Switch</Text>
       </Text>
     </TouchableOpacity>
   );
@@ -50,13 +53,12 @@ export function SampleModeBanner({ isSampleMode, onPress }: SampleModeBannerProp
 
 const createStyles = (c: any) =>
   StyleSheet.create({
-    // UX-2 pre-launch — no pill chrome (no background, no border,
-    // no rounded corners). Just a single inline tappable line.
+    // UX-2 follow-up — no pill chrome at all. No padding scaffolding,
+    // no alignSelf gimmick. Just a single muted line sitting beneath
+    // the date row of NowHeader (rendered by Now between the header
+    // and the FirstTimeWelcome / StatRings chain).
     line: {
-      paddingHorizontal: 16, // allow: tap-target padding (Apple HIG ≥44pt)
-      paddingVertical: 6,
       marginBottom: 12,
-      alignSelf: 'flex-start',
     },
     lineText: {
       fontSize: 13,
@@ -67,9 +69,12 @@ const createStyles = (c: any) =>
     glyph: {
       color: c.caregiverAccent,
     },
-    chevron: {
+    // "Switch" reads in the same muted tone as the rest of the line, but
+    // slightly stronger weight so the affordance is discoverable. Stays
+    // textTertiary — no sage / lavender pop here.
+    switchWord: {
       color: c.textTertiary,
-      fontWeight: '500',
+      fontWeight: '600',
     },
   });
 

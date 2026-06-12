@@ -157,8 +157,9 @@ describe('SchedulePeriodHeader — entire header row is the tap target', () => {
   it('the whole row is wrapped in a single TouchableOpacity', () => {
     const tree = SchedulePeriodHeader(baseProps);
     const buttons = findAll(tree, (n) => n.type === 'TouchableOpacity');
-    // The header row itself + at most one Start button = up to 2.
-    // The chevron must NOT be its own button — the whole row is.
+    // UX-2 follow-up retired the per-period Start button, so the
+    // header row is the sole TouchableOpacity. The chevron must NOT
+    // be its own button — the whole row is.
     expect(buttons[0].props.onPress).toBe(baseProps.onToggle);
   });
 
@@ -313,35 +314,46 @@ describe('SchedulePeriodHeader — caregiver-warm status metadata', () => {
   });
 });
 
-describe('SchedulePeriodHeader — Start button only on current-active', () => {
-  it('shows Start when status is current-active', () => {
-    const tree = SchedulePeriodHeader({
-      ...baseProps,
-      onStart: jest.fn(),
-      status: { kind: 'current-active', toGoCount: 3, label: '3 to go' } as any,
-    });
-    const startButtons = findAll(tree, (n) =>
-      n.type === 'TouchableOpacity' &&
-      typeof n.props?.accessibilityLabel === 'string' &&
-      /^Start /.test(n.props.accessibilityLabel),
-    );
-    expect(startButtons.length).toBe(1);
-  });
-
-  it('hides Start in every other status, even when collapsed with pending counts', () => {
+describe('SchedulePeriodHeader — Start button retired (UX-2 follow-up)', () => {
+  // UX-2 pre-launch retired the per-period "Start" affordance — one
+  // status per row contract. The two prior Start-button describes
+  // ("only on current-active" + "passthrough") are collapsed into a
+  // single "never renders" assertion. The onStart prop remains in the
+  // API surface for caller compatibility but is unused at render time.
+  it('does NOT render a Start button regardless of status or collapse state', () => {
     const cases = [
+      { kind: 'current-active', toGoCount: 3, label: '3 to go' },
       { kind: 'past-complete', loggedCount: 3, label: 'complete' },
       { kind: 'past-incomplete', loggedCount: 1, notLoggedCount: 2, label: '2 to go' },
       { kind: 'current-caughtup', label: 'caught up' },
       { kind: 'future', comingUpCount: 3, label: '3 coming up' },
     ];
     for (const status of cases) {
+      for (const isCollapsed of [true, false]) {
+        const tree = SchedulePeriodHeader({
+          ...baseProps,
+          isCollapsed,
+          remainingCount: 5,
+          onStart: jest.fn(),
+          status: status as any,
+        });
+        const startButtons = findAll(tree, (n) =>
+          n.type === 'TouchableOpacity' &&
+          typeof n.props?.accessibilityLabel === 'string' &&
+          /^Start /.test(n.props.accessibilityLabel),
+        );
+        expect(startButtons.length).toBe(0);
+      }
+    }
+  });
+
+  it('legacy fallback path (no status) also does NOT render a Start button', () => {
+    for (const isCollapsed of [true, false]) {
       const tree = SchedulePeriodHeader({
         ...baseProps,
-        isCollapsed: true,
-        remainingCount: 5,
+        isCollapsed,
+        remainingCount: 3,
         onStart: jest.fn(),
-        status: status as any,
       });
       const startButtons = findAll(tree, (n) =>
         n.type === 'TouchableOpacity' &&
@@ -350,38 +362,5 @@ describe('SchedulePeriodHeader — Start button only on current-active', () => {
       );
       expect(startButtons.length).toBe(0);
     }
-  });
-});
-
-describe('SchedulePeriodHeader — Start button passthrough', () => {
-  it('renders a Start button only when collapsed AND a Start handler is provided', () => {
-    const onStart = jest.fn();
-    const tree = SchedulePeriodHeader({
-      ...baseProps,
-      isCollapsed: true,
-      remainingCount: 3,
-      onStart,
-    });
-    const startButtons = findAll(tree, (n) =>
-      n.type === 'TouchableOpacity' &&
-      typeof n.props?.accessibilityLabel === 'string' &&
-      /^Start /.test(n.props.accessibilityLabel),
-    );
-    expect(startButtons.length).toBe(1);
-  });
-
-  it('does not render Start when expanded', () => {
-    const tree = SchedulePeriodHeader({
-      ...baseProps,
-      isCollapsed: false,
-      remainingCount: 3,
-      onStart: jest.fn(),
-    });
-    const startButtons = findAll(tree, (n) =>
-      n.type === 'TouchableOpacity' &&
-      typeof n.props?.accessibilityLabel === 'string' &&
-      /^Start /.test(n.props.accessibilityLabel),
-    );
-    expect(startButtons.length).toBe(0);
   });
 });
