@@ -87,10 +87,31 @@ export function ReflectionCard() {
 
   const canSave = (mood !== null) || (text.trim().length > 0);
 
-  const handleMoodPress = useCallback((value: ReflectionMood) => {
-    setMood((prev) => (prev === value ? null : value));
+  // UX-4 pre-launch — mood tap saves immediately. The Save button below
+  // stays in place for optional text-only saves (and for re-saving after
+  // the user taps the card to edit a locked reflection). Tapping the
+  // already-selected mood deselects locally without committing — the
+  // user is in edit mode and can pick another mood (which saves) or
+  // tap Save to commit a text change.
+  const handleMoodPress = useCallback(async (value: ReflectionMood) => {
     setLocked(false);
-  }, []);
+    if (mood === value) {
+      // Toggle-off — clear the local selection without saving. The
+      // user is signalling edit intent; a subsequent mood tap or
+      // Save tap will commit.
+      setMood(null);
+      return;
+    }
+    setMood(value);
+    const entry = await saveReflection({
+      date,
+      mood: value,
+      text: text.trim().length > 0 ? text : null,
+    });
+    setSavedAt(entry.savedAt);
+    setLocked(true);
+    setToastVisible(true);
+  }, [mood, date, text]);
 
   const handleTextFocus = useCallback(() => {
     if (locked) setLocked(false);
