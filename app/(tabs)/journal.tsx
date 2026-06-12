@@ -1163,7 +1163,7 @@ export default function JournalTab() {
                   bare
                   date={selectedDate}
                   savedText={reflection?.text}
-                  savedAt={reflection?.savedAt}
+                  savedAt={reflection?.savedAt ?? undefined}
                   onSave={handleSaveReflection}
                   onDirtyChange={setReflectionDirty}
                   readOnly={isViewingPast}
