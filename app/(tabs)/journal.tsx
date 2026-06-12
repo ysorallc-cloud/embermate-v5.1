@@ -22,6 +22,14 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Colors, BorderRadius, Spacing, Fonts } from '../../theme/theme-tokens';
+import {
+  CARD_PADDING_H,
+  CARD_PADDING_V,
+  CardBorder,
+  SECTION_GAP,
+  TITLE_CLEARANCE,
+  TypeScale,
+} from '../../theme/spacing';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   buildCareBrief,
@@ -905,6 +913,8 @@ export default function JournalTab() {
             selectedDate={selectedDate}
             onDateSelect={handleDateSelect}
           />
+          {/* F7 — 28px after date chips (TITLE_CLEARANCE). */}
+          <View style={{ height: TITLE_CLEARANCE }} />
 
           {/* Phase 5.12.h — empty-day composition. When today has no
               events, no notes, and no tone, render the restorative
@@ -986,16 +996,15 @@ export default function JournalTab() {
                   empty assessment chrome appears. */}
               <TodayNotableMoments dateKey={selectedDate} wrapInSection />
 
-              {/* Section 1 → Position 2 — "How today went" (caregiverAccent).
-                  Lavender card carrying the witness-voice gestalt. The
-                  bare-mode GestaltSummary skips its standalone chrome
-                  because JournalSection owns the card shape. The
-                  empty-state tap-to-focus prompt is today-only per
-                  Phase 27.X D1 — past days are read-only; the prompt's
-                  forward-handoff voice doesn't fit a closed day. Past
-                  with no gestalt falls back to GestaltSummary's
-                  "No record from this day." */}
-              <SoapSectionFrame eyebrow="How today went" tint="caregiverAccent">
+              {/* F7 Position 2 — narrative prose. The "How today went"
+                  eyebrow + lavender chrome are RETIRED per F7 spec. The
+                  gestalt now renders as italic serif 14px directly,
+                  flat against the page — the prose IS the section, no
+                  surrounding card or label. Empty-state today-only
+                  prompt is preserved (tap-to-focus into the Section 4
+                  notes input). */}
+              <View style={{ height: SECTION_GAP }} />
+              <View style={s.journalNarrativeBlock}>
                 {!isViewingPast && subjectiveEmpty ? (
                   <TouchableOpacity
                     onPress={() => notesInputRef.current?.focus()}
@@ -1003,14 +1012,14 @@ export default function JournalTab() {
                     accessibilityRole="button"
                     accessibilityLabel="Add a note to describe today"
                   >
-                    <Text style={s.section1EmptyPrompt}>
+                    <Text style={s.journalNarrativePrompt}>
                       How would you describe today?
                     </Text>
                   </TouchableOpacity>
                 ) : (
                   <GestaltSummary summary={moodLine} bare />
                 )}
-              </SoapSectionFrame>
+              </View>
 
               {/* Section 2 → Position 3 — "What was logged" (neutral).
                   Hybrid gutter layout per Q-27.2c: bucket header above,
@@ -1045,6 +1054,8 @@ export default function JournalTab() {
                   || hasHydrationLogged
                   || hasSleepLogged;
                 return (
+                  <>
+                  <View style={{ height: SECTION_GAP }} />
                   <SoapSectionFrame eyebrow="What was logged" tint="neutral">
                     {!hasAnyLogged && (
                       <Text style={s.section2Empty}>Nothing logged yet today.</Text>
@@ -1094,6 +1105,7 @@ export default function JournalTab() {
                       </View>
                     )}
                   </SoapSectionFrame>
+                  </>
                 );
               })()}
 
@@ -1128,10 +1140,11 @@ export default function JournalTab() {
                   state copy at this layer. Always rendering the
                   SoapSectionFrame on past days surfaces ANY content
                   that exists in either store. */}
-              <SoapSectionFrame
-                eyebrow={isViewingPast ? 'Notes from that day' : 'For the next caregiver'}
-                tint="caregiverAccent"
-              >
+              <View style={{ height: SECTION_GAP }} />
+              <View style={s.section4DustyCard}>
+                <Text style={s.section4DustyEyebrow}>
+                  {(isViewingPast ? 'Notes from that day' : 'For the next caregiver').toUpperCase()}
+                </Text>
                 {!isViewingPast && stillPendingCount > 0 && (
                   <Text style={s.section4SubEyebrow}>STILL PENDING</Text>
                 )}
@@ -1170,7 +1183,7 @@ export default function JournalTab() {
                   caregiverName={caregiverName}
                   providerName={upcomingProviderName}
                 />
-              </SoapSectionFrame>
+              </View>
               </>
             );
           })()}
@@ -1309,11 +1322,38 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     flex: 1,
     backgroundColor: c.background,
   },
-  // Phase 27 F3 — Section 1 (Subjective) empty-state prompt. Renders
-  // when there is neither a gestalt summary nor any caregiver notes
-  // yet. F3 ships this as static text; F6 will swap it for a tap-to-
-  // focus affordance once JournalNotesCard moves into Section 4 with
-  // a ref (D7 — single input, two surface tap targets).
+  // F7 — narrative prose block (was Section 1 "How today went" pre-F7).
+  // No card, no eyebrow; the gestalt prose IS the section.
+  journalNarrativeBlock: {
+    paddingVertical: CARD_PADDING_V,
+  },
+  journalNarrativePrompt: {
+    fontFamily: Fonts.serifItalic,
+    fontSize: 14, // F7 spec: 14px narrative prose
+    lineHeight: 22,
+    color: c.textSecondary,
+    fontStyle: 'italic' as const,
+  },
+  // F7 — Section 4 dusty-bordered input card. Replaces the prior
+  // SoapSectionFrame caregiverAccent left-rule chrome with a fully
+  // bordered card carrying a micro eyebrow.
+  section4DustyCard: {
+    borderWidth: 1,
+    borderColor: CardBorder.dusty,
+    borderRadius: 12,
+    paddingVertical: CARD_PADDING_V,
+    paddingHorizontal: CARD_PADDING_H,
+  },
+  section4DustyEyebrow: {
+    ...TypeScale.micro,
+    color: '#6b8cae', // dusty
+    marginBottom: 14, // allow: eyebrow rhythm to body
+  },
+  // Phase 27 F3 — Section 1 (Subjective) empty-state prompt. Retired
+  // alongside the F7 narrative reshuffle; the F7 journalNarrativePrompt
+  // style above replaces it. Pinned here as a transitional alias so any
+  // out-of-tree consumer still resolves until a follow-up sweep removes
+  // it entirely.
   section1EmptyPrompt: {
     fontSize: 13,
     lineHeight: 19,
@@ -1332,10 +1372,12 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
     marginBottom: Spacing.sm, // gap between bucket groups
   },
   bucketHeader: {
-    fontFamily: Fonts.serif,
-    fontSize: 12,
+    // F7 spec: bucket sub-labels (MEDICATIONS / VITALS / etc.) render
+    // in micro type — 9px letter-spacing 1.8 weight 700, uppercase.
+    ...TypeScale.micro,
     color: c.textTertiary,
-    marginBottom: 4, // small gap to the sub-rows beneath
+    textTransform: 'uppercase' as const,
+    marginBottom: 6, // allow: eyebrow rhythm to sub-rows
   },
   bucketInlineValue: {
     fontSize: 13,
@@ -1497,19 +1539,22 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // TouchableOpacity. marginTop matches the header's serif title
   // baseline so the action reads as a peer of the title, not a
   // floating chip.
+  // F7 spec: 1px solid sage, color sage, 11px, padding 5px 14px, radius 18px.
+  // hitSlop on the TouchableOpacity carries tap-target compliance.
   shareHeaderAction: {
-    paddingHorizontal: 14, // allow: tap-target padding (Apple HIG ≥44pt with hitSlop)
-    paddingVertical: 8,
-    borderRadius: 999,
+    paddingHorizontal: 14, // allow: F7 share button horizontal pad
+    paddingVertical: 5, // allow: F7 share button vertical pad
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: c.accent,
     backgroundColor: 'transparent',
     marginTop: 8,
   },
   shareHeaderActionLabel: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '500' as const,
     color: c.accent,
+    letterSpacing: 0.3,
   },
   // Phase 22.1 — headerDate / headerMood styles retired. The date
   // moved into JournalIdentityStrip and the mood line into

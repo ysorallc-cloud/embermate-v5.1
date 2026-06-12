@@ -53,71 +53,50 @@ function nthIndexOf(haystack: string, needle: string, n: number): number {
   return idx;
 }
 
-function findSectionBlockByEyebrow(eyebrow: string): { start: number; end: number; body: string } | null {
-  // Scan all <SoapSectionFrame ...> openers for the one whose attrs
-  // mention the eyebrow string. Phase 27.X turned Section 4's eyebrow
-  // into a conditional expression — eyebrow={isViewingPast ? 'Notes
-  // from that day' : 'For the next caregiver'} — so this matcher
-  // accepts both the pre-27.X string-literal shape AND the post-27.X
-  // expression shape (any JSX attribute span containing the eyebrow
-  // substring counts).
-  let cursor = 0;
-  while (true) {
-    const open = STRIPPED.indexOf('<SoapSectionFrame', cursor);
-    if (open === -1) return null;
-    const tagEnd = STRIPPED.indexOf('>', open);
-    if (tagEnd === -1) return null;
-    const tag = STRIPPED.slice(open, tagEnd + 1);
-    if (tag.includes(eyebrow)) {
-      const close = STRIPPED.indexOf('</SoapSectionFrame>', tagEnd);
-      if (close === -1) return null;
-      return { start: open, end: close, body: STRIPPED.slice(tagEnd + 1, close) };
-    }
-    cursor = open + 1;
-  }
+function findSection4Body(): { start: number; body: string } | null {
+  // F7: Section 4 lives inside a section4DustyCard <View>, not a
+  // SoapSectionFrame. Scan from the style ref forward ~4000 chars to
+  // capture the full body — Section 4 is the last block in the SOAP
+  // IIFE so a generous window is safe.
+  const start = STRIPPED.indexOf('s.section4DustyCard');
+  if (start === -1) return null;
+  return { start, body: STRIPPED.slice(start, start + 4000) };
 }
 
-describe('Phase 27 F6 — Section 4 (Plan) wired into journal.tsx', () => {
+describe('Section 4 (Plan) wired into journal.tsx — F7 reshape', () => {
   it('contract 1: a notes-input ref identifier exists in the component body', () => {
-    // useRef call with a TextInput-shaped imperative handle. The
-    // conventional name is notesInputRef / notesCardRef / notesRef —
-    // accept any of those.
     expect(STRIPPED).toMatch(/\b(?:notesCardRef|notesRef|notesInputRef)\b/);
     expect(STRIPPED).toMatch(/useRef[^(]*\(/);
   });
 
-  it('contract 2: a <SoapSectionFrame has eyebrow "For the next caregiver" + tint "caregiverAccent"', () => {
-    const section4 = findSectionBlockByEyebrow('For the next caregiver');
-    expect(section4).toBeTruthy();
-    const tag = STRIPPED.slice(section4!.start, STRIPPED.indexOf('>', section4!.start) + 1);
-    expect(tag).toMatch(/tint=["']caregiverAccent["']/);
+  it('contract 2 [F7]: Section 4 renders as a dusty-bordered card with the conditional eyebrow', () => {
+    // F7: SoapSectionFrame + caregiverAccent retired. The dusty card
+    // owns the chrome; the conditional eyebrow literals live in JSX
+    // directly via section4DustyEyebrow.
+    expect(STRIPPED).toMatch(/s\.section4DustyCard\b/);
+    expect(STRIPPED).toMatch(/s\.section4DustyEyebrow\b/);
+    expect(STRIPPED).toContain('For the next caregiver');
+    expect(STRIPPED).toContain('Notes from that day');
   });
 
-  it('contract 3: Section 4 body contains <TodayStillPending bare ... and <JournalNotesCard bare ...', () => {
-    const section4 = findSectionBlockByEyebrow('For the next caregiver');
+  it('contract 3 [F7]: Section 4 body contains <TodayStillPending bare ... and <JournalNotesCard bare ...', () => {
+    const section4 = findSection4Body();
     expect(section4).toBeTruthy();
-    const body = section4!.body;
-    expect(body).toMatch(/<TodayStillPending[^>]*\bbare\b/);
-    expect(body).toMatch(/<JournalNotesCard[^>]*\bbare\b/);
+    expect(section4!.body).toMatch(/<TodayStillPending[^>]*\bbare\b/);
+    expect(section4!.body).toMatch(/<JournalNotesCard[^>]*\bbare\b/);
   });
 
-  it('contract 4: JournalNotesCard inside Section 4 is passed the focus-ref', () => {
-    const section4 = findSectionBlockByEyebrow('For the next caregiver');
+  it('contract 4 [F7]: JournalNotesCard inside the dusty card is passed the focus-ref', () => {
+    const section4 = findSection4Body();
     expect(section4).toBeTruthy();
     const notesTagMatch = section4!.body.match(/<JournalNotesCard[\s\S]*?\/>/);
     expect(notesTagMatch).toBeTruthy();
-    // The component takes an `inputRef` prop (forwards through to its
-    // internal TextInput so the parent can call .focus() — pre-Phase-27
-    // versions of this contract briefly used forwardRef + `ref`, but
-    // forwardRef broke pre-existing test calling patterns, so the API
-    // was refactored to a plain ref prop).
     expect(notesTagMatch![0]).toMatch(/\b(?:inputRef|ref)=\{(?:notesCardRef|notesRef|notesInputRef)\}/);
   });
 
-  it('contract 5: Section 4 references a "Still pending" sub-eyebrow string', () => {
-    const section4 = findSectionBlockByEyebrow('For the next caregiver');
+  it('contract 5 [F7]: Section 4 references a "Still pending" sub-eyebrow string', () => {
+    const section4 = findSection4Body();
     expect(section4).toBeTruthy();
-    // Case-insensitive match — render-time may uppercase via SectionEyebrow.
     expect(section4!.body.toLowerCase()).toContain('still pending');
   });
 
@@ -129,7 +108,7 @@ describe('Phase 27 F6 — Section 4 (Plan) wired into journal.tsx', () => {
     // STILL PENDING (contract 5 above) stays — it labels a distinct
     // list, not chrome around an input. This contract flips to an
     // absence pin defending the F5 direction.
-    const section4 = findSectionBlockByEyebrow('For the next caregiver');
+    const section4 = findSection4Body();
     expect(section4).toBeTruthy();
     // The pre-F5 form was <Text>NOTES</Text> inside Section 4's body;
     // post-F5 it's gone.
@@ -150,7 +129,7 @@ describe('Phase 27 F6 — Section 4 (Plan) wired into journal.tsx', () => {
   });
 
   it('contract 8: Section 4 (Plan) renders AFTER Section 3 (Assessment) in source order', () => {
-    const section4 = findSectionBlockByEyebrow('For the next caregiver');
+    const section4 = findSection4Body();
     expect(section4).toBeTruthy();
     // Section 3 is the TodayNotableMoments wrapInSection mount.
     const notableMount = STRIPPED.indexOf('<TodayNotableMoments');

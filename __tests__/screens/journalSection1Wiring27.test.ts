@@ -39,31 +39,28 @@ const STRIPPED = SRC
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-describe('Phase 27 F3b — Section 1 (Subjective) wired into journal.tsx', () => {
-  it('contract 1: imports SoapSectionFrame from components/journal', () => {
-    expect(STRIPPED).toMatch(
-      /import\s*\{[^}]*\bSoapSectionFrame\b[^}]*\}\s*from\s*['"][^'"]*\/journal\/SoapSectionFrame['"]/,
-    );
+describe('Section 1 (Subjective) wired into journal.tsx — F7 reshape', () => {
+  // F7 (2026-06-12) retired Section 1's SoapSectionFrame +
+  // caregiverAccent eyebrow. The gestalt now renders as flat
+  // italic-serif narrative prose. Contracts 1+2 below pin the new
+  // narrative-block shape; contract 3 still requires the
+  // GestaltSummary mount to live inside the new wrapper.
+  it('contract 1 [F7]: Section 1 renders as a flat journalNarrativeBlock (no SoapSectionFrame)', () => {
+    expect(STRIPPED).toMatch(/s\.journalNarrativeBlock\b/);
+    expect(STRIPPED).toMatch(/s\.journalNarrativePrompt\b/);
   });
 
-  it('contract 2: first <SoapSectionFrame has eyebrow "How today went" and tint "caregiverAccent"', () => {
-    // Locate the first <SoapSectionFrame ... > tag.
-    const m = STRIPPED.match(/<SoapSectionFrame[\s\S]*?>/);
-    expect(m).toBeTruthy();
-    const tag = m![0];
-    expect(tag).toMatch(/eyebrow=["']How today went["']/);
-    expect(tag).toMatch(/tint=["']caregiverAccent["']/);
+  it('contract 2 [F7]: "How today went" eyebrow + caregiverAccent tint are RETIRED on Section 1', () => {
+    expect(STRIPPED).not.toMatch(/eyebrow=["']How today went["']/);
+    expect(STRIPPED).not.toMatch(/<SoapSectionFrame\b[\s\S]{0,200}?tint=["']caregiverAccent["'][\s\S]{0,200}?eyebrow=["']How today went["']/);
   });
 
-  it('contract 3: Section 1 contains <GestaltSummary ... bare={true}', () => {
-    // Locate the first <SoapSectionFrame block including its children up
-    // to the matching </SoapSectionFrame> close (or self-close — for F3b
-    // we expect children, so the open form).
-    const start = STRIPPED.indexOf('<SoapSectionFrame');
+  it('contract 3 [F7]: GestaltSummary mounts inside the narrative block with bare prop', () => {
+    const start = STRIPPED.indexOf('s.journalNarrativeBlock');
     expect(start).toBeGreaterThan(-1);
-    const end = STRIPPED.indexOf('</SoapSectionFrame>', start);
-    expect(end).toBeGreaterThan(start);
-    const block = STRIPPED.slice(start, end);
+    // Scan the next ~600 chars after the block style ref — the
+    // GestaltSummary mount lives directly inside this <View>.
+    const block = STRIPPED.slice(start, start + 800);
     expect(block).toMatch(/<GestaltSummary[\s\S]*?bare/);
   });
 

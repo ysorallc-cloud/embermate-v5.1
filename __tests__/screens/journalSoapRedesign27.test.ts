@@ -87,60 +87,63 @@ function findAllSoapFrames(src: string): Array<{ start: number; tag: string }> {
   return out;
 }
 
-describe('Phase 27 F8 — Journal SOAP redesign structural contract (downstream pin for Phase 31 + Phase 32B)', () => {
+describe('F7 reshape — Journal structural contract (was Phase 27 F8 SOAP redesign)', () => {
+  // F7 (2026-06-12) reshaped the Phase 27 four-SOAP-section structure:
+  //   • Section 1 ("How today went") — SoapSectionFrame + caregiverAccent
+  //     RETIRED. Renders as flat italic-serif narrative prose.
+  //   • Section 4 ("For the next caregiver") — SoapSectionFrame +
+  //     caregiverAccent RETIRED. Renders as a fully bordered dusty card.
+  //   • Section 2 ("What was logged") — UNCHANGED (SoapSectionFrame
+  //     neutral).
+  //   • Section 3 (TodayNotableMoments wrapInSection) — UNCHANGED
+  //     (amber chrome rendered internally).
+  //
+  // The lavender bookend rhythm is intentionally retired with F7.
+
   // --------------------------------------------------------------------------
-  // INVARIANT 1 — Four SOAP sections in source order
+  // INVARIANT 1 — Surviving SOAP frame + section order
   // --------------------------------------------------------------------------
 
-  it('invariant 1: journal.tsx renders exactly 3 SoapSectionFrame opens directly (S1, S2, S4); S3 mounts via TodayNotableMoments', () => {
-    // S3 (Assessment) is the only section whose chrome lives inside a
-    // child component (TodayNotableMoments owns the SoapSectionFrame
-    // wrap when wrapInSection is true). Pin the three-in-journal +
-    // one-in-child shape so a future contributor doesn't accidentally
-    // duplicate S3's chrome at the journal.tsx level.
+  it('invariant 1 [F7]: journal.tsx renders exactly 1 SoapSectionFrame open directly (S2); S3 mounts via TodayNotableMoments', () => {
+    // Pre-F7: 3 direct frames (S1, S2, S4) + 1 inside TodayNotableMoments.
+    // F7:   only S2 stays in journal.tsx. S3 still via TodayNotableMoments.
     const frames = findAllSoapFrames(journalStripped);
-    expect(frames.length).toBe(3);
+    expect(frames.length).toBe(1);
+    expect(frames[0].tag).toMatch(/eyebrow=["']What was logged["']/);
     expect(todayNotableStripped).toMatch(/<SoapSectionFrame\b[\s\S]{0,200}?tint=["']amber["']/);
   });
 
-  it('invariant 1: the 3 direct journal.tsx SOAP sections appear in order S1 ("How today went") → S2 ("What was logged") → S4 ("For the next caregiver")', () => {
-    const frames = findAllSoapFrames(journalStripped);
-    expect(frames.length).toBe(3);
-    expect(frames[0].tag).toMatch(/eyebrow=["']How today went["']/);
-    expect(frames[1].tag).toMatch(/eyebrow=["']What was logged["']/);
-    // S4's eyebrow is a conditional expression; the today literal is
-    // included in the opener tag.
-    expect(frames[2].tag).toContain('For the next caregiver');
+  it('invariant 1 [F7]: Section 1 narrative block + Section 4 dusty card surfaces are anchored on dedicated style refs', () => {
+    expect(journalStripped).toMatch(/s\.journalNarrativeBlock\b/);
+    expect(journalStripped).toMatch(/s\.journalNarrativePrompt\b/);
+    expect(journalStripped).toMatch(/s\.section4DustyCard\b/);
+    expect(journalStripped).toMatch(/s\.section4DustyEyebrow\b/);
   });
 
-  it('invariant 1 [UX-3 reshuffle]: S3 (TodayNotableMoments wrapInSection) renders BEFORE S1 in source order (lead position)', () => {
-    // Pre-UX-3 the Phase 27 SOAP layout was S1 → S2 → S3 → S4.
-    // UX-3 pre-launch device walk moved Worth Flagging to the lead
-    // position: S3 → S1 → S2 → S4. The lavender bookend rhythm
-    // (S1 + S4 both caregiverAccent) is unchanged — only the
-    // assessment-card position moved.
-    const frames = findAllSoapFrames(journalStripped);
-    const s1Start = frames[0].start;
+  it('invariant 1 [UX-3 + F7]: source order is S3 (TodayNotableMoments) → S1 (narrative block) → S2 (What was logged) → S4 (dusty card)', () => {
     const notableMount = journalStripped.match(/<TodayNotableMoments[\s\S]*?\/>/);
     expect(notableMount).toBeTruthy();
     expect(notableMount![0]).toMatch(/\bwrapInSection\b/);
     const notableIdx = journalStripped.indexOf(notableMount![0]);
-    expect(notableIdx).toBeLessThan(s1Start);
+    const narrativeIdx = journalStripped.indexOf('s.journalNarrativeBlock');
+    const s2 = findAllSoapFrames(journalStripped)[0].start;
+    const s4Idx = journalStripped.indexOf('s.section4DustyCard');
+    expect(notableIdx).toBeLessThan(narrativeIdx);
+    expect(narrativeIdx).toBeLessThan(s2);
+    expect(s2).toBeLessThan(s4Idx);
   });
 
   // --------------------------------------------------------------------------
-  // INVARIANT 2 — Eyebrow text + tint role per section
+  // INVARIANT 2 — F7 retire: lavender bookends RETIRED
   // --------------------------------------------------------------------------
 
-  it('invariant 2: S1 + S4 share the caregiverAccent tint (lavender lane bookends)', () => {
-    const frames = findAllSoapFrames(journalStripped);
-    expect(frames[0].tag).toMatch(/tint=["']caregiverAccent["']/);
-    expect(frames[2].tag).toMatch(/tint=["']caregiverAccent["']/);
+  it('invariant 2 [F7]: lavender bookend rhythm RETIRED — no caregiverAccent tint anywhere in journal.tsx', () => {
+    expect(journalStripped).not.toMatch(/tint=["']caregiverAccent["']/);
   });
 
-  it('invariant 2: S2 uses the neutral tint (textTertiary rule)', () => {
+  it('invariant 2 [F7]: S2 uses the neutral tint (unchanged)', () => {
     const frames = findAllSoapFrames(journalStripped);
-    expect(frames[1].tag).toMatch(/tint=["']neutral["']/);
+    expect(frames[0].tag).toMatch(/tint=["']neutral["']/);
   });
 
   it('invariant 2: S3 uses the amber tint (rendered inside TodayNotableMoments)', () => {
@@ -149,10 +152,9 @@ describe('Phase 27 F8 — Journal SOAP redesign structural contract (downstream 
     );
   });
 
-  it('invariant 2: S4 eyebrow is conditional — "For the next caregiver" today, "Notes from that day" past', () => {
-    const frames = findAllSoapFrames(journalStripped);
-    expect(frames[2].tag).toContain('For the next caregiver');
-    expect(frames[2].tag).toContain('Notes from that day');
+  it('invariant 2 [F7]: S4 eyebrow literals stay verbatim in the dusty-card JSX', () => {
+    expect(journalStripped).toContain('For the next caregiver');
+    expect(journalStripped).toContain('Notes from that day');
   });
 
   // --------------------------------------------------------------------------
@@ -202,15 +204,16 @@ describe('Phase 27 F8 — Journal SOAP redesign structural contract (downstream 
     expect(journalStripped).toMatch(/<MealsNarrative[\s\S]{0,200}loggedOnly/);
   });
 
-  it('invariant 4: Section 4 STILL PENDING sub-block still renders (pending content surfaces here, not in Section 2)', () => {
-    // The "Still pending" sub-eyebrow + TodayStillPending mount must
-    // remain — the dedup direction is "S2 drops pending"; S4 stays
-    // the canonical pending surface.
-    const frames = findAllSoapFrames(journalStripped);
-    const s4Open = frames[2].start;
-    const s4Close = journalStripped.indexOf('</SoapSectionFrame>', s4Open);
-    expect(s4Close).toBeGreaterThan(s4Open);
-    const s4Body = journalStripped.slice(s4Open, s4Close);
+  it('invariant 4 [F7]: Section 4 STILL PENDING sub-block still renders inside the dusty card (pending content surfaces here, not in Section 2)', () => {
+    // F7: Section 4's SoapSectionFrame retired; the dusty card now
+    // owns the chrome. STILL PENDING + TodayStillPending mount must
+    // stay — the dedup direction is unchanged.
+    const s4Open = journalStripped.indexOf('s.section4DustyCard');
+    expect(s4Open).toBeGreaterThan(-1);
+    // Scan forward to the closing </View> of the dusty card. Section
+    // 4 is the last main block in the SOAP IIFE so a generous window
+    // catches its full body.
+    const s4Body = journalStripped.slice(s4Open, s4Open + 4000);
     expect(s4Body).toMatch(/<TodayStillPending\b/);
     expect(s4Body).toMatch(/STILL PENDING/);
   });
@@ -231,16 +234,12 @@ describe('Phase 27 F8 — Journal SOAP redesign structural contract (downstream 
   // INVARIANT 6 — Section 4 mount point (Phase 31 target)
   // --------------------------------------------------------------------------
 
-  it('invariant 6 (Phase 31 target): Section 4 contains <JournalNotesCard ... bare ... /> with the focus-ref wired in', () => {
-    // Phase 31 will consolidate Notes input into this mount. The
-    // bare prop signals the card is nested inside SoapSectionFrame
-    // chrome (no duplicate card outline); the ref is shared with
-    // Section 1's empty-state tap-to-focus prompt (D7 — single
-    // input, two tap targets).
-    const frames = findAllSoapFrames(journalStripped);
-    const s4Open = frames[2].start;
-    const s4Close = journalStripped.indexOf('</SoapSectionFrame>', s4Open);
-    const s4Body = journalStripped.slice(s4Open, s4Close);
+  it('invariant 6 [F7]: Section 4 dusty card contains <JournalNotesCard ... bare ... /> with the focus-ref wired in', () => {
+    // F7: SoapSectionFrame retired; dusty card now wraps the
+    // JournalNotesCard mount. The bare + inputRef wiring stays.
+    const s4Open = journalStripped.indexOf('s.section4DustyCard');
+    expect(s4Open).toBeGreaterThan(-1);
+    const s4Body = journalStripped.slice(s4Open, s4Open + 4000);
     expect(s4Body).toMatch(/<JournalNotesCard\b[\s\S]{0,400}bare/);
     expect(s4Body).toMatch(/inputRef=\{[^}]+\}/);
   });

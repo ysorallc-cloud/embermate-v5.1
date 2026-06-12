@@ -132,6 +132,19 @@ jest.mock('../../components/now/QuickLogSheet', () => ({
   QuickLogSheet: () => null,
 }));
 
+// F7 C2 — Now zone restructure mounted three new components (Zone is
+// a primitive, HealthZoneNow + ReflectionZoneNow are zone surfaces).
+// Stub them at the smoke layer; their internal data loads + 17:00 gate
+// would otherwise pull in the full ReflectionCard sheet wrapper +
+// daily-reflection repo / vitals + symptom storage chains.
+jest.mock('../../components/now/HealthZoneNow', () => ({
+  HealthZoneNow: () => null,
+}));
+
+jest.mock('../../components/now/ReflectionZoneNow', () => ({
+  ReflectionZoneNow: () => null,
+}));
+
 jest.mock('../../components/sample/SampleModeBanner', () => ({
   SampleModeBanner: () => null,
 }));
