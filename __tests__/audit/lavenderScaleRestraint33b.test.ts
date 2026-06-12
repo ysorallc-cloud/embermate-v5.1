@@ -167,7 +167,9 @@ const WHITELIST: Array<{ path: string; rationale: string }> = [
   { path: 'components/now/EndOfShiftCard.tsx', rationale: 'end-of-shift caregiver-handoff card' },
   { path: 'components/sample/ManageSampleDataSheet.tsx', rationale: 'sample-data management sheet' },
   { path: 'components/sample/SampleModeBanner.tsx', rationale: 'Q-33b.7 lavender sparkle glyph garnish (canon-compliant icon-scale lavender; chrome retired in 33b)' },
-  { path: 'components/support/ActionCardsRow.tsx', rationale: 'You-tab action cards — lane-defining row' },
+  // F7 C5 (2026-06-12) — ActionCardsRow migrated from caregiverAccent
+  // (lavender) icon accent to dusty blue (#6b8cae). Whitelist entry
+  // retired; the file no longer consumes bare c.caregiverAccent.
   { path: 'components/today/EndOfDayCard.tsx', rationale: 'end-of-day caregiver reflection card' },
   { path: 'components/understand/RecentWindowCard.tsx', rationale: 'recent-window understand surface' },
 ];

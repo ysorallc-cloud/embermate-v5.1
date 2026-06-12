@@ -104,10 +104,13 @@ describe('Phase 29 Batch B F2 — ActionCardsRow', () => {
     expect(ionicons[0].props.name).toBe('call-outline');
     expect(ionicons[1].props.name).toBe('heart-outline');
     expect(ionicons[2].props.name).toBe('pulse-outline');
-    // Per spec: size 13, color caregiverAccent.
+    // F7 C5 — icon accent migrated lavender (#aa8adc caregiverAccent)
+    // → dusty blue (#6b8cae). The You-lane caregiver identity stays on
+    // the broader tab; the support tiles step into the dusty handoff
+    // palette per F7 spec.
     for (const icon of ionicons) {
       expect(icon.props.size).toBe(13);
-      expect(icon.props.color).toBe('#aa8adc'); // caregiverAccent from mock
+      expect(icon.props.color).toBe('#6b8cae');
     }
   });
 

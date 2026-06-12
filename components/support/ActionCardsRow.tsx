@@ -107,7 +107,11 @@ export function ActionCardsRow({
           accessibilityLabel={c.accessibilityLabel}
           accessibilityHint={c.accessibilityHint}
         >
-          <Ionicons name={c.iconName} size={13} color={colors.caregiverAccent} />
+          {/* F7 C5 — lavender icon accent → dusty blue (#6b8cae). The
+              You-lane caregiverAccent identity stays on the broader
+              tab; the support tiles step into the dusty handoff palette
+              per F7 spec. */}
+          <Ionicons name={c.iconName} size={13} color="#6b8cae" />
           <Text style={styles.label}>{c.label}</Text>
           <Text style={styles.subtitle}>{c.subtitle}</Text>
         </TouchableOpacity>

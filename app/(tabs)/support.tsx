@@ -43,6 +43,7 @@ import { BreathingExercise } from '../../components/support/BreathingExercise';
 import { BreathingOrbCard } from '../../components/support/BreathingOrbCard';
 import { ResourcesList } from '../../components/support/ResourcesList';
 import { Colors, Spacing, Fonts } from '../../theme/theme-tokens';
+import { SECTION_GAP, TITLE_CLEARANCE } from '../../theme/spacing';
 import {
   buildCaregiverWitness,
   WitnessSignal,
@@ -51,6 +52,12 @@ import { useDataListener } from '../../lib/events';
 import { EVENT } from '../../lib/eventNames';
 import { getCaregiverProfile } from '../../storage/caregiverProfileRepo';
 import { composeYouGreeting } from '../../utils/text/composers/youGreeting';
+// F7 C5 — mood strip data plumbing.
+import { MoodStrip } from '../../components/support/MoodStrip';
+import { getEventsByDateRange } from '../../storage/eventRepo';
+import type { WeekRecapDay } from '../../utils/text/composers/weekRecap';
+import type { MoodLevel } from '../../utils/text/composers/wellnessOpening';
+import type { CareEvent } from '../../types/event';
 
 // Events that change the data the witness builder reads. Anything else
 // fires the listener but the listener filter ignores it — the builder
@@ -86,6 +93,21 @@ export default function SupportScreen() {
   // no "Caregiver" placeholder appears, matching the no-chip fallback
   // the audit confirmed.
   const [caregiverName, setCaregiverName] = useState<string>('');
+  // F7 C5 — 7-day mood timeline for the MoodStrip surface.
+  const [moodDays, setMoodDays] = useState<WeekRecapDay[]>(() => {
+    // Default to 7 empty days so the strip renders the onboarding empty
+    // state on first paint without waiting for the async load.
+    const out: WeekRecapDay[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      out.push({
+        date: d.toISOString().split('T')[0],
+        weekday: d.getDay(),
+      });
+    }
+    return out;
+  });
 
   // Single fetch on mount; re-fetch only when the witness builder's
   // read sources change. The builder is cheap (cached storage reads),
@@ -106,9 +128,46 @@ export default function SupportScreen() {
       .catch(() => {});
   }, []);
 
+  // F7 C5 — fetch 7 days of mood events for the MoodStrip. Same data
+  // path caregiver-wellness uses (getEventsByDateRange + filter to
+  // mood events) so the strip's voice matches the subscreen recap.
+  const refreshMoodDays = useCallback(async () => {
+    try {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - 6);
+      const startKey = start.toISOString().split('T')[0];
+      const endKey = end.toISOString().split('T')[0];
+      const events = await getEventsByDateRange(startKey, endKey, 'default');
+      const moods = events.filter((e: CareEvent) => e.type === 'mood_logged');
+      const out: WeekRecapDay[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        const event = moods.find((e) => e.timestamp.slice(0, 10) === key);
+        const mood = event && typeof event.value === 'number'
+          ? (event.value as MoodLevel)
+          : undefined;
+        out.push({ date: key, weekday: d.getDay(), mood });
+      }
+      setMoodDays(out);
+    } catch {
+      // Non-blocking — strip falls back to its empty-state copy.
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshMoodDays();
+  }, [refreshMoodDays]);
+
   useDataListener((category) => {
     if (WITNESS_EVENTS.has(category)) {
       refreshWitness();
+    }
+    // F7 C5 — MoodStrip refresh on mood / wellness saves.
+    if (category === EVENT.MOOD || category === EVENT.WELLNESS) {
+      void refreshMoodDays();
     }
   });
 
@@ -178,6 +237,17 @@ export default function SupportScreen() {
 
           {/* ═══ Reflection card (mood + text + save) ═══ */}
           <ReflectionCard />
+
+          {/* ═══ F7 C5 — Mood strip (7-dot timeline + weekRecap) ═══
+              Sits between the ReflectionCard's daily check-in and the
+              support tile row. SECTION_GAP carries the rhythm; the
+              strip itself is open fabric — no card chrome. */}
+          <View style={{ height: SECTION_GAP }} />
+          <MoodStrip
+            days={moodDays}
+            onWellnessTap={() => navigate('/caregiver-wellness')}
+          />
+          <View style={{ height: SECTION_GAP }} />
 
           {/* ═══ Phase 29 Batch B F4 — Action cards row.
                 Replaces QuickResetPills (Breathe folded into the orb
