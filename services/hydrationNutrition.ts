@@ -139,10 +139,13 @@ async function buildAppetiteSummary(
     const meals = events.filter((e: CareEvent) => e.type === 'meal_logged');
     if (meals.length === 0) return null;
     const buckets = { good: 0, most: 0, some: 0, refused: 0, other: 0 };
+    type QualityBucket = 'good' | 'most' | 'some' | 'refused';
     for (const e of meals) {
-      const q = (e.metadata as any)?.quality;
+      // metadata is loosely-typed CareEvent payload; narrow via the
+      // explicit literal guard so the bucket index stays type-safe.
+      const q: unknown = (e.metadata as { quality?: unknown } | undefined)?.quality;
       if (q === 'good' || q === 'most' || q === 'some' || q === 'refused') {
-        buckets[q] += 1;
+        buckets[q as QualityBucket] += 1;
       } else {
         buckets.other += 1;
       }
