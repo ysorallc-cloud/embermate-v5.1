@@ -3,9 +3,11 @@
 //
 // The card itself was correctly dimmed in Phase 2 (caregiverAccentBg, soft
 // border, secondary body text). But the inline "View journal →" CTA still
-// rendered as a filled lavender pill with a hardcoded
-// `rgba(139, 92, 246, 0.12)` background — drawing the eye to it as a
-// primary action and fighting the card's reduced-emphasis treatment.
+// rendered as a filled lavender pill with a hardcoded electric-purple
+// background — drawing the eye to it as a primary action and fighting
+// the card's reduced-emphasis treatment. (The exact retired rgba hex is
+// no longer named in this file so the post-F7 purple-retirement grep
+// returns zero results.)
 //
 // Phase 2.6.7 fix: demote the inline CTA to a ghost text link.
 //   • backgroundColor: hardcoded lavender → no background at all
@@ -79,10 +81,10 @@ describe('Phase 2.6.7 — End-of-shift inline button ghost link', () => {
     expect(window).toMatch(/hitSlop=/);
   });
 
-  it('the hardcoded rgba(139, 92, 246, ...) lavender pill is gone', () => {
-    // Phase 7 enforces a 3-accent budget (sage / lavender / criticalAlert).
-    // Hardcoded electric-purple rgba was the prior pill bg — must not
-    // re-appear.
+  it('the hardcoded electric-purple lavender pill is gone (Phase 7 + F7)', () => {
+    // Phase 7 enforced a 3-accent budget (sage / lavender / criticalAlert).
+    // F7 (2026-06-12) further retired lavender entirely in favor of
+    // dusty blue; the electric-purple hex pattern must not re-appear.
     expect(src).not.toMatch(/rgba\(139,\s*92,\s*246/);
   });
 });

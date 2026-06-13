@@ -64,7 +64,10 @@ const createStyles = (c: any) => StyleSheet.create({
     marginBottom: 12, // allow: gestalt anchor breathing room above day picker
     paddingVertical: 12, // allow: paragraph internal padding (Apple HIG ≥44pt block)
     paddingHorizontal: 14, // allow: paragraph internal padding (Apple HIG ≥44pt block)
-    backgroundColor: c.caregiverAccentBg || 'rgba(170,138,220,0.08)',
+    // F7 purple retirement — hardcoded lavender rgba fallback retired
+    // (the token is always defined; the fallback was defensive over-
+    // reach that masked the token migration to dusty blue).
+    backgroundColor: c.caregiverAccentBg,
     borderLeftWidth: 3,
     borderLeftColor: c.caregiverAccentStrong || c.caregiverAccent,
     borderRadius: 6,

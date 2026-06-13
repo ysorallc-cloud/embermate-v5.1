@@ -11,7 +11,7 @@
 //   1. `coral` is a hard rename from `red`, not an alias (per F1b lock)
 //   2. New caregiverAccent ladder rungs use `Mid` / `Bold` naming, not
 //      `Solid` / `Text` (forced by collision with existing
-//      `caregiverAccentText: '#d4baff'` token; F1b fallback)
+//      `caregiverAccentText: '#5a7a9a'` token; F1b fallback)
 //   3. `Fonts.serif` carries a single RN-compatible font name
 //      ('SourceSerif4_400Regular'), not the spec's CSS font stack;
 //      `sans` token dropped entirely (Q-33.6 skipped Inter loading)
@@ -82,12 +82,12 @@ describe('themeTokens33 — F1b token renames + ladder extensions', () => {
     expect(dark.coralBright).toBe('#e6776e');
   });
 
-  it('caregiverAccentMid = rgba(170, 138, 220, 0.35) (NEW, F1b Option C, sageMuted alias target)', () => {
-    expect(dark.caregiverAccentMid.replace(/\s+/g, '')).toBe('rgba(170,138,220,0.35)');
+  it('caregiverAccentMid = rgba(107, 140, 174, 0.35) (NEW, F1b Option C, sageMuted alias target)', () => {
+    expect(dark.caregiverAccentMid.replace(/\s+/g, '')).toBe('rgba(107,140,174,0.35)');
   });
 
-  it('caregiverAccentBold = rgba(170, 138, 220, 0.70) (NEW, F1b Option C, sageStrong alias target)', () => {
-    expect(dark.caregiverAccentBold.replace(/\s+/g, '')).toBe('rgba(170,138,220,0.70)');
+  it('caregiverAccentBold = rgba(107, 140, 174, 0.70) (NEW, F1b Option C, sageStrong alias target)', () => {
+    expect(dark.caregiverAccentBold.replace(/\s+/g, '')).toBe('rgba(107,140,174,0.70)');
   });
 
   it('ember = #ff8c42 (NEW, website --ember warm-glow accent)', () => {

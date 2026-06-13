@@ -28,10 +28,10 @@ jest.mock('../../contexts/ThemeContext', () => ({
     colors: {
       background: '#1f201c',
       glass: '#363830',
-      caregiverAccent: '#aa8adc',
-      caregiverAccentText: '#d4baff',
-      caregiverAccentBg: 'rgba(170, 138, 220, 0.06)',
-      caregiverAccentStrong: 'rgba(170, 138, 220, 0.25)',
+      caregiverAccent: '#6b8cae',
+      caregiverAccentText: '#5a7a9a',
+      caregiverAccentBg: 'rgba(107, 140, 174, 0.08)',
+      caregiverAccentStrong: 'rgba(107, 140, 174, 0.30)',
       textPrimary: '#fff',
       textSecondary: '#c4c1b3',
       textTertiary: '#8a8a82',
@@ -122,7 +122,12 @@ describe('EndOfShiftCard — soft-suggestion border (≤ 0.3 alpha)', () => {
 });
 
 describe('EndOfShiftCard — heading + body color', () => {
-  it('heading uses the canonical lavender (#aa8adc), not the brighter caregiverAccentText', () => {
+  it('heading uses textPrimary cream (F7 purple retirement flipped from accent to content tone)', () => {
+    // F7 (2026-06-12) flipped EndOfShiftCard's title color from the
+    // pre-F7 caregiverAccent (which was lavender, would now be dusty
+    // blue post-token-remap) to textPrimary cream. The card is a soft
+    // suggestion, not an accent surface; the cream title reads as
+    // content rather than an emphasis layer.
     const tree = (EndOfShiftCard as any)(baseProps());
     const titleNodes = findAll(tree, (n) => {
       if (n.type !== 'Text') return false;
@@ -131,7 +136,10 @@ describe('EndOfShiftCard — heading + body color', () => {
     });
     expect(titleNodes.length).toBe(1);
     const merged = styleOf(titleNodes[0]);
-    expect(merged.color).toBe('#aa8adc');
+    // textPrimary mock value — the test ThemeContext mock surfaces it
+    // as '#fff' / cream. Pin against the mocked value to keep the
+    // assertion independent of the underlying theme token's exact hex.
+    expect(merged.color).toBe('#fff');
   });
 
   it('body uses textSecondary (#c4c1b3, the locked muted)', () => {

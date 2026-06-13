@@ -193,27 +193,27 @@ const DarkColors = {
   // (sageDim 0.06 → accentDim 0.10) — slight visual lift on 1 consumer.
 
   /** @deprecated Phase 33 F1b — misnamed (carries LAVENDER hex). Use `caregiverAccent` directly. */
-  sage: '#aa8adc', // alias to caregiverAccent (1.00 solid, ✓ exact)
+  sage: '#6b8cae', // alias to caregiverAccent (1.00 solid, ✓ exact)
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentBg`. Alpha shift +0.02 from 0.04 → 0.06. */
-  sageHint: 'rgba(170, 138, 220, 0.06)', // alias to caregiverAccentBg
+  sageHint: 'rgba(107, 140, 174, 0.06)', // alias to caregiverAccentBg
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentBg`. Alpha shift +0.01 from 0.05 → 0.06. */
-  sageTint: 'rgba(170, 138, 220, 0.06)', // alias to caregiverAccentBg
-  /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentBg` (alpha 0.06, ✓ exact). */
-  sageFaint: 'rgba(170, 138, 220, 0.06)', // alias to caregiverAccentBg
+  sageTint: 'rgba(107, 140, 174, 0.06)', // alias to caregiverAccentBg
+  /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentBg`. F7 purple retirement (2026-06-12) lifted alpha from 0.06 → 0.08 to track the dusty-blue caregiverAccentBg's new 0.08 rung. */
+  sageFaint: 'rgba(107, 140, 174, 0.08)', // alias to caregiverAccentBg
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentMuted` (alpha 0.08, ✓ exact). */
-  sageLight: 'rgba(170, 138, 220, 0.08)', // alias to caregiverAccentMuted
+  sageLight: 'rgba(107, 140, 174, 0.08)', // alias to caregiverAccentMuted
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentLight` (alpha 0.10, ✓ exact). */
-  sageSubtle: 'rgba(170, 138, 220, 0.10)', // alias to caregiverAccentLight
+  sageSubtle: 'rgba(107, 140, 174, 0.10)', // alias to caregiverAccentLight
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentHint` (alpha 0.12, ✓ exact). */
-  sageBorder: 'rgba(170, 138, 220, 0.12)', // alias to caregiverAccentHint
+  sageBorder: 'rgba(107, 140, 174, 0.12)', // alias to caregiverAccentHint
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentWash` (alpha 0.15, ✓ exact). */
-  sageWash: 'rgba(170, 138, 220, 0.15)', // alias to caregiverAccentWash
+  sageWash: 'rgba(107, 140, 174, 0.15)', // alias to caregiverAccentWash
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentStrong`. Alpha shift +0.03 from 0.22 → 0.25. */
-  sageGlow: 'rgba(170, 138, 220, 0.25)', // alias to caregiverAccentStrong
+  sageGlow: 'rgba(107, 140, 174, 0.30)', // alias to caregiverAccentStrong
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentMid` (NEW, alpha 0.35, ✓ exact). */
-  sageMuted: 'rgba(170, 138, 220, 0.35)', // alias to caregiverAccentMid (NEW)
+  sageMuted: 'rgba(107, 140, 174, 0.35)', // alias to caregiverAccentMid (NEW)
   /** @deprecated Phase 33 F1b — misnamed (LAVENDER). Use `caregiverAccentBold` (NEW, alpha 0.70, ✓ exact). */
-  sageStrong: 'rgba(170, 138, 220, 0.70)', // alias to caregiverAccentBold (NEW)
+  sageStrong: 'rgba(107, 140, 174, 0.70)', // alias to caregiverAccentBold (NEW)
   /** @deprecated Phase 33 F1b — correctly-sage RGB (only sage* token that was). Use `accentDim`. Alpha shift +0.04 from 0.06 → 0.10 (per user instruction). */
   sageDim: 'rgba(95, 184, 138, 0.10)', // alias to accentDim
   amberBright: '#e5b04a',
@@ -270,16 +270,22 @@ const DarkColors = {
   // 64-site purple migration in Phase 8.2 is a 1:1 token rename rather
   // than a visual judgment call. caregiverAccentBorder shifts from 0.25
   // → 0.20 to match purpleBorder; the 0.25 value is now caregiverAccentStrong.
-  caregiverAccent: '#aa8adc',
-  caregiverAccentText: '#d4baff',
-  caregiverAccentBg: 'rgba(170, 138, 220, 0.06)',
-  caregiverAccentFaint: 'rgba(170, 138, 220, 0.06)',
-  caregiverAccentMuted: 'rgba(170, 138, 220, 0.08)',
-  caregiverAccentLight: 'rgba(170, 138, 220, 0.10)',
-  caregiverAccentHint: 'rgba(170, 138, 220, 0.12)',
-  caregiverAccentWash: 'rgba(170, 138, 220, 0.15)',
-  caregiverAccentBorder: 'rgba(170, 138, 220, 0.20)',
-  caregiverAccentStrong: 'rgba(170, 138, 220, 0.25)',
+  // F7 purple retirement (2026-06-12) — caregiverAccent family
+  // migrated from warm lavender (#aa8adc / rgba(170,138,220,...)) to
+  // dusty blue (#6b8cae / rgba(107,140,174,...)). Token NAME preserved
+  // for back-compat across hundreds of consumers; only the canonical
+  // hex/rgba VALUES flip. The caregiver→clinician handoff lane stays
+  // the same conceptual semantic — just in a calmer hue.
+  caregiverAccent: '#6b8cae',
+  caregiverAccentText: '#5a7a9a',
+  caregiverAccentBg: 'rgba(107, 140, 174, 0.08)',
+  caregiverAccentFaint: 'rgba(107, 140, 174, 0.06)',
+  caregiverAccentMuted: 'rgba(107, 140, 174, 0.08)',
+  caregiverAccentLight: 'rgba(107, 140, 174, 0.10)',
+  caregiverAccentHint: 'rgba(107, 140, 174, 0.12)',
+  caregiverAccentWash: 'rgba(107, 140, 174, 0.15)',
+  caregiverAccentBorder: 'rgba(107, 140, 174, 0.20)',
+  caregiverAccentStrong: 'rgba(107, 140, 174, 0.30)',
   // Phase 33 F1b — Option C ladder extensions (audit F1b-1). The
   // pre-Phase-33 sage* lavender-alias ladder had high-alpha rungs at
   // 0.35 and 0.70 with no corresponding caregiverAccent value. F1b
@@ -291,8 +297,11 @@ const DarkColors = {
   // exists above as a brighter-lavender text token with different
   // semantic. Falling back to the audit's Mid/Bold naming per the
   // locked plan (both names are defensible).
-  caregiverAccentMid: 'rgba(170, 138, 220, 0.35)',
-  caregiverAccentBold: 'rgba(170, 138, 220, 0.70)',
+  // F7 purple retirement (2026-06-12) — alpha ladder extensions
+  // migrated to dusty blue alongside the rest of the caregiverAccent
+  // family.
+  caregiverAccentMid: 'rgba(107, 140, 174, 0.35)',
+  caregiverAccentBold: 'rgba(107, 140, 174, 0.70)',
   // ── Ember (Phase 33 F1b adds) ─────────────────────────────────────────
   // Website source-of-truth `--ember: #ff8c42` and `--ember-deep: #e8642a`.
   // Warm-glow accents used by the website for atmospheric layers and

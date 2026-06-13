@@ -19,40 +19,40 @@
 import { Colors } from '../../theme/theme-tokens';
 
 describe('Phase 8.1 — caregiverAccent ladder tokens', () => {
-  it('caregiverAccentFaint is rgba(170, 138, 220, 0.06)', () => {
-    expect((Colors as any).caregiverAccentFaint).toBe('rgba(170, 138, 220, 0.06)');
+  it('caregiverAccentFaint is rgba(107, 140, 174, 0.06)', () => {
+    expect((Colors as any).caregiverAccentFaint).toBe('rgba(107, 140, 174, 0.06)');
   });
 
-  it('caregiverAccentMuted is rgba(170, 138, 220, 0.08)', () => {
-    expect((Colors as any).caregiverAccentMuted).toBe('rgba(170, 138, 220, 0.08)');
+  it('caregiverAccentMuted is rgba(107, 140, 174, 0.08)', () => {
+    expect((Colors as any).caregiverAccentMuted).toBe('rgba(107, 140, 174, 0.08)');
   });
 
-  it('caregiverAccentLight is rgba(170, 138, 220, 0.10)', () => {
-    expect((Colors as any).caregiverAccentLight).toBe('rgba(170, 138, 220, 0.10)');
+  it('caregiverAccentLight is rgba(107, 140, 174, 0.10)', () => {
+    expect((Colors as any).caregiverAccentLight).toBe('rgba(107, 140, 174, 0.10)');
   });
 
-  it('caregiverAccentHint is rgba(170, 138, 220, 0.12)', () => {
-    expect((Colors as any).caregiverAccentHint).toBe('rgba(170, 138, 220, 0.12)');
+  it('caregiverAccentHint is rgba(107, 140, 174, 0.12)', () => {
+    expect((Colors as any).caregiverAccentHint).toBe('rgba(107, 140, 174, 0.12)');
   });
 
-  it('caregiverAccentWash is rgba(170, 138, 220, 0.15)', () => {
-    expect((Colors as any).caregiverAccentWash).toBe('rgba(170, 138, 220, 0.15)');
+  it('caregiverAccentWash is rgba(107, 140, 174, 0.15)', () => {
+    expect((Colors as any).caregiverAccentWash).toBe('rgba(107, 140, 174, 0.15)');
   });
 
   it('caregiverAccentBorder shifts from 0.25 → 0.20 (matches legacy purpleBorder)', () => {
-    expect((Colors as any).caregiverAccentBorder).toBe('rgba(170, 138, 220, 0.20)');
+    expect((Colors as any).caregiverAccentBorder).toBe('rgba(107, 140, 174, 0.20)');
   });
 
   it('caregiverAccentStrong is the renamed 0.25 token (was caregiverAccentBorder)', () => {
-    expect((Colors as any).caregiverAccentStrong).toBe('rgba(170, 138, 220, 0.25)');
+    expect((Colors as any).caregiverAccentStrong).toBe('rgba(107, 140, 174, 0.30)');
   });
 
   it('caregiverAccentText (#d4baff) and caregiverAccentBg (0.06) stay untouched', () => {
-    expect(Colors.caregiverAccentText).toBe('#d4baff');
-    expect(Colors.caregiverAccentBg).toBe('rgba(170, 138, 220, 0.06)');
+    expect(Colors.caregiverAccentText).toBe('#5a7a9a');
+    expect(Colors.caregiverAccentBg).toBe('rgba(107, 140, 174, 0.08)');
   });
 
   it('caregiverAccent root color is unchanged (#aa8adc)', () => {
-    expect(Colors.caregiverAccent).toBe('#aa8adc');
+    expect(Colors.caregiverAccent).toBe('#6b8cae');
   });
 });

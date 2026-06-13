@@ -69,7 +69,9 @@ describe('Phase 7 — 3-accent budget enforced', () => {
   it('the 3 budget accents are defined in theme-tokens', () => {
     const src = readFileSync(join(ROOT, 'theme/theme-tokens.ts'), 'utf8');
     expect(src).toMatch(/accent:\s*['"]#5fb88a['"]/);
-    expect(src).toMatch(/caregiverAccent:\s*['"]#aa8adc['"]/);
+    // F7 (2026-06-12) — caregiverAccent flipped from #aa8adc (warm
+    // lavender) to #6b8cae (dusty blue). Token name preserved.
+    expect(src).toMatch(/caregiverAccent:\s*['"]#6b8cae['"]/);
     expect(src).toMatch(/criticalAlert:\s*['"]#e6776e['"]/);
   });
 

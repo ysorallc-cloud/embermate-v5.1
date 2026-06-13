@@ -67,8 +67,11 @@ describe('Theme tokens — semantic accents', () => {
     expect(dark.accent).toBe('#5fb88a');
   });
 
-  it('caregiverAccent (lavender) is locked', () => {
-    expect(dark.caregiverAccent).toBe('#aa8adc');
+  it('caregiverAccent (dusty blue post-F7 purple retirement) is locked', () => {
+    // F7 (2026-06-12) — caregiverAccent flipped from warm lavender to
+    // dusty blue. Token name preserved for back-compat across consumers;
+    // only the canonical hex flipped.
+    expect(dark.caregiverAccent).toBe('#6b8cae');
   });
 
   it('warning (sage amber) is locked', () => {

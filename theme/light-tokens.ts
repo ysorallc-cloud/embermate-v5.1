@@ -184,16 +184,22 @@ export const LightColors = {
   // Phase 8.1 — opacity ladder mirrors the legacy purple* family.
   // caregiverAccentBorder shifts from 0.30 → 0.20 to track the dark-theme
   // recalibration; the 0.30 value is now caregiverAccentStrong.
-  caregiverAccent: '#6b46c1',
-  caregiverAccentText: '#5b21b6',
-  caregiverAccentBg: 'rgba(107, 70, 193, 0.08)',
-  caregiverAccentFaint: 'rgba(107, 70, 193, 0.06)',
-  caregiverAccentMuted: 'rgba(107, 70, 193, 0.08)',
-  caregiverAccentLight: 'rgba(107, 70, 193, 0.10)',
-  caregiverAccentHint: 'rgba(107, 70, 193, 0.12)',
-  caregiverAccentWash: 'rgba(107, 70, 193, 0.15)',
-  caregiverAccentBorder: 'rgba(107, 70, 193, 0.20)',
-  caregiverAccentStrong: 'rgba(107, 70, 193, 0.30)',
+  // F7 purple retirement (2026-06-12) — light-theme caregiverAccent
+  // family migrated from purple to dusty blue. Token names preserved
+  // for back-compat; only canonical values flip. (The exact retired
+  // purple hexes are deliberately not named in this comment so the
+  // post-F7 purple-retirement grep returns zero results outside
+  // node_modules.)
+  caregiverAccent: '#6b8cae',
+  caregiverAccentText: '#5a7a9a',
+  caregiverAccentBg: 'rgba(107, 140, 174, 0.08)',
+  caregiverAccentFaint: 'rgba(107, 140, 174, 0.06)',
+  caregiverAccentMuted: 'rgba(107, 140, 174, 0.08)',
+  caregiverAccentLight: 'rgba(107, 140, 174, 0.10)',
+  caregiverAccentHint: 'rgba(107, 140, 174, 0.12)',
+  caregiverAccentWash: 'rgba(107, 140, 174, 0.15)',
+  caregiverAccentBorder: 'rgba(107, 140, 174, 0.20)',
+  caregiverAccentStrong: 'rgba(107, 140, 174, 0.30)',
   // ── Warm text (light) ──
   textWarmPrimary: '#1A1A2E',
   textWarmSecondary: '#4A4A5A',

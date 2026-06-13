@@ -64,9 +64,14 @@ export const SubCardRoleColors: Record<ComponentRole, {
   configuration: {
     background: Colors.glass,
     border: Colors.glassBorder,
-    accent: Colors.caregiverAccent,
-    labelBackground: Colors.caregiverAccentHint,
-    labelColor: Colors.caregiverAccent,
+    // F7 purple retirement (2026-06-12) — configuration role accent
+    // migrates to direct dusty blue hex/rgba per spec. Bypasses the
+    // Colors.caregiverAccent indirection so subCardTokens consumers
+    // see the dusty palette even on surfaces that still reference
+    // the legacy 'lavender configuration role' label semantically.
+    accent: '#6b8cae',
+    labelBackground: 'rgba(107, 140, 174, 0.10)',
+    labelColor: '#6b8cae',
   },
 };
 

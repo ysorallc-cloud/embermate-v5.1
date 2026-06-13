@@ -124,9 +124,11 @@ const createStyles = (c: any) => StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '600',
-    // v6.7 visual-consistency: canonical lavender token, not the brighter
-    // caregiverAccentText. The card is a soft suggestion, not an alert.
-    color: c.caregiverAccent,
+    // F7 purple retirement — title flips from caregiverAccent (now
+    // dusty blue post-remap) to textPrimary (cream label). The card
+    // is a soft suggestion, not an accent surface; the cream title
+    // reads as content rather than an emphasis layer.
+    color: c.textPrimary,
     marginBottom: 4,
   },
   body: {
