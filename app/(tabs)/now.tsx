@@ -72,8 +72,9 @@ import { useNowPrompts } from '../../hooks/useNowPrompts';
 
 // Extracted components
 import { RoutineSheet } from '../../components/now/RoutineSheet';
-import { QuickLogFAB } from '../../components/now/QuickLogFAB';
-import { QuickLogSheet } from '../../components/now/QuickLogSheet';
+// QuickLogFAB + QuickLogSheet retired 2026-06-13 — ad-hoc logging is
+// the "Log something else →" link under HealthZoneNow → /quick-log-more.
+// Component files preserved on disk (dormant).
 import { NowHeader } from '../../components/now/NowHeader';
 import { NowTimeline } from '../../components/now/NowTimeline';
 import { NowFooter } from '../../components/now/NowFooter';
@@ -198,9 +199,6 @@ export default function NowScreen() {
   // Category filter state (tappable rings)
   const [selectedCategory, setSelectedCategory] = useState<BucketType | null>(null);
   const [activeRoutineWindow, setActiveRoutineWindow] = useState<TimeWindow | null>(null);
-  // UX-1 pre-launch — QuickLogSheet visibility. FAB toggles open; sheet
-  // handles its own internal mode (picker → note/vitals sub-bodies).
-  const [quickLogSheetOpen, setQuickLogSheetOpen] = useState(false);
   // Phase 35 Slice 3-D — Phase-1D parallel undoToast retired.
   // handleQuickConfirm now routes through the unified LogToast pattern
   // below + the canonical undoInstanceCompletion (which soft-deletes
@@ -1263,6 +1261,22 @@ export default function NowScreen() {
           <View style={{ height: SECTION_GAP }} />
           <HealthZoneNow />
 
+          {/* Ad-hoc logging catch-all (2026-06-13) — retired the QuickLog
+              FAB + sheet in favor of one quiet text link to the picker.
+              Sits below HealthZoneNow so the "review (Health) + catch-all
+              (link)" pair reads as the day's logging surface. /quick-log-more
+              hosts Note + Water + anything not routed by HealthZoneNow's
+              four fabric rows. */}
+          <TouchableOpacity
+            onPress={() => navigate('/quick-log-more')}
+            accessibilityRole="button"
+            accessibilityLabel="Log something else"
+            style={styles.logSomethingElseLink}
+            hitSlop={{ top: 12, bottom: 12, left: 16, right: 16 }}
+          >
+            <Text style={styles.logSomethingElseLinkText}>Log something else →</Text>
+          </TouchableOpacity>
+
           {/* ═══ F7 REFLECTION ZONE — Reflection (evening only) ═══
               Hidden entirely before 17:00. After 17:00 renders one of
               three states (A: meds done → ember invite + Coffee Moment
@@ -1345,14 +1359,6 @@ export default function NowScreen() {
         onClose={() => setManageSampleSheet({ open: false })}
       />
 
-      {/* UX-1 pre-launch — QuickLog FAB + sheet. The FAB lives at the
-          tab-root z-index so it floats above the scroll + LogToast.
-          The sheet is a Modal so it overlays Now without navigating. */}
-      <QuickLogFAB onPress={() => setQuickLogSheetOpen(true)} />
-      <QuickLogSheet
-        visible={quickLogSheetOpen}
-        onClose={() => setQuickLogSheetOpen(false)}
-      />
     </View>
   );
 }
@@ -1370,6 +1376,21 @@ const createStyles = (c: typeof Colors) => StyleSheet.create({
   // v6.7 LogToast wrapper — same float anchor as the legacy undo toast.
   logToastWrap: {
     position: 'absolute', bottom: 100, left: 0, right: 0,
+  },
+
+  // Catch-all "Log something else →" link (2026-06-13). Quiet, low-key —
+  // textTertiary, small type, centered. Visual register matches the
+  // section-header action chrome ("Care Plan →", etc.) so it reads as a
+  // tertiary affordance, not a primary CTA.
+  logSomethingElseLink: {
+    paddingTop: 12,
+    paddingBottom: 4,
+    alignItems: 'center',
+  },
+  logSomethingElseLinkText: {
+    fontSize: 12,
+    color: c.textTertiary,
+    fontWeight: '500',
   },
 
   // Section header (used by Upcoming This Week)
