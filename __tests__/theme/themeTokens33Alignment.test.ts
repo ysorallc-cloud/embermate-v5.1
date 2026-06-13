@@ -27,13 +27,13 @@ const dark = getDarkColors() as unknown as Record<string, string>;
 // ── Colors — Phase 33 F1a (value flips) ──────────────────────────────────
 
 describe('themeTokens33 — F1a color value flips', () => {
-  it('background = #0d0b08 (post-F7 followup deeper warm-black)', () => {
+  it('background = #1a1612 (warm-restore; website --bg)', () => {
     // Migration chain: #141612 → #1f201c → #1a1612 (Phase 33 F1a) →
-    // #0d0b08 (post-F7 2026-06-13). The deeper page bg pairs with
-    // the Now-schedule-floats-on-page-bg restructure; glass (#211e18)
-    // becomes the one-step-from-bg card surface for surfaces that
-    // still card.
-    expect(dark.background).toBe('#0d0b08');
+    // [#0d0b08 slice-1 superseded] → #1a1612 (warm restore). The warm
+    // page bg pairs with the new `zonePanel` token (#221d15) so the
+    // Now zone wrappers sit on quiet warm panels and the page bg
+    // reads as a gutter between them.
+    expect(dark.background).toBe('#1a1612');
   });
 
   it('backgroundGradientStart/End mirror background (Phase 2.6.1 lockstep)', () => {

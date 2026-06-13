@@ -22,28 +22,35 @@ const DarkColors = {
   // holds the warm cast without reading washed-out on device.
   // Phase 33 F1a (2026-05-17) aligned to the website source-of-truth
   // `--bg: #1a1612` — deeper warm-brown than the Phase-0 sage-charcoal.
-  // Post-F7 followup (2026-06-13) dropped one more step to #0d0b08 to
-  // pair with the schedule-floats-on-page-bg restructure: page bg
-  // becomes the deeper "rest" surface, glass (#211e18) becomes the
-  // one-step-from-bg card surface for surfaces that still card. L*
-  // drops to ~3.1, glass→bg L* delta still clears 8 (now ~8.3), and
-  // WCAG AA contrast IMPROVES on the darker surface (textSecondary
-  // ~10.9:1, textTertiary ~5.7:1).
-  background: '#0d0b08',
+  //
+  // Post-F7 followup (2026-06-13, 07843628) briefly dropped to #0d0b08
+  // to pair with the schedule-floats-on-page-bg restructure. That
+  // direction was SUPERSEDED the same day by the
+  // embermate-now-full-approved visual target: warm v6.7 #1a1612 stays
+  // the page bg ("rest" surface, warm gutter), and a NEW `zonePanel`
+  // token (#221d15, low-lift warm panel) handles the zone-panel surface
+  // for the Now zone wrappers. Schedule / Health / Reflection sit on
+  // zonePanel; bg shows as a gutter between them.
+  //
+  // Migration chain: #141612 → #1f201c → #1a1612 → [#0d0b08 superseded]
+  //                  → #1a1612 (restored).
+  background: '#1a1612',
   backgroundAlt: '#050505',
-  // Phase 0 lockstep lift — when bg moved from #141612 (L* 6.92) to #1f201c
-  // (L* 12.01), the prior glass #2a2c25 (L* 17.59) only lifted L* 5.57 above
-  // the new bg, breaking the L* ≥ 8 dim-room legibility contract.
-  // Post-F7 followup (2026-06-13) drops glass to #211e18 — one-step-from-bg
-  // card surface paired with the deeper #0d0b08 page bg. L* delta narrows
-  // from ~11 to ~8.3 (still clears the cardContrast ≥ 8 contract). Cards
-  // that still card sit closer to the page than before; the new visual
-  // hierarchy is "deeper page / quieter card / unchanged surfaceElevated
-  // modal lift." Sibling tokens (surface, surfaceElevated, warmSurface*,
-  // youCardSurface, backgroundElevated) intentionally NOT lockstep-shifted
-  // — they keep the Phase 0 / Phase 33 values to provide explicit
-  // elevation steps above the new closer-to-bg glass.
-  glass: '#211e18',
+  // Phase 0 lockstep lift — when bg moved from #141612 to #1f201c, the
+  // prior glass #2a2c25 (L* 17.59) only lifted L* 5.57 above the new bg,
+  // breaking the L* ≥ 8 dim-room legibility contract. Glass and its
+  // siblings were lifted in lockstep so cards keep the "object on a
+  // surface" affordance. Phase 33 F1a left glass at #363830 against the
+  // realigned #1a1612 bg → glass→bg L* delta ~15.5.
+  //
+  // Post-F7 followup briefly took glass to #211e18 paired with #0d0b08
+  // bg (cardContrast L* delta narrowed to ~8.3); SUPERSEDED the same
+  // day by the embermate-now-full-approved visual target. Glass is
+  // restored to #363830 for cards that still card; the NEW `zonePanel`
+  // token (#221d15) handles the quieter zone-panel surface so panels
+  // and cards sit at distinct elevation tiers (panel L* ~11 sits BELOW
+  // glass L* ~23).
+  glass: '#363830',
   glassHover: 'rgba(255, 245, 220, 0.06)',
   // Phase 3.5 — bumped opacity 0.08 → 0.10 so card edges read more
   // visibly against the warm-charcoal page bg. Border still reads as a
@@ -354,9 +361,10 @@ const DarkColors = {
   borderMedium: 'rgba(95, 184, 138, 0.22)',
   borderStrong: 'rgba(95, 184, 138, 0.35)',
   // Mirrors the page background (Phase 0 lifted both in lockstep so the
-  // tab strip stays seamless with the surface above it; post-F7 followup
-  // 2026-06-13 moved both to #0d0b08 in lockstep).
-  tabBarBackground: '#0d0b08',
+  // tab strip stays seamless with the surface above it). Slice-1's
+  // brief flip to #0d0b08 was superseded; restored to #1a1612 alongside
+  // the warm-bg restore.
+  tabBarBackground: '#1a1612',
   tabBarBorder: 'rgba(95, 184, 138, 0.15)',
   tabBarActive: '#5fb88a',
   tabBarInactive: 'rgba(255, 255, 255, 0.40)',
@@ -376,12 +384,12 @@ const DarkColors = {
   // underneath. The gradient JSX surface itself is preserved (35
   // consumer sites today) for a future deliberate design call that
   // wants depth back.
-  // Phase 33 F1a moved both to #1a1612 in lockstep with `background`;
-  // post-F7 followup (2026-06-13) drops both to #0d0b08 in lockstep
-  // with the new page bg. The lockstep is enforced by
+  // Phase 33 F1a moved both to #1a1612 in lockstep with `background`.
+  // Slice-1's brief flip to #0d0b08 was superseded; both restored to
+  // #1a1612 alongside the warm-bg restore. The lockstep is enforced by
   // care-plan-page-background.test.tsx (gradient-stops-equal-bg pin).
-  backgroundGradientStart: '#0d0b08',
-  backgroundGradientEnd: '#0d0b08',
+  backgroundGradientStart: '#1a1612',
+  backgroundGradientEnd: '#1a1612',
   // Phase 2.6.2 — lifted to the Phase 0 glass-tier value (#363830). Pre-lift
   // was '#1A1A1A', which sat L* 2.7 BELOW the new warm-charcoal bg — making
   // buttons read darker than the page they sat on. Same root cause as the
@@ -403,6 +411,16 @@ const DarkColors = {
   // consumers yet — declared for forward use (Batch B Section 3 chrome
   // candidate; subtle-tier card backgrounds; etc.).
   bgRaised: '#221d18',
+  // Now-zone panel surface (post-slice-1 followup, 2026-06-13). Quiet-warm
+  // low-lift panel — L* ~11 sits roughly 3.5 above the #1a1612 page bg.
+  // Designed so the Now zone wrappers (Schedule / Health / Reflection)
+  // each sit on zonePanel with the warm page bg reading as a gutter
+  // between them. Distinct from `glass` (cool, L* ~23 — substantial card
+  // lift) and from `bgRaised` (very-similar warm low-lift but reserved
+  // for a different semantic role per Phase 33 F1b). Within the warm
+  // family (no green/cool tint), pulling the panel toward warmth so it
+  // reads as a "warmer rest surface" rather than a cool card.
+  zonePanel: '#221d15',
   switchThumbOn: '#FFFFFF',
   switchThumbOff: '#F4F3F4',
   switchThumb: '#F4F3F4',

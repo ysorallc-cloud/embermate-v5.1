@@ -13,23 +13,24 @@ const dark = getDarkColors() as unknown as Record<string, string>;
 // ── Locked tokens ─────────────────────────────────────────────────────────
 
 describe('Theme tokens — locked dark surfaces', () => {
-  it('background (page) is the deeper warm-black (post-F7 followup)', () => {
-    // Migration chain #141612 → #1f201c → #1a1612 → #0d0b08.
-    // Post-F7 followup (2026-06-13) dropped page bg one more step to
-    // pair with the Now-schedule-floats-on-page-bg restructure. The
-    // deeper page bg is the "rest" surface; glass (#211e18) is the
-    // one-step-from-bg card surface. WCAG AA contrast improves on
-    // the darker surface (textSecondary now ~10.9:1).
-    expect(dark.background).toBe('#0d0b08');
+  it('background (page) is the warm-brown near-black #1a1612', () => {
+    // Migration chain #141612 → #1f201c → #1a1612 → [#0d0b08 superseded]
+    // → #1a1612. Slice-1 (07843628) briefly dropped to #0d0b08 to pair
+    // with a schedule-floats-on-page-bg direction; that pairing was
+    // superseded the same day by the embermate-now-full-approved visual
+    // target. Warm v6.7 #1a1612 stays the page bg ("rest" surface, warm
+    // gutter), and a new `zonePanel` token (#221d15) handles the quiet
+    // zone-panel surface for the Now zone wrappers.
+    expect(dark.background).toBe('#1a1612');
   });
 
-  it('glass (default card surface) is the one-step-from-bg warm card', () => {
-    // Migration chain glass: #2a2c25 → #363830 → #211e18.
-    // Post-F7 followup (2026-06-13) dropped glass alongside bg so
-    // cards that still card sit closer to the page than the prior
-    // ~L* 11 lift; new glass→bg delta is ~8.3 (still clears the
-    // cardContrast ≥ 8 contract).
-    expect(dark.glass).toBe('#211e18');
+  it('glass (default card surface) is the warm-charcoal Phase 0 value', () => {
+    // Migration chain glass: #2a2c25 → #363830 → [#211e18 superseded]
+    // → #363830. Slice-1's one-step-from-bg lift was superseded by the
+    // visual target: glass stays the Phase 0 / Phase 33 substantial
+    // ~L* 15 lift for cards that still card; the new `zonePanel`
+    // token holds the lower-lift quiet panel surface.
+    expect(dark.glass).toBe('#363830');
   });
 
   it('youCardSurface (You-tab capture only) is its own warmer card', () => {

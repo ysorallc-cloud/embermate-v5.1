@@ -1,5 +1,5 @@
 // ============================================================================
-// Page background lockstep — Phase 0 → Phase 33 → post-F7 migration chain.
+// Page background lockstep — Phase 0 → Phase 33 → slice-1-superseded chain.
 //
 // Phase 0 (v6.7 May 1) lifted the page bg from #141612 → #1f201c — a
 // calibrated half-step toward charcoal to hold the warm cast without
@@ -8,19 +8,22 @@
 // Phase 33 F1a (2026-05-17) realigned to the website source-of-truth
 // `--bg: #1a1612` — deeper warm-brown than the Phase-0 sage-charcoal.
 //
-// Post-F7 followup (2026-06-13) dropped one more step to #0d0b08 to pair
-// with the Now-schedule-floats-on-page-bg restructure. Migration chain
-// now reads #141612 → #1f201c → #1a1612 → #0d0b08. The deeper page bg
-// is the "rest" surface for floating content; glass (#211e18) handles
-// cards that still card.
+// Slice-1 (commit 07843628, 2026-06-13) briefly dropped to #0d0b08 to
+// pair with a schedule-floats-on-page-bg restructure. SUPERSEDED the
+// same day by the embermate-now-full-approved visual target: warm
+// v6.7 #1a1612 stays the page bg ("rest" surface / warm gutter), and
+// a new `zonePanel` token (#221d15) handles the quiet panel surface
+// for the Now zone wrappers. Migration chain settles at
+// #141612 → #1f201c → #1a1612 → [#0d0b08 superseded] → #1a1612.
 //
-// This is a TOKEN-LEVEL contract: the dark theme's `background` value is
-// the canonical page-bg, and `tabBarBackground` mirrors it. Both must
-// flip in lockstep so the tab strip and page surface stay seamless.
+// This is a TOKEN-LEVEL contract: the dark theme's `background` value
+// is the canonical page-bg, and `tabBarBackground` mirrors it. Both
+// must flip in lockstep so the tab strip and page surface stay
+// seamless.
 //
 // Pins:
-//   • DarkColors.background       === '#0d0b08'   (post-F7 2026-06-13)
-//   • DarkColors.tabBarBackground === '#0d0b08'   (lockstep)
+//   • DarkColors.background       === '#1a1612'   (warm restore)
+//   • DarkColors.tabBarBackground === '#1a1612'   (lockstep)
 //   • The old #141612 literal does NOT appear as an active value in
 //     theme-tokens (comments are allowed for migration narrative).
 // ============================================================================
@@ -34,13 +37,13 @@ const DarkColors = getDarkColors();
 const ROOT = join(__dirname, '..');
 const tokensSrc = readFileSync(join(ROOT, 'theme/theme-tokens.ts'), 'utf8');
 
-describe('Page background lockstep — post-F7 followup target #0d0b08', () => {
-  it('DarkColors.background is #0d0b08 (post-F7 deeper warm-black)', () => {
-    expect(DarkColors.background).toBe('#0d0b08');
+describe('Page background lockstep — warm-restore target #1a1612', () => {
+  it('DarkColors.background is #1a1612 (warm v6.7 restored)', () => {
+    expect(DarkColors.background).toBe('#1a1612');
   });
 
-  it('DarkColors.tabBarBackground mirrors the page bg (#0d0b08)', () => {
-    expect(DarkColors.tabBarBackground).toBe('#0d0b08');
+  it('DarkColors.tabBarBackground mirrors the page bg (#1a1612)', () => {
+    expect(DarkColors.tabBarBackground).toBe('#1a1612');
   });
 
   it('the old #141612 hex does NOT appear as an active token value', () => {

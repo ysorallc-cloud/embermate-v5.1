@@ -102,9 +102,10 @@ describe('Phase 2.5 — HC override migration', () => {
     });
     await flushHydrate();
 
-    // The HC override must NOT win — page bg is the post-F7 followup
-    // value (#0d0b08; migration chain #141612 → #1f201c → #1a1612 → #0d0b08).
-    expect(resolved).toBe('#0d0b08');
+    // The HC override must NOT win — page bg is the warm-restored
+    // value (#1a1612; migration chain #141612 → #1f201c → #1a1612 →
+    // [#0d0b08 superseded] → #1a1612).
+    expect(resolved).toBe('#1a1612');
     expect(resolved).not.toBe('#000000');
 
     (tree as any)?.unmount();
